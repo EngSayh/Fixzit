@@ -5,6 +5,11 @@ const Employee = require('../models/Employee');
 const FinanceMetric = require('../models/FinanceMetric');
 const SupportTicket = require('../models/SupportTicket');
 const MarketplaceItem = require('../models/MarketplaceItem');
+const Customer = require('../models/Customer');
+const ComplianceDoc = require('../models/ComplianceDoc');
+const SensorReading = require('../models/SensorReading');
+const AnalyticsMetric = require('../models/AnalyticsMetric');
+const SystemSetting = require('../models/SystemSetting');
 
 const router = express.Router();
 
@@ -70,6 +75,33 @@ router.post('/', async (req, res) => {
     await MarketplaceItem.create([
       { name: 'Industrial AC Unit - 5 Ton', priceSar: 12500, vendor: 'CoolTech Solutions', category: 'HVAC Equipment' },
       { name: 'Professional Tool Set', priceSar: 850, vendor: 'ProTools KSA', category: 'Tools' },
+    ]);
+
+    await Customer.create([
+      { name: 'Ali Saud', email: 'ali@example.com', phone: '+966555000111' },
+      { name: 'Noura Al-Qahtani', email: 'noura@example.com', phone: '+966555000222' },
+    ]);
+
+    await ComplianceDoc.create([
+      { permitNumber: 'PMT-2025-0142', type: 'Building Operation', propertyName: 'Al Olaya Tower', expiry: new Date('2025-12-31') },
+    ]);
+
+    await SensorReading.create([
+      { type: 'temperature', location: 'Building A - Lobby', value: '22.5°C', status: 'Normal' },
+      { type: 'humidity', location: 'Server Room', value: '48%', status: 'Optimal' },
+    ]);
+
+    await AnalyticsMetric.deleteMany({});
+    await AnalyticsMetric.create([
+      { key: 'reportTemplates', value: 47 },
+      { key: 'scheduledReports', value: 12 },
+      { key: 'customDashboards', value: 8 },
+    ]);
+
+    await SystemSetting.deleteMany({});
+    await SystemSetting.create([
+      { key: 'brand.color.primary', value: '#0061A8' },
+      { key: 'brand.name', value: 'FIXZIT SOUQ' },
     ]);
 
     res.json({ success: true });

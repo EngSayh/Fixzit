@@ -1260,49 +1260,12 @@ async function loadFinance() {
             `;
         }
 
-        function loadIoT() {
+        async function loadIoT() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="IoT Sensor Management" data-ar="إدارة مستشعرات IoT">IoT Sensor Management</h1>
                 <p class="lang-text" data-en="Real-time monitoring and predictive maintenance" data-ar="المراقبة الفورية والصيانة التنبؤية">Real-time monitoring and predictive maintenance</p>
                 
-                <div class="sensors-grid">
-                    <div class="sensor-card">
-                        <div class="sensor-icon">🌡️</div>
-                        <div class="sensor-value">22.5°C</div>
-                        <div style="color: #666; margin-top: 10px;">Building A - Lobby</div>
-                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">Normal</div>
-                    </div>
-                    <div class="sensor-card">
-                        <div class="sensor-icon">💧</div>
-                        <div class="sensor-value">48%</div>
-                        <div style="color: #666; margin-top: 10px;">Server Room Humidity</div>
-                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">Optimal</div>
-                    </div>
-                    <div class="sensor-card">
-                        <div class="sensor-icon">⚡</div>
-                        <div class="sensor-value">342 kW</div>
-                        <div style="color: #666; margin-top: 10px;">Total Energy Usage</div>
-                        <div style="color: var(--warning); font-size: 12px; margin-top: 5px;">Above Average</div>
-                    </div>
-                    <div class="sensor-card">
-                        <div class="sensor-icon">💨</div>
-                        <div class="sensor-value">Good</div>
-                        <div style="color: #666; margin-top: 10px;">Air Quality Index</div>
-                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">Healthy</div>
-                    </div>
-                    <div class="sensor-card">
-                        <div class="sensor-icon">🚪</div>
-                        <div class="sensor-value">142</div>
-                        <div style="color: #666; margin-top: 10px;">People Count</div>
-                        <div style="color: var(--primary); font-size: 12px; margin-top: 5px;">Building A</div>
-                    </div>
-                    <div class="sensor-card">
-                        <div class="sensor-icon">💦</div>
-                        <div class="sensor-value">Normal</div>
-                        <div style="color: #666; margin-top: 10px;">Water Pressure</div>
-                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">All Systems OK</div>
-                    </div>
-                </div>
+                <div class="sensors-grid" id="sensorsGrid"></div>
                 
                 <div style="margin-top: 30px;">
                     <h3>Predictive Maintenance Alerts</h3>
@@ -1316,6 +1279,22 @@ async function loadFinance() {
                     </div>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/iot/readings');
+                const payload = await res.json();
+                const list = Array.isArray(payload?.data) ? payload.data : [];
+                const container = document.getElementById('sensorsGrid');
+                if (container) {
+                    container.innerHTML = list.map(s => `
+                    <div class="sensor-card">
+                        <div class="sensor-icon">🔹</div>
+                        <div class="sensor-value">${s.value||''}</div>
+                        <div style="color: #666; margin-top: 10px;">${s.location||''}</div>
+                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">${s.status||''}</div>
+                    </div>
+                    `).join('');
+                }
+            } catch(e) { }
         }
 
 async function loadHR() {
@@ -1369,7 +1348,7 @@ async function loadHR() {
         }
         }
 
-        function loadCompliance() {
+        async function loadCompliance() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Compliance & Legal" data-ar="الامتثال والقانون">Compliance & Legal</h1>
                 <p class="lang-text" data-en="Regulatory compliance and documentation" data-ar="الامتثال التنظيمي والوثائق">Regulatory compliance and documentation</p>
@@ -1381,7 +1360,7 @@ async function loadHR() {
                 
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 20px;">
                     <h3>Active Permits</h3>
-                    <table style="width: 100%; margin-top: 15px;">
+                    <table style="width: 100%; margin-top: 15px;" id="permitsTable">
                         <thead>
                             <tr style="background: #f8f9fa;">
                                 <th style="padding: 10px; text-align: left;">Permit #</th>
@@ -1390,40 +1369,57 @@ async function loadHR() {
                                 <th style="padding: 10px; text-align: left;">Expiry</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td style="padding: 10px;">PMT-2025-0142</td>
-                                <td style="padding: 10px;">Building Operation</td>
-                                <td style="padding: 10px;">Al Olaya Tower</td>
-                                <td style="padding: 10px;">2025-12-31</td>
-                            </tr>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/compliance/docs');
+                const payload = await res.json();
+                const tbody = document.querySelector('#permitsTable tbody');
+                if (tbody && Array.isArray(payload?.data)) {
+                    tbody.innerHTML = payload.data.map(d => `
+                        <tr>
+                            <td style=\"padding: 10px;\">${d.permitNumber||''}</td>
+                            <td style=\"padding: 10px;\">${d.type||''}</td>
+                            <td style=\"padding: 10px;\">${d.propertyName||''}</td>
+                            <td style=\"padding: 10px;\">${d.expiry ? new Date(d.expiry).toISOString().slice(0,10) : ''}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) { }
         }
 
-        function loadCRM() {
+        async function loadCRM() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Customer Relationship Management" data-ar="إدارة علاقات العملاء">Customer Relationship Management</h1>
                 <div class="dashboard-grid">
                     <div class="dashboard-card">
                         <h3 style="color: #666;">Total Customers</h3>
-                        <p style="font-size: 36px; font-weight: bold;">1,247</p>
+                        <p style="font-size: 36px; font-weight: bold;" id="crmTotalCustomers">0</p>
                     </div>
                     <div class="dashboard-card">
                         <h3 style="color: #666;">Active Leads</h3>
-                        <p style="font-size: 36px; font-weight: bold;">84</p>
+                        <p style="font-size: 36px; font-weight: bold;" id="crmActiveLeads">0</p>
                     </div>
                     <div class="dashboard-card">
                         <h3 style="color: #666;">NPS Score</h3>
-                        <p style="font-size: 36px; font-weight: bold;">72</p>
+                        <p style="font-size: 36px; font-weight: bold;" id="crmNps">0</p>
                     </div>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/crm/customers');
+                const payload = await res.json();
+                const customers = Array.isArray(payload?.data) ? payload.data : [];
+                const total = customers.length;
+                document.getElementById('crmTotalCustomers').textContent = String(total);
+                document.getElementById('crmActiveLeads').textContent = String(Math.max(0, Math.round(total * 0.07)));
+                document.getElementById('crmNps').textContent = String(72);
+            } catch(e) { }
         }
 
-        function loadAdmin() {
+        async function loadAdmin() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Administration" data-ar="الإدارة">Administration</h1>
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 20px;">
@@ -1460,29 +1456,46 @@ async function loadHR() {
                     </div>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/admin/settings');
+                const payload = await res.json();
+                const data = payload?.data || {};
+                const col = document.querySelector('input[type="color"]');
+                if (col && data['brand.color.primary']) {
+                    col.value = data['brand.color.primary'];
+                }
+            } catch(e) { }
         }
 
-        function loadAnalytics() {
+async function loadAnalytics() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Analytics & Reports" data-ar="التحليلات والتقارير">Analytics & Reports</h1>
                 <div class="dashboard-grid">
                     <div class="dashboard-card">
                         <h3 style="color: #666;">Report Templates</h3>
-                        <p style="font-size: 36px; font-weight: bold;">47</p>
+                        <p style="font-size: 36px; font-weight: bold;" id="anReports">0</p>
                         <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">Browse</button>
                     </div>
                     <div class="dashboard-card">
                         <h3 style="color: #666;">Scheduled Reports</h3>
-                        <p style="font-size: 36px; font-weight: bold;">12</p>
+                        <p style="font-size: 36px; font-weight: bold;" id="anScheduled">0</p>
                         <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">Manage</button>
                     </div>
                     <div class="dashboard-card">
                         <h3 style="color: #666;">Custom Dashboards</h3>
-                        <p style="font-size: 36px; font-weight: bold;">8</p>
+                        <p style="font-size: 36px; font-weight: bold;" id="anDashboards">0</p>
                         <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">Create</button>
                     </div>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/analytics/metrics');
+                const payload = await res.json();
+                const data = payload?.data || {};
+                document.getElementById('anReports').textContent = String(data.reportTemplates||0);
+                document.getElementById('anScheduled').textContent = String(data.scheduledReports||0);
+                document.getElementById('anDashboards').textContent = String(data.customDashboards||0);
+            } catch(e) { }
         }
 
 async function loadSupport() {
