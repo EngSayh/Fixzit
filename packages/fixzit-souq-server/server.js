@@ -5,6 +5,10 @@ const compression = require('compression');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { connectDatabase, getDatabaseStatus } = require('./db');
+const path = require('path');
+const propertiesRouter = require('./routes/properties');
+const workOrdersRouter = require('./routes/workorders');
+const seedRouter = require('./routes/seed');
 
 const app = express();
 const PORT = Number(process.env.PORT || process.env.SOUQ_PORT || 5000);
@@ -58,6 +62,31 @@ app.get('/health', (req, res) => {
         }
     });
 });
+
+// API routes
+app.use('/api/properties', propertiesRouter);
+app.use('/api/workorders', workOrdersRouter);
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/seed', seedRouter);
+}
+
+// Dashboard summary API
+app.get('/api/dashboard', async (req, res) => {
+    try {
+        const Property = require('./models/Property');
+        const WorkOrder = require('./models/WorkOrder');
+        const [propertiesCount, workOrdersCount] = await Promise.all([
+            Property.countDocuments(),
+            WorkOrder.countDocuments(),
+        ]);
+        return res.json({ success: true, data: { propertiesCount, workOrdersCount } });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Optionally serve static theme for demo
+app.use('/theme', express.static(path.join(__dirname, '../../public/public')));
 
 // Marketplace API routes
 app.get('/api/marketplace/vendors', (req, res) => {
