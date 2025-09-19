@@ -4,6 +4,7 @@ const WorkOrder = require('../models/WorkOrder');
 const Employee = require('../models/Employee');
 const FinanceMetric = require('../models/FinanceMetric');
 const SupportTicket = require('../models/SupportTicket');
+const MarketplaceItem = require('../models/MarketplaceItem');
 
 const router = express.Router();
 
@@ -64,6 +65,11 @@ router.post('/', async (req, res) => {
     await SupportTicket.create([
       { subject: 'Cannot access invoice', status: 'OPEN', responseTimeHours: 3.1 },
       { subject: 'Elevator outage', status: 'IN_PROGRESS', responseTimeHours: 2.4 },
+    ]);
+
+    await MarketplaceItem.create([
+      { name: 'Industrial AC Unit - 5 Ton', priceSar: 12500, vendor: 'CoolTech Solutions', category: 'HVAC Equipment' },
+      { name: 'Professional Tool Set', priceSar: 850, vendor: 'ProTools KSA', category: 'Tools' },
     ]);
 
     res.json({ success: true });
