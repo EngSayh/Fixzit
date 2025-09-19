@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Received - Invoice {{invoice.number}}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #00A859 0%, #00D26A 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .payment-summary {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00A859;
+            margin: 10px 0;
+        }
+        .currency {
+            font-size: 18px;
+            color: #666;
+        }
+        .payment-details {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .detail-row {
+            display: flex;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-row:nth-child(even) {
+            background: #fafafa;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 140px;
+            margin-right: 15px;
+        }
+        .detail-value {
+            flex: 1;
+            color: #333;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .zatca-section {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .zatca-title {
+            font-weight: 600;
+            color: #0078D4;
+            margin-bottom: 10px;
+        }
+        .qr-placeholder {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border: 2px dashed #0078D4;
+            border-radius: 8px;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0078D4;
+            font-weight: 600;
+        }
+        .action-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: #0078D4;
+            color: white;
+        }
+        .btn-success {
+            background: #00A859;
+            color: white;
+        }
+        .next-steps {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .next-steps-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #0078D4;
+            text-decoration: none;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .detail-row {
+                flex-direction: column;
+                padding: 15px 20px;
+            }
+            .detail-label {
+                margin-bottom: 5px;
+                min-width: auto;
+            }
+            .btn {
+                display: block;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="success-icon">✅</div>
+            <h1>Payment Received</h1>
+            <p>Thank you for your payment</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <p>Dear <strong>{{customer.name}}</strong>,</p>
+            
+            <p>We are pleased to confirm that we have received your payment. Your invoice has been marked as paid.</p>
+
+            <!-- Payment Summary -->
+            <div class="payment-summary">
+                <div class="amount">
+                    {{payment.amount}} <span class="currency">{{payment.currency}}</span>
+                </div>
+                <p>Payment received on {{formatDate payment.receivedDate}}</p>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="payment-details">
+                <div class="detail-row">
+                    <div class="detail-label">Invoice Number:</div>
+                    <div class="detail-value">#{{invoice.number}}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Invoice Date:</div>
+                    <div class="detail-value">{{formatDate invoice.date}}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Payment Method:</div>
+                    <div class="detail-value">{{payment.method}}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Transaction ID:</div>
+                    <div class="detail-value">{{payment.transactionId}}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Payment Status:</div>
+                    <div class="detail-value">
+                        <span class="status-badge">Paid</span>
+                    </div>
+                </div>
+                {{#if payment.reference}}
+                <div class="detail-row">
+                    <div class="detail-label">Reference:</div>
+                    <div class="detail-value">{{payment.reference}}</div>
+                </div>
+                {{/if}}
+            </div>
+
+            {{#if invoice.property}}
+            <!-- Property Information -->
+            <div class="payment-details">
+                <div class="detail-row">
+                    <div class="detail-label">Property:</div>
+                    <div class="detail-value">{{invoice.property.name}}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Unit:</div>
+                    <div class="detail-value">{{invoice.property.unit}}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Service Period:</div>
+                    <div class="detail-value">{{invoice.servicePeriod}}</div>
+                </div>
+            </div>
+            {{/if}}
+
+            <!-- ZATCA Compliance Section -->
+            {{#if invoice.zatcaCompliant}}
+            <div class="zatca-section">
+                <div class="zatca-title">🇸🇦 ZATCA E-Invoice</div>
+                <p>This payment is for a ZATCA-compliant electronic invoice</p>
+                <div class="qr-placeholder">
+                    QR Code
+                </div>
+                <p><small>VAT Registration: {{company.vatNumber}}</small></p>
+            </div>
+            {{/if}}
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <a href="{{dashboardUrl}}/invoices/{{invoice.id}}" class="btn btn-primary">
+                    View Invoice
+                </a>
+                <a href="{{dashboardUrl}}/payments/{{payment.id}}/receipt" class="btn btn-success">
+                    Download Receipt
+                </a>
+            </div>
+
+            <!-- Next Steps -->
+            {{#if hasOutstandingBalance}}
+            <div class="next-steps">
+                <div class="next-steps-title">Outstanding Balance</div>
+                <p>You still have an outstanding balance of <strong>{{outstandingBalance}} {{payment.currency}}</strong> on your account.</p>
+                <p><a href="{{dashboardUrl}}/payments">View all invoices</a> to make additional payments.</p>
+            </div>
+            {{else}}
+            <div class="next-steps">
+                <div class="next-steps-title">Account Status</div>
+                <p>✅ Your account is now up to date. Thank you for your prompt payment!</p>
+            </div>
+            {{/if}}
+
+            <p>If you have any questions about this payment or need assistance, please don't hesitate to contact our accounts team.</p>
+
+            <p>Thank you for choosing Fixzit Enterprise.</p>
+
+            <p>Best regards,<br>
+            <strong>Fixzit Enterprise Finance Team</strong></p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>{{company.name}}</strong></p>
+            <p>{{company.address}}</p>
+            <p>VAT Number: {{company.vatNumber}} | CR: {{company.crNumber}}</p>
+            <p>
+                <a href="{{dashboardUrl}}/account">Manage Account</a> | 
+                <a href="{{dashboardUrl}}/support">Contact Support</a>
+            </p>
+            <p>© 2025 Fixzit Enterprise. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

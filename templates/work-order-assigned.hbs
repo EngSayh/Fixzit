@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Order Assigned - {{workOrder.id}}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .work-order-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .work-order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .work-order-id {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0078D4;
+        }
+        .priority-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .priority-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .priority-medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        .priority-low {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .priority-urgent {
+            background: #fce4ec;
+            color: #ad1457;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: flex-start;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 120px;
+            margin-right: 10px;
+        }
+        .detail-value {
+            flex: 1;
+        }
+        .description {
+            background: white;
+            border-left: 4px solid #0078D4;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .action-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: #0078D4;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #106ebe;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .contact-info {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .contact-title {
+            font-weight: 600;
+            color: #0078D4;
+            margin-bottom: 10px;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #0078D4;
+            text-decoration: none;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .work-order-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .work-order-id {
+                margin-bottom: 10px;
+            }
+            .btn {
+                display: block;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔧 Work Order Assigned</h1>
+            <p>A new work order has been assigned to you</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <p>Hello <strong>{{assignee.name}}</strong>,</p>
+            
+            <p>You have been assigned a new work order. Please review the details below and take appropriate action.</p>
+
+            <!-- Work Order Card -->
+            <div class="work-order-card">
+                <div class="work-order-header">
+                    <div class="work-order-id">#{{workOrder.id}}</div>
+                    <div class="priority-badge priority-{{workOrder.priority}}">
+                        {{workOrder.priority}} Priority
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Property:</div>
+                    <div class="detail-value">{{workOrder.property.name}}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Location:</div>
+                    <div class="detail-value">{{workOrder.property.address}}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Category:</div>
+                    <div class="detail-value">{{workOrder.category}}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Due Date:</div>
+                    <div class="detail-value">{{formatDate workOrder.dueDate}}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Requested By:</div>
+                    <div class="detail-value">{{workOrder.requestedBy.name}}</div>
+                </div>
+
+                {{#if workOrder.description}}
+                <div class="description">
+                    <strong>Description:</strong><br>
+                    {{workOrder.description}}
+                </div>
+                {{/if}}
+
+                {{#if workOrder.attachments}}
+                <div class="detail-row">
+                    <div class="detail-label">Attachments:</div>
+                    <div class="detail-value">
+                        {{#each workOrder.attachments}}
+                        <a href="{{this.url}}" target="_blank">📎 {{this.name}}</a><br>
+                        {{/each}}
+                    </div>
+                </div>
+                {{/if}}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <a href="{{dashboardUrl}}/work-orders/{{workOrder.id}}" class="btn btn-primary">
+                    View Work Order
+                </a>
+                <a href="{{dashboardUrl}}/work-orders/{{workOrder.id}}/accept" class="btn btn-secondary">
+                    Accept Assignment
+                </a>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="contact-info">
+                <div class="contact-title">Need Help?</div>
+                <p><strong>Property Manager:</strong> {{workOrder.property.manager.name}}</p>
+                <p><strong>Phone:</strong> {{workOrder.property.manager.phone}}</p>
+                <p><strong>Email:</strong> {{workOrder.property.manager.email}}</p>
+            </div>
+
+            <p>Please acknowledge receipt of this work order and provide an estimated completion time.</p>
+            
+            <p>Thank you for your prompt attention to this matter.</p>
+
+            <p>Best regards,<br>
+            <strong>Fixzit Enterprise Team</strong></p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2025 Fixzit Enterprise. All rights reserved.</p>
+            <p>
+                <a href="{{dashboardUrl}}/settings/notifications">Manage Notifications</a> | 
+                <a href="{{dashboardUrl}}/support">Get Support</a>
+            </p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
