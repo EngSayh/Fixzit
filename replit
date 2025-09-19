@@ -1,0 +1,164 @@
+modules = ["python-3.11", "postgresql-16", "python3", "nodejs-20"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["cargo", "freetype", "geckodriver", "gitFull", "glibcLocales", "libiconv", "playwright-driver", "rustc", "unzip", "redis", "mongodb"]
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["streamlit", "run", "app.py", "--server.port", "5000"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "AI Automation Demo"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Fixzit Mobile App"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Complete FIXZIT SOUQ"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "FIXZIT SOUQ 73 Pages"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Aurora Test Server"
+
+[[workflows.workflow]]
+name = "AI Automation Demo"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run ai_automation_demo.py --server.port 8000"
+waitForPort = 8000
+
+[[workflows.workflow]]
+name = "Fixzit Mobile App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd fixzit-mobile && npx expo start --tunnel"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Complete FIXZIT SOUQ"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd public && python -m http.server 5000"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "FIXZIT SOUQ 73 Pages"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd fixzit-postgres/frontend && export PATH=\"./node_modules/.bin:$PATH\" && NEXT_PUBLIC_BACKEND_URL=http://localhost:5000/api NEXT_PUBLIC_APP_NAME=\"FIXZIT SOUQ Enterprise\" NEXT_PUBLIC_VERSION=\"2.0.26\" PORT=3000 npm run dev"
+waitForPort = 3000
+
+[[workflows.workflow]]
+name = "Aurora Test Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd / && python -m http.server 8080"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 3001
+externalPort = 3002
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 5173
+
+[[ports]]
+localPort = 6379
+externalPort = 3003
+
+[[ports]]
+localPort = 8000
+externalPort = 8008
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
+localPort = 8082
+externalPort = 9000
+
+[[ports]]
+localPort = 27017
+externalPort = 8099
+exposeLocalhost = true
+
+[[ports]]
+localPort = 37747
+externalPort = 4200
+
+[[ports]]
+localPort = 38113
+externalPort = 8000
+
+[[ports]]
+localPort = 39335
+externalPort = 6800
+
+[[ports]]
+localPort = 43185
+externalPort = 5000
+
+[[ports]]
+localPort = 44107
+externalPort = 8080
+
+[[ports]]
+localPort = 44387
+externalPort = 6000
+
+[[ports]]
+localPort = 46229
+externalPort = 3001
+
+[agent]
+integrations = ["perplexity_v0==1.0.0", "python_sendgrid==1.0.0", "twilio_send_message==1.0.0", "web_scraper==1.0.0"]
