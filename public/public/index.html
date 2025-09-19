@@ -1135,7 +1135,7 @@ async function loadFinance() {
         }
         }
 
-        function loadMarketplace() {
+        async function loadMarketplace() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="FIXZIT Marketplace" data-ar="سوق فكس إت">FIXZIT Marketplace</h1>
                 <p class="lang-text" data-en="Browse products and services from verified vendors" data-ar="تصفح المنتجات والخدمات من الموردين المعتمدين">Browse products and services from verified vendors</p>
@@ -1148,110 +1148,33 @@ async function loadFinance() {
                     <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">Security Systems</button>
                 </div>
                 
-                <div class="marketplace-grid">
-                    <div class="product-card">
-                        <div class="product-image" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
-                            <div>❄️</div>
-                        </div>
-                        <div class="product-details">
-                            <h3>Industrial AC Unit - 5 Ton</h3>
-                            <p style="color: #666; margin: 8px 0;">High-efficiency central air conditioning system</p>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 12,500</p>
-                                    <p style="color: #666; font-size: 12px;">Vendor: CoolTech Solutions</p>
-                                </div>
-                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white;">
-                            <div>🔧</div>
-                        </div>
-                        <div class="product-details">
-                            <h3>Professional Tool Set</h3>
-                            <p style="color: #666; margin: 8px 0;">Complete maintenance toolkit for property management</p>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 850</p>
-                                    <p style="color: #666; font-size: 12px;">Vendor: ProTools KSA</p>
-                                </div>
-                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image" style="background: linear-gradient(135deg, #4facfe, #00f2fe); color: white;">
-                            <div>🔒</div>
-                        </div>
-                        <div class="product-details">
-                            <h3>Smart Security Camera System</h3>
-                            <p style="color: #666; margin: 8px 0;">4K AI-powered surveillance with night vision</p>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 3,200</p>
-                                    <p style="color: #666; font-size: 12px;">Vendor: SecureMax</p>
-                                </div>
-                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image" style="background: linear-gradient(135deg, #43e97b, #38f9d7); color: white;">
-                            <div>💡</div>
-                        </div>
-                        <div class="product-details">
-                            <h3>LED Lighting Package</h3>
-                            <p style="color: #666; margin: 8px 0;">Energy-efficient LED lighting for commercial spaces</p>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 1,450</p>
-                                    <p style="color: #666; font-size: 12px;">Vendor: BrightLight Co.</p>
-                                </div>
-                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image" style="background: linear-gradient(135deg, #fa709a, #fee140); color: white;">
-                            <div>🚿</div>
-                        </div>
-                        <div class="product-details">
-                            <h3>Premium Plumbing Fixtures</h3>
-                            <p style="color: #666; margin: 8px 0;">High-quality bathroom and kitchen fixtures set</p>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 2,800</p>
-                                    <p style="color: #666; font-size: 12px;">Vendor: AquaFlow Systems</p>
-                                </div>
-                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
-                            <div>🏗️</div>
-                        </div>
-                        <div class="product-details">
-                            <h3>Construction Materials Bundle</h3>
-                            <p style="color: #666; margin: 8px 0;">Complete set of premium construction materials</p>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 8,500</p>
-                                    <p style="color: #666; font-size: 12px;">Vendor: BuildPro Materials</p>
-                                </div>
-                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="marketplace-grid" id="marketGrid"></div>
             `;
+            try {
+                const res = await fetch('/api/marketplace/items');
+                const payload = await res.json();
+                const items = Array.isArray(payload?.data) ? payload.data : [];
+                const grid = document.getElementById('marketGrid');
+                if (grid) {
+                    grid.innerHTML = items.map(it => `
+                    <div class="product-card">
+                        <div class="product-image" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                            <div>🛒</div>
+                        </div>
+                        <div class="product-details">
+                            <h3>${it.name||'Item'}</h3>
+                            <p style="color: #666; margin: 8px 0;">Vendor: ${it.vendor||''}</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR ${Number(it.priceSar||0).toLocaleString()}</p>
+                                    <p style="color: #666; font-size: 12px;">${it.category||''}</p>
+                                </div>
+                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
+                            </div>
+                        </div>
+                    </div>`).join('');
+                }
+            } catch(e) { }
         }
 
         function loadAqarSouq() {

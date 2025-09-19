@@ -11,6 +11,7 @@ const seedRouter = require('./routes/seed');
 const hrRouter = require('./routes/hr');
 const financeRouter = require('./routes/finance');
 const supportRouter = require('./routes/support');
+const marketplaceRouter = require('./routes/marketplace');
 
 const app = express();
 const PORT = Number(process.env.PORT || process.env.SOUQ_PORT || 5000);
@@ -71,6 +72,7 @@ app.use('/api/workorders', workOrdersRouter);
 app.use('/api/hr', hrRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/support', supportRouter);
+app.use('/api/marketplace', marketplaceRouter);
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api/seed', seedRouter);
 }
@@ -93,18 +95,7 @@ app.get('/api/dashboard', async (req, res) => {
 // Optionally serve static theme for demo
 app.use('/theme', express.static(path.join(__dirname, '../../public/public')));
 
-// Marketplace API routes
-app.get('/api/marketplace/vendors', (req, res) => {
-    res.json({ vendors: [], message: 'Vendors endpoint operational' });
-});
-
-app.get('/api/marketplace/products', (req, res) => {
-    res.json({ products: [], message: 'Products endpoint operational' });
-});
-
-app.get('/api/marketplace/rfqs', (req, res) => {
-    res.json({ rfqs: [], message: 'RFQs endpoint operational' });
-});
+// Marketplace endpoints moved to dedicated router when implemented
 
 // Error handling
 app.use((err, req, res, next) => {
