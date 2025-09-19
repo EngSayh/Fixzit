@@ -17,6 +17,9 @@ const complianceRouter = require('./routes/compliance');
 const iotRouter = require('./routes/iot');
 const analyticsRouter = require('./routes/analytics');
 const adminRouter = require('./routes/admin');
+const preventiveRouter = require('./routes/preventive');
+const notificationsRouter = require('./routes/notifications');
+const workflowsRouter = require('./routes/workflows');
 
 const app = express();
 const PORT = Number(process.env.PORT || process.env.SOUQ_PORT || 5000);
@@ -83,6 +86,9 @@ app.use('/api/compliance', complianceRouter);
 app.use('/api/iot', iotRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/preventive', preventiveRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/workflows', workflowsRouter);
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api/seed', seedRouter);
 }
