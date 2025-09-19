@@ -752,7 +752,7 @@
             }
         }
         
-        function loadDashboard() {
+        async function loadDashboard() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Executive Dashboard" data-ar="لوحة التحكم التنفيذية">Executive Dashboard</h1>
                 <p class="lang-text" data-en="Comprehensive overview of your property portfolio" data-ar="نظرة شاملة على محفظة العقارات الخاصة بك">Comprehensive overview of your property portfolio</p>
@@ -812,9 +812,28 @@
                     </div>
                 </div>
             `;
+            // Update dashboard metrics from API
+            try {
+                const res = await fetch('/api/dashboard');
+                const payload = await res.json();
+                const propsCount = payload?.data?.propertiesCount ?? 0;
+                const woCount = payload?.data?.workOrdersCount ?? 0;
+                const cards = document.querySelectorAll('.dashboard-grid .dashboard-card');
+                if (cards[0]) {
+                    const p = cards[0].querySelector('p');
+                    if (p) p.textContent = String(propsCount);
+                }
+                if (cards[3]) {
+                    const p = cards[3].querySelector('p');
+                    if (p) p.textContent = String(woCount);
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
         }
 
-        function loadWorkOrders() {
+        async function loadWorkOrders() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Work Order Management" data-ar="إدارة أوامر العمل">Work Order Management</h1>
                 <p class="lang-text" data-en="Track and manage all maintenance requests" data-ar="تتبع وإدارة جميع طلبات الصيانة">Track and manage all maintenance requests</p>
@@ -901,9 +920,40 @@
                     </div>
                 </div>
             `;
+            // Populate from API
+            try {
+                const res = await fetch('/api/workorders');
+                const payload = await res.json();
+                const list = Array.isArray(payload?.data) ? payload.data : [];
+                const col = document.querySelectorAll('.kanban-column')[0];
+                if (col) {
+                    const header = `
+                        <div class="kanban-header" style="color: var(--primary);">
+                            <span class="lang-text" data-en="New Requests" data-ar="طلبات جديدة">New Requests</span> (${list.length})
+                        </div>
+                    `;
+                    const cards = list.slice(0, 12).map(wo => {
+                        const priorityColor = wo.priority === 'HIGH' ? 'var(--danger)' : (wo.priority === 'MEDIUM' ? 'var(--warning)' : 'var(--primary)');
+                        const when = wo.createdAt ? new Date(wo.createdAt).toLocaleDateString() : '';
+                        return `
+                        <div class="kanban-card">
+                            <h4>${wo.title || 'Work Order'}</h4>
+                            <p style="color: #666;">${(wo.property && (wo.property.name || wo.property.address)) || wo.description || ''}</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                                <span style="background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px;">${wo.priority || 'LOW'}</span>
+                                <span style="color: #666;">${when}</span>
+                            </div>
+                        </div>`;
+                    }).join('');
+                    col.innerHTML = header + cards;
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
         }
 
-        function loadProperties() {
+        async function loadProperties() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Property Portfolio" data-ar="محفظة العقارات">Property Portfolio</h1>
                 <p class="lang-text" data-en="Manage your complete real estate portfolio" data-ar="إدارة محفظة العقارات الكاملة">Manage your complete real estate portfolio</p>
@@ -980,6 +1030,39 @@
                     </div>
                 </div>
             `;
+            // Populate from API
+            try {
+                const res = await fetch('/api/properties');
+                const payload = await res.json();
+                const grid = document.querySelector('.properties-grid');
+                if (grid && Array.isArray(payload?.data)) {
+                    grid.innerHTML = payload.data.map(p => `
+                    <div class="property-card">
+                        <div class="property-image" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                            <div>🏢</div>
+                        </div>
+                        <div class="property-info">
+                            <h3>${p.name || 'Property'}</h3>
+                            <p style="color: #666;">${p.address || ''}</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Occupancy</p>
+                                    <p style="font-weight: bold; color: var(--success);">${((p.occupancyRate ?? 0)).toFixed ? (p.occupancyRate).toFixed(1) : p.occupancyRate || 0}%</p>
+                                </div>
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Monthly Revenue</p>
+                                    <p style="font-weight: bold; color: var(--primary);">SAR ${Number(p.monthlyRevenueSar || 0).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;">View Details</button>
+                        </div>
+                    </div>
+                    `).join('');
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
         }
 
         function loadFinance() {
