@@ -1065,7 +1065,7 @@
         }
         }
 
-        function loadFinance() {
+async function loadFinance() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Financial Management" data-ar="الإدارة المالية">Financial Management</h1>
                 <p class="lang-text" data-en="Islamic finance compliant accounting and reporting" data-ar="المحاسبة والتقارير المتوافقة مع التمويل الإسلامي">Islamic finance compliant accounting and reporting</p>
@@ -1122,6 +1122,17 @@
                     </div>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/finance/metrics');
+                const payload = await res.json();
+                const data = payload?.data || {};
+                const cards = document.querySelectorAll('.dashboard-grid .dashboard-card');
+                if (cards[0]) cards[0].querySelector('p').textContent = `SAR ${Number(data.totalAssets||0).toLocaleString()}`;
+                if (cards[1]) cards[1].querySelector('p').textContent = `SAR ${Number(data.monthlyIncome||0).toLocaleString()}`;
+                if (cards[2]) cards[2].querySelector('p').textContent = `SAR ${Number(data.operatingExpenses||0).toLocaleString()}`;
+                if (cards[3]) cards[3].querySelector('p').textContent = `${Number(data.netProfitMargin||0)}%`;
+            } catch(e) { }
+        }
         }
 
         function loadMarketplace() {
@@ -1384,7 +1395,7 @@
             `;
         }
 
-        function loadHR() {
+async function loadHR() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Human Resources" data-ar="الموارد البشرية">Human Resources</h1>
                 <p class="lang-text" data-en="Employee management and workforce analytics" data-ar="إدارة الموظفين وتحليلات القوى العاملة">Employee management and workforce analytics</p>
@@ -1417,6 +1428,22 @@
                     </table>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/hr/employees');
+                const payload = await res.json();
+                const tbody = document.querySelector('tbody');
+                if (tbody && Array.isArray(payload?.data)) {
+                    tbody.innerHTML = payload.data.map(e => `
+                        <tr>
+                            <td style="padding: 10px;">${e.employeeId||''}</td>
+                            <td style="padding: 10px;">${e.name||''}</td>
+                            <td style="padding: 10px;">${e.department||''}</td>
+                            <td style="padding: 10px;"><span style=\"color: var(--success);\">${e.status||''}</span></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) { }
+        }
         }
 
         function loadCompliance() {
@@ -1535,7 +1562,7 @@
             `;
         }
 
-        function loadSupport() {
+async function loadSupport() {
             document.getElementById('contentArea').innerHTML = `
                 <h1 class="lang-text" data-en="Support Center" data-ar="مركز الدعم">Support Center</h1>
                 <div class="dashboard-grid">
@@ -1556,6 +1583,16 @@
                     </div>
                 </div>
             `;
+            try {
+                const res = await fetch('/api/support/summary');
+                const payload = await res.json();
+                const data = payload?.data || {};
+                const cards = document.querySelectorAll('.dashboard-grid .dashboard-card');
+                if (cards[0]) cards[0].querySelector('p').textContent = String(data.open||0);
+                if (cards[1]) cards[1].querySelector('p').textContent = `${Number(data.avgResponseHours||0).toFixed(1)}h`;
+                if (cards[2]) cards[2].querySelector('p').textContent = `${Math.round((data.resolutionRate||0)*100)}%`;
+            } catch(e) { }
+        }
         }
 
         // Utility functions

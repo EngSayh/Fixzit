@@ -5,10 +5,12 @@ const compression = require('compression');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { connectDatabase, getDatabaseStatus } = require('./db');
-const path = require('path');
 const propertiesRouter = require('./routes/properties');
 const workOrdersRouter = require('./routes/workorders');
 const seedRouter = require('./routes/seed');
+const hrRouter = require('./routes/hr');
+const financeRouter = require('./routes/finance');
+const supportRouter = require('./routes/support');
 
 const app = express();
 const PORT = Number(process.env.PORT || process.env.SOUQ_PORT || 5000);
@@ -66,6 +68,9 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/properties', propertiesRouter);
 app.use('/api/workorders', workOrdersRouter);
+app.use('/api/hr', hrRouter);
+app.use('/api/finance', financeRouter);
+app.use('/api/support', supportRouter);
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api/seed', seedRouter);
 }

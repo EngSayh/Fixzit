@@ -1,6 +1,9 @@
 const express = require('express');
 const Property = require('../models/Property');
 const WorkOrder = require('../models/WorkOrder');
+const Employee = require('../models/Employee');
+const FinanceMetric = require('../models/FinanceMetric');
+const SupportTicket = require('../models/SupportTicket');
 
 const router = express.Router();
 
@@ -44,6 +47,24 @@ router.post('/', async (req, res) => {
       property: p2._id,
       assignedTo: 'Sarah Ahmad',
     });
+
+    await Employee.create([
+      { employeeId: 'EMP-001', name: 'Mohammed Al-Khalid', department: 'Maintenance', status: 'Active' },
+      { employeeId: 'EMP-002', name: 'Fatima Al-Zahra', department: 'Property Management', status: 'Active' },
+    ]);
+
+    await FinanceMetric.deleteMany({});
+    await FinanceMetric.create([
+      { key: 'totalAssets', value: 125000000 },
+      { key: 'monthlyIncome', value: 4800000 },
+      { key: 'operatingExpenses', value: 1200000 },
+      { key: 'netProfitMargin', value: 24.8, unit: '%' },
+    ]);
+
+    await SupportTicket.create([
+      { subject: 'Cannot access invoice', status: 'OPEN', responseTimeHours: 3.1 },
+      { subject: 'Elevator outage', status: 'IN_PROGRESS', responseTimeHours: 2.4 },
+    ]);
 
     res.json({ success: true });
   } catch (error) {
