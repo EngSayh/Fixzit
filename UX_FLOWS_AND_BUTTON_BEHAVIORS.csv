@@ -1,0 +1,98 @@
+Page,Button/Action,Behavior,API Endpoint,Role Visibility,Notes
+Dashboard,Quick Create Work Order,Open work order creation modal,POST /api/work-orders,Admin|Manager|Corporate Admin,Quick action in top bar
+Dashboard,View Property Details,Navigate to property detail page,GET /api/properties/{id},All roles with property access,Click on property card
+Dashboard,Export Dashboard,Download dashboard data as PDF/Excel,GET /api/analytics/dashboard/export,Admin|Manager|Finance Officer,Export button in header
+Work Orders,Create Work Order,Open work order creation form,POST /api/work-orders,Admin|Manager|Corporate Admin,Primary action button
+Work Orders,Assign Work Order,Open assignment dialog + notify technician,PUT /api/work-orders/{id}/assign,Manager|Admin,Assignment action
+Work Orders,Approve Quote,Approve work order quote,POST /api/quotations/{id}/approve,Owner|Manager,Approval workflow action
+Work Orders,Start Work,Technician starts SLA timer,PUT /api/work-orders/{id}/start,Technician,Mobile app primary action
+Work Orders,Complete Work,Require after-photos before close,PUT /api/work-orders/{id}/complete,Technician,Completion workflow
+Work Orders,View Board,Switch to Kanban board view,GET /api/work-orders?view=board,All with work order access,View switcher
+Work Orders,View Calendar,Switch to calendar view,GET /api/work-orders?view=calendar,All with work order access,View switcher
+Work Orders,View Map,Switch to map view with locations,GET /api/work-orders?view=map,All with work order access,View switcher
+Work Orders,SLA Watchlist,Filter overdue and at-risk orders,GET /api/work-orders?filter=sla_risk,Manager|Admin,SLA monitoring tab
+Properties,Add Property,Open property creation form,POST /api/properties,Admin|Manager|Owner,Primary action button
+Properties,Manage Units,Navigate to unit management,GET /api/properties/{id}/units,Manager|Admin,Property detail action
+Properties,Tenant Management,Navigate to tenant management,GET /api/properties/{id}/tenants,Manager|Admin,Property detail action
+Properties,Financial Overview,View property financials,GET /api/properties/{id}/financials,Manager|Admin|Owner|Finance Officer,Financial tab
+Properties,Schedule Inspection,Create inspection work order,POST /api/inspections,Manager|Admin,Inspection scheduling
+Properties,Export Property Report,Download property performance report,GET /api/properties/{id}/export,Manager|Admin|Owner,Export action
+Finance,Create Invoice,Open invoice creation form,POST /api/finance/invoices,Finance Officer|Admin,Primary action button
+Finance,Process Payment,Record payment against invoice,POST /api/finance/payments,Finance Officer|Admin,Payment processing
+Finance,Generate ZATCA QR,Generate QR code for invoice,GET /api/finance/zatca/{id},Finance Officer|Admin,ZATCA compliance
+Finance,Export Statement,Download financial statement,GET /api/finance/statements/export,Finance Officer|Admin|Owner,Statement export
+Finance,DoA Approval,Route for delegation approval,POST /api/finance/approvals,Finance Officer|Admin,Approval workflow
+Finance,Budget Management,Manage department budgets,GET /api/finance/budgets,Finance Officer|Admin,Budget planning
+HR,Add Employee,Open employee onboarding form,POST /api/hr/employees,HR Manager|Admin,Primary action button
+HR,Process Payroll,Run payroll for pay period,POST /api/hr/payroll/process,HR Manager|Admin,Payroll processing
+HR,Leave Request,Submit/approve leave request,POST /api/hr/leave-requests,All employees for submit; HR Manager for approve,Leave management
+HR,Performance Review,Conduct employee performance review,POST /api/hr/performance-reviews,HR Manager|Manager,Performance management
+HR,Recruitment,Manage job postings and applications,GET /api/hr/recruitment,HR Manager|Admin,Recruitment pipeline
+CRM,Add Customer,Open customer creation form,POST /api/crm/customers,CRM Officer|Admin,Primary action button
+CRM,Create Lead,Convert inquiry to lead,POST /api/crm/leads,CRM Officer|Admin,Lead management
+CRM,GDPR Consent,Manage customer consent,PUT /api/crm/customers/{id}/consent,CRM Officer|Admin,GDPR compliance
+CRM,Communication History,View customer interactions,GET /api/crm/customers/{id}/communications,CRM Officer|Admin,Customer timeline
+CRM,Contract Management,Manage customer contracts,GET /api/crm/contracts,CRM Officer|Admin,Contract lifecycle
+Marketplace,Submit RFQ,Create request for quotation,POST /api/marketplace/rfqs,All buyers,RFQ creation workflow
+Marketplace,Submit Bid,Vendor submits competitive bid,POST /api/marketplace/bids,Vendor,Bid submission
+Marketplace,Compare Bids,Side-by-side bid comparison,GET /api/marketplace/rfqs/{id}/bids,Buyer,Bid evaluation
+Marketplace,Award Contract,Award RFQ to selected vendor,POST /api/marketplace/rfqs/{id}/award,Manager|Admin,Contract award
+Marketplace,Rate Vendor,Submit vendor performance rating,POST /api/marketplace/vendors/{id}/rating,All buyers,Vendor feedback
+Support,Create Ticket,Open support ticket creation,POST /api/support/tickets,All roles,Support request
+Support,Live Chat,Start live chat session,POST /api/support/chat/start,All roles,Real-time support
+Support,Knowledge Base Search,Search help articles,GET /api/support/kb/search,All roles,Self-service help
+Support,AI Assistant,Chat with AI assistant,POST /api/ai/chat,All roles,AI-powered help
+Support,CSAT Survey,Submit satisfaction rating,POST /api/support/tickets/{id}/csat,All roles,Post-resolution survey
+Compliance,Digital Signature,Sign document electronically,POST /api/compliance/signatures,All authorized signers,Document signing
+Compliance,Audit Trail,View system audit logs,GET /api/compliance/audit-trail,Compliance Officer|Admin,Audit monitoring
+Compliance,Risk Assessment,Conduct compliance risk assessment,POST /api/compliance/risk-assessments,Compliance Officer|Admin,Risk management
+Compliance,Policy Management,Manage compliance policies,GET /api/compliance/policies,Compliance Officer|Admin,Policy administration
+Reports,Custom Report,Build custom report with drag-drop,POST /api/reports/custom,All with report access,Report builder
+Reports,Schedule Report,Schedule automatic report generation,POST /api/reports/schedule,Manager|Admin|Finance Officer,Scheduled reporting
+Reports,Export Data,Export report data in various formats,GET /api/reports/{id}/export,All with report access,Data export
+Reports,Analytics Dashboard,View advanced analytics,GET /api/analytics/dashboard,Manager|Admin|Finance Officer,Business intelligence
+Administration,User Management,Manage organization users,GET /api/admin/users,Admin|Corporate Admin,User administration
+Administration,Role Assignment,Assign roles to users,PUT /api/admin/users/{id}/roles,Admin|Corporate Admin,Role management
+Administration,Subscription Management,Manage corporate subscription,GET /api/admin/subscriptions,Corporate Admin|Super Admin,Subscription oversight
+Administration,Integration Setup,Configure external integrations,POST /api/admin/integrations,Admin|Super Admin,System integration
+Administration,System Settings,Configure system-wide settings,PUT /api/admin/settings,Admin|Super Admin,System configuration
+Owner,Switch Agent,Transfer property management agent,POST /api/properties/{id}/switch-agent,Owner,Agent transfer with history preservation
+Owner,Export Statement,Download Excel/PDF financial statement,GET /api/owner/statements/export,Owner,Financial statement export
+Owner,Approve Major Expense,Approve expenses over threshold,POST /api/approvals/{id}/approve,Owner,DoA approval workflow
+Owner,Portfolio Overview,View complete investment portfolio,GET /api/owner/portfolio,Owner,Investment dashboard
+Aqar Douq,Request Viewing,Schedule property viewing,POST /api/aqar-douq/viewing-requests,Public|Agent|Customer,CRM lead creation
+Aqar Douq,Property Search,Search properties with filters,GET /api/aqar-douq/properties/search,Public|Agent|Customer,Advanced search
+Aqar Douq,Save Favorite,Add property to favorites,POST /api/aqar-douq/favorites,Registered users,Wishlist management
+Aqar Douq,Contact Agent,Send message to property agent,POST /api/aqar-douq/contact-agent,Public|Customer,Agent communication
+Fixzit Douq,Add to RFQ,Add service to RFQ basket,POST /api/fixzit-douq/rfq-basket,Buyer,RFQ basket management
+Fixzit Douq,Submit Bid,Vendor submits service bid,POST /api/fixzit-douq/bids,Vendor,Bid submission workflow
+Fixzit Douq,Track Order,Monitor order status and delivery,GET /api/fixzit-douq/orders/{id}/tracking,Buyer|Vendor,Order tracking
+Fixzit Douq,Rate Service,Submit service quality rating,POST /api/fixzit-douq/services/{id}/rating,Buyer,Service feedback
+Vendor Portal,Update Profile,Modify vendor company profile,PUT /api/vendor/profile,Vendor,Profile management
+Vendor Portal,Manage Catalog,Update service offerings,PUT /api/vendor/catalog,Vendor,Service catalog management
+Vendor Portal,View Performance,Monitor ratings and feedback,GET /api/vendor/performance,Vendor,Performance analytics
+Vendor Portal,Payment Status,Check payment and invoice status,GET /api/vendor/payments,Vendor,Financial tracking
+Technician Portal,My Jobs,View assigned work orders,GET /api/technician/work-orders,Technician,Task management
+Technician Portal,Start Job,Begin work order execution,PUT /api/work-orders/{id}/start,Technician,Work initiation
+Technician Portal,Upload Photos,Add work progress photos,POST /api/work-orders/{id}/photos,Technician,Documentation
+Technician Portal,Complete Job,Mark work order as completed,PUT /api/work-orders/{id}/complete,Technician,Work completion
+Technician Portal,Navigation,Get directions to property,GET /api/properties/{id}/location,Technician,GPS navigation
+AI Assistant,Upload Bank Statement,Process bank statement with AI,POST /api/ai/process-document,Finance Clerk|Finance Officer,Document processing
+AI Assistant,Review Transactions,Review AI-parsed transactions,GET /api/ai/processing-results/{id},Finance Clerk|Finance Officer,Data validation
+AI Assistant,Submit for Approval,Send to DoA approval workflow,POST /api/ai/submit-for-approval,Finance Clerk,Workflow initiation
+AI Assistant,Chat Query,Ask AI assistant questions,POST /api/ai/chat,All roles,Conversational interface
+AI Assistant,Generate Report,AI-assisted report generation,POST /api/ai/generate-report,Manager|Admin|Finance Officer,AI report creation
+Settings,Update Profile,Modify user profile information,PUT /api/users/profile,All roles,Profile management
+Settings,Change Password,Update user password,PUT /api/users/password,All roles,Security management
+Settings,Notification Preferences,Configure notification settings,PUT /api/users/notifications,All roles,Preference management
+Settings,API Key Management,Generate and manage API keys,GET /api/users/api-keys,Admin|Developer roles,API access
+Settings,Two-Factor Auth,Enable/disable 2FA,PUT /api/users/2fa,All roles,Security enhancement
+Login,Role Selection,Choose login role/portal,GET /api/auth/portals,All roles,Portal launcher
+Login,Quick Login,Use demo credentials,POST /api/auth/demo-login,Demo users,Development/demo access
+Login,Forgot Password,Initiate password reset,POST /api/auth/forgot-password,All users,Password recovery
+Login,Create Account,Register new user account,POST /api/auth/register,Public|Admin invitation,Account creation
+Portal Launcher,Launch Fixzit App,Navigate to main facility management,GET /dashboard,All authenticated users,Main platform access
+Portal Launcher,Launch Aqar Douq,Navigate to real estate marketplace,GET /aqar-douq,Public|Agent|Customer,Marketplace access
+Portal Launcher,Launch Fixzit Douq,Navigate to services marketplace,GET /fixzit-douq,Buyer|Vendor,Service marketplace
+Portal Launcher,Vendor Portal,Navigate to vendor management,GET /vendor-portal,Vendor,Vendor-specific interface
+Portal Launcher,Technician Portal,Navigate to field service app,GET /technician-portal,Technician,Field service interface
