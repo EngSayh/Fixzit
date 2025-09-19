@@ -12,6 +12,11 @@ const hrRouter = require('./routes/hr');
 const financeRouter = require('./routes/finance');
 const supportRouter = require('./routes/support');
 const marketplaceRouter = require('./routes/marketplace');
+const crmRouter = require('./routes/crm');
+const complianceRouter = require('./routes/compliance');
+const iotRouter = require('./routes/iot');
+const analyticsRouter = require('./routes/analytics');
+const adminRouter = require('./routes/admin');
 
 const app = express();
 const PORT = Number(process.env.PORT || process.env.SOUQ_PORT || 5000);
@@ -73,6 +78,11 @@ app.use('/api/hr', hrRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/marketplace', marketplaceRouter);
+app.use('/api/crm', crmRouter);
+app.use('/api/compliance', complianceRouter);
+app.use('/api/iot', iotRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/admin', adminRouter);
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api/seed', seedRouter);
 }
