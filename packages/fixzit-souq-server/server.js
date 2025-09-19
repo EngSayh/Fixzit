@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { connectDatabase, getDatabaseStatus } = require('./db');
 
 const app = express();
@@ -80,13 +81,12 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server after attempting DB connection
-(async () => {
-    await connectDatabase();
-    app.listen(PORT, () => {
-        console.log(`✅ Fixzit Souq Server running on port ${PORT}`);
-        console.log(`   Health check: http://localhost:${PORT}/health`);
-        const db = getDatabaseStatus();
-        console.log(`   DB: ${db.connected ? 'connected' : 'disconnected'}${db.error ? ' — ' + db.error : ''}`);
-    });
-})();
+// Start server immediately; connect to DB in background
+connectDatabase().catch(() => {});
+
+app.listen(PORT, () => {
+    console.log(`✅ Fixzit Souq Server running on port ${PORT}`);
+    console.log(`   Health check: http://localhost:${PORT}/health`);
+    const db = getDatabaseStatus();
+    console.log(`   DB: ${db.connected ? 'connected' : 'disconnected'}${db.error ? ' — ' + db.error : ''}`);
+});
