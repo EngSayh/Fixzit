@@ -5,6 +5,7 @@ const compression = require('compression');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { connectDatabase, getDatabaseStatus } = require('./db');
+const { loginUser, registerUser, authenticateToken, findUserById } = require('../../lib/auth-server');
 const propertiesRouter = require('./routes/properties');
 const workOrdersRouter = require('./routes/workorders');
 const seedRouter = require('./routes/seed');
@@ -71,18 +72,116 @@ app.get('/health', (req, res) => {
     });
 });
 
-// API routes
-app.use('/api/properties', propertiesRouter);
-app.use('/api/workorders', workOrdersRouter);
-app.use('/api/hr', hrRouter);
-app.use('/api/finance', financeRouter);
-app.use('/api/support', supportRouter);
-app.use('/api/marketplace', marketplaceRouter);
-app.use('/api/crm', crmRouter);
-app.use('/api/compliance', complianceRouter);
-app.use('/api/iot', iotRouter);
-app.use('/api/analytics', analyticsRouter);
-app.use('/api/admin', adminRouter);
+// Authentication routes
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    message: 'Email and password are required',
+                    code: 'MISSING_CREDENTIALS',
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+        
+        const result = await loginUser(email, password);
+        
+        res.json({
+            success: true,
+            data: result,
+            message: 'Login successful'
+        });
+    } catch (error) {
+        res.status(401).json({
+            success: false,
+            error: {
+                message: error.message,
+                code: 'LOGIN_FAILED',
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password, name, role, company } = req.body;
+        
+        if (!email || !password || !name) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    message: 'Email, password, and name are required',
+                    code: 'MISSING_FIELDS',
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+        
+        const result = await registerUser({ email, password, name, role, company });
+        
+        res.status(201).json({
+            success: true,
+            data: result,
+            message: 'Registration successful'
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            error: {
+                message: error.message,
+                code: 'REGISTRATION_FAILED',
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+
+app.get('/api/auth/session', authenticateToken, (req, res) => {
+    res.json({
+        success: true,
+        data: {
+            user: req.user,
+            authenticated: true
+        }
+    });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Logout successful'
+    });
+});
+
+// Test endpoint with authentication
+app.get('/api/test', authenticateToken, (req, res) => {
+    res.json({
+        success: true,
+        data: {
+            message: 'API is working',
+            user: req.user,
+            timestamp: new Date().toISOString()
+        }
+    });
+});
+
+// API routes (all protected with authentication)
+app.use('/api/properties', authenticateToken, propertiesRouter);
+app.use('/api/workorders', authenticateToken, workOrdersRouter);
+app.use('/api/hr', authenticateToken, hrRouter);
+app.use('/api/finance', authenticateToken, financeRouter);
+app.use('/api/support', authenticateToken, supportRouter);
+app.use('/api/marketplace', authenticateToken, marketplaceRouter);
+app.use('/api/crm', authenticateToken, crmRouter);
+app.use('/api/compliance', authenticateToken, complianceRouter);
+app.use('/api/iot', authenticateToken, iotRouter);
+app.use('/api/analytics', authenticateToken, analyticsRouter);
+app.use('/api/admin', authenticateToken, adminRouter);
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api/seed', seedRouter);
 }

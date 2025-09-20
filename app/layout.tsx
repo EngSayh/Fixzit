@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { I18nProvider } from '../contexts/I18nContext';
+import { AuthProvider } from '../contexts/AuthContext';
 import { AuroraBackground } from '../src/components/theme';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -86,7 +87,9 @@ export default function RootLayout({
         </div>
         
         <I18nProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </I18nProvider>
       </body>
     </html>

@@ -77,9 +77,9 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/admin',
-        destination: '/system',
-        permanent: true,
+        source: '/system',
+        destination: '/admin',
+        permanent: false,
       },
     ]
   },
