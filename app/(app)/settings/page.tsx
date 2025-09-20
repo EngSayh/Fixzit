@@ -77,15 +77,61 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleSaveSettings = () => {
-    // TODO: Implement settings save functionality
-    console.log('Saving settings:', settings);
+  const handleSaveSettings = async () => {
+    // Save settings to backend
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      if (response.ok) {
+        console.log('Settings saved successfully');
+        alert('Settings saved successfully!');
+      } else {
+        console.error('Failed to save settings');
+        alert('Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Error saving settings');
+    }
     // Show success message
   };
 
-  const handleSaveProfile = () => {
-    // TODO: Implement profile save functionality
-    setIsEditingProfile(false);
+  const handleSaveProfile = async () => {
+    // Save profile to backend
+    try {
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ 
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          language: profile.language
+        })
+      });
+      
+      if (response.ok) {
+        console.log('Profile saved successfully');
+        alert('Profile saved successfully!');
+        setIsEditingProfile(false);
+      } else {
+        console.error('Failed to save profile');
+        alert('Failed to save profile');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Error saving profile');
+    }
   };
 
   const handleCancelProfile = () => {
