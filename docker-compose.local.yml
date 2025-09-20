@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: fixzit-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: fixzit123
+      MONGO_INITDB_DATABASE: fixzit_souq
+    volumes:
+      - mongodb_data:/data/db
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - fixzit-network
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./packages/fixzit-souq-server
+      dockerfile: Dockerfile
+    container_name: fixzit-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:fixzit123@mongodb:27017/fixzit_souq?authSource=admin
+      JWT_SECRET: fixzit_souq_jwt_secret_key_2025_enterprise_production
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      - mongodb
+    networks:
+      - fixzit-network
+    volumes:
+      - ./packages/fixzit-souq-server:/app
+      - /app/node_modules
+
+  # Frontend Next.js Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: fixzit-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+      NEXT_PUBLIC_APP_NAME: FIXZIT SOUQ Enterprise
+      NEXT_PUBLIC_VERSION: 2.0.26
+      NEXT_PUBLIC_DEFAULT_LOCALE: ar
+      NEXT_PUBLIC_CURRENCY: SAR
+    depends_on:
+      - backend
+    networks:
+      - fixzit-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: fixzit-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - fixzit-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  fixzit-network:
+    driver: bridge
