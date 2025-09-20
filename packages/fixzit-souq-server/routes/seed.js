@@ -49,7 +49,7 @@ router.post('/', async (req, res) => {
       title: 'Plumbing Issue',
       description: 'Leak in Building B',
       priority: 'MEDIUM',
-      status: 'IN_PROGRESS',
+      status: 'in_progress',
       property: p2._id,
       assignedTo: 'Sarah Ahmad',
     });
@@ -68,8 +68,8 @@ router.post('/', async (req, res) => {
     ]);
 
     await SupportTicket.create([
-      { subject: 'Cannot access invoice', status: 'OPEN', responseTimeHours: 3.1 },
-      { subject: 'Elevator outage', status: 'IN_PROGRESS', responseTimeHours: 2.4 },
+      { subject: 'Cannot access invoice', status: 'open', responseTimeHours: 3.1 },
+      { subject: 'Elevator outage', status: 'in_progress', responseTimeHours: 2.4 },
     ]);
 
     await MarketplaceItem.create([
@@ -78,8 +78,8 @@ router.post('/', async (req, res) => {
     ]);
 
     await Customer.create([
-      { name: 'Ali Saud', email: 'ali@example.com', phone: '+966555000111' },
-      { name: 'Noura Al-Qahtani', email: 'noura@example.com', phone: '+966555000222' },
+      { name: 'Ali Saud', email: 'ali.saud@fixzit.sa', phone: '+966555000111' },
+      { name: 'Noura Al-Qahtani', email: 'noura.qahtani@fixzit.sa', phone: '+966555000222' },
     ]);
 
     await ComplianceDoc.create([
