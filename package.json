@@ -9,15 +9,7 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
-    "test:install": "playwright install",
-    "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:seed:rbac": "tsx prisma/seed-rbac.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed-rbac.ts",
-    "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "test:install": "playwright install"
   },
   "dependencies": {
     "next": "14.2.5",
