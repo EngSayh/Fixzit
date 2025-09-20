@@ -8,8 +8,8 @@ router.get('/settings', async (req, res) => {
     const list = await SystemSetting.find();
     const data = Object.fromEntries(list.map(s => [s.key, s.value]));
     res.json({ success: true, data });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

@@ -8,8 +8,8 @@ router.get('/metrics', async (req, res) => {
     const metrics = await FinanceMetric.find();
     const map = Object.fromEntries(metrics.map(m => [m.key, m.value]));
     res.json({ success: true, data: map });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

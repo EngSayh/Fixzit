@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_URL = process.env.API_URL || 'http://localhost:5000';
+import { apiRequest } from '../config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,14 +11,13 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const queryString = searchParams.toString();
     
-    const response = await fetch(`${API_URL}/api/notifications${queryString ? `?${queryString}` : ''}`, {
-      headers: {
-        'Authorization': token,
-      },
-    });
+    const { data, status } = await apiRequest(
+      `/api/notifications${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET' },
+      token
+    );
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { status });
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

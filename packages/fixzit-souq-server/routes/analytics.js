@@ -8,8 +8,8 @@ router.get('/metrics', async (req, res) => {
     const list = await AnalyticsMetric.find();
     const data = Object.fromEntries(list.map(m => [m.key, m.value]));
     res.json({ success: true, data });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

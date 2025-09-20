@@ -12,8 +12,8 @@ router.get('/schedules', async (req, res) => {
       .populate('propertyId', 'name address')
       .sort({ nextDue: 1 });
     res.json({ success: true, data: schedules });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -41,8 +41,8 @@ router.post('/schedules', async (req, res) => {
     await asset.save();
     
     res.json({ success: true, data: schedule });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -84,8 +84,8 @@ router.post('/schedules/:id/complete', async (req, res) => {
     }
     
     res.json({ success: true, data: schedule });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -97,8 +97,8 @@ router.get('/assets', async (req, res) => {
       .populate('maintenanceSchedules')
       .sort({ name: 1 });
     res.json({ success: true, data: assets });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -108,8 +108,8 @@ router.post('/assets', async (req, res) => {
     const asset = new Asset(req.body);
     await asset.save();
     res.json({ success: true, data: asset });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -159,6 +159,63 @@ router.get('/stats', async (req, res) => {
       }
     ]);
     
+    // Calculate average completion time
+    const avgCompletionTimeResult = await MaintenanceSchedule.aggregate([
+      { $unwind: '$history' },
+      { $group: {
+        _id: null,
+        avgDuration: { $avg: '$history.duration' }
+      }}
+    ]);
+    
+    // Calculate YTD spend
+    const yearStart = new Date(new Date().getFullYear(), 0, 1);
+    const ytdSpendResult = await MaintenanceSchedule.aggregate([
+      {
+        $match: {
+          lastPerformed: { $gte: yearStart }
+        }
+      },
+      { $unwind: '$history' },
+      {
+        $match: {
+          'history.date': { $gte: yearStart }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$history.cost' }
+        }
+      }
+    ]);
+    
+    // Calculate cost savings (comparing actual vs estimated)
+    const costSavingsResult = await MaintenanceSchedule.aggregate([
+      { $unwind: '$history' },
+      {
+        $group: {
+          _id: null,
+          totalEstimated: { $sum: '$estimatedCost' },
+          totalActual: { $sum: '$history.cost' }
+        }
+      }
+    ]);
+    
+    const costSavings = costSavingsResult[0] 
+      ? Math.max(0, costSavingsResult[0].totalEstimated - costSavingsResult[0].totalActual)
+      : 0;
+    
+    // Calculate compliance rate
+    const compliantSchedules = await MaintenanceSchedule.countDocuments({
+      compliance: true,
+      status: { $ne: 'overdue' }
+    });
+    const totalSchedules = await MaintenanceSchedule.countDocuments();
+    const complianceRate = totalSchedules > 0 
+      ? Math.round((compliantSchedules / totalSchedules) * 100) 
+      : 100;
+    
     res.json({
       success: true,
       data: {
@@ -166,16 +223,16 @@ router.get('/stats', async (req, res) => {
         scheduledMaintenance,
         overdueTasks,
         completionRate,
-        avgCompletionTime: 2.5, // Placeholder
+        avgCompletionTime: Math.round((avgCompletionTimeResult[0]?.avgDuration || 0) * 10) / 10,
         monthlySpend: monthlySpend[0]?.total || 0,
-        ytdSpend: 125000, // Placeholder
-        costSavings: 15000, // Placeholder
+        ytdSpend: ytdSpendResult[0]?.total || 0,
+        costSavings: Math.round(costSavings),
         upcomingThisWeek,
-        complianceRate: 92 // Placeholder
+        complianceRate
       }
     });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

@@ -12,8 +12,8 @@ router.get('/tickets', async (req, res) => {
       .populate('assignedTo', 'name email department')
       .sort({ createdAt: -1 });
     res.json({ success: true, data: tickets });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -40,8 +40,8 @@ router.post('/tickets', async (req, res) => {
     
     await ticket.save();
     res.json({ success: true, data: ticket });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -68,8 +68,8 @@ router.post('/tickets/:id/messages', async (req, res) => {
     await ticket.save();
     
     res.json({ success: true, data: ticket });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -89,8 +89,8 @@ router.put('/tickets/:id/status', async (req, res) => {
     
     await ticket.save();
     res.json({ success: true, data: ticket });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -126,21 +126,49 @@ router.get('/stats', async (req, res) => {
     
     const resolutionRate = totalTicketsWeek > 0 ? Math.round((resolvedTickets / totalTicketsWeek) * 100) : 0;
     
+    // Calculate satisfaction score from ticket ratings
+    const satisfactionResult = await SupportTicket.aggregate([
+      { $match: { satisfaction: { $exists: true, $ne: null } } },
+      { $group: {
+        _id: null,
+        avgSatisfaction: { $avg: '$satisfaction' },
+        count: { $sum: 1 }
+      }}
+    ]);
+    
+    // Count pending escalations
+    const pendingEscalations = await SupportTicket.countDocuments({
+      escalationLevel: { $gt: 0 },
+      status: { $nin: ['resolved', 'closed'] }
+    });
+    
+    // Calculate SLA compliance
+    const totalTicketsWithSLA = await SupportTicket.countDocuments({
+      createdAt: { $gte: weekStart }
+    });
+    const slaBreachedTickets = await SupportTicket.countDocuments({
+      createdAt: { $gte: weekStart },
+      slaBreached: true
+    });
+    const slaCompliance = totalTicketsWithSLA > 0 
+      ? Math.round(((totalTicketsWithSLA - slaBreachedTickets) / totalTicketsWithSLA) * 100)
+      : 100;
+    
     res.json({
       success: true,
       data: {
         openTickets,
         avgResponseTime: Math.round(avgResponse[0]?.avg || 2),
         resolutionRate,
-        satisfactionScore: 4.5, // Placeholder
+        satisfactionScore: Math.round((satisfactionResult[0]?.avgSatisfaction || 4.5) * 10) / 10,
         ticketsToday,
         ticketsThisWeek,
-        pendingEscalations: 3, // Placeholder
-        slaCompliance: 95 // Placeholder
+        pendingEscalations,
+        slaCompliance
       }
     });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -151,8 +179,8 @@ router.get('/knowledge-base', async (req, res) => {
       .sort({ views: -1 })
       .limit(20);
     res.json({ success: true, data: articles });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -165,8 +193,8 @@ router.post('/knowledge-base', async (req, res) => {
     });
     await article.save();
     res.json({ success: true, data: article });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

@@ -11,8 +11,8 @@ router.get('/documents', async (req, res) => {
       .populate('propertyId', 'name address')
       .sort({ expiryDate: 1 });
     res.json({ success: true, data: docs });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -22,8 +22,8 @@ router.post('/documents', async (req, res) => {
     const newDoc = new ComplianceDoc(req.body);
     await newDoc.save();
     res.json({ success: true, data: newDoc });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -41,8 +41,8 @@ router.post('/documents/:id/renew', async (req, res) => {
     await doc.save();
     
     res.json({ success: true, data: doc });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -53,8 +53,8 @@ router.get('/violations', async (req, res) => {
       .populate('propertyId', 'name address')
       .sort({ dueDate: 1 });
     res.json({ success: true, data: violations });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -64,8 +64,8 @@ router.post('/violations', async (req, res) => {
     const violation = new Violation(req.body);
     await violation.save();
     res.json({ success: true, data: violation });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -83,6 +83,15 @@ router.get('/stats', async (req, res) => {
     
     const complianceRate = totalDocuments > 0 ? Math.round((validDocuments / totalDocuments) * 100) : 0;
     
+    // Count upcoming inspections
+    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const upcomingInspections = await ComplianceDoc.countDocuments({
+      nextInspectionDate: { 
+        $gte: new Date(),
+        $lte: thirtyDaysFromNow 
+      }
+    });
+    
     res.json({
       success: true,
       data: {
@@ -92,12 +101,12 @@ router.get('/stats', async (req, res) => {
         expiredDocuments,
         pendingRenewals: expiringDocuments,
         complianceRate,
-        upcomingInspections: 5, // Placeholder
+        upcomingInspections,
         openViolations
       }
     });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

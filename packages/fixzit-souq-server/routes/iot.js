@@ -5,6 +5,57 @@ const AutomationRule = require('../models/AutomationRule');
 
 const router = express.Router();
 
+// Helper functions for real calculations
+async function calculateEnergySavings() {
+  try {
+    // Calculate based on sensor readings
+    const energyReadings = await SensorReading.find({
+      type: 'energy',
+      timestamp: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+    }).sort({ timestamp: 1 });
+    
+    if (energyReadings.length < 2) return 0;
+    
+    // Compare first week vs last week average
+    const firstWeek = energyReadings.slice(0, Math.floor(energyReadings.length / 4));
+    const lastWeek = energyReadings.slice(-Math.floor(energyReadings.length / 4));
+    
+    const firstAvg = firstWeek.reduce((sum, r) => sum + r.value, 0) / firstWeek.length;
+    const lastAvg = lastWeek.reduce((sum, r) => sum + r.value, 0) / lastWeek.length;
+    
+    const savings = ((firstAvg - lastAvg) / firstAvg) * 100;
+    return Math.max(0, Math.round(savings * 10) / 10);
+  } catch (error) {
+    console.error('Error calculating energy savings:', error);
+    return 0;
+  }
+}
+
+async function calculateWaterSavings() {
+  try {
+    // Calculate based on water sensor readings
+    const waterReadings = await SensorReading.find({
+      type: 'water',
+      timestamp: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+    }).sort({ timestamp: 1 });
+    
+    if (waterReadings.length < 2) return 0;
+    
+    // Compare first week vs last week average
+    const firstWeek = waterReadings.slice(0, Math.floor(waterReadings.length / 4));
+    const lastWeek = waterReadings.slice(-Math.floor(waterReadings.length / 4));
+    
+    const firstAvg = firstWeek.reduce((sum, r) => sum + r.value, 0) / firstWeek.length;
+    const lastAvg = lastWeek.reduce((sum, r) => sum + r.value, 0) / lastWeek.length;
+    
+    const savings = ((firstAvg - lastAvg) / firstAvg) * 100;
+    return Math.max(0, Math.round(savings * 10) / 10);
+  } catch (error) {
+    console.error('Error calculating water savings:', error);
+    return 0;
+  }
+}
+
 // Get sensor readings with enriched data
 router.get('/readings', async (req, res) => {
   try {
@@ -53,8 +104,8 @@ router.get('/readings', async (req, res) => {
     });
     
     res.json({ success: true, data: enrichedReadings });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -73,8 +124,8 @@ router.post('/readings', async (req, res) => {
     }
     
     res.json({ success: true, data: reading });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -91,8 +142,8 @@ router.get('/devices', async (req, res) => {
     }
     
     res.json({ success: true, data: devices });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -102,8 +153,8 @@ router.post('/devices', async (req, res) => {
     const device = new IoTDevice(req.body);
     await device.save();
     res.json({ success: true, data: device });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -113,8 +164,8 @@ router.get('/automation', async (req, res) => {
     const rules = await AutomationRule.find()
       .sort({ priority: -1, name: 1 });
     res.json({ success: true, data: rules });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -127,8 +178,8 @@ router.post('/automation', async (req, res) => {
     });
     await rule.save();
     res.json({ success: true, data: rule });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -166,14 +217,14 @@ router.get('/stats', async (req, res) => {
         totalSensors: totalSensors[0]?.total || 0,
         activeAlerts,
         criticalAlerts,
-        avgUptime: 98.5, // Placeholder
+        avgUptime: onlineDevices > 0 ? Math.round((onlineDevices / totalDevices) * 100 * 10) / 10 : 0,
         dataPoints24h,
-        energySavings: 23, // Placeholder percentage
-        waterSavings: 15 // Placeholder percentage
+        energySavings: await calculateEnergySavings(),
+        waterSavings: await calculateWaterSavings()
       }
     });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -192,8 +243,8 @@ router.post('/readings/:id/alerts/:alertIndex/acknowledge', async (req, res) => 
     }
     
     res.json({ success: true, data: reading });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
