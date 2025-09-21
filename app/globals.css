@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* tokens */
+:root{
+  --fixzit-blue:#0061A8;
+  --fixzit-dark:#023047;
+  --fixzit-orange:#F6851F;
+  --fixzit-green:#00A859;
+  --fixzit-yellow:#FFB400;
+}
+
+@layer components{
+  .btn-primary{@apply inline-flex items-center justify-center px-4 h-10 rounded-xl bg-[var(--fixzit-blue)] text-white font-semibold shadow-md hover:opacity-90 transition;}
+  .btn-ghost{@apply inline-flex items-center justify-center px-3 h-10 rounded-xl border border-slate-300/70 hover:bg-slate-100 transition;}
+
+  .nav-link{@apply text-slate-700 hover:text-[var(--fixzit-blue)] transition;}
+  .nav-link.active{@apply text-[var(--fixzit-blue)];}
+
+  .side-link{@apply flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100;}
+  .side-link.active{@apply bg-slate-100 text-[var(--fixzit-blue)] font-medium;}
+
+  .tab{@apply inline-flex px-3 py-1.5 rounded-xl border border-slate-300/70 text-sm bg-white hover:bg-slate-50;}
+  .tab.active{@apply border-[var(--fixzit-blue)] text-[var(--fixzit-blue)] bg-white;}
+
+  .pill{@apply inline-flex items-center justify-center h-10 rounded-xl border border-slate-300 bg-white px-4 hover:bg-slate-50;}
+
+  .table-wrap{@apply bg-white border border-slate-200 rounded-xl overflow-hidden;}
+  .fxz-table{@apply w-full border-collapse;}
+  .fxz-table thead th{@apply bg-slate-50 text-left text-sm font-semibold text-slate-700 border-b border-slate-200 px-4 py-3;}
+  .fxz-table tbody td{@apply text-sm text-slate-700 px-4 py-3 border-b border-slate-100;}
+  .badge{@apply inline-flex items-center rounded-full px-2.5 h-7 text-xs font-medium border;}
+  .badge.green{@apply border-emerald-300 text-emerald-700 bg-emerald-50;}
+  .badge.gray{@apply border-slate-300 text-slate-700 bg-slate-50;}
+  .badge.amber{@apply border-amber-300 text-amber-700 bg-amber-50;}
+
+  .menu-item{@apply block px-4 py-2 hover:bg-slate-50;}
+}
+
+html[dir="rtl"] body{font-family:"Noto Sans Arabic",system-ui,sans-serif;}
+
+
+
+@layer base {
+  :root {
+    --background:0 0% 100%;
+    --foreground:0 0% 3.9%;
+    --card:0 0% 100%;
+    --card-foreground:0 0% 3.9%;
+    --popover:0 0% 100%;
+    --popover-foreground:0 0% 3.9%;
+    --primary:0 0% 9%;
+    --primary-foreground:0 0% 98%;
+    --secondary:0 0% 96.1%;
+    --secondary-foreground:0 0% 9%;
+    --muted:0 0% 96.1%;
+    --muted-foreground:0 0% 45.1%;
+    --accent:0 0% 96.1%;
+    --accent-foreground:0 0% 9%;
+    --destructive:0 84.2% 60.2%;
+    --destructive-foreground:0 0% 98%;
+    --border:0 0% 89.8%;
+    --input:0 0% 89.8%;
+    --ring:0 0% 3.9%;
+    --chart-1:12 76% 61%;
+    --chart-2:173 58% 39%;
+    --chart-3:197 37% 24%;
+    --chart-4:43 74% 66%;
+    --chart-5:27 87% 67%;
+    --radius:0.5rem;
+  }
+  .dark {
+    --background:0 0% 3.9%;
+    --foreground:0 0% 98%;
+    --card:0 0% 3.9%;
+    --card-foreground:0 0% 98%;
+    --popover:0 0% 3.9%;
+    --popover-foreground:0 0% 98%;
+    --primary:0 0% 98%;
+    --primary-foreground:0 0% 9%;
+    --secondary:0 0% 14.9%;
+    --secondary-foreground:0 0% 98%;
+    --muted:0 0% 14.9%;
+    --muted-foreground:0 0% 63.9%;
+    --accent:0 0% 14.9%;
+    --accent-foreground:0 0% 98%;
+    --destructive:0 62.8% 30.6%;
+    --destructive-foreground:0 0% 98%;
+    --border:0 0% 14.9%;
+    --input:0 0% 14.9%;
+    --ring:0 0% 83.1%;
+    --chart-1:220 70% 50%;
+    --chart-2:160 60% 45%;
+    --chart-3:30 80% 55%;
+    --chart-4:280 65% 60%;
+    --chart-5:340 75% 55%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
