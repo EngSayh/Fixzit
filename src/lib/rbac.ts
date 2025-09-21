@@ -1,0 +1,24 @@
+export type Role =
+  | "SUPER_ADMIN" | "CORPORATE_ADMIN" | "FINANCE" | "HR" | "ADMIN" | "CRM"
+  | "FM_MANAGER" | "TECHNICIAN" | "VENDOR" | "TENANT" | "OWNER" | "SUPPORT"
+  | "PROCUREMENT" | "AUDITOR";
+
+export const RBAC: Record<string, Role[]> = {
+  // Module -> roles allowed
+  dashboard: ["SUPER_ADMIN","CORPORATE_ADMIN","FINANCE","HR","ADMIN","CRM","FM_MANAGER","TECHNICIAN","VENDOR","TENANT","OWNER","SUPPORT","PROCUREMENT","AUDITOR"],
+  work_orders: ["SUPER_ADMIN","CORPORATE_ADMIN","FM_MANAGER","TECHNICIAN","SUPPORT","AUDITOR"],
+  finance: ["SUPER_ADMIN","CORPORATE_ADMIN","FINANCE","AUDITOR"],
+  hr: ["SUPER_ADMIN","CORPORATE_ADMIN","HR","ADMIN","AUDITOR"],
+  admin: ["SUPER_ADMIN","CORPORATE_ADMIN","ADMIN","AUDITOR"],
+  crm: ["SUPER_ADMIN","CORPORATE_ADMIN","CRM","ADMIN","AUDITOR"],
+  properties: ["SUPER_ADMIN","CORPORATE_ADMIN","FM_MANAGER","ADMIN","AUDITOR"],
+  marketplace: ["SUPER_ADMIN","CORPORATE_ADMIN","PROCUREMENT","VENDOR","AUDITOR"],
+  aqar_souq: ["SUPER_ADMIN","CORPORATE_ADMIN","OWNER","ADMIN","AUDITOR"],
+  vendors: ["SUPER_ADMIN","CORPORATE_ADMIN","PROCUREMENT","ADMIN","AUDITOR"],
+  support: ["SUPER_ADMIN","CORPORATE_ADMIN","SUPPORT","ADMIN","AUDITOR"],
+};
+
+export function canAccess(moduleKey: keyof typeof RBAC, role: Role) {
+  return RBAC[moduleKey]?.includes(role as Role);
+}
+
