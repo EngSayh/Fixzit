@@ -22,7 +22,11 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:rbac": "tsx prisma/seed-rbac.ts",
     "db:reset": "prisma db push --force-reset && tsx prisma/seed-rbac.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "artifacts:init": "mkdir -p _artifacts",
+    "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
+    "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
+    "clean:root": "tsx scripts/janitor.ts --apply"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
