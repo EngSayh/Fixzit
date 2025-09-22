@@ -34,7 +34,7 @@ async function seedDatabase() {
     // Create admin user
     const adminUser = await User.create({
       name: 'System Administrator',
-      email: 'admin@fixzit.com',
+      email: 'admin@fixzit.co',
       password: 'admin123',
       role: 'super_admin',
       tenantId: tenant.id,
@@ -49,7 +49,7 @@ async function seedDatabase() {
     // Create manager user
     const managerUser = await User.create({
       name: 'Property Manager',
-      email: 'manager@fixzit.com',
+      email: 'manager@fixzit.co',
       password: 'manager123',
       role: 'manager',
       tenantId: tenant.id,
@@ -61,7 +61,7 @@ async function seedDatabase() {
     // Create technician user
     const technicianUser = await User.create({
       name: 'Ahmed Al-Saudi',
-      email: 'technician@fixzit.com',
+      email: 'technician@fixzit.co',
       password: 'tech123',
       role: 'technician',
       tenantId: tenant.id,
@@ -73,7 +73,7 @@ async function seedDatabase() {
     // Create customer user
     const customerUser = await User.create({
       name: 'Sarah Al-Rashid',
-      email: 'customer@fixzit.com',
+      email: 'customer@fixzit.co',
       password: 'customer123',
       role: 'customer',
       tenantId: tenant.id,

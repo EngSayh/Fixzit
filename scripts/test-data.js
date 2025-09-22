@@ -17,9 +17,9 @@ async function createTestData() {
     // Create admin user
     const hashedPassword = await bcrypt.hash('admin123', 10);
     const admin = await User.findOneAndUpdate(
-      { email: 'admin@fixzit.com' },
+      { email: 'admin@fixzit.co' },
       {
-        email: 'admin@fixzit.com',
+        email: 'admin@fixzit.co',
         password: hashedPassword,
         name: 'Admin User',
         role: 'super_admin',

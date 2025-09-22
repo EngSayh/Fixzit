@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS hr_request_attachments (
 
 -- Insert initial departments from Excel data
 INSERT INTO hr_departments (department_name, department_code, hod_name, hod_email) VALUES
-('Personnel', 'PERS', 'Sultana Al Swillam', 'sultana@fixzit.com'),
+('Personnel', 'PERS', 'Sultana Al Swillam', 'sultana@fixzit.co'),
 ('Recruitment', 'REC', NULL, NULL),
 ('Admin Services', 'ADMIN', NULL, NULL),
 ('Medical Services', 'MED', NULL, NULL),
