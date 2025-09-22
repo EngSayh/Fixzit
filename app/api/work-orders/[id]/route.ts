@@ -1,21 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as svc from "@/server/work-orders/wo.service";
+import { db } from "@/src/lib/mongo";
+import { WorkOrder } from "@/src/server/models/WorkOrder";
+import { z } from "zod";
+import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
 
-function ctx(req: NextRequest) {
-  const tenantId = req.headers.get("x-tenant-id") || "";
-  const actorId = req.headers.get("x-user-id") || undefined;
-  return { tenantId, actorId, ip: req.ip ?? "" };
+export async function GET(_req: NextRequest, { params }: { params: { id: string }}) {
+  await db;
+  const wo = await (WorkOrder as any).findById(params.id);
+  if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(wo);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params:{ id:string }}) {
-  const { tenantId, actorId, ip } = ctx(req);
-  if (!tenantId) return NextResponse.json({ error:"Missing tenant" },{ status: 400 });
-  const body = await req.json();
-  try {
-    const wo = await svc.update(params.id, body, tenantId, actorId, ip);
-    return NextResponse.json({ data: wo });
-  } catch (e:any) {
-    return NextResponse.json({ error: e.message }, { status:400 });
-  }
-}
+const patchSchema = z.object({
+  title: z.string().min(3).optional(),
+  description: z.string().optional(),
+  priority: z.enum(["LOW","MEDIUM","HIGH","URGENT"]).optional(),
+  category: z.string().optional(),
+  subcategory: z.string().optional(),
+  dueAt: z.string().datetime().optional()
+});
 
+export async function PATCH(req: NextRequest, { params }: { params: { id: string }}) {
+  const user = await requireAbility("EDIT")(req);
+  if (user instanceof NextResponse) return user as any;
+  await db;
+  const updates = patchSchema.parse(await req.json());
+  const wo = await (WorkOrder as any).findOneAndUpdate(
+    { _id: params.id, tenantId: user.tenantId },
+    { $set: { ...updates } },
+    { new: true }
+  );
+  if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(wo);
+}

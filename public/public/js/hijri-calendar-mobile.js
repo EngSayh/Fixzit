@@ -5,7 +5,7 @@
 
 class HijriCalendarMobile {
     constructor() {
-        this.currentLanguage = localStorage.getItem('language') || 'en';
+        this.currentLanguage = localStorage.getItem('fxz.lang') || 'en';
         this.preferHijri = localStorage.getItem('calendar_preference') === 'hijri';
         this.init();
     }

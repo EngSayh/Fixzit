@@ -220,7 +220,7 @@ class SaudiMobileOptimizer {
      * Show appropriate weekend greeting
      */
     showWeekendGreeting() {
-        const language = localStorage.getItem('language') || 'en';
+        const language = localStorage.getItem('fxz.lang') || 'en';
         const greeting = language === 'ar' ? 
             'عطلة نهاية أسبوع مباركة' : 
             'Blessed Weekend';
@@ -233,7 +233,7 @@ class SaudiMobileOptimizer {
      * Setup Arabic/English number formatting
      */
     setupNumberFormatting() {
-        const language = localStorage.getItem('language') || 'en';
+        const language = localStorage.getItem('fxz.lang') || 'en';
         
         // Format numbers according to locale
         document.querySelectorAll('[data-number]').forEach(element => {
@@ -334,7 +334,7 @@ class SaudiMobileOptimizer {
      * Show connectivity status to user
      */
     showConnectivityStatus(status) {
-        const language = localStorage.getItem('language') || 'en';
+        const language = localStorage.getItem('fxz.lang') || 'en';
         const messages = {
             online: {
                 en: 'Connected - Data synced',
@@ -461,7 +461,7 @@ class SaudiMobileOptimizer {
      * Show network condition notification
      */
     showNetworkNotification(condition) {
-        const language = localStorage.getItem('language') || 'en';
+        const language = localStorage.getItem('fxz.lang') || 'en';
         const messages = {
             slow: {
                 en: 'Slow connection detected - Optimizing experience',
@@ -482,7 +482,7 @@ class SaudiMobileOptimizer {
     loadCulturalPreferences() {
         return {
             calendar: localStorage.getItem('calendar_preference') || 'dual',
-            language: localStorage.getItem('language') || 'en',
+            language: localStorage.getItem('fxz.lang') || 'en',
             theme: localStorage.getItem('theme_preference') || 'auto',
             notifications: localStorage.getItem('notification_preferences') || 'respectful'
         };

@@ -30,7 +30,7 @@ const corsOptions = {
     const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [
       'http://localhost:3000',
       'http://localhost:5000',
-      'https://fixzit.com'
+      'https://fixzit.co'
     ];
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
