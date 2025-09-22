@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useI18n } from '@/src/providers/RootProviders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { Badge } from '@/src/components/ui/badge';
@@ -24,7 +24,7 @@ interface MaintenanceTask {
 }
 
 export default function MaintenancePage() {
-  const { t } = useTranslation();
+  const { t, language, isRTL } = useI18n();
 
   const tasks: MaintenanceTask[] = [
     {

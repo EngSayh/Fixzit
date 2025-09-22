@@ -7,6 +7,9 @@ import {
   TrendingUp, Star, Settings, BarChart3
 } from 'lucide-react';
 
+// @deprecated Consider migrating to unified navigation registry in src/nav/registry.ts
+// This component may be replaced by a more centralized navigation system
+
 const AQAR_MODULES = [
   { icon: Map, label: 'Interactive Map', route: '/aqar/map' },
   { icon: Search, label: 'Property Search', route: '/aqar/search' },

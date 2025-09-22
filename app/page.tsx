@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import Footer from "@/src/components/Footer";
-import { useTranslation } from "@/src/contexts/TranslationContext";
+import { useI18n } from '@/src/providers/RootProviders';
 
 export default function LandingPage(){
-  const { t } = useTranslation();
+  const { t, language, isRTL } = useI18n();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 pt-16">

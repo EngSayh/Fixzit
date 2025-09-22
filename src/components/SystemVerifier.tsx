@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { autoFixManager, FixResult } from '@/src/lib/AutoFixManager';
+import { getAutoFixManager, FixResult } from '@/src/lib/AutoFixManager';
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Network, Shield, Zap } from 'lucide-react';
 
 interface SystemStatus {
@@ -19,6 +19,7 @@ export default function SystemVerifier() {
   const runVerification = async () => {
     setIsLoading(true);
     try {
+      const autoFixManager = getAutoFixManager();
       const result = await autoFixManager.verifySystemHealth();
       setStatus({
         ...result,
@@ -39,11 +40,13 @@ export default function SystemVerifier() {
 
   const startMonitoring = () => {
     setIsMonitoring(true);
+    const autoFixManager = getAutoFixManager();
     autoFixManager.startAutoMonitoring(1); // Check every minute
   };
 
   const stopMonitoring = () => {
     setIsMonitoring(false);
+    const autoFixManager = getAutoFixManager();
     autoFixManager.stopAutoMonitoring();
   };
 
@@ -292,7 +295,10 @@ export default function SystemVerifier() {
 
         <div className="flex gap-3">
           <button
-            onClick={() => autoFixManager.emergencyRecovery()}
+            onClick={() => {
+              const autoFixManager = getAutoFixManager();
+              autoFixManager.emergencyRecovery();
+            }}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
           >
             🚨 Emergency Recovery

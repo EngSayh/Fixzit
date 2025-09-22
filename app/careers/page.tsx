@@ -9,7 +9,7 @@ import { Label } from '@/src/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 import { Badge } from '@/src/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useI18n } from '@/src/providers/RootProviders';
 import { MapPin, Clock, DollarSign, Users, FileText, Send, Upload, Star, AlertTriangle } from 'lucide-react';
 
 interface Job {
@@ -31,7 +31,7 @@ interface Job {
 }
 
 export default function CareersPage() {
-  const { t } = useTranslation();
+  const { t, language, isRTL } = useI18n();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

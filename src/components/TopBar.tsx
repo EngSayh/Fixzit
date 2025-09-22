@@ -1,26 +1,58 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, Search, Globe, User, ChevronDown } from 'lucide-react';
-import LanguageSelector from './i18n/LanguageSelector';
+import React, { useState, useEffect } from 'react';
+import { Bell, Search, Globe, User, ChevronDown, DollarSign } from 'lucide-react';
+import LanguageSelector from './LanguageSelector';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useI18n } from '@/src/providers/RootProviders';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 
-// Fallback translations for when context is not available
-const fallbackTranslations: Record<string, string> = {
-  'common.brand': 'FIXZIT ENTERPRISE',
-  'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
-  'nav.notifications': 'Notifications',
-  'common.unread': 'unread',
-  'common.noNotifications': 'No new notifications',
-  'common.loading': 'Loading...',
-  'common.allCaughtUp': "You're all caught up!",
-  'common.viewAll': 'View all notifications',
-  'nav.profile': 'Profile',
-  'nav.settings': 'Settings',
-  'common.logout': 'Sign out'
+// Currency Selector Component (STRICT v4 compliant)
+const CurrencySelector = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { isRTL } = useI18n();
+
+  const currencies = [
+    { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal', flag: '🇸🇦' },
+    { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
+    { code: 'EUR', symbol: '€', name: 'Euro', flag: '🇪🇺' },
+    { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧' }
+  ];
+
+  const currentCurrency = currencies[0]; // Default to SAR
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 hover:bg-white/10 rounded-md flex items-center gap-2"
+        aria-label="Select currency"
+      >
+        <DollarSign className="w-4 h-4" />
+        <span className="text-sm font-medium">{currentCurrency.symbol}</span>
+        <ChevronDown className="w-3 h-3" />
+      </button>
+
+      {isOpen && (
+        <div className={`absolute top-full mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[60] ${isRTL ? 'right-0' : 'right-0'}`}>
+          <div className="p-2">
+            {currencies.map((currency) => (
+              <button
+                key={currency.code}
+                className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-md flex items-center gap-3 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <span>{currency.flag}</span>
+                <span className="text-sm font-medium">{currency.symbol}</span>
+                <span className="text-xs text-gray-600">{currency.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 interface TopBarProps {
@@ -45,17 +77,10 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
 
   // Get responsive context
-  const { responsiveClasses, screenInfo, isRTL } = useResponsive();
+  const { responsiveClasses, screenInfo } = useResponsive();
 
-  // Safe translation function with fallback
-  let t: (key: string, fallback?: string) => string;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-  } catch {
-    // Fallback when translation context is not available
-    t = (key: string, fallback?: string) => fallbackTranslations[key] || fallback || key;
-  }
+  // Get i18n context
+  const { t, lang, setLanguage, isRTL } = useI18n();
 
   const router = useRouter();
 
@@ -66,27 +91,34 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
     }
   }, [notifOpen]);
 
-  // Close notification popup when clicking outside or pressing Escape
+  // Close dropdowns when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
 
-      // Check if the click is inside the notification container
+      // Check if the click is inside either notification or user container
       const isInsideNotification = target.closest('.notification-container');
+      const isInsideUser = target.closest('.user-menu-container');
 
-      // If popup is open and click is outside notification container, close it
+      // If notification popup is open and click is outside, close it
       if (notifOpen && !isInsideNotification) {
         setNotifOpen(false);
+      }
+
+      // If user menu is open and click is outside, close it
+      if (userOpen && !isInsideUser) {
+        setUserOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (notifOpen && event.key === 'Escape') {
-        setNotifOpen(false);
+      if (event.key === 'Escape') {
+        if (notifOpen) setNotifOpen(false);
+        if (userOpen) setUserOpen(false);
       }
     };
 
-    if (notifOpen) {
+    if (notifOpen || userOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleKeyDown);
       return () => {
@@ -94,7 +126,18 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
         document.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [notifOpen]);
+  }, [notifOpen, userOpen]);
+
+  // Handle dropdown mutual exclusion - close one when opening the other
+  const handleNotifClick = () => {
+    setNotifOpen(!notifOpen);
+    if (userOpen) setUserOpen(false);
+  };
+
+  const handleUserClick = () => {
+    setUserOpen(!userOpen);
+    if (notifOpen) setNotifOpen(false);
+  };
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -238,20 +281,21 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
       </div>
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <LanguageSelector />
+        <CurrencySelector />
         <div className="notification-container relative">
           <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
+            onClick={handleNotifClick}
+            className={`p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105 ${notifOpen ? 'bg-white/10' : ''}`}
             aria-label="Toggle notifications"
           >
             <Bell className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
           </button>
           {notifOpen && (
-            <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
+            <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[60] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'right-0 left-auto' : 'right-0'}`}>
               {/* Arrow pointer - hidden on mobile */}
-              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'left-8' : 'right-8'}`}></div>
-              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200 ${isRTL ? 'left-8' : 'right-8'}`}></div>
+              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'right-8' : 'right-8'}`}></div>
+              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200 ${isRTL ? 'right-8' : 'right-8'}`}></div>
 
               <div className="p-3 border-b border-gray-200 flex items-center justify-between">
                 <div>
@@ -342,21 +386,48 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
             </div>
           )}
         </div>
-        <div className="relative">
-          <button onClick={() => setUserOpen(!userOpen)} className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md">
-            <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
+        <div className="user-menu-container relative">
+          <button onClick={handleUserClick} className={`flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-all duration-200 hover:scale-105 ${userOpen ? 'bg-white/10' : ''}`}>
+            <User className="w-5 h-5" />
+            <ChevronDown className="w-4 h-4" />
           </button>
           {userOpen && (
-            <div className={`absolute top-10 w-44 bg-white text-gray-800 rounded-lg shadow-lg p-1 z-50 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
-              <a className="block px-3 py-2 hover:bg-gray-50 rounded" href="/profile">{t('nav.profile', 'Profile')}</a>
-              <a className="block px-3 py-2 hover:bg-gray-50 rounded" href="/settings">{t('nav.settings', 'Settings')}</a>
-              <div className="border-t my-1" />
-              <button
-                className="block w-full text-left px-3 py-2 hover:bg-gray-50 text-red-600 rounded"
-                onClick={handleLogout}
-              >
-                {t('common.logout', 'Sign out')}
-              </button>
+            <div className={`user-menu-container absolute top-full mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[60] animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'right-0 left-auto' : 'right-0'}`}>
+              {/* Arrow pointer */}
+              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'right-6' : 'right-6'}`}></div>
+              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200 ${isRTL ? 'right-6' : 'right-6'}`}></div>
+
+              <div className="p-2">
+                <a
+                  className="block px-3 py-2 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                  href="/profile"
+                  onClick={() => setUserOpen(false)}
+                >
+                  <User className="w-4 h-4 text-gray-500" />
+                  <span>{t('nav.profile', 'Profile')}</span>
+                </a>
+                <a
+                  className="block px-3 py-2 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                  href="/settings"
+                  onClick={() => setUserOpen(false)}
+                >
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>{t('nav.settings', 'Settings')}</span>
+                </a>
+                <div className="border-t border-gray-200 my-1" />
+                <button
+                  className="block w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 rounded-md transition-colors flex items-center gap-2"
+                  onClick={handleLogout}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span>{t('common.logout', 'Sign out')}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { autoFixManager } from '@/src/lib/AutoFixManager';
+import { getAutoFixManager } from '@/src/lib/AutoFixManager';
 
 // This component initializes the auto-fix system when the app starts
 export default function AutoFixInitializer() {
   useEffect(() => {
     console.log('🚀 Initializing Auto-Fix System...');
+
+    // Get the auto-fix manager instance (only initializes on client side)
+    const autoFixManager = getAutoFixManager();
 
     // Start auto-monitoring with 5-minute intervals
     autoFixManager.startAutoMonitoring(5);

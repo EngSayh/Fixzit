@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server';
 const publicRoutes = [
   '/',
   '/login',
+  '/signup',
   '/forgot-password',
   '/help',
   '/cms/privacy',
@@ -12,7 +13,9 @@ const publicRoutes = [
   '/cms/about',
   '/careers',
   '/test',
-  '/test-simple'
+  '/test-simple',
+  '/ar',
+  '/logout'
 ];
 
 // Define API routes that require authentication
@@ -51,7 +54,7 @@ const fmRoutes = [
   '/fm/vendors'
 ];
 
-// Define public marketplace routes (browsing allowed without login)
+// Define public marketplace routes (browsing allowed without login) - Aqar-style & Amazon-style
 const publicMarketplaceRoutes = [
   '/souq',
   '/souq/catalog',
@@ -66,20 +69,31 @@ const publicMarketplaceRoutes = [
   '/aqar/properties',
   '/aqar/filters',
   '/aqar/trends',
-  '/aqar/premium'
+  '/aqar/premium',
+  '/marketplace',
+  '/marketplace/materials',
+  '/marketplace/properties'
 ];
 
-// Define protected marketplace actions (require login)
+// Define protected marketplace actions (require login) - Interactions & transactions
 const protectedMarketplaceActions = [
   '/souq/cart',
   '/souq/checkout',
   '/souq/purchase',
   '/souq/my-orders',
   '/souq/my-rfqs',
+  '/souq/rfq/new',
+  '/souq/vendor/products/new',
+  '/souq/vendor/services/new',
   '/aqar/favorites',
   '/aqar/listings',
   '/aqar/my-properties',
-  '/aqar/bookings'
+  '/aqar/bookings',
+  '/aqar/post',
+  '/aqar/projects/new',
+  '/marketplace/cart',
+  '/marketplace/checkout',
+  '/marketplace/rfq/new'
 ];
 
 export async function middleware(request: NextRequest) {
@@ -106,13 +120,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle API routes - require authentication
+  // Handle API routes - allow public marketplace APIs for browsing
   if (pathname.startsWith('/api/')) {
     // Allow public API routes
     if (pathname.startsWith('/api/auth/') ||
         pathname.startsWith('/api/cms/') ||
         pathname.startsWith('/api/help/') ||
-        pathname.startsWith('/api/assistant/')) {
+        pathname.startsWith('/api/assistant/') ||
+        pathname.startsWith('/api/marketplace/browse') ||
+        pathname.startsWith('/api/marketplace/search') ||
+        pathname.startsWith('/api/marketplace/categories') ||
+        pathname.startsWith('/api/marketplace/filters')) {
       return NextResponse.next();
     }
 

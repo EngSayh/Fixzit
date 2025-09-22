@@ -7,6 +7,9 @@ import {
   Truck, Star, Filter, Search, Settings
 } from 'lucide-react';
 
+// @deprecated Consider migrating to unified navigation registry in src/nav/registry.ts
+// This component may be replaced by a more centralized navigation system
+
 const SOUQ_MODULES = [
   { icon: Package, label: 'Catalog', route: '/souq/catalog' },
   { icon: Users, label: 'Vendors', route: '/souq/vendors' },

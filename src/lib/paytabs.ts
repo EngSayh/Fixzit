@@ -7,6 +7,40 @@ const REGIONS: Record<string,string> = {
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
 
+interface PaymentRequest {
+  amount: number;
+  currency: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zip: string;
+  };
+  description: string;
+  invoiceId?: string;
+  returnUrl: string;
+  callbackUrl: string;
+}
+
+interface PaymentResponse {
+  success: boolean;
+  transactionId?: string;
+  paymentUrl?: string;
+  error?: string;
+  message?: string;
+}
+
+const PAYTABS_CONFIG = {
+  profileId: process.env.PAYTABS_PROFILE_ID || 'test',
+  clientKey: process.env.PAYTABS_CLIENT_KEY || 'test',
+  serverKey: process.env.PAYTABS_SERVER_KEY || 'test',
+  baseUrl: paytabsBase('KSA')
+};
+
 export async function createHppRequest(region:string, payload:any) {
   const r = await fetch(`${paytabsBase(region)}/payment/request`, {
     method:'POST',
@@ -29,11 +63,11 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
       cart_currency: request.currency,
       cart_amount: request.amount.toFixed(2),
       cart_description: request.description,
-      
+
       // URLs
       return: request.returnUrl,
       callback: request.callbackUrl,
-      
+
       // Customer details
       customer_details: {
         name: request.customerDetails.name,

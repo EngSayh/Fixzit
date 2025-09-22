@@ -1,7 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useI18n } from '@/src/providers/RootProviders';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
@@ -96,18 +96,8 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   const router = useRouter();
   const { responsiveClasses, screenInfo } = useResponsive();
 
-  // Safe translation with fallback
-  let t: (key: string, fallback?: string) => string;
-  let translationIsRTL: boolean = false;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-    translationIsRTL = translationContext.isRTL;
-  } catch {
-    // Fallback translation function
-    t = (key: string, fallback?: string) => fallback || key;
-    translationIsRTL = false;
-  }
+  // Get i18n context
+  const { t, isRTL } = useI18n();
 
   const active = useMemo(() => pathname, [pathname]);
 
@@ -150,7 +140,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   };
 
   return (
-            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'w-64'} bg-[#023047] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#023047' }}>
+            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${isRTL ? 'right-0' : 'left-0'}` : 'w-64'} bg-[#023047] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${isRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#023047' }}>
       <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
         <div className="font-bold text-lg mb-6 text-white">Fixzit Enterprise</div>
 
@@ -181,11 +171,11 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200
                                          ${isActive
                                            ? 'bg-[#0061A8] text-white shadow-md'
-                                           : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'} ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                                           : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                         >
                           <Icon className="w-5 h-5 flex-shrink-0" />
                           <span className="text-sm font-medium">{t(m.name, m.name.replace('nav.', ''))}</span>
-                          {isActive && <div className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 bg-white rounded-full`}></div>}
+                          {isActive && <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 bg-white rounded-full`}></div>}
                         </button>
                   );
                 })}

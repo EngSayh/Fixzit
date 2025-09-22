@@ -3,47 +3,45 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import TopBar from './TopBar';
-import Sidebar from './Sidebar';
+import RoleSidebar from './navigation/RoleSidebar';
 import Footer from './Footer';
 import HelpWidget from './HelpWidget';
+import KnowledgeWidget from './help/KnowledgeWidget';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useI18n } from '@/src/providers/RootProviders';
+import { ModuleKey } from '@/src/lib/rbac';
+import ChatWidget from './ai/ChatWidget';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState('guest');
+  const [role, setRole] = useState<'SUPER_ADMIN' | 'CORP_ADMIN' | 'MANAGEMENT' | 'FINANCE' | 'HR' | 'CORPORATE_EMPLOYEE' | 'PROPERTY_OWNER' | 'TECHNICIAN' | 'TENANT' | 'VENDOR' | 'GUEST'>('GUEST');
+  const [userModules, setUserModules] = useState<ModuleKey[] | undefined>(undefined);
+  const [orgOverrides, setOrgOverrides] = useState<Record<string, boolean> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
+  const publicRoutes = new Set<string>(['/','/about','/privacy','/terms', '/login', '/ar']);
   const isLandingPage = publicRoutes.has(pathname);
   const { screenInfo } = useResponsive();
-  // Safe translation access with fallback
-  let language = 'ar';
-  let isRTL = false;
 
-  try {
-    const translationContext = useTranslation();
-    language = translationContext.language;
-    isRTL = translationContext.isRTL;
-  } catch (error) {
-    console.warn('Translation context not available in ClientLayout:', error);
-  }
+  // Get i18n context
+  const { language, isRTL } = useI18n();
 
-  // Update document attributes when language changes
-  useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-  }, [language, isRTL]);
+  // Note: Document attributes are now handled by the RootProviders useEffect
 
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
         // First check localStorage for cached role
         const cachedRole = localStorage.getItem('fixzit-role');
+        const cachedModules = localStorage.getItem('fixzit-modules');
+        const cachedOverrides = localStorage.getItem('fixzit-overrides');
+
         if (cachedRole && cachedRole !== 'guest') {
-          setRole(cachedRole);
+          setRole(cachedRole as any);
+          setUserModules(cachedModules ? JSON.parse(cachedModules) : undefined);
+          setOrgOverrides(cachedOverrides ? JSON.parse(cachedOverrides) : undefined);
           setLoading(false);
           return;
         }
@@ -58,18 +56,22 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           if (data.user && data.user.role) {
             const userRole = data.user.role;
             setRole(userRole);
+            setUserModules(data.user.modules);
+            setOrgOverrides(data.user.orgOverrides);
             // Cache the role in localStorage
             localStorage.setItem('fixzit-role', userRole);
+            localStorage.setItem('fixzit-modules', JSON.stringify(data.user.modules));
+            localStorage.setItem('fixzit-overrides', JSON.stringify(data.user.orgOverrides));
           }
         } else {
           // If no valid session, ensure role is guest
-          setRole('guest');
-          localStorage.setItem('fixzit-role', 'guest');
+          setRole('GUEST');
+          localStorage.setItem('fixzit-role', 'GUEST');
         }
       } catch (error) {
         console.error('Failed to fetch user role:', error);
-        setRole('guest');
-        localStorage.setItem('fixzit-role', 'guest');
+        setRole('GUEST');
+        localStorage.setItem('fixzit-role', 'GUEST');
       } finally {
         setLoading(false);
       }
@@ -105,12 +107,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           <AutoFixInitializer />
           <ResponsiveLayout
             header={<TopBar role={role} />}
-            sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+            sidebar={!isLandingPage ? <RoleSidebar role={role} userModules={userModules} orgOverrides={orgOverrides} /> : undefined}
             showSidebarToggle={!isLandingPage}
           >
             {children}
           </ResponsiveLayout>
           <HelpWidget />
+          <KnowledgeWidget
+            orgId="demo-tenant"
+            lang={language as 'ar' | 'en'}
+            role={role}
+            route={pathname}
+          />
+          <ChatWidget />
           <ErrorTest />
         </div>
       );

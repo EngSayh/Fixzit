@@ -1,79 +1,66 @@
-import { db } from "@/src/lib/mongo";
-import { HelpArticle } from "@/src/server/models/HelpArticle";
-import Link from "next/link";
+import { getDb } from '@/src/lib/mongo';
+import { notFound } from 'next/navigation';
 
-export const revalidate = 60;
+interface ArticlePageProps {
+  params: { slug: string };
+}
 
-export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
-  await db;
-  const a = await (HelpArticle as any).findOne({ slug: params.slug });
-  if (!a || a.status!=="PUBLISHED"){
-    return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
+export const dynamic = 'force-dynamic';
+
+export default async function ArticlePage({ params }: ArticlePageProps) {
+  const db = await getDb();
+  const article = await db.collection('knowledge_articles')
+    .findOne({ slug: params.slug, status: 'PUBLISHED' });
+
+  if (!article) {
+    notFound();
   }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      {/* Breadcrumb */}
-      <section className="bg-gradient-to-r from-[#0061A8] to-[#00A859] text-white py-8">
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="flex items-center gap-2 text-sm mb-2 opacity-90">
-            <Link href="/help" className="hover:underline">Help Center</Link>
-            <span>/</span>
-            <span>{a.category || 'General'}</span>
-          </div>
-          <h1 className="text-3xl font-bold">{a.title}</h1>
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="px-3 py-1 rounded-full bg-[#0061A8]/10 text-[#0061A8] text-sm font-medium">
+            {article.module}
+          </span>
+          <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-sm">
+            {article.lang.toUpperCase()}
+          </span>
+          {article.tags.map((tag: string) => (
+            <span key={tag} className="px-2 py-1 rounded-full bg-gray-50 text-gray-500 text-xs">
+              {tag}
+            </span>
+          ))}
         </div>
-      </section>
-      
-      {/* Content */}
-      <div className="mx-auto max-w-4xl px-6 py-10">
-        <div className="grid md:grid-cols-[1fr_280px] gap-8">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
-            <article 
-              className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]" 
-              dangerouslySetInnerHTML={{ __html: await renderMarkdown(a.content) }} 
-            />
-            
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div>Last updated {new Date(a.updatedAt).toLocaleDateString()}</div>
-                <Link 
-                  href="/help" 
-                  className="text-[var(--fixzit-blue)] hover:text-[var(--fixzit-blue)]/80 font-medium"
-                >
-                  ← All articles
-                </Link>
-              </div>
-            </div>
-          </div>
-          
-          {/* Sidebar */}
-          <aside className="space-y-4">
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-              <h3 className="font-semibold text-[var(--fixzit-text)] mb-3">Was this helpful?</h3>
-              <div className="flex gap-2">
-                <button className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                  👍 Yes
-                </button>
-                <button className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                  👎 No
-                </button>
-              </div>
-            </div>
-            
-            <div className="bg-[var(--fixzit-blue)] text-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2">Still need help?</h4>
-              <p className="text-sm mb-3">Our support team is here to assist you.</p>
-              <Link 
-                href="/support/my-tickets"
-                className="block w-full bg-white text-[var(--fixzit-blue)] px-4 py-2 rounded-md font-medium hover:bg-gray-100 text-center"
-              >
-                Contact Support
-              </Link>
-            </div>
-          </aside>
+
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">{article.title}</h1>
+
+        <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
+          <span>Version {article.version}</span>
+          <span>•</span>
+          <span>Updated {new Date(article.updatedAt || '').toLocaleDateString()}</span>
+          <span>•</span>
+          <span>Role: {article.roleScopes.join(', ')}</span>
         </div>
+      </div>
+
+      <div className="prose max-w-none">
+        <div dangerouslySetInnerHTML={{ __html: article.contentMDX }} />
+      </div>
+
+      <div className="mt-8 pt-6 border-t">
+        <h3 className="text-lg font-semibold mb-4">Sources</h3>
+        <ul className="space-y-2">
+          {article.sources.map((source: any, index: number) => (
+            <li key={index} className="flex items-center gap-2 text-sm text-gray-600">
+              <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium">
+                {source.type.toUpperCase()}
+              </span>
+              <span>{source.ref}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
 }
-async function renderMarkdown(md:string){ return md.split(/\n{2,}/).map(p=>`<p>${p.replace(/\n/g,"<br/>")}</p>`).join(""); }

@@ -68,6 +68,22 @@ const nextConfig = {
       fs: false,
       net: false,
       tls: false,
+      child_process: false,
+      crypto: false,
+      stream: false,
+      util: false,
+      buffer: false,
+      path: false,
+      url: false,
+      dns: false,
+      'timers/promises': false,
+      events: false,
+      os: false,
+      assert: false,
+      querystring: false,
+      http: false,
+      https: false,
+      zlib: false,
     }
     // Add polling for OneDrive file watching issues
     if (dev) {

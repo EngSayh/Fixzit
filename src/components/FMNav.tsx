@@ -7,6 +7,9 @@ import {
   UserCheck, ShoppingBag, Headphones, ShieldCheck, BarChart3, Cog
 } from 'lucide-react';
 
+// @deprecated Consider migrating to unified navigation registry in src/nav/registry.ts
+// This component may be replaced by a more centralized navigation system
+
 const FM_MODULES = [
   { icon: LayoutDashboard, label: 'Dashboard', route: '/fm/dashboard' },
   { icon: ClipboardList, label: 'Work Orders', route: '/fm/work-orders' },

@@ -7,6 +7,19 @@ export default function HelpWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Function to trigger AI chat widget
+  const openAIChat = () => {
+    // Find and click the AI chat widget button
+    const aiChatButton = document.querySelector('[aria-label="Fixzit Assistant"], [aria-label="مساعد Fixzit"]') as HTMLElement;
+    if (aiChatButton) {
+      aiChatButton.click();
+    } else {
+      // Fallback: Open AI chat page if widget not found
+      window.open('/help/ai-chat', '_blank');
+    }
+    setIsOpen(false);
+  };
+
   const helpOptions = [
     {
       icon: <BookOpen className="w-5 h-5" />,
@@ -18,7 +31,7 @@ export default function HelpWidget() {
       icon: <MessageSquare className="w-5 h-5" />,
       title: 'AI Assistant',
       description: 'Ask questions and get help',
-      action: () => window.open('/help/ai-chat', '_blank')
+      action: openAIChat
     }
   ];
 

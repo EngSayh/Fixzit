@@ -1,11 +1,11 @@
 'use client';
 
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useI18n } from '@/src/providers/RootProviders';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { ResponsiveContainer, ResponsiveText } from '@/src/components/ui/ResponsiveContainer';
 
 export default function RTLTestPage() {
-  const { t, language, setLanguage, isRTL } = useTranslation();
+  const { t, language, setLanguage, isRTL } = useI18n();
   const { screenInfo } = useResponsive();
 
   const testTranslations = [
@@ -44,10 +44,10 @@ export default function RTLTestPage() {
               English
             </button>
             <button
-              onClick={() => setLanguage('fr')}
-              className={`px-4 py-2 rounded ${language === 'fr' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              onClick={() => setLanguage('ar')}
+              className={`px-4 py-2 rounded ${language === 'ar' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
             >
-              French (Français)
+              Arabic (العربية)
             </button>
           </div>
 

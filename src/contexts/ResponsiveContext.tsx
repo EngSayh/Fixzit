@@ -81,12 +81,12 @@ export function useResponsive() {
   }
 
   // Try to get isRTL from TranslationContext
-  let isRTL = context.isRTL;
+  let isRTL = false;
   try {
     // Import useTranslation at module level to avoid SSR issues
     const { useTranslation } = require('@/src/contexts/TranslationContext');
     const translationContext = useTranslation();
-    isRTL = translationContext.isRTL;
+    isRTL = translationContext.isRTL || false;
   } catch {
     // Fallback if translation context is not available
     isRTL = false;
@@ -94,6 +94,8 @@ export function useResponsive() {
 
   return {
     ...context,
-    isRTL
+    isRTL,
+    screenInfo: context.screenInfo,
+    responsiveClasses: context.responsiveClasses
   };
 }

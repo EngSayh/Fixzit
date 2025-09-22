@@ -9,10 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/ta
 import { Label } from '@/src/components/ui/label';
 import { Switch } from '@/src/components/ui/switch';
 import { Bell, Globe, Lock, User, Palette, Mail } from 'lucide-react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useI18n } from '@/src/providers/RootProviders';
 
 export default function SettingsPage() {
-  const { t } = useTranslation();
+  const { t, language, isRTL } = useI18n();
   const [notifications, setNotifications] = useState({
     email: true,
     sms: true,

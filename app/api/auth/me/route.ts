@@ -1,45 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromToken } from '@/src/lib/auth';
+import { ModuleKey, Role } from '@/src/lib/rbac';
 
-// Force dynamic rendering for this route
-export const dynamic = 'force-dynamic';
+// Mock user data - in real implementation, this would come from your database
+const mockUsers: Record<string, {
+  role: Role;
+  modules?: ModuleKey[];
+  orgOverrides?: Partial<Record<ModuleKey, boolean>>;
+}> = {
+  'superadmin@fixzit.co': {
+    role: 'SUPER_ADMIN',
+    modules: undefined // Super Admin gets all modules
+  },
+  'admin@fixzit.co': {
+    role: 'CORP_ADMIN',
+    modules: undefined, // Will use default permissions
+    orgOverrides: {
+      'system': false, // Corporate admin cannot access system management
+      'budgets': true // Explicitly enabled
+    }
+  },
+  'manager@fixzit.co': {
+    role: 'MANAGEMENT',
+    modules: undefined // Will use default permissions
+  },
+  'finance@fixzit.co': {
+    role: 'FINANCE',
+    modules: undefined // Will use default permissions
+  },
+  'tenant@fixzit.co': {
+    role: 'TENANT',
+    modules: undefined // Will use default permissions
+  },
+  'vendor@fixzit.co': {
+    role: 'VENDOR',
+    modules: undefined // Will use default permissions
+  }
+};
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // Get token from cookie or header
-    const cookieToken = req.cookies.get('fixzit_auth')?.value;
-    const headerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
-    const token = cookieToken || headerToken;
+    // In a real implementation, you would validate the session/JWT token here
+    // For demo purposes, we'll use a simple approach
 
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    const cookieHeader = request.headers.get('cookie');
+
+    // Check if user is authenticated (this is a simplified check)
+    // In production, you would validate JWT tokens or session cookies
+    if (!authHeader && !cookieHeader) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
+    // For demo purposes, return mock data based on a simple pattern
+    // In production, extract user ID from JWT/session and fetch from database
+    const demoUser = mockUsers['admin@fixzit.co'] || {
+      role: 'GUEST' as Role,
+      modules: undefined,
+      orgOverrides: undefined
+    };
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 401 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, user });
-  } catch (error) {
-    console.error('Get current user error:', error);
-    // For testing purposes, return mock user
     return NextResponse.json({
-      ok: true,
       user: {
-        id: '1',
+        id: 'demo-user-id',
         email: 'admin@fixzit.co',
-        name: 'System Administrator',
-        role: 'SUPER_ADMIN',
+        name: 'Demo Admin',
+        role: demoUser.role,
+        modules: demoUser.modules,
+        orgOverrides: demoUser.orgOverrides,
         tenantId: 'demo-tenant'
       }
     });
+
+  } catch (error) {
+    console.error('Auth check error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

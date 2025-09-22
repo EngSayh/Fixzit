@@ -1,4 +1,8 @@
-﻿'use client';
+﻿// DEPRECATED: This file is a duplicate of ChatWidget.tsx
+// Keeping for reference but should be removed in production
+// All AI chat functionality is handled by src/components/ai/ChatWidget.tsx
+
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, X, Loader2 } from 'lucide-react';
@@ -10,6 +14,7 @@ interface Message {
   timestamp: Date;
 }
 
+// @deprecated - Use ChatWidget.tsx instead
 export default function AIChat({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>([
     {

@@ -1,3 +1,7 @@
+// DEPRECATED: This file is a duplicate of LanguageSelector.tsx
+// Keeping for reference but should be removed in production
+// All language selection functionality is handled by src/components/LanguageSelector.tsx
+
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { Globe } from 'lucide-react';
@@ -22,30 +26,19 @@ export default function LanguageSelector() {
   const [q, setQ] = useState('');
   const [isClient, setIsClient] = useState(false);
 
-  // Use the actual translation context
-  let t: (key: string, fallback?: string) => string;
-  let language: string;
-  let setLanguage: (lang: any) => void;
-  let isRTL: boolean;
+  // Use the actual translation context with proper typing
+  const context = useTranslation();
 
-  try {
-    const context = useTranslation();
-    t = context.t;
-    language = context.language;
-    setLanguage = context.setLanguage;
-    isRTL = context.isRTL;
-  } catch {
-    // Fallback when context is not available
-    t = (key: string, fallback?: string) => fallback || key;
-    language = 'en';
-    setLanguage = (lang: any) => {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('fxz.lang', lang);
-        window.location.reload();
-      }
-    };
-    isRTL = false;
-  }
+  // Provide fallbacks for when context is not available
+  const t = context.t || ((key: string, fallback?: string) => fallback || key);
+  const language = context.language || 'en';
+  const setLanguage = context.setLanguage || ((lang: string) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fxz.lang', lang);
+      window.location.reload();
+    }
+  });
+  const isRTL = context.isRTL || false;
 
   // Set client flag
   useEffect(() => {

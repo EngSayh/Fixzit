@@ -27,7 +27,10 @@ export class AutoFixManager {
 
   constructor() {
     this.initializeChecks();
-    this.startAutoMonitoring();
+    // Only start monitoring on client side to avoid SSR issues
+    if (typeof window !== 'undefined') {
+      this.startAutoMonitoring();
+    }
   }
 
   private initializeChecks(): void {
@@ -251,6 +254,11 @@ export class AutoFixManager {
   }
 
   public async runHealthCheck(): Promise<FixResult[]> {
+    // Only run on client side to avoid SSR issues
+    if (typeof window === 'undefined') {
+      return [];
+    }
+
     const results: FixResult[] = [];
 
     for (const check of this.checks) {
@@ -304,7 +312,8 @@ export class AutoFixManager {
   }
 
   public startAutoMonitoring(intervalMinutes: number = 5): void {
-    if (this.isRunning) return;
+    // Only run on client side to avoid SSR issues
+    if (typeof window === 'undefined' || this.isRunning) return;
 
     this.isRunning = true;
     console.log('🤖 Auto-fix monitoring started');
@@ -332,6 +341,11 @@ export class AutoFixManager {
   }
 
   private async sendAlert(results: FixResult[]): Promise<void> {
+    // Only run on client side to avoid SSR issues
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
       await fetch('/api/qa/alert', {
         method: 'POST',
@@ -405,5 +419,15 @@ export class AutoFixManager {
   }
 }
 
-// Global instance
-export const autoFixManager = new AutoFixManager();
+// Global instance - lazy initialization to avoid SSR issues
+let globalInstance: AutoFixManager | null = null;
+
+export function getAutoFixManager(): AutoFixManager {
+  if (!globalInstance) {
+    globalInstance = new AutoFixManager();
+  }
+  return globalInstance;
+}
+
+// For backward compatibility
+export const autoFixManager = getAutoFixManager();

@@ -16,12 +16,12 @@ export default function SupportPage() {
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Help Resources</h2>
           <div className="space-y-3">
-            <Link href="/help" className="block border border-gray-200 rounded p-4 hover:bg-gray-50">
-              <h3 className="font-medium text-gray-900">Help Center</h3>
-              <p className="text-sm text-gray-600 mt-1">Browse articles and guides</p>
+            <Link href="/help" className="block border border-gray-200 rounded p-4 hover:bg-gray-50 transition-colors">
+              <h3 className="font-medium text-gray-900">Knowledge Base</h3>
+              <p className="text-sm text-gray-600 mt-1">Browse articles, guides, and tutorials</p>
             </Link>
-            
-            <button className="w-full text-left border border-gray-200 rounded p-4 hover:bg-gray-50"
+
+            <button className="w-full text-left border border-gray-200 rounded p-4 hover:bg-gray-50 transition-colors"
               onClick={() => {
                 const footer = document.querySelector('footer');
                 const supportBtn = footer?.querySelector('button');
@@ -31,6 +31,11 @@ export default function SupportPage() {
               <h3 className="font-medium text-gray-900">Create Support Ticket</h3>
               <p className="text-sm text-gray-600 mt-1">Get help from our team</p>
             </button>
+
+            <div className="border-t pt-3">
+              <p className="text-xs text-gray-500 mb-2">Quick Help (⌘/ or Ctrl/)</p>
+              <p className="text-sm text-gray-600">Press <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">⌘/</kbd> or <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl/</kbd> for instant help</p>
+            </div>
           </div>
         </div>
 
