@@ -17,6 +17,7 @@ const complianceRouter = require('./routes/compliance');
 const iotRouter = require('./routes/iot');
 const analyticsRouter = require('./routes/analytics');
 const adminRouter = require('./routes/admin');
+const authRouter = require('./routes/auth');
 
 const app = express();
 const PORT = Number(process.env.PORT || process.env.SOUQ_PORT || 5000);
@@ -72,6 +73,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
+app.use('/api/auth', authRouter);
 app.use('/api/properties', propertiesRouter);
 app.use('/api/workorders', workOrdersRouter);
 app.use('/api/hr', hrRouter);

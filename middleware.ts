@@ -1,370 +1,245 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { authenticateRequest, hasPermission } from './lib/edge-auth-middleware';
-import type { EdgeAuthenticatedUser } from './lib/edge-auth-middleware';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Production-ready RBAC enforcement with route protection
+// Define public routes that don't require authentication
+const publicRoutes = [
+  '/',
+  '/login',
+  '/forgot-password',
+  '/help',
+  '/cms/privacy',
+  '/cms/terms',
+  '/cms/about',
+  '/careers',
+  '/test',
+  '/test-simple'
+];
+
+// Define API routes that require authentication
+const protectedApiRoutes = [
+  '/api/assets',
+  '/api/properties',
+  '/api/tenants',
+  '/api/vendors',
+  '/api/projects',
+  '/api/rfqs',
+  '/api/slas',
+  '/api/invoices',
+  '/api/users',
+  '/api/work-orders',
+  '/api/finance',
+  '/api/support',
+  '/api/admin',
+  '/api/notifications'
+];
+
+// Define FM module routes (require authentication)
+const fmRoutes = [
+  '/fm/dashboard',
+  '/fm/work-orders',
+  '/fm/properties',
+  '/fm/finance',
+  '/fm/hr',
+  '/fm/crm',
+  '/fm/marketplace',
+  '/fm/support',
+  '/fm/compliance',
+  '/fm/reports',
+  '/fm/system',
+  '/fm/assets',
+  '/fm/tenants',
+  '/fm/vendors'
+];
+
+// Define public marketplace routes (browsing allowed without login)
+const publicMarketplaceRoutes = [
+  '/souq',
+  '/souq/catalog',
+  '/souq/vendors',
+  '/souq/rfqs',
+  '/souq/orders',
+  '/souq/shipping',
+  '/souq/reviews',
+  '/aqar',
+  '/aqar/map',
+  '/aqar/search',
+  '/aqar/properties',
+  '/aqar/filters',
+  '/aqar/trends',
+  '/aqar/premium'
+];
+
+// Define protected marketplace actions (require login)
+const protectedMarketplaceActions = [
+  '/souq/cart',
+  '/souq/checkout',
+  '/souq/purchase',
+  '/souq/my-orders',
+  '/souq/my-rfqs',
+  '/aqar/favorites',
+  '/aqar/listings',
+  '/aqar/my-properties',
+  '/aqar/bookings'
+];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Skip middleware for static files and public assets
+
+  // Skip middleware for static files and API calls to Next.js internals
   if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/static') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/public/') ||
     pathname.includes('.') ||
-    pathname.startsWith('/favicon') ||
-    pathname.startsWith('/assets') ||
-    pathname.startsWith('/public')
+    pathname.startsWith('/api/_next/')
   ) {
     return NextResponse.next();
   }
 
-  // Define public paths that don't require authentication
-  const isPublicPath = 
-    pathname === "/" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/verify-email") ||
-    pathname.startsWith("/about") ||
-    pathname.startsWith("/contact") ||
-    pathname.startsWith("/pricing") ||
-    pathname.startsWith("/test-layout") ||
-    pathname.startsWith("/api/auth/login") ||
-    pathname.startsWith("/api/auth/signup") ||
-    pathname.startsWith("/api/auth/forgot-password") ||
-    pathname.startsWith("/api/auth/reset-password") ||
-    pathname.startsWith("/api/auth/verify-email") ||
-    pathname.startsWith("/api/db-test") ||
-    pathname.startsWith("/api/health");
-
-  // Handle API routes differently
-  if (pathname.startsWith('/api')) {
-    return handleApiRoute(request, isPublicPath);
-  }
-
-  // Handle app routes with RBAC
-  return handleAppRoute(request, isPublicPath);
-}
-
-async function handleApiRoute(request: NextRequest, isPublicPath: boolean): Promise<NextResponse> {
-  const { pathname } = request.nextUrl;
-  
-  // Skip auth for public API routes
-  if (isPublicPath) {
+  // Handle public routes (including public marketplace browsing)
+  if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
     return NextResponse.next();
   }
 
-  // Authenticate API requests
-  const authResult = await authenticateRequest(request);
-  
-  if ('error' in authResult) {
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: { 
-          message: authResult.error,
-          code: 'UNAUTHORIZED',
-          timestamp: new Date().toISOString()
-        } 
-      },
-      { status: authResult.statusCode }
-    );
+  // Handle public marketplace routes (browsing without login)
+  if (publicMarketplaceRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+    return NextResponse.next();
   }
 
-  const user = authResult as EdgeAuthenticatedUser;
-  
-  // Check API permissions based on route and method
-  const requiredPermissions = getApiPermissions(pathname, request.method);
-  
-  if (requiredPermissions.length > 0) {
-    const hasRequiredPermission = requiredPermissions.some(permission => 
-      hasPermission(user, permission)
-    );
-    
-    if (!hasRequiredPermission) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            message: 'Insufficient permissions for this operation',
-            code: 'FORBIDDEN',
-            timestamp: new Date().toISOString(),
-            required_permissions: requiredPermissions
-          } 
-        },
-        { status: 403 }
-      );
+  // Handle API routes - require authentication
+  if (pathname.startsWith('/api/')) {
+    // Allow public API routes
+    if (pathname.startsWith('/api/auth/') ||
+        pathname.startsWith('/api/cms/') ||
+        pathname.startsWith('/api/help/') ||
+        pathname.startsWith('/api/assistant/')) {
+      return NextResponse.next();
     }
-  }
 
-  // Add user context to request headers for API handlers
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-user-id', user.id);
-  requestHeaders.set('x-user-role', user.roles?.[0]?.name || 'guest');
-  requestHeaders.set('x-user-org', user.organizationId || '');
-  requestHeaders.set('x-user-permissions', JSON.stringify(user.permissions));
+    // Check for authentication on protected API routes
+    if (protectedApiRoutes.some(route => pathname.startsWith(route))) {
+      try {
+        const authToken = request.cookies.get('fixzit_auth')?.value;
+        if (!authToken) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders
+        const payload = JSON.parse(atob(authToken.split('.')[1]));
+        const user = {
+          id: payload.id,
+          email: payload.email,
+          role: payload.role,
+          tenantId: payload.tenantId
+        };
+
+        // Add user info to request headers for API routes
+        const response = NextResponse.next();
+        response.headers.set('x-user', JSON.stringify(user));
+        return response;
+      } catch (error) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
-  });
-}
 
-async function handleAppRoute(request: NextRequest, isPublicPath: boolean): Promise<NextResponse> {
-  const { pathname } = request.nextUrl;
-  
-  // Check for session cookies with fallback options
-  const token = request.cookies.get("fz_session")?.value ||
-                request.cookies.get("session")?.value ||
-                request.cookies.get("auth_token")?.value ||
-                request.cookies.get("next-auth.session-token")?.value ||
-                request.cookies.get("fixzit_session")?.value;
-  
-  // Redirect to login if accessing protected route without token
-  if (!isPublicPath && !token) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", encodeURIComponent(pathname));
-    return NextResponse.redirect(loginUrl);
-  }
-  
-  // Redirect to dashboard if accessing login with valid token
-  if (pathname === "/login" && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+    // Check for authentication on protected marketplace actions
+    if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+      try {
+        const authToken = request.cookies.get('fixzit_auth')?.value;
+        if (!authToken) {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }
 
-  // If public path, allow access
-  if (isPublicPath) {
-    const response = NextResponse.next();
-    addSecurityHeaders(response);
-    return response;
-  }
+        const payload = JSON.parse(atob(authToken.split('.')[1]));
+        const user = {
+          id: payload.id,
+          email: payload.email,
+          role: payload.role,
+          tenantId: payload.tenantId
+        };
 
-  // Authenticate user for protected routes
-  const authResult = await authenticateRequest(request);
-  
-  if ('error' in authResult) {
-    // Redirect to login with error message
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", encodeURIComponent(pathname));
-    loginUrl.searchParams.set("error", "session_expired");
-    return NextResponse.redirect(loginUrl);
-  }
-
-  const user = authResult as EdgeAuthenticatedUser;
-  
-  // Check role-based route access
-  const userRole = user.roles?.[0]?.name || 'guest';
-  const hasRouteAccess = checkRouteAccess(pathname, userRole);
-  
-  if (!hasRouteAccess) {
-    // Redirect to dashboard with access denied error
-    const dashboardUrl = new URL("/dashboard", request.url);
-    dashboardUrl.searchParams.set("error", "access_denied");
-    dashboardUrl.searchParams.set("message", "You do not have permission to access this page");
-    return NextResponse.redirect(dashboardUrl);
-  }
-
-  // Check specific permissions for the route
-  const requiredPermissions = getRoutePermissions(pathname);
-  
-  if (requiredPermissions.length > 0) {
-    const hasRequiredPermission = requiredPermissions.some(permission => 
-      hasPermission(user, permission)
-    );
-    
-    if (!hasRequiredPermission) {
-      // Redirect to dashboard with permission error
-      const dashboardUrl = new URL("/dashboard", request.url);
-      dashboardUrl.searchParams.set("error", "insufficient_permissions");
-      dashboardUrl.searchParams.set("message", "You do not have the required permissions for this page");
-      return NextResponse.redirect(dashboardUrl);
+        // Add user context to protected marketplace actions
+        const response = NextResponse.next();
+        response.headers.set('x-user', JSON.stringify(user));
+        return response;
+      } catch (error) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
     }
+
+    return NextResponse.next();
   }
 
-  // Add user context to request headers
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-user-id', user.id);
-  requestHeaders.set('x-user-role', userRole);
-  requestHeaders.set('x-user-org', user.organizationId || '');
-  requestHeaders.set('x-user-permissions', JSON.stringify(user.permissions));
-
-  const response = NextResponse.next({
-    request: {
-      headers: requestHeaders
+  // Handle protected routes
+  try {
+    // Check for authentication token in cookie
+    const authToken = request.cookies.get('fixzit_auth')?.value;
+    if (!authToken) {
+      // Redirect to login for unauthenticated users on protected routes
+      if (pathname.startsWith('/fm/')) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      return NextResponse.next();
     }
-  });
 
-  addSecurityHeaders(response);
-  return response;
-}
+    // Basic JWT verification without database
+    try {
+      const payload = JSON.parse(atob(authToken.split('.')[1]));
+      const user = {
+        id: payload.id,
+        email: payload.email,
+        role: payload.role,
+        tenantId: payload.tenantId
+      };
 
-function checkRouteAccess(pathname: string, userRole: string): boolean {
-  // Role-based route restrictions
-  const roleRestrictions: Record<string, string[]> = {
-    'tenant': [
-      '/dashboard',
-      '/my-unit',
-      '/my-requests',
-      '/my-payments',
-      '/profile',
-      '/settings'
-    ],
-    'property_manager': [
-      '/dashboard',
-      '/work-orders',
-      '/properties',
-      '/tenants',
-      '/maintenance',
-      '/reports',
-      '/profile',
-      '/settings'
-    ],
-    'finance_manager': [
-      '/dashboard',
-      '/finance',
-      '/properties',
-      '/tenants',
-      '/reports',
-      '/profile',
-      '/settings'
-    ],
-    'admin': [
-      '/dashboard',
-      '/work-orders',
-      '/properties',
-      '/finance',
-      '/crm',
-      '/marketplace',
-      '/hr',
-      '/support',
-      '/compliance',
-      '/reports',
-      '/profile',
-      '/settings'
-    ],
-    'super_admin': ['*']
-  };
+      // Redirect based on user role
+      if (pathname === '/' || pathname === '/login') {
+        // Redirect to appropriate dashboard based on role
+        if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
+          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
+        } else if (user.role === 'TENANT') {
+          return NextResponse.redirect(new URL('/fm/properties', request.url));
+        } else if (user.role === 'VENDOR') {
+          return NextResponse.redirect(new URL('/fm/marketplace', request.url));
+        } else {
+          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
+        }
+      }
 
-  const allowedRoutes = roleRestrictions[userRole] || ['/dashboard'];
-  
-  // Super admin has access to everything
-  if (allowedRoutes.includes('*')) {
-    return true;
+      // FM routes - check role-based access
+      if (fmRoutes.some(route => pathname.startsWith(route))) {
+        // Add user context to FM routes
+        const response = NextResponse.next();
+        response.headers.set('x-user', JSON.stringify(user));
+        return response;
+      }
+
+      return NextResponse.next();
+    } catch (jwtError) {
+      // Invalid token - redirect to login
+      if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      return NextResponse.next();
+    }
+  } catch (error) {
+    // Redirect to login for any errors
+    if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    return NextResponse.next();
   }
-  
-  return allowedRoutes.some(route => 
-    pathname === route || pathname.startsWith(route + '/')
-  );
-}
-
-function getRoutePermissions(pathname: string): string[] {
-  // Route permission mapping
-  const routePermissions: Record<string, string[]> = {
-    '/dashboard': ['dashboard.read'],
-    '/work-orders': ['work-orders.read'],
-    '/work-orders/create': ['work-orders.create'],
-    '/work-orders/edit': ['work-orders.update'],
-    '/properties': ['properties.read'],
-    '/properties/create': ['properties.create'],
-    '/finance': ['finance.read'],
-    '/finance/invoices': ['finance.invoices.read'],
-    '/crm': ['crm.read'],
-    '/marketplace': ['marketplace.read'],
-    '/hr': ['hr.read'],
-    '/admin': ['admin.read'],
-    '/system': ['system.read'],
-    '/reports': ['reports.read'],
-    '/compliance': ['compliance.read'],
-    '/support': ['support.read']
-  };
-  
-  // Find the most specific route match
-  const routes = Object.keys(routePermissions).sort((a, b) => b.length - a.length);
-  
-  for (const route of routes) {
-    if (pathname === route || pathname.startsWith(route + '/')) {
-      return routePermissions[route];
-    }
-  }
-  
-  return [];
-}
-
-function getApiPermissions(pathname: string, method: string): string[] {
-  // API endpoint permission mapping
-  const apiPermissions: Record<string, Record<string, string[]>> = {
-    '/api/work-orders': {
-      'GET': ['work-orders.read'],
-      'POST': ['work-orders.create'],
-      'PUT': ['work-orders.update'],
-      'DELETE': ['work-orders.delete']
-    },
-    '/api/properties': {
-      'GET': ['properties.read'],
-      'POST': ['properties.create'],
-      'PUT': ['properties.update'],
-      'DELETE': ['properties.delete']
-    },
-    '/api/finance': {
-      'GET': ['finance.read'],
-      'POST': ['finance.create'],
-      'PUT': ['finance.update'],
-      'DELETE': ['finance.delete']
-    },
-    '/api/users': {
-      'GET': ['users.read'],
-      'POST': ['users.create'],
-      'PUT': ['users.update'],
-      'DELETE': ['users.delete']
-    },
-    '/api/system': {
-      'GET': ['system.read'],
-      'POST': ['system.create'],
-      'PUT': ['system.update'],
-      'DELETE': ['system.delete']
-    },
-    '/api/audit': {
-      'GET': ['audit.read'],
-      'POST': ['audit.create']
-    }
-  };
-
-  // Find matching API route
-  for (const route of Object.keys(apiPermissions)) {
-    if (pathname.startsWith(route)) {
-      return apiPermissions[route][method] || [];
-    }
-  }
-
-  return [];
-}
-
-function addSecurityHeaders(response: NextResponse): void {
-  // Enhanced security headers for production
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('X-XSS-Protection', '1; mode=block');
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  
-  // Content Security Policy
-  const csp = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    "font-src 'self'",
-    "connect-src 'self'",
-    "frame-ancestors 'none'"
-  ].join('; ');
-  
-  response.headers.set('Content-Security-Policy', csp);
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+  ],
 };

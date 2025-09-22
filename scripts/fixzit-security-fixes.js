@@ -23,7 +23,7 @@ ENCRYPTION_KEY=${crypto.randomBytes(32).toString('hex')}
 SESSION_SECRET=${crypto.randomBytes(32).toString('hex')}
 
 # CORS Configuration
-CORS_ORIGIN=https://fixzit.com
+CORS_ORIGIN=https://fixzit.co
 CORS_CREDENTIALS=true
 
 # API Keys (use real values in production)
@@ -182,7 +182,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "https://apis.google.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.fixzit.com"]
+      connectSrc: ["'self'", "https://api.fixzit.co"]
     }
   }
 }));

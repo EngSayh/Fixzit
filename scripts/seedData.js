@@ -49,7 +49,7 @@ const seedDatabase = async () => {
       const org = await Organization.create({
         name: `Organization ${i}`,
         code: `ORG${String(i).padStart(3, '0')}`,
-        domain: `org${i}.fixzit.com`,
+        domain: `org${i}.fixzit.co`,
         settings: {
           language: 'en',
           currency: 'SAR',
@@ -71,14 +71,14 @@ const seedDatabase = async () => {
     const adminOrg = organizations[0]; // Use first organization for admin
     const adminUser = await User.create({
       name: 'System Administrator',
-      email: 'admin@fixzit.com',
+      email: 'admin@fixzit.co',
       password: 'Admin@1234', // Plain text - User model pre-save hook will hash it
       role: 'super_admin',
       organization: adminOrg.org._id,
       tenantId: adminOrg.tenant._id,
       status: 'active'
     });
-    console.log('🔑 Created deterministic admin account: admin@fixzit.com / Admin@1234');
+    console.log('🔑 Created deterministic admin account: admin@fixzit.co / Admin@1234');
 
     // Create Users
     const users = [{ user: adminUser, org: adminOrg.org, tenant: adminOrg.tenant }];
@@ -93,7 +93,7 @@ const seedDatabase = async () => {
         
         const user = await User.create({
           name: `User ${orgIndex + 1}-${i + 1}`,
-          email: `user${orgIndex + 1}${i + 1}@fixzit.com`,
+          email: `user${orgIndex + 1}${i + 1}@fixzit.co`,
           password: 'password123', // Plain text - User model pre-save hook will hash it
           role: roles[i],
           organization: org._id,

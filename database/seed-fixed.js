@@ -11,7 +11,7 @@ async function seedDatabase() {
     // Create admin user
     const admin = await User.create({
       name: 'System Administrator',
-      email: 'admin@fixzit.com',
+      email: 'admin@fixzit.co',
       password: hashedPassword,
       role: 'admin',
       organization: 'Fixzit'

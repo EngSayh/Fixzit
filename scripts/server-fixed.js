@@ -16,7 +16,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "https://apis.google.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.fixzit.com"]
+      connectSrc: ["'self'", "https://api.fixzit.co"]
     }
   }
 }));

@@ -49,7 +49,7 @@ const ArabicSupport = {
   // Initialize Arabic support
   init() {
     // Check for saved language preference
-    const savedLang = localStorage.getItem('language') || 'en';
+    const savedLang = localStorage.getItem('fxz.lang') || 'en';
     this.setLanguage(savedLang);
     
     // Add language toggle button
@@ -59,7 +59,7 @@ const ArabicSupport = {
   // Set language and apply RTL if Arabic
   setLanguage(lang) {
     this.currentLanguage = lang;
-    localStorage.setItem('language', lang);
+    localStorage.setItem('fxz.lang', lang);
     
     const html = document.documentElement;
     const body = document.body;

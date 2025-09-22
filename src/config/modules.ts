@@ -7,7 +7,7 @@ export type ModuleKey =
 
 export const MODULES: Array<{
   key: ModuleKey;
-  labelKey: keyof typeof import("@/lib/i18n").messages["en"]["modules"];
+  labelKey: string;
   href: string;
   icon: any;
 }> = [

@@ -13,7 +13,7 @@ const nextConfig = {
             key: 'Access-Control-Allow-Origin',
             value: process.env.NODE_ENV === 'development' 
               ? '*' 
-              : 'https://fixzit.com'
+              : 'https://fixzit.co'
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -32,7 +32,7 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
-      'fixzit.com',
+      'fixzit.co',
       'res.cloudinary.com',
       'amazonaws.com',
       'googleusercontent.com',
@@ -50,7 +50,6 @@ const nextConfig = {
   },
 
   // Performance optimizations
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
 
@@ -62,13 +61,21 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
 
-  // Webpack customization for module resolution
-  webpack: (config, { isServer }) => {
+  // Webpack customization for module resolution and OneDrive compatibility
+  webpack: (config, { isServer, dev }) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
       net: false,
       tls: false,
+    }
+    // Add polling for OneDrive file watching issues
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: /node_modules/
+      }
     }
     return config
   },
@@ -80,6 +87,49 @@ const nextConfig = {
         source: '/admin',
         destination: '/system',
         permanent: true,
+      },
+    ]
+  },
+
+  // API Rewrites to backend server
+  async rewrites() {
+    return [
+      // Ensure auth API routes are handled first
+      {
+        source: '/api/auth/:path*',
+        destination: '/api/auth/:path*',
+      },
+      {
+        source: '/api/marketplace/:path*',
+        destination: 'http://localhost:5000/api/marketplace/:path*',
+      },
+      {
+        source: '/api/properties/:path*',
+        destination: 'http://localhost:5000/api/properties/:path*',
+      },
+      {
+        source: '/api/workorders/:path*',
+        destination: 'http://localhost:5000/api/workorders/:path*',
+      },
+      {
+        source: '/api/finance/:path*',
+        destination: 'http://localhost:5000/api/finance/:path*',
+      },
+      {
+        source: '/api/hr/:path*',
+        destination: 'http://localhost:5000/api/hr/:path*',
+      },
+      {
+        source: '/api/crm/:path*',
+        destination: 'http://localhost:5000/api/crm/:path*',
+      },
+      {
+        source: '/api/compliance/:path*',
+        destination: 'http://localhost:5000/api/compliance/:path*',
+      },
+      {
+        source: '/api/analytics/:path*',
+        destination: 'http://localhost:5000/api/analytics/:path*',
       },
     ]
   },
