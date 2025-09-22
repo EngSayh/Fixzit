@@ -5,11 +5,7 @@ let connection: typeof mongoose | null = null;
 export async function dbConnect() {
   if (connection) return connection;
 
-  const uri = process.env.MONGODB_URI as string;
-  if (!uri) {
-    throw new Error('MONGODB_URI is not set');
-  }
-
+  const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit";
   const dbName = process.env.MONGODB_DB || 'fixzit';
 
   connection = await mongoose.connect(uri, { dbName });
