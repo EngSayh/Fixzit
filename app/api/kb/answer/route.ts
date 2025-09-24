@@ -46,19 +46,36 @@ export async function POST(req: NextRequest) {
 
     const qVec = await embed(question);
     const db = await getDb();
-    // Support both mongoose connection.db and native client
+    // Support both mongoose connection.db (mongos) and native client
     const coll: any = (db as any).connection?.db?.collection('kb_embeddings') || (db as any).db?.collection?.('kb_embeddings') || (db as any).collection?.('kb_embeddings');
     if (!coll) return NextResponse.json({ answer: '', sources: [] });
 
-    const filter: any = { orgId, lang, roleScopes: { $in: [role] } };
+    const filter: any = { orgId, lang, $or: [{ roleScopes: { $size: 0 } }, { roleScopes: { $exists: false } }, { roleScopes: { $in: [role] } }] };
     if (route) filter.route = route;
 
-    const pipeline: any[] = [
-      { $vectorSearch: { index: process.env.KB_VECTOR_INDEX || 'kb-embeddings-index', path: 'embedding', queryVector: qVec, numCandidates: 200, limit: 8 } },
-      { $match: filter },
-      { $project: { articleId: 1, text: 1, score: { $meta: 'vectorSearchScore' } } }
-    ];
-    const results = await coll.aggregate(pipeline).toArray();
+    // Try Atlas Vector Search; if not available in mongos, fallback to cosine ranking in memory
+    let results: any[] = [];
+    try {
+      const pipeline: any[] = [
+        { $vectorSearch: { index: process.env.KB_VECTOR_INDEX || 'kb-embeddings-index', path: 'embedding', queryVector: qVec, numCandidates: 400, limit: 8, filter } },
+        { $project: { articleId: 1, text: 1, score: { $meta: 'vectorSearchScore' } } }
+      ];
+      results = await coll.aggregate(pipeline).toArray();
+    } catch {
+      // Fallback: sample top N docs for org/lang and rank by cosine in app
+      const cursor = await coll.find({ orgId, lang }).limit(200).project({ articleId: 1, text: 1, embedding: 1 }).toArray();
+      function cosine(a: number[], b: number[]) {
+        const dot = a.reduce((s, v, i) => s + v * (b[i] || 0), 0);
+        const na = Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+        const nb = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
+        return na && nb ? dot / (na * nb) : 0;
+      }
+      results = cursor
+        .filter((r: any) => !r.roleScopes || r.roleScopes.length === 0 || r.roleScopes.includes(role))
+        .map((r: any) => ({ articleId: r.articleId, text: r.text, score: cosine(qVec, r.embedding || []) }))
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, 8);
+    }
     const chunks = results.map((r: any) => r.text as string);
     const answer = chunks.length ? await synthesize(question, chunks, lang) : '';
     return NextResponse.json({ answer, sources: results.map((r: any) => ({ articleId: r.articleId, score: r.score })) });

@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
         ...doc,
         id,
         embedding,
+        lang: (doc as any).metadata?.lang === 'ar' ? 'ar' : ((doc as any).metadata?.lang === 'en' ? 'en' : 'en'),
+        roleScopes: Array.isArray((doc as any).metadata?.roles) ? (doc as any).metadata?.roles : [],
         createdAt: new Date(),
         updatedAt: new Date()
       });
