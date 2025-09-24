@@ -16,8 +16,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const body = schema.parse(await req.json());
 
-  // Check if using mock database
-  const isMockDB = process.env.NODE_ENV === 'development' && (process.env.MONGODB_URI || '').includes('localhost');
+  // Respect explicit mock flag only
+  const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
   let wo;
   if (isMockDB) {
