@@ -1,12 +1,15 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, Search, Globe, User, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, User, ChevronDown } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import AppSwitcher from './AppSwitcher';
+import GlobalSearch from './GlobalSearch';
+import QuickActions from './QuickActions';
 
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {
@@ -112,55 +115,11 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
         const data = await response.json();
         setNotifications(data.items || []);
       } else {
-        // Use mock notifications if API fails
-        setNotifications([
-          {
-            id: '1',
-            title: 'Invoice Payment Received',
-            message: 'Payment for invoice INV-1234 has been processed successfully',
-            timestamp: new Date().toISOString(),
-            read: false,
-            priority: 'medium',
-            category: 'finance',
-            type: 'payment'
-          },
-          {
-            id: '2',
-            title: 'Property Inspection Due',
-            message: 'Monthly inspection for Tower A is scheduled for tomorrow',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            read: false,
-            priority: 'high',
-            category: 'maintenance',
-            type: 'inspection'
-          }
-        ]);
+        setNotifications([]);
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      // Use mock notifications as fallback
-      setNotifications([
-        {
-          id: '1',
-          title: 'Invoice Payment Received',
-          message: 'Payment for invoice INV-1234 has been processed successfully',
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'medium',
-          category: 'finance',
-          type: 'payment'
-        },
-        {
-          id: '2',
-          title: 'Property Inspection Due',
-          message: 'Monthly inspection for Tower A is scheduled for tomorrow',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          read: false,
-          priority: 'high',
-          category: 'maintenance',
-          type: 'inspection'
-        }
-      ]);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -218,25 +177,17 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
 
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#023047] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex items-center gap-3 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div className={`font-bold ${screenInfo.isMobile ? 'text-base' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
           {t('common.brand', 'FIXZIT ENTERPRISE')}
         </div>
-        <div className={`${screenInfo.isMobile ? 'hidden' : 'flex'} items-center bg-white/10 rounded px-3 py-1`}>
-          <Search className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'} opacity-70`} />
-          <input
-            className={`bg-transparent outline-none py-1 text-sm placeholder-white/70 ${screenInfo.isTablet ? 'w-48' : 'w-64'} ${isRTL ? 'text-right' : ''}`}
-            placeholder={t('common.search.placeholder', 'Search Work Orders, Properties, Tenants...')}
-          />
-        </div>
-        {/* Mobile search button */}
-        {screenInfo.isMobile && (
-          <button className="p-2 hover:bg-white/10 rounded-md">
-            <Search className="w-4 h-4" />
-          </button>
-        )}
+        <AppSwitcher />
+      </div>
+      <div className={`${screenInfo.isMobile ? 'hidden' : 'flex'} flex-1 justify-center max-w-2xl`}>
+        <GlobalSearch />
       </div>
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <QuickActions />
         <LanguageSelector />
         <div className="notification-container relative">
           <button
@@ -257,8 +208,8 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {notifications.filter(n => !n.read).length > 0
-                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
+                    {notifications.filter((n: Notification) => !n.read).length > 0
+                      ? `${notifications.filter((n: Notification) => !n.read).length} ${t('common.unread', 'unread')}`
                       : t('common.noNotifications', 'No new notifications')
                     }
                   </div>
@@ -282,7 +233,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
                   </div>
                 ) : notifications.length > 0 ? (
                   <div className="space-y-1">
-                    {notifications.map((notification) => (
+                    {notifications.map((notification: Notification) => (
                       <div
                         key={notification.id}
                         className="p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"

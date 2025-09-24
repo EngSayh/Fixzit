@@ -8,6 +8,7 @@
 - ✅ Single global mount in `app/layout.tsx`
 - ✅ Removed all page-level headers
 - ✅ Centralized TopBar, Sidebar, Footer in root layout
+- ✅ Legacy `src/components/Header.tsx` kept only for reference; do not import it anywhere. Use `src/components/TopBar.tsx` exclusively.
 
 ### 2. **Outdated Language Hook + Hydration Drift** ✅
 **Problem**: TopMenuBar used old useLanguage hook causing SSR/CSR mismatches
