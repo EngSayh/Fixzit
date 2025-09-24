@@ -6,6 +6,29 @@ import { getCollections } from "@/lib/db/collections";
 
 type Hit = { id: string; type: string; title: string; href: string; subtitle?: string };
 
+/**
+ * Search endpoint handler that returns unified, deduplicated search results across multiple data sources.
+ *
+ * Supports query parameters:
+ * - `q` (required): search string; empty `q` returns an empty results array.
+ * - `scope` (optional): one of `"fm"` (default), `"souq"`, or `"aqar"` to select where to search.
+ * - `limit` (optional): number of items per-source (default 5, max 20).
+ *
+ * If present, tenant scoping is applied from the parsed JSON `tenantId` in the `x-user` request header.
+ *
+ * Behavior by scope:
+ * - "fm": searches WorkOrder and Property collections.
+ * - "souq": searches product and vendor collections from `getCollections`.
+ * - "aqar": searches Property listings restricted to residential/commercial types.
+ * - any other value: falls back to a WorkOrder search.
+ *
+ * Results are mapped to a compact Hit structure ({ id, type, title, href, subtitle? }), deduplicated by `href`,
+ * and the final response contains up to 25 items in JSON: `{ results: Hit[] }`.
+ *
+ * On error the handler returns HTTP 200 with an empty `results` array.
+ *
+ * @returns JSON NextResponse with shape `{ results: Hit[] }`.
+ */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const scope = (searchParams.get("scope") || "fm").toLowerCase();

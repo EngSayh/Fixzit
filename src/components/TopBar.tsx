@@ -39,6 +39,27 @@ interface Notification {
   type: string;
 }
 
+/**
+ * Top navigation bar used across the app.
+ *
+ * Renders brand/title, a scope-aware global search (debounced live results), language selector,
+ * notifications dropdown (lazy-fetches unread notifications on first open with loading and fallback),
+ * and a user menu with profile/settings links and logout behavior.
+ *
+ * The search scope is derived from the current pathname (`/souq`, `/aqar`, otherwise `fm`) and
+ * determines the placeholder and the API search scope. Search requests are debounced (180ms)
+ * and aborted when the query changes or the component unmounts.
+ *
+ * Notifications are fetched from `/api/notifications?limit=5&read=false` when the notifications
+ * panel is opened for the first time; if the API fails, a small set of mock notifications is used.
+ * The notifications panel closes on outside click or Escape.
+ *
+ * Logout calls `/api/auth/logout`, clears client-side storage keys prefixed with `fixzit-` or `fxz-`,
+ * and redirects to `/login` (redirect happens even if the API call fails).
+ *
+ * @param role - Optional user role used for rendering/context (defaults to `"guest"`).
+ * @returns The TopBar React element.
+ */
 export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
