@@ -25,6 +25,17 @@ interface HelpArticle {
   lastUpdated: string;
 }
 
+/**
+ * Render the Help/Knowledge Center page for Fixzit.
+ *
+ * Displays interactive tutorials, help articles, a system overview, quick action buttons,
+ * conditional modals for the AI Assistant and support ticket creation, and an embedded
+ * KnowledgeWidget configured for the tenant help route.
+ *
+ * The component manages local UI state to control visibility of the AI chat and support ticket modals.
+ *
+ * @returns The React element for the Help/Knowledge Center page.
+ */
 export default function HelpHome() {
   const [showAIChat, setShowAIChat] = useState(false);
   const [showSupportTicket, setShowSupportTicket] = useState(false);

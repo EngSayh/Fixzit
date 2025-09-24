@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { embedText } from '@/src/ai/embeddings';
 import { getDb } from '@/src/lib/mongo';
 
+/**
+ * Generate a concise answer to a question using provided context chunks and the OpenAI Chat Completions API.
+ *
+ * Sends a chat request (model: `gpt-4o-mini`) with a language-specific system prompt and a user message that
+ * contains the question and the joined context chunks. Returns the assistant's reply content.
+ *
+ * @param contextChunks - Array of text fragments from the knowledge base to use as context (joined with `---`).
+ * @param question - The user's question to answer.
+ * @param lang - Response language: `'ar'` for Arabic prompts/responses or `'en'` for English.
+ * @returns The assistant's textual reply (including appended "Sources"/"المراجع" section when present).
+ * @throws If `OPENAI_API_KEY` is not configured or if the OpenAI API responds with a non-OK status.
+ */
 async function synthesizeAnswer(contextChunks: string[], question: string, lang: 'ar' | 'en') {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY not configured');
@@ -39,6 +51,19 @@ async function synthesizeAnswer(contextChunks: string[], question: string, lang:
   return json.choices[0].message.content as string;
 }
 
+/**
+ * HTTP POST handler that generates an answer to a user question using the knowledge base.
+ *
+ * Expects a JSON body with required fields: `question`, `orgId`, `lang`, and `role` (optional `route`).
+ * The handler:
+ * - Validates required inputs and returns 400 when any are missing.
+ * - Embeds the `question` to a vector, calls the internal `/api/kb/search` endpoint to retrieve relevant context chunks,
+ * - Calls the LLM-backed `synthesizeAnswer` with the retrieved context and returns a JSON response containing:
+ *   `{ answer: string, sources: Array<{ articleId: string, score: number }> }`.
+ *
+ * On internal failure the handler logs the error and returns a localized fallback answer (Arabic when `lang === 'ar'`,
+ * otherwise English) with an empty `sources` array.
+ */
 export async function POST(req: NextRequest) {
   try {
     const { question, orgId, lang, role, route } = await req.json();
