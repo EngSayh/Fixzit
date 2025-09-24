@@ -21,6 +21,21 @@ const createSchema = z.object({
   }).optional()
 });
 
+/**
+ * Fetches a paginated list of work orders for the authenticated user's tenant.
+ *
+ * The handler reads query parameters `q` (text search), `status`, `priority`, `page` (default 1),
+ * and `limit` (default 20, capped at 100). Results are always scoped to the session user's
+ * tenantId and exclude soft-deleted records (deletedAt exists). Database access is initialized
+ * before querying.
+ *
+ * Behavior differs based on the environment flag USE_MOCK_DB="true" (case-insensitive):
+ * - When true, results are retrieved from the mock store, sorted by createdAt (desc) in-memory,
+ *   and then paginated.
+ * - Otherwise, results are queried from the real database with server-side sort/skip/limit.
+ *
+ * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
+ */
 export async function GET(req: NextRequest) {
   await db; // This will work with mock DB too
   const user = await getSessionUser(req);
