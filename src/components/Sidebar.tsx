@@ -2,6 +2,8 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
+import LanguageSelector from '@/src/components/i18n/LanguageSelector';
+import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
@@ -217,6 +219,17 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
               );
             })}
           </nav>
+        </div>
+
+        {/* Preferences */}
+        <div className="border-t border-white/20 pt-4 mt-4">
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
+            {t('nav.preferences', 'Preferences')}
+          </div>
+          <div className={`flex gap-2 px-3 ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
+            <LanguageSelector variant="compact" />
+            <CurrencySelector variant="compact" />
+          </div>
         </div>
 
         {/* Help & Support */}
