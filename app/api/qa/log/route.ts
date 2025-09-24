@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, isMockDB } from '@/src/lib/mongo';
+import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,14 +13,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, mock: true });
     }
 
-    // Log the event to database for real database
-    await (db as any).collection('qa_logs').insertOne({
+    // Ensure native database connection
+    const conn: any = await (db as any);
+    const nativeDb = conn?.connection?.db || conn?.db;
+    if (!nativeDb) {
+      throw new Error('Database not available');
+    }
+
+    // Ensure TTL index (30 days) on timestamp
+    try {
+      await nativeDb.collection('qa_logs').createIndex({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 30 });
+    } catch {}
+
+    // Log the event to database for real database, with minimal PII
+    await nativeDb.collection('qa_logs').insertOne({
       event,
       data,
       timestamp: new Date(),
-      ip: req.headers.get('x-forwarded-for') || req.ip,
-      userAgent: req.headers.get('user-agent'),
-      sessionId: req.cookies.get('sessionId')?.value || 'unknown'
+      ip: (req.headers.get('x-forwarded-for') || '').split(',')[0]?.trim() || 'unknown',
+      userAgent: (req.headers.get('user-agent') || '').slice(0, 128),
+      sessionId: (req.cookies.get('sessionId')?.value || 'unknown').slice(0, 64)
     });
 
     console.log(`📝 QA Log: ${event}`, data);
@@ -33,6 +46,18 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    // Admin-only access
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+    if (!adminRoles.has(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
     const eventType = searchParams.get('event');
@@ -47,7 +72,13 @@ export async function GET(req: NextRequest) {
       query = { event: eventType };
     }
 
-    const logs = await (db as any).collection('qa_logs')
+    const conn: any = await (db as any);
+    const nativeDb = conn?.connection?.db || conn?.db;
+    if (!nativeDb) {
+      throw new Error('Database not available');
+    }
+
+    const logs = await nativeDb.collection('qa_logs')
       .find(query)
       .sort({ timestamp: -1 })
       .limit(limit)

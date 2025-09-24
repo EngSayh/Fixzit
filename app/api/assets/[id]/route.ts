@@ -38,7 +38,12 @@ const updateAssetSchema = z.object({
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const asset = await Asset.findOne({
@@ -52,13 +57,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return NextResponse.json(asset);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error?.name === "CastError") {
+      return NextResponse.json({ error: "Invalid asset id" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const data = updateAssetSchema.parse(await req.json());
@@ -75,13 +88,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     return NextResponse.json(asset);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+    }
+    if (error?.name === "CastError") {
+      return NextResponse.json({ error: "Invalid asset id" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const asset = await Asset.findOneAndUpdate(

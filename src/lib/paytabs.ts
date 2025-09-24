@@ -106,17 +106,35 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-export function validateCallback(payload: any, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
-  const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
-}
-
-function generateSignature(payload: any): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+export async function validateCallbackRaw(rawBody: string, signatureHeader: string | null | undefined): Promise<boolean> {
+  const serverKey = process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
+  if (!serverKey || !signatureHeader) return false;
+  try {
+    const enc = new TextEncoder();
+    const key = await globalThis.crypto.subtle.importKey(
+      'raw',
+      enc.encode(serverKey),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sig = await globalThis.crypto.subtle.sign('HMAC', key, enc.encode(rawBody));
+    const bytes = new Uint8Array(sig);
+    let hex = '';
+    for (let i = 0; i < bytes.length; i++) {
+      const h = bytes[i].toString(16).padStart(2, '0');
+      hex += h;
+    }
+    // constant-time compare
+    if (hex.length !== signatureHeader.length) return false;
+    let diff = 0;
+    for (let i = 0; i < hex.length; i++) {
+      diff |= hex.charCodeAt(i) ^ signatureHeader.charCodeAt(i);
+    }
+    return diff === 0;
+  } catch {
+    return false;
+  }
 }
 
 // Payment methods supported in Saudi Arabia
