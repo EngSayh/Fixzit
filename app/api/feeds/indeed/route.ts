@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
-  await db();
+  await db;
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })
     .lean();

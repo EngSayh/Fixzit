@@ -19,7 +19,27 @@ export async function createHppRequest(region:string, payload:any) {
   return r.json();
 }
 
-export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
+export type SimplePaymentRequest = {
+  amount: number;
+  currency: string;
+  customerDetails: {
+    name: string; email: string; phone: string; address: string; city: string; state: string; country: string; zip: string;
+  };
+  description: string;
+  invoiceId?: string;
+  returnUrl: string;
+  callbackUrl: string;
+}
+
+export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
+
+const PAYTABS_CONFIG = {
+  profileId: process.env.PAYTABS_PROFILE_ID || '',
+  serverKey: process.env.PAYTABS_SERVER_KEY || '',
+  baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase('GLOBAL')
+};
+
+export async function createPaymentPage(request: SimplePaymentRequest): Promise<SimplePaymentResponse> {
   try {
     const payload = {
       profile_id: PAYTABS_CONFIG.profileId,
@@ -74,14 +94,14 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
       return {
         success: false,
         error: data.message || 'Payment initialization failed'
-      };
+      } as const;
     }
   } catch (error: any) {
     console.error('PayTabs error:', error);
     return {
       success: false,
       error: error.message || 'Payment gateway error'
-    };
+    } as const;
   }
 }
 
@@ -128,7 +148,7 @@ export const PAYMENT_METHODS = {
   STC_PAY: 'stcpay',
   TAMARA: 'tamara', // Buy Now Pay Later
   TABBY: 'tabby'    // Buy Now Pay Later
-};
+} as const;
 
 // Currency codes
 export const CURRENCIES = {
@@ -136,7 +156,7 @@ export const CURRENCIES = {
   USD: 'USD',
   EUR: 'EUR',
   AED: 'AED'  // UAE Dirham
-};
+} as const;
 
 export interface PaymentMethod {
   id: string;
