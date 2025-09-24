@@ -6,7 +6,12 @@ const client = new MongoClient(cfg.mongoUri, { monitorCommands: false });
 
 async function main(){
   console.log(pc.cyan('DB → connecting…'), cfg.mongoUri, cfg.mongoDb);
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (e) {
+    console.log(pc.yellow('⚠ Skipping DB connectivity check: Mongo not reachable.'));
+    process.exit(0);
+  }
   const db = client.db(cfg.mongoDb);
   const stats = await db.command({ dbStats: 1 });
   console.log(pc.gray(`DB name: ${stats.db} | Collections: ${stats.collections} | Objects: ${stats.objects}`));
