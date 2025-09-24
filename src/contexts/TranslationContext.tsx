@@ -43,6 +43,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'بحث',
     'common.search.placeholder': 'البحث في أوامر العمل، العقارات، المستأجرين...',
+    'common.search.languages': 'البحث في اللغات',
+    'common.search.currencies': 'البحث في العملات',
     'common.login': 'تسجيل الدخول',
     'common.logout': 'تسجيل الخروج',
     'common.save': 'حفظ',
@@ -226,6 +228,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Search',
     'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
+    'common.search.languages': 'Search languages',
+    'common.search.currencies': 'Search currencies',
     'common.login': 'Login',
     'common.logout': 'Logout',
     'common.save': 'Save',
@@ -439,6 +443,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Rechercher',
     'common.search.placeholder': 'Rechercher des ordres de travail, des propriétés, des locataires...',
+    'common.search.languages': 'Rechercher des langues',
+    'common.search.currencies': 'Rechercher des devises',
     'common.login': 'Connexion',
     'common.logout': 'Déconnexion',
     'common.save': 'Enregistrer',
@@ -591,6 +597,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Pesquisar',
     'common.search.placeholder': 'Pesquisar ordens de trabalho, propriedades, inquilinos...',
+    'common.search.languages': 'Pesquisar idiomas',
+    'common.search.currencies': 'Pesquisar moedas',
     'common.login': 'Entrar',
     'common.logout': 'Sair',
     'common.save': 'Salvar',
@@ -743,6 +751,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Поиск',
     'common.search.placeholder': 'Поиск рабочих заказов, свойств, арендаторов...',
+    'common.search.languages': 'Поиск языков',
+    'common.search.currencies': 'Поиск валют',
     'common.login': 'Вход',
     'common.logout': 'Выход',
     'common.save': 'Сохранить',
@@ -895,6 +905,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Buscar',
     'common.search.placeholder': 'Buscar órdenes de trabajo, propiedades, inquilinos...',
+    'common.search.languages': 'Buscar idiomas',
+    'common.search.currencies': 'Buscar monedas',
     'common.login': 'Iniciar sesión',
     'common.logout': 'Cerrar sesión',
     'common.save': 'Guardar',
@@ -1047,6 +1059,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'تلاش',
     'common.search.placeholder': 'کام کے آرڈرز، پراپرٹیز، کرایہ داروں میں تلاش کریں...',
+    'common.search.languages': 'زبانیں تلاش کریں',
+    'common.search.currencies': 'کرنسی تلاش کریں',
     'common.login': 'لاگ ان',
     'common.logout': 'لاگ آؤٹ',
     'common.save': 'محفوظ کریں',
@@ -1199,6 +1213,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'खोज',
     'common.search.placeholder': 'कार्य आदेश, संपत्तियां, किरायेदार खोजें...',
+    'common.search.languages': 'भाषाएं खोजें',
+    'common.search.currencies': 'मुद्राएं खोजें',
     'common.login': 'लॉग इन',
     'common.logout': 'लॉग आउट',
     'common.save': 'सहेजें',
@@ -1351,6 +1367,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': '搜索',
     'common.search.placeholder': '搜索工作订单、属性、租户...',
+    'common.search.languages': '搜索语言',
+    'common.search.currencies': '搜索货币',
     'common.login': '登录',
     'common.logout': '登出',
     'common.save': '保存',
