@@ -1,0 +1,173 @@
+import { GET } from './route';
+import { z } from 'zod';
+
+// We will mock the database collections module.
+// Adjust mock syntax if using Vitest (vi.mock) instead of Jest.
+jest.mock('@/lib/db/collections', () => ({
+  getCollections: jest.fn(),
+}));
+
+import { getCollections } from '@/lib/db/collections';
+
+type FindReturn = { sort: jest.Mock; toArray?: jest.Mock };
+type CategoriesCollection = { find: jest.Mock };
+type ProductsCollection = { distinct: jest.Mock };
+
+const makeCollections = (distinctValues: unknown[] = [], categoryDocs: any[] = []) => {
+  const toArray = jest.fn().mockResolvedValue(categoryDocs);
+  const sort = jest.fn().mockReturnValue({ toArray });
+  const find = jest.fn().mockReturnValue({ sort }) as CategoriesCollection;
+
+  const products: ProductsCollection = {
+    distinct: jest.fn().mockResolvedValue(distinctValues),
+  };
+
+  return {
+    mocks: { find, sort, toArray, distinct: products.distinct },
+    value: { categories: { find }, products },
+  };
+};
+
+const getJson = async (res: Response) => await res.json();
+
+describe('GET /api/marketplace/categories', () => {
+  const ORIGINAL_ENV = process.env;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    // Clone env to avoid leakage between tests
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  afterAll(() => {
+    process.env = ORIGINAL_ENV;
+  });
+
+  test('returns categories for default tenant when tenantId is not provided', async () => {
+    process.env.NEXT_PUBLIC_MARKETPLACE_TENANT = 'default-tenant';
+    const distinctValues = ['cat1', { toString: () => 'cat2' }, null, undefined, '', 42];
+    const categoryDocs = [
+      { _id: 'cat1', name: 'Alpha', slug: 'alpha', parentId: null, icon: 'a.png' },
+      { _id: { toString: () => 'cat2' }, name: 'Beta', slug: 'beta', parentId: { toString: () => 'p1' } },
+      { _id: { toString: () => '42' }, name: 'Gamma', slug: 'gamma', parentId: undefined, icon: undefined },
+    ];
+    const { mocks, value } = makeCollections(distinctValues, categoryDocs);
+    (getCollections as jest.Mock).mockResolvedValue(value);
+
+    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const res = await GET(req);
+    const json = await getJson(res);
+
+    expect(res.status).toBe(200);
+    expect(json.ok).toBe(true);
+    expect(json.data.tenantId).toBe('default-tenant');
+
+    // Expect filter to include only normalized string IDs: "cat1", "cat2", "42"
+    // Note that '', null, undefined are filtered out by the implementation.
+    expect(mocks.distinct).toHaveBeenCalledWith('categoryId', { tenantId: 'default-tenant', active: true });
+    expect(mocks.find).toHaveBeenCalledWith({ _id: { $in: ['cat1', 'cat2', '42'] } });
+    expect(mocks.sort).toHaveBeenCalledWith({ name: 1 });
+    expect(mocks.toArray).toHaveBeenCalled();
+
+    // Normalization checks
+    expect(json.data.categories).toEqual([
+      { id: 'cat1', name: 'Alpha', slug: 'alpha', parentId: null, icon: 'a.png' },
+      { id: 'cat2', name: 'Beta', slug: 'beta', parentId: 'p1', icon: null },
+      { id: '42',  name: 'Gamma', slug: 'gamma', parentId: null, icon: null },
+    ]);
+  });
+
+  test('uses provided tenantId from query params', async () => {
+    const { mocks, value } = makeCollections(['x', 'y'], []);
+    (getCollections as jest.Mock).mockResolvedValue(value);
+
+    const req = { url: 'http://localhost/api/marketplace/categories?tenantId=my-tenant' } as any;
+    const res = await GET(req);
+    const json = await getJson(res);
+
+    expect(res.status).toBe(200);
+    expect(json.ok).toBe(true);
+    expect(json.data.tenantId).toBe('my-tenant');
+    expect(mocks.distinct).toHaveBeenCalledWith('categoryId', { tenantId: 'my-tenant', active: true });
+  });
+
+  test('when no active categories, returns all categories (empty filter {})', async () => {
+    const categoryDocs = [
+      { _id: 'a', name: 'A', slug: 'a', parentId: null, icon: null },
+      { _id: { toString: () => 'b' }, name: 'B', slug: 'b', parentId: 'p', icon: 'icon-b.png' },
+    ];
+    const { mocks, value } = makeCollections([], categoryDocs);
+    (getCollections as jest.Mock).mockResolvedValue(value);
+
+    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const res = await GET(req);
+    const json = await getJson(res);
+
+    expect(res.status).toBe(200);
+    expect(json.ok).toBe(true);
+    expect(mocks.find).toHaveBeenCalledWith({});
+    expect(json.data.categories).toEqual([
+      { id: 'a', name: 'A', slug: 'a', parentId: null, icon: null },
+      { id: 'b', name: 'B', slug: 'b', parentId: 'p', icon: 'icon-b.png' },
+    ]);
+  });
+
+  test('handles internal errors from getCollections with 500', async () => {
+    (getCollections as jest.Mock).mockRejectedValue(new Error('DB unavailable'));
+
+    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const res = await GET(req);
+    const json = await getJson(res);
+
+    expect(res.status).toBe(500);
+    expect(json).toEqual({ error: 'Internal server error' });
+  });
+
+  test('responds with 400 on Zod validation error (mocked)', async () => {
+    // Spy on ZodObject.parse to throw a ZodError for this invocation
+    const parseSpy = jest.spyOn((z as any).ZodObject.prototype, 'parse').mockImplementation(() => {
+      throw new z.ZodError([
+        {
+          code: 'custom',
+          message: 'Invalid param',
+          path: ['tenantId'],
+        } as any,
+      ]);
+    });
+
+    const req = { url: 'http://localhost/api/marketplace/categories?tenantId=foo' } as any;
+    const res = await GET(req);
+    const json = await getJson(res);
+
+    expect(res.status).toBe(400);
+    expect(json.error).toBe('Invalid query parameters');
+    expect(Array.isArray(json.details)).toBe(true);
+
+    parseSpy.mockRestore();
+  });
+
+  test('normalizes various _id and parentId types', async () => {
+    const distinctValues = ['idA'];
+    const categoryDocs = [
+      // _id string, parentId string
+      { _id: 'idA', name: 'NameA', slug: 'slug-a', parentId: 'pA', icon: undefined },
+      // _id object-like with toString, parentId object-like with toString
+      { _id: { toString: () => 'idB' }, name: 'NameB', slug: 'slug-b', parentId: { toString: () => 'pB' }, icon: null },
+      // _id number-like (has toString), parentId undefined
+      { _id: 12345 as any, name: 'NameC', slug: 'slug-c', parentId: undefined, icon: 'c.svg' },
+    ];
+    const { value } = makeCollections(distinctValues, categoryDocs);
+    (getCollections as jest.Mock).mockResolvedValue(value);
+
+    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const res = await GET(req);
+    const json = await getJson(res);
+
+    // Note: For numeric ids, the implementation uses toString()
+    expect(json.data.categories).toEqual([
+      { id: 'idA',  name: 'NameA', slug: 'slug-a', parentId: 'pA', icon: null },
+      { id: 'idB',  name: 'NameB', slug: 'slug-b', parentId: 'pB', icon: null },
+      { id: '12345',name: 'NameC', slug: 'slug-c', parentId: null, icon: 'c.svg' },
+    ]);
+  });
+});
