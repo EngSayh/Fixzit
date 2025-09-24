@@ -16,6 +16,17 @@ interface KnowledgeArticle {
   roleScopes: string[];
 }
 
+/**
+ * Knowledge Base page component — displays, filters, and browses help articles.
+ *
+ * Fetches articles from `/api/help/articles` on mount and manages local UI state
+ * for loading, search, category and language filters, and a create-article modal.
+ * Renders a responsive grid of article cards (category, language flag, status,
+ * updated date, tags, role scopes) with client-side filtering and an empty
+ * state that prompts creating new articles.
+ *
+ * @returns The Knowledge Base page as a React element.
+ */
 export default function KnowledgeBasePage() {
   const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
   const [loading, setLoading] = useState(true);

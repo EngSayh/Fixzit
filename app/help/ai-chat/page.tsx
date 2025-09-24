@@ -3,6 +3,17 @@
 import { useState } from 'react';
 import { Send, Bot, User, X } from 'lucide-react';
 
+/**
+ * Interactive AI chat UI for asking Fixzit-related questions.
+ *
+ * Renders a chat interface that maintains a message history, accepts user input (Enter to send),
+ * displays a loading indicator while awaiting a response, and appends bot replies to the conversation.
+ * User queries are sent to the backend POST /api/kb/answer; responses use `data.answer` with a sensible
+ * fallback message on missing content. Failed requests append a user-facing error message and are logged
+ * to the console. The header includes a close button that calls `window.close()`.
+ *
+ * @returns The AI chat page component (JSX.Element).
+ */
 export default function AIChatPage() {
   const [messages, setMessages] = useState([
     {

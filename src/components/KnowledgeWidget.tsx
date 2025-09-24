@@ -18,6 +18,20 @@ interface Message {
   sources?: Array<{ articleId: string; score: number }>;
 }
 
+/**
+ * KnowledgeWidget — a bilingual (English/Arabic) chat widget for asking the organization's knowledge base.
+ *
+ * Renders a floating help button that expands into a centered chat panel. Maintains local chat history,
+ * sends user questions to /api/kb/answer, displays bot responses (with optional sources), supports a quick-actions
+ * help panel, keyboard shortcut (Ctrl/Cmd + /) to toggle, Enter-to-send, and respects right-to-left layout when
+ * `lang` is 'ar'.
+ *
+ * @param orgId - Organization identifier used when querying the knowledge base.
+ * @param lang - UI and response language; accepts 'ar' for Arabic or 'en' for English.
+ * @param role - Contextual role string sent to the backend to influence responses (e.g., 'admin', 'user').
+ * @param route - Optional current route/path provided to the backend to give contextualized answers.
+ * @returns A React element rendering the interactive knowledge widget.
+ */
 export default function KnowledgeWidget({ orgId, lang, role, route }: Props) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
