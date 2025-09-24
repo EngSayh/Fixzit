@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const app = await Application.findById(applicationId).lean();
     if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
     if (app.stage !== 'hired') return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
-    if (String((app as any).orgId) !== String(user.orgId)) {
+    if (String((app as any).orgId) !== String(user.tenantId)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
