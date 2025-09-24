@@ -97,6 +97,21 @@ const SAMPLE_PRODUCTS: Product[] = [
   }
 ];
 
+/**
+ * Client-side React component that renders the product catalog page.
+ *
+ * Displays a searchable, filterable, and sortable product grid built from SAMPLE_PRODUCTS.
+ * Maintains local state for the search term, selected category, and sort option. Products are
+ * filtered by name or category (case-insensitive) and by the selected category. The UI shows
+ * product badges (new/discount), rating, price (with optional original price), stock status,
+ * vendor, and action buttons.
+ *
+ * Side effects:
+ * - "View Details" navigates to `/souq/catalog/{productId}`.
+ * - "Add to Cart" redirects to the login page (`/login?redirect=/souq/catalog&action=add-to-cart`) — implying authentication is required for cart actions.
+ *
+ * @returns The catalog page JSX element.
+ */
 export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');

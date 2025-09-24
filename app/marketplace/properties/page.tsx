@@ -4,6 +4,20 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { MapPin, Bed, Bath, Square, Heart, Eye, Shield } from 'lucide-react';
 
+/**
+ * Public client page that renders a browsable property listings UI.
+ *
+ * Renders a two-column layout with a filter sidebar and a responsive properties grid.
+ * On mount it attempts to fetch listings from /api/marketplace/properties, normalizes
+ * the API shape into the UI model, and falls back to a static sample dataset on error
+ * or when the API returns no items. Client-side filters (city, type, price range,
+ * bedrooms) are applied to the loaded list; "Apply Filters" writes selected filters
+ * into the browser URL query string without reloading. The component also detects
+ * right-to-left layout via document.documentElement.dir and adjusts the page title.
+ *
+ * The UI includes accessible testing hooks (data-testid) on key elements such as the
+ * page title, results count, filters and property cards.
+ */
 export default function PublicPropertiesPage() {
   const SAMPLE_PROPERTIES = [
     { id: 'p1', title: 'Apartment in Al Olaya', city: 'Riyadh', district: 'Al Olaya', price: 90000, bedrooms: 2, bathrooms: 2, area: 120, verified: true, image: '/placeholder-property.jpg' },

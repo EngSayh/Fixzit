@@ -13,6 +13,29 @@ const contactRequestSchema = z.object({
   preferredDate: z.string().optional()
 });
 
+/**
+ * Handle POST requests to reveal contact or perform contact-related actions for a listing.
+ *
+ * Validates the request body, requires an authenticated user, connects to the database,
+ * enforces rate limits and Nafath authentication where required, logs the action for audit,
+ * increments the listing's inquiry count, and returns an action-specific JSON response.
+ *
+ * Possible responses (status codes):
+ * - 200: { success: true, ...action-specific fields } for successful actions:
+ *   - reveal_contact: returns `contact` (phone, email, whatsapp, name, company) and optional `broker` license info.
+ *   - send_message: returns `messageSent: true` and `referenceId` (MSG-<timestamp>).
+ *   - schedule_viewing: returns `viewingRequested: true` and `referenceId` (VIEW-<timestamp>).
+ * - 400: Invalid request payload (Zod validation errors) with `details`.
+ * - 401: Authentication required.
+ * - 403: Nafath authentication required for high-value listings or scheduling (response includes `requireNafath: true` and `error`).
+ * - 404: Listing not found or not active.
+ * - 429: Rate limit exceeded (response includes `resetAt`).
+ * - 500: Generic failure processing the request.
+ *
+ * Note: This handler does not itself send messages or create viewing appointments — those are marked TODO and currently only return reference IDs.
+ *
+ * @returns A NextResponse containing a JSON object describing success or error and any action-specific data.
+ */
 export async function POST(req: NextRequest) {
   try {
     // Require authentication
@@ -144,7 +167,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Audit logging function
+/**
+ * Records an audit entry for contact-related actions.
+ *
+ * The function accepts an audit payload and persists or logs it for compliance and tracking.
+ * In production this should store the record in a persistent audit collection; currently it logs to console.
+ *
+ * @param data - Audit payload; expected properties include `userId`, `listingId`, `action` (e.g., `'reveal_contact'`), `ipAddress`, and `timestamp`. Additional fields (e.g., message, referenceId) may be included.
+ */
 async function logContactReveal(data: any) {
   // In production, store in audit collection
   console.log('Contact reveal audit:', data);

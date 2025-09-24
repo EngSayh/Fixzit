@@ -3,6 +3,15 @@
 import Link from 'next/link';
 import { Package, Building2, Search, Filter, Shield, Users, Truck } from 'lucide-react';
 
+/**
+ * Renders the Fixzit Marketplace landing page with hero, category cards, search, and trust indicators.
+ *
+ * The component is purely presentational: it includes navigation links to property and material listings,
+ * a search input (UI only, no handlers), a responsive "Marketplace Categories" grid (Real Estate, Materials, Services),
+ * and a "Trusted by Thousands" section with trust/stat blocks.
+ *
+ * @returns The Marketplace page JSX tree.
+ */
 export default function MarketplacePage() {
   return (
     <div className="bg-gray-50">

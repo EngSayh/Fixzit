@@ -10,6 +10,23 @@ const client = new OAuth2Client(
   `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
 );
 
+/**
+ * Handles Google OAuth login and callback flow for the API route.
+ *
+ * Supports two behaviors based on the `action` query parameter:
+ * - `action=login`: redirects the client to Google's OAuth consent screen (offline access; scopes: `email`, `profile`).
+ * - callback (no `action` or other value): exchanges the authorization `code` for tokens, verifies the ID token, finds or creates a user in MongoDB, issues a JWT, sets a secure HTTP-only cookie, and redirects to `/dashboard`.
+ *
+ * Side effects:
+ * - May create a new user or update `lastLogin` for an existing user in the `users` MongoDB collection.
+ * - Issues a JWT and sets it in a cookie named `fixzit_auth` (httpOnly, sameSite=lax, secure in production, 7-day max age, path=/).
+ *
+ * Redirects:
+ * - `/login?error=no_code` if the callback is missing the authorization `code`.
+ * - `/login?error=oauth_failed` on any OAuth/DB failure.
+ *
+ * @param req - The incoming NextRequest for this route.
+ */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');

@@ -4,6 +4,21 @@ import { getDb } from '@/src/lib/mongo';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/**
+ * Handles GET requests to fetch published knowledge articles for an organization.
+ *
+ * Accepts the following URL query parameters:
+ * - orgId (required): organization identifier — returns 400 if missing.
+ * - lang: language code (default: "en").
+ * - role: role used to filter `roleScopes` (default: "GUEST").
+ * - search: optional text to match against `title` (case-insensitive regex) or `tags` (lowercased exact match).
+ * - recent: "true" to return most recently updated articles (limits to 10); any other value returns a sorted list (limits to 50).
+ *
+ * Returns a JSON NextResponse with { articles } where each article object includes: title, module, slug, tags, and updatedAt.
+ * On unexpected errors responds with a 500 status and an error message.
+ *
+ * @returns A NextResponse containing the articles array on success, or a JSON error response with appropriate HTTP status.
+ */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

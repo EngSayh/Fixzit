@@ -25,6 +25,16 @@ const searchSchema = z.object({
 
 const MOCK = process.env.USE_MOCK_DB === 'true' || process.env.DISABLE_DB === 'true';
 
+/**
+ * Returns a canned NextResponse JSON payload representing a sample set of property listings.
+ *
+ * Used as a fallback or mock response for the marketplace properties endpoint when the database is disabled or mock mode is enabled.
+ *
+ * @returns A NextResponse containing `{ success: true, data }`, where `data` includes:
+ * - `listings`: array of sample listing objects (id, title, price, currency, property details, badges, image, stats, publishedAt, url)
+ * - `pagination`: `{ page, limit, total, pages }`
+ * - `filters`: precomputed facets (`cities`, `priceRange`, `categories`)
+ */
 function mockResponse() {
   const now = new Date();
   const listings = [
@@ -101,6 +111,17 @@ function mockResponse() {
   });
 }
 
+/**
+ * Handles GET requests for public property search and listing browsing.
+ *
+ * Validates query parameters, queries the database (or returns a mock response when mock mode or DB is disabled), and returns a paginated, public-facing list of property listings along with filter facets (cities, priceRange, categories). Supports filters for city, district, purpose, category, price/area ranges, bedrooms, bathrooms, furnished, verified; sorting (price asc/desc, date, verified); and pagination (page, limit). Listing data is transformed to a privacy-preserving public view (masked seller info, generalized coordinates unless exact location is allowed, first image with watermark, verification badges, and basic stats).
+ *
+ * Returns a JSON NextResponse containing:
+ * - success: true
+ * - data: { listings: Array, pagination: { page, limit, total, pages }, filters: { cities, priceRange, categories } }
+ *
+ * On unexpected errors the handler falls back to returning the mock response.
+ */
 export async function GET(req: NextRequest) {
   try {
     if (MOCK) {

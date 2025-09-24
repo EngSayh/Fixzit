@@ -7,6 +7,16 @@ interface ArticlePageProps {
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Server-rendered page that displays a published knowledge article for a given slug.
+ *
+ * Fetches the article from the `knowledge_articles` collection and, if found,
+ * renders its metadata (module, language, tags, version, updated date, role scopes),
+ * the HTML content from `contentMDX`, and a Sources list. If no published article
+ * matches the provided slug, this function calls `notFound()` to produce a 404.
+ *
+ * @returns A React element representing the article page.
+ */
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const db = await getDb();
   const native = (db as any).connection?.db || (db as any).db;

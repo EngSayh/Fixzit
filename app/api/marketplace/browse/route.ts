@@ -5,6 +5,20 @@ import Listing from '@/src/server/models/Listing';
 // Ensure single handler export only; remove any legacy duplicates
 export const dynamic = 'force-dynamic';
 
+/**
+ * GET handler that returns paginated marketplace listings with filtering by type, category, city, and price.
+ *
+ * Connects to the database (unless running in static-generation build phase), parses query parameters
+ * (type, category, city, minPrice, maxPrice, limit, offset), builds a MongoDB filter for active listings,
+ * retrieves matching documents, normalizes each item into a unified shape for properties and materials,
+ * and responds with JSON containing `data`, `pagination`, and the applied `filters`.
+ *
+ * In production build phase (`NEXT_PHASE === 'phase-production-build'`) returns a lightweight static payload.
+ *
+ * @returns A NextResponse JSON payload:
+ *  - on success: { success: true, data: Array, pagination: { total, limit, offset, hasMore }, filters: { type, category, city, priceRange } }
+ *  - on error: HTTP 500 with { success: false, error: 'Internal server error' }
+ */
 export async function GET(req: NextRequest) {
 	try {
 		// Handle static generation

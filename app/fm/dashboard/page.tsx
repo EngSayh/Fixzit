@@ -19,6 +19,24 @@ const fetcher = (url: string) => fetch(url, {
   }
 }).then(r => r.json());
 
+/**
+ * Dashboard page component showing high-level operational stats, recent activities, property alerts,
+ * and quick actions for the FM (facility management) UI.
+ *
+ * On mount it reads the current user from localStorage key `fixzit_user` and issues client-side
+ * data fetches (via SWR) for recent work orders, properties, assets under maintenance, and
+ * overdue invoices:
+ *  - /api/work-orders?limit=5
+ *  - /api/properties?limit=5
+ *  - /api/assets?status=MAINTENANCE&limit=5
+ *  - /api/invoices?status=OVERDUE&limit=5
+ *
+ * Fetched responses are aggregated into a local `stats` object (workOrders, properties, assets, finance)
+ * used to populate the stat cards, recent items lists, and quick-action links. This component performs
+ * browser-only side effects (localStorage access and network requests).
+ *
+ * @returns The dashboard page JSX element.
+ */
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
 

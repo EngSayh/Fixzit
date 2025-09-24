@@ -238,6 +238,21 @@ const products = [
   }
 ];
 
+/**
+ * Seeds the products collection in MongoDB with a predefined dataset.
+ *
+ * Connects to the database from config.mongodb, enriches each product with
+ * createdAt, updatedAt, views, and soldCount, inserts them into the
+ * `products` collection, and returns a JSON response indicating success and
+ * the number of inserted documents. If an error occurs, returns a 500 JSON
+ * response with error details.
+ *
+ * The incoming request (`req`) is not used by this handler.
+ *
+ * @returns A NextResponse JSON object:
+ * - On success: { success: true, message: 'Products seeded successfully', count: number }
+ * - On failure: { error: 'Failed to seed products', details: string } with status 500
+ */
 export async function POST(req: NextRequest) {
   try {
     // Connect to MongoDB

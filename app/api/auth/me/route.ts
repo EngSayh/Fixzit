@@ -37,6 +37,18 @@ const mockUsers: Record<string, {
   }
 };
 
+/**
+ * HTTP GET handler that returns demo authentication information.
+ *
+ * In production this route would validate a session or JWT and fetch a real user;
+ * for demo purposes it:
+ * - Returns { user: null, message: 'Static generation mode' } when NEXT_PHASE is "phase-production-build".
+ * - Requires an `Authorization` header or `cookie` header and responds 401 if neither is present.
+ * - Responds with a mock user payload (id, email, name, role, modules, orgOverrides, tenantId) based on in-file mock data, defaulting to a `GUEST` role.
+ * - On unexpected errors returns a 500 JSON error.
+ *
+ * @returns A NextResponse containing JSON. Successful responses include `{ user: { id, email, name, role, modules, orgOverrides, tenantId } }`. Error responses use `{ error: string }` with appropriate HTTP status codes (401 or 500).
+ */
 export async function GET(request: NextRequest) {
   try {
     // Handle static generation

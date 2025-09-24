@@ -23,6 +23,16 @@ interface MaintenanceTask {
   description: string;
 }
 
+/**
+ * Renders the Maintenance dashboard UI: summary cards and a list of maintenance tasks.
+ *
+ * The component uses the `useI18n` hook for translations and directionality, defines a
+ * local set of sample `MaintenanceTask` entries, and provides helpers to map task
+ * priority/status to badge styling and status icons. The main output is a responsive
+ * layout containing summary metric cards and a detailed list of tasks with action buttons.
+ *
+ * @returns The React element for the Maintenance page.
+ */
 export default function MaintenancePage() {
   const { t, language, isRTL } = useI18n();
 

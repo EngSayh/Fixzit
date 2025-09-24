@@ -2,6 +2,15 @@
 
 import { BarChart3, TrendingUp, Users, DollarSign } from 'lucide-react';
 
+/**
+ * DashboardPage — client React component that renders the main dashboard UI.
+ *
+ * Renders a header, a responsive stats grid (four summary cards with icon, label, and value),
+ * and a "Recent Activity" section containing static lists for recent work orders and recent transactions.
+ * All displayed data is defined locally (no data fetching or event handlers).
+ *
+ * @returns The dashboard React element.
+ */
 export default function DashboardPage() {
   const stats = [
     { label: 'Total Properties', value: '42', icon: Users, color: 'bg-fixzit-blue' },

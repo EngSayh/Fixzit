@@ -14,6 +14,19 @@ const fetcher = (url: string) => fetch(url, {
   }
 }).then(r => r.json());
 
+/**
+ * Notifications page React client component that displays, filters, and manages user notifications.
+ *
+ * Renders a searchable, filterable list with tabs (All, Unread, Urgent), selection and bulk actions
+ * (mark read, export, archive, delete), quick action shortcuts, and summary statistics. Fetches
+ * notifications from /api/notifications and uses client-side state for tab/filter/search/selection.
+ *
+ * The component performs network updates for single and bulk "mark as read" operations and calls
+ * SWR's mutate to refresh data after mutations. Several actions (archive, delete, mark important,
+ * clear all) are placeholders that currently show alerts rather than calling a backend API.
+ *
+ * @returns The Notifications page JSX element.
+ */
 export default function NotificationsPage() {
   const [selectedTab, setSelectedTab] = useState('all');
   const [search, setSearch] = useState('');

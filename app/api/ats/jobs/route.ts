@@ -4,6 +4,29 @@ import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
 import { getUserFromToken } from '@/src/lib/auth';
 
+/**
+ * Retrieve a paginated list of jobs with optional filtering and text search.
+ *
+ * Accepts query parameters:
+ * - `q` (string): full-text search string (optional).
+ * - `status` (string): job status filter; default `"published"`. Use `"all"` to disable status filtering.
+ * - `orgId` (string): organization ID; defaults to `process.env.NEXT_PUBLIC_ORG_ID` or `"fixzit-platform"`.
+ * - `department` (string): department filter (optional).
+ * - `location` (string): city name to match `location.city` (optional).
+ * - `jobType` (string): job type filter (optional).
+ * - `page` (number): 1-based page number; defaults to `1`.
+ * - `limit` (number): items per page; defaults to `20`, capped at `100`.
+ *
+ * Returns a JSON NextResponse with shape:
+ * {
+ *   success: true,
+ *   data: Array<Job>,
+ *   pagination: { page, limit, total, pages }
+ * }
+ *
+ * Performs a MongoDB text search and uses text score for projection/sorting when `q` is provided;
+ * otherwise sorts by `publishedAt` and `createdAt` descending. On failure returns a 500 JSON error.
+ */
 export async function GET(req: NextRequest) {
   try {
     await db();
@@ -60,6 +83,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/**
+ * Create a new job record.
+ *
+ * Reads the request JSON body and optional Authorization header to determine the posting user and organization, generates a URL-friendly unique slug for the job title (ensuring uniqueness within the organization by appending numeric suffixes as needed), and inserts a new Job document into the database. The created job is returned with HTTP 201.
+ *
+ * Behavior notes:
+ * - If an authorization token is present and valid, the job's `postedBy` is set to that user's id and `orgId` is preferred from the user's tenant; otherwise `postedBy` is set to `"system"` and `orgId` falls back to `body.orgId`, NEXT_PUBLIC_ORG_ID, or `"fixzit-platform"`.
+ * - `status` defaults to `"draft"` when not provided.
+ * - Ensures slug uniqueness per organization by appending `-1`, `-2`, ... when collisions occur.
+ *
+ * @returns A NextResponse JSON payload containing `{ success: true, data: job }` with HTTP status 201 on success, or `{ success: false, error: 'Failed to create job' }` with status 500 on failure.
+ */
 export async function POST(req: NextRequest) {
   try {
     await db();

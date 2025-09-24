@@ -15,6 +15,22 @@ interface Document {
   metadata?: Record<string, any>;
 }
 
+/**
+ * HTTP POST handler that ingests documents, computes embeddings, and upserts them into the `kb_embeddings` MongoDB collection.
+ *
+ * The handler expects a JSON body of the form `{ docs: Document[] }` and requires a valid `x-ingest-key` header that matches `INGEST_KEY`.
+ * For each document it ensures an `id`, attempts to obtain an embedding from the OpenAI Embeddings API when `OPENAI_API_KEY` is set (using `EMBED_MODEL` or `text-embedding-3-small` by default), and falls back to `generateMockEmbedding` if no embedding is returned. Each processed document is normalized with `lang`, `roleScopes`, `createdAt`, and `updatedAt`, then upserted (replaceOne with upsert) keyed by `{ id, orgId }` via a MongoDB bulkWrite.
+ *
+ * Responds with JSON containing `success`, `processed`, `inserted`, `updated`, and `upserted` counts on success.
+ *
+ * Possible HTTP responses:
+ * - 200: ingestion succeeded (JSON summary)
+ * - 400: invalid request body (missing or non-array `docs`)
+ * - 401: missing or invalid `x-ingest-key`
+ * - 500: internal error during ingestion
+ *
+ * @returns A NextResponse with a JSON payload summarizing the ingestion result or an error object and appropriate HTTP status.
+ */
 export async function POST(req: NextRequest) {
   try {
     // Verify ingest key
@@ -100,7 +116,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Mock embedding generation - replace with OpenAI in production
+/**
+ * Deterministically generates a 1536-dimensional mock embedding for the given text.
+ *
+ * This is a lightweight, deterministic fallback used when a real embedding service
+ * (e.g., OpenAI) is unavailable. It derives values from the SHA-256 hash of `text`
+ * and maps each byte to a float in the range [-0.5, 0.5], producing a stable vector
+ * of length 1536 suitable as a placeholder for downstream storage or similarity ops.
+ *
+ * @param text - Input string to derive the mock embedding from.
+ * @returns A 1536-length array of numbers representing the mock embedding.
+ */
 function generateMockEmbedding(text: string): number[] {
   const embedding = new Array(1536).fill(0);
   const hash = crypto.createHash('sha256').update(text).digest();

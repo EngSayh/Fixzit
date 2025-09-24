@@ -56,6 +56,22 @@ const STATUS_CONFIG = {
   delayed: { label: 'Delayed', color: 'bg-red-100 text-red-800', icon: AlertTriangle }
 };
 
+/**
+ * Shipping & Logistics page component.
+ *
+ * Renders a client-side UI for tracking shipments using in-file mock data. Provides:
+ * - Page header with title, description and a "Schedule Pickup" action.
+ * - Tabs to filter shipments by Active, Delivered, or All.
+ * - A Quick Track input to filter shipments by tracking number or order ID.
+ * - A list of shipment cards showing status, carrier, estimated delivery, origin/destination, progress, and optional delivered date.
+ * - Empty-state UI when no shipments match the current filter.
+ * - Static sections for logistics partners and shipping tips.
+ *
+ * The component uses the `useI18n` hook for translations and manages local state for the active tab and search query.
+ * Data is sourced from a local MOCK_SHIPMENTS array; no network requests are performed.
+ *
+ * @returns JSX.Element - The rendered Shipping page.
+ */
 export default function ShippingPage() {
   const { t, language, isRTL } = useI18n();
   const [activeTab, setActiveTab] = useState<'active' | 'delivered' | 'all'>('active');

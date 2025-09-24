@@ -3,6 +3,15 @@
 import Link from 'next/link';
 import { Home, ArrowLeft, Search } from 'lucide-react';
 
+/**
+ * Render a 404 "Page Not Found" client component with quick actions and popular links.
+ *
+ * Displays a large "404" heading, descriptive text, a primary link to the homepage, a
+ * "Go Back" button that calls `window.history.back()`, a card listing common pages as
+ * quick links, and a support email contact.
+ *
+ * @returns A React element representing the Not Found page UI.
+ */
 export default function NotFound() {
   const commonPages = [
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },

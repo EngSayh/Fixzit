@@ -2,6 +2,13 @@
 
 import SystemVerifier from '@/src/components/SystemVerifier';
 
+/**
+ * Page component that provides the outer layout and background for the system verification UI.
+ *
+ * Renders a centered, responsive container with padding and the SystemVerifier component inside.
+ *
+ * @returns The SystemPage React element.
+ */
 export default function SystemPage() {
   return (
     <div className="bg-gray-50">

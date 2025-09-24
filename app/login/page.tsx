@@ -50,6 +50,22 @@ const DEMO_CREDENTIALS = [
   }
 ];
 
+/**
+ * Login page component providing three authentication flows: Personal Email, Corporate Account, and SSO.
+ *
+ * Renders a tabbed login UI with inputs and controls for personal (email/password) and corporate
+ * (employee number/password) authentication, plus SSO buttons for Google and Apple.
+ *
+ * Behavior and side effects:
+ * - Personal and corporate forms POST to /api/auth/login with `loginType` set to "personal" or "corporate".
+ * - On successful login the component stores role/user data in localStorage (`fixzit-role`, `fixzit-user`),
+ *   clears `fixzit-notifications`, writes a `fixzit-login-notification`, and navigates to /dashboard.
+ * - Google SSO redirects the browser to /api/auth/google; Apple SSO currently shows a "coming soon" error.
+ * - Provides demo credential quick-fill that populates the personal email/password fields.
+ * - Manages local UI state for input values, password visibility, loading, and error messages.
+ *
+ * @returns The rendered login page JSX element.
+ */
 export default function LoginPage() {
   // Personal Email Login State
   const [email, setEmail] = useState('');

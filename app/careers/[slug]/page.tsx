@@ -1,6 +1,16 @@
 import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
+/**
+ * Server component that renders a job detail page for the given route slug.
+ *
+ * Looks up a published job by organization (from NEXT_PUBLIC_ORG_ID or `fixzit-platform`) and the route `slug`.
+ * If a job is found, renders its title, department, description, optional requirements and benefits, and an application form
+ * that posts to `/api/ats/jobs/{job._id}/apply` with `multipart/form-data`. If no job is found, renders a "Job not found" message.
+ *
+ * @param params - Route parameters; `params.slug` is the job's slug from the URL.
+ * @returns A server-rendered React element containing the job detail view or a not-found notice.
+ */
 export default async function JobDetailPage({ params }: { params: { slug: string } }) {
   await db();
   const orgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';

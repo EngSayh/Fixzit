@@ -62,6 +62,20 @@ const createInvoiceSchema = z.object({
   }).optional()
 });
 
+/**
+ * Creates a new invoice for the authenticated user's tenant.
+ *
+ * Validates the request body against the invoice schema, computes per-item subtotals, aggregates taxes,
+ * and derives the invoice total. Generates a sequential invoice number, produces a ZATCA QR payload,
+ * persists the invoice document (status "DRAFT") with a creation history entry and a ZATCA object,
+ * and returns the created invoice.
+ *
+ * Side effects:
+ * - Writes a new Invoice document to the database (includes subtotal, taxes, total, zatca data, history).
+ * - Calls external ZATCA QR generator.
+ *
+ * @returns A NextResponse with the created invoice and HTTP 201 on success, or a JSON error and HTTP 400 on failure.
+ */
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);

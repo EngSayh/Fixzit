@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Clock, Star } from 'lucide-react';
 
+/**
+ * Vendor dashboard React component that displays vendor analytics, a products list, and recent orders.
+ *
+ * Renders a dashboard with four summary cards (total products, total orders, revenue, rating), a "My Products"
+ * table with editable rows, and a "Recent Orders" table with status badges. On mount it populates local state
+ * with mock vendor data via an internal `fetchVendorData` function — replace the mock data with real API calls
+ * when integrating with a backend.
+ *
+ * @returns The JSX element for the vendor dashboard.
+ */
 export default function VendorDashboard() {
   const [stats, setStats] = useState({
     totalProducts: 0,

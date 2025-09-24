@@ -7,6 +7,23 @@ import { getDatabase } from 'lib/mongodb';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit';
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
 
+/**
+ * POST handler that schedules a preventive maintenance plan for a property.
+ *
+ * Validates the authenticated user's role, required input fields, constructs a maintenance
+ * plan document, inserts it into the `maintenance_plans` collection, and returns a JSON
+ * response indicating success or failure.
+ *
+ * Returns JSON responses with status codes:
+ * - 200: successfully scheduled (response contains `data.id` and `message`).
+ * - 400: missing required fields (`propertyId`, `type`, or `frequency`).
+ * - 401: unauthenticated request.
+ * - 403: authenticated user does not have an allowed role (allowed: TECHNICIAN, MANAGEMENT, CORP_ADMIN, SUPER_ADMIN).
+ * - 500: server/database error while scheduling.
+ *
+ * Side effects:
+ * - Inserts a document into the `maintenance_plans` MongoDB collection.
+ */
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser(req);

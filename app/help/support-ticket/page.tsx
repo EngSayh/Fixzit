@@ -2,6 +2,15 @@
 
 import { useState } from 'react';
 
+/**
+ * Support ticket form page component.
+ *
+ * Renders a form for creating a support ticket and manages local form state.
+ * Handles input updates and simulates ticket submission (2s), showing a success alert,
+ * resetting the form, and toggling a submission state while the simulated request runs.
+ *
+ * @returns The SupportTicketPage React element.
+ */
 export default function SupportTicketPage() {
   const [formData, setFormData] = useState({
     subject: '',

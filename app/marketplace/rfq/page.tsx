@@ -3,6 +3,16 @@
 import { useState } from 'react';
 import { Calendar, DollarSign, Package } from 'lucide-react';
 
+/**
+ * RFQ management page component.
+ *
+ * Renders a Request for Quotes (RFQ) UI: header, conditional "Create RFQ" form, and a list of RFQs.
+ * Maintains internal state for the RFQ list, the create-form visibility, and the new-RFQ form fields.
+ * The `createRFQ` handler builds a new RFQ (generates an `id`, sets `status` to "Open", initializes `bids` to 0,
+ * and parses `budget`), prepends it to the RFQ list, hides the form, and resets the form fields.
+ *
+ * @returns The RFQ page JSX element.
+ */
 export default function RFQPage() {
   const [rfqs, setRfqs] = useState([
     {

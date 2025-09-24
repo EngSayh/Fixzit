@@ -3,7 +3,19 @@ import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
 
-// Public endpoint: creates a job with status=pending under platform org for moderation
+/**
+ * Handle POST requests to create a public job submission for moderation.
+ *
+ * Creates a Job document scoped to the platform organization (determined by
+ * NEXT_PUBLIC_ORG_ID, defaulting to "fixzit-platform"), ensures a unique slug
+ * derived from the provided title (appends a numeric suffix on collision),
+ * and applies sensible defaults for missing fields (department, jobType,
+ * location, salaryRange, arrays, etc.). The created job is stored with
+ * status "pending", visibility "public", and postedBy "public".
+ *
+ * Returns a JSON NextResponse with status 201 and the created job on success,
+ * or status 500 and an error message on failure.
+ */
 export async function POST(req: NextRequest) {
   try {
     await db();

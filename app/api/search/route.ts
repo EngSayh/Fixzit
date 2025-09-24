@@ -19,6 +19,29 @@ export const dynamic = 'force-dynamic';
 
 type Hit = { id: string; type: string; title: string; subtitle?: string; href: string };
 
+/**
+ * Handles GET search requests and returns aggregated search hits across application modules.
+ *
+ * Parses query parameters (`q`, `scope`, `module`, `limit`) from the request URL, scopes results
+ * to the current user's tenant/org when available, and performs cross-entity searches (FM,
+ * marketplace/souq, and aqar/real-estate) according to the requested module scope. If `q` is
+ * empty the endpoint returns an empty results array. Limits results per entity and aggregates
+ * hits into a standardized `Hit` shape { id, type, title, subtitle, href }.
+ *
+ * On success returns a JSON response with `{ results: Hit[] }`. On unexpected errors returns a
+ * 500 response with an empty results array.
+ *
+ * Query parameters:
+ * - `q` (string): search query (trimmed). If empty the response contains no results.
+ * - `scope` ('module' | 'all'): whether to search only the specified module (default: 'module')
+ *   or across all modules ('all').
+ * - `module` (string): module identifier used to select which module to search when `scope=module`
+ *   (default: 'home').
+ * - `limit` (number): requested total limit (normalized to 1..25); used to compute per-entity limits.
+ *
+ * @returns A NextResponse containing JSON `{ results: Hit[] }`. Returns HTTP 500 with `{ results: [] }`
+ *          on error.
+ */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;

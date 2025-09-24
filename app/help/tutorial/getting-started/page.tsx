@@ -13,6 +13,15 @@ interface Step {
   tips?: string[];
 }
 
+/**
+ * Client-side React component that renders an interactive "Getting Started" tutorial UI.
+ *
+ * Displays a multi-step tutorial with a sidebar list of steps, a main content area for the
+ * current step (title, description, and markdown-like content), optional tips, and navigation
+ * controls. Tracks the current step and which steps have been marked complete, and shows
+ * progress as a percentage and as "X of Y" steps.
+ *
+ * @returns The tutorial UI as JSX. */
 export default function GettingStartedTutorial() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());

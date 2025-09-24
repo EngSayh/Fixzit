@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useI18n } from '@/src/providers/RootProviders';
 import { Building2, ShoppingBag, Globe } from 'lucide-react';
 
+/**
+ * Client-side React component that renders the landing page for the app.
+ *
+ * Renders a multi-section landing page (hero with gradient background and CTAs, a responsive
+ * features grid with links to product areas, and a final CTA section). All visible text is
+ * produced via the `useI18n` translation hook with sensible fallback strings.
+ *
+ * The component is intended for static presentation and navigation; it does not perform data
+ * fetching or side effects beyond using the translation hook.
+ */
 export default function LandingPage(){
   const { t, language, isRTL } = useI18n();
 

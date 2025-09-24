@@ -1,6 +1,15 @@
 'use client';
 import { useState } from 'react';
 
+/**
+ * Page component that renders a form for creating a new property listing.
+ *
+ * Renders inputs for seller type, purpose, building number, and postal code, with conditional
+ * fields: a FAL License input when seller type is "broker" and an Ejar eligibility selector when
+ * purpose is "rent". Clicking "Save" validates the building number (must be exactly 4 digits)
+ * and postal code (must be exactly 5 digits); validation errors are displayed inline. If there
+ * are no validation errors, an alert with "Saved" is shown.
+ */
 export default function NewPropertyPage() {
   const [sellerType, setSellerType] = useState('owner');
   const [purpose, setPurpose] = useState('sale');

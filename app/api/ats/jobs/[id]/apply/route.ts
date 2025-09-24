@@ -8,6 +8,14 @@ import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } 
 import { promises as fs } from 'fs';
 import path from 'path';
 
+/**
+ * Handles POST submissions to apply for a job (saves candidate, scores application, creates Application).
+ *
+ * Parses multipart form data (candidate name, contact, resume file, skills, experience, cover letter, LinkedIn), derives missing name parts from `fullName`, validates required fields, saves an uploaded resume to public/uploads/resumes when provided, extracts skills and experience (from explicit fields or from text), finds or creates a Candidate record, prevents duplicate applications, computes a score using ATS settings, evaluates knockout rules (auto-reject), creates an Application record (with a candidate snapshot and history), increments the job's application count, and returns a JSON response describing the created application or any validation/errors.
+ *
+ * @param params - Route params object; expects `params.id` to be the target Job id.
+ * @returns A NextResponse JSON payload. On success returns 201 with `{ success: true, data: { applicationId, status, score, message } }`. Possible error responses include 400 for missing fields or duplicate/invalid job state, 404 if the job isn't found, and 500 on internal errors.
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }

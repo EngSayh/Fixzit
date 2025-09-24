@@ -15,6 +15,20 @@ import { Truck, Plus, Search, Filter, Star, MapPin, Eye, Edit, Trash2, Building2
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
+/**
+ * Vendors page UI: lists vendors, provides search/filters, and a modal to create new vendors.
+ *
+ * Renders a header with a "New Vendor" dialog trigger, filter controls (search, type, status),
+ * a responsive grid of VendorCard items fetched from /api/vendors, and an empty state that
+ * opens the create dialog. Uses SWR to fetch vendor data with current search/type/status
+ * query parameters and revalidates (via `mutate`) after a successful vendor creation.
+ *
+ * Uses `useI18n` for translations and local state for UI controls:
+ * - search, typeFilter, statusFilter: control the API query
+ * - createOpen: controls the create-vendor dialog visibility
+ *
+ * @returns The VendorsPage React element.
+ */
 export default function VendorsPage() {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
@@ -122,6 +136,25 @@ export default function VendorsPage() {
   );
 }
 
+/**
+ * Renders a card summarizing a single vendor, including type/status badges, location,
+ * performance metrics, and action buttons.
+ *
+ * The component displays icon and color variations based on `vendor.type` and `vendor.status`,
+ * and reads nested vendor fields defensively (e.g. `vendor.contact?.address?.city`,
+ * `vendor.performance?.rating`). Missing values fall back to sensible defaults such as
+ * `'N/A'` or `0`.
+ *
+ * Note: action buttons (view/edit/delete) are rendered for UI consistency but do not have
+ * wired handlers inside this component; use the `onUpdated` callback to trigger parent-side
+ * refreshes when external actions modify the vendor.
+ *
+ * @param vendor - Vendor object to render. Expected shape includes fields used here:
+ *   `name`, `code`, `type`, `status`, `contact?.address?.city`, `contact?.address?.region`,
+ *   `performance?.rating`, `performance?.completedProjects`, `performance?.successRate`,
+ *   `performance?.averageResponseTime`, and `business?.specializations`.
+ * @param onUpdated - Callback invoked by parent to revalidate or refresh vendor data after updates.
+ */
 function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -238,6 +271,21 @@ function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void 
   );
 }
 
+/**
+ * Form component for creating a new vendor.
+ *
+ * Renders inputs for company, contact, address and business metadata and submits the collected data
+ * to POST /api/vendors. On a successful creation the provided `onCreated` callback is invoked so
+ * the parent can refresh state (for example, revalidate a list and close a dialog). Validation is
+ * provided via required attributes on key fields (company name, type, primary contact name/email,
+ * city, region, street).
+ *
+ * The request includes the tenant header "x-tenant-id: demo-tenant". On failure the component shows
+ * a user-facing alert (messages are localized via the i18n `t` function).
+ *
+ * @param onCreated - Called after the vendor is successfully created; used by the parent to refresh UI/state.
+ * @returns A JSX form element for creating a vendor.
+ */
 function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
   const { t } = useI18n();
   const [formData, setFormData] = useState({

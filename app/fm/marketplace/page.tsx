@@ -6,6 +6,16 @@ import { Plus, Upload, Download, Filter, Search, MoreVertical, Eye, Edit, Trash2
 
 type TabKey = 'catalog' | 'vendors' | 'rfqs' | 'orders';
 
+/**
+ * Marketplace UI component exposing Catalog, Vendors, RFQs & Bids, and Orders & POs panels.
+ *
+ * Renders a localized, tabbed marketplace page with a top search bar and primary actions (Add, Import, Export, Filter).
+ * Tabs switch between a catalog grid, vendors table (with pagination UI), RFQs table, and orders table. Uses demo/static data for catalogItems, vendors, rfqs, and orders; action controls and search update local state only and do not perform network requests or persistence.
+ *
+ * Localization is provided via useI18n (labels, placeholders); layout respects RTL when applicable.
+ *
+ * @returns The React element for the FM marketplace page.
+ */
 export default function FMMarketplacePage() {
   const { t, language, isRTL } = useI18n();
   const [activeTab, setActiveTab] = useState<TabKey>('catalog');

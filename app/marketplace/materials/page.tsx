@@ -4,6 +4,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Package, Star, Truck, Shield, ShoppingCart, Filter } from 'lucide-react';
 
+/**
+ * Public marketplace page that lets users browse and filter construction materials.
+ *
+ * Renders a client-side React page with category, price range, and "in stock" filters,
+ * loads product data from `/api/marketplace/products` (uses an AbortController to cancel inflight requests),
+ * and displays a responsive grid of material cards. Maintains local cart state (count and drawer visibility)
+ * for adding placeholder cart items; proceeding to checkout redirects to the login page.
+ *
+ * Note: network fetch errors are silently ignored.
+ *
+ * @returns The page's JSX element.
+ */
 export default function PublicMaterialsPage() {
   const [filters, setFilters] = useState({
     category: '',

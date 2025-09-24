@@ -5,6 +5,19 @@ import mongoose from 'mongoose';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Fetches a property listing by MongoDB ObjectId or SEO slug and returns a public view.
+ *
+ * Attempts to connect to the database, then looks up a Listing by `_id` when `id` is a valid
+ * MongoDB ObjectId or by `seo.slug` otherwise. If a listing is found and its `status` is `'active'`,
+ * the handler returns the listing serialized via `toPublicJSON()` when available (falls back to
+ * `toObject()`), wrapped in `{ success: true, data }`. If no active listing is found, responds with
+ * a 404 and `{ success: false, error: 'Not found' }`. Unexpected errors produce a 500 with
+ * `{ success: false, error: 'Internal server error' }`.
+ *
+ * @param params.id - The identifier provided in the route: either a MongoDB ObjectId string or an SEO slug.
+ * @returns A NextResponse containing a JSON object with `success` and either `data` (on 200) or `error` (on 404/500).
+ */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
 	try {
 		await dbConnect();

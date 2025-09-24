@@ -6,7 +6,22 @@ import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
 import { computeQuote } from '@/src/lib/pricing';
 import { createHppRequest } from '@/src/lib/paytabs';
 
-// Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, paytabsRegion, returnUrl, callbackUrl}
+/**
+ * Handles subscription creation: upserts the customer, computes a quote, creates a subscription and first invoice, and generates a PayTabs HPP request.
+ *
+ * Expects a JSON body with at least:
+ * - customer: object with `type` ('ORG'|'OWNER') and `billingEmail` (used to upsert)
+ * - planType: 'CORPORATE_FM'|'OWNER_FM'
+ * - items: array of requested modules
+ * - seatTotal: number
+ * - billingCycle: 'monthly'|'annual'
+ * - returnUrl and callbackUrl: strings for PayTabs redirection
+ * - optional paytabsRegion
+ *
+ * If the computed quote requires contacting sales (seat limit exceeded), responds with HTTP 400 and an error payload.
+ *
+ * On success returns a JSON NextResponse containing `subscriptionId`, `invoiceId`, and the PayTabs HPP response (including `redirect_url`).
+ */
 export async function POST(req: NextRequest) {
   await dbConnect();
   const body = await req.json();

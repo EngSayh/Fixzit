@@ -6,6 +6,20 @@ import { Job } from '@/src/server/models/Job';
 import { Employee } from '@/src/server/models/Employee';
 import { getUserFromToken } from '@/src/lib/auth';
 
+/**
+ * Convert an ATS application into an Employee record.
+ *
+ * Looks up the Application by `applicationId` from the request body and, if the application is in the `hired`
+ * stage, creates (or returns an existing) Employee in the same organization using Candidate and Job data.
+ *
+ * Responses:
+ * - 200 with `{ success: true, data }` when an employee is created or already exists.
+ * - 400 when `applicationId` is missing, the application is not hired, or the related Candidate/Job are missing.
+ * - 404 when the Application cannot be found.
+ * - 500 on unexpected server errors.
+ *
+ * @returns A NextResponse containing a JSON payload with `success` and either `data`, `message`, or `error`.
+ */
 export async function POST(req: NextRequest) {
   try {
     await db();

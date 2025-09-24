@@ -3,6 +3,35 @@ import { db } from '@/src/lib/mongo';
 import { Product } from '@/src/server/models/Product';
 import { SearchSynonym } from '@/src/server/models/SearchSynonym';
 
+/**
+ * Handles GET /api/marketplace/search — performs a filtered, paginated product search with sorting and facets.
+ *
+ * Accepts query parameters to filter and paginate results, expands the search query using synonyms, and returns matching products plus facet aggregations (categories, price range, vendors).
+ *
+ * Query parameters:
+ * - q - Full-text search string; expanded via SearchSynonym.expandQuery(locale, q) when provided.
+ * - category - Filter by product category.
+ * - subcategory - Filter by product subcategory.
+ * - minPrice - Minimum price (numeric string).
+ * - maxPrice - Maximum price (numeric string).
+ * - vendor - Filter by vendor ID.
+ * - inStock - "true" to include only products with stock.quantity > 0.
+ * - locale - 'en' or 'ar' used when expanding query synonyms (defaults to 'en').
+ * - page - Page number for pagination (defaults to 1).
+ * - limit - Items per page (defaults to 24, capped at 100).
+ * - sort - Sort mode: 'relevance' (default, uses text score if `q` provided), 'price-asc', 'price-desc', 'newest', 'rating', or 'popularity'.
+ *
+ * Response (200):
+ * - JSON shape: { success: true, data: { products, pagination, facets } }
+ *   - products: array of product documents (selected fields: name, nameAr, description, descriptionAr, category, subcategory, sku, price, stock, images, ratings, vendorId). If a text query is used, each document may include a `score` textScore when relevant.
+ *   - pagination: { page, limit, total, pages }.
+ *   - facets:
+ *     - categories: array of { _id: categoryValue, count } sorted by count desc.
+ *     - priceRange: { min, max } or { min: 0, max: 0 } when unavailable.
+ *     - vendors: array of { _id: vendorId, count } (top 10).
+ *
+ * On error returns JSON { success: false, error: 'Failed to search products' } with HTTP status 500.
+ */
 export async function GET(req: NextRequest) {
   try {
     await db();

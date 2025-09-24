@@ -4,7 +4,25 @@ import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
 
-// Simplified ingestion: expects { jobSlug, profile: { firstName,lastName,email,phone,location,linkedinUrl }, answers? }
+/**
+ * HTTP POST handler that ingests a simplified LinkedIn-style application and creates a candidate and application record as needed.
+ *
+ * Expects a JSON body with: `{ jobSlug, profile: { firstName?, lastName?, email, phone?, location?, linkedinUrl? }, answers? }`.
+ * - Validates presence of `jobSlug` and `profile.email`.
+ * - Looks up a published Job by `jobSlug`.
+ * - Finds or creates a Candidate scoped to the job's organization (new candidates are tagged with source `'linkedin'`).
+ * - Prevents duplicate applications for the same candidate and job; returns the existing application ID if found.
+ * - Creates a new Application (stage `'applied'`, score `0`, source `'linkedin'`), includes a `candidateSnapshot` and an initial `history` entry.
+ *
+ * Responses:
+ * - 201: application created — JSON `{ success: true, data: { applicationId } }`
+ * - 200: duplicate application found — JSON `{ success: true, data: { applicationId, message: 'Already applied' } }`
+ * - 400: missing required fields — JSON `{ success: false, error: 'Missing fields' }`
+ * - 404: job not found — JSON `{ success: false, error: 'Job not found' }`
+ * - 500: on unexpected errors — JSON `{ success: false, error: 'Failed to apply with LinkedIn' }`
+ *
+ * Side effects: may create Candidate and Application documents in the database.
+ */
 export async function POST(req: NextRequest) {
   try {
     await db();

@@ -2,6 +2,16 @@ import { dbConnect } from '@/src/db/mongoose';
 import DiscountRule from '@/src/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * Retrieve the "ANNUAL" discount rule.
+ *
+ * If running during Next.js static production build, returns a static JSON payload:
+ * `{ code: 'ANNUAL', value: 0, active: false, message: 'Static generation mode' }`.
+ * Otherwise connects to the database and returns the stored DiscountRule with `code: 'ANNUAL'`.
+ * If no document exists, returns a fallback object `{ code: 'ANNUAL', value: 0, active: false }`.
+ *
+ * @returns A NextResponse containing the discount rule as JSON.
+ */
 export async function GET() {
   // Handle static generation
   if (process.env.NEXT_PHASE === 'phase-production-build') {

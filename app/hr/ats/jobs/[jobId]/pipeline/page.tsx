@@ -58,6 +58,18 @@ const STAGES = [
   { id: 'rejected', label: 'Rejected', color: 'bg-red-50 border-red-200' }
 ];
 
+/**
+ * Renders the job application pipeline board for a given job.
+ *
+ * Displays six pipeline columns (Applied, Screened, Interview, Offer, Hired, Rejected) with candidate cards,
+ * supports searching/filtering candidates, expanding a candidate to view contact/skills, and advancing an
+ * application to the next stage. Fetches job details and applications on mount or when `params.jobId` changes,
+ * and shows a fullscreen loading indicator while data is being loaded.
+ *
+ * @param params - Route parameters
+ * @param params.jobId - ID of the job whose pipeline should be displayed
+ * @returns The pipeline UI for the specified job
+ */
 export default function JobPipelinePage({ params }: { params: { jobId: string } }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [job, setJob] = useState<any>(null);

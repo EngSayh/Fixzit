@@ -8,6 +8,23 @@ import { getDatabase } from 'lib/mongodb';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit';
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
 
+/**
+ * Handle POST requests to approve or reject a work order quotation.
+ *
+ * Authenticates the current user, validates the JSON payload (requires `workOrderId`), enforces role- and amount-based approval authority, inserts an approval record, updates the work order's quotation status and history, and returns a localized JSON response.
+ *
+ * Returns a JSON NextResponse with appropriate HTTP status codes:
+ * - 200: success with { success: true, data: { workOrderId, action, amount, message } }
+ * - 400: missing or invalid input
+ * - 401: unauthorized (no current user)
+ * - 403: user not authorized to approve the quotation amount
+ * - 404: work order not found
+ * - 500: server error
+ *
+ * Localization: error and success messages are returned in Arabic when the user's locale is 'ar', otherwise in English.
+ *
+ * @returns A NextResponse containing a JSON payload and the appropriate HTTP status code.
+ */
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser(req);
