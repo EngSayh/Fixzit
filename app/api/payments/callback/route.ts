@@ -19,8 +19,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    // Update invoice based on payment result
-    if (payment_result.response_status === 'A' && verification.payment_result.response_status === 'A') {
+    // Cross-check key fields from PayTabs against our invoice before marking PAID
+    const v = verification || {};
+    const vStatus = v?.payment_result?.response_status;
+    const vAmount = parseFloat(v?.cart_amount || v?.tran_total || '0');
+    const vCurrency = v?.tran_currency || v?.cart_currency;
+    const amountFromBody = parseFloat(body.cart_amount);
+
+    const amountMatches = !Number.isNaN(amountFromBody) && Math.abs((invoice.total || invoice.amount || amountFromBody) - amountFromBody) < 0.01
+      ? true
+      : Math.abs((invoice.total || invoice.amount || 0) - vAmount) < 0.01;
+    const currencyMatches = !vCurrency || (invoice.currency || '').toUpperCase() === String(vCurrency).toUpperCase();
+
+    // Update invoice based on strict checks
+    if (payment_result.response_status === 'A' && vStatus === 'A' && amountMatches && currencyMatches) {
       // Payment successful
       invoice.status = 'PAID';
       invoice.payments.push({
