@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest) {
       job.publishedAt = new Date();
       await job.save();
     } else {
-      job.status = 'closed' as any;
+      job.status = 'archived' as any;
       await job.save();
     }
 

@@ -25,7 +25,7 @@ export default function InvoicesPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, mutate } = useSWR(
-    `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}`,
+    `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}`,
     fetcher
   );
 

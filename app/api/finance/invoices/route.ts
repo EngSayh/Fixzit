@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from "@/server/security/rateLimit";
 
 function ctx(req: NextRequest) {
@@ -10,7 +11,7 @@ function ctx(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const { tenantId } = ctx(req);
+  const { tenantId } = await getSessionUser(req).catch(()=>({ tenantId: "" } as any));
   if (!tenantId) return NextResponse.json({ error:"Missing tenant" },{ status: 400 });
   const q = searchParams.get("q") || undefined;
   const status = searchParams.get("status") || undefined;
@@ -19,7 +20,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { tenantId, actorId, ip } = ctx(req);
+  const { tenantId, id: actorId } = await getSessionUser(req).catch(()=>({ tenantId: "", id: undefined } as any));
+  const ip = req.ip ?? "";
   if (!tenantId) return NextResponse.json({ error:"Missing tenant" },{ status: 400 });
 
   const key = `inv:${tenantId}:${actorId}`;
