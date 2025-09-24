@@ -26,20 +26,45 @@ export default function AIChatPage() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input.trim();
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/kb/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: currentInput,
+          orgId: 'default-org',
+          lang: 'en',
+          role: 'TENANT',
+          route: '/help/ai-chat'
+        })
+      });
+
+      const data = await response.json();
+      
       const botMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot' as const,
-        content: `I understand you're asking about "${input.trim()}". This is a simulated response from the AI assistant. In a real implementation, this would connect to an AI service to provide intelligent answers about Fixzit features, help articles, and support guidance.`,
+        content: data.answer || 'Sorry, I could not process your request. Please try again.',
         timestamp: new Date()
       };
+      
       setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('AI query error:', error);
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot' as const,
+        content: 'Sorry, there was an error processing your request. Please try again or create a support ticket.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

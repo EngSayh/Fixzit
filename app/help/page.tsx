@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText, Headphones } from 'lucide-react';
-import HelpWidget from '@/src/components/HelpWidget';
+import KnowledgeWidget from '@/src/components/KnowledgeWidget';
 
 interface Tutorial {
   id: string;
@@ -458,7 +458,12 @@ export default function HelpHome() {
           </div>
         </div>
       )}
-      <HelpWidget />
+      <KnowledgeWidget 
+        orgId="default-org" 
+        lang="en" 
+        role="TENANT" 
+        route="/help" 
+      />
     </div>
   );
 }
