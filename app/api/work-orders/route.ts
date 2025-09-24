@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
   let items: any[];
   let total: number;
 
-  // Check if using mock database
-  const isMockDB = process.env.NODE_ENV === 'development' && (process.env.MONGODB_URI || '').includes('localhost');
+  // Always use real Mongo connection now
+  const isMockDB = false;
 
   if (isMockDB) {
     // Use mock database logic
