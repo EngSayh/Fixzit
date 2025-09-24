@@ -7,6 +7,29 @@ export const dynamic = 'force-dynamic';
 // Collection name aligned with Mongoose default pluralization for model "HelpArticle"
 const COLLECTION = 'helparticles';
 
+/**
+ * Handles GET requests to list help articles with filtering, text search, and pagination.
+ *
+ * Supports query parameters:
+ * - `category`: exact-match category filter
+ * - `q`: full-text search over title, content, and tags
+ * - `status`: article status (defaults to `"PUBLISHED"`)
+ * - `page`: 1-based page number (minimum 1)
+ * - `limit`: page size (clamped between 1 and 50, defaults to 20)
+ *
+ * The handler ensures required MongoDB indexes (unique `slug`, `status+updatedAt`, and a text index on `title`, `content`, and `tags`), builds a filter from the query params, and returns a JSON response with the matching items sorted by text score when `q` is provided or by `updatedAt` otherwise.
+ *
+ * Successful response (200) JSON shape:
+ * {
+ *   items: Array<{ slug, title, category, updatedAt, ... }>,
+ *   page: number,
+ *   limit: number,
+ *   total: number,
+ *   hasMore: boolean
+ * }
+ *
+ * On failure returns a 500 response with `{ error: 'Failed to fetch help articles' }`.
+ */
 export async function GET(req: NextRequest){
   try {
     const url = new URL(req.url);
