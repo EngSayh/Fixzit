@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { isMockDB, db } from '@/src/lib/mongo';
 
 // Dynamic import for User model to avoid Edge Runtime issues
@@ -170,7 +171,22 @@ if (isMockDB) {
   User = (await import('@/src/server/models/User')).User;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fixzit-enterprise-secret-2024';
+const JWT_SECRET = (() => {
+  const envSecret = process.env.JWT_SECRET?.trim();
+  if (envSecret) {
+    return envSecret;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable must be configured in production environments.');
+  }
+
+  const fallbackSecret = randomBytes(32).toString('hex');
+  console.warn(
+    'JWT_SECRET is not set. Using an ephemeral secret for this process. Sessions will be invalidated on restart.'
+  );
+  return fallbackSecret;
+})();
 
 export interface AuthToken {
   id: string;
