@@ -7,6 +7,40 @@ const REGIONS: Record<string,string> = {
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
 
+// PayTabs configuration
+const PAYTABS_CONFIG = {
+  profileId: process.env.PAYTABS_PROFILE_ID || '123456',
+  serverKey: process.env.PAYTABS_SERVER_KEY || 'test-key',
+  baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure-global.paytabs.com'
+};
+
+// Payment request and response interfaces
+export interface PaymentRequest {
+  invoiceId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  returnUrl: string;
+  callbackUrl: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zip: string;
+  };
+}
+
+export interface PaymentResponse {
+  success: boolean;
+  paymentUrl?: string;
+  transactionId?: string;
+  error?: string;
+}
+
 export async function createHppRequest(region:string, payload:any) {
   const r = await fetch(`${paytabsBase(region)}/payment/request`, {
     method:'POST',
