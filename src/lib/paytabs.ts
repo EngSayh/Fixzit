@@ -6,6 +6,12 @@ const REGIONS: Record<string,string> = {
 };
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
+const PAYTABS_CONFIG = {
+  baseUrl: paytabsBase(process.env.PAYTABS_REGION || 'GLOBAL'),
+  serverKey: process.env.PAYTABS_SERVER_KEY || 'test',
+  profileId: process.env.PAYTABS_PROFILE_ID || 'test-profile'
+};
+
 
 export async function createHppRequest(region:string, payload:any) {
   const r = await fetch(`${paytabsBase(region)}/payment/request`, {
@@ -19,7 +25,19 @@ export async function createHppRequest(region:string, payload:any) {
   return r.json();
 }
 
-export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
+type SimplePaymentRequest = {
+  amount: number;
+  currency: string;
+  customerDetails: { name: string; email: string; phone: string; address: string; city: string; state: string; country: string; zip: string };
+  description: string;
+  invoiceId?: string;
+  returnUrl: string;
+  callbackUrl: string;
+};
+
+type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
+
+export async function createPaymentPage(request: SimplePaymentRequest): Promise<SimplePaymentResponse> {
   try {
     const payload = {
       profile_id: PAYTABS_CONFIG.profileId,

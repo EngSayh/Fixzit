@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
 const nextConfig = {
   // App Router is enabled by default in Next.js 14
   // No need for experimental.appDir anymore
@@ -69,6 +70,14 @@ const nextConfig = {
       net: false,
       tls: false,
     }
+    // Ensure TS path aliases also work at webpack/runtime level
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@': path.resolve(__dirname),
+      '@/src': path.resolve(__dirname, 'src'),
+      '@/server': path.resolve(__dirname, 'src/server'),
+      '@/lib': path.resolve(__dirname, 'lib'),
+    };
     // Add polling for OneDrive file watching issues
     if (dev) {
       config.watchOptions = {
