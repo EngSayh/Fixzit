@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 export type CurrencyCode = 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED';
 
@@ -49,7 +49,31 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_CURRENCY;
   });
 
+  // Prevent persisting default before we rehydrate saved preference on mount
+  const hasHydratedRef = useRef(false);
+
+  // Load saved currency after mount; then allow persistence
   useEffect(() => {
+    try {
+      const fromDom = document.documentElement.getAttribute('data-currency') as CurrencyCode | null;
+      const ls = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
+      const match = document.cookie.match(/(?:^|;\s*)fxz\.currency=([^;]+)/);
+      const fromCookie = (match && match[1]) as CurrencyCode | undefined;
+
+      const candidates = [fromDom, ls, fromCookie].filter(Boolean) as CurrencyCode[];
+      const valid = candidates.find(c => CURRENCY_OPTIONS.some(o => o.code === c));
+      if (valid && valid !== currency) {
+        setCurrencyState(valid);
+      }
+    } catch {
+      // ignore
+    } finally {
+      hasHydratedRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) return;
     if (typeof window === 'undefined') {
       return;
     }
