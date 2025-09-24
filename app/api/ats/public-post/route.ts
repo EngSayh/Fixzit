@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
-import { generateSlug } from '@/src/lib/utils';
+import { slugify } from '@/src/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
     await db();
     const body = await req.json();
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    const baseSlug = generateSlug(body.title || 'job');
+    const baseSlug = slugify(body.title || 'job');
     let slug = baseSlug;
     let counter = 1;
     while (await Job.findOne({ orgId: platformOrg, slug })) slug = `${baseSlug}-${counter++}`;

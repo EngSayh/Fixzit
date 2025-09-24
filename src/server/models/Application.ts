@@ -16,7 +16,6 @@ const ApplicationSchema = new Schema({
     default: 'active' 
   },
   appliedAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
   notes: String,
   metadata: Schema.Types.Mixed
 }, {

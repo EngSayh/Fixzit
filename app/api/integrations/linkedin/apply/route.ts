@@ -27,12 +27,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const dup = await Application.findOne({ orgId: (job as any).orgId, jobId: (job as any)._id, candidateId: candidate._id });
+    const orgId = (job as any).orgId;
+    const jobId = (job as any)._id;
+    
+    const dup = await Application.findOne({ orgId, jobId, candidateId: candidate._id });
     if (dup) return NextResponse.json({ success: true, data: { applicationId: dup._id, message: 'Already applied' } });
 
     const app = await Application.create({
-      orgId: (job as any).orgId,
-      jobId: (job as any)._id,
+      orgId,
+      jobId,
       candidateId: candidate._id,
       stage: 'applied',
       score: 0,

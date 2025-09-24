@@ -107,6 +107,11 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     throw new Error('Invalid credentials');
   }
 
+  // Guard against missing password hash
+  if (!user.password) {
+    throw new Error('Invalid credentials');
+  }
+
   const isValid = await verifyPassword(password, user.password);
 
   if (!isValid) {
