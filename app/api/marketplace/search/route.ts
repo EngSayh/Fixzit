@@ -11,7 +11,15 @@ export async function GET(req: NextRequest) {
     const locale = (searchParams.get('locale') || 'en').toLowerCase();
     const tenantId = getTenantFromRequest(req) || 'demo-tenant';
 
-    if (!q) return NextResponse.json({ items: [] });
+    // If no query provided, return latest products for the tenant (no placeholders)
+    if (!q) {
+      const latest = await (MarketplaceProduct as any)
+        .find({ tenantId })
+        .sort({ updatedAt: -1 })
+        .limit(24)
+        .lean();
+      return NextResponse.json({ items: latest });
+    }
 
     // Expand with synonyms (best effort)
     let terms = [q];
@@ -20,22 +28,15 @@ export async function GET(req: NextRequest) {
       if (syn && syn.synonyms?.length) terms = Array.from(new Set([q, ...syn.synonyms]));
     } catch {}
 
-    // MockModel doesn't support $or/regex. Fetch tenant slice then filter in memory for dev.
-    const all = await (MarketplaceProduct as any)
-      .find({ tenantId })
+    const docs = await (MarketplaceProduct as any)
+      .find({ tenantId, $or: [
+        { $text: { $search: terms.join(' ') } },
+        { title: { $regex: q, $options: 'i' } },
+        { brand: { $regex: q, $options: 'i' } },
+      ]})
       .sort({ updatedAt: -1 })
-      .limit(200)
+      .limit(24)
       .lean();
-
-    const normalized = (v: any) => String(v || '').toLowerCase();
-    const matcher = (doc: any) => {
-      const hay = [doc.title, doc.brand, doc.searchable, ...(doc.attributes||[]).map((a:any)=>`${a.key}:${a.value}`)]
-        .map(normalized)
-        .join(' ');
-      return terms.some(t => hay.includes(t.toLowerCase()));
-    };
-
-    const docs = (Array.isArray(all) ? all : []).filter(matcher).slice(0, 24);
 
     return NextResponse.json({ items: docs });
   } catch (error) {

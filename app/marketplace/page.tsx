@@ -2,7 +2,7 @@
 import Link from 'next/link';
 
 async function fetchProducts() {
-  const res = await fetch(`/api/marketplace/search?q=cement`, { cache: 'no-store' });
+  const res = await fetch(`/api/marketplace/search`, { cache: 'no-store' });
   if (!res.ok) return { items: [] };
   return res.json();
 }

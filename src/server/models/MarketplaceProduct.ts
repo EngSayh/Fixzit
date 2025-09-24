@@ -1,6 +1,4 @@
-// @ts-nocheck
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
 
 const PriceSchema = new Schema({
   vendorId: { type: String },
@@ -46,9 +44,5 @@ MarketplaceProductSchema.index({ title: 'text', brand: 'text', searchable: 'text
 
 export type MarketplaceProductDoc = InferSchemaType<typeof MarketplaceProductSchema>;
 
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
-
-export const MarketplaceProduct = isMockDB
-  ? new MockModel('marketplaceproducts') as any
-  : (models.MarketplaceProduct || model("MarketplaceProduct", MarketplaceProductSchema));
+export const MarketplaceProduct = (models.MarketplaceProduct || model("MarketplaceProduct", MarketplaceProductSchema));
 
