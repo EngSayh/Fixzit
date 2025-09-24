@@ -1,78 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getDatabase } from "@/lib/mongodb";
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
-// Mock data for help articles
-const mockArticles = [
-  {
-    slug: 'getting-started',
-    title: 'Getting Started with Fixzit Enterprise',
-    category: 'General',
-    updatedAt: new Date('2025-01-15T10:00:00Z').toISOString()
-  },
-  {
-    slug: 'work-orders-overview',
-    title: 'Work Orders Overview',
-    category: 'Facility Management',
-    updatedAt: new Date('2025-01-14T14:30:00Z').toISOString()
-  },
-  {
-    slug: 'vendor-management',
-    title: 'Managing Vendors and Suppliers',
-    category: 'Procurement',
-    updatedAt: new Date('2025-01-13T16:45:00Z').toISOString()
-  },
-  {
-    slug: 'tenant-relations',
-    title: 'Tenant Relations and Communication',
-    category: 'Customer Service',
-    updatedAt: new Date('2025-01-12T09:15:00Z').toISOString()
-  },
-  {
-    slug: 'financial-reporting',
-    title: 'Financial Reporting and Invoicing',
-    category: 'Finance',
-    updatedAt: new Date('2025-01-11T11:20:00Z').toISOString()
-  },
-  {
-    slug: 'property-maintenance',
-    title: 'Property Maintenance Best Practices',
-    category: 'Facility Management',
-    updatedAt: new Date('2025-01-10T08:30:00Z').toISOString()
-  },
-  {
-    slug: 'rfq-process',
-    title: 'Request for Quote (RFQ) Process',
-    category: 'Procurement',
-    updatedAt: new Date('2025-01-09T15:10:00Z').toISOString()
-  },
-  {
-    slug: 'compliance-requirements',
-    title: 'Compliance and Regulatory Requirements',
-    category: 'Legal',
-    updatedAt: new Date('2025-01-08T13:45:00Z').toISOString()
-  }
-];
+// Collection name aligned with Mongoose default pluralization for model "HelpArticle"
+const COLLECTION = 'helparticles';
 
 export async function GET(req: NextRequest){
   try {
-    const sp = new URL(req.url).searchParams;
+    const url = new URL(req.url);
+    const sp = url.searchParams;
     const category = sp.get("category") || undefined;
+    const q = sp.get("q") || undefined;
+    const status = sp.get("status") || 'PUBLISHED';
+    const page = Math.max(1, parseInt(sp.get("page") || '1', 10));
+    const limit = Math.min(50, Math.max(1, parseInt(sp.get("limit") || '20', 10)));
+    const skip = (page - 1) * limit;
 
-    // Filter articles by category if specified
-    let filteredArticles = mockArticles;
-    if (category) {
-      filteredArticles = mockArticles.filter(article =>
-        article.category.toLowerCase() === category.toLowerCase()
-      );
+    const db = await getDatabase();
+    const coll = db.collection(COLLECTION);
+
+    // Ensure indexes exist (idempotent)
+    await Promise.all([
+      coll.createIndex({ slug: 1 }, { unique: true }),
+      coll.createIndex({ status: 1, updatedAt: -1 }),
+      coll.createIndex({ title: "text", content: "text", tags: "text" })
+    ]);
+
+    const filter: any = { };
+    if (status) filter.status = status;
+    if (category) filter.category = category;
+    if (q) filter.$text = { $search: q };
+
+    const cursor = coll.find(filter, {
+      projection: q ? { score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } : { slug: 1, title: 1, category: 1, updatedAt: 1 }
+    });
+
+    if (q) {
+      cursor.sort({ score: { $meta: "textScore" } });
+    } else {
+      cursor.sort({ updatedAt: -1 });
     }
 
-    return NextResponse.json({ items: filteredArticles });
+    const total = await coll.countDocuments(filter);
+    const items = await cursor.skip(skip).limit(limit).toArray();
+
+    return NextResponse.json({
+      items,
+      page,
+      limit,
+      total,
+      hasMore: skip + items.length < total
+    });
   } catch (error) {
     console.error('Error fetching help articles:', error);
-
-    // Always return mock data as fallback
-    return NextResponse.json({ items: mockArticles });
+    return NextResponse.json({ error: 'Failed to fetch help articles' }, { status: 500 });
   }
 }
