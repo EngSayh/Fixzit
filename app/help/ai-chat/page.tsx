@@ -5,6 +5,13 @@ import { Send, Bot, User, X } from 'lucide-react';
 
 type ChatMessage = { id: string; type: 'bot' | 'user'; content: string; timestamp: Date };
 
+/**
+ * Interactive AI chat page for asking Fixzit-related questions.
+ *
+ * Renders a chat UI with message history, input field, and send button. Manages local message state (user and bot messages), a loading state while awaiting responses, and sends user questions to the backend endpoint POST /api/help/ask. Appends the assistant's reply or a fallback error message to the conversation; pressing Enter (without Shift) submits the current input.
+ *
+ * @returns The chat page component's JSX.
+ */
 export default function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
