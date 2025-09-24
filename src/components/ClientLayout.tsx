@@ -1,11 +1,11 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
-import HelpWidget from './HelpWidget';
+import dynamic from 'next/dynamic';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
@@ -102,6 +102,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  const CopilotWidget = useMemo(() => dynamic(() => import('./CopilotWidget'), { ssr: false }), []);
+
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <AutoFixInitializer />
@@ -116,7 +118,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         </ResponsiveLayout>
         <PreferenceBroadcast />
       </TopBarProvider>
-      <HelpWidget />
+      <CopilotWidget />
       <ErrorTest />
     </div>
   );
