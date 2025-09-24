@@ -70,6 +70,9 @@ const nextConfig = {
       'kerberos': false,
       '@mongodb-js/zstd': false,
       'snappy': false,
+      // Optional SDKs used only when env is configured
+      '@aws-sdk/client-s3': false,
+      'cloudinary': false,
       '@aws-sdk/credential-providers': false,
       'gcp-metadata': false,
       'aws4': false,
@@ -113,6 +116,8 @@ const nextConfig = {
       /Can't resolve 'kerberos'/,
       /Can't resolve '@mongodb-js\/zstd'/,
       /Can't resolve 'snappy'/,
+      /Can't resolve '@aws-sdk\/client-s3'/,
+      /Can't resolve 'cloudinary'/,
       /Can't resolve '@aws-sdk\/credential-providers'/,
       /Can't resolve 'gcp-metadata'/,
       /Can't resolve 'aws4'/,
