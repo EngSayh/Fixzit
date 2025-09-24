@@ -38,9 +38,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const stored = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
+      const stored = window.localStorage.getItem('fixzit-currency');
       if (stored && CURRENCY_OPTIONS.some(option => option.code === stored)) {
-        setCurrencyState(stored);
+        setCurrencyState(stored as CurrencyCode);
       }
     } catch (error) {
       console.warn('Could not access localStorage for currency preference:', error);
