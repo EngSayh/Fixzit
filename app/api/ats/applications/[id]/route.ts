@@ -8,13 +8,22 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+    await db;
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const user = token ? await getUserFromToken(token) : null;
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
     const application = await Application
       .findById(params.id)
       .populate('jobId')
       .populate('candidateId')
       .lean();
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (String((application as any).orgId) !== String(user.tenantId)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
     console.error('Application fetch error:', error);
@@ -27,15 +36,21 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+    await db;
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
-    const userId = user?.id || 'system';
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const userId = user.id;
     
     const application = await Application.findById(params.id);
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (String((application as any).orgId) !== String(user.tenantId)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
     
     if (body.stage && body.stage !== application.stage) {
       const oldStage = application.stage;

@@ -191,6 +191,14 @@ export async function middleware(request: NextRequest) {
         tenantId: payload.tenantId
       };
 
+      // Protect admin UI with RBAC
+      if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+        const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+        if (!adminRoles.has(user.role)) {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }
+      }
+
       // Redirect based on user role
       if (pathname === '/' || pathname === '/login') {
         // Redirect to appropriate dashboard based on role

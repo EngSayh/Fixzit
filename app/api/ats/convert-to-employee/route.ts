@@ -8,10 +8,13 @@ import { getUserFromToken } from '@/src/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    await db();
+    await db;
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { applicationId } = await req.json();
     if (!applicationId) return NextResponse.json({ success: false, error: 'applicationId required' }, { status: 400 });
@@ -19,6 +22,9 @@ export async function POST(req: NextRequest) {
     const app = await Application.findById(applicationId).lean();
     if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
     if (app.stage !== 'hired') return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
+    if (String((app as any).orgId) !== String(user.orgId)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     const [cand, job] = await Promise.all([
       Candidate.findById(app.candidateId).lean(),
@@ -35,7 +41,7 @@ export async function POST(req: NextRequest) {
       personal: { firstName: cand.firstName, lastName: cand.lastName, email: cand.email, phone: cand.phone },
       professional: { role: 'EMPLOYEE', department: job.department, title: job.title },
       status: 'ACTIVE',
-      metadata: { source: 'ats', jobId: job._id, applicationId: app._id, convertedBy: user?.id || 'system' }
+      metadata: { source: 'ats', jobId: job._id, applicationId: app._id, convertedBy: user.id }
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {

@@ -81,10 +81,7 @@ export async function POST(req: NextRequest) {
       code: `RFQ-${Date.now()}`,
       ...data,
       status: "DRAFT",
-      timeline: {
-        ...data.timeline,
-        publishDate: new Date()
-      },
+      timeline: data.timeline,
       workflow: {
         createdBy: user.id
       },
