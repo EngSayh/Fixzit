@@ -3,19 +3,20 @@ let mongoose: any;
 try {
   mongoose = require("mongoose");
 } catch {
-  // Mongoose not available in Edge Runtime - will use mock
   mongoose = null;
 }
 
 const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit";
+const dbName = process.env.MONGODB_DB || "fixzit";
+const useMock = String(process.env.USE_MOCK_DB || "false").toLowerCase() === "true";
 
-// Mock database for development when MongoDB is not available
+// Explicit Mock database (only when USE_MOCK_DB=true)
 class MockDB {
   private connected: boolean = false;
 
   async connect() {
     if (this.connected) return this;
-    console.log("🔄 Using mock database (MongoDB not available)");
+    console.warn("🔄 Using mock database (USE_MOCK_DB=true)");
     this.connected = true;
     return this;
   }
@@ -48,22 +49,20 @@ class MockDB {
 
 let conn = (global as any)._mongoose;
 if (!conn) {
-  // Check if we should use mock database
-  if (process.env.NODE_ENV === 'development' && uri.includes('localhost')) {
-    console.log("📦 Starting in development mode with mock database");
+  if (useMock) {
     conn = (global as any)._mongoose = new MockDB();
-  } else if (mongoose) {
+  } else {
+    if (!mongoose) {
+      throw new Error("Mongoose is not available, and USE_MOCK_DB is false. Install mongoose or enable USE_MOCK_DB=true.");
+    }
     conn = (global as any)._mongoose = mongoose.connect(uri, {
+      dbName,
       autoIndex: true,
       maxPoolSize: 10,
     });
-  } else {
-    // Fallback to MockDB in Edge Runtime
-    console.log("📦 Using mock database (Edge Runtime detected)");
-    conn = (global as any)._mongoose = new MockDB();
   }
 }
 export const db = conn;
 
-// Export isMockDB for use in models
-export const isMockDB = process.env.NODE_ENV === 'development' && uri.includes('localhost');
+// Export isMockDB for use in models (driven solely by USE_MOCK_DB)
+export const isMockDB = useMock;
