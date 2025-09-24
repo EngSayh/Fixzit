@@ -13,7 +13,7 @@ const api = async (url: string, opts?: RequestInit) => {
 
 export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>void, errorDetails?: any }){
   const [subject,setSubject]=useState(errorDetails ? `Error Report: ${errorDetails.type}` : "");
-  const [moduleKey,setModule]=useState("Other");
+  const [moduleKey,setModule]=useState("System");
   const [type,setType]=useState("Bug");
   const [priority,setPriority]=useState("Medium");
   const [text,setText]=useState("");
@@ -27,7 +27,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
   useEffect(() => {
     if (errorDetails) {
       setSubject(`System Error: ${errorDetails.error?.name || 'Unknown'} - ${errorDetails.error?.message?.substring(0, 50) || ''}...`);
-      setModule("Other");
+      setModule("System");
       setType("Bug");
       setPriority("High");
       setText(generateErrorDescription(errorDetails));
