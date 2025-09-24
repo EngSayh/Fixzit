@@ -69,6 +69,19 @@ const createRFQSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * Create a new RFQ (Request for Quotation) from the incoming JSON payload.
+ *
+ * Validates the request body against the `createRFQSchema`, ensures a database
+ * connection and a signed-in user session, and inserts a new RFQ document.
+ * The created RFQ is assigned the tenant ID from the session, a generated
+ * `code` (`RFQ-<timestamp>`), `status` set to `"DRAFT"`, `timeline` taken
+ * directly from the validated input, and `workflow.createdBy` and
+ * `createdBy` set to the session user's ID.
+ *
+ * @returns A NextResponse containing the created RFQ with status 201 on success,
+ * or a JSON error message with status 400 if validation or creation fails.
+ */
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);

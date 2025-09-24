@@ -82,6 +82,30 @@ const protectedMarketplaceActions = [
   '/aqar/bookings'
 ];
 
+/**
+ * Middleware that enforces route-level access rules for public, protected, API, marketplace, FM, and admin routes.
+ *
+ * Applies these behaviors:
+ * - Skips middleware for Next.js internals, static files, and obvious public assets.
+ * - Allows listed public routes and public marketplace browsing routes without authentication.
+ * - For /api/*:
+ *   - Allows public API paths (auth, cms, help, assistant).
+ *   - For protected API routes, requires `fixzit_auth` cookie; on success attaches a JSON `x-user` header and continues; on failure responds 401.
+ *   - For protected marketplace actions, requires `fixzit_auth` cookie; on success attaches `x-user` and continues; on failure redirects to /login.
+ * - For non-API protected routes:
+ *   - If no `fixzit_auth` cookie: redirects unauthenticated requests under /fm/ to /login; otherwise allows public access.
+ *   - If a token is present: decodes JWT payload (id, email, role, tenantId), enforces admin RBAC for /admin/* (only SUPER_ADMIN, ADMIN, CORPORATE_ADMIN allowed), and:
+ *     - Redirects root or /login to role-specific destinations (fm dashboard, properties, marketplace).
+ *     - Attaches `x-user` header for FM routes and continues.
+ *   - Invalid JWTs redirect /fm/, /aqar/, and /souq/ requests to /login; other paths continue.
+ *
+ * Side effects:
+ * - May return NextResponse.next(), NextResponse.redirect(...) or NextResponse.json(...).
+ * - Sets an `x-user` response header with the decoded user object for authenticated API/FM/marketplace requests.
+ *
+ * @param request - The incoming NextRequest to evaluate.
+ * @returns A NextResponse that allows, redirects, or denies the request based on route rules and authentication.
+ */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, isMockDB } from '@/src/lib/mongo';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 
+/**
+ * Log a QA event (mock or real) and return a JSON response indicating success or failure.
+ *
+ * When running in mock mode, the event and data are written to the console and the response is
+ * { success: true, mock: true }. In real mode the function ensures a native MongoDB connection,
+ * attempts to create a 30-day TTL index on qa_logs.timestamp (errors ignored), and inserts a log
+ * document into the qa_logs collection with minimal PII:
+ * - event, data
+ * - timestamp: current date
+ * - ip: first value from the `x-forwarded-for` header or 'unknown'
+ * - userAgent: truncated to 128 characters
+ * - sessionId: truncated to 64 characters (or 'unknown')
+ *
+ * On success returns { success: true }. On failure returns a 500 JSON response { error: 'Failed to log event' }.
+ *
+ * @returns A NextResponse containing the JSON result ({ success: true } or an error payload).
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -44,6 +61,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Retrieve QA logs (admin-only).
+ *
+ * Checks the session user and allows access only to users with role SUPER_ADMIN, ADMIN, or CORPORATE_ADMIN.
+ * Supports optional query parameters:
+ * - `limit` (number, default 100, max 1000) to cap returned records.
+ * - `event` (string) to filter logs by event type.
+ *
+ * In mock mode returns an empty logs array with `{ mock: true }`. In real mode queries the `qa_logs`
+ * collection (sorted by timestamp descending) and returns `{ logs }`. On authentication failure returns
+ * 401, on insufficient role returns 403, and on other errors returns 500 with an error payload.
+ *
+ * @returns A NextResponse with a JSON payload containing either `{ logs }`, `{ logs: [], mock: true }`,
+ *          or an `{ error }` object and the appropriate HTTP status code.
+ */
 export async function GET(req: NextRequest) {
   try {
     // Admin-only access

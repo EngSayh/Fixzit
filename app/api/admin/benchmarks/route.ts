@@ -3,6 +3,19 @@ import Benchmark from '@/src/models/Benchmark';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 
+/**
+ * Retrieve all Benchmark documents, restricted to authorized admin users.
+ *
+ * Connects to the database, validates the session user from `req`, and returns
+ * all Benchmark records when the user has one of the roles: `CORPORATE_ADMIN`,
+ * `SUPER_ADMIN`, or `ADMIN`.
+ *
+ * @param req - Incoming NextRequest used to resolve the session user.
+ * @returns A NextResponse with:
+ *  - status 200 and a JSON array of Benchmark documents on success,
+ *  - status 403 and `{ error: "Forbidden" }` if the user's role is not allowed,
+ *  - status 401 and `{ error: "Unauthorized" }` when authentication fails.
+ */
 export async function GET(req: NextRequest) {
   await dbConnect();
   try {
@@ -14,6 +27,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
+/**
+ * Create a new Benchmark document.
+ *
+ * Accepts a JSON body describing the Benchmark and requires an authenticated user
+ * with one of the roles: `CORPORATE_ADMIN`, `SUPER_ADMIN`, or `ADMIN`.
+ * On success returns the created Benchmark as JSON.
+ * Returns 403 if the user is not authorized, 401 for authentication-related failures
+ * (e.g., unauthenticated or invalid/expired token), or 500 for other creation errors.
+ *
+ * @param req - NextRequest whose JSON body contains the Benchmark fields to create.
+ * @returns A NextResponse with the created Benchmark document on success or an error object.
+ */
 export async function POST(req: NextRequest) {
   await dbConnect();
   try {
