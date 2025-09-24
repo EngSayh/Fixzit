@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     // Read raw body for signature validation
     const raw = await req.text();
-    const isValid = validateCallbackRaw(raw, req.headers.get('signature'));
+    const isValid = await validateCallbackRaw(raw, req.headers.get('signature'));
     if (!isValid) {
       return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 401 });
     }
