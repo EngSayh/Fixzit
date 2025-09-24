@@ -11,46 +11,10 @@ const AQAR_FEATURES = [
     link: '/aqar/map'
   },
   {
-    title: 'Property Search',
-    icon: Search,
-    description: 'Advanced search with filters for location, price, and features',
-    link: '/aqar/search'
-  },
-  {
     title: 'Property Listings',
     icon: Building2,
     description: 'Browse detailed property listings with photos and specifications',
     link: '/aqar/properties'
-  },
-  {
-    title: 'My Listings',
-    icon: Home,
-    description: 'Manage your property listings and inquiries',
-    link: '/aqar/listings'
-  },
-  {
-    title: 'Advanced Filters',
-    icon: Filter,
-    description: 'Filter properties by location, price range, property type, and more',
-    link: '/aqar/filters'
-  },
-  {
-    title: 'Favorites',
-    icon: Heart,
-    description: 'Save and organize your favorite properties',
-    link: '/aqar/favorites'
-  },
-  {
-    title: 'Market Trends',
-    icon: TrendingUp,
-    description: 'View market analysis and property value trends',
-    link: '/aqar/trends'
-  },
-  {
-    title: 'Premium Listings',
-    icon: Star,
-    description: 'Access exclusive premium property listings',
-    link: '/aqar/premium'
   }
 ];
 

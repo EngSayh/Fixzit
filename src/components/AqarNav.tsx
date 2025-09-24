@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,15 +10,7 @@ import {
 
 const AQAR_MODULES = [
   { icon: Map, label: 'Interactive Map', route: '/aqar/map' },
-  { icon: Search, label: 'Property Search', route: '/aqar/search' },
   { icon: Building2, label: 'Properties', route: '/aqar/properties' },
-  { icon: Home, label: 'My Listings', route: '/aqar/listings' },
-  { icon: Filter, label: 'Advanced Filters', route: '/aqar/filters' },
-  { icon: Heart, label: 'Favorites', route: '/aqar/favorites' },
-  { icon: TrendingUp, label: 'Market Trends', route: '/aqar/trends' },
-  { icon: Star, label: 'Premium Listings', route: '/aqar/premium' },
-  { icon: BarChart3, label: 'Analytics', route: '/aqar/analytics' },
-  { icon: Settings, label: 'Settings', route: '/aqar/settings' },
 ];
 
 export default function AqarNav() {

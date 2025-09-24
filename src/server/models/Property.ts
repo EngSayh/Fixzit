@@ -186,8 +186,8 @@ PropertySchema.index({ 'address.coordinates': '2dsphere' });
 
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 
-// Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
+// Real database should be used whenever MONGODB_URI is set (including localhost)
+const isMockDB = !process.env.MONGODB_URI;
 
 export const Property = isMockDB
   ? new MockModel('properties') as any
