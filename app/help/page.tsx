@@ -25,6 +25,16 @@ interface Tutorial {
   lastUpdated?: string;
 }
 
+/**
+ * Render the Help home page with tutorials, fetched help articles, and system overview.
+ *
+ * Displays a hero with quick actions (opens dedicated AI chat and support ticket pages), an
+ * interactive tutorials grid, a Help Articles list populated from GET /api/help/articles,
+ * and a System Overview. Articles are fetched on mount; while loading the list is treated as
+ * empty and failures result in an empty articles list. UI elements link to internal help pages.
+ *
+ * @returns A React element for the Help center landing page.
+ */
 export default function HelpHome() {
   const [showAIChat, setShowAIChat] = useState(false);
   const [showSupportTicket, setShowSupportTicket] = useState(false);

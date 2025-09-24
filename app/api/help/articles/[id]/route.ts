@@ -12,6 +12,20 @@ const patchSchema = z.object({
   status: z.enum(["DRAFT","PUBLISHED"]).optional()
 });
 
+/**
+ * HTTP PATCH handler that updates a help article.
+ *
+ * Validates the request body against `patchSchema`, requires the caller to have the `SUPER_ADMIN` role,
+ * and updates the matching document in the `helparticles` collection. The handler accepts an article
+ * identifier (`params.id`) that may be either a MongoDB ObjectId or a slug; it first tries to treat
+ * `params.id` as an ObjectId and falls back to matching `slug` if parsing fails. The update sets the
+ * provided fields plus `updatedBy` (current user id) and `updatedAt` (current timestamp).
+ *
+ * Returns a JSON NextResponse containing the updated article on success, a 403 response if the user
+ * is not authorized, or a 404 response if no article matches the identifier.
+ *
+ * @param params.id - Article identifier; either a MongoDB ObjectId string or a slug.
+ */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN"].includes(user.role)){

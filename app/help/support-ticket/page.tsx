@@ -2,6 +2,17 @@
 
 import { useState } from 'react';
 
+/**
+ * Renders a support ticket submission form and handles creating tickets via the app API.
+ *
+ * The component displays fields for subject, module, type, priority, description, and contact information.
+ * On submit it sends a POST to /api/support/tickets with a payload containing subject, module, type, priority,
+ * a hard-coded category/subCategory ("General"/"Other"), the description as `text`, and a `requester` object
+ * with name, email, and optional phone. While the request is in progress the submit button is disabled.
+ * On success the form is reset and a success alert is shown; on failure an error alert is shown.
+ *
+ * @returns The support ticket page as a React element.
+ */
 export default function SupportTicketPage() {
   const [formData, setFormData] = useState({
     subject: '',
