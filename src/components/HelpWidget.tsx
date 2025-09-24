@@ -1,11 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { HelpCircle, MessageSquare, BookOpen, X, ChevronUp, ChevronDown } from 'lucide-react';
+
+const AIChat = dynamic(() => import('@/src/components/AIChat'), { ssr: false });
 
 export default function HelpWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showAI, setShowAI] = useState(false);
 
   const helpOptions = [
     {
@@ -18,7 +22,7 @@ export default function HelpWidget() {
       icon: <MessageSquare className="w-5 h-5" />,
       title: 'AI Assistant',
       description: 'Ask questions and get help',
-      action: () => window.open('/help/ai-chat', '_blank')
+      action: () => setShowAI(true)
     }
   ];
 
@@ -38,6 +42,9 @@ export default function HelpWidget() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
+      {showAI && (
+        <AIChat onClose={() => setShowAI(false)} />
+      )}
       <div className="bg-white rounded-lg shadow-2xl border border-gray-200 w-80 max-w-sm">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
