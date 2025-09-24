@@ -8,30 +8,41 @@ const QuerySchema = z.object({
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
   page: z.coerce.number().default(1),
-  limit: z.coerce.number().default(20).refine(val => val <= 100, { message: "Limit must be 100 or less" })
+  limit: z.coerce.number().default(20).refine(val => val <= 100, { message: "Limit must be 100 or less" }),
+  tenantId: z.string().optional()
 });
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const query = QuerySchema.parse(Object.fromEntries(searchParams));
-    
+
     const { products, categories, vendors } = await getCollections();
-    
+
     // Build MongoDB query
-    const filter: any = { active: true };
-    
+    const defaultTenant = process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || 'demo-tenant';
+    const tenantId = query.tenantId || defaultTenant;
+
+    const filter: any = { active: true, tenantId };
+
     if (query.q) {
       filter.$text = { $search: query.q };
     }
-    
+
     if (query.category) {
-      const category = await categories.findOne({ slug: query.category });
-      if (category) {
+      const category = await categories.findOne({
+        $or: [
+          { slug: query.category },
+          { _id: query.category }
+        ]
+      });
+      if (category?._id) {
         filter.categoryId = category._id;
+      } else {
+        filter.categoryId = query.category;
       }
     }
-    
+
     if (query.minPrice || query.maxPrice) {
       filter.price = {};
       if (query.minPrice) filter.price.$gte = query.minPrice;
@@ -47,20 +58,90 @@ export async function GET(req: NextRequest) {
       .skip(skip)
       .limit(query.limit)
       .toArray();
-    
+
     // Get total count
     const total = await products.countDocuments(filter);
-    
+
     // Enrich with vendor data
-    const vendorIds = [...new Set(productsList.map(p => p.vendorId))];
-    const vendorsList = await vendors.find({ _id: { $in: vendorIds } }).toArray();
-    const vendorMap = new Map(vendorsList.map(v => [v._id, v]));
-    
-    const enrichedProducts = productsList.map(product => ({
-      ...product,
-      vendor: vendorMap.get(product.vendorId)
-    }));
-    
+    const vendorIds = [...new Set(productsList
+      .map(p => (p.vendorId ? String(p.vendorId) : null))
+      .filter((value): value is string => Boolean(value)))];
+
+    const vendorsList = vendorIds.length
+      ? await vendors.find({ _id: { $in: vendorIds as readonly string[] } }).toArray()
+      : [];
+
+    const vendorMap = new Map(
+      vendorsList.map(vendor => [
+        String(vendor._id),
+        {
+          id: String(vendor._id),
+          name: vendor.name,
+          rating: vendor.rating ?? 0,
+          verified: Boolean(vendor.verified),
+          contactName: vendor.contactName ?? null,
+          contactEmail: vendor.contactEmail ?? null,
+          contactPhone: vendor.contactPhone ?? null,
+          tenantId: vendor.tenantId ?? null
+        }
+      ])
+    );
+
+    const categoryIds = [...new Set(productsList
+      .map(p => (p.categoryId ? String(p.categoryId) : null))
+      .filter((value): value is string => Boolean(value)))];
+
+    const categoriesList = categoryIds.length
+      ? await categories.find({ _id: { $in: categoryIds as readonly string[] } }).toArray()
+      : [];
+
+    const categoryMap = new Map(
+      categoriesList.map(category => [
+        String(category._id),
+        {
+          id: String(category._id),
+          name: category.name,
+          slug: category.slug
+        }
+      ])
+    );
+
+    const toIsoString = (value: any) => {
+      if (!value) return null;
+      if (value instanceof Date) return value.toISOString();
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    };
+
+    const enrichedProducts = productsList.map(product => {
+      const productId = product._id ? String(product._id) : '';
+      const vendorKey = product.vendorId ? String(product.vendorId) : '';
+      const categoryKey = product.categoryId ? String(product.categoryId) : '';
+
+      return {
+        id: productId,
+        _id: productId,
+        tenantId: product.tenantId,
+        vendorId: vendorKey || null,
+        categoryId: categoryKey || null,
+        category: categoryMap.get(categoryKey || '') ?? null,
+        sku: product.sku,
+        title: product.title,
+        description: product.description,
+        images: product.images ?? [],
+        price: product.price,
+        currency: product.currency ?? 'SAR',
+        unit: product.unit,
+        stock: product.stock,
+        rating: product.rating ?? 0,
+        reviewCount: product.reviewCount ?? 0,
+        active: product.active,
+        vendor: vendorKey ? vendorMap.get(vendorKey) ?? null : null,
+        createdAt: toIsoString(product.createdAt),
+        updatedAt: toIsoString(product.updatedAt)
+      };
+    });
+
     return NextResponse.json({
       ok: true,
       data: {
@@ -69,7 +150,8 @@ export async function GET(req: NextRequest) {
           page: query.page,
           limit: query.limit,
           total,
-          pages: Math.ceil(total / query.limit)
+          pages: Math.ceil(total / query.limit),
+          tenantId
         }
       }
     });
