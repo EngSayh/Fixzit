@@ -8,6 +8,7 @@ import Footer from './Footer';
 import HelpWidget from './HelpWidget';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
+import PreferenceBroadcast from './PreferenceBroadcast';
 import ResponsiveLayout from './ResponsiveLayout';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -114,6 +115,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             </ResponsiveLayout>
           </TopBarProvider>
           <HelpWidget />
+          <PreferenceBroadcast />
           <ErrorTest />
         </div>
       );
