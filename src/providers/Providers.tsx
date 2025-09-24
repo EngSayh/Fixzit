@@ -1,12 +1,19 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { ThemeProvider } from '@/src/contexts/ThemeContext';
 import { TranslationProvider } from '@/src/contexts/TranslationContext';
 import { CurrencyProvider } from '@/src/contexts/CurrencyContext';
 import { ResponsiveProvider } from '@/src/contexts/ResponsiveContext';
 import ErrorBoundary from '@/src/components/ErrorBoundary';
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+import type { Locale } from '@/src/i18n/config';
+
+interface ProvidersProps {
+  children: ReactNode;
+  initialLocale?: Locale;
+}
+
+export default function Providers({ children, initialLocale }: ProvidersProps) {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -28,7 +35,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ResponsiveProvider>
-      <TranslationProvider>
+      <TranslationProvider initialLocale={initialLocale}>
         <CurrencyProvider>
           <ThemeProvider>
             <ErrorBoundary>

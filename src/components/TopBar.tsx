@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
-import LanguageSelector from './i18n/LanguageSelector';
+import LanguageSelector from '@/src/components/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
 import AppSwitcher from './topbar/AppSwitcher';
 import GlobalSearch from './topbar/GlobalSearch';

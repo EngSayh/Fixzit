@@ -17,8 +17,6 @@ type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
 const LANGUAGES: Lang[] = [
   { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
   { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'fr', native: 'Français', flag: '🇫🇷', dir: 'ltr' },
-  { code: 'es', native: 'Español', flag: '🇪🇸', dir: 'ltr' },
 ];
 
 const CURRENCIES = [
@@ -79,6 +77,8 @@ export default function SignupPage() {
   const handleLanguageChange = (lang: Lang) => {
     setSelectedLang(lang);
     localStorage.setItem('fxz.lang', lang.code);
+    localStorage.setItem('locale', lang.code);
+    localStorage.setItem('fxz.locale', lang.code === 'ar' ? 'ar-SA' : 'en-GB');
     document.documentElement.dir = lang.dir;
     document.documentElement.lang = lang.code;
     setShowLangDropdown(false);
