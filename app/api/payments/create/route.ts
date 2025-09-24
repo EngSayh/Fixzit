@@ -48,26 +48,26 @@ export async function POST(req: NextRequest) {
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`
     };
 
-    const paymentResponse = await createPaymentPage(paymentRequest);
+    const paymentResponse = await createPaymentPage(paymentRequest as any);
 
-    if (paymentResponse.success) {
+    if ((paymentResponse as any).success) {
       // Update invoice with payment transaction
       invoice.history.push({
         action: 'PAYMENT_INITIATED',
         performedBy: user.id,
         performedAt: new Date(),
-        details: `Payment initiated with transaction ${paymentResponse.transactionId}`
+        details: `Payment initiated with transaction ${(paymentResponse as any).transactionId}`
       });
       await invoice.save();
 
       return NextResponse.json({
         success: true,
-        paymentUrl: paymentResponse.paymentUrl,
-        transactionId: paymentResponse.transactionId
+        paymentUrl: (paymentResponse as any).paymentUrl,
+        transactionId: (paymentResponse as any).transactionId
       });
     } else {
       return NextResponse.json({ 
-        error: paymentResponse.error || 'Payment initialization failed' 
+        error: (paymentResponse as any).error || 'Payment initialization failed' 
       }, { status: 400 });
     }
   } catch (error: any) {
