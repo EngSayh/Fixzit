@@ -45,3 +45,8 @@ Thumbs.db
 .vercel
 .netlify
 node_modules
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class

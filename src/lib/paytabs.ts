@@ -1,22 +1,36 @@
-const REGIONS: Record<string,string> = {
-  KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
-  EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
-  JORDAN:'https://secure-jordan.paytabs.com', KUWAIT:'https://secure-kuwait.paytabs.com',
-  GLOBAL:'https://secure-global.paytabs.com'
+// PayTabs configuration
+const PAYTABS_CONFIG = {
+  profileId: process.env.PAYTABS_PROFILE_ID || '',
+  serverKey: process.env.PAYTABS_SERVER_KEY || '',
+  baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure-global.paytabs.com'
 };
 
-export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
+// PayTabs interfaces
+export interface PaymentRequest {
+  invoiceId?: string;
+  currency: string;
+  amount: number;
+  description: string;
+  returnUrl: string;
+  callbackUrl: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zip: string;
+  };
+}
 
-export async function createHppRequest(region:string, payload:any) {
-  const r = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method:'POST',
-    headers: {
-      'Content-Type':'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!,
-    },
-    body: JSON.stringify(payload)
-  });
-  return r.json();
+export interface PaymentResponse {
+  success: boolean;
+  redirectUrl?: string;
+  paymentUrl?: string;
+  error?: string;
+  transactionId?: string;
 }
 
 export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
