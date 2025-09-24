@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
+import { isMockDB } from "@/src/lib/mongo";
 
 const CmsPageSchema = new Schema({
   tenantId: { type: String }, // null/undefined => global
@@ -14,8 +15,6 @@ const CmsPageSchema = new Schema({
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
 
 // Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
-
-export const CmsPage = isMockDB 
+export const CmsPage = isMockDB
   ? new MockModel('cmspages') as any
   : (models.CmsPage || model("CmsPage", CmsPageSchema));
