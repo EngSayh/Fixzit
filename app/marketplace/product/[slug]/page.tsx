@@ -2,7 +2,7 @@
 import Link from 'next/link';
 
 async function fetchPdp(slug: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/api/marketplace/products/${slug}`, { cache: 'no-store' });
+  const res = await fetch(`/api/marketplace/products/${slug}`, { cache: 'no-store' });
   return res.json();
 }
 

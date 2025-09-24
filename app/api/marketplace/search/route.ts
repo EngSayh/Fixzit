@@ -2,13 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MarketplaceProduct } from '@/src/server/models/MarketplaceProduct';
 import { SearchSynonym } from '@/src/server/models/SearchSynonym';
+import { getTenantFromRequest } from '@/src/server/utils/tenant';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get('q') || '').trim();
     const locale = (searchParams.get('locale') || 'en').toLowerCase();
-    const tenantId = searchParams.get('tenantId') || 'demo-tenant';
+    const tenantId = getTenantFromRequest(req) || 'demo-tenant';
 
     if (!q) return NextResponse.json({ items: [] });
 
@@ -19,17 +20,22 @@ export async function GET(req: NextRequest) {
       if (syn && syn.synonyms?.length) terms = Array.from(new Set([q, ...syn.synonyms]));
     } catch {}
 
-    const or = [
-      { $text: { $search: terms.join(' ') } },
-      { title: new RegExp(q, 'i') },
-      { brand: new RegExp(q, 'i') },
-    ];
-
-    const docs = await (MarketplaceProduct as any)
-      .find({ tenantId, $or: or })
+    // MockModel doesn't support $or/regex. Fetch tenant slice then filter in memory for dev.
+    const all = await (MarketplaceProduct as any)
+      .find({ tenantId })
       .sort({ updatedAt: -1 })
-      .limit(24)
+      .limit(200)
       .lean();
+
+    const normalized = (v: any) => String(v || '').toLowerCase();
+    const matcher = (doc: any) => {
+      const hay = [doc.title, doc.brand, doc.searchable, ...(doc.attributes||[]).map((a:any)=>`${a.key}:${a.value}`)]
+        .map(normalized)
+        .join(' ');
+      return terms.some(t => hay.includes(t.toLowerCase()));
+    };
+
+    const docs = (Array.isArray(all) ? all : []).filter(matcher).slice(0, 24);
 
     return NextResponse.json({ items: docs });
   } catch (error) {
