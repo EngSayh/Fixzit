@@ -1,0 +1,474 @@
+import { jest } from "@jest/globals";
+
+// Determine import path to the implementation under test.
+// Adjust this path if the actual file differs. We search common locations.
+let mod: any;
+let executeTool: any;
+let detectToolFromMessage: any;
+
+const tryImportCandidates = async () => {
+  const candidates = [
+    "@/src/server/copilot/tools",
+    "@/src/tools",
+    "@/src/server/tools",
+    "@/src/lib/tools",
+    "../src/server/copilot/tools",
+    "../src/tools",
+  ];
+  for (const p of candidates) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const m = await import(p);
+      if (m.executeTool && m.detectToolFromMessage) {
+        return m;
+      }
+    } catch (_) {
+      // continue
+    }
+  }
+  // As a fallback, attempt relative to tests file if using ts-jest path mapping off
+  try {
+    const m = await import("../src/server/copilot/tools");
+    if (m.executeTool && m.detectToolFromMessage) return m;
+  } catch(_) {}
+  throw new Error("Could not resolve tools module. Please update import candidates to actual file path exporting executeTool and detectToolFromMessage.");
+};
+
+beforeAll(async () => {
+  mod = await tryImportCandidates();
+  executeTool = mod.executeTool;
+  detectToolFromMessage = mod.detectToolFromMessage;
+});
+
+// Mocks for external dependencies used by the module
+// crypto.randomUUID
+jest.unstable_mockModule("crypto", () => ({
+  randomUUID: jest.fn(() => "uuid-1234"),
+}));
+
+// path
+const pathJoin = jest.fn((...parts: string[]) => parts.join("/"));
+jest.unstable_mockModule("path", () => ({
+  default: { join: pathJoin },
+}));
+
+// fs promises
+const mkdirMock = jest.fn().mockResolvedValue(undefined);
+const writeFileMock = jest.fn().mockResolvedValue(undefined);
+jest.unstable_mockModule("fs", () => ({
+  promises: {
+    mkdir: mkdirMock,
+    writeFile: writeFileMock,
+  },
+}));
+
+// db (ensure awaiting a promise)
+const dbThen = jest.fn();
+const dbPromise = Promise.resolve().then(dbThen);
+jest.unstable_mockModule("@/src/lib/mongo", () => ({
+  db: dbPromise,
+}));
+
+// Models
+const workOrderCreate = jest.fn();
+const workOrderFind = jest.fn();
+const workOrderFindOneAndUpdate = jest.fn();
+
+const ownerStatementFind = jest.fn();
+
+jest.unstable_mockModule("@/src/server/models/WorkOrder", () => ({
+  WorkOrder: {
+    create: workOrderCreate,
+    find: workOrderFind,
+    findOneAndUpdate: workOrderFindOneAndUpdate,
+  },
+}));
+
+jest.unstable_mockModule("@/src/server/models/OwnerStatement", () => ({
+  OwnerStatement: {
+    find: ownerStatementFind,
+  },
+}));
+
+// Policy
+const getPermittedTools = jest.fn();
+jest.unstable_mockModule("./policy", () => ({
+  getPermittedTools,
+}));
+
+// Session type import not needed; we construct plain objects for tests.
+
+// Now re-import module under test after mocks are registered
+let tools: any;
+beforeAll(async () => {
+  tools = await tryImportCandidates();
+});
+
+// Helpers
+const makeSession = (overrides: Partial<any> = {}): any => ({
+  tenantId: "tenant-1",
+  userId: "user-1",
+  role: "MANAGER",
+  name: "Alex Manager",
+  email: "alex@example.com",
+  locale: "en",
+  ...overrides,
+});
+
+describe("detectToolFromMessage", () => {
+  test("parses /new-ticket with key:value args", () => {
+    const msg = "/new-ticket title:Leaky sink priority:HIGH propertyId:prop1";
+    const res = detectToolFromMessage(msg);
+    expect(res).toEqual({
+      name: "createWorkOrder",
+      args: { title: "Leaky sink", priority: "HIGH", propertyId: "prop1" },
+    });
+  });
+
+  test("parses /my-tickets and /myticket aliases case-insensitively", () => {
+    expect(detectToolFromMessage("/my-tickets")).toEqual({ name: "listMyWorkOrders", args: {} });
+    expect(detectToolFromMessage("/MYTICKET")).toEqual({ name: "listMyWorkOrders", args: {} });
+  });
+
+  test("parses /dispatch with work order id", () => {
+    expect(detectToolFromMessage("/dispatch WO123")).toEqual({
+      name: "dispatchWorkOrder",
+      args: { workOrderId: "WO123" },
+    });
+  });
+
+  test("parses /owner-statements with optional period", () => {
+    expect(detectToolFromMessage("/owner-statements")).toEqual({
+      name: "ownerStatements",
+      args: {},
+    });
+    expect(detectToolFromMessage("/owner-statements Q1")).toEqual({
+      name: "ownerStatements",
+      args: { period: "Q1" },
+    });
+  });
+
+  test("returns null for unknown commands", () => {
+    expect(detectToolFromMessage("hello world")).toBeNull();
+  });
+});
+
+describe("executeTool routing and permission checks", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("rejects unsupported tools", async () => {
+    const session = makeSession();
+    await expect(executeTool("nope", {}, session)).rejects.toThrow("Unsupported tool: nope");
+  });
+
+  test("permission denied throws FORBIDDEN error", async () => {
+    const session = makeSession();
+    getPermittedTools.mockReturnValue(["listMyWorkOrders"]); // createWorkOrder not allowed
+    await expect(executeTool("createWorkOrder", { title: "abc" }, session)).rejects.toMatchObject({
+      message: "Tool not permitted for this role",
+      code: "FORBIDDEN",
+    });
+  });
+});
+
+describe("createWorkOrder", () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date("2025-05-06T12:00:00Z"));
+    jest.clearAllMocks();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("validates title length", async () => {
+    getPermittedTools.mockReturnValue(["createWorkOrder"]);
+    const session = makeSession();
+    await expect(executeTool("createWorkOrder", { title: "  " }, session)).rejects.toThrow(
+      "Title must be at least 3 characters long"
+    );
+  });
+
+  test("creates work order and returns success message and data (en)", async () => {
+    getPermittedTools.mockReturnValue(["createWorkOrder"]);
+    const session = makeSession({ locale: "en" });
+    workOrderCreate.mockResolvedValue({
+      _id: { toString: () => "wo-id-1" },
+      code: "WO-2025-34567",
+      priority: "MEDIUM",
+      status: "SUBMITTED",
+    });
+
+    const res = await executeTool("createWorkOrder", { title: "Leaky sink", description: "desc" }, session);
+    expect(workOrderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: session.tenantId,
+        title: "Leaky sink",
+        requester: expect.objectContaining({ id: session.userId, email: session.email }),
+        status: "SUBMITTED",
+      })
+    );
+    expect(res.success).toBe(true);
+    expect(res.intent).toBe("createWorkOrder");
+    expect(res.message).toMatch(/^Work order WO-/);
+    expect(res.data).toEqual(
+      expect.objectContaining({ id: "wo-id-1", code: expect.any(String), priority: "MEDIUM", status: "SUBMITTED" })
+    );
+  });
+
+  test("localizes message (ar)", async () => {
+    getPermittedTools.mockReturnValue(["createWorkOrder"]);
+    const session = makeSession({ locale: "ar" });
+    workOrderCreate.mockResolvedValue({
+      _id: "wo-id-2",
+      code: "WO-2025-12345",
+      priority: "HIGH",
+      status: "SUBMITTED",
+    });
+    const res = await executeTool("createWorkOrder", { title: "عنوان" }, session);
+    expect(res.message).toContain("تم إنشاء أمر العمل");
+  });
+});
+
+describe("listMyWorkOrders", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getPermittedTools.mockReturnValue(["listMyWorkOrders"]);
+  });
+
+  test("builds filter by role TECHNICIAN and returns last 5 sorted by updatedAt desc", async () => {
+    const now = new Date("2025-01-01T00:00:00Z");
+    const session = makeSession({ role: "TECHNICIAN" });
+    const items = Array.from({ length: 7 }).map((_, i) => ({
+      _id: `id-${i}`,
+      code: `WO-${i}`,
+      title: `T-${i}`,
+      status: "SUBMITTED",
+      priority: "LOW",
+      updatedAt: new Date(now.getTime() + i * 1000).toISOString(),
+    }));
+    workOrderFind.mockResolvedValue(items);
+
+    const res = await executeTool("listMyWorkOrders", {}, session);
+    expect(workOrderFind).toHaveBeenCalledWith({
+      tenantId: session.tenantId,
+      deletedAt: { $exists: false },
+      assigneeUserId: session.userId,
+    });
+    expect(res.success).toBe(true);
+    expect(res.data).toHaveLength(5);
+    const times = (res.data as any[]).map(x => x.updatedAt);
+    // Ensure descending
+    expect(new Date(times[0]).getTime()).toBeGreaterThan(new Date(times[4]).getTime());
+  });
+
+  test("no items returns localized empty message", async () => {
+    const session = makeSession({ role: "MANAGER", locale: "ar" });
+    workOrderFind.mockResolvedValue([]);
+    const res = await executeTool("listMyWorkOrders", {}, session);
+    expect(res.message).toBe("لا توجد أوامر عمل مرتبطة بك حالياً.");
+    expect(res.data).toEqual([]);
+  });
+});
+
+describe("dispatchWorkOrder", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getPermittedTools.mockReturnValue(["dispatchWorkOrder"]);
+  });
+
+  test("requires workOrderId", async () => {
+    const session = makeSession();
+    await expect(executeTool("dispatchWorkOrder", {}, session)).rejects.toThrow("workOrderId is required");
+  });
+
+  test("updates work order and returns assignee data", async () => {
+    const session = makeSession();
+    workOrderFindOneAndUpdate.mockResolvedValue({
+      code: "WO-42",
+      status: "DISPATCHED",
+      assigneeUserId: "tech-9",
+      assigneeVendorId: undefined,
+    });
+
+    const res = await executeTool("dispatchWorkOrder", { workOrderId: "WOID", assigneeUserId: "tech-9" }, session);
+    expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
+      { _id: "WOID", tenantId: session.tenantId },
+      expect.objectContaining({
+        $set: expect.objectContaining({ status: "DISPATCHED", assigneeUserId: "tech-9" }),
+        $push: expect.any(Object),
+      }),
+      { new: true }
+    );
+    expect(res.data).toEqual(
+      expect.objectContaining({ code: "WO-42", status: "DISPATCHED", assigneeUserId: "tech-9" })
+    );
+  });
+
+  test("not found throws error", async () => {
+    const session = makeSession();
+    workOrderFindOneAndUpdate.mockResolvedValue(null);
+    await expect(executeTool("dispatchWorkOrder", { workOrderId: "X" }, session)).rejects.toThrow(
+      "Work order not found"
+    );
+  });
+
+  test("localizes message (ar)", async () => {
+    const session = makeSession({ locale: "ar" });
+    workOrderFindOneAndUpdate.mockResolvedValue({ code: "WO-7", status: "DISPATCHED" });
+    const res = await executeTool("dispatchWorkOrder", { workOrderId: "X" }, session);
+    expect(res.message).toContain("تم إسناد أمر العمل");
+  });
+});
+
+describe("scheduleVisit", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getPermittedTools.mockReturnValue(["scheduleVisit"]);
+  });
+
+  test("validates workOrderId and scheduledFor", async () => {
+    const session = makeSession();
+    await expect(executeTool("scheduleVisit", { workOrderId: "", scheduledFor: "" }, session)).rejects.toThrow(
+      "Valid workOrderId and scheduledFor timestamp are required"
+    );
+  });
+
+  test("updates dueAt and returns localized message", async () => {
+    const session = makeSession({ locale: "en" });
+    const when = "2025-07-01T10:00:00Z";
+    const updated = { code: "WO-9", dueAt: new Date(when).toISOString() };
+    workOrderFindOneAndUpdate.mockResolvedValue(updated);
+
+    const res = await executeTool("scheduleVisit", { workOrderId: "A1", scheduledFor: when }, session);
+    expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
+      { _id: "A1", tenantId: session.tenantId },
+      expect.objectContaining({ $set: { dueAt: new Date(when) } }),
+      { new: true }
+    );
+    expect(res.data).toEqual({ code: "WO-9", dueAt: updated.dueAt });
+    expect(res.message).toContain("Visit scheduled for");
+  });
+
+  test("not found throws error", async () => {
+    const session = makeSession();
+    workOrderFindOneAndUpdate.mockResolvedValue(undefined);
+    await expect(
+      executeTool("scheduleVisit", { workOrderId: "Z", scheduledFor: "2025-01-01T00:00:00Z" }, session)
+    ).rejects.toThrow("Work order not found");
+  });
+});
+
+describe("uploadWorkOrderPhoto", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getPermittedTools.mockReturnValue(["uploadWorkOrderPhoto"]);
+  });
+
+  test("requires workOrderId", async () => {
+    const session = makeSession();
+    const payload = { workOrderId: "", fileName: "a.png", mimeType: "image/png", buffer: Buffer.from("x") } as any;
+    await expect(executeTool("uploadWorkOrderPhoto", payload, session)).rejects.toThrow("workOrderId is required");
+  });
+
+  test("writes file to disk and updates attachments", async () => {
+    const session = makeSession();
+    const payload = {
+      workOrderId: "WOID",
+      fileName: "photo 01.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("filedata"),
+    };
+    workOrderFindOneAndUpdate.mockResolvedValue({ code: "WO-55" });
+
+    const res = await executeTool("uploadWorkOrderPhoto", payload as any, session);
+
+    // mkdir called with uploads directory
+    expect(mkdirMock).toHaveBeenCalled();
+    expect(writeFileMock).toHaveBeenCalled();
+    // Ensure attachment pushed
+    expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
+      { _id: "WOID", tenantId: session.tenantId },
+      expect.objectContaining({
+        $push: {
+          attachments: expect.objectContaining({
+            url: expect.stringMatching(/^\/uploads\/work-orders\//),
+            name: "photo 01.png",
+            type: "image/png",
+            size: payload.buffer.length,
+          }),
+        },
+      }),
+      { new: true }
+    );
+    expect(res.intent).toBe("uploadWorkOrderPhoto");
+    expect(res.message).toBe("Photo uploaded and linked to the work order.");
+    expect(res.data.attachment.name).toBe("photo 01.png");
+  });
+
+  test("not found throws error", async () => {
+    const session = makeSession();
+    workOrderFindOneAndUpdate.mockResolvedValue(null);
+    const payload = {
+      workOrderId: "X",
+      fileName: "x.jpg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from("y"),
+    };
+    await expect(executeTool("uploadWorkOrderPhoto", payload as any, session)).rejects.toThrow("Work order not found");
+  });
+});
+
+describe("ownerStatements", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getPermittedTools.mockReturnValue(["ownerStatements"]);
+  });
+
+  test("returns empty data with localized message when no statements", async () => {
+    const session = makeSession({ locale: "ar" });
+    ownerStatementFind.mockResolvedValue([]);
+    const res = await executeTool("ownerStatements", {}, session);
+    expect(ownerStatementFind).toHaveBeenCalled();
+    expect(res.data).toEqual([]);
+    expect(res.message).toBe("لا تتوفر بيانات حالياً لهذه الفترة.");
+  });
+
+  test("aggregates totals and maps statements and line items", async () => {
+    const session = makeSession();
+    ownerStatementFind.mockResolvedValue([
+      {
+        tenantId: session.tenantId,
+        ownerId: session.userId,
+        currency: "USD",
+        period: "Q1",
+        year: 2025,
+        totals: { income: 1000, expenses: 300, net: 700 },
+        lineItems: [
+          { date: "2025-01-05", description: "Rent", type: "INCOME", amount: 1000, reference: "INV-1" },
+          { date: "2025-01-10", description: "Repair", type: "EXPENSE", amount: 300, reference: "BILL-1" },
+        ],
+      },
+      {
+        tenantId: session.tenantId,
+        ownerId: session.userId,
+        currency: "USD",
+        period: "Q2",
+        year: 2025,
+        totals: { income: 500, expenses: 200, net: 300 },
+        lineItems: [{ date: "2025-04-02", description: "Rent", type: "INCOME", amount: 500, reference: "INV-2" }],
+      },
+    ]);
+
+    const res = await executeTool("ownerStatements", { period: "Q1", year: 2025 }, session);
+    expect(res.success).toBe(true);
+    expect(res.intent).toBe("ownerStatements");
+    expect(res.data.currency).toBe("USD");
+    expect(res.data.totals).toEqual({ income: 1500, expenses: 500, net: 1000 });
+    expect(res.data.statements).toHaveLength(2);
+    expect(res.data.statements[0].lineItems[0]).toEqual(
+      expect.objectContaining({ description: "Rent", type: "INCOME", amount: 1000 })
+    );
+  });
+});
