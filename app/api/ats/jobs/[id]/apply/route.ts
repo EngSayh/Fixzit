@@ -10,10 +10,40 @@ const AtsSettings = {
   }
 } as any;
 
+/**
+ * Extracts up to 20 distinct skill-like tokens from freeform text.
+ *
+ * Splits the input on commas and whitespace, removes tokens shorter than 3 characters,
+ * deduplicates while preserving the first occurrence's casing, and returns at most 20 items.
+ *
+ * @param text - Freeform text (e.g., resume or cover letter) to parse for skills
+ * @returns An array of unique skill tokens (strings), up to 20 entries
+ */
 function extractSkillsFromText(text: string) {
   return Array.from(new Set(text.split(/[,\s]+/).filter(s => s.length > 2))).slice(0, 20);
 }
+/**
+ * Estimate years of professional experience from freeform text.
+ *
+ * This is a placeholder implementation that always returns 0. Replace with a real parser
+ * that extracts and normalizes years of experience from resumes, cover letters, or other
+ * freeform text.
+ *
+ * @param _text - Freeform text (resume, cover letter, etc.) to analyze for experience.
+ * @returns Estimated years of experience as a number. (Currently always 0.)
+ */
 function calculateExperienceFromText(_text: string) { return 0; }
+/**
+ * Computes a simple numeric score for an application based on skills count and years of experience.
+ *
+ * The score is calculated as (5 points per skill) + (2 points per year of experience) and is capped at 100.
+ * The optional `_weights` parameter is accepted for API compatibility but is not used by this implementation.
+ *
+ * @param input - Object containing application attributes. Expected properties:
+ *   - `skills` (array) — list of detected or provided skills.
+ *   - `experience` (number) — years of experience.
+ * @returns A score between 0 and 100 (inclusive).
+ */
 function scoreApplication(input: any, _weights: any) {
   const base = (input.skills?.length || 0) * 5 + (input.experience || 0) * 2;
   return Math.min(100, base);

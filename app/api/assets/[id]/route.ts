@@ -36,6 +36,18 @@ const updateAssetSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * Retrieve an asset by ID for the authenticated user's tenant.
+ *
+ * Authenticates the requester, ensures the database is ready, and returns the matching asset document as JSON.
+ *
+ * @param params.id - The asset's MongoDB `_id`.
+ * @returns A NextResponse containing the asset on success, or a JSON error with an appropriate HTTP status:
+ * - 401 Unauthorized when authentication fails
+ * - 404 Asset not found when no matching asset exists for the tenant
+ * - 400 Invalid asset id for malformed IDs
+ * - 500 Internal server error for other failures
+ */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     let user;
@@ -64,6 +76,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
+/**
+ * Partially updates an existing asset belonging to the authenticated user's tenant.
+ *
+ * Validates the request body against `updateAssetSchema`, applies the changes, sets `updatedBy`
+ * to the current user, and returns the updated asset document. Authentication is required.
+ *
+ * Possible responses:
+ * - 200: Updated asset JSON
+ * - 401: Unauthorized (no valid session)
+ * - 404: Asset not found (no matching asset for the id and tenant)
+ * - 422: Validation failed (Zod validation errors)
+ * - 400: Invalid asset id (malformed id)
+ * - 500: Internal server error
+ *
+ * @param params.id - The asset id to update
+ * @returns The HTTP response containing the updated asset or an error payload with an appropriate status code.
+ */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     let user;
@@ -98,6 +127,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
+/**
+ * Soft-deletes an asset by marking it "DECOMMISSIONED".
+ *
+ * Authenticates the requester, then updates the asset with the given `id` (scoped to the requester's tenant)
+ * setting `status` to `"DECOMMISSIONED"` and `updatedBy` to the current user id.
+ *
+ * @param params.id - Asset id from the route (used to look up and update the asset)
+ * @returns A NextResponse JSON result:
+ * - 200 with `{ success: true }` when the asset is successfully updated
+ * - 401 when the requester is not authenticated
+ * - 404 when no matching asset is found for the tenant
+ * - 500 with an error message for other failures
+ */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     let user;
