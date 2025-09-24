@@ -22,13 +22,14 @@ const JobSchema = new Schema({
   tags: [String],
   status: { type: String, enum: ['draft','pending','published','archived'], default: 'draft', index: true },
   visibility: { type: String, enum: ['private','public'], default: 'private' },
-  slug: { type: String, index: true, unique: true },
+  slug: { type: String, index: true },
   postedBy: String,
   publishedAt: Date,
   applicationCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 JobSchema.index({ title: 'text', description: 'text', requirements: 'text', skills: 'text' });
+JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 
 JobSchema.methods.publish = async function() {
   if (this.status !== 'published') {
@@ -39,7 +40,7 @@ JobSchema.methods.publish = async function() {
   return this;
 };
 
-export type JobDoc = InferSchemaType<typeof JobSchema> & { publish: () => Promise<any> };
+export type JobDoc = InferSchemaType<typeof JobSchema> & { publish: () => Promise<JobDoc> };
 
 export const Job = (models.Job || model('Job', JobSchema)) as any;
 

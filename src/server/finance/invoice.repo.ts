@@ -43,8 +43,10 @@ export async function list(tenantId: string, q?:string, status?:string) {
   });
 }
 
-export async function setStatus(id: string, status: "POSTED"|"VOID") {
-  return prisma.invoice.update({ where: { id }, data: { status }});
+export async function setStatus(id: string, tenantId: string, status: "POSTED"|"VOID") {
+  const res = await prisma.invoice.updateMany({ where: { id, tenantId }, data: { status }});
+  if (res.count === 0) throw new Error("Not found or not authorized");
+  return prisma.invoice.findUniqueOrThrow({ where: { id } });
 }
 
 function computeTotals(lines: Array<{ qty:number; unitPrice:number; vatRate:number }>) {

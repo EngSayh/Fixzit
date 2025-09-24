@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 function ctx(req: NextRequest) {
   const tenantId = req.headers.get("x-tenant-id") || "";
@@ -8,7 +9,8 @@ function ctx(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params:{ id:string }}) {
-  const { tenantId, actorId, ip } = ctx(req);
+  const { tenantId, id: actorId } = await getSessionUser(req).catch(()=>({ tenantId: "", id: undefined } as any));
+  const ip = req.ip ?? "";
   if (!tenantId) return NextResponse.json({ error:"Missing tenant" },{ status: 400 });
   const body = await req.json();
   try {

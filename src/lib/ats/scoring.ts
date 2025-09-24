@@ -8,7 +8,8 @@ export function extractSkillsFromText(text: string): string[] {
 }
 
 export function calculateExperienceFromText(text: string): number {
-  const m = text.match(/(\d{1,2})\s*(?:\+?\s*)?(?:years|yrs|y)/i);
+  const src = text || "";
+  const m = src.match(/\b(\d{1,2})\s*(?:(?:years?|yrs?|y)\b|\+(?=\s|$))/i);
   return m ? Math.min(50, parseInt(m[1], 10)) : 0;
 }
 
