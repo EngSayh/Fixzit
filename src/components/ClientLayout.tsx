@@ -11,6 +11,7 @@ import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
+import AutoIncidentReporter from '@/src/components/AutoIncidentReporter';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState('guest');
@@ -112,6 +113,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           </ResponsiveLayout>
           <HelpWidget />
           <ErrorTest />
+          <AutoIncidentReporter />
         </div>
       );
 }
