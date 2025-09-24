@@ -6,6 +6,23 @@ import { Job } from '@/src/server/models/Job';
 import { Employee } from '@/src/server/models/Employee';
 import { getUserFromToken } from '@/src/lib/auth';
 
+/**
+ * Convert a hired application into an Employee record for the authenticated user's organization.
+ *
+ * Expects a JSON body with `{ applicationId }`. The request must include a valid authorization
+ * token. The endpoint verifies that the application exists, belongs to the caller's org, and
+ * has stage `"hired"`. It ensures the referenced Candidate and Job exist and prevents creating
+ * a duplicate Employee (same orgId and candidate email). On success returns the created Employee
+ * document (or the existing Employee if one already exists).
+ *
+ * Responses:
+ * - 200: { success: true, data: Employee } — employee created or existing employee returned
+ * - 400: missing `applicationId`, application not hired, or missing candidate/job
+ * - 401: unauthorized (missing/invalid token)
+ * - 403: authenticated user does not belong to the application's org
+ * - 404: application not found
+ * - 500: server error while converting
+ */
 export async function POST(req: NextRequest) {
   try {
     await db;
