@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, User, ChevronDown } from 'lucide-react';
+import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import AppSwitcher from './topbar/AppSwitcher';
 import GlobalSearch from './topbar/GlobalSearch';
@@ -235,8 +235,8 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
       
       {/* Mobile search button */}
       {screenInfo.isMobile && (
-        <button className="p-2 hover:bg-white/10 rounded-md">
-          <GlobalSearch />
+        <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
+          <Search className="w-4 h-4" />
         </button>
       )}
       
