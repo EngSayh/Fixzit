@@ -127,6 +127,13 @@ async function addDatabaseIndexes() {
     await db.collection('auditlogs').createIndex({ resourceType: 1, resourceId: 1 });
     console.log('✅ Audit log indexes created');
 
+    // Help/Knowledge Center indexes
+    console.log('📚 Adding Help/Knowledge Center indexes...');
+    await db.collection('helparticles').createIndex({ slug: 1 }, { unique: true });
+    await db.collection('helparticles').createIndex({ status: 1, updatedAt: -1 });
+    await db.collection('helparticles').createIndex({ title: 'text', content: 'text', tags: 'text' });
+    console.log('✅ Help/Knowledge Center indexes created');
+
     console.log('\n=====================================');
     console.log('✅ ALL DATABASE INDEXES CREATED SUCCESSFULLY!');
     console.log('=====================================');
