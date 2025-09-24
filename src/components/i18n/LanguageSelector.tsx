@@ -6,15 +6,15 @@ import { useTranslation } from '@/src/contexts/TranslationContext';
 type Lang = { code: string; name: string; native: string; country?: string; flag: string; dir:'ltr'|'rtl' };
 
 const DEFAULTS: Lang[] = [
-  { code:'ar', name:'Arabic',    native:'العربية',  country:'SA', flag:'🇸🇦', dir:'rtl' },
-  { code:'en', name:'English',   native:'English',  country:'UK', flag:'🇬🇧', dir:'ltr' },
-  { code:'fr', name:'French',    native:'Français', country:'FR', flag:'🇫🇷', dir:'ltr' },
-  { code:'pt', name:'Portuguese',native:'Português',country:'PT', flag:'🇵🇹', dir:'ltr' },
-  { code:'ru', name:'Russian',   native:'Русский',  country:'RU', flag:'🇷🇺', dir:'ltr' },
-  { code:'es', name:'Spanish',   native:'Español',  country:'ES', flag:'🇪🇸', dir:'ltr' },
-  { code:'ur', name:'Urdu',      native:'اردو',     country:'PK', flag:'🇵🇰', dir:'rtl' },
-  { code:'hi', name:'Hindi',     native:'हिंदी',    country:'IN', flag:'🇮🇳', dir:'ltr' },
-  { code:'zh', name:'Chinese',   native:'中文',      country:'CN', flag:'🇨🇳', dir:'ltr' }
+  { code:'ar', name:'Arabic',    native:'العربية',  country:'المملكة العربية السعودية', flag:'🇸🇦', dir:'rtl' },
+  { code:'en', name:'English',   native:'English',  country:'United Kingdom', flag:'🇬🇧', dir:'ltr' },
+  { code:'fr', name:'French',    native:'Français', country:'France', flag:'🇫🇷', dir:'ltr' },
+  { code:'pt', name:'Portuguese',native:'Português',country:'Portugal', flag:'🇵🇹', dir:'ltr' },
+  { code:'ru', name:'Russian',   native:'Русский',  country:'Россия', flag:'🇷🇺', dir:'ltr' },
+  { code:'es', name:'Spanish',   native:'Español',  country:'España', flag:'🇪🇸', dir:'ltr' },
+  { code:'ur', name:'Urdu',      native:'اردو',     country:'پاکستان', flag:'🇵🇰', dir:'rtl' },
+  { code:'hi', name:'Hindi',     native:'हिंदी',    country:'भारत', flag:'🇮🇳', dir:'ltr' },
+  { code:'zh', name:'Chinese',   native:'中文',      country:'中国', flag:'🇨🇳', dir:'ltr' }
 ];
 
 export default function LanguageSelector() {
@@ -57,7 +57,12 @@ export default function LanguageSelector() {
   const list = useMemo(() => {
     const searchTerm = q.trim().toLowerCase();
     if (!searchTerm) return DEFAULTS;
-    return DEFAULTS.filter(l => l.code.includes(searchTerm) || l.name.toLowerCase().includes(searchTerm) || l.native.includes(q));
+    return DEFAULTS.filter(l => 
+      l.code.toLowerCase().includes(searchTerm) || 
+      l.name.toLowerCase().includes(searchTerm) || 
+      l.native.toLowerCase().includes(searchTerm) ||
+      l.country?.toLowerCase().includes(searchTerm)
+    );
   }, [q]);
 
   // Handle language change with proper RTL application
@@ -116,7 +121,7 @@ export default function LanguageSelector() {
                   <span className="text-lg">{l.flag}</span>
                   <div className="flex-1">
                     <div className="font-medium">{l.native}</div>
-                    <div className="text-xs text-gray-500">{l.name} · {l.code.toUpperCase()}</div>
+                    <div className="text-xs text-gray-500">{l.country} · {l.code.toUpperCase()}</div>
                   </div>
                   {l.code === language && (
                     <div className="w-2 h-2 rounded-full bg-blue-500"></div>

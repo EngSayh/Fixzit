@@ -11,6 +11,7 @@ import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
+import { TopBarProvider } from '@/src/contexts/TopBarContext';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState('guest');
@@ -103,13 +104,15 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       return (
         <div className="min-h-screen bg-[#F9FAFB]">
           <AutoFixInitializer />
-          <ResponsiveLayout
-            header={<TopBar role={role} />}
-            sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
-            showSidebarToggle={!isLandingPage}
-          >
-            {children}
-          </ResponsiveLayout>
+          <TopBarProvider>
+            <ResponsiveLayout
+              header={<TopBar role={role} />}
+              sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+              showSidebarToggle={!isLandingPage}
+            >
+              {children}
+            </ResponsiveLayout>
+          </TopBarProvider>
           <HelpWidget />
           <ErrorTest />
         </div>
