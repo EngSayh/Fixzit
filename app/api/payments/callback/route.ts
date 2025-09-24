@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPayment, validateCallback } from '@/src/lib/paytabs';
+import { verifyPayment, validateCallbackRaw } from '@/src/lib/paytabs';
 import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const raw = await req.text();
     const signature = req.headers.get('signature') || '';
 
     // Validate callback signature
-    if (!validateCallback(body, signature)) {
+    const valid = await validateCallbackRaw(raw, signature);
+    if (!valid) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
+    const body = JSON.parse(raw);
     const { tran_ref, cart_id, payment_result } = body;
 
     // Verify payment with PayTabs
