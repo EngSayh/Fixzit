@@ -70,7 +70,7 @@ export default function Footer(){
             <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
             <Link href="/" className="inline-flex items-center gap-2 text-[#0061A8] hover:text-[#004f86]">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12l2-2 7-7 7 7 2 2"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-7h6v7h3a1 1 0 0 0 1-1V10"/></svg>
-              <span>Back to Home</span>
+              <span>{t('footer.backHome', 'Back to Home')}</span>
             </Link>
           </div>
         </div>
@@ -78,9 +78,9 @@ export default function Footer(){
         <div className="border-t border-black/5 pt-4 text-xs opacity-60 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
-            <Link href="/privacy" className="hover:underline">Privacy</Link>
-            <Link href="/terms" className="hover:underline">Terms</Link>
-            <Link href="/support" className="hover:underline">Support</Link>
+            <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
+            <Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
+            <Link href="/support" className="hover:underline">{t('footer.support', 'Support')}</Link>
           </div>
         </div>
       </div>

@@ -43,6 +43,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'بحث',
     'common.search.placeholder': 'البحث في أوامر العمل، العقارات، المستأجرين...',
+    'i18n.filterLanguages': 'ابحث عن اللغات',
+    'i18n.filterCurrencies': 'ابحث عن العملات',
     'common.login': 'تسجيل الدخول',
     'common.logout': 'تسجيل الخروج',
     'common.save': 'حفظ',
@@ -196,6 +198,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'الدعم',
     'footer.help': 'مركز المساعدة',
     'footer.ticket': 'فتح تذكرة',
+    'footer.backHome': 'العودة إلى الصفحة الرئيسية',
     'footer.copyright': 'فيكزيت. جميع الحقوق محفوظة.',
   },
   en: {
@@ -221,11 +224,14 @@ const translations: Record<Language, Record<string, string>> = {
       'nav.orders': 'Orders',
       'nav.notifications': 'Notifications',
       'nav.profile': 'Profile',
-      'nav.settings': 'Settings',
+    'nav.settings': 'Settings',
+    'nav.preferences': 'Preferences',
 
     // Common
     'common.search': 'Search',
     'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
+    'i18n.filterLanguages': 'Type to filter languages',
+    'i18n.filterCurrencies': 'Type to filter currencies',
     'common.login': 'Login',
     'common.logout': 'Logout',
     'common.save': 'Save',
@@ -379,6 +385,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Support',
     'footer.help': 'Help Center',
     'footer.ticket': 'Open a ticket',
+    'footer.backHome': 'Back to Home',
     'footer.copyright': 'Fixzit. All rights reserved.',
 
     // Careers
@@ -439,6 +446,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Rechercher',
     'common.search.placeholder': 'Rechercher des ordres de travail, des propriétés, des locataires...',
+    'i18n.filterLanguages': 'Rechercher des langues',
+    'i18n.filterCurrencies': 'Rechercher des devises',
     'common.login': 'Connexion',
     'common.logout': 'Déconnexion',
     'common.save': 'Enregistrer',
@@ -531,6 +540,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Support',
     'footer.help': 'Centre d\'aide',
     'footer.ticket': 'Ouvrir un ticket',
+    'footer.backHome': "Retour à l'accueil",
     'footer.copyright': 'Fixzit. Tous droits réservés.',
 
     // Careers
@@ -591,6 +601,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Pesquisar',
     'common.search.placeholder': 'Pesquisar ordens de trabalho, propriedades, inquilinos...',
+    'i18n.filterLanguages': 'Pesquisar idiomas',
+    'i18n.filterCurrencies': 'Pesquisar moedas',
     'common.login': 'Entrar',
     'common.logout': 'Sair',
     'common.save': 'Salvar',
@@ -683,6 +695,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Suporte',
     'footer.help': 'Central de Ajuda',
     'footer.ticket': 'Abrir um ticket',
+    'footer.backHome': 'Voltar para o início',
     'footer.copyright': 'Fixzit. Todos os direitos reservados.',
 
     // Careers
@@ -743,6 +756,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Поиск',
     'common.search.placeholder': 'Поиск рабочих заказов, свойств, арендаторов...',
+    'i18n.filterLanguages': 'Фильтр языков',
+    'i18n.filterCurrencies': 'Фильтр валют',
     'common.login': 'Вход',
     'common.logout': 'Выход',
     'common.save': 'Сохранить',
@@ -835,6 +850,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Поддержка',
     'footer.help': 'Центр помощи',
     'footer.ticket': 'Открыть заявку',
+    'footer.backHome': 'На главную',
     'footer.copyright': 'Fixzit. Все права защищены.',
 
     // Careers
@@ -895,6 +911,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'Buscar',
     'common.search.placeholder': 'Buscar órdenes de trabajo, propiedades, inquilinos...',
+    'i18n.filterLanguages': 'Filtrar idiomas',
+    'i18n.filterCurrencies': 'Filtrar monedas',
     'common.login': 'Iniciar sesión',
     'common.logout': 'Cerrar sesión',
     'common.save': 'Guardar',
@@ -987,6 +1005,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Soporte',
     'footer.help': 'Centro de Ayuda',
     'footer.ticket': 'Abrir un ticket',
+    'footer.backHome': 'Volver al inicio',
     'footer.copyright': 'Fixzit. Todos los derechos reservados.',
 
     // Careers
@@ -1047,6 +1066,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'تلاش',
     'common.search.placeholder': 'کام کے آرڈرز، پراپرٹیز، کرایہ داروں میں تلاش کریں...',
+    'i18n.filterLanguages': 'زبانیں فلٹر کریں',
+    'i18n.filterCurrencies': 'کرنسیاں فلٹر کریں',
     'common.login': 'لاگ ان',
     'common.logout': 'لاگ آؤٹ',
     'common.save': 'محفوظ کریں',
@@ -1139,6 +1160,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'سپورٹ',
     'footer.help': 'مدد کا مرکز',
     'footer.ticket': 'ٹکٹ کھولیں',
+    'footer.backHome': 'ہوم پر واپس جائیں',
     'footer.copyright': 'فکزٹ۔ تمام حقوق محفوظ ہیں۔',
 
     // Careers
@@ -1199,6 +1221,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': 'खोज',
     'common.search.placeholder': 'कार्य आदेश, संपत्तियां, किरायेदार खोजें...',
+    'i18n.filterLanguages': 'भाषाएँ फ़िल्टर करें',
+    'i18n.filterCurrencies': 'मुद्राएँ फ़िल्टर करें',
     'common.login': 'लॉग इन',
     'common.logout': 'लॉग आउट',
     'common.save': 'सहेजें',
@@ -1291,6 +1315,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'सहायता',
     'footer.help': 'सहायता केंद्र',
     'footer.ticket': 'टिकट खोलें',
+    'footer.backHome': 'होम पर वापस जाएं',
     'footer.copyright': 'फिक्जिट। सभी अधिकार सुरक्षित।',
 
     // Careers
@@ -1351,6 +1376,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.search': '搜索',
     'common.search.placeholder': '搜索工作订单、属性、租户...',
+    'i18n.filterLanguages': '筛选语言',
+    'i18n.filterCurrencies': '筛选货币',
     'common.login': '登录',
     'common.logout': '登出',
     'common.save': '保存',
@@ -1443,6 +1470,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': '支持',
     'footer.help': '帮助中心',
     'footer.ticket': '打开工单',
+    'footer.backHome': '返回首页',
     'footer.copyright': 'Fixzit。保留所有权利。',
 
     // Careers
