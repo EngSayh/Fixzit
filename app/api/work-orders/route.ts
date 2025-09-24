@@ -3,11 +3,13 @@ import { db } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
+import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
+import { WOPriority } from "@/src/server/work-orders/wo.schema";
 
 const createSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
-  priority: z.enum(["LOW","MEDIUM","HIGH","URGENT"]).default("MEDIUM"),
+  priority: WOPriority.default("MEDIUM"),
   category: z.string().optional(),
   subcategory: z.string().optional(),
   propertyId: z.string().optional(),
@@ -90,9 +92,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const data = createSchema.parse(body);
 
-  // generate code per-tenant sequence (simplified)
+  const createdAt = new Date();
   const seq = Math.floor((Date.now() / 1000) % 100000);
   const code = `WO-${new Date().getFullYear()}-${seq}`;
+  const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
   const wo = await (WorkOrder as any).create({
     tenantId: user.tenantId,
@@ -107,7 +110,10 @@ export async function POST(req: NextRequest) {
     requester: data.requester,
     status: "SUBMITTED",
     statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
-    createdBy: user.id
+    slaMinutes,
+    dueAt,
+    createdBy: user.id,
+    createdAt
   });
   return NextResponse.json(wo, { status: 201 });
 }
