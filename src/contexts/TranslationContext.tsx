@@ -1,12 +1,21 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  LANGUAGE_OPTIONS,
+  findLanguageByCode,
+  findLanguageByLocale,
+  type LanguageCode,
+  type LanguageOption
+} from '@/src/data/language-options';
 
-type Language = 'ar' | 'en' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+export type Language = LanguageCode;
 
 interface TranslationContextType {
   language: Language;
+  locale: string;
   setLanguage: (lang: Language) => void;
+  setLocale: (locale: string) => void;
   t: (key: string, fallback?: string) => string;
   isRTL: boolean;
 }
@@ -1479,64 +1488,77 @@ const translations: Record<Language, Record<string, string>> = {
   }, // Chinese
 };
 
+const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS[0];
+
 export function TranslationProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('ar'); // Default to Arabic
+  const [currentOption, setCurrentOption] = useState<LanguageOption>(DEFAULT_LANGUAGE_OPTION);
   const [isClient, setIsClient] = useState(false);
 
-  // Initialize with a safe default
   useEffect(() => {
-    // Set client flag immediately for SSR compatibility
     setIsClient(true);
 
-    // Load saved language from localStorage (client-side only)
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
-      if (typeof window !== 'undefined') {
-        const savedLang = localStorage.getItem('fxz.lang') as Language;
-        if (savedLang && translations[savedLang]) {
-          setLanguageState(savedLang);
-          // Apply RTL immediately
-          document.documentElement.lang = savedLang;
-          document.documentElement.dir = translations[savedLang]?.['dir'] === 'rtl' ? 'rtl' : 'ltr';
-        } else {
-          setLanguageState('ar'); // Default to Arabic as per config
-          document.documentElement.lang = 'ar';
-          document.documentElement.dir = 'rtl';
-        }
-      }
+      const storedLocale = window.localStorage.getItem('fxz.locale');
+      const storedLanguage = window.localStorage.getItem('fxz.lang') as Language | null;
+      const nextOption =
+        (storedLocale && findLanguageByLocale(storedLocale)) ||
+        (storedLanguage && findLanguageByCode(storedLanguage)) ||
+        DEFAULT_LANGUAGE_OPTION;
+
+      setCurrentOption(nextOption);
     } catch (error) {
-      // Fallback if localStorage is not available
       console.warn('Could not access localStorage for language preference:', error);
-      setLanguageState('ar');
-      document.documentElement.lang = 'ar';
-      document.documentElement.dir = 'rtl';
+      setCurrentOption(DEFAULT_LANGUAGE_OPTION);
     }
   }, []);
 
-  // Ensure client-side rendering for initial state
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    if (!isClient || typeof window === 'undefined') {
+      return;
+    }
 
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-
-    // Only access localStorage and DOM on client side
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('fxz.lang', lang);
-        document.documentElement.lang = lang;
-
-        // Immediately apply RTL direction
-        const isRTLLang = translations[lang]?.['dir'] === 'rtl';
-        document.documentElement.dir = isRTLLang ? 'rtl' : 'ltr';
-
-        // Force re-render by triggering a DOM update
-        document.body.style.direction = isRTLLang ? 'rtl' : 'ltr';
+      window.localStorage.setItem('fxz.locale', currentOption.locale);
+      window.localStorage.setItem('fxz.lang', currentOption.language);
+      document.cookie = `fxz.lang=${currentOption.language}; path=/; SameSite=Lax`;
+      document.cookie = `fxz.locale=${currentOption.locale}; path=/; SameSite=Lax`;
+      document.documentElement.lang = currentOption.locale.toLowerCase();
+      document.documentElement.dir = currentOption.dir;
+      document.documentElement.setAttribute('data-locale', currentOption.locale);
+      if (document.body) {
+        document.body.style.direction = currentOption.dir;
       }
+      window.dispatchEvent(
+        new CustomEvent('fixzit:language-change', {
+          detail: {
+            locale: currentOption.locale,
+            language: currentOption.language,
+            dir: currentOption.dir
+          }
+        })
+      );
     } catch (error) {
       console.warn('Could not update language settings:', error);
     }
+  }, [currentOption, isClient]);
+
+  const setLanguage = (lang: Language) => {
+    const nextOption = findLanguageByCode(lang);
+    setCurrentOption(nextOption);
   };
+
+  const setLocale = (locale: string) => {
+    const nextOption = findLanguageByLocale(locale) ?? findLanguageByCode(currentOption.language);
+    setCurrentOption(nextOption);
+  };
+
+  const language = currentOption.language;
+  const locale = currentOption.locale;
+  const isRTL = currentOption.dir === 'rtl';
 
   const t = (key: string, fallback: string = key): string => {
     try {
@@ -1549,17 +1571,8 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const isRTL = (() => {
-    try {
-      return translations[language]?.['dir'] === 'rtl';
-    } catch (error) {
-      console.warn('RTL detection error:', error);
-      return false;
-    }
-  })();
-
   return (
-    <TranslationContext.Provider value={{ language, setLanguage, t, isRTL }}>
+    <TranslationContext.Provider value={{ language, locale, setLanguage, setLocale, t, isRTL }}>
       {children}
     </TranslationContext.Provider>
   );
@@ -1572,8 +1585,9 @@ export function useTranslation() {
     // If context is not available, provide a safe fallback
     if (!context) {
       // Create a fallback context object for SSR
-      const fallbackContext = {
-        language: 'ar' as Language, // Default to Arabic
+      const fallbackContext: TranslationContextType = {
+        language: 'ar',
+        locale: 'ar-SA',
         setLanguage: (lang: Language) => {
           try {
             if (typeof window !== 'undefined') {
@@ -1584,10 +1598,20 @@ export function useTranslation() {
             console.warn('Could not save language preference:', error);
           }
         },
+        setLocale: (locale: string) => {
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('fxz.locale', locale);
+              window.location.reload();
+            }
+          } catch (error) {
+            console.warn('Could not save locale preference:', error);
+          }
+        },
         t: (key: string, fallback: string = key): string => {
           return fallback;
         },
-        isRTL: false
+        isRTL: true
       };
       return fallbackContext;
     }
@@ -1598,9 +1622,11 @@ export function useTranslation() {
     console.warn('useTranslation error:', error);
     return {
       language: 'ar' as Language,
+      locale: 'ar-SA',
       setLanguage: (lang: Language) => {},
+      setLocale: () => {},
       t: (key: string, fallback: string = key): string => fallback,
-      isRTL: false
+      isRTL: true
     };
   }
 }
