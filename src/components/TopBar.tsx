@@ -272,10 +272,10 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
               <ul className="max-h-80 overflow-auto py-1">
                 {results.map(r => (
                   <li key={`${r.type}:${r.id}`}>
-                    <a href={r.href} className="block px-3 py-2 hover:bg-gray-50">
+                    <Link href={r.href} className="block px-3 py-2 hover:bg-gray-50" onClick={()=> setOpenResults(false)}>
                       <div className="text-sm font-medium">{r.title}</div>
                       {r.subtitle && <div className="text-[11px] text-gray-500">{r.type} • {r.subtitle}</div>}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
