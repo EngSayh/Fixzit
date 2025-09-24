@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
-    await db();
+    await connectMongo();
     const body = await req.json();
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     const baseSlug = generateSlug(body.title || 'job');
