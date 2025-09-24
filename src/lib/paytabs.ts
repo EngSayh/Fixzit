@@ -85,6 +85,16 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
   }
 }
 
+/**
+ * Verify a PayTabs transaction by reference.
+ *
+ * Sends a POST request to the PayTabs /payment/query endpoint using configured profile credentials
+ * and returns the parsed JSON response from PayTabs.
+ *
+ * @param tranRef - The PayTabs transaction reference (tran_ref) to verify.
+ * @returns The parsed JSON response from the PayTabs verification endpoint.
+ * @throws Re-throws any network or fetch errors that occur while calling the API.
+ */
 export async function verifyPayment(tranRef: string): Promise<any> {
   try {
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
@@ -106,6 +116,15 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
+/**
+ * Verifies a PayTabs callback payload by computing an HMAC-SHA256 of the raw body and comparing it to the provided signature header.
+ *
+ * Uses the server key from PAYTABS_API_SERVER_KEY or PAYTABS_SERVER_KEY environment variables. Comparison is performed in constant time to mitigate timing attacks.
+ *
+ * @param rawBody - Raw callback request body (exact bytes used to compute the HMAC)
+ * @param signatureHeader - Hex-encoded HMAC-SHA256 signature from the callback headers
+ * @returns True if the computed signature matches `signatureHeader`; false if the keys are missing, the signatures differ, or an error occurs during verification
+ */
 export async function validateCallbackRaw(rawBody: string, signatureHeader: string | null | undefined): Promise<boolean> {
   const serverKey = process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
   if (!serverKey || !signatureHeader) return false;

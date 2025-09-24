@@ -10,7 +10,17 @@ const PaymentSchema = z.object({
   customerPhone: z.string()
 });
 
-// PayTabs payment page creation
+/**
+ * Create a PayTabs payment page for an incoming POST request and return a JSON response.
+ *
+ * Validates the request body against `PaymentSchema`, builds a PayTabs payload, and POSTs it
+ * to the PayTabs payment request endpoint with a 15-second timeout. On success returns
+ * `{ ok: true, paymentUrl, tranRef }`. Returns structured error responses for missing server key
+ * (500), upstream PayTabs failures (502 with status and body), payment initialization failures (400
+ * with details), or unexpected errors (500).
+ *
+ * @returns A NextResponse containing a JSON object describing success or failure and appropriate HTTP status codes.
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
