@@ -30,35 +30,45 @@ export function calculateScore(
   let totalScore = 0;
 
   // Experience scoring (0-100)
-  const experienceScore = Math.min((candidate.experience / job.requiredExperience) * 100, 100);
+  const requiredExp = job.requiredExperience || 1; // Default to 1 to avoid division by zero
+  const experienceScore = Math.min((candidate.experience / requiredExp) * 100, 100);
   totalScore += (experienceScore * criteria.experience) / 100;
 
   // Skills scoring (0-100)
-  const matchingSkills = candidate.skills.filter(skill => 
-    job.requiredSkills.some(reqSkill => 
-      skill.toLowerCase().includes(reqSkill.toLowerCase()) ||
-      reqSkill.toLowerCase().includes(skill.toLowerCase())
-    )
-  ).length;
-  const skillsScore = (matchingSkills / job.requiredSkills.length) * 100;
-  totalScore += (skillsScore * criteria.skills) / 100;
+  const requiredSkills = job.requiredSkills || [];
+  if (requiredSkills.length > 0) {
+    const matchingSkills = candidate.skills.filter(skill => 
+      requiredSkills.some(reqSkill => 
+        skill.toLowerCase().includes(reqSkill.toLowerCase()) ||
+        reqSkill.toLowerCase().includes(skill.toLowerCase())
+      )
+    ).length;
+    const skillsScore = (matchingSkills / requiredSkills.length) * 100;
+    totalScore += (skillsScore * criteria.skills) / 100;
+  }
 
   // Education scoring (0-100)
-  const educationScore = candidate.education.some(edu => 
-    job.preferredEducation.some(prefEdu => 
-      edu.toLowerCase().includes(prefEdu.toLowerCase())
-    )
-  ) ? 100 : 0;
-  totalScore += (educationScore * criteria.education) / 100;
+  const preferredEducation = job.preferredEducation || [];
+  if (preferredEducation.length > 0) {
+    const educationScore = candidate.education.some(edu => 
+      preferredEducation.some(prefEdu => 
+        edu.toLowerCase().includes(prefEdu.toLowerCase())
+      )
+    ) ? 100 : 0;
+    totalScore += (educationScore * criteria.education) / 100;
+  }
 
   // Keywords scoring (0-100)
-  const matchingKeywords = candidate.keywords.filter(keyword => 
-    job.keywords.some(jobKeyword => 
-      keyword.toLowerCase().includes(jobKeyword.toLowerCase())
-    )
-  ).length;
-  const keywordsScore = (matchingKeywords / job.keywords.length) * 100;
-  totalScore += (keywordsScore * criteria.keywords) / 100;
+  const jobKeywords = job.keywords || [];
+  if (jobKeywords.length > 0) {
+    const matchingKeywords = candidate.keywords.filter(keyword => 
+      jobKeywords.some(jobKeyword => 
+        keyword.toLowerCase().includes(jobKeyword.toLowerCase())
+      )
+    ).length;
+    const keywordsScore = (matchingKeywords / jobKeywords.length) * 100;
+    totalScore += (keywordsScore * criteria.keywords) / 100;
+  }
 
   // Location scoring (0-100)
   const locationScore = candidate.location.toLowerCase() === job.location.toLowerCase() ? 100 : 0;

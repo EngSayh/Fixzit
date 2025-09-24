@@ -85,22 +85,31 @@ export async function POST(req: NextRequest) {
       }
 
       // Create user in MongoDB
-      user = await usersCollection.insertOne({
+      const now = new Date();
+      const result = await usersCollection.insertOne({
         email: body.email,
         name: body.fullName,
-        role: role,
+        role,
         tenantId: 'demo-tenant',
         password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: now,
+        updatedAt: now
       });
+      
+      // Normalize created user for response (omit password)
+      user = {
+        _id: result.insertedId,
+        email: body.email,
+        name: body.fullName,
+        role,
+        tenantId: 'demo-tenant',
+        createdAt: now,
+        updatedAt: now
+      };
     }
 
     // Remove password from response
-    const userWithoutPassword = { ...user } as any;
-    if ('password' in userWithoutPassword) {
-      delete userWithoutPassword.password;
-    }
+    const { password: _pw, ...userWithoutPassword } = (user || {}) as any;
 
     return NextResponse.json({
       ok: true,

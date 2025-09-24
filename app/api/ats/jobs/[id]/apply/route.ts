@@ -152,19 +152,22 @@ export async function POST(
     }
     
     // Score the application
-    const score = scoreApplication({
-      experience: yearsOfExperience,
-      skills: candidateSkills,
-      education: [],
-      keywords: candidateSkills,
-      location: ''
-    }, {
-      requiredExperience: job.screeningRules?.minYears || 0,
-      requiredSkills: job.skills || [],
-      preferredEducation: [],
-      keywords: job.skills || [],
-      location: job.location || ''
-    }, atsSettings.scoringCriteria);
+    const scoringCriteria = atsSettings?.scoringCriteria || { experience: 30, skills: 40, education: 10, keywords: 10, location: 10 };
+    const score = scoreApplication(
+      {
+        resume: resumeText,
+        coverLetter: coverLetter || '',
+        location: location || ''
+      },
+      {
+        requiredExperience: job.screeningRules?.minYears ?? 0,
+        requiredSkills: Array.isArray(job.skills) ? job.skills : [],
+        preferredEducation: Array.isArray((job as any).education) ? (job as any).education : [],
+        keywords: Array.isArray((job as any).keywords) ? (job as any).keywords : (Array.isArray(job.skills) ? job.skills : []),
+        location: job.location || ''
+      },
+      scoringCriteria
+    );
     
     // Check knockout rules (simplified for now)
     const knockoutCheck = {

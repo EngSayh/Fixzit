@@ -4,7 +4,7 @@ const CandidateSchema = new Schema({
   orgId: { type: String, required: true, index: true },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
-  email: { type: String, required: true, index: true },
+  email: { type: String, required: true, index: true, lowercase: true, trim: true },
   phone: String,
   resume: String, // File path or URL
   coverLetter: String,
@@ -33,5 +33,8 @@ CandidateSchema.statics.findByEmail = async function(orgId: string, email: strin
 };
 
 const CandidateModel = models.Candidate || model("Candidate", CandidateSchema);
+
+// One candidate per email within an org
+CandidateSchema.index({ orgId: 1, email: 1 }, { unique: true });
 
 export const Candidate = CandidateModel;

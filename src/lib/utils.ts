@@ -48,7 +48,7 @@ export function slugify(text: string): string {
 
 export function truncate(text: string, length: number): string {
   if (text.length <= length) return text
-  return text.substr(0, length).trim() + '...'
+  return text.slice(0, length).trim() + '...'
 }
 
 export function capitalize(text: string): string {
@@ -78,12 +78,4 @@ export function throttle<T extends (...args: any[]) => any>(
       setTimeout(() => (inThrottle = false), limit)
     }
   }
-}
-
-export function generateSlug(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }

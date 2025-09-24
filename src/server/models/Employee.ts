@@ -23,16 +23,11 @@ const EmployeeSchema = new Schema({
     manager: String, // Employee ID
     startDate: { type: Date, default: Date.now },
     endDate: Date,
-    salary: Number,
-    status: { 
-      type: String, 
-      enum: ['active', 'inactive', 'terminated'], 
-      default: 'active' 
-    }
+    salary: Number
   },
-  status: { 
+  employmentStatus: { 
     type: String, 
-    enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'], 
+    enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'TERMINATED'], 
     default: 'ACTIVE' 
   },
   metadata: Schema.Types.Mixed
