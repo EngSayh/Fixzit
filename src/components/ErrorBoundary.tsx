@@ -200,6 +200,30 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
     // Attempt auto-fix
     this.attemptAutoFix(err);
+
+    // Also auto-report an incident so Support gets a ticket without user action
+    try {
+      const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('x-user') : null;
+      const user = userStr ? JSON.parse(userStr) : null;
+      const payload = {
+        code: 'UI-UI-RENDER-001',
+        message: errorReport.error.message,
+        details: errorReport.error.stack,
+        userContext: user ? { userId: user.id, tenant: user.tenantId, email: user.email } : undefined,
+        clientContext: {
+          url: errorReport.url,
+          userAgent: errorReport.userAgent,
+          locale: errorReport.system.language,
+          rtl: typeof document !== 'undefined' ? (document.dir === 'rtl') : false,
+          time: errorReport.timestamp
+        }
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      // @ts-ignore
+      if (!(navigator.sendBeacon && navigator.sendBeacon('/api/support/incidents', blob))) {
+        fetch('/api/support/incidents', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true });
+      }
+    } catch {}
   }
 
   private logErrorToQA = (errorReport: any) => {
