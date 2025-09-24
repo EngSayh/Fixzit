@@ -1,12 +1,22 @@
-import { dbConnect } from '@/src/db/mongoose';
-import OwnerGroup from '@/src/models/OwnerGroup';
 import { NextRequest, NextResponse } from 'next/server';
+import { dbConnect } from '@/src/db/mongoose';
+import OwnerGroup from '@/src/db/models/OwnerGroup';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
   const { buildingId, ownerIds, primaryContactUserId } = await req.json();
-  const g = await OwnerGroup.findOneAndUpdate(
-    { buildingId }, { buildingId, ownerIds, primaryContactUserId }, { upsert: true, new: true }
+
+  const groupName = `OwnerGroup-${buildingId}`;
+  const group = await OwnerGroup.findOneAndUpdate(
+    { name: groupName },
+    {
+      name: groupName,
+      primary_contact_user_id: primaryContactUserId,
+      member_user_ids: ownerIds || [],
+      property_ids: buildingId ? [buildingId] : [],
+    },
+    { upsert: true, new: true }
   );
-  return NextResponse.json(g);
+
+  return NextResponse.json(group);
 }
