@@ -31,7 +31,12 @@ const createProjectSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const data = createProjectSchema.parse(await req.json());
@@ -53,7 +58,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(project, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 

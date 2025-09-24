@@ -8,23 +8,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const user = await getSessionUser(req);
     await db;
 
-    const rfq = await (RFQ as any).findOne({
-      _id: params.id,
-      tenantId: user.tenantId,
-      status: "DRAFT"
-    });
+    const rfq = await (RFQ as any).findOneAndUpdate(
+      { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
+      {
+        $set: {
+          status: "PUBLISHED",
+          "workflow.publishedBy": user.id,
+          "workflow.publishedAt": new Date(),
+          "timeline.publishDate": new Date(),
+        },
+      },
+      { new: true }
+    );
 
     if (!rfq) {
       return NextResponse.json({ error: "RFQ not found or already published" }, { status: 404 });
     }
-
-    // Update RFQ to published status
-    rfq.status = "PUBLISHED";
-    rfq.workflow.publishedBy = user.id;
-    rfq.workflow.publishedAt = new Date();
-    rfq.timeline.publishDate = new Date();
-
-    await rfq.save();
 
     // TODO: Send notifications to qualified vendors based on:
     // - Location (city-bounded if enabled)
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         id: rfq._id,
         code: rfq.code,
         status: rfq.status,
-        publishedAt: rfq.workflow.publishedAt
+        publishedAt: rfq?.workflow?.publishedAt || null
       }
     });
   } catch (error: any) {

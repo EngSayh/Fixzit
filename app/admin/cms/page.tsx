@@ -23,8 +23,7 @@ export default function AdminCMS(){
     const r = await fetch(`/api/cms/pages/${slug}`, { 
       method:"PATCH", 
       headers:{ 
-        "content-type":"application/json",
-        "x-user": JSON.stringify({ id: 'admin', role: 'SUPER_ADMIN', tenantId: 't0' })
+        "content-type":"application/json"
       }, 
       body:JSON.stringify({ title, content, status }) 
     });
