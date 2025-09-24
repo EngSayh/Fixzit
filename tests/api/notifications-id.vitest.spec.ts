@@ -1,29 +1,17 @@
 /**
- * Tests for app/api/notifications/[id]/route.ts
- * Testing library/framework note:
- * - Primary: Jest (common with Next.js + TypeScript). If this repo uses Vitest, replace `jest` with `vi`
- *   and add: import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
- * - These tests mock DB and Next.js primitives; they focus on GET, PATCH, DELETE handlers.
- *
- * Scenarios:
- * - DB unavailable -> 503
- * - Not found -> 404
- * - Happy paths for GET, PATCH (field combos), DELETE
- * - Edge inputs for PATCH (ignore non-boolean)
- * - Validate interactions with collection methods
+ * Vitest variant of tests for app/api/notifications/[id]/route.ts
+ * Testing library/framework: Vitest
+ * Note: Mirrors Jest suite but uses vi.* APIs.
  */
-
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
-// Handlers loaded dynamically to support different repo layouts
 let GET: any;
 let PATCH: any;
 let DELETE: any;
 
-// Mock ObjectId to avoid requiring real Mongo ObjectId in unit tests
-// Switch to vi.mock if using Vitest
-jest.mock("mongodb", () => {
-  const actual = jest.requireActual("mongodb");
+vi.mock("mongodb", async () => {
+  const actual = await vi.importActual<any>("mongodb");
   return {
     ...actual,
     ObjectId: function MockObjectId(this: any, id: string) {
@@ -33,27 +21,24 @@ jest.mock("mongodb", () => {
   };
 });
 
-// Mock getDatabase from "@/lib/mongodb"
 const db = {
-  collection: jest.fn()
+  collection: vi.fn()
 };
 
 const collection = {
-  findOne: jest.fn(),
-  updateOne: jest.fn(),
-  deleteOne: jest.fn()
+  findOne: vi.fn(),
+  updateOne: vi.fn(),
+  deleteOne: vi.fn()
 };
 
-// Switch to vi.mock if using Vitest
-jest.mock("@/lib/mongodb", () => {
+vi.mock("@/lib/mongodb", () => {
   return {
-    getDatabase: jest.fn()
+    getDatabase: vi.fn()
   };
 });
 
 import { getDatabase } from "@/lib/mongodb";
 
-// Helpers to construct minimal NextRequest-like objects
 function makeReqWithJson(body: any): NextRequest {
   return {
     json: async () => body
@@ -64,9 +49,8 @@ function makeParams(id: string) {
   return { params: { id } };
 }
 
-describe("API: /api/notifications/[id]", () => {
+describe("API: /api/notifications/[id] (Vitest)", () => {
   beforeAll(async () => {
-    // Attempt to import the route handlers from several likely locations
     try {
       const mod = await import("../../app/api/notifications/[id]/route");
       GET = mod.GET;
@@ -81,12 +65,12 @@ describe("API: /api/notifications/[id]", () => {
       } catch {
         try {
           const mod = await import("../../pages/api/notifications/[id]");
-          GET = mod.GET ?? mod.default?.GET;
-          PATCH = mod.PATCH ?? mod.default?.PATCH;
-          DELETE = mod.DELETE ?? mod.default?.DELETE;
+          GET = (mod as any).GET ?? (mod as any).default?.GET;
+          PATCH = (mod as any).PATCH ?? (mod as any).default?.PATCH;
+          DELETE = (mod as any).DELETE ?? (mod as any).default?.DELETE;
         } catch (e) {
           throw new Error(
-            "Unable to locate route handlers. Adjust import path in tests/api/notifications-id.spec.ts"
+            "Unable to locate route handlers. Adjust import path in tests/api/notifications-id.vitest.spec.ts"
           );
         }
       }
@@ -94,9 +78,9 @@ describe("API: /api/notifications/[id]", () => {
   });
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    (getDatabase as jest.Mock).mockResolvedValue(db);
-    db.collection.mockReturnValue(collection);
+    vi.resetAllMocks();
+    (getDatabase as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(db);
+    (db.collection as any).mockReturnValue(collection);
     collection.findOne.mockReset();
     collection.updateOne.mockReset();
     collection.deleteOne.mockReset();
@@ -104,7 +88,7 @@ describe("API: /api/notifications/[id]", () => {
 
   describe("GET", () => {
     it("returns 503 when DB is unavailable", async () => {
-      (getDatabase as jest.Mock).mockRejectedValueOnce(new Error("down"));
+      (getDatabase as any).mockRejectedValueOnce(new Error("down"));
       const res = await GET({} as NextRequest, makeParams("abc123"));
       expect(res).toBeInstanceOf(NextResponse);
       const json = await res.json();
@@ -139,7 +123,7 @@ describe("API: /api/notifications/[id]", () => {
 
   describe("PATCH", () => {
     it("returns 503 when DB is unavailable", async () => {
-      (getDatabase as jest.Mock).mockRejectedValueOnce(new Error("down"));
+      (getDatabase as any).mockRejectedValueOnce(new Error("down"));
       const res = await PATCH(makeReqWithJson({ read: true }), makeParams("abc123"));
       expect(res.status).toBe(503);
       await expect(res.json()).resolves.toEqual({ error: "DB unavailable" });
@@ -209,7 +193,7 @@ describe("API: /api/notifications/[id]", () => {
 
   describe("DELETE", () => {
     it("returns 503 when DB is unavailable", async () => {
-      (getDatabase as jest.Mock).mockRejectedValueOnce(new Error("down"));
+      (getDatabase as any).mockRejectedValueOnce(new Error("down"));
       const res = await DELETE({} as NextRequest, makeParams("abc123"));
       expect(res.status).toBe(503);
       await expect(res.json()).resolves.toEqual({ error: "DB unavailable" });

@@ -293,33 +293,103 @@ describe('GET /api/search', () => {
     expect(body).toEqual([]);
   });
 });
-/**
- * Additional coverage: edge cases, caps, and fallbacks.
- * Testing library/framework: Vitest (describe/it/expect + vi.mock).
- * These tests extend the scenarios around the GET /api/search handler.
- */
-describe('GET /api/search - additional coverage', () => {
-  it('returns 200 and empty array when q param is missing', async () => {
-    const { GET } = await loadRouteModule();
-    const res = await GET({ url: 'http://localhost/api/search' } as any);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual([]);
+describe('GET /api/search - additional edge cases and coverage (Vitest)', () => {
+  const getDatabase = (vi as any).isMockFunction ? (vi as any).mocked ? (vi as any).mocked(require('@/lib/mongodb').getDatabase) : require('@/lib/mongodb').getDatabase : require('@/lib/mongodb').getDatabase;
+
+  /**
+   * Helper duplicated locally since file may be appended standalone.
+   */
+  function buildUrl(q: string, app?: string, extra: Record<string, string | number | boolean> = {}) {
+    const params = new URLSearchParams();
+    if (typeof app === 'string') params.set('app', app);
+    params.set('q', q);
+    for (const [k, v] of Object.entries(extra)) {
+      params.set(k, String(v));
+    }
+    return `http://localhost/api/search?${params.toString()}`;
+  }
+
+  function createCollection(items: any[]) {
+    return {
+      find: (_query: any) => ({
+        project: (_projection: any) => ({
+          limit: (n: number) => ({
+            toArray: async () => items.slice(0, typeof n === 'number' ? n : items.length),
+          }),
+        }),
+      }),
+    };
+  }
+
+  function createDbStub(map: Record<string, any[]> | ((name: string) => any[])) {
+    return {
+      collection: (name: string) => {
+        const items = typeof map === 'function' ? (map as any)(name) : (map as Record<string, any[]>)[name] || [];
+        return createCollection(items);
+      },
+    };
+  }
+
+  function createThrowingDbStub(collectionNameToThrow: string) {
+    return {
+      collection: (name: string) => {
+        const shouldThrow = name === collectionNameToThrow;
+        return {
+          find: (_q: any) => ({
+            project: (_p: any) => ({
+              limit: (_n: number) => ({
+                toArray: async () => {
+                  if (shouldThrow) throw new Error(`Boom in ${name}`);
+                  return [];
+                },
+              }),
+            }),
+          }),
+        };
+      },
+    };
+  }
+
+  async function loadRouteModule(): Promise<{ GET: (req: any) => Promise<any> }> {
+    const candidates = [
+      '../../src/app/api/search/route',
+      '../../app/api/search/route',
+    ];
+    let lastErr: any;
+    for (const p of candidates) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const mod = await import(p);
+        if (mod?.GET) return mod as any;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw new Error(`Unable to import GET handler from expected paths. Last error: ${lastErr?.message || lastErr}`);
+  }
+
+  beforeEach(() => {
+    // reset mocks between appended tests as well
+    (vi as any).clearAllMocks?.();
+    (vi as any).resetModules?.();
   });
 
-  it('FM app: returns empty array when all collections are empty', async () => {
-    getDatabase.mockResolvedValueOnce(createDbStub({}));
+  it('returns 200 and empty array when q is missing entirely', async () => {
     const { GET } = await loadRouteModule();
-    const res = await GET({ url: buildUrl('no hits', 'fm') } as any);
+    const url = 'http://localhost/api/search'; // no q
+    const res = await GET({ url } as any);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual([]);
+    await expect(res.json()).resolves.toEqual([]);
   });
 
-  it('AQAR app: enforces 25-item cap with many listings and correct hrefs', async () => {
-    const listings = Array.from({ length: 30 }, (_, i) => ({ _id: `l_${i}`, title: `Listing ${i}` }));
-    const projects = Array.from({ length: 10 }, (_, i) => ({ _id: `p_${i}`, name: `Project ${i}` }));
-    const agents = Array.from({ length: 10 }, (_, i) => ({ _id: `a_${i}`, name: `Agent ${i}` }));
+  it('explicit Aqar app behaves like fallback Aqar mapping', async () => {
+    const listings = [
+      { _id: 'l1', title: 'Listing 1', location: { city: 'Jeddah' }, price: 1200000 },
+      { _id: 'l2', price: 999999 },
+      { _id: 'l3', title: 'Listing 3' }, // no city or price
+    ];
+    const projects = [{ _id: 'p1', name: 'Project One' }];
+    const agents = [{ _id: 'a1', name: 'Agent A', company: 'ACME Realty' }];
 
     getDatabase.mockResolvedValueOnce(
       createDbStub((name: string) => {
@@ -331,67 +401,90 @@ describe('GET /api/search - additional coverage', () => {
     );
 
     const { GET } = await loadRouteModule();
-    const res = await GET({ url: buildUrl('many', 'aqar') } as any);
+    const res = await GET({ url: buildUrl('aqar query', 'aqar') } as any);
     expect(res.status).toBe(200);
     const body = await res.json();
-
-    // 30 listings + others, capped to 25
-    expect(body).toHaveLength(25);
-
-    // First and 25th entries remain within listings due to push order then slice
-    expect(body[0]).toMatchObject({
-      id: 'l_0',
-      entity: 'listings',
-      title: 'Listing 0',
-      href: '/aqar/listings/l_0',
-    });
-    expect(body[24]).toMatchObject({
-      id: 'l_24',
-      entity: 'listings',
-      href: '/aqar/listings/l_24',
-    });
+    expect(body).toEqual(
+      expect.arrayContaining([
+        { id: 'l1', entity: 'listings', title: 'Listing 1', subtitle: 'Jeddah', href: '/aqar/listings/l1' },
+        { id: 'l2', entity: 'listings', title: 'Listing l2', subtitle: 999999, href: '/aqar/listings/l2' },
+        { id: 'l3', entity: 'listings', title: 'Listing 3', href: '/aqar/listings/l3' },
+        { id: 'p1', entity: 'projects', title: 'Project One', href: '/aqar/projects/p1' },
+        { id: 'a1', entity: 'agents', title: 'Agent A', subtitle: 'ACME Realty', href: '/aqar/agents/a1' },
+      ])
+    );
   });
 
-  it('SOUQ app: vendor title falls back to "Vendor <id>" when name is missing', async () => {
-    const vendors = [{ _id: 'ven_x' }, { _id: 'ven_y', name: 'Y Inc' }];
+  it('SOUQ app: orders with orderNumber use preferred title format', async () => {
+    const products: any[] = [];
+    const rfqs: any[] = [];
+    const orders = [
+      { _id: 'ord_1', orderNumber: 'ORD-1', status: 'completed' },
+      { _id: 'ord_2', status: 'processing' }, // fallback
+    ];
+    const vendors: any[] = [];
 
     getDatabase.mockResolvedValueOnce(
       createDbStub((name: string) => {
+        if (name === 'products') return products;
+        if (name === 'rfqs') return rfqs;
+        if (name === 'orders') return orders;
         if (name === 'vendors') return vendors;
-        if (name === 'products' || name === 'rfqs' || name === 'orders') return [];
         return [];
       })
     );
 
     const { GET } = await loadRouteModule();
-    const res = await GET({ url: buildUrl('vendors only', 'souq') } as any);
+    const res = await GET({ url: buildUrl('souq detail', 'souq') } as any);
     expect(res.status).toBe(200);
     const body = await res.json();
 
-    const missingName = body.find((h: any) => h.entity === 'vendors' && h.id === 'ven_x');
-    const named = body.find((h: any) => h.entity === 'vendors' && h.id === 'ven_y');
+    const ord1 = body.find((h: any) => h.entity === 'orders' && h.id === 'ord_1');
+    const ord2 = body.find((h: any) => h.entity === 'orders' && h.id === 'ord_2');
 
-    expect(missingName).toMatchObject({
-      id: 'ven_x',
-      entity: 'vendors',
-      title: 'Vendor ven_x',
-      href: '/marketplace/vendors/ven_x',
-    });
-    expect(named).toMatchObject({
-      id: 'ven_y',
-      entity: 'vendors',
-      title: 'Y Inc',
-      href: '/marketplace/vendors/ven_y',
-    });
+    expect(ord1).toBeTruthy();
+    expect(ord1.title).toBe('Order ORD-1');
+    expect(ord1.href).toBe('/marketplace/orders/ord_1');
+
+    expect(ord2).toBeTruthy();
+    expect(ord2.title).toBe('Order ord_2');
+    expect(ord2.href).toBe('/marketplace/orders/ord_2');
   });
 
-  it('SOUQ app: returns empty array if a later collection throws (caught)', async () => {
-    // Simulate a throw during vendors retrieval to exercise error path
-    getDatabase.mockResolvedValueOnce(createThrowingDbStub('vendors'));
+  it('FM app: respects limit 25 when collections are large', async () => {
+    const big = (prefix: string, n: number, key: string = 'name') =>
+      Array.from({ length: n }, (_, i) => ({ _id: `${prefix}_${i}`, [key]: `${prefix}-${i}` }));
+
+    const workOrders = big('wo', 20, 'title'); // 20
+    const properties = big('prop', 10, 'name'); // 10 -> total 30 already
+    const tenants: any[] = [];
+    const vendors: any[] = [];
+    const invoices: any[] = [];
+
+    getDatabase.mockResolvedValueOnce(
+      createDbStub((name: string) => {
+        if (name === 'workOrders') return workOrders;
+        if (name === 'properties') return properties;
+        if (name === 'tenants') return tenants;
+        if (name === 'vendors') return vendors;
+        if (name === 'invoices') return invoices;
+        return [];
+      })
+    );
+
     const { GET } = await loadRouteModule();
-    const res = await GET({ url: buildUrl('trigger throw', 'souq') } as any);
+    const res = await GET({ url: buildUrl('fm huge', 'fm') } as any);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual([]);
+    expect(body.length).toBeLessThanOrEqual(25);
+    expect(body.length).toBe(25);
+  });
+
+  it('Gracefully returns empty array when a later collection throws (e.g., vendors) in FM', async () => {
+    getDatabase.mockResolvedValueOnce(createThrowingDbStub('vendors'));
+    const { GET } = await loadRouteModule();
+    const res = await GET({ url: buildUrl('fm throw vendors', 'fm') } as any);
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual([]);
   });
 });

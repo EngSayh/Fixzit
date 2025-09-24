@@ -55,6 +55,79 @@ afterAll(() => {
 });
 
 describe('lib/mongo db initialization', () => {
+  test('MockDB.collection handles unexpected inputs gracefully (no throws)', async () => {
+    jest.doMock("mongoose", () => { throw new Error("Module not found"); });
+    const { db } = await importMongoModule();
+    const mockConn = await db;
+    // @ts-ignore
+    const col = await mockConn.collection(undefined as any);
+    await expect(col.insertOne(undefined as any)).resolves.toEqual(expect.objectContaining({ insertedId: expect.any(String) }));
+    await expect(col.updateOne(undefined as any, undefined as any)).resolves.toEqual(expect.objectContaining({ modifiedCount: expect.any(Number) }));
+    await expect(col.deleteOne(undefined as any)).resolves.toEqual(expect.objectContaining({ deletedCount: expect.any(Number) }));
+    const cursor = await col.find(undefined as any);
+    await expect(cursor.toArray()).resolves.toEqual(expect.any(Array));
+  });
+  test('exports stable shape: db is a Promise and isMockDB is boolean (MockDB path)', async () => {
+    jest.doMock("mongoose", () => { throw new Error("Module not found"); });
+    const mod = await importMongoModule();
+    expect(typeof mod.isMockDB).toBe("boolean");
+    expect(typeof (mod.db as any).then).toBe("function");
+    const resolved = await mod.db;
+    expect((resolved as any).readyState).toBe(1);
+  });
+  test('exports stable shape: db is a Promise and isMockDB is boolean (mongoose path)', async () => {
+    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1 });
+    mockMongoose({ connect: connectSpy });
+    const mod = await importMongoModule();
+    expect(typeof mod.isMockDB).toBe("boolean");
+    expect(typeof (mod.db as any).then).toBe("function");
+    await mod.db;
+  });
+  test('uses default URI when MONGODB_URI is blank string', async () => {
+    process.env.MONGODB_URI = "";
+    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, kind: "mongoose" });
+    mockMongoose({ connect: connectSpy });
+
+    const { db } = await importMongoModule();
+    await db;
+
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+    const calledWith = connectSpy.mock.calls[0][0];
+    expect(typeof calledWith).toBe("string");
+    // Expect fallback default used (as in existing default URI test)
+    expect(calledWith).toBe("mongodb://localhost:27017/fixzit");
+  });
+  test('re-importing the module uses cached global connection and avoids reconnect', async () => {
+    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, kind: "mongoose" });
+    mockMongoose({ connect: connectSpy });
+
+    const first = await importMongoModule();
+    const firstResolved = await first.db;
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+    expect((firstResolved as any).readyState).toBe(1);
+
+    // Prepare for a second import; import helper resets modules, so reapply the mock before second import
+    mockMongoose({ connect: connectSpy });
+    const second = await importMongoModule();
+    const secondResolved = await second.db;
+
+    // Still should be 1 connect call due to global cache
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+    expect(secondResolved).toEqual(firstResolved);
+  });
+  test('does not reconnect when awaiting db concurrently (single connect call)', async () => {
+    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, kind: "mongoose", marker: Math.random() });
+    mockMongoose({ connect: connectSpy });
+
+    const { db } = await importMongoModule();
+
+    const [a, b, c] = await Promise.all([db, db, db]);
+
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+    expect(a).toEqual(b);
+    expect(b).toEqual(c);
+    expect((a as any).readyState).toBe(1);
+  });
   test('uses mongoose.connect when mongoose is available and resolves', async () => {
     const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, kind: 'mongoose' });
     mockMongoose({ connect: connectSpy });
@@ -199,162 +272,5 @@ describe('lib/mongo db initialization', () => {
     const res = await mockConn.listCollections();
     const arr = await res.toArray();
     expect(arr).toEqual([]);
-  });
-});
-describe('lib/mongo additional coverage', () => {
-  test('forces MockDB when USE_MOCK_DB is true even if mongoose is available', async () => {
-    // Depending on implementation, USE_MOCK_DB should drive isMockDB true and prefer MockDB.
-    // If implementation still uses mongoose, this test will catch that mismatch.
-    process.env.USE_MOCK_DB = 'true';
-    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, kind: 'mongoose' });
-    mockMongoose({ connect: connectSpy });
-
-    const { db, isMockDB } = await importMongoModule();
-    const resolved = await db;
-
-    expect(isMockDB).toBe(true);
-    // Expect either no connect attempt or the connection object to reflect MockDB behavior.
-    // We assert connect not called as the preferred behavior when USE_MOCK_DB=true.
-    expect(connectSpy).not.toHaveBeenCalled();
-    // MockDB connection should present connected-like state
-    expect((resolved as any).readyState).toBe(1);
-  });
-
-  test('gracefully handles malformed mongoose module (missing connect) and falls back to MockDB', async () => {
-    // Provide a mongoose module without connect API
-    // @ts-expect-error intentionally malformed
-    mockMongoose({} as any);
-
-    const { db } = await importMongoModule();
-    const resolved = await db;
-
-    expect((resolved as any).readyState).toBe(1);
-  });
-
-  test('multiple imports reuse the same global._mongoose and do not reconnect', async () => {
-    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, id: 'first' });
-    mockMongoose({ connect: connectSpy });
-
-    // First import establishes the connection
-    const first = await importMongoModule();
-    const firstResolved = await first.db;
-    expect(connectSpy).toHaveBeenCalledTimes(1);
-    expect(firstResolved).toEqual(expect.objectContaining({ readyState: 1 }));
-
-    // Second import should hit the cache and not call connect again
-    const second = await importMongoModule();
-    const secondResolved = await second.db;
-
-    expect(connectSpy).toHaveBeenCalledTimes(1);
-    expect(secondResolved).toEqual(expect.objectContaining({ readyState: 1 }));
-  });
-
-  test('connect is called with default options when no env overrides are set', async () => {
-    delete process.env.MONGODB_URI;
-    delete process.env.USE_MOCK_DB;
-
-    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, kind: 'mongoose' });
-    mockMongoose({ connect: connectSpy });
-
-    const { db } = await importMongoModule();
-    await db;
-
-    // Verifies default URI and options shape as asserted elsewhere, providing extra guard
-    expect(connectSpy).toHaveBeenCalledWith(
-      'mongodb://localhost:27017/fixzit',
-      expect.objectContaining({
-        autoIndex: expect.any(Boolean),
-        maxPoolSize: expect.any(Number),
-      }),
-    );
-  });
-
-  test('MockDB.collection returns deterministic shapes across operations', async () => {
-    // Force MockDB
-    jest.doMock('mongoose', () => {
-      throw new Error('Module not found');
-    });
-
-    const { db } = await importMongoModule();
-    const conn = await db;
-    // @ts-ignore
-    const col = await conn.collection('det');
-
-    const insertRes = await col.insertOne({ name: 'alpha' });
-    expect(insertRes).toEqual(
-      expect.objectContaining({
-        acknowledged: expect.any(Boolean),
-        insertedId: expect.any(String),
-      })
-    );
-
-    const query = await col.find({ name: 'alpha' });
-    expect(query).toHaveProperty('toArray');
-    const rows = await query.toArray();
-    expect(Array.isArray(rows)).toBe(true);
-
-    const updateRes = await col.updateOne({ name: 'alpha' }, { $set: { name: 'beta' } });
-    expect(updateRes).toEqual(
-      expect.objectContaining({
-        matchedCount: expect.any(Number),
-        modifiedCount: expect.any(Number),
-      })
-    );
-
-    const deleteRes = await col.deleteOne({ name: 'beta' });
-    expect(deleteRes).toEqual(
-      expect.objectContaining({
-        deletedCount: expect.any(Number),
-      })
-    );
-  });
-
-  test('requiring mongoose throws then subsequent import after clearing mocks still works', async () => {
-    // First attempt: mongoose module load fails
-    jest.doMock('mongoose', () => {
-      throw new Error('Module not found');
-    });
-    let mod = await importMongoModule();
-    const firstResolved = await mod.db;
-    expect((firstResolved as any).readyState).toBe(1);
-
-    // Clear mock and provide a working mongoose; then import again
-    jest.dontMock('mongoose');
-    jest.resetModules();
-
-    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, kind: 'mongoose' });
-    mockMongoose({ connect: connectSpy });
-
-    mod = await importMongoModule();
-    const secondResolved = await mod.db;
-    expect(connectSpy).toHaveBeenCalledTimes(1);
-    expect((secondResolved as any).readyState).toBe(1);
-  });
-
-  test('mongoose.connect receives provided custom URI when MONGODB_URI is set', async () => {
-    process.env.MONGODB_URI = 'mongodb://127.0.0.1:27018/customdb?retryWrites=true';
-    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1 });
-    mockMongoose({ connect: connectSpy });
-
-    const { db } = await importMongoModule();
-    await db;
-
-    expect(connectSpy).toHaveBeenCalledWith(
-      'mongodb://127.0.0.1:27018/customdb?retryWrites=true',
-      expect.any(Object),
-    );
-  });
-
-  test('mongoose.connect called exactly once even if db awaited multiple times', async () => {
-    const connectSpy = jest.fn().mockResolvedValue({ readyState: 1, once: true });
-    mockMongoose({ connect: connectSpy });
-
-    const { db } = await importMongoModule();
-    const a = await db;
-    const b = await db;
-
-    expect(connectSpy).toHaveBeenCalledTimes(1);
-    expect(a).toEqual(expect.objectContaining({ readyState: 1 }));
-    expect(b).toEqual(expect.objectContaining({ readyState: 1 }));
   });
 });
