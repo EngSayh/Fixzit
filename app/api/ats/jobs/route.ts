@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
-import { generateSlug } from '@/src/lib/utils';
+import { slugify } from '@/src/lib/utils';
 import { getUserFromToken } from '@/src/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const userId = user?.id || 'system';
     const orgId = user?.tenantId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
-    const baseSlug = generateSlug(body.title);
+    const baseSlug = slugify(body.title);
     let slug = baseSlug;
     let counter = 1;
     while (await Job.findOne({ orgId, slug })) {
