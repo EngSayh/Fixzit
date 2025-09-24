@@ -155,8 +155,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
               value={q}
               onChange={event => setQ(event.target.value)}
               className="w-full rounded border border-gray-300 bg-white pl-7 pr-2 py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30"
-              placeholder="Type to filter languages"
-              aria-label="Type to filter languages"
+              placeholder={t('common.search.languages', 'Type to filter languages')}
+              aria-label={t('common.search.languages', 'Type to filter languages')}
             />
           </div>
           <ul className="max-h-72 overflow-auto" role="listbox">

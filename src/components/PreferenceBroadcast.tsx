@@ -5,7 +5,7 @@ import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useCurrency } from '@/src/contexts/CurrencyContext';
 
 export default function PreferenceBroadcast() {
-  const { language, locale, isRTL } = useTranslation();
+  const { language, isRTL } = useTranslation();
   const { currency } = useCurrency();
 
   useEffect(() => {
@@ -13,12 +13,12 @@ export default function PreferenceBroadcast() {
       return;
     }
 
-    const detail = { language, locale, currency, dir: isRTL ? 'rtl' : 'ltr' };
+    const detail = { language, currency, dir: isRTL ? 'rtl' : 'ltr' };
     window.dispatchEvent(new CustomEvent('fixzit:preferences', { detail }));
 
     const langNodes = document.querySelectorAll<HTMLElement>('[data-lang-text]');
     langNodes.forEach(node => {
-      node.textContent = locale;
+      node.textContent = language;
     });
 
     const currencyNodes = document.querySelectorAll<HTMLElement>('[data-currency-text]');
@@ -29,13 +29,13 @@ export default function PreferenceBroadcast() {
     const mirrorNodes = document.querySelectorAll<HTMLElement>('[data-preference-mirror]');
     mirrorNodes.forEach(node => {
       if (node.dataset.preferenceMirror === 'language') {
-        node.textContent = locale;
+        node.textContent = language;
       }
       if (node.dataset.preferenceMirror === 'currency') {
         node.textContent = currency;
       }
     });
-  }, [language, locale, currency, isRTL]);
+  }, [language, currency, isRTL]);
 
   return null;
 }

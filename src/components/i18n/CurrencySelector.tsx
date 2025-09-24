@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleDollarSign, Search } from 'lucide-react';
 import { useCurrency, CURRENCY_OPTIONS, type CurrencyOption } from '@/src/contexts/CurrencyContext';
+import { useTranslation } from '@/src/contexts/TranslationContext';
 
 interface CurrencySelectorProps {
   variant?: 'default' | 'compact';
@@ -13,6 +14,16 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Safe translation with fallback
+  let t: (key: string, fallback?: string) => string;
+  try {
+    const translationContext = useTranslation();
+    t = translationContext.t;
+  } catch {
+    // Fallback when context is not available
+    t = (key: string, fallback?: string) => fallback || key;
+  }
 
   const current = useMemo<CurrencyOption>(() => {
     return CURRENCY_OPTIONS.find(option => option.code === currency) ?? CURRENCY_OPTIONS[0];
@@ -92,8 +103,8 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
               value={query}
               onChange={event => setQuery(event.target.value)}
               className="w-full rounded border border-gray-300 bg-white pl-7 pr-2 py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30"
-              placeholder="Type to filter currencies"
-              aria-label="Type to filter currencies"
+              placeholder={t('common.search.currencies', 'Type to filter currencies')}
+              aria-label={t('common.search.currencies', 'Type to filter currencies')}
             />
           </div>
           <ul className="max-h-64 overflow-auto" role="listbox">
