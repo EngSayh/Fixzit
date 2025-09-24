@@ -206,8 +206,8 @@ VendorSchema.index({ tenantId: 1, 'business.specializations': 1 });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
 
-// Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
+// Check if we're using mock database (explicit flag only)
+const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 export const Vendor = isMockDB
   ? new MockModel('vendors') as any
