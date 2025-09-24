@@ -28,6 +28,8 @@
     "test:install": "playwright install",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "aqar:seed": "node scripts/seed-aqar-data.js",
+    "aqar:test": "node scripts/test-aqar-api.js",
     "db:seed:rbac": "tsx prisma/seed-rbac.ts",
     "db:reset": "prisma db push --force-reset && tsx prisma/seed-rbac.ts",
     "db:studio": "prisma studio",
