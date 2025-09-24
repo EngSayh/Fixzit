@@ -1,3 +1,4 @@
+declare const process: any;
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
   EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
@@ -18,105 +19,104 @@ export async function createHppRequest(region:string, payload:any) {
   });
   return r.json();
 }
+export type PaymentRequest = {
+  amount: number;
+  currency: string;
+  description: string;
+  invoiceId?: string;
+  returnUrl: string;
+  callbackUrl: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    zip?: string;
+  };
+  region?: string; // overrides PAYTABS_REGION
+  tokenize?: boolean; // request token (for monthly recurring)
+};
+
+export type PaymentResponse = {
+  success: boolean;
+  paymentUrl?: string;
+  transactionId?: string;
+  error?: string;
+  raw?: any;
+};
 
 export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
   try {
-    const payload = {
-      profile_id: PAYTABS_CONFIG.profileId,
+    const profileId = process.env.PAYTABS_PROFILE_ID!;
+    const serverKey = process.env.PAYTABS_SERVER_KEY!;
+    const region = request.region || process.env.PAYTABS_REGION || 'GLOBAL';
+    const baseUrl = paytabsBase(region);
+
+    const payload: any = {
+      profile_id: profileId,
       tran_type: 'sale',
       tran_class: 'ecom',
       cart_id: request.invoiceId || `CART-${Date.now()}`,
       cart_currency: request.currency,
-      cart_amount: request.amount.toFixed(2),
+      cart_amount: +request.amount.toFixed(2),
       cart_description: request.description,
-      
-      // URLs
       return: request.returnUrl,
       callback: request.callbackUrl,
-      
-      // Customer details
       customer_details: {
         name: request.customerDetails.name,
         email: request.customerDetails.email,
-        phone: request.customerDetails.phone,
-        street1: request.customerDetails.address,
-        city: request.customerDetails.city,
-        state: request.customerDetails.state,
-        country: request.customerDetails.country,
-        zip: request.customerDetails.zip
+        phone: request.customerDetails.phone || '',
+        street1: request.customerDetails.address || '',
+        city: request.customerDetails.city || '',
+        state: request.customerDetails.state || '',
+        country: request.customerDetails.country || 'SA',
+        zip: request.customerDetails.zip || ''
       },
-      
-      // Hide shipping
-      hide_shipping: true,
-      
-      // Language
-      paypage_lang: 'ar'
+      hide_shipping: true
     };
+    if (request.tokenize) payload.tokenise = 2;
 
-    const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/request`, {
+    const response = await fetch(`${baseUrl}/payment/request`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey,
+        'Authorization': serverKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
 
     const data = await response.json();
-
     if (data.redirect_url) {
-      return {
-        success: true,
-        paymentUrl: data.redirect_url,
-        transactionId: data.tran_ref
-      };
-    } else {
-      return {
-        success: false,
-        error: data.message || 'Payment initialization failed'
-      };
+      return { success: true, paymentUrl: data.redirect_url, transactionId: data.tran_ref, raw: data };
     }
+    return { success: false, error: data.message || 'Payment initialization failed', raw: data };
   } catch (error: any) {
     console.error('PayTabs error:', error);
-    return {
-      success: false,
-      error: error.message || 'Payment gateway error'
-    };
+    return { success: false, error: error.message || 'Payment gateway error' };
   }
 }
 
-export async function verifyPayment(tranRef: string): Promise<any> {
+export async function verifyPayment(tranRef: string, region?: string): Promise<any> {
   try {
-    const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
+    const profileId = process.env.PAYTABS_PROFILE_ID!;
+    const serverKey = process.env.PAYTABS_SERVER_KEY!;
+    const baseUrl = paytabsBase(region || process.env.PAYTABS_REGION || 'GLOBAL');
+    const response = await fetch(`${baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey,
+        'Authorization': serverKey,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        profile_id: PAYTABS_CONFIG.profileId,
-        tran_ref: tranRef
-      })
+      body: JSON.stringify({ profile_id: profileId, tran_ref: tranRef })
     });
-
     return await response.json();
   } catch (error) {
     console.error('PayTabs verification error:', error);
     throw error;
   }
-}
-
-export function validateCallback(payload: any, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
-  const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
-}
-
-function generateSignature(payload: any): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
 }
 
 // Payment methods supported in Saudi Arabia

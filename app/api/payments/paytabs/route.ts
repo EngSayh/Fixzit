@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 
-const PaymentSchema = z.object({
-  orderId: z.string(),
-  amount: z.number().positive(),
-  currency: z.string().default('SAR'),
-  customerEmail: z.string().email(),
-  customerName: z.string(),
-  customerPhone: z.string()
-});
+type PaymentBody = {
+  orderId: string;
+  amount: number;
+  currency?: string;
+  customerEmail: string;
+  customerName: string;
+  customerPhone: string;
+};
+function validatePaymentBody(body: any): PaymentBody {
+  if (!body || typeof body !== 'object') throw new Error('Invalid body');
+  const { orderId, amount, currency, customerEmail, customerName, customerPhone } = body;
+  if (!orderId || typeof orderId !== 'string') throw new Error('orderId required');
+  if (typeof amount !== 'number' || !(amount > 0)) throw new Error('amount must be positive number');
+  if (!customerEmail || typeof customerEmail !== 'string') throw new Error('customerEmail required');
+  if (!customerName || typeof customerName !== 'string') throw new Error('customerName required');
+  if (!customerPhone || typeof customerPhone !== 'string') throw new Error('customerPhone required');
+  return { orderId, amount, currency: currency || 'SAR', customerEmail, customerName, customerPhone };
+}
 
 // PayTabs payment page creation
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const data = PaymentSchema.parse(body);
+    const data = validatePaymentBody(body);
     
     const payload = {
-      profile_id: process.env.PAYTABS_PROFILE_ID || '85119',
+      profile_id: process.env.PAYTABS_PROFILE_ID || '',
       tran_type: 'sale',
       tran_class: 'ecom',
       cart_id: data.orderId,
@@ -30,15 +39,16 @@ export async function POST(req: NextRequest) {
         phone: data.customerPhone,
         country: 'SA'
       },
-      callback: `${process.env.NEXTAUTH_URL}/api/payments/paytabs/callback`,
-      return: `${process.env.NEXTAUTH_URL}/marketplace/order-success`
+      callback: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL}/api/payments/paytabs/callback`,
+      return: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL}/marketplace/order-success`
     };
     
-    const response = await fetch('https://secure.paytabs.sa/payment/request', {
+    const baseUrl = process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa';
+    const response = await fetch(`${baseUrl}/payment/request`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': process.env.PAYTABS_API_SERVER_KEY || ''
+        'Authorization': process.env.PAYTABS_SERVER_KEY || ''
       },
       body: JSON.stringify(payload)
     });

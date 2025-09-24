@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { dbConnect } from '@/src/db/mongoose';
 import PriceTier from '@/src/models/PriceTier';
 import Module from '@/src/models/Module';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   await dbConnect();
+  const user = await getSessionUser(req);
+  if (user.role !== 'SUPER_ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const rows = await PriceTier.find({}).populate('moduleId','code name');
   return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {
   await dbConnect();
+  const user = await getSessionUser(req);
+  if (user.role !== 'SUPER_ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await req.json();
   // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
   const mod = await Module.findOne({ code: body.moduleCode });
