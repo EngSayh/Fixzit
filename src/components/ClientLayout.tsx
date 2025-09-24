@@ -6,6 +6,7 @@ import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import HelpWidget from './HelpWidget';
+import PreferenceBroadcast from '@/src/components/PreferenceBroadcast';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
