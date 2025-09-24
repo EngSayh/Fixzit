@@ -1,155 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollections } from '@/lib/db/collections';
-import { jwtVerify } from 'jose';
 import { z } from 'zod';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+import { dbConnect } from '@/src/db/mongoose';
+import Product from '@/src/models/marketplace/Product';
+import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
+import { serializeOrder, serializeProduct } from '@/src/lib/marketplace/serializers';
+import { getOrCreateCart, recalcCartTotals } from '@/src/lib/marketplace/cart';
 
 const AddToCartSchema = z.object({
   productId: z.string(),
   quantity: z.number().int().positive()
 });
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // Get user from auth
-    const token = req.cookies.get('fixzit_auth')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    const { payload } = await jwtVerify(token, secret);
-    
-    const { carts, products } = await getCollections();
-    
-    // Get or create cart
-    let cart = await carts.findOne({ userId: payload.id as string });
-    
-    if (!cart) {
-      const newCart = {
-        userId: payload.id as string,
-        tenantId: payload.tenantId as string,
-        items: [],
-        currency: 'SAR',
-        total: 0,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      const result = await carts.insertOne(newCart);
-      cart = { ...newCart, _id: result.insertedId.toString() };
-    }
-    
-    // Enrich cart items with product data
-    const productIds = cart.items.map(item => item.productId);
-    const productsList = await products.find({ _id: { $in: productIds } }).toArray();
-    const productMap = new Map(productsList.map(p => [p._id, p]));
-    
-    const enrichedItems = cart.items.map(item => ({
-      ...item,
-      product: productMap.get(item.productId)
-    }));
-    
+    await dbConnect();
+    const cart = await getOrCreateCart(context.orgId, context.userId);
+    const productIds = cart.lines.map(line => line.productId);
+    const products = await Product.find({ _id: { $in: productIds } }).lean();
+    const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as any)]));
+
     return NextResponse.json({
       ok: true,
       data: {
-        ...cart,
-        items: enrichedItems
+        ...serializeOrder(cart),
+        lines: cart.lines.map(line => ({
+          ...line,
+          productId: line.productId.toString(),
+          product: productMap.get(line.productId.toString())
+        }))
       }
     });
   } catch (error) {
-    console.error('Cart fetch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Marketplace cart fetch failed', error);
+    return NextResponse.json({ ok: false, error: 'Unable to load cart' }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Get user from auth
-    const token = req.cookies.get('fixzit_auth')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    const { payload } = await jwtVerify(token, secret);
-    
-    const body = await req.json();
-    const { productId, quantity } = AddToCartSchema.parse(body);
-    
-    const { carts, products } = await getCollections();
-    
-    // Get product
-    const product = await products.findOne({ _id: productId });
+    const body = await request.json();
+    const payload = AddToCartSchema.parse(body);
+    await dbConnect();
+
+    const productId = objectIdFrom(payload.productId);
+    const product = await Product.findOne({ _id: productId, orgId: context.orgId });
     if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      return NextResponse.json({ ok: false, error: 'Product not found' }, { status: 404 });
     }
-    
-    // Check stock
-    if (product.stock < quantity) {
-      return NextResponse.json(
-        { error: 'Insufficient stock', available: product.stock },
-        { status: 400 }
-      );
-    }
-    
-    // Get or create cart
-    let cart = await carts.findOne({ userId: payload.id as string });
-    
-    if (!cart) {
-      const newCart = {
-        userId: payload.id as string,
-        tenantId: payload.tenantId as string,
-        items: [],
-        currency: product.currency,
-        total: 0,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      const result = await carts.insertOne(newCart);
-      cart = { ...newCart, _id: result.insertedId.toString() };
-    }
-    
-    // Update cart items
-    const existingItemIndex = cart.items.findIndex(item => item.productId === productId);
-    
-    if (existingItemIndex >= 0) {
-      cart.items[existingItemIndex].quantity += quantity;
+
+    const cart = await getOrCreateCart(context.orgId, context.userId);
+    const lineIndex = cart.lines.findIndex(line => line.productId.toString() === productId.toString());
+
+    if (lineIndex >= 0) {
+      cart.lines[lineIndex].qty += payload.quantity;
+      cart.lines[lineIndex].total = cart.lines[lineIndex].qty * cart.lines[lineIndex].price;
     } else {
-      cart.items.push({
+      cart.lines.push({
         productId,
-        quantity,
-        price: product.price
+        qty: payload.quantity,
+        price: product.buy.price,
+        currency: product.buy.currency,
+        uom: product.buy.uom,
+        total: product.buy.price * payload.quantity
       });
     }
-    
-    // Calculate total
-    cart.total = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    cart.updatedAt = new Date();
-    
-    // Update cart
-    await carts.updateOne(
-      { _id: cart._id },
-      { $set: { items: cart.items, total: cart.total, updatedAt: cart.updatedAt } }
-    );
-    
+
+    recalcCartTotals(cart);
+    await cart.save();
+
     return NextResponse.json({
       ok: true,
-      data: cart
+      data: serializeOrder(cart)
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Invalid payload', details: error.issues }, { status: 400 });
     }
-    
-    console.error('Add to cart error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Marketplace add to cart failed', error);
+    return NextResponse.json({ ok: false, error: 'Unable to update cart' }, { status: 500 });
   }
 }

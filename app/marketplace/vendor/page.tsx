@@ -1,5 +1,5 @@
 import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import RFQBoard from '@/src/components/marketplace/RFQBoard';
+import VendorCatalogueManager from '@/src/components/marketplace/VendorCatalogueManager';
 import { cookies } from 'next/headers';
 
 async function fetchWithTenant(path: string) {
@@ -15,10 +15,10 @@ async function fetchWithTenant(path: string) {
   return res.json();
 }
 
-export default async function RFQPage() {
-  const [categoriesResponse, rfqResponse] = await Promise.all([
+export default async function VendorPortalPage() {
+  const [categoriesResponse, productsResponse] = await Promise.all([
     fetchWithTenant('/api/marketplace/categories'),
-    fetchWithTenant('/api/marketplace/rfq')
+    fetchWithTenant('/api/marketplace/vendor/products')
   ]);
 
   const departments = (categoriesResponse.data as any[]).map((category: any) => ({
@@ -26,14 +26,13 @@ export default async function RFQPage() {
     name: category.name?.en ?? category.slug
   }));
 
-  const categories = departments;
-  const rfqs = rfqResponse.data as any[];
+  const products = productsResponse.data as any[];
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       <TopBarAmazon departments={departments} />
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <RFQBoard categories={categories} initialRfqs={rfqs} />
+        <VendorCatalogueManager categories={departments} initialProducts={products} />
       </main>
     </div>
   );
