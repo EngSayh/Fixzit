@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@/src/i18n/config';
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -79,8 +80,31 @@ const protectedMarketplaceActions = [
   '/aqar/bookings'
 ];
 
+function negotiateLocale(request: NextRequest): Locale {
+  const cookieLocale = request.cookies.get('locale')?.value as Locale | undefined;
+  if (cookieLocale && SUPPORTED_LOCALES.includes(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  const acceptLanguage = request.headers.get('accept-language') ?? '';
+  if (acceptLanguage.toLowerCase().includes('ar')) {
+    return 'ar';
+  }
+
+  return DEFAULT_LOCALE;
+}
+
+function applyLocale(response: NextResponse, locale: Locale) {
+  response.cookies.set('locale', locale, { path: '/', sameSite: 'lax' });
+  response.cookies.set('fxz.lang', locale, { path: '/', sameSite: 'lax' });
+  response.cookies.set('fxz.locale', locale === 'ar' ? 'ar-SA' : 'en-GB', { path: '/', sameSite: 'lax' });
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const resolvedLocale = negotiateLocale(request);
+  const finalize = (response: NextResponse) => applyLocale(response, resolvedLocale);
 
   // Skip middleware for static files and API calls to Next.js internals
   if (
@@ -90,17 +114,17 @@ export async function middleware(request: NextRequest) {
     pathname.includes('.') ||
     pathname.startsWith('/api/_next/')
   ) {
-    return NextResponse.next();
+    return finalize(NextResponse.next());
   }
 
   // Handle public routes (including public marketplace browsing)
   if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-    return NextResponse.next();
+    return finalize(NextResponse.next());
   }
 
   // Handle public marketplace routes (browsing without login)
   if (publicMarketplaceRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-    return NextResponse.next();
+    return finalize(NextResponse.next());
   }
 
   // Handle API routes - require authentication
@@ -110,7 +134,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/api/cms/') ||
         pathname.startsWith('/api/help/') ||
         pathname.startsWith('/api/assistant/')) {
-      return NextResponse.next();
+      return finalize(NextResponse.next());
     }
 
     // Check for authentication on protected API routes
@@ -118,7 +142,7 @@ export async function middleware(request: NextRequest) {
       try {
         const authToken = request.cookies.get('fixzit_auth')?.value;
         if (!authToken) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+          return finalize(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
         }
 
         const payload = JSON.parse(atob(authToken.split('.')[1]));
@@ -132,9 +156,9 @@ export async function middleware(request: NextRequest) {
         // Add user info to request headers for API routes
         const response = NextResponse.next();
         response.headers.set('x-user', JSON.stringify(user));
-        return response;
+        return finalize(response);
       } catch (error) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return finalize(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
       }
     }
 
@@ -143,7 +167,7 @@ export async function middleware(request: NextRequest) {
       try {
         const authToken = request.cookies.get('fixzit_auth')?.value;
         if (!authToken) {
-          return NextResponse.redirect(new URL('/login', request.url));
+          return finalize(NextResponse.redirect(new URL('/login', request.url)));
         }
 
         const payload = JSON.parse(atob(authToken.split('.')[1]));
@@ -157,13 +181,13 @@ export async function middleware(request: NextRequest) {
         // Add user context to protected marketplace actions
         const response = NextResponse.next();
         response.headers.set('x-user', JSON.stringify(user));
-        return response;
+        return finalize(response);
       } catch (error) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        return finalize(NextResponse.redirect(new URL('/login', request.url)));
       }
     }
 
-    return NextResponse.next();
+    return finalize(NextResponse.next());
   }
 
   // Handle protected routes
@@ -173,9 +197,9 @@ export async function middleware(request: NextRequest) {
     if (!authToken) {
       // Redirect to login for unauthenticated users on protected routes
       if (pathname.startsWith('/fm/')) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        return finalize(NextResponse.redirect(new URL('/login', request.url)));
       }
-      return NextResponse.next();
+      return finalize(NextResponse.next());
     }
 
     // Basic JWT verification without database
@@ -192,13 +216,13 @@ export async function middleware(request: NextRequest) {
       if (pathname === '/' || pathname === '/login') {
         // Redirect to appropriate dashboard based on role
         if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
-          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
+          return finalize(NextResponse.redirect(new URL('/fm/dashboard', request.url)));
         } else if (user.role === 'TENANT') {
-          return NextResponse.redirect(new URL('/fm/properties', request.url));
+          return finalize(NextResponse.redirect(new URL('/fm/properties', request.url)));
         } else if (user.role === 'VENDOR') {
-          return NextResponse.redirect(new URL('/fm/marketplace', request.url));
+          return finalize(NextResponse.redirect(new URL('/fm/marketplace', request.url)));
         } else {
-          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
+          return finalize(NextResponse.redirect(new URL('/fm/dashboard', request.url)));
         }
       }
 
@@ -207,24 +231,24 @@ export async function middleware(request: NextRequest) {
         // Add user context to FM routes
         const response = NextResponse.next();
         response.headers.set('x-user', JSON.stringify(user));
-        return response;
+        return finalize(response);
       }
 
-      return NextResponse.next();
+      return finalize(NextResponse.next());
     } catch (jwtError) {
       // Invalid token - redirect to login
       if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        return finalize(NextResponse.redirect(new URL('/login', request.url)));
       }
-      return NextResponse.next();
+      return finalize(NextResponse.next());
     }
   } catch (error) {
     // Redirect to login for any errors
     if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      return finalize(NextResponse.redirect(new URL('/login', request.url)));
     }
 
-    return NextResponse.next();
+    return finalize(NextResponse.next());
   }
 }
 

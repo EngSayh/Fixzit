@@ -3,7 +3,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
-import LanguageSelector from '@/src/components/i18n/LanguageSelector';
+import LanguageSelector from '@/src/components/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
