@@ -1,70 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollections } from '@/lib/db/collections';
 import { z } from 'zod';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+import { dbConnect } from '@/src/db/mongoose';
+import Product from '@/src/models/marketplace/Product';
+import { serializeProduct } from '@/src/lib/marketplace/serializers';
+import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
 
 const QuerySchema = z.object({
-  q: z.string().optional(),
-  category: z.string().optional(),
-  minPrice: z.coerce.number().optional(),
-  maxPrice: z.coerce.number().optional(),
-  page: z.coerce.number().default(1),
-  limit: z.coerce.number().default(20).refine(val => val <= 100, { message: "Limit must be 100 or less" })
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20)
 });
 
-export async function GET(req: NextRequest) {
+const ProductSchema = z.object({
+  categoryId: z.string(),
+  sku: z.string().min(1),
+  slug: z.string().min(1),
+  title: z.object({ en: z.string().min(1), ar: z.string().optional() }),
+  summary: z.string().optional(),
+  brand: z.string().optional(),
+  standards: z.array(z.string()).optional(),
+  specs: z.record(z.string(), z.any()).optional(),
+  media: z.array(z.object({ url: z.string().url(), role: z.enum(['GALLERY', 'MSDS', 'COA']).optional(), title: z.string().optional() })).optional(),
+  buy: z.object({
+    price: z.number().positive(),
+    currency: z.string().min(1),
+    uom: z.string().min(1),
+    minQty: z.number().positive().optional(),
+    leadDays: z.number().int().nonnegative().optional()
+  }),
+  stock: z.object({ onHand: z.number().int().nonnegative(), reserved: z.number().int().nonnegative(), location: z.string().optional() }).optional(),
+  status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']).optional()
+});
+
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const query = QuerySchema.parse(Object.fromEntries(searchParams));
-    
-    const { products, categories, vendors } = await getCollections();
-    
-    // Build MongoDB query
-    const filter: any = { active: true };
-    
-    if (query.q) {
-      filter.$text = { $search: query.q };
-    }
-    
-    if (query.category) {
-      const category = await categories.findOne({ slug: query.category });
-      if (category) {
-        filter.categoryId = category._id;
-      }
-    }
-    
-    if (query.minPrice || query.maxPrice) {
-      filter.price = {};
-      if (query.minPrice) filter.price.$gte = query.minPrice;
-      if (query.maxPrice) filter.price.$lte = query.maxPrice;
-    }
-    
-    // Pagination
+    const context = await resolveMarketplaceContext(request);
+    const params = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const query = QuerySchema.parse(params);
+    await dbConnect();
+
     const skip = (query.page - 1) * query.limit;
-    
-    // Get products with vendor info
-    const productsList = await products
-      .find(filter)
-      .skip(skip)
-      .limit(query.limit)
-      .toArray();
-    
-    // Get total count
-    const total = await products.countDocuments(filter);
-    
-    // Enrich with vendor data
-    const vendorIds = [...new Set(productsList.map(p => p.vendorId))];
-    const vendorsList = await vendors.find({ _id: { $in: vendorIds } }).toArray();
-    const vendorMap = new Map(vendorsList.map(v => [v._id, v]));
-    
-    const enrichedProducts = productsList.map(product => ({
-      ...product,
-      vendor: vendorMap.get(product.vendorId)
-    }));
-    
+    const [items, total] = await Promise.all([
+      Product.find({ orgId: context.orgId }).sort({ createdAt: -1 }).skip(skip).limit(query.limit).lean(),
+      Product.countDocuments({ orgId: context.orgId })
+    ]);
+
     return NextResponse.json({
       ok: true,
       data: {
-        products: enrichedProducts,
+        items: items.map(item => serializeProduct(item as any)),
         pagination: {
           page: query.page,
           limit: query.limit,
@@ -75,83 +59,37 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid query parameters', details: error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
     }
-    
-    console.error('Products fetch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Marketplace products list failed', error);
+    return NextResponse.json({ ok: false, error: 'Unable to list products' }, { status: 500 });
   }
 }
 
-const CreateProductSchema = z.object({
-  vendorId: z.string(),
-  categoryId: z.string(),
-  sku: z.string(),
-  title: z.string(),
-  description: z.string(),
-  images: z.array(z.string()).default([]),
-  price: z.number().positive(),
-  currency: z.string().default('SAR'),
-  unit: z.string(),
-  stock: z.number().int().nonnegative()
-});
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Check auth
-    const token = req.cookies.get('fixzit_auth')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const body = await req.json();
-    const data = CreateProductSchema.parse(body);
-    
-    const { products } = await getCollections();
-    
-    // Check if SKU exists
-    const existing = await products.findOne({ sku: data.sku });
-    if (existing) {
-      return NextResponse.json(
-        { error: 'SKU already exists' },
-        { status: 409 }
-      );
-    }
-    
-    const product = {
-      ...data,
-      tenantId: 'default', // TODO: Get from auth context
-      rating: 0,
-      reviewCount: 0,
-      active: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const result = await products.insertOne(product);
-    
-    return NextResponse.json({
-      ok: true,
-      data: { ...product, _id: result.insertedId }
-    }, { status: 201 });
+    const context = await resolveMarketplaceContext(request);
+    const body = await request.json();
+    const payload = ProductSchema.parse(body);
+    await dbConnect();
+
+    const product = await Product.create({
+      ...payload,
+      orgId: context.orgId,
+      categoryId: objectIdFrom(payload.categoryId),
+      vendorId: payload.brand ? objectIdFrom(`${context.orgId}-${payload.brand}`) : undefined,
+      status: payload.status ?? 'ACTIVE'
+    });
+
+    return NextResponse.json({ ok: true, data: serializeProduct(product) }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Invalid payload', details: error.issues }, { status: 400 });
     }
-    
-    console.error('Product creation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    if ((error as any).code === 11000) {
+      return NextResponse.json({ ok: false, error: 'Duplicate SKU or slug' }, { status: 409 });
+    }
+    console.error('Marketplace product creation failed', error);
+    return NextResponse.json({ ok: false, error: 'Unable to create product' }, { status: 500 });
   }
 }
