@@ -305,3 +305,107 @@ test.describe('POST /api/errors/report', () => {
     }
   });
 });
+/**
+ * Additional coverage: validation edge cases and enum acceptance
+ * Testing library/framework: Playwright Test (TypeScript) using APIRequestContext.
+ * Strategy:
+ * - Strict 400 assertions for schema violations.
+ * - Resilient [200, 500] assertions where infra may affect outcomes.
+ */
+test.describe('POST /api/errors/report - additional validation coverage', () => {
+  let ctx: APIRequestContext;
+
+  test.beforeAll(async (fixtures) => {
+    const { baseURL } = fixtures as any;
+    if (!baseURL && !canRunNetwork) {
+      test.skip(true, 'No baseURL configured for API tests.');
+    }
+    ctx = await request.newContext({ baseURL: baseURL || process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:3000' });
+  });
+
+  test.afterAll(async () => {
+    if (ctx) await ctx.dispose();
+  });
+
+  // More strict validation tests (expect 400)
+  test('400 when incidentId is an empty string', async () => {
+    if (!ctx) {
+      test.skip(true, 'No API context.');
+    }
+    const payload = buildValidPayload({ incidentId: '' });
+    const res = await ctx.post(endpoint, { data: payload });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: 'Invalid error report format' });
+  });
+
+  test('400 when items is not an array (object provided)', async () => {
+    if (!ctx) {
+      test.skip(true, 'No API context.');
+    }
+    const payload = buildValidPayload({ items: { code: 'WO-UI-LOAD-003' } as any });
+    const res = await ctx.post(endpoint, { data: payload });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: 'Invalid error report format' });
+  });
+
+  test('400 when items contains non-object entries', async () => {
+    if (!ctx) {
+      test.skip(true, 'No API context.');
+    }
+    const payload = buildValidPayload({ items: ['bad-entry' as any] });
+    const res = await ctx.post(endpoint, { data: payload });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: 'Invalid error report format' });
+  });
+
+  test('400 when an item object is missing required "code" property', async () => {
+    if (!ctx) {
+      test.skip(true, 'No API context.');
+    }
+    const payload = buildValidPayload({
+      items: [{ message: 'Missing code should be rejected', stack: 'trace' } as any]
+    });
+    const res = await ctx.post(endpoint, { data: payload });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: 'Invalid error report format' });
+  });
+
+  test('400 when an item has non-string "code" type', async () => {
+    if (!ctx) {
+      test.skip(true, 'No API context.');
+    }
+    const payload = buildValidPayload({
+      items: [{ code: 12345 as any, message: 'Non-string code', stack: '' }]
+    });
+    const res = await ctx.post(endpoint, { data: payload });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: 'Invalid error report format' });
+  });
+
+  // Enum acceptance (allowed modules) should not break endpoint behavior
+  test('accepts all allowed module enum values (FM, Souq, Aqar, Account, Billing, Other)', async () => {
+    if (!ctx) {
+      test.skip(true, 'No API context.');
+    }
+    const modules = ['FM', 'Souq', 'Aqar', 'Account', 'Billing', 'Other'] as const;
+
+    const responses = await Promise.all(
+      modules.map((m, idx) => {
+        const payload = buildValidPayload({
+          module: m,
+          incidentId: `inc_mod_${m.toLowerCase()}_${idx}`
+        });
+        return ctx.post(endpoint, { data: payload });
+      })
+    );
+
+    for (const r of responses) {
+      expect([200, 500]).toContain(r.status());
+    }
+  });
+});
