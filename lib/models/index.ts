@@ -279,3 +279,16 @@ export interface Review {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface NotificationDoc {
+  _id?: string;
+  tenantId: string;
+  type: 'work-order' | 'vendor' | 'payment' | 'maintenance' | 'system' | string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  priority: 'low' | 'medium' | 'high';
+  category: 'maintenance' | 'vendor' | 'finance' | 'system' | string;
+  archived?: boolean;
+}
