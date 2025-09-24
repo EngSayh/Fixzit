@@ -21,19 +21,14 @@ export async function GET(req: NextRequest){
     const db = await getDatabase();
     const coll = db.collection(COLLECTION);
 
-    // Ensure indexes exist (idempotent)
-    await Promise.all([
-      coll.createIndex({ slug: 1 }, { unique: true }),
-      coll.createIndex({ status: 1, updatedAt: -1 }),
-      coll.createIndex({ title: "text", content: "text", tags: "text" })
-    ]);
+    // Indexes are created by scripts/add-database-indexes.js
 
     const filter: any = { };
     if (status) filter.status = status;
     if (category) filter.category = category;
     if (q) filter.$text = { $search: q };
 
-    const cursor = coll.find(filter, {
+    const cursor = coll.find(filter as any, {
       projection: q ? { score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } : { slug: 1, title: 1, category: 1, updatedAt: 1 }
     });
 
