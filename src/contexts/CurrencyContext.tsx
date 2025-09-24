@@ -30,22 +30,24 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
+  const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
+    if (typeof document !== 'undefined') {
+      const fromDom = document.documentElement.getAttribute('data-currency') as CurrencyCode | null;
+      if (fromDom && CURRENCY_OPTIONS.some(o => o.code === fromDom)) return fromDom;
     }
-
-    try {
-      const stored = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
-      if (stored && CURRENCY_OPTIONS.some(option => option.code === stored)) {
-        setCurrencyState(stored);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
+        if (stored && CURRENCY_OPTIONS.some(o => o.code === stored)) return stored;
+        const match = document.cookie.match(/(?:^|;\s*)fxz\.currency=([^;]+)/);
+        const fromCookie = (match && match[1]) as CurrencyCode | undefined;
+        if (fromCookie && CURRENCY_OPTIONS.some(o => o.code === fromCookie)) return fromCookie;
+      } catch {
+        /* noop */
       }
-    } catch (error) {
-      console.warn('Could not access localStorage for currency preference:', error);
     }
-  }, []);
+    return DEFAULT_CURRENCY;
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') {
