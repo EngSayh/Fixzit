@@ -74,8 +74,8 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const placeholder = scope === 'fm'
     ? t('common.search.placeholder', 'Search Work Orders, Properties, Tenants...')
     : scope === 'souq'
-      ? 'Search catalog, vendors, RFQs, orders…'
-      : 'Search listings, projects, agents…';
+      ? t('souq.search.placeholder', 'Search catalog, vendors, RFQs, orders…')
+      : t('aqar.search.placeholder', 'Search listings, projects, agents…');
 
   useEffect(() => {
     if (!query.trim()) { setResults([]); return; }
@@ -85,7 +85,9 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
         const r = await fetch(`/api/search?scope=${scope}&q=${encodeURIComponent(query)}`, { signal: ac.signal });
         const json = await r.json();
         setResults(json.results || []);
-      } catch {}
+      } catch (err) {
+        console.error('Search request failed:', err);
+      }
     };
     const id = setTimeout(run, 180);
     return () => { ac.abort(); clearTimeout(id); };
