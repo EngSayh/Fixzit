@@ -124,9 +124,13 @@ export async function POST(req: NextRequest) {
       );
     }
     
+    // Get user context from headers
+    const userHeader = req.headers.get('x-user');
+    const user = userHeader ? JSON.parse(userHeader) : null;
+    
     const product = {
       ...data,
-      tenantId: 'default', // TODO: Get from auth context
+      tenantId: user?.tenantId || 'default',
       rating: 0,
       reviewCount: 0,
       active: true,

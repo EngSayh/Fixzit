@@ -1,268 +1,229 @@
+// Authentication and session management
+// Implements JWT-based authentication with role-based access
+
+import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { isMockDB, db } from '@/src/lib/mongo';
+import { cookies } from 'next/headers';
+import { Role } from './rbac-comprehensive';
 
-// Dynamic import for User model to avoid Edge Runtime issues
-let User: any;
-if (isMockDB) {
-  // Use mock model for development
-  User = {
-    findOne: async (query: any) => {
-      const users = [
-        {
-          _id: '1',
-          code: 'USR-001',
-          username: 'superadmin',
-          email: 'superadmin@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
-          personal: {
-            firstName: 'System',
-            lastName: 'Administrator'
-          },
-          professional: {
-            role: 'SUPER_ADMIN'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '2',
-          code: 'USR-002',
-          username: 'admin',
-          email: 'admin@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: {
-            firstName: 'Admin',
-            lastName: 'User'
-          },
-          professional: {
-            role: 'ADMIN'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '3',
-          code: 'USR-003',
-          username: 'manager',
-          email: 'manager@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: {
-            firstName: 'Property',
-            lastName: 'Manager'
-          },
-          professional: {
-            role: 'PROPERTY_MANAGER'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '4',
-          code: 'USR-004',
-          username: 'tenant',
-          email: 'tenant@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: {
-            firstName: 'Ahmed',
-            lastName: 'Al-Rashid'
-          },
-          professional: {
-            role: 'TENANT'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '5',
-          code: 'USR-005',
-          username: 'vendor',
-          email: 'vendor@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: {
-            firstName: 'Mohammed',
-            lastName: 'Al-Harbi'
-          },
-          professional: {
-            role: 'VENDOR'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        }
-      ];
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  tenantId?: string;
+  phone?: string;
+  phoneVerified?: boolean;
+  kycVerified?: boolean;
+  falVerified?: boolean;
+  createdAt: Date;
+  lastLoginAt?: Date;
+}
 
-      return users.find(user => user.email === query.email);
-    },
-    findById: async (id: string) => {
-      const users = [
-        {
-          _id: '1',
-          email: 'superadmin@fixzit.co',
-          personal: {
-            firstName: 'System',
-            lastName: 'Administrator'
-          },
-          professional: {
-            role: 'SUPER_ADMIN'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '2',
-          email: 'admin@fixzit.co',
-          personal: {
-            firstName: 'Admin',
-            lastName: 'User'
-          },
-          professional: {
-            role: 'ADMIN'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '3',
-          email: 'manager@fixzit.co',
-          personal: {
-            firstName: 'Property',
-            lastName: 'Manager'
-          },
-          professional: {
-            role: 'PROPERTY_MANAGER'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '4',
-          email: 'tenant@fixzit.co',
-          personal: {
-            firstName: 'Ahmed',
-            lastName: 'Al-Rashid'
-          },
-          professional: {
-            role: 'TENANT'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        },
-        {
-          _id: '5',
-          email: 'vendor@fixzit.co',
-          personal: {
-            firstName: 'Mohammed',
-            lastName: 'Al-Harbi'
-          },
-          professional: {
-            role: 'VENDOR'
-          },
-          status: 'ACTIVE',
-          tenantId: 'demo-tenant'
-        }
-      ];
-
-      return users.find(user => user._id === id);
-    }
-  };
-} else {
-  // Use real Mongoose model for production
-  User = (await import('@/src/server/models/User')).User;
+export interface Session {
+  user: User;
+  token: string;
+  expiresAt: Date;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fixzit-enterprise-secret-2024';
+const JWT_EXPIRES_IN = '7d';
 
-export interface AuthToken {
-  id: string;
-  email: string;
-  role: string;
-  tenantId: string;
+// Create JWT token
+export function createToken(user: User): string {
+  const payload = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    tenantId: user.tenantId,
+    phone: user.phone,
+    phoneVerified: user.phoneVerified,
+    kycVerified: user.kycVerified,
+    falVerified: user.falVerified,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
+  };
+
+  return jwt.sign(payload, JWT_SECRET);
 }
 
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
-}
-
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-  return bcrypt.compare(password, hashedPassword);
-}
-
-export function generateToken(payload: AuthToken): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
-}
-
-export function verifyToken(token: string): AuthToken | null {
+// Verify JWT token
+export function verifyToken(token: string): User | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthToken;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    return {
+      id: decoded.id,
+      email: decoded.email,
+      name: decoded.name,
+      role: decoded.role,
+      tenantId: decoded.tenantId,
+      phone: decoded.phone,
+      phoneVerified: decoded.phoneVerified,
+      kycVerified: decoded.kycVerified,
+      falVerified: decoded.falVerified,
+      createdAt: new Date(decoded.createdAt),
+      lastLoginAt: decoded.lastLoginAt ? new Date(decoded.lastLoginAt) : undefined
+    };
   } catch (error) {
+    console.error('Token verification error:', error);
     return null;
   }
 }
 
-export async function authenticateUser(emailOrEmployeeNumber: string, password: string, loginType: 'personal' | 'corporate' = 'personal') {
-  // Connect to database (mock or real)
-  await db;
+// Get session from request
+export async function getSession(req: NextRequest): Promise<Session | null> {
+  try {
+    const token = req.cookies.get('fixzit_auth')?.value;
+    if (!token) {
+      return null;
+    }
 
-  let user;
-  if (loginType === 'personal') {
-    user = await User.findOne({ email: emailOrEmployeeNumber });
-  } else {
-    // For corporate login, search by employee number (username field)
-    user = await User.findOne({ username: emailOrEmployeeNumber });
+    const user = verifyToken(token);
+    if (!user) {
+      return null;
+    }
+
+    return {
+      user,
+      token,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+    };
+  } catch (error) {
+    console.error('Session error:', error);
+    return null;
   }
+}
 
-  if (!user) {
-    throw new Error('Invalid credentials');
+// Get session from server components
+export async function getServerSession(): Promise<Session | null> {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get('fixzit_auth')?.value;
+    if (!token) {
+      return null;
+    }
+
+    const user = verifyToken(token);
+    if (!user) {
+      return null;
+    }
+
+    return {
+      user,
+      token,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    };
+  } catch (error) {
+    console.error('Server session error:', error);
+    return null;
   }
+}
 
-  const isValid = await verifyPassword(password, user.password);
-
-  if (!isValid) {
-    throw new Error('Invalid credentials');
-  }
-
-  if (user.status !== 'ACTIVE') {
-    throw new Error('Account is not active');
-  }
-
-  const token = generateToken({
-    id: user._id.toString(),
-    email: user.email,
-    role: user.professional.role,
-    tenantId: user.tenantId
+// Set authentication cookie
+export function setAuthCookie(user: User): string {
+  const token = createToken(user);
+  const cookieStore = cookies();
+  
+  cookieStore.set('fixzit_auth', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    path: '/'
   });
 
-  return {
-    token,
-    user: {
-      id: user._id.toString(),
-      email: user.email,
-      name: `${user.personal.firstName} ${user.personal.lastName}`,
-      role: user.professional.role,
-      tenantId: user.tenantId
-    }
-  };
+  return token;
 }
 
-export async function getUserFromToken(token: string) {
-  const payload = verifyToken(token);
+// Clear authentication cookie
+export function clearAuthCookie(): void {
+  const cookieStore = cookies();
+  cookieStore.delete('fixzit_auth');
+}
 
-  if (!payload) {
-    return null;
+// Check if user has required role
+export function hasRole(user: User, requiredRole: Role): boolean {
+  const roleHierarchy: Record<Role, number> = {
+    'SUPER_ADMIN': 100,
+    'CORPORATE_ADMIN': 90,
+    'ADMIN': 80,
+    'FINANCE_CONTROLLER': 70,
+    'COMPLIANCE_AUDITOR': 70,
+    'PROPERTY_MANAGER': 60,
+    'LEASING_CRM_MANAGER': 60,
+    'FINANCE_MANAGER': 60,
+    'HR_MANAGER': 60,
+    'BROKER_AGENT': 50,
+    'TECHNICIAN': 40,
+    'TEAM_MEMBER': 30,
+    'VENDOR': 20,
+    'TENANT': 10,
+    'GUEST': 0
+  };
+
+  return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
+}
+
+// Check if user can access module
+export function canAccessModule(user: User, module: string): boolean {
+  // TODO: Implement module access check based on RBAC
+  // For now, basic role-based access
+  const moduleAccess: Record<Role, string[]> = {
+    'SUPER_ADMIN': ['*'], // All modules
+    'CORPORATE_ADMIN': ['dashboard', 'work-orders', 'properties', 'finance', 'hr', 'crm', 'marketplace', 'support', 'reports'],
+    'ADMIN': ['dashboard', 'work-orders', 'properties', 'finance', 'hr', 'crm', 'marketplace', 'support', 'reports'],
+    'PROPERTY_MANAGER': ['dashboard', 'work-orders', 'properties', 'marketplace', 'support', 'reports'],
+    'LEASING_CRM_MANAGER': ['dashboard', 'work-orders', 'properties', 'crm', 'marketplace', 'support', 'reports'],
+    'FINANCE_MANAGER': ['dashboard', 'properties', 'finance', 'support', 'reports'],
+    'HR_MANAGER': ['dashboard', 'hr', 'support', 'reports'],
+    'TECHNICIAN': ['dashboard', 'work-orders', 'support', 'reports'],
+    'TEAM_MEMBER': ['dashboard', 'work-orders', 'crm', 'marketplace', 'support', 'reports'],
+    'TENANT': ['dashboard', 'work-orders', 'properties', 'finance', 'marketplace', 'support', 'reports'],
+    'VENDOR': ['dashboard', 'work-orders', 'marketplace', 'support', 'reports'],
+    'BROKER_AGENT': ['dashboard', 'properties', 'marketplace', 'support', 'compliance', 'reports'],
+    'FINANCE_CONTROLLER': ['dashboard', 'finance', 'compliance', 'reports'],
+    'COMPLIANCE_AUDITOR': ['dashboard', 'work-orders', 'properties', 'finance', 'support', 'compliance', 'reports'],
+    'GUEST': ['dashboard', 'marketplace', 'support']
+  };
+
+  const userModules = moduleAccess[user.role] || [];
+  return userModules.includes('*') || userModules.includes(module);
+}
+
+// Check if user requires KYC
+export function requiresKYC(user: User): boolean {
+  return !user.kycVerified && user.role !== 'GUEST';
+}
+
+// Check if user requires FAL verification
+export function requiresFAL(user: User): boolean {
+  return !user.falVerified && user.role === 'BROKER_AGENT';
+}
+
+// Check if user can perform action
+export function canPerformAction(user: User, action: string, resource?: string): boolean {
+  // TODO: Implement comprehensive permission checking
+  // For now, basic role-based checks
+  if (user.role === 'SUPER_ADMIN') {
+    return true;
   }
 
-  await db;
-  const user = await User.findById(payload.id);
-
-  if (!user || user.status !== 'ACTIVE') {
-    return null;
+  if (user.role === 'GUEST') {
+    return ['browse', 'view', 'search'].includes(action);
   }
 
+  // Add more specific permission checks here
+  return true;
+}
+
+// Generate guest user for unauthenticated requests
+export function createGuestUser(): User {
   return {
-    id: user._id.toString(),
-    email: user.email,
-    name: `${user.personal.firstName} ${user.personal.lastName}`,
-    role: user.professional.role,
-    tenantId: user.tenantId
+    id: 'guest',
+    email: '',
+    name: 'Guest User',
+    role: 'GUEST',
+    createdAt: new Date()
   };
 }

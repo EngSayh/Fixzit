@@ -66,7 +66,22 @@ const publicMarketplaceRoutes = [
   '/aqar/properties',
   '/aqar/filters',
   '/aqar/trends',
-  '/aqar/premium'
+  '/aqar/premium',
+  '/marketplace',
+  '/marketplace/properties',
+  '/marketplace/materials'
+];
+
+// Define public API routes (no authentication required)
+const publicApiRoutes = [
+  '/api/public/properties',
+  '/api/public/materials',
+  '/api/auth/login',
+  '/api/auth/signup',
+  '/api/auth/logout',
+  '/api/cms',
+  '/api/help',
+  '/api/assistant'
 ];
 
 // Define protected marketplace actions (require login)
@@ -109,10 +124,7 @@ export async function middleware(request: NextRequest) {
   // Handle API routes - require authentication
   if (pathname.startsWith('/api/')) {
     // Allow public API routes
-    if (pathname.startsWith('/api/auth/') ||
-        pathname.startsWith('/api/cms/') ||
-        pathname.startsWith('/api/help/') ||
-        pathname.startsWith('/api/assistant/')) {
+    if (publicApiRoutes.some(route => pathname.startsWith(route))) {
       return NextResponse.next();
     }
 
