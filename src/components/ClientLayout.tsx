@@ -115,6 +115,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             </ResponsiveLayout>
           </TopBarProvider>
           <HelpWidget />
+          <PreferenceBroadcast />
           <ErrorTest />
         </div>
       );
