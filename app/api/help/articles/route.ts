@@ -36,9 +36,12 @@ export async function GET(req: NextRequest){
     const sp = url.searchParams;
     const category = sp.get("category") || undefined;
     const q = sp.get("q") || undefined;
-    const status = sp.get("status") || 'PUBLISHED';
-    const page = Math.max(1, parseInt(sp.get("page") || '1', 10));
-    const limit = Math.min(50, Math.max(1, parseInt(sp.get("limit") || '20', 10)));
+    // Public endpoint must only return published content
+    const status: 'PUBLISHED' = 'PUBLISHED';
+    const rawPage = Number(sp.get("page"));
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
+    const rawLimit = Number(sp.get("limit"));
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(50, Math.floor(rawLimit)) : 20;
     const skip = (page - 1) * limit;
 
     const db = await getDatabase();

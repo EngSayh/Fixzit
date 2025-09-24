@@ -45,8 +45,11 @@ export default function AIChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question })
       });
-      const data = await res.json();
-      const content = data?.answer || 'Sorry, I could not find an answer.';
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload) {
+        throw new Error((payload && payload.error) || `Request failed with status ${res.status}`);
+      }
+      const content = payload.answer || 'Sorry, I could not find an answer.';
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot' as const,
@@ -54,7 +57,7 @@ export default function AIChatPage() {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
-    } catch (e) {
+    } catch (error) {
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot' as const,
