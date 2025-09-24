@@ -27,28 +27,40 @@ const patchSchema = z.object({
  * @param params.id - Article identifier; either a MongoDB ObjectId string or a slug.
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
-  const user = await getSessionUser(req);
-  if (!["SUPER_ADMIN"].includes(user.role)){
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const data = patchSchema.parse(await req.json());
-  const db = await getDatabase();
-  const coll = db.collection('helparticles');
-
-  const filter = (() => {
-    try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
-  })();
-
-  const update = {
-    $set: {
-      ...data,
-      updatedBy: user.id,
-      updatedAt: new Date()
+  try {
+    const user = await getSessionUser(req);
+    if (!["SUPER_ADMIN"].includes(user.role)){
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-  };
+    const body = await req.json().catch(() => ({}));
+    const data = patchSchema.parse(body);
+    const db = await getDatabase();
+    const coll = db.collection('helparticles');
 
-  const res = await coll.findOneAndUpdate(filter as any, update, { returnDocument: 'after' } as any);
-  const article = (res as any)?.value || null;
-  if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(article);
+    const filter = (() => {
+      try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
+    })();
+
+    const update = {
+      $set: {
+        ...data,
+        updatedBy: user.id,
+        updatedAt: new Date()
+      }
+    };
+
+    const res = await coll.findOneAndUpdate(filter as any, update, { returnDocument: 'after' } as any);
+    const article = (res as any)?.value || null;
+    if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(article);
+  } catch (err: any) {
+    if (err?.name === 'ZodError') {
+      return NextResponse.json({ error: 'Validation failed', issues: err.issues }, { status: 400 });
+    }
+    if (err?.code === 11000) {
+      return NextResponse.json({ error: 'Duplicate key (e.g., slug) exists' }, { status: 409 });
+    }
+    console.error('PATCH /api/help/articles/[id] failed', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
