@@ -48,9 +48,9 @@ class MockDB {
 
 let conn = (global as any)._mongoose;
 if (!conn) {
-  // Check if we should use mock database
-  if (process.env.NODE_ENV === 'development' && uri.includes('localhost')) {
-    console.log("📦 Starting in development mode with mock database");
+  const useMock = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
+  if (useMock) {
+    console.log("📦 Using mock database (USE_MOCK_DB=true)");
     conn = (global as any)._mongoose = new MockDB();
   } else if (mongoose) {
     conn = (global as any)._mongoose = mongoose.connect(uri, {
@@ -58,12 +58,11 @@ if (!conn) {
       maxPoolSize: 10,
     });
   } else {
-    // Fallback to MockDB in Edge Runtime
-    console.log("📦 Using mock database (Edge Runtime detected)");
+    console.log("📦 Using mock database (Mongoose unavailable in this runtime)");
     conn = (global as any)._mongoose = new MockDB();
   }
 }
 export const db = conn;
 
 // Export isMockDB for use in models
-export const isMockDB = process.env.NODE_ENV === 'development' && uri.includes('localhost');
+export const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';

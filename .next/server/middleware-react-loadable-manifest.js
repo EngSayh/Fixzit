@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}";
+self.__REACT_LOADABLE_MANIFEST='{"app/help/ai-chat/page.tsx -> @/src/components/AIChat":{"id":1178,"files":["static/chunks/1178.0250a0a05f29dc59.js"]},"app/help/page.tsx -> @/src/components/AIChat":{"id":1178,"files":["static/chunks/8377.05ed94971ff04ec0.js"]},"src/components/HelpWidget.tsx -> @/src/components/AIChat":{"id":1178,"files":[]}}';
