@@ -1,7 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Search, Globe, User, ChevronDown } from 'lucide-react';
+import { Bell, Search, User, ChevronDown } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import LanguageSelector from './i18n/LanguageSelector';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -43,6 +44,9 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [openResults, setOpenResults] = useState(false);
+  const [results, setResults] = useState<Array<{id:string; type:string; title:string; href:string; subtitle?:string}>>([]);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -58,6 +62,34 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   }
 
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Derive module scope from path
+  const scope: 'fm'|'souq'|'aqar' = pathname?.startsWith('/souq')
+    ? 'souq'
+    : pathname?.startsWith('/aqar')
+      ? 'aqar'
+      : 'fm';
+
+  const placeholder = scope === 'fm'
+    ? t('common.search.placeholder', 'Search Work Orders, Properties, Tenants...')
+    : scope === 'souq'
+      ? 'Search catalog, vendors, RFQs, orders…'
+      : 'Search listings, projects, agents…';
+
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); return; }
+    const ac = new AbortController();
+    const run = async () => {
+      try {
+        const r = await fetch(`/api/search?scope=${scope}&q=${encodeURIComponent(query)}`, { signal: ac.signal });
+        const json = await r.json();
+        setResults(json.results || []);
+      } catch {}
+    };
+    const id = setTimeout(run, 180);
+    return () => { ac.abort(); clearTimeout(id); };
+  }, [query, scope]);
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
@@ -222,12 +254,31 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
         <div className={`font-bold ${screenInfo.isMobile ? 'text-base' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
           {t('common.brand', 'FIXZIT ENTERPRISE')}
         </div>
-        <div className={`${screenInfo.isMobile ? 'hidden' : 'flex'} items-center bg-white/10 rounded px-3 py-1`}>
+        <div className={`${screenInfo.isMobile ? 'hidden' : 'flex'} items-center bg-white/10 rounded px-3 py-1 relative`}>
           <Search className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'} opacity-70`} />
           <input
+            value={query}
+            onChange={(e)=>{ setQuery(e.target.value); setOpenResults(true); }}
+            onFocus={()=> setOpenResults(true)}
+            onBlur={()=> setTimeout(()=> setOpenResults(false), 120)}
             className={`bg-transparent outline-none py-1 text-sm placeholder-white/70 ${screenInfo.isTablet ? 'w-48' : 'w-64'} ${isRTL ? 'text-right' : ''}`}
-            placeholder={t('common.search.placeholder', 'Search Work Orders, Properties, Tenants...')}
+            placeholder={placeholder}
+            aria-label="Global Search"
           />
+          {openResults && results.length > 0 && (
+            <div className={`absolute top-full mt-2 w-[28rem] max-w-[70vw] bg-white text-gray-900 rounded-lg shadow-xl border z-50 ${isRTL ? 'left-0' : 'right-0'}`}>
+              <ul className="max-h-80 overflow-auto py-1">
+                {results.map(r => (
+                  <li key={`${r.type}:${r.id}`}>
+                    <a href={r.href} className="block px-3 py-2 hover:bg-gray-50">
+                      <div className="text-sm font-medium">{r.title}</div>
+                      {r.subtitle && <div className="text-[11px] text-gray-500">{r.type} • {r.subtitle}</div>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         {/* Mobile search button */}
         {screenInfo.isMobile && (
