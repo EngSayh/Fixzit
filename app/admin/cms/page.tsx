@@ -1,6 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
 
+/**
+ * Admin UI for viewing and editing CMS pages.
+ *
+ * Renders a simple editor that lets you select a page by slug, edit its title,
+ * markdown content, and publication status, and save changes back to the server.
+ *
+ * Behavior:
+ * - Loads page data from GET /api/cms/pages/{slug} whenever the slug changes. If the page exists,
+ *   title, content, and status are populated; otherwise fields are cleared and status defaults to DRAFT.
+ * - Saves edits by sending a PATCH request with JSON body { title, content, status } to /api/cms/pages/{slug}.
+ *   Shows a browser alert with "Saved" on success or "Failed" on failure.
+ *
+ * @returns A React element containing the CMS page editor UI.
+ */
 export default function AdminCMS(){
   const [slug,setSlug]=useState("privacy");
   const [title,setTitle]=useState("");

@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateZATCAQR } from '@/lib/zatca';
 import { validateCallbackRaw } from '@/src/lib/paytabs';
 
+/**
+ * HTTP POST handler for PayTabs payment callbacks.
+ *
+ * Validates the raw request signature, parses the callback payload, and updates payment status.
+ * On an approved transaction (`resp_status === 'A'`) it validates the numeric `amount`, computes VAT,
+ * and generates a ZATCA QR invoice. In production the generated invoice should be persisted (not done here).
+ *
+ * Behavior by response:
+ * - Returns 401 if the signature validation fails.
+ * - Returns 400 if the amount is not a finite positive number.
+ * - Returns 500 on unexpected internal errors.
+ *
+ * The successful response body indicates whether the order is `PAID` or `FAILED` and includes the provider message.
+ *
+ * @returns A NextResponse containing a JSON object with `{ ok: boolean, status?: 'PAID'|'FAILED', message?: string, error?: string }`
+ */
 export async function POST(req: NextRequest) {
   try {
     // Read raw body for signature validation
