@@ -24,31 +24,34 @@ export async function POST(req: NextRequest) {
   if ((quote as any).contactSales) {
     return NextResponse.json({ error: 'SEAT_LIMIT_EXCEEDED', contact: 'sales@fixzit.app' }, { status: 400 });
   }
+  if (!quote || !Array.isArray((quote as any).items)) {
+    return NextResponse.json({ error: 'INVALID_QUOTE' }, { status: 400 });
+  }
 
   // 3) Create Subscription snapshot (status pending until paid)
   const sub = await Subscription.create({
     customerId: customer._id,
     planType: body.planType,
-    items: quote.items.map((i:any)=>({ moduleId: undefined, // resolved later in worker if needed
+    items: (quote as any).items.map((i:any)=>({ moduleId: undefined, // resolved later in worker if needed
       moduleCode: i.module, // keep code snapshot
       seatCount: i.seatCount, unitPriceMonthly: i.unitPriceMonthly, billingCategory: i.billingCategory })),
-    totalMonthly: quote.monthly,
+    totalMonthly: (quote as any).monthly,
     billingCycle: body.billingCycle,
-    annualDiscountPct: quote.annualDiscountPct,
+    annualDiscountPct: (quote as any).annualDiscountPct,
     status: 'active',
     seatTotal: body.seatTotal,
-    currency: quote.currency,
+    currency: (quote as any).currency,
     paytabsRegion: body.paytabsRegion || 'GLOBAL',
     startedAt: new Date(),
     nextInvoiceAt: new Date()
   });
 
   // 4) First invoice amount:
-  const amount = body.billingCycle === 'annual' ? quote.annualTotal : quote.monthly;
+  const amount = body.billingCycle === 'annual' ? (quote as any).annualTotal : (quote as any).monthly;
 
   const inv = await SubscriptionInvoice.create({
     subscriptionId: sub._id,
-    amount, currency: quote.currency,
+    amount, currency: (quote as any).currency,
     periodStart: new Date(),
     periodEnd: new Date(new Date().setMonth(new Date().getMonth() + (body.billingCycle==='annual'?12:1))),
     dueDate: new Date(), status: 'pending'
@@ -62,7 +65,7 @@ export async function POST(req: NextRequest) {
     cart_id: `SUB-${sub._id}`,
     cart_description: `Fixzit ${body.planType} (${body.billingCycle})`,
     cart_amount: amount,
-    cart_currency: quote.currency,
+    cart_currency: (quote as any).currency,
     return: body.returnUrl, callback: body.callbackUrl,
     customer_details: {
       name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'

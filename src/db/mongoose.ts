@@ -1,14 +1,11 @@
 import mongoose from 'mongoose';
+import { db as globalConn } from '@/src/lib/mongo';
 
 let connection: typeof mongoose | null = null;
 
 export async function dbConnect() {
   if (connection) return connection;
-
-  const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit";
-  const dbName = process.env.MONGODB_DB || 'fixzit';
-
-  connection = await mongoose.connect(uri, { dbName });
+  connection = await globalConn;
   return connection;
 }
 

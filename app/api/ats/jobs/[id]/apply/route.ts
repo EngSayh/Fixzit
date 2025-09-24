@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+    await db;
     
     const formData = await req.formData();
     

@@ -1,3 +1,5 @@
+import { PAYTABS_CONFIG } from './paytabs.config';
+
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
   EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
@@ -19,7 +21,33 @@ export async function createHppRequest(region:string, payload:any) {
   return r.json();
 }
 
-export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
+type PaymentRequestInput = {
+  amount: number;
+  currency: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zip: string;
+  };
+  description: string;
+  invoiceId?: string;
+  returnUrl: string;
+  callbackUrl: string;
+};
+
+type PaymentResponseOutput = {
+  success: boolean;
+  paymentUrl?: string;
+  transactionId?: string;
+  error?: string;
+};
+
+export async function createPaymentPage(request: PaymentRequestInput): Promise<PaymentResponseOutput> {
   try {
     const payload = {
       profile_id: PAYTABS_CONFIG.profileId,

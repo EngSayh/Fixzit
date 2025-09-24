@@ -29,93 +29,96 @@ export async function GET(req: NextRequest) {
         let searchQuery: any = { $text: { $search: q } };
         let projection: any = { score: { $meta: 'textScore' } };
 
+        const mg = (await (await import('mongoose')).default);
+        const mdb = mg?.connection?.db;
+        if (!mdb) continue;
         switch (entity) {
           case 'work_orders':
-            collection = db.collection('work_orders');
+            collection = mdb.collection('work_orders');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'properties':
-            collection = db.collection('properties');
+            collection = mdb.collection('properties');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'units':
-            collection = db.collection('units');
+            collection = mdb.collection('units');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'tenants':
-            collection = db.collection('tenants');
+            collection = mdb.collection('tenants');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'vendors':
-            collection = db.collection('vendors');
+            collection = mdb.collection('vendors');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'invoices':
-            collection = db.collection('invoices');
+            collection = mdb.collection('invoices');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'products':
-            collection = db.collection('products');
+            collection = mdb.collection('products');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'services':
-            collection = db.collection('services');
+            collection = mdb.collection('services');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'rfqs':
-            collection = db.collection('rfqs');
+            collection = mdb.collection('rfqs');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'orders':
-            collection = db.collection('orders');
+            collection = mdb.collection('orders');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'listings':
-            collection = db.collection('listings');
+            collection = mdb.collection('listings');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'projects':
-            collection = db.collection('projects');
+            collection = mdb.collection('projects');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }
             };
             break;
           case 'agents':
-            collection = db.collection('agents');
+            collection = mdb.collection('agents');
             searchQuery = { 
               $text: { $search: q },
               deletedAt: { $exists: false }

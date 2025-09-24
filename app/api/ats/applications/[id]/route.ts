@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+  await db;
     const application = await Application
       .findById(params.id)
       .populate('jobId')
@@ -27,7 +27,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+  await db;
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
