@@ -1,8 +1,11 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Search, Globe, User, ChevronDown } from 'lucide-react';
+import { Bell, User, ChevronDown } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
+import AppSwitcher from './topbar/AppSwitcher';
+import GlobalSearch from './topbar/GlobalSearch';
+import QuickActions from './topbar/QuickActions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -222,21 +225,23 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
         <div className={`font-bold ${screenInfo.isMobile ? 'text-base' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
           {t('common.brand', 'FIXZIT ENTERPRISE')}
         </div>
-        <div className={`${screenInfo.isMobile ? 'hidden' : 'flex'} items-center bg-white/10 rounded px-3 py-1`}>
-          <Search className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'} opacity-70`} />
-          <input
-            className={`bg-transparent outline-none py-1 text-sm placeholder-white/70 ${screenInfo.isTablet ? 'w-48' : 'w-64'} ${isRTL ? 'text-right' : ''}`}
-            placeholder={t('common.search.placeholder', 'Search Work Orders, Properties, Tenants...')}
-          />
-        </div>
-        {/* Mobile search button */}
-        {screenInfo.isMobile && (
-          <button className="p-2 hover:bg-white/10 rounded-md">
-            <Search className="w-4 h-4" />
-          </button>
-        )}
+        <AppSwitcher />
       </div>
+      
+      {/* Global Search - Center */}
+      <div className={`flex-1 max-w-2xl mx-4 ${screenInfo.isMobile ? 'hidden' : 'block'}`}>
+        <GlobalSearch />
+      </div>
+      
+      {/* Mobile search button */}
+      {screenInfo.isMobile && (
+        <button className="p-2 hover:bg-white/10 rounded-md">
+          <GlobalSearch />
+        </button>
+      )}
+      
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <QuickActions />
         <LanguageSelector />
         <div className="notification-container relative">
           <button
