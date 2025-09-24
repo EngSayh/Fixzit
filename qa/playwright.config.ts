@@ -4,8 +4,8 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 10_000 },
   testDir: './tests',
-  outputDir: './qa/artifacts',
-  reporter: [['list'], ['html', { outputFolder: './qa/artifacts/html-report', open: 'never' }]],
+  outputDir: './artifacts',
+  reporter: [['list'], ['html', { outputFolder: './test-results/html-report', open: 'never' }]],
   use: {
     baseURL: process.env.NEXT_PUBLIC_APP_BASE_URL || 'http://localhost:3000',
     trace: 'retain-on-failure',
