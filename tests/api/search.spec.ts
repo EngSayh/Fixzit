@@ -293,3 +293,105 @@ describe('GET /api/search', () => {
     expect(body).toEqual([]);
   });
 });
+/**
+ * Additional coverage: edge cases, caps, and fallbacks.
+ * Testing library/framework: Vitest (describe/it/expect + vi.mock).
+ * These tests extend the scenarios around the GET /api/search handler.
+ */
+describe('GET /api/search - additional coverage', () => {
+  it('returns 200 and empty array when q param is missing', async () => {
+    const { GET } = await loadRouteModule();
+    const res = await GET({ url: 'http://localhost/api/search' } as any);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual([]);
+  });
+
+  it('FM app: returns empty array when all collections are empty', async () => {
+    getDatabase.mockResolvedValueOnce(createDbStub({}));
+    const { GET } = await loadRouteModule();
+    const res = await GET({ url: buildUrl('no hits', 'fm') } as any);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual([]);
+  });
+
+  it('AQAR app: enforces 25-item cap with many listings and correct hrefs', async () => {
+    const listings = Array.from({ length: 30 }, (_, i) => ({ _id: `l_${i}`, title: `Listing ${i}` }));
+    const projects = Array.from({ length: 10 }, (_, i) => ({ _id: `p_${i}`, name: `Project ${i}` }));
+    const agents = Array.from({ length: 10 }, (_, i) => ({ _id: `a_${i}`, name: `Agent ${i}` }));
+
+    getDatabase.mockResolvedValueOnce(
+      createDbStub((name: string) => {
+        if (name === 'listings') return listings;
+        if (name === 'projects') return projects;
+        if (name === 'agents') return agents;
+        return [];
+      })
+    );
+
+    const { GET } = await loadRouteModule();
+    const res = await GET({ url: buildUrl('many', 'aqar') } as any);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    // 30 listings + others, capped to 25
+    expect(body).toHaveLength(25);
+
+    // First and 25th entries remain within listings due to push order then slice
+    expect(body[0]).toMatchObject({
+      id: 'l_0',
+      entity: 'listings',
+      title: 'Listing 0',
+      href: '/aqar/listings/l_0',
+    });
+    expect(body[24]).toMatchObject({
+      id: 'l_24',
+      entity: 'listings',
+      href: '/aqar/listings/l_24',
+    });
+  });
+
+  it('SOUQ app: vendor title falls back to "Vendor <id>" when name is missing', async () => {
+    const vendors = [{ _id: 'ven_x' }, { _id: 'ven_y', name: 'Y Inc' }];
+
+    getDatabase.mockResolvedValueOnce(
+      createDbStub((name: string) => {
+        if (name === 'vendors') return vendors;
+        if (name === 'products' || name === 'rfqs' || name === 'orders') return [];
+        return [];
+      })
+    );
+
+    const { GET } = await loadRouteModule();
+    const res = await GET({ url: buildUrl('vendors only', 'souq') } as any);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    const missingName = body.find((h: any) => h.entity === 'vendors' && h.id === 'ven_x');
+    const named = body.find((h: any) => h.entity === 'vendors' && h.id === 'ven_y');
+
+    expect(missingName).toMatchObject({
+      id: 'ven_x',
+      entity: 'vendors',
+      title: 'Vendor ven_x',
+      href: '/marketplace/vendors/ven_x',
+    });
+    expect(named).toMatchObject({
+      id: 'ven_y',
+      entity: 'vendors',
+      title: 'Y Inc',
+      href: '/marketplace/vendors/ven_y',
+    });
+  });
+
+  it('SOUQ app: returns empty array if a later collection throws (caught)', async () => {
+    // Simulate a throw during vendors retrieval to exercise error path
+    getDatabase.mockResolvedValueOnce(createThrowingDbStub('vendors'));
+    const { GET } = await loadRouteModule();
+    const res = await GET({ url: buildUrl('trigger throw', 'souq') } as any);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual([]);
+  });
+});

@@ -1,7 +1,7 @@
 /**
  * Tests for POST bulk notifications handler.
  *
- * Testing library/framework: Jest (or Vitest-compatible) with TS support.
+ * Testing library/framework: Vitest (Jest-like) with TS support.
  * - Uses describe/it/expect with mocks for external dependencies.
  * - Mocks next/server NextResponse and getDatabase from "@/lib/mongodb".
  *
@@ -12,7 +12,7 @@
  * - Edge cases: empty/falsey IDs filtered out; partial successes; operation throws.
  * - Invalid ObjectId causing constructor error propagating.
  */
-
+ 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // We import the module under test after setting up mocks to ensure they take effect.
@@ -40,8 +40,8 @@ import { NextResponse } from 'next/server';
 class FakeObjectId {
   static created: string[] = [];
   id: string;
-  constructor(s: string) {
-    if (typeof s !== 'string' || !(s.length === 24 && /^[0-9a-fA-F]+$/.test(s))) {
+  constructor(s: any) {
+    if (typeof s !== 'string' || !/^[0-9a-fA-F]{24}$/.test(s)) {
       // Simulate mongodb's BSONTypeError behavior
       throw new Error('BSONTypeError: Argument passed in must be a string of 12 bytes or a string of 24 hex characters');
     }
@@ -136,7 +136,7 @@ describe('API POST /notifications/bulk', () => {
 
     expect(updateMany).toHaveBeenCalledWith(
       { _id: { $in: expect.any(Array) } },
-      { $set: { read: true } }
+      { $Set: { read: true } }
     );
     expect(res.data).toEqual({
       success: true,
@@ -205,6 +205,26 @@ describe('API POST /notifications/bulk', () => {
       total: 2,
       successful: 1,
       failed: 1,
+      results: [],
+    });
+  });
+
+  it('deletes notifications (full deletion success)', async () => {
+    (getDatabase as any).mockResolvedValueOnce(fakeDb);
+    deleteMany.mockResolvedValueOnce({ acknowledged: true, deletedCount: 2 });
+
+    const ids = ['9'.repeat(24), '8'.repeat(24)];
+    const req = makeReq({ action: 'delete', notificationIds: ids });
+    const res: any = await POST(req);
+
+    expect(deleteMany).toHaveBeenCalledWith(
+      { _id: { $in: expect.any(Array) } }
+    );
+    expect(res.data).toEqual({
+      success: true,
+      total: 2,
+      successful: 2,
+      failed: 0,
       results: [],
     });
   });
