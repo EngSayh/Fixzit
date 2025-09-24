@@ -54,7 +54,7 @@ export const db = ensureConnection();
 // Native Db accessor for routes using collection()/listCollections()
 export async function getNativeDb(): Promise<Db> {
   if (isMockDB) {
-    // @ts-expect-error: Mock has collection/listCollections but not a real Db
+    // @ts-ignore Mock has collection/listCollections but not a real Db in dev
     return (await ensureConnection());
   }
   if (!nativeDbPromise) {
