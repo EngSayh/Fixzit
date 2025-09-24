@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+    await db;
     
     const formData = await req.formData();
     
@@ -156,7 +156,7 @@ export async function POST(
       skills: candidateSkills,
       requiredSkills: job.skills,
       experience: yearsOfExperience,
-      minExperience: job.screeningRules?.minYears
+      minYears: job.screeningRules?.minYears
     }, atsSettings.scoringWeights);
     
     // Check knockout rules
