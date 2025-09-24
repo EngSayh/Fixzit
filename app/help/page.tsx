@@ -16,13 +16,13 @@ interface Tutorial {
   completed?: boolean;
 }
 
-interface HelpArticle {
+  interface HelpArticle {
   id: string;
   title: string;
   category: string;
-  description: string;
-  readTime: string;
-  lastUpdated: string;
+  description?: string;
+  readTime?: string;
+  lastUpdated?: string;
 }
 
 export default function HelpHome() {
@@ -79,41 +79,32 @@ export default function HelpHome() {
     }
   ];
 
-  // Help articles
-  const helpArticles: HelpArticle[] = [
-    {
-      id: '1',
-      title: 'How to Create Properties',
-      category: 'Properties',
-      description: 'Learn how to add and manage properties in the system',
-      readTime: '5 min',
-      lastUpdated: '2025-01-15'
-    },
-    {
-      id: '2',
-      title: 'Work Order Lifecycle',
-      category: 'Work Orders',
-      description: 'Understanding the complete work order process',
-      readTime: '8 min',
-      lastUpdated: '2025-01-14'
-    },
-    {
-      id: '3',
-      title: 'Vendor Onboarding Process',
-      category: 'Vendors',
-      description: 'How to add new vendors to your system',
-      readTime: '6 min',
-      lastUpdated: '2025-01-13'
-    },
-    {
-      id: '4',
-      title: 'Invoice Generation & Payment',
-      category: 'Finance',
-      description: 'Complete guide to invoicing and payment processing',
-      readTime: '10 min',
-      lastUpdated: '2025-01-12'
-    }
-  ];
+  const [articles, setArticles] = useState<HelpArticle[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(false);
+
+  useEffect(() => {
+    const run = async () => {
+      setLoadingArticles(true);
+      try {
+        const res = await fetch('/api/help/articles');
+        const data = await res.json();
+        const items = (data?.items || []).map((a: any) => ({
+          id: a.slug,
+          title: a.title,
+          category: a.category || 'General',
+          description: '',
+          readTime: '',
+          lastUpdated: a.updatedAt ? new Date(a.updatedAt).toISOString().slice(0,10) : ''
+        })) as HelpArticle[];
+        setArticles(items);
+      } catch {
+        setArticles([]);
+      } finally {
+        setLoadingArticles(false);
+      }
+    };
+    run();
+  }, []);
 
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
@@ -154,14 +145,14 @@ export default function HelpHome() {
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={() => setShowAIChat(true)}
+              onClick={() => { window.open('/help/ai-chat', '_blank'); }}
               className="bg-white text-[#0061A8] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
             >
               <Bot className="w-5 h-5" />
               Ask AI Assistant
             </button>
             <button
-              onClick={() => setShowSupportTicket(true)}
+              onClick={() => { window.open('/help/support-ticket', '_blank'); }}
               className="bg-[#FFB400] text-[#0061A8] px-6 py-3 rounded-lg font-semibold hover:bg-[#FFB400]/90 transition-colors flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
@@ -253,7 +244,7 @@ export default function HelpHome() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {helpArticles.map((article) => (
+            {(loadingArticles ? [] : articles).map((article) => (
               <div key={article.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
@@ -263,15 +254,18 @@ export default function HelpHome() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       {article.title}
                     </h3>
-                    <p className="text-gray-600 text-sm mb-3">{article.description}</p>
+                    {article.description && (
+                      <p className="text-gray-600 text-sm mb-3">{article.description}</p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <span>{article.category}</span>
                         <span>•</span>
-                        <span>{article.readTime} read</span>
+                        {article.readTime && <span>{article.readTime} read</span>}
+                        {article.lastUpdated && <span>Updated {article.lastUpdated}</span>}
                       </div>
                       <Link
-                        href={`/help/article/${article.id}`}
+                        href={`/help/${article.id}`}
                         className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
                       >
                         Read More
@@ -282,6 +276,9 @@ export default function HelpHome() {
                 </div>
               </div>
             ))}
+            {(!loadingArticles && articles.length === 0) && (
+              <div className="text-center text-gray-500">No articles found.</div>
+            )}
           </div>
 
           <div className="text-center mt-8">
@@ -346,118 +343,7 @@ export default function HelpHome() {
         </div>
       </section>
 
-      {/* AI Chat Modal */}
-      {showAIChat && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold">Fixzit AI Assistant</h3>
-                    <p className="text-sm text-gray-500">Ask me anything about Fixzit!</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAIChat(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 p-6">
-              <div className="text-center py-12">
-                <Bot className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                <h4 className="text-xl font-semibold mb-2">AI Assistant Coming Soon!</h4>
-                <p className="text-gray-600">
-                  Our intelligent assistant will help you with questions about Fixzit features and provide personalized guidance.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Support Ticket Modal */}
-      {showSupportTicket && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold">Create Support Ticket</h3>
-                <p className="text-gray-600">
-                  Fill out the form below and our support team will get back to you within 24 hours.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowSupportTicket(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Brief description of your issue"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Module
-                  </label>
-                  <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                    <option>Facility Management</option>
-                    <option>Marketplace</option>
-                    <option>Real Estate</option>
-                    <option>Account</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description *
-                </label>
-                <textarea
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none"
-                  placeholder="Please provide detailed information about your issue or request..."
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowSupportTicket(false)}
-                  className="px-6 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Submit Ticket
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* AI Chat and Support Ticket modals removed in favor of dedicated pages */}
       <HelpWidget />
     </div>
   );
