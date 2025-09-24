@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function KbPage() {
   const db = await getDb();
-  const articles = await db.collection('knowledge_articles')
+  const native = (db as any).connection?.db || (db as any).db;
+  const articles = await native.collection('knowledge_articles')
     .find({ status: 'PUBLISHED' }).project({ title:1, lang:1, module:1, slug:1 }).limit(60).toArray();
 
   return (

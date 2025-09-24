@@ -112,6 +112,79 @@ Email: info@fixzit.co
 Phone: +966 XX XXX XXXX
 Address: Riyadh, Saudi Arabia`,
       status: 'PUBLISHED'
+    },
+    {
+      slug: 'community',
+      title: 'Community',
+      content: `# Fixzit Community
+
+Welcome to the Fixzit Community - your hub for support, collaboration, and updates.
+
+## Join Our Community
+
+Connect with other facility managers, property owners, and service providers using the Fixzit platform.
+
+### Community Forums
+
+- **General Discussion** - Share experiences and best practices
+- **Feature Requests** - Suggest new features and improvements
+- **Technical Support** - Get help from our community experts
+- **Marketplace Tips** - Share vendor recommendations and reviews
+
+## Resources
+
+### Knowledge Base
+Access our comprehensive guides and tutorials to make the most of Fixzit:
+- Getting Started Guides
+- Video Tutorials
+- API Documentation
+- Best Practices
+
+### Events & Webinars
+Join our regular events:
+- Monthly User Meetups
+- Training Webinars
+- Product Updates
+- Industry Insights
+
+## Support Channels
+
+### Get Help
+- **Help Center**: Access our self-service support portal
+- **Community Forum**: Ask questions and share solutions
+- **Email Support**: support@fixzit.co
+- **Live Chat**: Available for premium users
+
+### Stay Updated
+Follow us for the latest updates:
+- **Newsletter**: Monthly updates and tips
+- **Blog**: Industry insights and platform news
+- **Social Media**: @FixzitPlatform
+
+## Contributing
+
+We value your feedback and contributions:
+- Report bugs and issues
+- Suggest new features
+- Share your success stories
+- Help other community members
+
+## Community Guidelines
+
+1. **Be Respectful** - Treat all members with courtesy
+2. **Stay On Topic** - Keep discussions relevant
+3. **Share Knowledge** - Help others when you can
+4. **No Spam** - Avoid promotional content
+5. **Protect Privacy** - Don't share sensitive information
+
+## Contact Community Team
+
+Have questions or suggestions for our community?
+- Email: community@fixzit.co
+- Forum: [Join Discussion](https://community.fixzit.co)
+
+Together, we're building the future of facility management!`,
+      status: 'PUBLISHED'
     }
   ];
 

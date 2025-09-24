@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing params' }, { status: 400 });
   }
   const db = await getDb();
-  const coll = db.collection('kb_embeddings');
+  const coll = (db as any).connection?.db?.collection('kb_embeddings') || (db as any).db?.collection('kb_embeddings');
 
   const filter: any = { orgId, lang, roleScopes: { $in: [role] } };
   if (route) filter.route = route;

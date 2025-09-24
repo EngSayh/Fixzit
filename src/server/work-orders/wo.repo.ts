@@ -1,33 +1,26 @@
-import { prisma } from "@/server/db/client";
+import { WorkOrder } from "@/src/server/models/WorkOrder";
 import type { WoCreateInput, WoUpdateInput } from "./wo.schema";
 
-function pad(num: number, size = 6) { return String(num).padStart(size,"0"); }
+function pad(num: number, size = 6) { return String(num).padStart(size, "0"); }
 
 export async function woCreate(data: WoCreateInput) {
-  const count = await prisma.workOrder.count({ where: { tenantId: data.tenantId }});
-  const code = `WO-${pad(count+1)}`;
-  return prisma.workOrder.create({ data: { ...data, code }});
+  const count = await (WorkOrder as any).countDocuments({ tenantId: data.tenantId });
+  const code = `WO-${pad(count + 1)}`;
+  return (WorkOrder as any).create({ ...data, code });
 }
 
 export async function woUpdate(id: string, patch: WoUpdateInput) {
-  return prisma.workOrder.update({ where: { id }, data: patch });
+  return (WorkOrder as any).findByIdAndUpdate(id, { $set: patch }, { new: true });
 }
 
 export async function woGet(id: string) {
-  return prisma.workOrder.findUnique({ where: { id }});
+  return (WorkOrder as any).findById(id);
 }
 
 export async function woList(tenantId: string, q?: string, status?: string) {
-  return prisma.workOrder.findMany({
-    where: {
-      tenantId,
-      AND: [
-        q ? { OR: [{ title: { contains: q, mode:"insensitive" }}, { description: { contains: q, mode:"insensitive" }}] } : {},
-        status ? { status: status as any } : {}
-      ]
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200
-  });
+  const filter: any = { tenantId };
+  if (status) filter.status = status;
+  if (q) filter.$text = { $search: q };
+  return (WorkOrder as any).find(filter).sort({ createdAt: -1 }).limit(200);
 }
 

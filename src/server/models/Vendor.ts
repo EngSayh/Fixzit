@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
+import { isMockDB } from "@/src/lib/mongo";
 
 const VendorStatus = ["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"] as const;
 const VendorType = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"] as const;
@@ -203,11 +204,10 @@ VendorSchema.index({ tenantId: 1, status: 1 });
 VendorSchema.index({ tenantId: 1, type: 1 });
 VendorSchema.index({ tenantId: 1, 'performance.rating': -1 });
 VendorSchema.index({ tenantId: 1, 'business.specializations': 1 });
+// Text index for name/specializations/certifications
+VendorSchema.index({ name: 'text', 'business.specializations': 'text', 'certifications.name': 'text' });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
-
-// Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
 
 export const Vendor = isMockDB
   ? new MockModel('vendors') as any

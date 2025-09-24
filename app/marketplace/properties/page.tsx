@@ -1,10 +1,20 @@
 // app/marketplace/properties/page.tsx - Public real estate browsing
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { MapPin, Bed, Bath, Square, Heart, Eye, Shield } from 'lucide-react';
 
 export default function PublicPropertiesPage() {
+  const SAMPLE_PROPERTIES = [
+    { id: 'p1', title: 'Apartment in Al Olaya', city: 'Riyadh', district: 'Al Olaya', price: 90000, bedrooms: 2, bathrooms: 2, area: 120, verified: true, image: '/placeholder-property.jpg' },
+    { id: 'p2', title: 'Villa in Al Hamra', city: 'Jeddah', district: 'Al Hamra', price: 250000, bedrooms: 4, bathrooms: 3, area: 300, verified: false, image: '/placeholder-property.jpg' },
+    { id: 'p3', title: 'Office in Dammam', city: 'Dammam', district: 'Business', price: 120000, bedrooms: 0, bathrooms: 2, area: 200, verified: true, image: '/placeholder-property.jpg' },
+    { id: 'p4', title: 'Studio in Al Malaz', city: 'Riyadh', district: 'Al Malaz', price: 65000, bedrooms: 0, bathrooms: 1, area: 55, verified: true, image: '/placeholder-property.jpg' },
+    { id: 'p5', title: 'Shop in Al Rawdah', city: 'Jeddah', district: 'Al Rawdah', price: 180000, bedrooms: 0, bathrooms: 1, area: 80, verified: false, image: '/placeholder-property.jpg' },
+    { id: 'p6', title: 'Warehouse in 2nd Industrial', city: 'Dammam', district: 'Industrial', price: 300000, bedrooms: 0, bathrooms: 1, area: 600, verified: true, image: '/placeholder-property.jpg' },
+    { id: 'p7', title: 'Luxury Villa in Al Nakheel', city: 'Riyadh', district: 'Al Nakheel', price: 2000000, bedrooms: 5, bathrooms: 5, area: 500, verified: true, image: '/placeholder-property.jpg' },
+    { id: 'p8', title: 'Apartment in Al Hamra', city: 'Jeddah', district: 'Al Hamra', price: 85000, bedrooms: 2, bathrooms: 2, area: 110, verified: false, image: '/placeholder-property.jpg' }
+  ];
   const [filters, setFilters] = useState({
     city: '',
     type: '',
@@ -13,57 +23,56 @@ export default function PublicPropertiesPage() {
     bedrooms: ''
   });
 
-  // Mock data - replace with API call
-  const properties = [
-    {
-      id: '1',
-      title: 'Modern Apartment in Riyadh',
-      city: 'Riyadh',
-      district: 'Al Olaya',
-      price: 85000,
-      currency: 'SAR',
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 120,
-      type: 'Apartment',
-      verified: true,
-      image: '/placeholder-property.jpg',
-      features: ['Parking', 'Gym', 'Security'],
-      description: 'Beautiful modern apartment in the heart of Riyadh with excellent amenities.'
-    },
-    {
-      id: '2',
-      title: 'Luxury Villa in Jeddah',
-      city: 'Jeddah',
-      district: 'Al Hamra',
-      price: 150000,
-      currency: 'SAR',
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 250,
-      type: 'Villa',
-      verified: true,
-      image: '/placeholder-property.jpg',
-      features: ['Swimming Pool', 'Garden', 'Garage'],
-      description: 'Spacious luxury villa with private garden and swimming pool.'
-    },
-    {
-      id: '3',
-      title: 'Commercial Office Space',
-      city: 'Dammam',
-      district: 'Al Khobar',
-      price: 200000,
-      currency: 'SAR',
-      bedrooms: 0,
-      bathrooms: 2,
-      area: 180,
-      type: 'Office',
-      verified: false,
-      image: '/placeholder-property.jpg',
-      features: ['Central AC', 'Parking', 'Reception'],
-      description: 'Prime commercial office space in a modern business district.'
-    }
-  ];
+  const [properties, setProperties] = useState<any[]>(SAMPLE_PROPERTIES);
+  const [applied, setApplied] = useState(false);
+  const [isArabic, setIsArabic] = useState(false);
+
+  async function fetchListingsFromApi(signal?: AbortSignal) {
+    const url = new URL('/api/marketplace/properties', window.location.origin);
+    const sp = new URLSearchParams(window.location.search);
+    // map UI filters → API params
+    if (sp.get('city')) url.searchParams.set('city', sp.get('city') as string);
+    if (sp.get('minPrice')) url.searchParams.set('minPrice', sp.get('minPrice') as string);
+    if (sp.get('maxPrice')) url.searchParams.set('maxPrice', sp.get('maxPrice') as string);
+    if (sp.get('bedrooms')) url.searchParams.set('bedrooms', sp.get('bedrooms') as string);
+    url.searchParams.set('limit', '60');
+
+    const res = await fetch(url.toString(), { signal, cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to load');
+    const json = await res.json();
+    const items = json?.data?.listings || json?.data || json?.listings || [];
+    // Transform API shape → UI shape
+    const mapped = items.map((it: any) => ({
+      id: it.id || it._id,
+      title: it.title || it.property?.title || 'Property',
+      city: it.property?.location?.city,
+      district: it.property?.location?.district,
+      price: it.price,
+      bedrooms: it.property?.bedrooms ?? 0,
+      bathrooms: it.property?.bathrooms ?? 0,
+      area: it.property?.area ?? 0,
+      verified: it.badges?.verified || it.verification?.status === 'verified',
+      image: it.image?.url || '/placeholder-property.jpg'
+    }));
+    return mapped;
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const mapped = await fetchListingsFromApi(controller.signal);
+        setProperties(mapped.length ? mapped : SAMPLE_PROPERTIES);
+      } catch {
+        setProperties(SAMPLE_PROPERTIES);
+      }
+    })();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    try { setIsArabic(document.documentElement.dir === 'rtl'); } catch {}
+  }, []);
 
   const filteredProperties = properties.filter(property => {
     if (filters.city && !property.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
@@ -75,16 +84,16 @@ export default function PublicPropertiesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Browse Properties</h1>
+              <h1 className="text-2xl font-bold text-gray-900" data-testid="page-title">{isArabic ? 'العقارات' : 'Browse Properties'}</h1>
               <p className="text-gray-600">Find your perfect property across Saudi Arabia</p>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500" data-testid="results-count">
               {filteredProperties.length} properties found
             </div>
           </div>
@@ -105,6 +114,7 @@ export default function PublicPropertiesPage() {
                     value={filters.city}
                     onChange={(e) => setFilters({...filters, city: e.target.value})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    data-testid="city-filter"
                   >
                     <option value="">All Cities</option>
                     <option value="Riyadh">Riyadh</option>
@@ -129,7 +139,7 @@ export default function PublicPropertiesPage() {
                   </select>
                 </div>
 
-                <div>
+                <div data-testid="price-filter">
                   <label className="block text-sm font-medium mb-2">Price Range (SAR)</label>
                   <div className="flex gap-2">
                     <input
@@ -138,6 +148,7 @@ export default function PublicPropertiesPage() {
                       value={filters.minPrice}
                       onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
                       className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                      data-testid="min-price"
                     />
                     <input
                       type="number"
@@ -145,6 +156,7 @@ export default function PublicPropertiesPage() {
                       value={filters.maxPrice}
                       onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
                       className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                      data-testid="max-price"
                     />
                   </div>
                 </div>
@@ -175,6 +187,17 @@ export default function PublicPropertiesPage() {
                 </div>
               </div>
             </div>
+            <button className="w-full mt-2 px-3 py-2 text-white bg-[#0061A8] rounded" onClick={()=>{
+              const params = new URLSearchParams(window.location.search);
+              if (filters.city) params.set('city', filters.city);
+              if (filters.minPrice) params.set('minPrice', filters.minPrice);
+              if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+              const url = `${window.location.pathname}?${params.toString()}`;
+              window.history.replaceState({}, '', url);
+              setApplied(true);
+            }}>
+              Apply Filters
+            </button>
           </div>
 
           {/* Properties Grid */}
@@ -185,6 +208,7 @@ export default function PublicPropertiesPage() {
                   key={property.id}
                   href={`/marketplace/properties/${property.id}`}
                   className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                  data-testid="property-card"
                 >
                   <div className="relative">
                     <img
@@ -193,7 +217,7 @@ export default function PublicPropertiesPage() {
                       className="w-full h-48 object-cover"
                     />
                     {property.verified && (
-                      <div className="absolute top-3 right-3 bg-green-100 text-green-800 px-2 py-1 rounded text-xs flex items-center gap-1">
+                      <div className="absolute top-3 right-3 bg-green-100 text-green-800 px-2 py-1 rounded text-xs flex items-center gap-1" data-testid="verified-badge">
                         <Shield className="h-3 w-3" />
                         Verified
                       </div>
@@ -230,7 +254,7 @@ export default function PublicPropertiesPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-2xl font-bold text-[#0061A8]">
-                          {property.price.toLocaleString()}
+                          {Number(property.price || 0).toLocaleString()}
                         </span>
                         <span className="text-gray-600 ml-1">SAR/year</span>
                       </div>

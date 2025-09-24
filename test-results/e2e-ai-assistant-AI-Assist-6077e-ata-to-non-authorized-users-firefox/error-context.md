@@ -1,0 +1,251 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]:
+          - link "Fixzit Home" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e8] [cursor=pointer]: Fixzit Enterprise
+          - button "Menu" [ref=e10] [cursor=pointer]:
+            - img [ref=e11] [cursor=pointer]
+            - generic [ref=e15] [cursor=pointer]: Menu
+            - img [ref=e16] [cursor=pointer]
+          - generic [ref=e18]: Home
+          - generic [ref=e21]:
+            - button "Home" [ref=e22] [cursor=pointer]
+            - generic [ref=e23]:
+              - img [ref=e24]
+              - textbox "Global search" [ref=e27]
+          - button "Notifications" [ref=e29] [cursor=pointer]:
+            - img [ref=e30] [cursor=pointer]
+            - generic [ref=e33] [cursor=pointer]: "2"
+          - button "English – United Kingdom" [ref=e35] [cursor=pointer]:
+            - img [ref=e36] [cursor=pointer]: 🇬🇧
+            - generic [ref=e37] [cursor=pointer]: English
+            - img [ref=e38] [cursor=pointer]
+          - 'button "Currency: Saudi Riyal (SAR)" [ref=e41] [cursor=pointer]':
+            - generic [ref=e42] [cursor=pointer]: ﷼
+            - generic [ref=e43] [cursor=pointer]: SAR
+            - img [ref=e44] [cursor=pointer]
+          - button "Marketplaces" [ref=e46] [cursor=pointer]
+          - button "User menu" [ref=e48] [cursor=pointer]: 👤
+      - main [ref=e50]:
+        - generic [ref=e52]:
+          - generic [ref=e54]:
+            - generic [ref=e55]:
+              - generic [ref=e58]: F
+              - heading "Fixzit Enterprise" [level=1] [ref=e59]
+              - paragraph [ref=e60]: Facility Management + Marketplace Platform
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - img [ref=e63]
+                - generic [ref=e71]:
+                  - heading "Property Management" [level=3] [ref=e72]
+                  - paragraph [ref=e73]: Manage real estate portfolios
+              - generic [ref=e74]:
+                - img [ref=e75]
+                - generic [ref=e80]:
+                  - heading "Work Orders" [level=3] [ref=e81]
+                  - paragraph [ref=e82]: Streamline maintenance requests
+              - generic [ref=e83]:
+                - img [ref=e84]
+                - generic [ref=e87]:
+                  - heading "Marketplace" [level=3] [ref=e88]
+                  - paragraph [ref=e89]: Connect with verified vendors
+          - generic [ref=e92]:
+            - generic [ref=e93]:
+              - heading "Welcome Back" [level=2] [ref=e94]
+              - paragraph [ref=e95]: Sign in to your Fixzit account • Sign in to contact
+            - generic [ref=e96]:
+              - generic [ref=e97]:
+                - button "Personal Email" [ref=e98] [cursor=pointer]
+                - button "Corporate Account" [ref=e99] [cursor=pointer]
+                - button "SSO Login" [ref=e100] [cursor=pointer]
+              - generic [ref=e101]:
+                - generic [ref=e102]:
+                  - generic [ref=e103]:
+                    - generic [ref=e104]: Personal Email Address
+                    - textbox "Enter your personal email" [ref=e105]: tenant@fixzit.co
+                  - generic [ref=e106]:
+                    - generic [ref=e107]: Password
+                    - generic [ref=e108]:
+                      - textbox "Enter your password" [ref=e109]: password123
+                      - button [ref=e110] [cursor=pointer]:
+                        - img [ref=e111] [cursor=pointer]
+                  - link "Forgot Password?" [ref=e115] [cursor=pointer]:
+                    - /url: /forgot-password
+                  - generic [ref=e116]:
+                    - img [ref=e117]
+                    - generic [ref=e121]: An error occurred during login
+                  - button "Sign In" [ref=e122] [cursor=pointer]:
+                    - generic [ref=e123] [cursor=pointer]:
+                      - img [ref=e124] [cursor=pointer]
+                      - generic [ref=e128] [cursor=pointer]: Sign In
+                - generic [ref=e129]:
+                  - paragraph [ref=e130]: "Demo Credentials:"
+                  - generic [ref=e131]:
+                    - button "Super Admin Full system access superadmin@fixzit.co / password123" [ref=e132] [cursor=pointer]:
+                      - generic [ref=e133] [cursor=pointer]:
+                        - img [ref=e134] [cursor=pointer]
+                        - generic [ref=e136] [cursor=pointer]:
+                          - generic [ref=e137] [cursor=pointer]: Super Admin
+                          - generic [ref=e138] [cursor=pointer]: Full system access
+                        - generic [ref=e139] [cursor=pointer]: superadmin@fixzit.co / password123
+                    - button "Admin Administrative access admin@fixzit.co / password123" [ref=e140] [cursor=pointer]:
+                      - generic [ref=e141] [cursor=pointer]:
+                        - img [ref=e142] [cursor=pointer]
+                        - generic [ref=e145] [cursor=pointer]:
+                          - generic [ref=e146] [cursor=pointer]: Admin
+                          - generic [ref=e147] [cursor=pointer]: Administrative access
+                        - generic [ref=e148] [cursor=pointer]: admin@fixzit.co / password123
+                    - button "Property Manager Property management manager@fixzit.co / password123" [ref=e149] [cursor=pointer]:
+                      - generic [ref=e150] [cursor=pointer]:
+                        - img [ref=e151] [cursor=pointer]
+                        - generic [ref=e159] [cursor=pointer]:
+                          - generic [ref=e160] [cursor=pointer]: Property Manager
+                          - generic [ref=e161] [cursor=pointer]: Property management
+                        - generic [ref=e162] [cursor=pointer]: manager@fixzit.co / password123
+                    - button "Tenant Tenant portal access tenant@fixzit.co / password123" [ref=e163] [cursor=pointer]:
+                      - generic [ref=e164] [cursor=pointer]:
+                        - img [ref=e165] [cursor=pointer]
+                        - generic [ref=e170] [cursor=pointer]:
+                          - generic [ref=e171] [cursor=pointer]: Tenant
+                          - generic [ref=e172] [cursor=pointer]: Tenant portal access
+                        - generic [ref=e173] [cursor=pointer]: tenant@fixzit.co / password123
+                    - button "Vendor Vendor marketplace access vendor@fixzit.co / password123" [ref=e174] [cursor=pointer]:
+                      - generic [ref=e175] [cursor=pointer]:
+                        - img [ref=e176] [cursor=pointer]
+                        - generic [ref=e179] [cursor=pointer]:
+                          - generic [ref=e180] [cursor=pointer]: Vendor
+                          - generic [ref=e181] [cursor=pointer]: Vendor marketplace access
+                        - generic [ref=e182] [cursor=pointer]: vendor@fixzit.co / password123
+            - generic [ref=e184]:
+              - text: Don't have an account?
+              - link "Sign up here" [ref=e185] [cursor=pointer]:
+                - /url: /signup
+            - link "← Back to Home" [ref=e187] [cursor=pointer]:
+              - /url: /
+      - contentinfo [ref=e189]:
+        - generic [ref=e190]:
+          - generic [ref=e191]:
+            - generic [ref=e192]:
+              - generic [ref=e193]: Fixzit
+              - paragraph [ref=e194]: Facility management + marketplaces in one platform. Streamline operations, optimize costs, and enhance productivity with our comprehensive enterprise solution.
+              - generic [ref=e195]:
+                - generic [ref=e196]:
+                  - img [ref=e197]
+                  - generic [ref=e199]: +966 50 123 4567
+                - generic [ref=e200]:
+                  - img [ref=e201]
+                  - generic [ref=e204]: info@fixzit.com
+                - generic [ref=e205]:
+                  - img [ref=e206]
+                  - generic [ref=e209]: Riyadh, Saudi Arabia
+            - generic [ref=e210]:
+              - generic [ref=e211]: Company
+              - list [ref=e212]:
+                - listitem [ref=e213]:
+                  - link "About Us" [ref=e214] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e215]:
+                  - link "Careers" [ref=e216] [cursor=pointer]:
+                    - /url: /careers
+                - listitem [ref=e217]:
+                  - link "Contact" [ref=e218] [cursor=pointer]:
+                    - /url: /cms/contact
+                - listitem [ref=e219]:
+                  - link "Partners" [ref=e220] [cursor=pointer]:
+                    - /url: /cms/partners
+                - listitem [ref=e221]:
+                  - link "Investors" [ref=e222] [cursor=pointer]:
+                    - /url: /cms/investors
+            - generic [ref=e223]:
+              - generic [ref=e224]: Product
+              - list [ref=e225]:
+                - listitem [ref=e226]:
+                  - link "Features" [ref=e227] [cursor=pointer]:
+                    - /url: /fm
+                - listitem [ref=e228]:
+                  - link "Enterprise" [ref=e229] [cursor=pointer]:
+                    - /url: /souq
+                - listitem [ref=e230]:
+                  - link "Resources" [ref=e231] [cursor=pointer]:
+                    - /url: /aqar
+                - listitem [ref=e232]:
+                  - link "Product Updates" [ref=e233] [cursor=pointer]:
+                    - /url: /cms/integrations
+                - listitem [ref=e234]:
+                  - link "API Reference" [ref=e235] [cursor=pointer]:
+                    - /url: /cms/api
+            - generic [ref=e236]:
+              - generic [ref=e237]: Support
+              - list [ref=e238]:
+                - listitem [ref=e239]:
+                  - link "Help Center" [ref=e240] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e241]:
+                  - link "Documentation" [ref=e242] [cursor=pointer]:
+                    - /url: /cms/documentation
+                - listitem [ref=e243]:
+                  - link "Community" [ref=e244] [cursor=pointer]:
+                    - /url: /cms/community
+                - listitem [ref=e245]:
+                  - link "System Status" [ref=e246] [cursor=pointer]:
+                    - /url: /cms/status
+                - listitem [ref=e247]:
+                  - button "Contact Support" [ref=e248] [cursor=pointer]
+          - generic [ref=e250]:
+            - heading "Stay Updated" [level=3] [ref=e251]
+            - paragraph [ref=e252]: Get the latest updates, tips, and industry insights delivered to your inbox.
+            - generic [ref=e253]:
+              - textbox "Enter your email" [ref=e254]
+              - button "Subscribe" [ref=e255] [cursor=pointer]
+          - generic [ref=e256]:
+            - link "Facebook" [ref=e257] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e258] [cursor=pointer]
+            - link "Twitter" [ref=e260] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e261] [cursor=pointer]
+            - link "LinkedIn" [ref=e263] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e264] [cursor=pointer]
+            - link "YouTube" [ref=e268] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e269] [cursor=pointer]
+            - link "Instagram" [ref=e272] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e273] [cursor=pointer]
+        - generic [ref=e279]:
+          - generic [ref=e280]: © 2025 Fixzit. All rights reserved.
+          - generic [ref=e281]:
+            - link "🏠 Back to Home" [ref=e282] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e283] [cursor=pointer]: 🏠
+              - generic [ref=e284] [cursor=pointer]: Back to Home
+            - link "Privacy Policy" [ref=e285] [cursor=pointer]:
+              - /url: /cms/privacy
+            - link "Terms of Service" [ref=e286] [cursor=pointer]:
+              - /url: /cms/terms
+            - link "Cookies" [ref=e287] [cursor=pointer]:
+              - /url: /cms/cookies
+            - link "Accessibility" [ref=e288] [cursor=pointer]:
+              - /url: /cms/accessibility
+            - link "Sitemap" [ref=e289] [cursor=pointer]:
+              - /url: /cms/sitemap
+            - generic [ref=e290]:
+              - generic [ref=e291]: ﷼
+              - generic [ref=e292]: SAR
+    - button "Open Help" [ref=e294] [cursor=pointer]:
+      - img [ref=e295] [cursor=pointer]
+    - button "common.help" [ref=e299] [cursor=pointer]:
+      - generic [ref=e302] [cursor=pointer]:
+        - img [ref=e303] [cursor=pointer]
+        - generic [ref=e307] [cursor=pointer]: Help
+    - button "Fixzit Assistant" [ref=e309] [cursor=pointer]:
+      - img [ref=e310] [cursor=pointer]
+  - alert [ref=e312]
+```

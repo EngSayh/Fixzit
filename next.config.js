@@ -63,6 +63,18 @@ const nextConfig = {
 
   // Webpack customization for module resolution and OneDrive compatibility
   webpack: (config, { isServer, dev }) => {
+    // Suppress MongoDB optional dependency warnings
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'mongodb-client-encryption': false,
+      'kerberos': false,
+      '@mongodb-js/zstd': false,
+      'snappy': false,
+      '@aws-sdk/credential-providers': false,
+      'gcp-metadata': false,
+      'aws4': false,
+    };
+
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -85,6 +97,7 @@ const nextConfig = {
       https: false,
       zlib: false,
     }
+    
     // Add polling for OneDrive file watching issues
     if (dev) {
       config.watchOptions = {
@@ -93,6 +106,18 @@ const nextConfig = {
         ignored: /node_modules/
       }
     }
+    
+    // Ignore MongoDB optional dependency warnings
+    config.ignoreWarnings = [
+      /Can't resolve 'mongodb-client-encryption'/,
+      /Can't resolve 'kerberos'/,
+      /Can't resolve '@mongodb-js\/zstd'/,
+      /Can't resolve 'snappy'/,
+      /Can't resolve '@aws-sdk\/credential-providers'/,
+      /Can't resolve 'gcp-metadata'/,
+      /Can't resolve 'aws4'/,
+    ];
+    
     return config
   },
 
@@ -150,8 +175,8 @@ const nextConfig = {
     ]
   },
 
-  // Output configuration for deployment
-  output: 'standalone',
+  // Output configuration for deployment (disabled standalone during local build verification)
+  // output: 'standalone',
 }
 
 module.exports = nextConfig

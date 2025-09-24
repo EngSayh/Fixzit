@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/src/lib/mongo";
-import { User } from "@/src/server/models/User";
+import User from "@/src/server/models/User";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
@@ -26,7 +26,7 @@ const signupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await db;
+    await db();
 
     const body = signupSchema.parse(await req.json());
 

@@ -27,9 +27,9 @@ export default async function CmsPageScreen({ params, searchParams }: { params:{
     );
   }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#023047] to-[#0061A8] text-white py-12">
+      <section className="bg-[#0061A8] text-white py-16">
         <div className="mx-auto max-w-4xl px-6">
           <h1 className="text-4xl font-bold">{page.title}</h1>
         </div>
@@ -39,7 +39,7 @@ export default async function CmsPageScreen({ params, searchParams }: { params:{
       <div className="mx-auto max-w-4xl px-6 py-10">
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
           <article 
-            className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]" 
+            className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-a:text-[#0061A8] hover:prose-a:text-[#0061A8]/80 prose-strong:text-gray-900" 
             dangerouslySetInnerHTML={{ __html: await renderMarkdown(page.content) }} 
           />
           
@@ -51,7 +51,7 @@ export default async function CmsPageScreen({ params, searchParams }: { params:{
               </div>
               <Link 
                 href="/" 
-                className="text-[var(--fixzit-blue)] hover:text-[var(--fixzit-blue)]/80 font-medium"
+                className="text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
               >
                 ← Back to home
               </Link>

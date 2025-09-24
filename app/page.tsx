@@ -1,117 +1,183 @@
 'use client';
 
-import Link from "next/link";
-import Footer from "@/src/components/Footer";
+import Link from 'next/link';
+import Image from 'next/image';
 import { useI18n } from '@/src/providers/RootProviders';
+import { ArrowRight, Building2, Wrench, FileText, DollarSign, Users, ShoppingBag } from 'lucide-react';
 
-export default function LandingPage(){
+export default function LandingPage() {
   const { t, language, isRTL } = useI18n();
 
+  const modules = [
+    {
+      icon: Wrench,
+      title: t('modules.workOrders.title', 'Work Orders'),
+      desc: t('modules.workOrders.desc', 'Dispatch, SLAs, photos, chat, and technician app.'),
+      color: 'text-[#0061A8]',
+      bgColor: 'bg-[#0061A8]/10'
+    },
+    {
+      icon: Building2,
+      title: t('modules.properties.title', 'Properties'),
+      desc: t('modules.properties.desc', 'Units, assets, leases, owners and statements.'),
+      color: 'text-[#00A859]',
+      bgColor: 'bg-[#00A859]/10'
+    },
+    {
+      icon: DollarSign,
+      title: t('modules.finance.title', 'Finance'),
+      desc: t('modules.finance.desc', 'Invoices, ZATCA QR, receipts, vendor payables.'),
+      color: 'text-[#FFB400]',
+      bgColor: 'bg-[#FFB400]/10'
+    },
+    {
+      icon: Users,
+      title: t('modules.crm.title', 'CRM'),
+      desc: t('modules.crm.desc', 'Tickets, CSAT, campaigns, WhatsApp and email.'),
+      color: 'text-[#F6851F]',
+      bgColor: 'bg-[#F6851F]/10'
+    },
+    {
+      icon: Building2,
+      title: t('modules.aqarSouq.title', 'Aqar Souq'),
+      desc: t('modules.aqarSouq.desc', 'Real estate catalog; viewable public pins, login to act.'),
+      color: 'text-[#0061A8]',
+      bgColor: 'bg-[#0061A8]/10'
+    },
+    {
+      icon: ShoppingBag,
+      title: t('modules.fixzitSouq.title', 'Fixzit Souq'),
+      desc: t('modules.fixzitSouq.desc', 'Materials & services marketplace with 5% margin logic.'),
+      color: 'text-[#00A859]',
+      bgColor: 'bg-[#00A859]/10'
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 pt-16">
-
-      {/* Hero Section */}
-      <section className="py-20 px-4 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
-            {t('landing.title', 'Fixzit Enterprise Platform')}
-          </h1>
-          <p className="text-xl mb-8 text-gray-600 max-w-3xl mx-auto">
-            {t('landing.subtitle', 'Unified Facility Management + Marketplace Solution for modern property operations')}
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center mb-12">
-            <Link href="/fm" className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
-              {t('landing.hero.cta1', 'Access Fixzit FM')}
-            </Link>
-            <Link href="/souq" className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
-              {t('landing.hero.cta2', 'Fixzit Souq')}
-            </Link>
-            <Link href="/aqar" className="px-8 py-4 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition-colors">
-              {t('landing.hero.cta3', 'Aqar Real Estate')}
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
-            {t('landing.features.title', 'Complete Facility Management Solution')}
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Property Management</h3>
-              <p className="text-gray-600 mb-4">Manage your real estate portfolio, track occupancy, and handle tenant relations</p>
-              <Link href="/fm/properties" className="text-blue-600 hover:text-blue-800 font-medium">
-                Explore →
+    <>
+      {/* Hero Section with Gradient Overlay */}
+      <section className="relative min-h-[600px] overflow-hidden pt-14">
+        {/* Brand Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400]"></div>
+        {/* Subtle overlay pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.12),transparent_40%),radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.10),transparent_45%),radial-gradient(circle_at_40%_80%,rgba(255,255,255,0.08),transparent_40%)]"></div>
+        
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+          <div className="max-w-3xl text-white">
+            <h1 className="text-4xl md:text-6xl font-extrabold leading-tight drop-shadow-lg mb-6">
+              {t('hero.title', 'Operate properties flawlessly. Monetize services smartly.')}
+            </h1>
+            <p className="text-lg md:text-xl opacity-95 mb-8">
+              {t('hero.subtitle', 'Fixzit unifies Facility Management, Work Orders, Finance, CRM, and two marketplaces (Aqar Souq & Fixzit Souq) in one modern platform.')}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link 
+                href="/fm" 
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#0061A8] font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                {t('cta.getStarted', 'Get Started')}
+                <ArrowRight className="w-4 h-4" />
               </Link>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Work Orders</h3>
-              <p className="text-gray-600 mb-4">Create, assign, and track maintenance requests with SLA management</p>
-              <Link href="/fm/work-orders" className="text-blue-600 hover:text-blue-800 font-medium">
-                Explore →
-              </Link>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Vendors & RFQs</h3>
-              <p className="text-gray-600 mb-4">Source materials, manage vendors, and streamline procurement</p>
-              <Link href="/fm/vendors" className="text-blue-600 hover:text-blue-800 font-medium">
-                Explore →
-              </Link>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Finance & Billing</h3>
-              <p className="text-gray-600 mb-4">Handle invoicing, payments, and financial reporting</p>
-              <Link href="/fm/finance" className="text-blue-600 hover:text-blue-800 font-medium">
-                Explore →
-              </Link>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">CRM & Tenants</h3>
-              <p className="text-gray-600 mb-4">Manage tenant relationships and customer service</p>
-              <Link href="/fm/crm" className="text-blue-600 hover:text-blue-800 font-medium">
-                Explore →
-              </Link>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Analytics & Reports</h3>
-              <p className="text-gray-600 mb-4">Gain insights with comprehensive reporting and analytics</p>
-              <Link href="/fm/analytics" className="text-blue-600 hover:text-blue-800 font-medium">
-                Explore →
+              <Link 
+                href="/souq" 
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white border border-white/40 font-semibold rounded-xl hover:bg-white/20 transition-all"
+              >
+                {t('cta.viewMarket', 'View Marketplaces')}
+                <ShoppingBag className="w-4 h-4" />
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 px-4 bg-blue-600 text-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to transform your facility management?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join thousands of properties already using Fixzit to streamline operations
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex px-8 py-4 bg-white hover:bg-gray-100 text-blue-600 font-semibold rounded-lg transition-colors"
-          >
-            Get Started Today
-          </Link>
+      {/* Modules Grid Section */}
+      <section id="modules" className="py-16 md:py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#023047] mb-4">
+              {t('modules.title', 'Everything your FM operation needs — connected')}
+            </h2>
+            <p className="text-lg text-gray-600">
+              {t('modules.subtitle', 'Modular, role-based, Arabic/English, and mobile-ready from day one.')}
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {modules.map((module, index) => {
+              const Icon = module.icon;
+              return (
+                <article 
+                  key={index} 
+                  className="p-6 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all group"
+                >
+                  <div className={`inline-flex p-3 rounded-xl ${module.bgColor} mb-4`}>
+                    <Icon className={`w-6 h-6 ${module.color}`} />
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#023047] mb-2 group-hover:text-[#0061A8] transition-colors">
+                    {module.title}
+                  </h3>
+                  <p className="text-gray-600">
+                    {module.desc}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-    </div>
+      {/* Marketplaces Strip */}
+      <section className="py-14 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-[#023047]">{t('actions.souq','Souq')} & {t('modules.aqarSouq.title','Aqar Souq')}</h2>
+            <Link href="/marketplace" className="text-[#0061A8] hover:underline font-medium">{t('cta.viewMarket','View Marketplaces')} →</Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Link href="/marketplace/properties" className="group rounded-2xl border bg-white p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-[#0061A8]/10">
+                  <Building2 className="w-7 h-7 text-[#0061A8]" />
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-[#023047] group-hover:text-[#0061A8]">{t('modules.aqarSouq.title','Aqar Souq')}</div>
+                  <div className="text-sm text-gray-600">{t('modules.aqarSouq.desc','Real estate catalog; viewable public pins, login to act.')}</div>
+                </div>
+              </div>
+            </Link>
+            <Link href="/marketplace/materials" className="group rounded-2xl border bg-white p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-[#00A859]/10">
+                  <ShoppingBag className="w-7 h-7 text-[#00A859]" />
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-[#023047] group-hover:text-[#00A859]">{t('modules.fixzitSouq.title','Fixzit Souq')}</div>
+                  <div className="text-sm text-gray-600">{t('modules.fixzitSouq.desc','Materials & services marketplace with 5% margin logic.')}</div>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Banner */}
+      <section className="py-12 bg-white/70 backdrop-blur border-y">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-lg font-medium text-[#023047]">
+              {t('cta.banner', 'Ready to modernize your FM operations with Arabic/English by default?')}
+            </p>
+            <Link 
+              href="/login" 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#0061A8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
+            >
+              {t('cta.signIn', 'Sign in')}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

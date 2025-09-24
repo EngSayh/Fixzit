@@ -1,0 +1,59 @@
+{
+  "info": {
+    "name": "Fixzit API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/app/api/auth/login", "host": ["{{baseUrl}}"], "path": ["app","api","auth","login"] },
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@fixzit.co\",\n  \"password\": \"Admin@123\"\n}" }
+      }
+    },
+    {
+      "name": "Work Orders - List",
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/app/api/work-orders", "host": ["{{baseUrl}}"], "path": ["app","api","work-orders"] } }
+    },
+    {
+      "name": "Work Orders - Create",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/app/api/work-orders", "host": ["{{baseUrl}}"], "path": ["app","api","work-orders"] },
+        "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test WO\",\n  \"priority\": \"MEDIUM\"\n}" }
+      }
+    },
+    {
+      "name": "Invoices - List",
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/app/api/invoices", "host": ["{{baseUrl}}"], "path": ["app","api","invoices"] } }
+    },
+    {
+      "name": "Invoices - Create",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/app/api/invoices", "host": ["{{baseUrl}}"], "path": ["app","api","invoices"] },
+        "body": { "mode": "raw", "raw": "{\n  \"type\": \"SALES\",\n  \"issuer\": { \"name\": \"ACME\", \"taxId\": \"300...\", \"address\": \"Riyadh\" },\n  \"recipient\": { \"name\": \"Customer\", \"address\": \"Riyadh\" },\n  \"issueDate\": \"2025-01-01T00:00:00.000Z\",\n  \"dueDate\": \"2025-01-10T00:00:00.000Z\",\n  \"currency\": \"SAR\",\n  \"items\": [ { \"description\": \"Service\", \"qty\": 1, \"unitPrice\": 250, \"vatRate\": 15 } ]\n}" }
+      }
+    },
+    {
+      "name": "QA - Health",
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/app/api/qa/health", "host": ["{{baseUrl}}"], "path": ["app","api","qa","health"] } }
+    },
+    {
+      "name": "QA - Alert",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/app/api/qa/alert", "host": ["{{baseUrl}}"], "path": ["app","api","qa","alert"] },
+        "body": { "mode": "raw", "raw": "{\n  \"event\": \"test\",\n  \"data\": { \"ok\": true }\n}" }
+      }
+    }
+  ],
+  "variable": [ { "key": "baseUrl", "value": "http://localhost:3000" } ]
+}

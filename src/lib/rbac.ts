@@ -32,13 +32,14 @@ export type ModuleKey =
   | 'leases'
   | 'inspections'
   | 'documents'
-  | 'budgets';
+  | 'budgets'
+  | 'notifications';
 
 // Authoritative baseline modules from Governance V5
 export const ALL_MODULES: ModuleKey[] = [
   'dashboard','work_orders','properties','finance','hr','administration','crm',
   'marketplace','support','compliance','reports','system','preventive','leases',
-  'inspections','documents','budgets'
+  'inspections','documents','budgets','notifications'
 ];
 
 // Updated permission map with new roles and guest marketplace access
@@ -126,7 +127,8 @@ export function canPerformAction(role: Role, module: ModuleKey, action: 'read' |
     leases: ['read', 'write', 'manage'],
     inspections: ['read', 'write', 'manage'],
     documents: ['read', 'write', 'manage'],
-    budgets: ['read', 'write', 'manage']
+    budgets: ['read', 'write', 'manage'],
+    notifications: ['read', 'write', 'manage']
   };
 
   return actionPermissions[module]?.includes(action) ?? false;

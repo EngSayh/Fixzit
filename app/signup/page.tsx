@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Footer from '@/src/components/Footer';
 
 type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
 const LANGUAGES: Lang[] = [
@@ -165,7 +166,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex items-center justify-center p-4">
+      <div className="flex-1 bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
             <div className="flex justify-center mb-4">
@@ -187,7 +188,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex">
+    <div className="flex-1 bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex py-12">
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white">
         <div className="max-w-md text-center">
@@ -567,6 +568,8 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

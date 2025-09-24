@@ -3,6 +3,8 @@ import { db } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
+import { computeDueAt, computeSlaMinutes } from "@/src/lib/sla";
+import { isMockDB } from "@/src/lib/mongo";
 
 const createSchema = z.object({
   title: z.string().min(3),
@@ -37,26 +39,18 @@ export async function GET(req: NextRequest) {
   if (q) match.$text = { $search: q };
 
   // Handle both mock and real database
-  let items: any[];
-  let total: number;
-
-  // Check if using mock database
-  const isMockDB = process.env.NODE_ENV === 'development' && (process.env.MONGODB_URI || '').includes('localhost');
+  let items: any[] = [];
+  let total = 0;
 
   if (isMockDB) {
-    // Use mock database logic
-    items = await (WorkOrder as any).find(match);
-    if (items && Array.isArray(items)) {
-      // Sort manually
-      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      // Apply pagination
-      items = items.slice((page - 1) * limit, page * limit);
-    } else {
-      items = [];
-    }
+    // Mock store returns arrays; do manual sort/pagination
+    const raw = await (WorkOrder as any).find(match);
+    items = Array.isArray(raw) ? raw : [];
+    items.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     total = await (WorkOrder as any).countDocuments(match);
+    const start = (page - 1) * limit;
+    items = items.slice(start, start + limit);
   } else {
-    // Use real Mongoose
     items = await (WorkOrder as any).find(match)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -79,6 +73,10 @@ export async function POST(req: NextRequest) {
   const seq = Math.floor((Date.now() / 1000) % 100000);
   const code = `WO-${new Date().getFullYear()}-${seq}`;
 
+  const createdAt = new Date();
+  const slaMinutes = computeSlaMinutes(data.priority as any);
+  const dueAt = computeDueAt(createdAt, slaMinutes);
+
   const wo = await (WorkOrder as any).create({
     tenantId: user.tenantId,
     code,
@@ -92,7 +90,10 @@ export async function POST(req: NextRequest) {
     requester: data.requester,
     status: "SUBMITTED",
     statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
-    createdBy: user.id
+    slaMinutes,
+    dueAt,
+    createdBy: user.id,
+    createdAt
   });
   return NextResponse.json(wo, { status: 201 });
 }

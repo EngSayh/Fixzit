@@ -7,6 +7,9 @@ import { DEFAULT_LANG, isRTL, type Lang } from '@/src/i18n/config';
 import { cookies } from 'next/headers';
 import ClientLayout from "@/src/components/ClientLayout";
 
+// Force dynamic rendering to prevent build-time DB calls and ensure runtime data fetch
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Fixzit Enterprise', description: 'Facility Management + Marketplace' };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

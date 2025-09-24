@@ -1,0 +1,265 @@
+{
+  "info": {
+    "name": "Fixzit ATS",
+    "_postman_id": "ats-collection-001",
+    "description": "Fixzit Enterprise ATS (Applicant Tracking System) API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "List Published Jobs (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ats/jobs?status=published&orgId={{orgId}}&q=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ats", "jobs"],
+              "query": [
+                { "key": "status", "value": "published" },
+                { "key": "orgId", "value": "{{orgId}}" },
+                { "key": "q", "value": "" },
+                { "key": "department", "value": "Operations", "disabled": true },
+                { "key": "location", "value": "Riyadh", "disabled": true },
+                { "key": "jobType", "value": "full-time", "disabled": true },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List All Jobs (HR)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ats/jobs?status=all&orgId={{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ats", "jobs"],
+              "query": [
+                { "key": "status", "value": "all" },
+                { "key": "orgId", "value": "{{orgId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Job (HR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Procurement Officer\",\n  \"titleAr\": \"مسؤول مشتريات\",\n  \"department\": \"Procurement\",\n  \"jobType\": \"full-time\",\n  \"location\": {\n    \"city\": \"Riyadh\",\n    \"country\": \"Saudi Arabia\",\n    \"mode\": \"onsite\"\n  },\n  \"salaryRange\": {\n    \"min\": 13000,\n    \"max\": 19000,\n    \"currency\": \"SAR\"\n  },\n  \"description\": \"We are seeking a Procurement Officer...\",\n  \"requirements\": [\n    \"Bachelor's degree in Business or related field\",\n    \"3+ years of procurement experience\",\n    \"Strong negotiation skills\"\n  ],\n  \"benefits\": [\n    \"Health insurance\",\n    \"25 days annual leave\",\n    \"Professional development\"\n  ],\n  \"skills\": [\"procurement\", \"negotiation\", \"vendor management\"],\n  \"experience\": \"3+ years\",\n  \"screeningRules\": {\n    \"minYears\": 3,\n    \"requiredSkills\": [\"procurement\", \"negotiation\"]\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/ats/jobs"
+          }
+        },
+        {
+          "name": "Get Job Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ats/jobs/:id"
+          }
+        },
+        {
+          "name": "Update Job (HR)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Procurement Officer\",\n  \"salaryRange\": {\n    \"min\": 15000,\n    \"max\": 22000,\n    \"currency\": \"SAR\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/ats/jobs/:id"
+          }
+        },
+        {
+          "name": "Publish Job (HR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/ats/jobs/:id/publish"
+          }
+        },
+        {
+          "name": "Delete Job (HR)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/ats/jobs/:id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Apply for Job (Public)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "firstName", "value": "Ahmed", "type": "text" },
+                { "key": "lastName", "value": "Hassan", "type": "text" },
+                { "key": "email", "value": "ahmed.hassan@example.com", "type": "text" },
+                { "key": "phone", "value": "+966501234567", "type": "text" },
+                { "key": "location", "value": "Riyadh, Saudi Arabia", "type": "text" },
+                { "key": "skills", "value": "procurement, negotiation, vendor management, excel", "type": "text" },
+                { "key": "experience", "value": "4", "type": "text" },
+                { "key": "linkedin", "value": "https://linkedin.com/in/ahmedhassan", "type": "text" },
+                { "key": "coverLetter", "value": "I am excited to apply for this position...", "type": "text" },
+                { "key": "resume", "type": "file", "src": "/path/to/resume.pdf" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/ats/jobs/:id/apply"
+          }
+        },
+        {
+          "name": "List Applications (HR)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ats/applications?orgId={{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ats", "applications"],
+              "query": [
+                { "key": "orgId", "value": "{{orgId}}" },
+                { "key": "jobId", "value": "", "disabled": true },
+                { "key": "candidateId", "value": "", "disabled": true },
+                { "key": "stage", "value": "applied", "disabled": true },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Application Details (HR)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/ats/applications/:id"
+          }
+        },
+        {
+          "name": "Update Application (HR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"interview\",\n  \"reason\": \"Strong candidate, proceeding to interview\",\n  \"note\": \"Scheduled phone screening for next week\",\n  \"isPrivate\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/ats/applications/:id"
+          }
+        },
+        {
+          "name": "Update Application Score (HR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 85\n}"
+            },
+            "url": "{{baseUrl}}/api/ats/applications/:id"
+          }
+        },
+        {
+          "name": "Add Application Note (HR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Phone screening completed. Candidate shows strong communication skills.\",\n  \"isPrivate\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/ats/applications/:id"
+          }
+        },
+        {
+          "name": "Advance to Next Stage (HR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"screened\"\n}"
+            },
+            "url": "{{baseUrl}}/api/ats/applications/:id"
+          }
+        },
+        {
+          "name": "Reject Application (HR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"rejected\",\n  \"reason\": \"Does not meet minimum experience requirements\"\n}"
+            },
+            "url": "{{baseUrl}}/api/ats/applications/:id"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "orgId",
+      "value": "fixzit-platform",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    }
+  ]
+}

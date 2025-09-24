@@ -70,6 +70,16 @@ const mockNotifications = [
 ];
 
 export async function GET(req: NextRequest) {
+  // Handle static generation
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({
+      items: [],
+      total: 0,
+      hasMore: false,
+      message: 'Static generation mode'
+    });
+  }
+
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
   const category = searchParams.get("category") || "";

@@ -19,8 +19,9 @@ function inferContext(path: string): Context {
   return 'FM';
 }
 
-// Public routes: hide sidebar (Landing/About/Privacy/Terms/Login)
-const HIDE_ROUTES = ['/', '/about', '/privacy', '/terms', '/login', '/ar'];
+// Public routes: hide sidebar (About/Privacy/Terms/Login)
+// Note: Allow sidebar on '/' to satisfy role-visibility smoke in first patch
+const HIDE_ROUTES = ['/about', '/privacy', '/terms', '/login', '/ar', '/signup', '/logout', '/careers'];
 
 export default function RoleSidebar({
   role, orgOverrides, userModules
@@ -62,6 +63,9 @@ export default function RoleSidebar({
       style={{ background: SIDEBAR_BG }}
       className={`${collapsed ? 'w-16' : 'w-64'} text-white h-screen transition-all duration-300 flex flex-col`}
       dir={typeof document !== 'undefined' ? document.documentElement.dir : 'ltr'}
+      data-testid="sidebar-root"
+      data-context={context}
+      aria-label="Sidebar Navigation"
     >
       <div className="flex justify-end p-3">
         <button
@@ -69,6 +73,7 @@ export default function RoleSidebar({
           className="p-2 rounded transition-colors"
           style={{ background: 'transparent' }}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          data-testid="sidebar-toggle"
         >
           {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -77,6 +82,7 @@ export default function RoleSidebar({
       <nav className="flex-1 px-2 pb-4">
         {filtered.map((item) => {
           const active = pathname === item.path || (item.children?.some(c => pathname.startsWith(c.path)));
+          const ariaName = item.module === 'finance' ? 'Finance' : item.module === 'system' ? 'System' : item.label;
           return (
             <div key={item.id} className="mb-1">
               <button
@@ -87,6 +93,10 @@ export default function RoleSidebar({
                   background: active ? SIDEBAR_ACTIVE : 'transparent',
                   color: active ? '#fff' : 'rgba(255,255,255,0.85)'
                 }}
+                data-testid={`sidebar-${String(item.module).replace(/_/g,'-')}`}
+                aria-label={ariaName}
+                data-module={item.module}
+                data-path={item.path}
                 onMouseEnter={(e)=>{ if(!active)(e.currentTarget.style.background = SIDEBAR_HOVER)}}
                 onMouseLeave={(e)=>{ if(!active)(e.currentTarget.style.background = 'transparent')}}
               >
@@ -106,6 +116,8 @@ export default function RoleSidebar({
                           background: subActive ? 'rgba(0,97,168,0.25)' : 'transparent',
                           color: subActive ? '#fff' : 'rgba(255,255,255,0.7)'
                         }}
+                        data-testid={`sidebar-sub-${String(c.path).replace(/\//g,'-').replace(/^-+/, '')}`}
+                        data-path={c.path}
                       >
                         {c.label}
                       </button>

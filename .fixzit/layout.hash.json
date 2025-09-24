@@ -1,0 +1,7 @@
+{
+  "app/layout.tsx": "2692779e66576e8b",
+  "src/components/ClientLayout.tsx": "bcd10e018fdd83dd",
+  "src/components/Footer.tsx": "70db0f2ed170d4ec",
+  "src/components/navigation/RoleSidebar.tsx": "507434e8d699f144",
+  "src/components/topbar/TopBar.tsx": "fb5457ead55b25ea"
+}

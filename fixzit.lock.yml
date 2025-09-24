@@ -1,0 +1,7 @@
+protected:
+  - app/layout.tsx
+  - src/components/ClientLayout.tsx
+  - src/components/topbar/TopBar.tsx
+  - src/components/navigation/RoleSidebar.tsx
+  - src/components/Footer.tsx
+

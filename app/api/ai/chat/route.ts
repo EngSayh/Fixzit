@@ -2,30 +2,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/src/lib/auth/session';
 import { canPerformAction, Role, ModuleKey } from '@/src/lib/rbac';
-import { MongoClient, ObjectId } from 'mongodb';
+import { detectToolIntent } from '@/src/lib/ai/tools';
+import { dbConnect } from '@/src/db/mongoose';
+import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit';
-const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
+// No direct DB access from chat route; tools/endpoints handle data ops
 
-// Mock knowledge base - in production, this would be a vector database
-const KNOWLEDGE_BASE = {
-  'work orders': {
-    en: 'Work orders are requests for maintenance or repair services. You can create them through the Work Orders module.',
-    ar: 'أوامر العمل هي طلبات لخدمات الصيانة أو الإصلاح. يمكنك إنشاؤها من خلال وحدة أوامر العمل.'
-  },
-  'properties': {
-    en: 'Properties include apartments, villas, offices, and commercial spaces. You can view and manage properties based on your role.',
-    ar: 'العقارات تشمل الشقق والفلل والمكاتب والمساحات التجارية. يمكنك عرض وإدارة العقارات بناءً على دورك.'
-  },
-  'tickets': {
-    en: 'Tickets are maintenance requests. You can create tickets for your properties and track their status.',
-    ar: 'التذاكر هي طلبات الصيانة. يمكنك إنشاء تذاكر لعقاراتك وتتبع حالتها.'
-  },
-  'marketplace': {
-    en: 'The marketplace allows browsing properties and materials. You can search and filter listings without signing in.',
-    ar: 'السوق يسمح بتصفح العقارات والمواد. يمكنك البحث وتصفية القوائم دون تسجيل الدخول.'
+// Helper: call KB answer endpoint for RAG answer
+async function getKbAnswer(req: NextRequest, params: { question: string; orgId: string; lang: 'ar'|'en'; role: string; route?: string }): Promise<string> {
+  try {
+    const url = new URL('/api/kb/answer', req.url);
+    const res = await fetch(url.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: params.question, orgId: params.orgId, lang: params.lang, role: params.role, route: params.route })
+    });
+    if (!res.ok) return '';
+    const json = await res.json();
+    return json.answer || '';
+  } catch {
+    return '';
   }
-};
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,7 +50,9 @@ export async function POST(req: NextRequest) {
 
     // Process the conversation
     const lastMessage = messages[messages.length - 1];
-    const userIntent = analyzeIntent(lastMessage.content, locale);
+    // Prefer structured tool intent detection
+    const detected = detectToolIntent(lastMessage.content || '', locale || user.locale || 'en');
+    const userIntent = detected.tool ? { action: detected.tool, module: mapToolToModule(detected.tool) } : analyzeIntent(lastMessage.content, locale);
 
     // Check if user has permission for requested action
     if (userIntent.action && !canPerformAction(user.role as Role, userIntent.module as ModuleKey, 'read')) {
@@ -64,14 +64,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Execute actions if any
+    // Build tool action descriptors (client will execute endpoints)
     let actions: any[] = [];
     if (userIntent.action) {
-      actions = await executeAction(userIntent, user, session);
+      actions = buildActionDescriptors(userIntent, detected.params || {}, user);
     }
 
-    // Generate response
-    const response = await generateResponse(userIntent, user, locale, session);
+    // Generate response: for general Q&A use KB RAG, for tool intents provide short guidance
+    let response = '';
+    if (!userIntent.action) {
+      const kb = await getKbAnswer(req, { question: lastMessage.content || '', orgId: user.orgId, lang: (locale || user.locale || 'en') as 'ar'|'en', role: user.role });
+      response = kb || (locale === 'ar'
+        ? 'لا أملك إجابة وافية الآن. جرّب إعادة الصياغة أو اطلب مساعدة محددة.'
+        : 'I do not have a precise answer. Try rephrasing or ask for a specific action.');
+    } else {
+      response = locale === 'ar'
+        ? 'سأنفّذ الإجراء المطلوب ضمن صلاحياتك ونطاق المستأجر.'
+        : 'I will perform the requested action within your role and tenant scope.';
+    }
 
     // Log the conversation for audit
     await logConversation(user, messages, response, actions);
@@ -160,6 +170,20 @@ function analyzeIntent(message: string, locale: string) {
         : ['help', 'how', 'guide', 'tutorial'],
       action: 'help',
       module: 'dashboard'
+    },
+    schedule_maintenance: {
+      patterns: locale === 'ar'
+        ? ['جدولة صيانة', 'صيانة وقائية', 'فحص دوري']
+        : ['schedule maintenance', 'preventive maintenance', 'routine inspection'],
+      action: 'schedule_maintenance',
+      module: 'work_orders'
+    },
+    dispatch_technician: {
+      patterns: locale === 'ar'
+        ? ['إرسال فني', 'تعيين فني', 'جدولة فني']
+        : ['dispatch technician', 'assign technician', 'schedule technician'],
+      action: 'dispatch_technician',
+      module: 'work_orders'
     }
   };
 
@@ -172,143 +196,102 @@ function analyzeIntent(message: string, locale: string) {
   return { action: null, module: 'dashboard' };
 }
 
-async function executeAction(intent: any, user: any, session: any) {
+function buildActionDescriptors(intent: any, params: any, user: any) {
   const actions: any[] = [];
-
-  try {
-    switch (intent.action) {
-      case 'create_ticket':
-        // Create a work order ticket
-        const client = new MongoClient(MONGODB_URI);
-        await client.connect();
-        const db = client.db(MONGODB_DB);
-
-        const workOrder = {
-          title: 'Maintenance Request from AI Assistant',
-          description: 'Created via AI chat assistant',
-          priority: 'medium',
-          status: 'new',
-          createdBy: user.id,
-          orgId: user.orgId,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-
-        const result = await db.collection('work_orders').insertOne(workOrder);
-
-        actions.push({
-          type: 'create_ticket',
-          data: {
-            id: result.insertedId,
-            message: session.locale === 'ar'
-              ? 'تم إنشاء تذكرة الصيانة بنجاح. رقم التذكرة: ' + result.insertedId
-              : 'Maintenance ticket created successfully. Ticket ID: ' + result.insertedId
-          }
-        });
-
-        await client.close();
-        break;
-
-      case 'list_tickets':
-        // List user's tickets
-        const client2 = new MongoClient(MONGODB_URI);
-        await client2.connect();
-        const db2 = client2.db(MONGODB_DB);
-
-        const tickets = await db2.collection('work_orders')
-          .find({ createdBy: user.id })
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .toArray();
-
-        await client2.close();
-
-        actions.push({
-          type: 'list_tickets',
-          data: {
-            tickets: tickets.map(t => ({
-              id: t._id,
-              title: t.title,
-              status: t.status,
-              createdAt: t.createdAt
-            })),
-            message: session.locale === 'ar'
-              ? `تم العثور على ${tickets.length} تذكرة:`
-              : `Found ${tickets.length} tickets:`
-          }
-        });
-        break;
-
-      case 'help':
-        actions.push({
-          type: 'help',
-          data: {
-            message: session.locale === 'ar'
-              ? 'دليل المساعدة: يمكنك استخدام الأوامر التالية:\n• /new-ticket - إنشاء تذكرة صيانة\n• /my-tickets - عرض تذاكرك\n• /help - عرض هذا الدليل'
-              : 'Help Guide: You can use these commands:\n• /new-ticket - Create maintenance ticket\n• /my-tickets - View your tickets\n• /help - Show this guide'
-          }
-        });
-        break;
-    }
-  } catch (error) {
-    console.error('Action execution error:', error);
-    actions.push({
-      type: 'error',
-      data: {
-        message: session.locale === 'ar'
-          ? 'حدث خطأ أثناء تنفيذ الطلب. يرجى المحاولة مرة أخرى.'
-          : 'An error occurred while executing the request. Please try again.'
-      }
-    });
+  switch (intent.action) {
+    case 'create_ticket':
+    case 'create_work_order':
+      actions.push({
+        type: 'tool',
+        name: 'create_work_order',
+        endpoint: '/api/ai/tools/create-ticket',
+        method: 'POST',
+        payload: { ...params },
+      });
+      break;
+    case 'list_tickets':
+    case 'list_work_orders':
+      actions.push({
+        type: 'tool',
+        name: 'list_work_orders',
+        endpoint: `/api/ai/tools/list-tickets?limit=${params.limit || 5}${params.status ? `&status=${params.status}` : ''}`,
+        method: 'GET'
+      });
+      break;
+    case 'owner_statements':
+      actions.push({
+        type: 'tool',
+        name: 'owner_statements',
+        endpoint: '/api/ai/tools/owner-statements',
+        method: 'POST',
+        payload: { ownerId: params.ownerId || user.id, period: params.period || 'YTD' }
+      });
+      break;
+    case 'approve_quotation':
+      actions.push({
+        type: 'tool',
+        name: 'approve_quotation',
+        endpoint: '/api/ai/tools/approve-quote',
+        method: 'POST',
+        payload: { workOrderId: params.workOrderId, action: params.action || 'approve', comments: params.comments }
+      });
+      break;
+    case 'schedule_maintenance':
+      actions.push({
+        type: 'tool',
+        name: 'schedule_maintenance',
+        endpoint: '/api/ai/tools/schedule-maintenance',
+        method: 'POST',
+        payload: { ...params }
+      });
+      break;
+    case 'dispatch_technician':
+      actions.push({
+        type: 'tool',
+        name: 'dispatch_technician',
+        endpoint: '/api/ai/tools/dispatch',
+        method: 'POST',
+        payload: { ...params }
+      });
+      break;
+    case 'upload_attachment':
+      actions.push({
+        type: 'tool',
+        name: 'upload_attachment',
+        endpoint: '/api/ai/tools/upload-attachment',
+        method: 'POST',
+        payload: { ...params }
+      });
+      break;
+    case 'help':
+      actions.push({ type: 'info', message: 'help' });
+      break;
   }
-
   return actions;
 }
 
-async function generateResponse(intent: any, user: any, locale: string, session: any): Promise<string> {
-  // Get relevant knowledge from knowledge base
-  let knowledge = '';
-  for (const [key, value] of Object.entries(KNOWLEDGE_BASE)) {
-    if (intent.module === 'work_orders' && key === 'work orders') {
-      knowledge = value[locale as keyof typeof value];
-      break;
-    } else if (intent.module === 'properties' && key === 'properties') {
-      knowledge = value[locale as keyof typeof value];
-      break;
-    } else if (intent.module === 'dashboard' && key === 'help') {
-      knowledge = value[locale as keyof typeof value];
-      break;
-    }
+function mapToolToModule(tool: string): string {
+  switch (tool) {
+    case 'create_work_order':
+    case 'list_work_orders':
+    case 'approve_quotation':
+    case 'schedule_maintenance':
+    case 'dispatch_technician':
+      return 'work_orders';
+    case 'owner_statements':
+      return 'finance';
+    default:
+      return 'dashboard';
   }
-
-  const responses = {
-    en: {
-      create_ticket: 'I can help you create a maintenance ticket. Please provide the details of the issue.',
-      list_tickets: 'I can show you your recent maintenance tickets.',
-      property_info: 'I can provide information about properties based on your permissions.',
-      help: 'I can help you with various tasks in the Fixzit system. What would you like to do?',
-      default: 'I\'m here to help you with the Fixzit system. You can ask me about work orders, properties, or general questions.'
-    },
-    ar: {
-      create_ticket: 'يمكنني مساعدتك في إنشاء تذكرة صيانة. يرجى تقديم تفاصيل المشكلة.',
-      list_tickets: 'يمكنني عرض تذاكر الصيانة الحديثة الخاصة بك.',
-      property_info: 'يمكنني تقديم معلومات عن العقارات بناءً على صلاحياتك.',
-      help: 'يمكنني مساعدتك في مختلف المهام في نظام Fixzit. ماذا تريد أن تفعل؟',
-      default: 'أنا هنا لمساعدتك في نظام Fixzit. يمكنك سؤالي عن أوامر العمل أو العقارات أو الأسئلة العامة.'
-    }
-  };
-
-  const responseSet = responses[locale as keyof typeof responses];
-  return responseSet[intent.action as keyof typeof responseSet] || responseSet.default;
 }
+
+// generateResponse removed in favor of KB RAG + short guidance
 
 async function logConversation(user: any, messages: any[], response: string, actions: any[]) {
   try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    const db = client.db(MONGODB_DB);
-
-    await db.collection('ai_conversations').insertOne({
+    await dbConnect();
+    const native = (mongoose.connection as any).db;
+    await native.collection('ai_conversations').insertOne({
       userId: user.id,
       orgId: user.orgId,
       role: user.role,
@@ -318,8 +301,6 @@ async function logConversation(user: any, messages: any[], response: string, act
       timestamp: new Date(),
       locale: user.locale || 'en'
     });
-
-    await client.close();
   } catch (error) {
     console.error('Failed to log conversation:', error);
     // Don't fail the request if logging fails

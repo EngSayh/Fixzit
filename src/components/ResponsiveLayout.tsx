@@ -11,6 +11,8 @@ interface ResponsiveLayoutProps {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  overlaySidebarOnDesktop?: boolean;
+  fullBleed?: boolean;
 }
 
 export default function ResponsiveLayout({
@@ -19,7 +21,9 @@ export default function ResponsiveLayout({
   showSidebarToggle = true,
   header,
   footer,
-  className = ''
+  className = '',
+  overlaySidebarOnDesktop = false,
+  fullBleed = false
 }: ResponsiveLayoutProps) {
   const { screenInfo, responsiveClasses } = useResponsive();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,22 +35,25 @@ export default function ResponsiveLayout({
     }
   }, [screenInfo.isMobile, screenInfo.isTablet, sidebarOpen]);
 
-  const showSidebar = sidebar && (screenInfo.isDesktop || screenInfo.isLarge || sidebarOpen);
+  const treatAsOverlay = overlaySidebarOnDesktop;
+  const isOverlayMode = (screenInfo.isMobile || screenInfo.isTablet || treatAsOverlay);
+  const showSidebar = sidebar && (isOverlayMode ? sidebarOpen : true);
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>
+    <div className={`flex flex-col min-h-screen bg-gray-50 ${className}`}>
       {/* Header */}
       {header && (
-        <div className="sticky top-0 z-40">
+        <div className="z-40">
           {header}
         </div>
       )}
 
       {/* Mobile sidebar toggle */}
-      {sidebar && showSidebarToggle && (screenInfo.isMobile || screenInfo.isTablet) && (
+      {sidebar && showSidebarToggle && (screenInfo.isMobile || screenInfo.isTablet || treatAsOverlay) && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-16 left-4 z-50 p-2 bg-[#0061A8] text-white rounded-md shadow-lg md:hidden"
+          className="fixed top-16 left-4 z-50 p-2 bg-[#0061A8] text-white rounded-md shadow-lg"
+          data-testid="sidebar-toggle"
         >
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -57,7 +64,7 @@ export default function ResponsiveLayout({
         {sidebar && (
           <div className={`
             ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
-            ${screenInfo.isMobile || screenInfo.isTablet ? 'fixed inset-y-0 left-0 z-40' : 'relative'}
+            ${isOverlayMode ? 'fixed inset-y-0 left-0 z-40' : 'relative'}
             transition-transform duration-300 ease-in-out
           `}>
             {sidebar}
@@ -75,10 +82,11 @@ export default function ResponsiveLayout({
         {/* Main content */}
         <main className={`
           flex-1 transition-all duration-300
-          ${sidebar && (screenInfo.isMobile || screenInfo.isTablet) && sidebarOpen ? 'ml-0' : ''}
-          ${sidebar && screenInfo.isDesktop ? 'ml-0' : ''}
+          ${sidebar && isOverlayMode && sidebarOpen ? 'ml-0' : ''}
+          ${sidebar && !isOverlayMode ? 'ml-0' : ''}
         `}>
-          <div className={`${responsiveClasses.container} py-6`}>
+          {/* Add padding-top to compensate for sticky header */}
+          <div className={`pt-14 ${fullBleed ? '' : responsiveClasses.container} ${fullBleed ? '' : 'pb-6'}`}>
             {children}
           </div>
         </main>

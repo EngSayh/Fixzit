@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useI18n } from '@/src/providers/RootProviders';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
@@ -15,6 +16,7 @@ import { Truck, Plus, Search, Filter, Star, MapPin, Eye, Edit, Trash2, Building2
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function VendorsPage() {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -237,6 +239,7 @@ function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void 
 }
 
 function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -286,10 +289,10 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create vendor');
+        alert(t('errors.vendor.createFailed', 'Failed to create vendor'));
       }
     } catch (error) {
-      alert('Error creating vendor');
+      alert(t('errors.vendor.createError', 'Error creating vendor'));
     }
   };
 

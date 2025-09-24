@@ -59,7 +59,7 @@ function Test-Endpoint {
 
 Write-Host "`n📡 Testing Backend Server Connection..." -ForegroundColor Cyan
 try {
-    $backendStatus = Invoke-RestMethod -Uri "$baseUrlBackend/api/status" -Method GET
+    $null = Invoke-RestMethod -Uri "$baseUrlBackend/api/status" -Method GET
     Write-Host "✅ Backend server is running" -ForegroundColor Green
 }
 catch {
@@ -110,7 +110,15 @@ $assetBody = @{
     criticality = "HIGH"
 } | ConvertTo-Json
 
-$asset = Test-Endpoint -Name "Create Asset" -Method "POST" -Url "$baseUrlFrontend/api/assets" -Headers $authHeaders -Body $assetBody
+$assetResponse = Test-Endpoint -Name "Create Asset" -Method "POST" -Url "$baseUrlFrontend/api/assets" -Headers $authHeaders -Body $assetBody
+
+# Surface created asset id (use variable)
+if ($assetResponse) {
+    $assetId = $assetResponse.id
+    if (-not $assetId) { $assetId = $assetResponse._id }
+    if (-not $assetId) { $assetId = $assetResponse.Id }
+    if ($assetId) { Write-Host "   → Asset ID: $assetId" -ForegroundColor Gray }
+}
 
 # List assets
 Test-Endpoint -Name "List Assets" -Method "GET" -Url "$baseUrlFrontend/api/assets" -Headers $authHeaders
@@ -132,7 +140,15 @@ $propertyBody = @{
     }
 } | ConvertTo-Json
 
-$property = Test-Endpoint -Name "Create Property" -Method "POST" -Url "$baseUrlFrontend/api/properties" -Headers $authHeaders -Body $propertyBody
+$propertyResponse = Test-Endpoint -Name "Create Property" -Method "POST" -Url "$baseUrlFrontend/api/properties" -Headers $authHeaders -Body $propertyBody
+
+# Surface created property id (use variable)
+if ($propertyResponse) {
+    $propId = $propertyResponse.id
+    if (-not $propId) { $propId = $propertyResponse._id }
+    if (-not $propId) { $propId = $propertyResponse.Id }
+    if ($propId) { Write-Host "   → Property ID: $propId" -ForegroundColor Gray }
+}
 
 # List properties
 Test-Endpoint -Name "List Properties" -Method "GET" -Url "$baseUrlFrontend/api/properties" -Headers $authHeaders
@@ -158,7 +174,15 @@ $tenantBody = @{
     }
 } | ConvertTo-Json
 
-$tenant = Test-Endpoint -Name "Create Tenant" -Method "POST" -Url "$baseUrlFrontend/api/tenants" -Headers $authHeaders -Body $tenantBody
+$tenantResponse = Test-Endpoint -Name "Create Tenant" -Method "POST" -Url "$baseUrlFrontend/api/tenants" -Headers $authHeaders -Body $tenantBody
+
+# Surface created tenant id (use variable)
+if ($tenantResponse) {
+    $tenantId = $tenantResponse.id
+    if (-not $tenantId) { $tenantId = $tenantResponse._id }
+    if (-not $tenantId) { $tenantId = $tenantResponse.Id }
+    if ($tenantId) { Write-Host "   → Tenant ID: $tenantId" -ForegroundColor Gray }
+}
 
 # List tenants
 Test-Endpoint -Name "List Tenants" -Method "GET" -Url "$baseUrlFrontend/api/tenants" -Headers $authHeaders
@@ -182,7 +206,15 @@ $vendorBody = @{
     }
 } | ConvertTo-Json
 
-$vendor = Test-Endpoint -Name "Create Vendor" -Method "POST" -Url "$baseUrlFrontend/api/vendors" -Headers $authHeaders -Body $vendorBody
+$vendorResponse = Test-Endpoint -Name "Create Vendor" -Method "POST" -Url "$baseUrlFrontend/api/vendors" -Headers $authHeaders -Body $vendorBody
+
+# Surface created vendor id (use variable)
+if ($vendorResponse) {
+    $vendorId = $vendorResponse.id
+    if (-not $vendorId) { $vendorId = $vendorResponse._id }
+    if (-not $vendorId) { $vendorId = $vendorResponse.Id }
+    if ($vendorId) { Write-Host "   → Vendor ID: $vendorId" -ForegroundColor Gray }
+}
 
 # List vendors
 Test-Endpoint -Name "List Vendors" -Method "GET" -Url "$baseUrlFrontend/api/vendors" -Headers $authHeaders
@@ -203,7 +235,15 @@ $projectBody = @{
     }
 } | ConvertTo-Json
 
-$project = Test-Endpoint -Name "Create Project" -Method "POST" -Url "$baseUrlFrontend/api/projects" -Headers $authHeaders -Body $projectBody
+$projectResponse = Test-Endpoint -Name "Create Project" -Method "POST" -Url "$baseUrlFrontend/api/projects" -Headers $authHeaders -Body $projectBody
+
+# Surface created project id (use variable)
+if ($projectResponse) {
+    $projectId = $projectResponse.id
+    if (-not $projectId) { $projectId = $projectResponse._id }
+    if (-not $projectId) { $projectId = $projectResponse.Id }
+    if ($projectId) { Write-Host "   → Project ID: $projectId" -ForegroundColor Gray }
+}
 
 # List projects
 Test-Endpoint -Name "List Projects" -Method "GET" -Url "$baseUrlFrontend/api/projects" -Headers $authHeaders
@@ -233,7 +273,15 @@ $invoiceBody = @{
     )
 } | ConvertTo-Json
 
-$invoice = Test-Endpoint -Name "Create Invoice" -Method "POST" -Url "$baseUrlFrontend/api/invoices" -Headers $authHeaders -Body $invoiceBody
+$invoiceResponse = Test-Endpoint -Name "Create Invoice" -Method "POST" -Url "$baseUrlFrontend/api/invoices" -Headers $authHeaders -Body $invoiceBody
+
+# Surface created invoice number/id (use variable)
+if ($invoiceResponse) {
+    $invNum = $invoiceResponse.number
+    if (-not $invNum) { $invNum = $invoiceResponse.id }
+    if (-not $invNum) { $invNum = $invoiceResponse._id }
+    if ($invNum) { Write-Host "   → Invoice: $invNum" -ForegroundColor Gray }
+}
 
 # List invoices
 Test-Endpoint -Name "List Invoices" -Method "GET" -Url "$baseUrlFrontend/api/invoices" -Headers $authHeaders
@@ -272,7 +320,15 @@ $rfqBody = @{
     }
 } | ConvertTo-Json
 
-$rfq = Test-Endpoint -Name "Create RFQ" -Method "POST" -Url "$baseUrlFrontend/api/rfqs" -Headers $authHeaders -Body $rfqBody
+$rfqResponse = Test-Endpoint -Name "Create RFQ" -Method "POST" -Url "$baseUrlFrontend/api/rfqs" -Headers $authHeaders -Body $rfqBody
+
+# Surface created RFQ id (use response)
+if ($rfqResponse) {
+    $rfqId = $rfqResponse.id
+    if (-not $rfqId) { $rfqId = $rfqResponse._id }
+    if (-not $rfqId) { $rfqId = $rfqResponse.Id }
+    if ($rfqId) { Write-Host "   → RFQ ID: $rfqId" -ForegroundColor Gray }
+}
 
 # List RFQs
 Test-Endpoint -Name "List RFQs" -Method "GET" -Url "$baseUrlFrontend/api/rfqs" -Headers $authHeaders

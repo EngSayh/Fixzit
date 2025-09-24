@@ -30,18 +30,26 @@ const ChatWidget: React.FC = () => {
   const [session, setSession] = useState<UserSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingUpload, setPendingUpload] = useState<{ wo?: string; file?: File | null } | null>(null);
 
-  // Initialize session from local storage or API
+  // Initialize session from local storage or API (support E2E locale override)
   useEffect(() => {
     const initializeSession = async () => {
       try {
         const response = await fetch('/api/session/me');
         if (response.ok) {
           const sessionData = await response.json();
-          setSession(sessionData);
+          let finalLocale: 'en' | 'ar' = sessionData.locale === 'ar' ? 'ar' : 'en';
+          try {
+            const ls = (localStorage.getItem('fxz.lang') || '').toLowerCase();
+            if (ls === 'ar' || ls === 'en') finalLocale = ls as 'en' | 'ar';
+          } catch {}
+          const finalDir: 'ltr' | 'rtl' = finalLocale === 'ar' ? 'rtl' : 'ltr';
+          setSession({ ...sessionData, locale: finalLocale, dir: finalDir });
         } else {
           // Fallback for guest users
-          setSession({
+          const guest: any = {
             userId: 'guest',
             orgId: 'guest',
             role: 'GUEST',
@@ -49,7 +57,12 @@ const ChatWidget: React.FC = () => {
             email: '',
             locale: 'en',
             dir: 'ltr'
-          });
+          };
+          try {
+            const ls = (localStorage.getItem('fxz.lang') || '').toLowerCase();
+            if (ls === 'ar') { guest.locale = 'ar'; guest.dir = 'rtl'; }
+          } catch {}
+          setSession(guest);
         }
       } catch (error) {
         console.error('Failed to initialize session:', error);
@@ -81,8 +94,8 @@ const ChatWidget: React.FC = () => {
         id: 'help-options',
         role: 'assistant',
         content: session.locale === 'ar'
-          ? '• إنشاء تذاكر صيانة\n• عرض تذاكري النشطة\n• معلومات عن العقارات\n• أسئلة عامة عن النظام'
-          : '• Create maintenance tickets\n• View my active tickets\n• Property information\n• General system questions',
+          ? '• إنشاء تذاكر صيانة\n• عرض تذاكري النشطة\n• معلومات عن العقارات\n• أسئلة عامة عن النظام\n\n/commands: /new-ticket, /my-tickets, /help'
+          : '• Create maintenance tickets\n• View my active tickets\n• Property information\n• General system questions\n\n/commands: /new-ticket, /my-tickets, /help',
         timestamp: new Date()
       };
 
@@ -106,6 +119,20 @@ const ChatWidget: React.FC = () => {
     setError(null);
 
     try {
+      // Support client-side /help for tests
+      if (userMessage.content.trim().toLowerCase().startsWith('/help')) {
+        const helpMsg: Message = {
+          id: `assistant-help-${Date.now()}`,
+          role: 'assistant',
+          content: session.locale === 'ar'
+            ? 'الأوامر المتاحة:\n/new-ticket — إنشاء تذكرة جديدة\n/my-tickets — عرض تذاكري'
+            : 'Available commands:\n/new-ticket — create a new ticket\n/my-tickets — list my tickets',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, helpMsg]);
+        return;
+      }
+
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
@@ -158,24 +185,59 @@ const ChatWidget: React.FC = () => {
 
   const executeAction = async (action: any, session: UserSession) => {
     try {
-      switch (action.type) {
-        case 'create_ticket':
-          await fetch('/api/work-orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(action.data)
+      // Unified tool execution contract
+      if (action.type === 'tool' && action.endpoint) {
+        // Special case: upload-attachment with dataUrl if a file was picked
+        if (action.name === 'upload_attachment' && pendingUpload?.file) {
+          const file = pendingUpload.file;
+          const reader = new FileReader();
+          const dataUrl: string = await new Promise((resolve, reject) => {
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.onload = () => resolve(String(reader.result));
+            reader.readAsDataURL(file);
           });
-          break;
-        case 'list_tickets':
-          const response = await fetch('/api/work-orders?userId=' + session.userId);
-          const tickets = await response.json();
-          return tickets;
-        default:
-          console.log('Unknown action:', action);
+          action.payload = { ...(action.payload || {}), dataUrl };
+        }
+
+        const res = await fetch(action.endpoint, {
+          method: action.method || 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: action.method === 'GET' ? undefined : JSON.stringify(action.payload || {})
+        });
+        // Optionally, we could surface result back into chat
+        if (res.ok) {
+          const json = await res.json();
+          const summary = session.locale === 'ar' ? 'تم تنفيذ الأداة بنجاح.' : 'Tool executed successfully.';
+          setMessages(prev => [...prev, { id: `tool-${Date.now()}`, role: 'assistant', content: summary, timestamp: new Date() }]);
+          setPendingUpload(null);
+        } else {
+          const err = await res.json().catch(() => ({} as any));
+          const msg = session.locale === 'ar' ? (err.error || 'فشل تنفيذ الأداة') : (err.error || 'Tool execution failed');
+          setMessages(prev => [...prev, { id: `toolerr-${Date.now()}`, role: 'assistant', content: msg, timestamp: new Date() }]);
+          setPendingUpload(null);
+        }
+        return;
       }
+      if (action.type === 'info' && action.message === 'help') {
+        const content = session.locale === 'ar'
+          ? 'أوامر سريعة: /new-ticket, /my-tickets, /approve <WO>, /statements, /schedule, /dispatch'
+          : 'Quick commands: /new-ticket, /my-tickets, /approve <WO>, /statements, /schedule, /dispatch';
+        setMessages(prev => [...prev, { id: `help-${Date.now()}`, role: 'assistant', content, timestamp: new Date() }]);
+        return;
+      }
+      console.log('Unknown action:', action);
     } catch (error) {
       console.error('Action execution error:', error);
     }
+  };
+
+  const onPickFile = () => fileInputRef.current?.click();
+  const onFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setPendingUpload({ file: f });
+    const note = session?.locale === 'ar' ? 'تم اختيار ملف. أرسل رسالة: "إرفاق صورة" وحدد WO#.' : 'File selected. Send a message like: "attach photo" and include WO#.';
+    setMessages(prev => [...prev, { id: `pick-${Date.now()}`, role: 'assistant', content: note, timestamp: new Date() }]);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -190,7 +252,7 @@ const ChatWidget: React.FC = () => {
   }
 
   return (
-    <div className={`fixed bottom-20 ${session.dir === 'rtl' ? 'left-4' : 'right-4'} z-50`}>
+    <div className={`fixed bottom-4 ${session.dir === 'rtl' ? 'left-4' : 'right-4'} z-[9999]`}>
       {/* Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -198,13 +260,14 @@ const ChatWidget: React.FC = () => {
           isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-[#0061A8] hover:bg-[#0061A8]/90'
         }`}
         aria-label={session.locale === 'ar' ? 'مساعد Fixzit' : 'Fixzit Assistant'}
+        data-testid="ai-assistant-button"
       >
         {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>
 
       {/* Chat Window */}
       {isOpen && (
-        <div className={`absolute bottom-16 ${session.dir === 'rtl' ? 'right-0' : 'left-0'} w-80 sm:w-96 h-96 bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col`}>
+        <div className={`absolute bottom-16 ${session.dir === 'rtl' ? 'left-0' : 'right-0'} w-80 sm:w-96 h-[500px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col`}>
           {/* Header */}
           <div className={`px-4 py-3 border-b border-gray-200 ${session.dir === 'rtl' ? 'text-right' : 'text-left'}`} style={{ backgroundColor: '#0061A8', color: 'white' }}>
             <div className="font-semibold">
@@ -215,6 +278,9 @@ const ChatWidget: React.FC = () => {
                 ? `${session.name} • ${session.role} • ${session.orgId}`
                 : `${session.name} • ${session.role} • ${session.orgId}`
               }
+            </div>
+            <div className="text-[11px] opacity-90">
+              {session.locale === 'ar' ? 'دعم متاح على مدار الساعة' : 'Here to help 24/7'}
             </div>
           </div>
 
@@ -289,7 +355,23 @@ const ChatWidget: React.FC = () => {
                 placeholder={session.locale === 'ar' ? 'اكتب رسالتك هنا...' : 'Type your message...'}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
                 disabled={isLoading}
+                data-testid="ai-input"
               />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={onFileChange}
+              />
+              <button
+                onClick={onPickFile}
+                disabled={isLoading}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                title={session.locale === 'ar' ? 'إرفاق ملف' : 'Attach file'}
+              >
+                {session.locale === 'ar' ? 'مرفق' : 'Attach'}
+              </button>
               <button
                 onClick={sendMessage}
                 disabled={!inputValue.trim() || isLoading}

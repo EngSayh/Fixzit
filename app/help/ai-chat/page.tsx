@@ -50,7 +50,7 @@ export default function AIChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       <div className="max-w-4xl mx-auto p-4">
         <div className="bg-white rounded-2xl shadow-xl h-[600px] flex flex-col">
           {/* Header */}

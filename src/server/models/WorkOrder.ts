@@ -279,6 +279,8 @@ const WorkOrderSchema = new Schema({
 
 WorkOrderSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 WorkOrderSchema.index({ title: "text", description: "text" });
+// Extra text fields can improve recall: category and requester.name
+WorkOrderSchema.index({ category: 'text', 'requester.name': 'text' });
 
 export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
 

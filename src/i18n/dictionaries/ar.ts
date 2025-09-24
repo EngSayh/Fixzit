@@ -1,5 +1,9 @@
 // src/i18n/dictionaries/ar.ts
-const ar = {
+// Import complete dictionary
+import arComplete from './ar-complete';
+
+// Main dictionary structure
+const arCore = {
   common: {
     appName: 'منصة فيكزِت',
     backToHome: 'الرجوع إلى الصفحة الرئيسية',
@@ -40,7 +44,7 @@ const ar = {
   footer: {
     brand: 'فيكزيت',
     description: 'إدارة المنشآت + الأسواق في منصة واحدة. تبسيط العمليات وتحسين التكاليف وتعزيز الإنتاجية بحلولنا الشاملة للمؤسسات.',
-    company: 'الشركة',
+    // Removed conflicting company key - using nested structure from ar-complete
     about: 'معلومات عنا',
     careers: 'الوظائف',
     contact: 'اتصل بنا',
@@ -131,4 +135,281 @@ const ar = {
     stayOnPage: 'البقاء في الصفحة',
   },
 };
+
+// Export complete dictionary
+// Add landing page keys
+const landingKeys = {
+  // Hero
+  'hero.title': 'تشغيل العقارات بإتقان. وتحقيق عوائد للخدمات بذكاء.',
+  'hero.subtitle': 'فيكزت يجمع إدارة المرافق وأوامر العمل والمالية وCRM مع سوقين (عقار سوق & سوق فيكزت) في منصة واحدة.',
+  
+  // CTAs
+  'cta.getStarted': 'ابدأ الآن',
+  'cta.viewMarket': 'استعراض الأسواق',
+  'cta.banner': 'جاهز لتحديث عملياتك مع دعم عربي/إنجليزي افتراضيًا؟',
+  'cta.signIn': 'تسجيل الدخول',
+  
+  // Modules
+  'modules.title': 'كل ما تحتاجه لإدارة المرافق — مترابط',
+  'modules.subtitle': 'وحدات مرنة، أدوار دقيقة، عربي/إنجليزي، وتجربة جوال من اليوم الأول.',
+  
+  'modules.workOrders.title': 'أوامر العمل',
+  'modules.workOrders.desc': 'توجيه، اتفاقيات خدمة، صور، محادثة، وتطبيق الفني.',
+  
+  'modules.properties.title': 'العقارات',
+  'modules.properties.desc': 'الوحدات، الأصول، العقود، الملاك والكشوفات.',
+  
+  'modules.finance.title': 'المالية',
+  'modules.finance.desc': 'فواتير، رمز QR زكاتا، إيصالات، ومطالبات الموردين.',
+  
+  'modules.crm.title': 'علاقات العملاء',
+  'modules.crm.desc': 'تذاكر، رضا العملاء، حملات، واتساب وبريد.',
+  
+  'modules.aqarSouq.title': 'عقار سوق',
+  'modules.aqarSouq.desc': 'كتالوج عقاري؛ العرض متاح للجميع والعمل يتطلب تسجيل الدخول.',
+  
+  'modules.fixzitSouq.title': 'سوق فيكزت',
+  'modules.fixzitSouq.desc': 'مواد وخدمات بهامش 5٪ منطقي.',
+  
+  // Footer
+  'footer.brand': 'فيكزت',
+  'footer.description': 'إدارة المرافق + الأسواق في منصة واحدة. تبسيط العمليات وتحسين التكاليف وتعزيز الإنتاجية مع حلنا الشامل للمؤسسات.',
+  'footer.contact.phone': '+966 50 123 4567',
+  'footer.contact.email': 'info@fixzit.com',
+  'footer.contact.address': 'الرياض، المملكة العربية السعودية',
+  'footer.about': 'عن فيكزت',
+  'footer.careers': 'الوظائف',
+  'footer.company.contact': 'اتصل بنا',
+  'footer.partners': 'الشركاء',
+  'footer.investors': 'المستثمرون',
+  'footer.solutions': 'الحلول',
+  'footer.fm': 'إدارة المرافق',
+  'footer.souq': 'سوق المواد',
+  'footer.aqar': 'العقارات',
+  'footer.integrations': 'التكاملات',
+  'footer.api': 'وصول API',
+  'footer.support': 'الدعم',
+  'footer.help': 'مركز المساعدة',
+  'footer.docs': 'الوثائق',
+  'footer.community': 'المجتمع',
+  'footer.status': 'حالة النظام',
+  'footer.ticket': 'فتح تذكرة',
+  'footer.newsletter.title': 'ابق على اطلاع',
+  'footer.newsletter.description': 'احصل على آخر التحديثات والنصائح ورؤى الصناعة في بريدك الإلكتروني.',
+  'footer.newsletter.placeholder': 'أدخل بريدك الإلكتروني',
+  'footer.newsletter.subscribe': 'اشترك',
+  'footer.newsletter.success': 'شكراً لاشتراكك!',
+  'footer.copyright': 'فيكزت. جميع الحقوق محفوظة.',
+  'footer.privacy': 'الخصوصية',
+  'footer.terms': 'الشروط',
+  'footer.cookies': 'ملفات تعريف الارتباط',
+  'footer.accessibility': 'إمكانية الوصول',
+  'footer.sitemap': 'خريطة الموقع',
+  
+  // Navigation
+  'nav.dashboard': 'لوحة التحكم',
+  'nav.workOrders': 'أوامر العمل',
+  'nav.properties': 'العقارات',
+  'nav.finance': 'المالية',
+  'nav.hr': 'الموارد البشرية',
+  'nav.crm': 'العلاقات',
+  'nav.fixzitSouq': 'سوق فيكزت',
+  'nav.reports': 'التقارير',
+  'nav.support': 'الدعم',
+  
+  // Buttons
+  'buttons.lang': 'English',
+  'buttons.login': 'دخول',
+  'buttons.signUp': 'إنشاء حساب',
+  
+  // FM Tabs
+  'fm.tabs.catalog': 'الكتالوج',
+  'fm.tabs.vendors': 'الموردون',
+  'fm.tabs.rfqs': 'طلبات التسعير والعطاءات',
+  'fm.tabs.orders': 'الطلبات وأوامر الشراء',
+  
+  // FM Catalog
+  'fm.catalog.title': 'كتالوج الخدمات',
+  
+  // FM Vendors
+  'fm.vendors.name': 'المورد',
+  'fm.vendors.category': 'الفئة',
+  'fm.vendors.rating': 'التقييم',
+  'fm.vendors.status': 'الحالة',
+  'fm.vendors.contracts': 'العقود',
+  
+  // FM RFQs
+  'fm.rfqs.id': 'رقم طلب التسعير',
+  'fm.rfqs.title': 'العنوان',
+  'fm.rfqs.category': 'الفئة',
+  'fm.rfqs.due': 'تاريخ الاستحقاق',
+  'fm.rfqs.bids': 'العطاءات',
+  'fm.rfqs.status': 'الحالة',
+  
+  // FM Orders
+  'fm.orders.id': 'رقم أمر الشراء',
+  'fm.orders.vendor': 'المورد',
+  'fm.orders.amount': 'المجموع (ريال)',
+  'fm.orders.date': 'التاريخ',
+  'fm.orders.status': 'الحالة',
+  
+  // Common
+  'common.search': 'بحث',
+  'common.add': 'إضافة',
+  'common.import': 'استيراد',
+  'common.export': 'تصدير',
+  'common.filter': 'تصفية',
+  'common.actions': 'الإجراءات',
+  'common.showing': 'عرض',
+  'common.of': 'من',
+  'common.results': 'النتائج',
+  'common.previous': 'السابق',
+  'common.next': 'التالي',
+  
+  // FM Navigation
+  'nav.core': 'الأساسية',
+  'nav.business': 'الأعمال',
+  'nav.create': 'إنشاء',
+  'nav.assignTrack': 'تعيين وتتبع',
+  'nav.preventive': 'الصيانة الوقائية',
+  'nav.serviceHistory': 'سجل الخدمة',
+  'nav.unitsTenants': 'الوحدات والمستأجرين',
+  'nav.leaseManagement': 'إدارة العقود',
+  'nav.inspections': 'الفحوصات',
+  'nav.documents': 'المستندات',
+  'nav.invoices': 'الفواتير',
+  'nav.payments': 'المدفوعات',
+  'nav.expenses': 'المصروفات',
+  'nav.budgets': 'الميزانيات',
+  'nav.administration': 'الإدارة',
+  'nav.marketplace': 'السوق',
+  'nav.compliance': 'الامتثال والقانون',
+  'nav.system': 'إدارة النظام',
+  
+  // Marketplace
+  'marketplace.categories': 'فئات المنتجات',
+  'marketplace.browseCatalog': 'تصفح كتالوجنا الشامل لمواد البناء',
+  'marketplace.searchCategories': 'البحث في الفئات أو المنتجات...',
+  'marketplace.subcategories': 'فئات فرعية',
+  'marketplace.products': 'منتجات',
+  'marketplace.featuredBrands': 'العلامات التجارية المميزة',
+  'marketplace.needHelp': 'هل تحتاج إلى مساعدة في العثور على المنتجات؟',
+  'marketplace.submitRfq': 'إرسال طلب عرض أسعار',
+  'marketplace.browseVendors': 'تصفح الموردين',
+  'marketplace.contactSupport': 'اتصل بالدعم',
+  
+  // Marketplace - RFQs
+  'marketplace.rfqs': 'طلبات عروض الأسعار والعطاءات',
+  'marketplace.rfqsDescription': 'اطلب عروض أسعار وإدارة العطاءات من الموردين',
+  'marketplace.createRfq': 'إنشاء طلب عرض سعر',
+  'marketplace.myRfqs': 'طلباتي',
+  'marketplace.availableRfqs': 'متاح للمناقصة',
+  'marketplace.awardedRfqs': 'تم الترسية',
+  'marketplace.searchRfqs': 'البحث في طلبات عروض الأسعار...',
+  'marketplace.estimatedValue': 'القيمة التقديرية',
+  'marketplace.bidsReceived': 'العطاءات المستلمة',
+  'marketplace.awardedTo': 'تم الترسية على',
+  'marketplace.noRfqs': 'لا توجد طلبات عروض أسعار',
+  'marketplace.noRfqsDescription': 'ابدأ بإنشاء طلب عرض سعر جديد.',
+  'marketplace.rfqStats': 'إحصائيات طلبات عروض الأسعار',
+  'marketplace.activeRfqs': 'طلبات نشطة',
+  'marketplace.totalBids': 'إجمالي العطاءات',
+  'marketplace.pendingEvaluation': 'قيد التقييم',
+  'marketplace.totalValue': 'القيمة الإجمالية (ريال)',
+  'marketplace.expired': 'منتهية',
+  'marketplace.dueToday': 'تستحق اليوم',
+  'marketplace.dueTomorrow': 'تستحق غداً',
+  'marketplace.daysRemaining': 'متبقي {{days}} يوم',
+  
+  // Marketplace - Orders
+  'marketplace.orders': 'الطلبات وأوامر الشراء',
+  'marketplace.ordersDescription': 'تتبع وإدارة أوامر الشراء الخاصة بك',
+  'marketplace.createOrder': 'إنشاء طلب',
+  'marketplace.processing': 'قيد المعالجة',
+  'marketplace.shipped': 'تم الشحن',
+  'marketplace.delivered': 'تم التسليم',
+  'marketplace.vendor': 'المورد',
+  'marketplace.orderDate': 'تاريخ الطلب',
+  'marketplace.deliveryDate': 'تاريخ التسليم',
+  'marketplace.orderTotal': 'إجمالي الطلب',
+  'marketplace.tracking': 'التتبع',
+  'marketplace.reorder': 'إعادة الطلب',
+  'marketplace.noOrders': 'لا توجد طلبات',
+  'marketplace.noOrdersDescription': 'ابدأ بإنشاء أمر شراء جديد.',
+  'marketplace.orderSummary': 'ملخص الطلبات',
+  'marketplace.totalOrders': 'إجمالي الطلبات',
+  'marketplace.completedOrders': 'مكتملة',
+  'marketplace.inTransit': 'قيد الشحن',
+  'marketplace.totalSpent': 'إجمالي الإنفاق (ريال)',
+  
+  // Marketplace - Shipping
+  'marketplace.shipping': 'الشحن واللوجستيات',
+  'marketplace.shippingDescription': 'تتبع شحناتك وإدارة التسليمات',
+  'marketplace.schedulePickup': 'جدولة الاستلام',
+  'marketplace.activeShipments': 'الشحنات النشطة',
+  'marketplace.quickTrack': 'التتبع السريع',
+  'marketplace.enterTracking': 'أدخل رقم التتبع...',
+  'marketplace.order': 'الطلب',
+  'marketplace.carrier': 'شركة الشحن',
+  'marketplace.estimatedDelivery': 'التسليم المتوقع',
+  'marketplace.currentLocation': 'الموقع الحالي',
+  'marketplace.items': 'العناصر',
+  'marketplace.shipmentId': 'رقم الشحنة',
+  'marketplace.deliveredOn': 'تم التسليم في',
+  'marketplace.noShipments': 'لا توجد شحنات',
+  'marketplace.noShipmentsDescription': 'ستظهر شحناتك هنا بمجرد إرسال الطلبات.',
+  'marketplace.logisticsPartners': 'شركاء اللوجستيات',
+  'marketplace.express': 'توصيل سريع',
+  'marketplace.nationwide': 'تغطية على مستوى المملكة',
+  'marketplace.economy': 'شحن اقتصادي',
+  'marketplace.international': 'دولي',
+  'marketplace.shippingTips': 'نصائح الشحن',
+  'marketplace.tip1': 'تحقق دائماً من عنوان التسليم قبل تأكيد الطلبات',
+  'marketplace.tip2': 'تابع الشحنات بانتظام للحصول على التحديثات في الوقت المناسب',
+  'marketplace.tip3': 'اتصل بشركة الشحن مباشرة لمشاكل التسليم العاجلة',
+  
+  // Common
+  'common.all': 'الكل',
+  'common.allStatus': 'جميع الحالات',
+  'common.open': 'مفتوح',
+  'common.evaluating': 'قيد التقييم',
+  'common.closed': 'مغلق',
+  'common.awarded': 'تم الترسية',
+  'common.created': 'تم الإنشاء',
+  'common.items': 'عناصر',
+  'common.viewDetails': 'عرض التفاصيل',
+  'common.highPriority': 'أولوية عالية',
+  'common.view': 'عرض',
+  'common.download': 'تحميل',
+  'common.track': 'تتبع',
+};
+
+// Merge all dictionaries with proper nesting
+const ar = {
+  ...arComplete,
+  ...landingKeys,
+  // Ensure footer has the complete structure from arComplete plus any additional flat keys
+  footer: {
+    ...arComplete.footer,
+    // Add additional contact info as nested object
+    contact: {
+      phone: landingKeys['footer.contact.phone'] || '+966 50 123 4567',
+      email: landingKeys['footer.contact.email'] || 'info@fixzit.com',
+      address: landingKeys['footer.contact.address'] || 'الرياض، المملكة العربية السعودية'
+    },
+    // Add newsletter if missing
+    newsletter: arComplete.footer.newsletter || {
+      title: landingKeys['footer.newsletter.title'] || 'ابق على اطلاع',
+      description: landingKeys['footer.newsletter.description'] || 'احصل على آخر التحديثات',
+      placeholder: landingKeys['footer.newsletter.placeholder'] || 'أدخل بريدك الإلكتروني',
+      subscribe: landingKeys['footer.newsletter.subscribe'] || 'اشترك',
+      success: landingKeys['footer.newsletter.success'] || 'شكراً لاشتراكك!'
+    },
+    // Override specific top-level keys from landingKeys
+    brand: landingKeys['footer.brand'] || arComplete.footer.brand || 'فيكزت',
+    description: landingKeys['footer.description'] || arComplete.footer.description,
+    copyright: landingKeys['footer.copyright'] || arComplete.footer.copyright || 'فيكزت. جميع الحقوق محفوظة.'
+  }
+};
+
 export default ar;

@@ -1,5 +1,9 @@
 // src/i18n/dictionaries/en.ts
-const en = {
+// Import complete dictionary
+import enComplete from './en-complete';
+
+// Main dictionary structure
+const enCore = {
   common: {
     appName: 'Fixzit Enterprise',
     backToHome: 'Back to Home',
@@ -40,10 +44,10 @@ const en = {
   footer: {
     brand: 'Fixzit',
     description: 'Facility management + marketplaces in one platform. Streamline operations, optimize costs, and enhance productivity with our comprehensive enterprise solution.',
-    company: 'Company',
+    // Removed conflicting company key - using nested structure from en-complete
     about: 'About',
     careers: 'Careers',
-    contact: 'Contact',
+    contactLink: 'Contact',
     partners: 'Partners',
     investors: 'Investors',
     solutions: 'Solutions',
@@ -131,4 +135,281 @@ const en = {
     stayOnPage: 'Stay on Page',
   },
 };
+
+// Export complete dictionary
+// Add landing page keys
+const landingKeys = {
+  // Hero
+  'hero.title': 'Operate properties flawlessly. Monetize services smartly.',
+  'hero.subtitle': 'Fixzit unifies Facility Management, Work Orders, Finance, CRM, and two marketplaces (Aqar Souq & Fixzit Souq) in one modern platform.',
+  
+  // CTAs
+  'cta.getStarted': 'Get Started',
+  'cta.viewMarket': 'View Marketplaces',
+  'cta.banner': 'Ready to modernize your FM operations with Arabic/English by default?',
+  'cta.signIn': 'Sign in',
+  
+  // Modules
+  'modules.title': 'Everything your FM operation needs — connected',
+  'modules.subtitle': 'Modular, role-based, Arabic/English, and mobile-ready from day one.',
+  
+  'modules.workOrders.title': 'Work Orders',
+  'modules.workOrders.desc': 'Dispatch, SLAs, photos, chat, and technician app.',
+  
+  'modules.properties.title': 'Properties',
+  'modules.properties.desc': 'Units, assets, leases, owners and statements.',
+  
+  'modules.finance.title': 'Finance',
+  'modules.finance.desc': 'Invoices, ZATCA QR, receipts, vendor payables.',
+  
+  'modules.crm.title': 'CRM',
+  'modules.crm.desc': 'Tickets, CSAT, campaigns, WhatsApp and email.',
+  
+  'modules.aqarSouq.title': 'Aqar Souq',
+  'modules.aqarSouq.desc': 'Real estate catalog; viewable public pins, login to act.',
+  
+  'modules.fixzitSouq.title': 'Fixzit Souq',
+  'modules.fixzitSouq.desc': 'Materials & services marketplace with 5% margin logic.',
+  
+  // Footer
+  'footer.brand': 'Fixzit',
+  'footer.description': 'Facility management + marketplaces in one platform. Streamline operations, optimize costs, and enhance productivity with our comprehensive enterprise solution.',
+  'footer.contact.phone': '+966 50 123 4567',
+  'footer.contact.email': 'info@fixzit.com',
+  'footer.contact.address': 'Riyadh, Saudi Arabia',
+  'footer.about': 'About',
+  'footer.careers': 'Careers',
+  'footer.company.contact': 'Contact',
+  'footer.partners': 'Partners',
+  'footer.investors': 'Investors',
+  'footer.solutions': 'Solutions',
+  'footer.fm': 'Facility Management',
+  'footer.souq': 'Material Marketplace',
+  'footer.aqar': 'Real Estate',
+  'footer.integrations': 'Integrations',
+  'footer.api': 'API Access',
+  'footer.support': 'Support',
+  'footer.help': 'Help Center',
+  'footer.docs': 'Documentation',
+  'footer.community': 'Community',
+  'footer.status': 'System Status',
+  'footer.ticket': 'Open a ticket',
+  'footer.newsletter.title': 'Stay Updated',
+  'footer.newsletter.description': 'Get the latest updates, tips, and industry insights delivered to your inbox.',
+  'footer.newsletter.placeholder': 'Enter your email',
+  'footer.newsletter.subscribe': 'Subscribe',
+  'footer.newsletter.success': 'Thank you for subscribing!',
+  'footer.copyright': 'Fixzit. All rights reserved.',
+  'footer.privacy': 'Privacy',
+  'footer.terms': 'Terms',
+  'footer.cookies': 'Cookies',
+  'footer.accessibility': 'Accessibility',
+  'footer.sitemap': 'Sitemap',
+  
+  // Navigation
+  'nav.dashboard': 'Dashboard',
+  'nav.workOrders': 'Work Orders',
+  'nav.properties': 'Properties',
+  'nav.finance': 'Finance',
+  'nav.hr': 'HR',
+  'nav.crm': 'CRM',
+  'nav.fixzitSouq': 'Fixzit Souq',
+  'nav.reports': 'Reports',
+  'nav.support': 'Support',
+  
+  // Buttons
+  'buttons.lang': 'عربي',
+  'buttons.login': 'Login',
+  'buttons.signUp': 'Create Account',
+  
+  // FM Tabs
+  'fm.tabs.catalog': 'Catalog',
+  'fm.tabs.vendors': 'Vendors',
+  'fm.tabs.rfqs': 'RFQs & Bids',
+  'fm.tabs.orders': 'Orders & POs',
+  
+  // FM Catalog
+  'fm.catalog.title': 'Service Catalog',
+  
+  // FM Vendors
+  'fm.vendors.name': 'Vendor',
+  'fm.vendors.category': 'Category',
+  'fm.vendors.rating': 'Rating',
+  'fm.vendors.status': 'Status',
+  'fm.vendors.contracts': 'Contracts',
+  
+  // FM RFQs
+  'fm.rfqs.id': 'RFQ #',
+  'fm.rfqs.title': 'Title',
+  'fm.rfqs.category': 'Category',
+  'fm.rfqs.due': 'Due Date',
+  'fm.rfqs.bids': 'Bids',
+  'fm.rfqs.status': 'Status',
+  
+  // FM Orders
+  'fm.orders.id': 'PO #',
+  'fm.orders.vendor': 'Vendor',
+  'fm.orders.amount': 'Total (SAR)',
+  'fm.orders.date': 'Date',
+  'fm.orders.status': 'Status',
+  
+  // Common
+  'common.search': 'Search',
+  'common.add': 'Add',
+  'common.import': 'Import',
+  'common.export': 'Export',
+  'common.filter': 'Filter',
+  'common.actions': 'Actions',
+  'common.showing': 'Showing',
+  'common.of': 'of',
+  'common.results': 'results',
+  'common.previous': 'Previous',
+  'common.next': 'Next',
+  
+  // FM Navigation
+  'nav.core': 'Core',
+  'nav.business': 'Business',
+  'nav.create': 'Create',
+  'nav.assignTrack': 'Assign & Track',
+  'nav.preventive': 'Preventive',
+  'nav.serviceHistory': 'Service History',
+  'nav.unitsTenants': 'Units & Tenants',
+  'nav.leaseManagement': 'Lease Management',
+  'nav.inspections': 'Inspections',
+  'nav.documents': 'Documents',
+  'nav.invoices': 'Invoices',
+  'nav.payments': 'Payments',
+  'nav.expenses': 'Expenses',
+  'nav.budgets': 'Budgets',
+  'nav.administration': 'Administration',
+  'nav.marketplace': 'Marketplace',
+  'nav.compliance': 'Compliance & Legal',
+  'nav.system': 'System Management',
+  
+  // Marketplace
+  'marketplace.categories': 'Product Categories',
+  'marketplace.browseCatalog': 'Browse our extensive catalog of construction materials',
+  'marketplace.searchCategories': 'Search categories or products...',
+  'marketplace.subcategories': 'subcategories',
+  'marketplace.products': 'products',
+  'marketplace.featuredBrands': 'Featured Brands',
+  'marketplace.needHelp': 'Need Help Finding Products?',
+  'marketplace.submitRfq': 'Submit an RFQ',
+  'marketplace.browseVendors': 'Browse Vendors',
+  'marketplace.contactSupport': 'Contact Support',
+  
+  // Marketplace - RFQs
+  'marketplace.rfqs': 'RFQs & Bids',
+  'marketplace.rfqsDescription': 'Request quotes and manage bids from suppliers',
+  'marketplace.createRfq': 'Create RFQ',
+  'marketplace.myRfqs': 'My RFQs',
+  'marketplace.availableRfqs': 'Available to Bid',
+  'marketplace.awardedRfqs': 'Awarded',
+  'marketplace.searchRfqs': 'Search RFQs...',
+  'marketplace.estimatedValue': 'Estimated Value',
+  'marketplace.bidsReceived': 'Bids Received',
+  'marketplace.awardedTo': 'Awarded to',
+  'marketplace.noRfqs': 'No RFQs found',
+  'marketplace.noRfqsDescription': 'Get started by creating a new RFQ.',
+  'marketplace.rfqStats': 'RFQ Statistics',
+  'marketplace.activeRfqs': 'Active RFQs',
+  'marketplace.totalBids': 'Total Bids',
+  'marketplace.pendingEvaluation': 'Pending Evaluation',
+  'marketplace.totalValue': 'Total Value (SAR)',
+  'marketplace.expired': 'Expired',
+  'marketplace.dueToday': 'Due today',
+  'marketplace.dueTomorrow': 'Due tomorrow',
+  'marketplace.daysRemaining': '{{days}} days remaining',
+  
+  // Marketplace - Orders
+  'marketplace.orders': 'Orders & Purchase Orders',
+  'marketplace.ordersDescription': 'Track and manage your purchase orders',
+  'marketplace.createOrder': 'Create Order',
+  'marketplace.processing': 'Processing',
+  'marketplace.shipped': 'Shipped',
+  'marketplace.delivered': 'Delivered',
+  'marketplace.vendor': 'Vendor',
+  'marketplace.orderDate': 'Order Date',
+  'marketplace.deliveryDate': 'Delivery Date',
+  'marketplace.orderTotal': 'Order Total',
+  'marketplace.tracking': 'Tracking',
+  'marketplace.reorder': 'Reorder',
+  'marketplace.noOrders': 'No orders found',
+  'marketplace.noOrdersDescription': 'Start by creating a new purchase order.',
+  'marketplace.orderSummary': 'Order Summary',
+  'marketplace.totalOrders': 'Total Orders',
+  'marketplace.completedOrders': 'Completed',
+  'marketplace.inTransit': 'In Transit',
+  'marketplace.totalSpent': 'Total Spent (SAR)',
+  
+  // Marketplace - Shipping
+  'marketplace.shipping': 'Shipping & Logistics',
+  'marketplace.shippingDescription': 'Track your shipments and manage deliveries',
+  'marketplace.schedulePickup': 'Schedule Pickup',
+  'marketplace.activeShipments': 'Active Shipments',
+  'marketplace.quickTrack': 'Quick Track',
+  'marketplace.enterTracking': 'Enter tracking number...',
+  'marketplace.order': 'Order',
+  'marketplace.carrier': 'Carrier',
+  'marketplace.estimatedDelivery': 'Est. Delivery',
+  'marketplace.currentLocation': 'Current Location',
+  'marketplace.items': 'Items',
+  'marketplace.shipmentId': 'Shipment ID',
+  'marketplace.deliveredOn': 'Delivered On',
+  'marketplace.noShipments': 'No shipments found',
+  'marketplace.noShipmentsDescription': 'Your shipments will appear here once orders are dispatched.',
+  'marketplace.logisticsPartners': 'Logistics Partners',
+  'marketplace.express': 'Express Delivery',
+  'marketplace.nationwide': 'Nationwide Coverage',
+  'marketplace.economy': 'Economy Shipping',
+  'marketplace.international': 'International',
+  'marketplace.shippingTips': 'Shipping Tips',
+  'marketplace.tip1': 'Always verify delivery address before confirming orders',
+  'marketplace.tip2': 'Track shipments regularly for timely updates',
+  'marketplace.tip3': 'Contact carrier directly for urgent delivery issues',
+  
+  // Common
+  'common.all': 'All',
+  'common.allStatus': 'All Status',
+  'common.open': 'Open',
+  'common.evaluating': 'Evaluating',
+  'common.closed': 'Closed',
+  'common.awarded': 'Awarded',
+  'common.created': 'Created',
+  'common.items': 'items',
+  'common.viewDetails': 'View Details',
+  'common.highPriority': 'High Priority',
+  'common.view': 'View',
+  'common.download': 'Download',
+  'common.track': 'Track',
+};
+
+// Merge all dictionaries with proper nesting
+const en = {
+  ...enComplete,
+  ...landingKeys,
+  // Ensure footer has the complete structure from enComplete plus any additional flat keys
+  footer: {
+    ...enComplete.footer,
+    // Add additional contact info as nested object
+    contact: {
+      phone: landingKeys['footer.contact.phone'] || '+966 50 123 4567',
+      email: landingKeys['footer.contact.email'] || 'info@fixzit.com',
+      address: landingKeys['footer.contact.address'] || 'Riyadh, Saudi Arabia'
+    },
+    // Add newsletter if missing
+    newsletter: enComplete.footer.newsletter || {
+      title: landingKeys['footer.newsletter.title'] || 'Stay Updated',
+      description: landingKeys['footer.newsletter.description'] || 'Get the latest updates',
+      placeholder: landingKeys['footer.newsletter.placeholder'] || 'Enter your email',
+      subscribe: landingKeys['footer.newsletter.subscribe'] || 'Subscribe',
+      success: landingKeys['footer.newsletter.success'] || 'Thank you for subscribing!'
+    },
+    // Override specific top-level keys from landingKeys
+    brand: landingKeys['footer.brand'] || enComplete.footer.brand || 'Fixzit',
+    description: landingKeys['footer.description'] || enComplete.footer.description,
+    copyright: landingKeys['footer.copyright'] || enComplete.footer.copyright || 'Fixzit. All rights reserved.'
+  }
+};
+
 export default en;

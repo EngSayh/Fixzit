@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import useSWR from "swr";
 import { useState } from "react";
 import { Button } from "../../src/components/ui/button";

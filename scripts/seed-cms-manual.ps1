@@ -121,7 +121,7 @@ Address: Riyadh, Saudi Arabia
 foreach ($page in $pages) {
     $body = ConvertTo-Json $page -Depth 10
     try {
-        $response = Invoke-RestMethod -Uri "http://localhost:3000/api/cms/pages/$($page.slug)" -Method PATCH -Headers $headers -Body $body
+        $null = Invoke-RestMethod -Uri "http://localhost:3000/api/cms/pages/$($page.slug)" -Method PATCH -Headers $headers -Body $body
         Write-Host "✅ Seeded: $($page.slug)" -ForegroundColor Green
     } catch {
         Write-Host "❌ Failed: $($page.slug) - $_" -ForegroundColor Red

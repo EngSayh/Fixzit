@@ -452,7 +452,7 @@ Continue to learn about tenant relations!
   const progress = ((currentStep + 1) / tutorial.steps.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="mb-6">

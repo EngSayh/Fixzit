@@ -7,14 +7,17 @@ import { MapPin, Bed, Bath, Square, Heart, Eye, Shield, Phone, Mail, Calendar, M
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authAction, setAuthAction] = useState('');
+  const [revealed, setRevealed] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
 
   // Mock property data - replace with API call
+  const highValue = params.id.toLowerCase().includes('luxury') || params.id.toLowerCase().includes('villa');
   const property = {
     id: params.id,
     title: 'Modern Apartment in Riyadh',
     city: 'Riyadh',
     district: 'Al Olaya',
-    price: 85000,
+    price: highValue ? 1500000 : 85000,
     currency: 'SAR',
     bedrooms: 2,
     bathrooms: 2,
@@ -56,11 +59,36 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
   const handleAction = (action: string) => {
     setAuthAction(action);
+    if (action === 'contact') {
+      if (property.price > 1000000) {
+        // High-value: require Nafath modal
+        setShowAuthModal(true);
+      } else {
+        // Gate to login for normal listings
+        window.location.href = '/login';
+      }
+      return;
+    }
     setShowAuthModal(true);
   };
 
+  const showContact = () => {
+    try {
+      const key = 'contactReveals';
+      const n = parseInt(sessionStorage.getItem(key) || '0', 10) + 1;
+      sessionStorage.setItem(key, String(n));
+      if (n > 5) {
+        setRateLimited(true);
+        return;
+      }
+      setRevealed(true);
+    } catch {
+      setRevealed(true);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Property Images */}
       <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -93,7 +121,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             {/* Header */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">{property.title}</h1>
+                <h1 className="text-3xl font-bold text-gray-900" data-testid="property-title">{property.title}</h1>
                 {property.verified && (
                   <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center gap-1">
                     <Shield className="h-4 w-4" />
@@ -107,7 +135,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-4xl font-bold text-[#0061A8]">
+                  <span className="text-4xl font-bold text-[#0061A8]" data-testid="property-price">
                     {property.price.toLocaleString()}
                   </span>
                   <span className="text-gray-600 ml-2">SAR/year</span>
@@ -228,6 +256,23 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 </div>
               </div>
             </div>
+
+            {/* Contact (masked for guests + reveal) */}
+            <div className="bg-white rounded-lg p-6 border">
+              <h2 className="text-xl font-semibold mb-4">Contact</h2>
+              <div className="space-y-2">
+                <div className="text-gray-700" data-testid="phone-number">Phone: {revealed ? property.agent.phone : '+966 5** *** 567'}</div>
+                <div className="text-gray-700">Email: {revealed ? property.agent.email : 'ah***@fixzit.co'}</div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={showContact} className="px-3 py-2 bg-gray-100 text-gray-800 rounded">Show Contact</button>
+                <button onClick={()=>{ window.location.href='/login'; }} className="px-3 py-2 bg-[#0061A8] text-white rounded">Contact Seller</button>
+                <button onClick={()=>{ window.location.href='/login'; }} className="px-3 py-2 border rounded">Make Offer</button>
+              </div>
+              {rateLimited && (
+                <div className="mt-3 rounded bg-amber-50 text-amber-800 px-3 py-2">Rate limit exceeded</div>
+              )}
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -271,9 +316,9 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                     <div className="font-semibold">{property.agent.name}</div>
                     <div className="text-sm text-gray-600">Licensed Agent</div>
                     {property.agent.verified && (
-                      <div className="flex items-center gap-1 text-green-600 text-xs">
+                      <div className="flex items-center gap-1 text-green-600 text-xs" data-testid="fal-badge">
                         <Shield className="h-3 w-3" />
-                        FAL Verified
+                        FAL Verified • {property.agent.license}
                       </div>
                     )}
                   </div>
@@ -314,16 +359,26 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 <Shield className="h-8 w-8 text-[#0061A8]" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Sign In Required</h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-2">
                 To protect users from fraud and ensure secure transactions, we require sign-in for contacting agents and making offers.
               </p>
-              <div className="space-y-3">
+              {property.price > 1000000 && (
+                <div className="mt-2 p-3 rounded bg-yellow-50 text-yellow-800" data-testid="nafath-required">
+                  Nafath authentication required
+                </div>
+              )}
+              <div className="space-y-3 mt-4">
                 <Link
                   href={`/login?next=/marketplace/properties/${property.id}`}
                   className="block w-full px-4 py-3 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90 transition-colors"
                 >
                   Sign In to Continue
                 </Link>
+                {property.price > 1000000 && (
+                  <button className="block w-full px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Authenticate with Nafath
+                  </button>
+                )}
                 <Link
                   href={`/signup?next=/marketplace/properties/${property.id}`}
                   className="block w-full px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"

@@ -1,0 +1,257 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]:
+          - link "Fixzit Home" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e8] [cursor=pointer]: Fixzit Enterprise
+          - button "Menu" [ref=e10] [cursor=pointer]:
+            - img [ref=e11] [cursor=pointer]
+            - generic [ref=e12] [cursor=pointer]: Menu
+            - img [ref=e13] [cursor=pointer]
+          - generic [ref=e15]: Fixzit Souq
+          - generic [ref=e18]:
+            - button "Fixzit Souq" [ref=e19] [cursor=pointer]
+            - generic [ref=e20]:
+              - img [ref=e21]
+              - textbox "Global search" [ref=e24]
+          - link "Add Product" [ref=e26] [cursor=pointer]:
+            - /url: /souq/products/new
+            - img [ref=e27] [cursor=pointer]
+            - generic [ref=e28] [cursor=pointer]: Add Product
+          - button "Notifications" [ref=e30] [cursor=pointer]:
+            - img [ref=e31] [cursor=pointer]
+            - generic [ref=e34] [cursor=pointer]: "2"
+          - button "English – United Kingdom" [ref=e36] [cursor=pointer]:
+            - img [ref=e37] [cursor=pointer]: 🇬🇧
+            - generic [ref=e38] [cursor=pointer]: English
+            - img [ref=e39] [cursor=pointer]
+          - 'button "Currency: Saudi Riyal (SAR)" [ref=e42] [cursor=pointer]':
+            - generic [ref=e43] [cursor=pointer]: ﷼
+            - generic [ref=e44] [cursor=pointer]: SAR
+            - img [ref=e45] [cursor=pointer]
+          - button "Marketplaces" [ref=e47] [cursor=pointer]
+          - button "User menu" [ref=e49] [cursor=pointer]: 👤
+      - generic [ref=e50]:
+        - complementary "Sidebar Navigation" [ref=e52]:
+          - button "Collapse sidebar" [ref=e54] [cursor=pointer]:
+            - img [ref=e55] [cursor=pointer]
+          - navigation [ref=e57]:
+            - button "Marketplace Home" [ref=e59] [cursor=pointer]:
+              - img [ref=e60] [cursor=pointer]
+              - generic [ref=e63] [cursor=pointer]: Marketplace Home
+            - generic [ref=e64]:
+              - button "Catalog" [ref=e65] [cursor=pointer]:
+                - img [ref=e66] [cursor=pointer]
+                - generic [ref=e70] [cursor=pointer]: Catalog
+              - generic [ref=e71]:
+                - button "Categories" [ref=e72] [cursor=pointer]
+                - button "Brands" [ref=e73] [cursor=pointer]
+                - button "Deals" [ref=e74] [cursor=pointer]
+            - button "Vendors" [ref=e76] [cursor=pointer]:
+              - img [ref=e77] [cursor=pointer]
+              - generic [ref=e82] [cursor=pointer]: Vendors
+            - button "RFQs & Bids" [ref=e84] [cursor=pointer]:
+              - img [ref=e85] [cursor=pointer]
+              - generic [ref=e88] [cursor=pointer]: RFQs & Bids
+            - generic [ref=e89]:
+              - button "Orders & POs" [ref=e90] [cursor=pointer]:
+                - img [ref=e91] [cursor=pointer]
+                - generic [ref=e94] [cursor=pointer]: Orders & POs
+              - generic [ref=e95]:
+                - button "My Orders" [ref=e96] [cursor=pointer]
+                - button "Create Order" [ref=e97] [cursor=pointer]
+                - button "Order History" [ref=e98] [cursor=pointer]
+            - button "Shipping & Logistics" [ref=e100] [cursor=pointer]:
+              - img [ref=e101] [cursor=pointer]
+              - generic [ref=e106] [cursor=pointer]: Shipping & Logistics
+            - button "Reviews & Ratings" [ref=e108] [cursor=pointer]:
+              - img [ref=e109] [cursor=pointer]
+              - generic [ref=e111] [cursor=pointer]: Reviews & Ratings
+            - button "Advanced Search" [ref=e113] [cursor=pointer]:
+              - img [ref=e114] [cursor=pointer]
+              - generic [ref=e117] [cursor=pointer]: Advanced Search
+            - button "Vendor Portal" [ref=e119] [cursor=pointer]:
+              - img [ref=e120] [cursor=pointer]
+              - generic [ref=e123] [cursor=pointer]: Vendor Portal
+          - paragraph [ref=e125]: Quick Filters
+        - main [ref=e126]:
+          - generic [ref=e128]:
+            - generic [ref=e130]:
+              - heading "Fixzit Souq" [level=1] [ref=e131]
+              - paragraph [ref=e132]: Your complete marketplace for facility management materials, equipment, and services
+              - generic [ref=e133]:
+                - link "Browse Catalog" [ref=e134] [cursor=pointer]:
+                  - /url: /souq/catalog
+                - link "View Vendors" [ref=e135] [cursor=pointer]:
+                  - /url: /souq/vendors
+            - generic [ref=e137]:
+              - heading "Marketplace Features" [level=2] [ref=e138]
+              - generic [ref=e139]:
+                - link "Catalog Management Browse and manage your product catalog with advanced filtering" [ref=e140] [cursor=pointer]:
+                  - /url: /souq/catalog
+                  - generic [ref=e141] [cursor=pointer]:
+                    - img [ref=e143] [cursor=pointer]
+                    - generic [ref=e147] [cursor=pointer]:
+                      - heading "Catalog Management" [level=3] [ref=e148] [cursor=pointer]
+                      - paragraph [ref=e149] [cursor=pointer]: Browse and manage your product catalog with advanced filtering
+                - link "Vendor Portal Connect with verified vendors and suppliers" [ref=e150] [cursor=pointer]:
+                  - /url: /souq/vendors
+                  - generic [ref=e151] [cursor=pointer]:
+                    - img [ref=e153] [cursor=pointer]
+                    - generic [ref=e158] [cursor=pointer]:
+                      - heading "Vendor Portal" [level=3] [ref=e159] [cursor=pointer]
+                      - paragraph [ref=e160] [cursor=pointer]: Connect with verified vendors and suppliers
+                - link "RFQs & Bids Request for quotations and manage bidding processes" [ref=e161] [cursor=pointer]:
+                  - /url: /souq/rfqs
+                  - generic [ref=e162] [cursor=pointer]:
+                    - img [ref=e164] [cursor=pointer]
+                    - generic [ref=e167] [cursor=pointer]:
+                      - heading "RFQs & Bids" [level=3] [ref=e168] [cursor=pointer]
+                      - paragraph [ref=e169] [cursor=pointer]: Request for quotations and manage bidding processes
+                - link "Order Management Track orders, purchase orders, and delivery status" [ref=e170] [cursor=pointer]:
+                  - /url: /souq/orders
+                  - generic [ref=e171] [cursor=pointer]:
+                    - img [ref=e173] [cursor=pointer]
+                    - generic [ref=e176] [cursor=pointer]:
+                      - heading "Order Management" [level=3] [ref=e177] [cursor=pointer]
+                      - paragraph [ref=e178] [cursor=pointer]: Track orders, purchase orders, and delivery status
+                - link "Shipping & Logistics Manage shipping, tracking, and logistics partners" [ref=e179] [cursor=pointer]:
+                  - /url: /souq/shipping
+                  - generic [ref=e180] [cursor=pointer]:
+                    - img [ref=e182] [cursor=pointer]
+                    - generic [ref=e187] [cursor=pointer]:
+                      - heading "Shipping & Logistics" [level=3] [ref=e188] [cursor=pointer]
+                      - paragraph [ref=e189] [cursor=pointer]: Manage shipping, tracking, and logistics partners
+                - link "Reviews & Ratings View and manage product reviews and vendor ratings" [ref=e190] [cursor=pointer]:
+                  - /url: /souq/reviews
+                  - generic [ref=e191] [cursor=pointer]:
+                    - img [ref=e193] [cursor=pointer]
+                    - generic [ref=e195] [cursor=pointer]:
+                      - heading "Reviews & Ratings" [level=3] [ref=e196] [cursor=pointer]
+                      - paragraph [ref=e197] [cursor=pointer]: View and manage product reviews and vendor ratings
+      - contentinfo [ref=e199]:
+        - generic [ref=e200]:
+          - generic [ref=e201]:
+            - generic [ref=e202]:
+              - generic [ref=e203]: Fixzit
+              - paragraph [ref=e204]: Facility management + marketplaces in one platform. Streamline operations, optimize costs, and enhance productivity with our comprehensive enterprise solution.
+              - generic [ref=e205]:
+                - generic [ref=e206]:
+                  - img [ref=e207]
+                  - generic [ref=e209]: +966 50 123 4567
+                - generic [ref=e210]:
+                  - img [ref=e211]
+                  - generic [ref=e214]: info [at] fixzit.com
+                - generic [ref=e215]:
+                  - img [ref=e216]
+                  - generic [ref=e219]: Riyadh, Saudi Arabia
+            - generic [ref=e220]:
+              - generic [ref=e221]: Company
+              - list [ref=e222]:
+                - listitem [ref=e223]:
+                  - link "About Us" [ref=e224] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e225]:
+                  - link "Careers" [ref=e226] [cursor=pointer]:
+                    - /url: /careers
+                - listitem [ref=e227]:
+                  - link "Contact" [ref=e228] [cursor=pointer]:
+                    - /url: /cms/contact
+                - listitem [ref=e229]:
+                  - link "Partners" [ref=e230] [cursor=pointer]:
+                    - /url: /cms/partners
+                - listitem [ref=e231]:
+                  - link "Investors" [ref=e232] [cursor=pointer]:
+                    - /url: /cms/investors
+            - generic [ref=e233]:
+              - generic [ref=e234]: Product
+              - list [ref=e235]:
+                - listitem [ref=e236]:
+                  - link "Features" [ref=e237] [cursor=pointer]:
+                    - /url: /fm
+                - listitem [ref=e238]:
+                  - link "Enterprise" [ref=e239] [cursor=pointer]:
+                    - /url: /souq
+                - listitem [ref=e240]:
+                  - link "Resources" [ref=e241] [cursor=pointer]:
+                    - /url: /aqar
+                - listitem [ref=e242]:
+                  - link "Product Updates" [ref=e243] [cursor=pointer]:
+                    - /url: /cms/integrations
+                - listitem [ref=e244]:
+                  - link "API Reference" [ref=e245] [cursor=pointer]:
+                    - /url: /cms/api
+            - generic [ref=e246]:
+              - generic [ref=e247]: Support
+              - list [ref=e248]:
+                - listitem [ref=e249]:
+                  - link "Help Center" [ref=e250] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e251]:
+                  - link "Documentation" [ref=e252] [cursor=pointer]:
+                    - /url: /cms/documentation
+                - listitem [ref=e253]:
+                  - link "Community" [ref=e254] [cursor=pointer]:
+                    - /url: /cms/community
+                - listitem [ref=e255]:
+                  - link "System Status" [ref=e256] [cursor=pointer]:
+                    - /url: /cms/status
+                - listitem [ref=e257]:
+                  - button "Contact Support" [ref=e258] [cursor=pointer]
+          - generic [ref=e260]:
+            - heading "Stay Updated" [level=3] [ref=e261]
+            - paragraph [ref=e262]: Get the latest updates, tips, and industry insights delivered to your inbox.
+            - generic [ref=e263]:
+              - textbox "Enter your email" [ref=e264]
+              - button "Subscribe" [ref=e265] [cursor=pointer]
+          - generic [ref=e266]:
+            - link "Facebook" [ref=e267] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e268] [cursor=pointer]
+            - link "Twitter" [ref=e270] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e271] [cursor=pointer]
+            - link "LinkedIn" [ref=e273] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e274] [cursor=pointer]
+            - link "YouTube" [ref=e278] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e279] [cursor=pointer]
+            - link "Instagram" [ref=e282] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e283] [cursor=pointer]
+        - generic [ref=e288]:
+          - generic [ref=e289]: © 2025 Fixzit. All rights reserved.
+          - generic [ref=e290]:
+            - link "🏠 Back to Home" [ref=e291] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e292] [cursor=pointer]: 🏠
+              - generic [ref=e293] [cursor=pointer]: Back to Home
+            - link "Privacy Policy" [ref=e294] [cursor=pointer]:
+              - /url: /cms/privacy
+            - link "Terms of Service" [ref=e295] [cursor=pointer]:
+              - /url: /cms/terms
+            - link "Cookies" [ref=e296] [cursor=pointer]:
+              - /url: /cms/cookies
+            - link "Accessibility" [ref=e297] [cursor=pointer]:
+              - /url: /cms/accessibility
+            - link "Sitemap" [ref=e298] [cursor=pointer]:
+              - /url: /cms/sitemap
+            - generic [ref=e299]:
+              - generic [ref=e300]: ﷼
+              - generic [ref=e301]: SAR
+    - button "Open Help" [ref=e303] [cursor=pointer]:
+      - img [ref=e304] [cursor=pointer]
+    - button "common.help" [ref=e307] [cursor=pointer]:
+      - generic [ref=e310] [cursor=pointer]:
+        - img [ref=e311] [cursor=pointer]
+        - generic [ref=e314] [cursor=pointer]: Help
+    - button "Fixzit Assistant" [ref=e316] [cursor=pointer]:
+      - img [ref=e317] [cursor=pointer]
+  - alert [ref=e319]
+```

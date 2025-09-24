@@ -2,6 +2,8 @@
 'use client';
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { MODULES } from '@/src/config/dynamic-modules';
+import { routeToModule } from '@/src/utils/routeToScope';
 
 type Lang = 'en' | 'ar';
 type ScopeMode = 'module' | 'all';
@@ -20,17 +22,20 @@ const Ctx = createContext<AppScope | null>(null);
 
 export function AppScopeProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const moduleId = getCurrentModule(pathname || '/');
-  const moduleLabel = getModuleLabel(moduleId);
-
+  const moduleId = routeToModule(pathname || '/');
+  const moduleConfig = MODULES.find(m => m.id === moduleId);
+  
   const [language, setLanguageState] = useState<Lang>(() => (typeof window !== 'undefined' ? (localStorage.getItem('lang') as Lang) : 'en') || 'en');
   const [scopeMode, setScopeModeState] = useState<ScopeMode>(() => (typeof window !== 'undefined' ? (localStorage.getItem('scopeMode') as ScopeMode) : 'module') || 'module');
 
   useEffect(() => { localStorage.setItem('lang', language); document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'; }, [language]);
   useEffect(() => { localStorage.setItem('scopeMode', scopeMode); }, [scopeMode]);
 
+  const moduleLabel = language === 'ar' ? (moduleConfig?.labelAr || moduleConfig?.label || 'الرئيسية') : (moduleConfig?.label || 'Home');
+
   const value = useMemo<AppScope>(() => ({
-    moduleId, moduleLabel,
+    moduleId, 
+    moduleLabel,
     language,
     dir: language === 'ar' ? 'rtl' : 'ltr',
     scopeMode,
@@ -46,32 +51,3 @@ export const useAppScope = () => {
   if (!ctx) throw new Error('useAppScope must be used within AppScopeProvider');
   return ctx;
 };
-
-function getCurrentModule(pathname: string): string {
-  if (pathname.startsWith('/fm') || pathname.startsWith('/work-orders')) return 'work-orders';
-  if (pathname.startsWith('/properties')) return 'properties';
-  if (pathname.startsWith('/finance')) return 'finance';
-  if (pathname.startsWith('/hr')) return 'hr';
-  if (pathname.startsWith('/admin')) return 'admin';
-  if (pathname.startsWith('/crm')) return 'crm';
-  if (pathname.startsWith('/aqar') || pathname.startsWith('/marketplace/real-estate')) return 'aqar_souq';
-  if (pathname.startsWith('/souq') || pathname.startsWith('/marketplace/materials')) return 'marketplace';
-  if (pathname.startsWith('/support')) return 'support';
-  return 'dashboard';
-}
-
-function getModuleLabel(moduleId: string): string {
-  const labels: Record<string, string> = {
-    'dashboard': 'Dashboard',
-    'work_orders': 'Work Orders',
-    'properties': 'Properties',
-    'finance': 'Finance',
-    'hr': 'Human Resources',
-    'admin': 'Administration',
-    'crm': 'CRM',
-    'marketplace': 'Fixzit Souq',
-    'aqar_souq': 'Aqar Souq',
-    'support': 'Support'
-  };
-  return labels[moduleId] || 'Home';
-}

@@ -1,0 +1,339 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]:
+          - link "Fixzit Home" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e8] [cursor=pointer]: Fixzit Enterprise
+          - button "Menu" [ref=e10] [cursor=pointer]:
+            - img [ref=e11] [cursor=pointer]
+            - generic [ref=e15] [cursor=pointer]: Menu
+            - img [ref=e16] [cursor=pointer]
+          - generic [ref=e18]: Fixzit Souq
+          - generic [ref=e21]:
+            - button "Fixzit Souq" [ref=e22] [cursor=pointer]
+            - generic [ref=e23]:
+              - img [ref=e24]
+              - textbox "Global search" [ref=e27]
+          - link "Add Product" [ref=e29] [cursor=pointer]:
+            - /url: /souq/products/new
+            - img [ref=e30] [cursor=pointer]
+            - generic [ref=e33] [cursor=pointer]: Add Product
+          - button "Notifications" [ref=e35] [cursor=pointer]:
+            - img [ref=e36] [cursor=pointer]
+            - generic [ref=e39] [cursor=pointer]: "2"
+          - button "English – United Kingdom" [ref=e41] [cursor=pointer]:
+            - img [ref=e42] [cursor=pointer]: 🇬🇧
+            - generic [ref=e43] [cursor=pointer]: English
+            - img [ref=e44] [cursor=pointer]
+          - 'button "Currency: Saudi Riyal (SAR)" [ref=e47] [cursor=pointer]':
+            - generic [ref=e48] [cursor=pointer]: ﷼
+            - generic [ref=e49] [cursor=pointer]: SAR
+            - img [ref=e50] [cursor=pointer]
+          - button "Marketplaces" [ref=e52] [cursor=pointer]
+          - button "User menu" [ref=e54] [cursor=pointer]: 👤
+      - generic [ref=e55]:
+        - complementary "Sidebar Navigation" [ref=e57]:
+          - button "Collapse sidebar" [ref=e59] [cursor=pointer]:
+            - img [ref=e60] [cursor=pointer]
+          - navigation [ref=e62]:
+            - button "Marketplace Home" [ref=e64] [cursor=pointer]:
+              - img [ref=e65] [cursor=pointer]
+              - generic [ref=e69] [cursor=pointer]: Marketplace Home
+            - generic [ref=e70]:
+              - button "Catalog" [ref=e71] [cursor=pointer]:
+                - img [ref=e72] [cursor=pointer]
+                - generic [ref=e77] [cursor=pointer]: Catalog
+              - generic [ref=e78]:
+                - button "Categories" [ref=e79] [cursor=pointer]
+                - button "Brands" [ref=e80] [cursor=pointer]
+                - button "Deals" [ref=e81] [cursor=pointer]
+            - button "Vendors" [ref=e83] [cursor=pointer]:
+              - img [ref=e84] [cursor=pointer]
+              - generic [ref=e89] [cursor=pointer]: Vendors
+            - button "RFQs & Bids" [ref=e91] [cursor=pointer]:
+              - img [ref=e92] [cursor=pointer]
+              - generic [ref=e98] [cursor=pointer]: RFQs & Bids
+            - generic [ref=e99]:
+              - button "Orders & POs" [ref=e100] [cursor=pointer]:
+                - img [ref=e101] [cursor=pointer]
+                - generic [ref=e108] [cursor=pointer]: Orders & POs
+              - generic [ref=e109]:
+                - button "My Orders" [ref=e110] [cursor=pointer]
+                - button "Create Order" [ref=e111] [cursor=pointer]
+                - button "Order History" [ref=e112] [cursor=pointer]
+            - button "Shipping & Logistics" [ref=e114] [cursor=pointer]:
+              - img [ref=e115] [cursor=pointer]
+              - generic [ref=e121] [cursor=pointer]: Shipping & Logistics
+            - button "Reviews & Ratings" [ref=e123] [cursor=pointer]:
+              - img [ref=e124] [cursor=pointer]
+              - generic [ref=e126] [cursor=pointer]: Reviews & Ratings
+            - button "Advanced Search" [ref=e128] [cursor=pointer]:
+              - img [ref=e129] [cursor=pointer]
+              - generic [ref=e132] [cursor=pointer]: Advanced Search
+            - button "Vendor Portal" [ref=e134] [cursor=pointer]:
+              - img [ref=e135] [cursor=pointer]
+              - generic [ref=e138] [cursor=pointer]: Vendor Portal
+          - paragraph [ref=e140]: Quick Filters
+        - main [ref=e141]:
+          - generic [ref=e143]:
+            - generic [ref=e146]:
+              - generic [ref=e147]:
+                - heading "Browse Properties" [level=1] [ref=e148]
+                - paragraph [ref=e149]: Find your perfect property across Saudi Arabia
+              - generic [ref=e150]: 3 properties found
+            - generic [ref=e152]:
+              - generic [ref=e153]:
+                - generic [ref=e154]:
+                  - heading "Filters" [level=3] [ref=e155]
+                  - generic [ref=e156]:
+                    - generic [ref=e157]:
+                      - generic [ref=e158]: City
+                      - combobox [ref=e159]:
+                        - option "All Cities" [selected]
+                        - option "Riyadh"
+                        - option "Jeddah"
+                        - option "Dammam"
+                        - option "Mecca"
+                    - generic [ref=e160]:
+                      - generic [ref=e161]: Property Type
+                      - combobox [ref=e162]:
+                        - option "All Types" [selected]
+                        - option "Apartment"
+                        - option "Villa"
+                        - option "Office"
+                        - option "Land"
+                    - generic [ref=e163]:
+                      - generic [ref=e164]: Price Range (SAR)
+                      - generic [ref=e165]:
+                        - spinbutton [ref=e166]
+                        - spinbutton [ref=e167]
+                    - generic [ref=e168]:
+                      - generic [ref=e169]: Bedrooms
+                      - combobox [ref=e170]:
+                        - option "Any" [selected]
+                        - option "Studio"
+                        - option "1 Bedroom"
+                        - option "2 Bedrooms"
+                        - option "3 Bedrooms"
+                        - option "4+ Bedrooms"
+                    - generic [ref=e171]:
+                      - checkbox "Verified listings only" [ref=e172]
+                      - generic [ref=e173]: Verified listings only
+                - button "Apply Filters" [ref=e174] [cursor=pointer]
+              - generic [ref=e176]:
+                - link "Apartment in Al Olaya Verified Apartment in Al Olaya Riyadh, Al Olaya 2 2 120m² 90,000SAR/year View Details" [ref=e177] [cursor=pointer]:
+                  - /url: /marketplace/properties/p1
+                  - generic [ref=e178] [cursor=pointer]:
+                    - img "Apartment in Al Olaya" [ref=e179] [cursor=pointer]
+                    - generic [ref=e180] [cursor=pointer]:
+                      - img [ref=e181] [cursor=pointer]
+                      - text: Verified
+                    - button [ref=e183] [cursor=pointer]:
+                      - img [ref=e184] [cursor=pointer]
+                  - generic [ref=e186] [cursor=pointer]:
+                    - heading "Apartment in Al Olaya" [level=3] [ref=e187] [cursor=pointer]
+                    - generic [ref=e188] [cursor=pointer]:
+                      - img [ref=e189] [cursor=pointer]
+                      - generic [ref=e192] [cursor=pointer]: Riyadh, Al Olaya
+                    - generic [ref=e194] [cursor=pointer]:
+                      - generic [ref=e195] [cursor=pointer]:
+                        - img [ref=e196] [cursor=pointer]
+                        - generic [ref=e201] [cursor=pointer]: "2"
+                      - generic [ref=e202] [cursor=pointer]:
+                        - img [ref=e203] [cursor=pointer]
+                        - generic [ref=e209] [cursor=pointer]: "2"
+                      - generic [ref=e210] [cursor=pointer]:
+                        - img [ref=e211] [cursor=pointer]
+                        - generic [ref=e213] [cursor=pointer]: 120m²
+                    - generic [ref=e214] [cursor=pointer]:
+                      - generic [ref=e215] [cursor=pointer]:
+                        - generic [ref=e216] [cursor=pointer]: 90,000
+                        - generic [ref=e217] [cursor=pointer]: SAR/year
+                      - button "View Details" [ref=e218] [cursor=pointer]:
+                        - img [ref=e219] [cursor=pointer]
+                        - generic [ref=e222] [cursor=pointer]: View Details
+                - link "Villa in Al Hamra Villa in Al Hamra Jeddah, Al Hamra 4 3 300m² 250,000SAR/year View Details" [ref=e223] [cursor=pointer]:
+                  - /url: /marketplace/properties/p2
+                  - generic [ref=e224] [cursor=pointer]:
+                    - img "Villa in Al Hamra" [ref=e225] [cursor=pointer]
+                    - button [ref=e226] [cursor=pointer]:
+                      - img [ref=e227] [cursor=pointer]
+                  - generic [ref=e229] [cursor=pointer]:
+                    - heading "Villa in Al Hamra" [level=3] [ref=e230] [cursor=pointer]
+                    - generic [ref=e231] [cursor=pointer]:
+                      - img [ref=e232] [cursor=pointer]
+                      - generic [ref=e235] [cursor=pointer]: Jeddah, Al Hamra
+                    - generic [ref=e237] [cursor=pointer]:
+                      - generic [ref=e238] [cursor=pointer]:
+                        - img [ref=e239] [cursor=pointer]
+                        - generic [ref=e244] [cursor=pointer]: "4"
+                      - generic [ref=e245] [cursor=pointer]:
+                        - img [ref=e246] [cursor=pointer]
+                        - generic [ref=e252] [cursor=pointer]: "3"
+                      - generic [ref=e253] [cursor=pointer]:
+                        - img [ref=e254] [cursor=pointer]
+                        - generic [ref=e256] [cursor=pointer]: 300m²
+                    - generic [ref=e257] [cursor=pointer]:
+                      - generic [ref=e258] [cursor=pointer]:
+                        - generic [ref=e259] [cursor=pointer]: 250,000
+                        - generic [ref=e260] [cursor=pointer]: SAR/year
+                      - button "View Details" [ref=e261] [cursor=pointer]:
+                        - img [ref=e262] [cursor=pointer]
+                        - generic [ref=e265] [cursor=pointer]: View Details
+                - link "Office in Dammam Verified Office in Dammam Dammam, Business 0 2 200m² 120,000SAR/year View Details" [ref=e266] [cursor=pointer]:
+                  - /url: /marketplace/properties/p3
+                  - generic [ref=e267] [cursor=pointer]:
+                    - img "Office in Dammam" [ref=e268] [cursor=pointer]
+                    - generic [ref=e269] [cursor=pointer]:
+                      - img [ref=e270] [cursor=pointer]
+                      - text: Verified
+                    - button [ref=e272] [cursor=pointer]:
+                      - img [ref=e273] [cursor=pointer]
+                  - generic [ref=e275] [cursor=pointer]:
+                    - heading "Office in Dammam" [level=3] [ref=e276] [cursor=pointer]
+                    - generic [ref=e277] [cursor=pointer]:
+                      - img [ref=e278] [cursor=pointer]
+                      - generic [ref=e281] [cursor=pointer]: Dammam, Business
+                    - generic [ref=e283] [cursor=pointer]:
+                      - generic [ref=e284] [cursor=pointer]:
+                        - img [ref=e285] [cursor=pointer]
+                        - generic [ref=e290] [cursor=pointer]: "0"
+                      - generic [ref=e291] [cursor=pointer]:
+                        - img [ref=e292] [cursor=pointer]
+                        - generic [ref=e298] [cursor=pointer]: "2"
+                      - generic [ref=e299] [cursor=pointer]:
+                        - img [ref=e300] [cursor=pointer]
+                        - generic [ref=e302] [cursor=pointer]: 200m²
+                    - generic [ref=e303] [cursor=pointer]:
+                      - generic [ref=e304] [cursor=pointer]:
+                        - generic [ref=e305] [cursor=pointer]: 120,000
+                        - generic [ref=e306] [cursor=pointer]: SAR/year
+                      - button "View Details" [ref=e307] [cursor=pointer]:
+                        - img [ref=e308] [cursor=pointer]
+                        - generic [ref=e311] [cursor=pointer]: View Details
+      - contentinfo [ref=e313]:
+        - generic [ref=e314]:
+          - generic [ref=e315]:
+            - generic [ref=e316]:
+              - generic [ref=e317]: Fixzit
+              - paragraph [ref=e318]: Facility management + marketplaces in one platform. Streamline operations, optimize costs, and enhance productivity with our comprehensive enterprise solution.
+              - generic [ref=e319]:
+                - generic [ref=e320]:
+                  - img [ref=e321]
+                  - generic [ref=e323]: +966 50 123 4567
+                - generic [ref=e324]:
+                  - img [ref=e325]
+                  - generic [ref=e328]: info [at] fixzit.com
+                - generic [ref=e329]:
+                  - img [ref=e330]
+                  - generic [ref=e333]: Riyadh, Saudi Arabia
+            - generic [ref=e334]:
+              - generic [ref=e335]: Company
+              - list [ref=e336]:
+                - listitem [ref=e337]:
+                  - link "About Us" [ref=e338] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e339]:
+                  - link "Careers" [ref=e340] [cursor=pointer]:
+                    - /url: /careers
+                - listitem [ref=e341]:
+                  - link "Contact" [ref=e342] [cursor=pointer]:
+                    - /url: /cms/contact
+                - listitem [ref=e343]:
+                  - link "Partners" [ref=e344] [cursor=pointer]:
+                    - /url: /cms/partners
+                - listitem [ref=e345]:
+                  - link "Investors" [ref=e346] [cursor=pointer]:
+                    - /url: /cms/investors
+            - generic [ref=e347]:
+              - generic [ref=e348]: Product
+              - list [ref=e349]:
+                - listitem [ref=e350]:
+                  - link "Features" [ref=e351] [cursor=pointer]:
+                    - /url: /fm
+                - listitem [ref=e352]:
+                  - link "Enterprise" [ref=e353] [cursor=pointer]:
+                    - /url: /souq
+                - listitem [ref=e354]:
+                  - link "Resources" [ref=e355] [cursor=pointer]:
+                    - /url: /aqar
+                - listitem [ref=e356]:
+                  - link "Product Updates" [ref=e357] [cursor=pointer]:
+                    - /url: /cms/integrations
+                - listitem [ref=e358]:
+                  - link "API Reference" [ref=e359] [cursor=pointer]:
+                    - /url: /cms/api
+            - generic [ref=e360]:
+              - generic [ref=e361]: Support
+              - list [ref=e362]:
+                - listitem [ref=e363]:
+                  - link "Help Center" [ref=e364] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e365]:
+                  - link "Documentation" [ref=e366] [cursor=pointer]:
+                    - /url: /cms/documentation
+                - listitem [ref=e367]:
+                  - link "Community" [ref=e368] [cursor=pointer]:
+                    - /url: /cms/community
+                - listitem [ref=e369]:
+                  - link "System Status" [ref=e370] [cursor=pointer]:
+                    - /url: /cms/status
+                - listitem [ref=e371]:
+                  - button "Contact Support" [ref=e372] [cursor=pointer]
+          - generic [ref=e374]:
+            - heading "Stay Updated" [level=3] [ref=e375]
+            - paragraph [ref=e376]: Get the latest updates, tips, and industry insights delivered to your inbox.
+            - generic [ref=e377]:
+              - textbox "Enter your email" [ref=e378]
+              - button "Subscribe" [ref=e379] [cursor=pointer]
+          - generic [ref=e380]:
+            - link "Facebook" [ref=e381] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e382] [cursor=pointer]
+            - link "Twitter" [ref=e384] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e385] [cursor=pointer]
+            - link "LinkedIn" [ref=e387] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e388] [cursor=pointer]
+            - link "YouTube" [ref=e392] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e393] [cursor=pointer]
+            - link "Instagram" [ref=e396] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e397] [cursor=pointer]
+        - generic [ref=e403]:
+          - generic [ref=e404]: © 2025 Fixzit. All rights reserved.
+          - generic [ref=e405]:
+            - link "🏠 Back to Home" [ref=e406] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e407] [cursor=pointer]: 🏠
+              - generic [ref=e408] [cursor=pointer]: Back to Home
+            - link "Privacy Policy" [ref=e409] [cursor=pointer]:
+              - /url: /cms/privacy
+            - link "Terms of Service" [ref=e410] [cursor=pointer]:
+              - /url: /cms/terms
+            - link "Cookies" [ref=e411] [cursor=pointer]:
+              - /url: /cms/cookies
+            - link "Accessibility" [ref=e412] [cursor=pointer]:
+              - /url: /cms/accessibility
+            - link "Sitemap" [ref=e413] [cursor=pointer]:
+              - /url: /cms/sitemap
+            - generic [ref=e414]:
+              - generic [ref=e415]: ﷼
+              - generic [ref=e416]: SAR
+    - button "Open Help" [ref=e418] [cursor=pointer]:
+      - img [ref=e419] [cursor=pointer]
+    - button "common.help" [ref=e423] [cursor=pointer]:
+      - generic [ref=e426] [cursor=pointer]:
+        - img [ref=e427] [cursor=pointer]
+        - generic [ref=e431] [cursor=pointer]: Help
+    - button "Fixzit Assistant" [ref=e433] [cursor=pointer]:
+      - img [ref=e434] [cursor=pointer]
+  - alert [ref=e436]
+```

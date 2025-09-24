@@ -1,0 +1,174 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e7]: Fixzit Enterprise
+          - group [ref=e9]
+      - generic [ref=e11]:
+        - complementary "Sidebar Navigation" [ref=e13]:
+          - button "Collapse sidebar" [ref=e15] [cursor=pointer]:
+            - img [ref=e16] [cursor=pointer]
+          - navigation [ref=e18]:
+            - button "Marketplace Home" [ref=e20] [cursor=pointer]:
+              - img [ref=e21] [cursor=pointer]
+              - generic [ref=e24] [cursor=pointer]: Marketplace Home
+            - generic [ref=e25]:
+              - button "Catalog" [ref=e26] [cursor=pointer]:
+                - img [ref=e27] [cursor=pointer]
+                - generic [ref=e31] [cursor=pointer]: Catalog
+              - generic [ref=e32]:
+                - button "Categories" [ref=e33] [cursor=pointer]
+                - button "Brands" [ref=e34] [cursor=pointer]
+                - button "Deals" [ref=e35] [cursor=pointer]
+            - button "Vendors" [ref=e37] [cursor=pointer]:
+              - img [ref=e38] [cursor=pointer]
+              - generic [ref=e43] [cursor=pointer]: Vendors
+            - button "RFQs & Bids" [ref=e45] [cursor=pointer]:
+              - img [ref=e46] [cursor=pointer]
+              - generic [ref=e49] [cursor=pointer]: RFQs & Bids
+            - generic [ref=e50]:
+              - button "Orders & POs" [ref=e51] [cursor=pointer]:
+                - img [ref=e52] [cursor=pointer]
+                - generic [ref=e55] [cursor=pointer]: Orders & POs
+              - generic [ref=e56]:
+                - button "My Orders" [ref=e57] [cursor=pointer]
+                - button "Create Order" [ref=e58] [cursor=pointer]
+                - button "Order History" [ref=e59] [cursor=pointer]
+            - button "Shipping & Logistics" [ref=e61] [cursor=pointer]:
+              - img [ref=e62] [cursor=pointer]
+              - generic [ref=e67] [cursor=pointer]: Shipping & Logistics
+            - button "Reviews & Ratings" [ref=e69] [cursor=pointer]:
+              - img [ref=e70] [cursor=pointer]
+              - generic [ref=e72] [cursor=pointer]: Reviews & Ratings
+            - button "Advanced Search" [ref=e74] [cursor=pointer]:
+              - img [ref=e75] [cursor=pointer]
+              - generic [ref=e78] [cursor=pointer]: Advanced Search
+            - button "Vendor Portal" [ref=e80] [cursor=pointer]:
+              - img [ref=e81] [cursor=pointer]
+              - generic [ref=e84] [cursor=pointer]: Vendor Portal
+          - paragraph [ref=e86]: Quick Filters
+        - main [ref=e87]:
+          - paragraph [ref=e92]: Loading...
+      - contentinfo [ref=e94]:
+        - generic [ref=e95]:
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - generic [ref=e98]: Fixzit
+              - paragraph [ref=e99]: Facility management + marketplaces in one platform. Streamline operations, optimize costs, and enhance productivity with our comprehensive enterprise solution.
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - img [ref=e102]
+                  - generic [ref=e104]: +966 50 123 4567
+                - generic [ref=e105]:
+                  - img [ref=e106]
+                  - generic [ref=e109]: info [at] fixzit.com
+                - generic [ref=e110]:
+                  - img [ref=e111]
+                  - generic [ref=e114]: Riyadh, Saudi Arabia
+            - generic [ref=e115]:
+              - generic [ref=e116]: Company
+              - list [ref=e117]:
+                - listitem [ref=e118]:
+                  - link "About Us" [ref=e119]:
+                    - /url: /cms/about
+                - listitem [ref=e120]:
+                  - link "Careers" [ref=e121]:
+                    - /url: /careers
+                - listitem [ref=e122]:
+                  - link "Contact" [ref=e123]:
+                    - /url: /cms/contact
+                - listitem [ref=e124]:
+                  - link "Partners" [ref=e125]:
+                    - /url: /cms/partners
+                - listitem [ref=e126]:
+                  - link "Investors" [ref=e127]:
+                    - /url: /cms/investors
+            - generic [ref=e128]:
+              - generic [ref=e129]: Product
+              - list [ref=e130]:
+                - listitem [ref=e131]:
+                  - link "Features" [ref=e132]:
+                    - /url: /fm
+                - listitem [ref=e133]:
+                  - link "Enterprise" [ref=e134]:
+                    - /url: /souq
+                - listitem [ref=e135]:
+                  - link "Resources" [ref=e136]:
+                    - /url: /aqar
+                - listitem [ref=e137]:
+                  - link "Product Updates" [ref=e138]:
+                    - /url: /cms/integrations
+                - listitem [ref=e139]:
+                  - link "API Reference" [ref=e140]:
+                    - /url: /cms/api
+            - generic [ref=e141]:
+              - generic [ref=e142]: Support
+              - list [ref=e143]:
+                - listitem [ref=e144]:
+                  - link "Help Center" [ref=e145]:
+                    - /url: /help
+                - listitem [ref=e146]:
+                  - link "Documentation" [ref=e147]:
+                    - /url: /cms/documentation
+                - listitem [ref=e148]:
+                  - link "Community" [ref=e149]:
+                    - /url: /cms/community
+                - listitem [ref=e150]:
+                  - link "System Status" [ref=e151]:
+                    - /url: /cms/status
+                - listitem [ref=e152]:
+                  - button "Contact Support" [ref=e153] [cursor=pointer]
+          - generic [ref=e155]:
+            - heading "Stay Updated" [level=3] [ref=e156]
+            - paragraph [ref=e157]: Get the latest updates, tips, and industry insights delivered to your inbox.
+            - generic [ref=e158]:
+              - textbox "Enter your email" [ref=e159]
+              - button "Subscribe" [ref=e160] [cursor=pointer]
+          - generic [ref=e161]:
+            - link "Facebook" [ref=e162]:
+              - /url: "#"
+              - img [ref=e163]
+            - link "Twitter" [ref=e165]:
+              - /url: "#"
+              - img [ref=e166]
+            - link "LinkedIn" [ref=e168]:
+              - /url: "#"
+              - img [ref=e169]
+            - link "YouTube" [ref=e173]:
+              - /url: "#"
+              - img [ref=e174]
+            - link "Instagram" [ref=e177]:
+              - /url: "#"
+              - img [ref=e178]
+        - generic [ref=e183]:
+          - generic [ref=e184]: © 2025 Fixzit. All rights reserved.
+          - generic [ref=e185]:
+            - link "🏠 Back to Home" [ref=e186]:
+              - /url: /
+              - generic [ref=e187]: 🏠
+              - generic [ref=e188]: Back to Home
+            - link "Privacy Policy" [ref=e189]:
+              - /url: /cms/privacy
+            - link "Terms of Service" [ref=e190]:
+              - /url: /cms/terms
+            - link "Cookies" [ref=e191]:
+              - /url: /cms/cookies
+            - link "Accessibility" [ref=e192]:
+              - /url: /cms/accessibility
+            - link "Sitemap" [ref=e193]:
+              - /url: /cms/sitemap
+            - generic [ref=e194]:
+              - generic [ref=e195]: ﷼
+              - generic [ref=e196]: SAR
+    - button "Open Help" [ref=e198] [cursor=pointer]:
+      - img [ref=e199] [cursor=pointer]
+    - button "common.help" [ref=e202] [cursor=pointer]:
+      - generic [ref=e205] [cursor=pointer]:
+        - img [ref=e206] [cursor=pointer]
+        - generic [ref=e209] [cursor=pointer]: Help
+  - alert [ref=e210]
+```

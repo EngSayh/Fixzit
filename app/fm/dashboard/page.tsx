@@ -228,25 +228,25 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link href="/fm/work-orders/new">
+            <Link href="/fm/work-orders">
               <Button variant="outline" className="w-full justify-start">
                 <ClipboardList className="w-4 h-4 mr-2" />
                 New Work Order
               </Button>
             </Link>
-            <Link href="/fm/properties/new">
+            <Link href="/fm/properties">
               <Button variant="outline" className="w-full justify-start">
                 <Building2 className="w-4 h-4 mr-2" />
                 Add Property
               </Button>
             </Link>
-            <Link href="/fm/tenants/new">
+            <Link href="/fm/tenants">
               <Button variant="outline" className="w-full justify-start">
                 <Users className="w-4 h-4 mr-2" />
                 New Tenant
               </Button>
             </Link>
-            <Link href="/fm/invoices/new">
+            <Link href="/fm/invoices">
               <Button variant="outline" className="w-full justify-start">
                 <DollarSign className="w-4 h-4 mr-2" />
                 Create Invoice

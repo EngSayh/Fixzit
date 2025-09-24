@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
     annualDiscountPct: quote.annualDiscountPct,
     status: 'active',
     seatTotal: body.seatTotal,
-    currency: quote.currency,
+    currency: (quote.currency as string) || 'SAR',
     paytabsRegion: body.paytabsRegion || 'GLOBAL',
     startedAt: new Date(),
     nextInvoiceAt: new Date()
   });
 
   // 4) First invoice amount:
-  const amount = body.billingCycle === 'annual' ? quote.annualTotal : quote.monthly;
+  const amount: number = body.billingCycle === 'annual' ? (quote.annualTotal as number) : (quote.monthly as number);
 
   const inv = await SubscriptionInvoice.create({
     subscriptionId: sub._id,
@@ -55,22 +55,25 @@ export async function POST(req: NextRequest) {
   });
 
   // 5) Create PayTabs HPP. For monthly: include tokenise=2 to capture token. For annual: no token needed.
-  const basePayload = {
-    profile_id: process.env.PAYTABS_PROFILE_ID,
-    tran_type: 'sale',
-    tran_class: body.billingCycle === 'monthly' ? 'ecom' : 'ecom',
-    cart_id: `SUB-${sub._id}`,
-    cart_description: `Fixzit ${body.planType} (${body.billingCycle})`,
-    cart_amount: amount,
-    cart_currency: quote.currency,
-    return: body.returnUrl, callback: body.callbackUrl,
-    customer_details: {
-      name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'
-    }
-  } as any;
-
-  if (body.billingCycle === 'monthly') basePayload.tokenise = 2; // Hex32 token, delivered in callback
-  const resp = await createHppRequest(body.paytabsRegion || 'GLOBAL', basePayload);
+  // Map to PayTabs client request shape
+  const resp = await createHppRequest({
+    amount,
+    currency: (quote.currency ?? 'SAR') as string,
+    orderId: `SUB-${sub._id}`,
+    customerDetails: {
+      name: customer.name,
+      email: customer.billingEmail,
+      phone: customer.phone || '0000000000',
+      address: {
+        street: customer.address?.street || 'N/A',
+        city: customer.address?.city || 'Riyadh',
+        country: customer.country || 'SA',
+        zip: customer.address?.zip || '00000'
+      }
+    },
+    callbackUrl: body.callbackUrl,
+    returnUrl: body.returnUrl
+  });
   // resp.redirect_url to be used on FE
   return NextResponse.json({ subscriptionId: sub._id, invoiceId: inv._id, paytabs: resp });
 }

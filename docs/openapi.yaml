@@ -1,0 +1,206 @@
+openapi: 3.0.3
+info:
+  title: Fixzit API
+  version: 1.0.0
+servers:
+  - url: /app/api
+paths:
+  /auth/login:
+    post:
+      summary: Login and issue JWT cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Authenticated
+  /work-orders:
+    get:
+      summary: List work orders
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200': { description: List of work orders }
+    post:
+      summary: Create work order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCreate'
+      responses:
+        '201': { description: Created }
+  /work-orders/{id}:
+    get:
+      summary: Get work order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Work order }
+    patch:
+      summary: Update work order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderPatch'
+      responses:
+        '200': { description: Updated }
+  /work-orders/{id}/assign:
+    post:
+      summary: Assign work order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assigneeUserId: { type: string }
+                assigneeVendorId: { type: string }
+      responses:
+        '200': { description: Assigned }
+  /invoices:
+    get:
+      summary: List invoices
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string }
+      responses:
+        '200': { description: List of invoices }
+    post:
+      summary: Create invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+      responses:
+        '201': { description: Created }
+  /qa/health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: OK }
+  /qa/alert:
+    post:
+      summary: Send QA alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event]
+              properties:
+                event: { type: string }
+                data: { type: object }
+      responses:
+        '200': { description: Logged }
+components:
+  schemas:
+    WorkOrderCreate:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 3 }
+        description: { type: string }
+        priority: { type: string, enum: [LOW, MEDIUM, HIGH, URGENT] }
+        category: { type: string }
+        subcategory: { type: string }
+        propertyId: { type: string }
+        unitId: { type: string }
+        requester:
+          type: object
+          properties:
+            type: { type: string, enum: [TENANT, OWNER, STAFF] }
+            id: { type: string }
+            name: { type: string }
+            phone: { type: string }
+            email: { type: string, format: email }
+    WorkOrderPatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 3 }
+        description: { type: string }
+        priority: { type: string, enum: [LOW, MEDIUM, HIGH, URGENT] }
+        category: { type: string }
+        subcategory: { type: string }
+        dueAt: { type: string, format: date-time }
+    InvoiceCreate:
+      type: object
+      required: [type, issuer, recipient, issueDate, dueDate, items, currency]
+      properties:
+        type: { type: string, enum: [SALES, PURCHASE, RENTAL, SERVICE, MAINTENANCE] }
+        issuer:
+          type: object
+          required: [name, taxId, address]
+          properties:
+            name: { type: string }
+            taxId: { type: string }
+            address: { type: string }
+            email: { type: string }
+        recipient:
+          type: object
+          required: [name, address]
+          properties:
+            name: { type: string }
+            address: { type: string }
+            email: { type: string }
+        issueDate: { type: string, format: date-time }
+        dueDate: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            type: object
+            required: [description, quantity, unitPrice]
+            properties:
+              description: { type: string }
+              quantity: { type: number }
+              unitPrice: { type: number }
+              vatRate: { type: number }
+        currency: { type: string, default: SAR }

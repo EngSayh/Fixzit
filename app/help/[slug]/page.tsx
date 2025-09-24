@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const db = await getDb();
-  const article = await db.collection('knowledge_articles')
+  const native = (db as any).connection?.db || (db as any).db;
+  const article = await native.collection('knowledge_articles')
     .findOne({ slug: params.slug, status: 'PUBLISHED' });
 
   if (!article) {

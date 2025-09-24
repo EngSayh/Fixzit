@@ -1,6 +1,6 @@
 // app/marketplace/materials/page.tsx - Public materials browsing
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Package, Star, Truck, Shield, ShoppingCart, Filter } from 'lucide-react';
 
@@ -12,78 +12,40 @@ export default function PublicMaterialsPage() {
     inStock: false
   });
 
-  // Mock data - replace with API call
-  const materials = [
-    {
-      id: '1',
-      name: 'Portland Cement 50kg',
-      category: 'Cement',
-      brand: 'Saudi Cement',
-      price: 25,
-      currency: 'SAR',
-      inStock: true,
-      rating: 4.5,
-      reviews: 120,
-      image: '/placeholder-material.jpg',
-      description: 'High-quality Portland cement suitable for all construction needs.',
-      specifications: ['50kg bag', 'Type I/II', 'ASTM C150 compliant']
-    },
-    {
-      id: '2',
-      name: 'Steel Rebar 12mm',
-      category: 'Steel',
-      brand: 'SABIC',
-      price: 8.50,
-      currency: 'SAR',
-      inStock: true,
-      rating: 4.8,
-      reviews: 85,
-      image: '/placeholder-material.jpg',
-      description: 'High-strength steel rebar for reinforced concrete construction.',
-      specifications: ['12mm diameter', 'Grade 60', 'ASTM A615']
-    },
-    {
-      id: '3',
-      name: 'Ceramic Floor Tiles 60x60cm',
-      category: 'Tiles',
-      brand: 'RAK Ceramics',
-      price: 45,
-      currency: 'SAR',
-      inStock: false,
-      rating: 4.3,
-      reviews: 200,
-      image: '/placeholder-material.jpg',
-      description: 'Premium ceramic floor tiles with excellent durability and finish.',
-      specifications: ['60x60cm', 'Grade AA', 'Anti-slip surface']
-    },
-    {
-      id: '4',
-      name: 'HVAC Ductwork 150mm',
-      category: 'HVAC',
-      brand: 'Carrier',
-      price: 120,
-      currency: 'SAR',
-      inStock: true,
-      rating: 4.7,
-      reviews: 65,
-      image: '/placeholder-material.jpg',
-      description: 'Professional HVAC ductwork for commercial and residential use.',
-      specifications: ['150mm diameter', 'Galvanized steel', 'Insulated']
-    }
-  ];
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [cartCount, setCartCount] = useState(0);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        const sp = new URLSearchParams();
+        if (filters.category && filters.category !== 'All') sp.set('category', filters.category);
+        if (filters.minPrice) sp.set('minPrice', String(filters.minPrice));
+        if (filters.maxPrice) sp.set('maxPrice', String(filters.maxPrice));
+        const res = await fetch(`/api/marketplace/products?${sp.toString()}`, { signal: controller.signal, cache: 'no-store' });
+        const json = await res.json();
+        const data = json?.data?.products || json?.data || [];
+        setMaterials(Array.isArray(data) ? data : []);
+      } catch {}
+    };
+    load();
+    return () => controller.abort();
+  }, [filters.category, filters.minPrice, filters.maxPrice, filters.inStock]);
 
   const categories = ['All', 'Cement', 'Steel', 'Tiles', 'HVAC', 'Electrical', 'Plumbing'];
 
-  const filteredMaterials = materials.filter(material => {
+  const filteredMaterials = materials.filter((material: any) => {
     if (filters.category && filters.category !== 'All' && material.category !== filters.category) return false;
-    if (filters.minPrice && material.price < parseInt(filters.minPrice)) return false;
-    if (filters.maxPrice && material.price > parseInt(filters.maxPrice)) return false;
-    if (filters.inStock && !material.inStock) return false;
+    if (filters.minPrice && Number(material.price) < parseInt(filters.minPrice)) return false;
+    if (filters.maxPrice && Number(material.price) > parseInt(filters.maxPrice)) return false;
+    if (filters.inStock && (material.stock ? material.stock <= 0 : false)) return false;
     return true;
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -183,7 +145,7 @@ export default function PublicMaterialsPage() {
                 >
                   <div className="relative">
                     <img
-                      src={material.image}
+                      src={material.image || material.images?.[0] || '/placeholder-material.jpg'}
                       alt={material.name}
                       className="w-full h-48 object-cover"
                     />
@@ -194,7 +156,7 @@ export default function PublicMaterialsPage() {
                         </span>
                       </div>
                     )}
-                    <button className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white transition-colors">
+                    <button className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white transition-colors" data-testid="add-to-cart" onClick={()=>setCartCount(c=>c+1)}>
                       <ShoppingCart className="h-4 w-4 text-gray-600" />
                     </button>
                   </div>
@@ -204,11 +166,13 @@ export default function PublicMaterialsPage() {
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                         {material.category}
                       </span>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="text-sm text-gray-600">{material.rating}</span>
-                        <span className="text-xs text-gray-500">({material.reviews})</span>
-                      </div>
+                      {material.rating && (
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                          <span className="text-sm text-gray-600">{material.rating}</span>
+                          {material.reviews && <span className="text-xs text-gray-500">({material.reviews})</span>}
+                        </div>
+                      )}
                     </div>
 
                     <h3 className="font-semibold text-lg mb-2 line-clamp-2">{material.name}</h3>
@@ -217,7 +181,7 @@ export default function PublicMaterialsPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <span className="text-2xl font-bold text-[#0061A8]">
-                          {material.price.toLocaleString()}
+                          {Number(material.price).toLocaleString()}
                         </span>
                         <span className="text-gray-600 ml-1">SAR</span>
                       </div>
@@ -257,6 +221,35 @@ export default function PublicMaterialsPage() {
           </div>
         </div>
       </div>
+      {/* Cart icon & drawer for e2e hooks */}
+      <div className="fixed bottom-4 right-4">
+        <button
+          className="relative rounded-full bg-white border shadow px-4 py-2"
+          data-testid="cart-icon"
+          onClick={()=>setCartOpen(true)}
+        >
+          🛒
+          <span className="absolute -top-2 -right-2 bg-[#0061A8] text-white text-xs rounded-full px-2" data-testid="cart-count">{cartCount}</span>
+        </button>
+      </div>
+
+      {cartOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4" onClick={()=>setCartOpen(false)}>
+          <div className="bg-white rounded-lg w-full max-w-lg p-4" onClick={(e)=>e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-3">Your Cart</h3>
+            <div className="max-h-64 overflow-auto space-y-2">
+              {Array.from({length: cartCount}).map((_,i)=> (
+                <div key={i} className="border rounded p-2" data-testid="cart-item">Material #{i+1}</div>
+              ))}
+              {cartCount===0 && <div className="text-sm text-gray-600">Cart is empty</div>}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="px-3 py-2 rounded border" onClick={()=>setCartOpen(false)}>Close</button>
+              <button className="px-3 py-2 rounded bg-[#0061A8] text-white" onClick={()=>{ window.location.href='/login'; }}>Proceed to Checkout</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

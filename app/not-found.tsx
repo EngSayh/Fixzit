@@ -15,7 +15,7 @@ export default function NotFound() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="flex-1 bg-gray-50 flex items-center justify-center px-4 py-20">
       <div className="max-w-md w-full text-center">
         {/* Error Message */}
         <div className="mb-8">

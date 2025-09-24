@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isMockDB } from '@/src/lib/mongo';
+import { db } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { event, data } = body;
 
-    // Log the alert to console for mock database
-    if (isMockDB) {
-      console.warn(`🚨 QA Alert (Mock): ${event}`, data);
-      return NextResponse.json({ success: true, mock: true });
-    }
-
-    // Log the alert to database for real database
-    await (db as any).collection('qa_alerts').insertOne({
+    // Log the alert to database
+    const connection = await db();
+    const nativeDb = (connection as any).connection?.db || (connection as any).db;
+    await nativeDb.collection('qa_alerts').insertOne({
       event,
       data,
       timestamp: new Date(),
@@ -32,12 +28,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Return empty array for mock database
-    if (isMockDB) {
-      return NextResponse.json({ alerts: [], mock: true });
-    }
-
-    const alerts = await (db as any).collection('qa_alerts')
+    const conn = await db();
+    const native = (conn as any).connection?.db || (conn as any).db;
+    const alerts = await native.collection('qa_alerts')
       .find({})
       .sort({ timestamp: -1 })
       .limit(50)

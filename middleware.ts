@@ -98,6 +98,14 @@ const protectedMarketplaceActions = [
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Add correlation ID to all requests
+  const correlationId = request.headers.get('x-correlation-id') || 
+    `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+  
+  // Create response and add correlation ID
+  let response = NextResponse.next();
+  response.headers.set('x-correlation-id', correlationId);
 
   // Skip middleware for static files and API calls to Next.js internals
   if (
@@ -107,17 +115,17 @@ export async function middleware(request: NextRequest) {
     pathname.includes('.') ||
     pathname.startsWith('/api/_next/')
   ) {
-    return NextResponse.next();
+    return response;
   }
 
   // Handle public routes (including public marketplace browsing)
   if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-    return NextResponse.next();
+    return response;
   }
 
   // Handle public marketplace routes (browsing without login)
   if (publicMarketplaceRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-    return NextResponse.next();
+    return response;
   }
 
   // Handle API routes - allow public marketplace APIs for browsing
@@ -131,7 +139,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/api/marketplace/search') ||
         pathname.startsWith('/api/marketplace/categories') ||
         pathname.startsWith('/api/marketplace/filters')) {
-      return NextResponse.next();
+      return response;
     }
 
     // Check for authentication on protected API routes
@@ -184,7 +192,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    return NextResponse.next();
+    return response;
   }
 
   // Handle protected routes
@@ -196,7 +204,7 @@ export async function middleware(request: NextRequest) {
       if (pathname.startsWith('/fm/')) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
-      return NextResponse.next();
+      return response;
     }
 
     // Basic JWT verification without database
@@ -231,13 +239,13 @@ export async function middleware(request: NextRequest) {
         return response;
       }
 
-      return NextResponse.next();
+      return response;
     } catch (jwtError) {
       // Invalid token - redirect to login
       if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
-      return NextResponse.next();
+      return response;
     }
   } catch (error) {
     // Redirect to login for any errors
@@ -245,7 +253,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    return NextResponse.next();
+    return response;
   }
 }
 

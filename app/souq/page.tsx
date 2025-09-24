@@ -46,7 +46,7 @@ export default function SouqPage() {
   return (
     <div className="space-y-8">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#00A859] to-[#FFB400] text-white py-20 text-center">
+      <section className="bg-[#00A859] text-white py-20 text-center">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             Fixzit Souq

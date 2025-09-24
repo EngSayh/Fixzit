@@ -2,23 +2,37 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
+import { MODULES } from '@/src/config/dynamic-modules';
+import { useAppScope } from '@/src/contexts/AppScopeContext';
 
-export default function QuickActions({ perms }: { perms: string[] }) {
-  const actions = [
-    { label: 'New Work Order', href: '/fm/work-orders/new', perm: 'wo.create' },
-    { label: 'New Invoice', href: '/fm/finance/invoices/new', perm: 'fin.invoice.create' },
-    { label: 'New Listing', href: '/aqar/post', perm: 're.listing.create' },
-    { label: 'New RFQ', href: '/souq/rfq/new', perm: 'mat.product.create' },
-  ];
+interface QuickActionsProps {
+  perms?: string[];
+}
 
-  const allowedActions = actions.filter(a => perms.includes(a.perm));
+export default function QuickActions({ perms = [] }: QuickActionsProps) {
+  const { moduleId, language } = useAppScope();
+  const mod = MODULES.find(m => m.id === moduleId);
+  
+  if (!mod || !mod.quickActions.length) return null;
+  
+  // Filter actions based on permissions
+  const availableActions = mod.quickActions.filter(a => 
+    perms.length === 0 || perms.includes(a.perm)
+  );
 
-  if (allowedActions.length===0) return null;
+  if (availableActions.length === 0) return null;
+
   return (
-    <div className="flex gap-2">
-      {allowedActions.map(a=>(
-        <Link key={a.href} href={a.href} className="px-3 py-2 rounded bg-[#00A859] text-white text-sm hover:opacity-90">
-          + {a.label}
+    <div className="flex items-center gap-2">
+      {availableActions.map(action => (
+        <Link 
+          key={action.href} 
+          href={action.href} 
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#00A859] hover:bg-[#00A859]/90 text-white text-sm font-medium transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>{language === 'ar' ? action.labelAr : action.label}</span>
         </Link>
       ))}
     </div>

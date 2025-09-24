@@ -1,7 +1,18 @@
-import { dbConnect } from '@/src/db/mongoose'; import DiscountRule from '@/src/models/DiscountRule';
+import { dbConnect } from '@/src/db/mongoose';
+import DiscountRule from '@/src/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
+  // Handle static generation
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({
+      code: 'ANNUAL',
+      value: 0,
+      active: false,
+      message: 'Static generation mode'
+    });
+  }
+
   await dbConnect(); const d = await DiscountRule.findOne({ code: 'ANNUAL' });
   return NextResponse.json(d || { code:'ANNUAL', value:0, active:false });
 }

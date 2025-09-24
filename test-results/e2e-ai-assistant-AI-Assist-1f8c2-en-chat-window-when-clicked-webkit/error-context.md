@@ -1,0 +1,196 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: Fixzit Enterprise
+        - group [ref=e9]
+    - main [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e18]:
+          - heading "Operate properties flawlessly. Monetize services smartly." [level=1] [ref=e19]
+          - paragraph [ref=e20]: Fixzit unifies Facility Management, Work Orders, Finance, CRM, and two marketplaces (Aqar Souq & Fixzit Souq) in one modern platform.
+          - generic [ref=e21]:
+            - link "Get Started" [ref=e22]:
+              - /url: /fm
+              - text: Get Started
+              - img [ref=e23]
+            - link "View Marketplaces" [ref=e25]:
+              - /url: /souq
+              - text: View Marketplaces
+              - img [ref=e26]
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - heading "Everything your FM operation needs — connected" [level=2] [ref=e32]
+            - paragraph [ref=e33]: Modular, role-based, Arabic/English, and mobile-ready from day one.
+          - generic [ref=e34]:
+            - article [ref=e35]:
+              - img [ref=e37]
+              - heading "Work Orders" [level=3] [ref=e39]
+              - paragraph [ref=e40]: Dispatch, SLAs, photos, chat, and technician app.
+            - article [ref=e41]:
+              - img [ref=e43]
+              - heading "Properties" [level=3] [ref=e47]
+              - paragraph [ref=e48]: Units, assets, leases, owners and statements.
+            - article [ref=e49]:
+              - img [ref=e51]
+              - heading "Finance" [level=3] [ref=e53]
+              - paragraph [ref=e54]: Invoices, ZATCA QR, receipts, vendor payables.
+            - article [ref=e55]:
+              - img [ref=e57]
+              - heading "CRM" [level=3] [ref=e62]
+              - paragraph [ref=e63]: Tickets, CSAT, campaigns, WhatsApp and email.
+            - article [ref=e64]:
+              - img [ref=e66]
+              - heading "Aqar Souq" [level=3] [ref=e70]
+              - paragraph [ref=e71]: Real estate catalog; viewable public pins, login to act.
+            - article [ref=e72]:
+              - img [ref=e74]
+              - heading "Fixzit Souq" [level=3] [ref=e77]
+              - paragraph [ref=e78]: Materials & services marketplace with 5% margin logic.
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - heading "Souq & Aqar Souq" [level=2] [ref=e82]
+            - link "View Marketplaces →" [ref=e83]:
+              - /url: /marketplace
+          - generic [ref=e84]:
+            - link "Aqar Souq Real estate catalog; viewable public pins, login to act." [ref=e85]:
+              - /url: /marketplace/properties
+              - generic [ref=e86]:
+                - img [ref=e88]
+                - generic [ref=e92]:
+                  - generic [ref=e93]: Aqar Souq
+                  - generic [ref=e94]: Real estate catalog; viewable public pins, login to act.
+            - link "Fixzit Souq Materials & services marketplace with 5% margin logic." [ref=e95]:
+              - /url: /marketplace/materials
+              - generic [ref=e96]:
+                - img [ref=e98]
+                - generic [ref=e101]:
+                  - generic [ref=e102]: Fixzit Souq
+                  - generic [ref=e103]: Materials & services marketplace with 5% margin logic.
+        - generic [ref=e106]:
+          - paragraph [ref=e107]: Ready to modernize your FM operations with Arabic/English by default?
+          - link "Sign in" [ref=e108]:
+            - /url: /login
+            - text: Sign in
+            - img [ref=e109]
+    - contentinfo [ref=e112]:
+      - generic [ref=e113]:
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - generic [ref=e116]: Fixzit
+            - paragraph [ref=e117]: Facility management + marketplaces in one platform. Streamline operations, optimize costs, and enhance productivity with our comprehensive enterprise solution.
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - img [ref=e120]
+                - generic [ref=e122]: +966 50 123 4567
+              - generic [ref=e123]:
+                - img [ref=e124]
+                - generic [ref=e127]: info@fixzit.com
+              - generic [ref=e128]:
+                - img [ref=e129]
+                - generic [ref=e132]: Riyadh, Saudi Arabia
+          - generic [ref=e133]:
+            - generic [ref=e134]: Company
+            - list [ref=e135]:
+              - listitem [ref=e136]:
+                - link "About Us" [ref=e137]:
+                  - /url: /cms/about
+              - listitem [ref=e138]:
+                - link "Careers" [ref=e139]:
+                  - /url: /careers
+              - listitem [ref=e140]:
+                - link "Contact" [ref=e141]:
+                  - /url: /cms/contact
+              - listitem [ref=e142]:
+                - link "Partners" [ref=e143]:
+                  - /url: /cms/partners
+              - listitem [ref=e144]:
+                - link "Investors" [ref=e145]:
+                  - /url: /cms/investors
+          - generic [ref=e146]:
+            - generic [ref=e147]: Product
+            - list [ref=e148]:
+              - listitem [ref=e149]:
+                - link "Features" [ref=e150]:
+                  - /url: /fm
+              - listitem [ref=e151]:
+                - link "Enterprise" [ref=e152]:
+                  - /url: /souq
+              - listitem [ref=e153]:
+                - link "Resources" [ref=e154]:
+                  - /url: /aqar
+              - listitem [ref=e155]:
+                - link "Product Updates" [ref=e156]:
+                  - /url: /cms/integrations
+              - listitem [ref=e157]:
+                - link "API Reference" [ref=e158]:
+                  - /url: /cms/api
+          - generic [ref=e159]:
+            - generic [ref=e160]: Support
+            - list [ref=e161]:
+              - listitem [ref=e162]:
+                - link "Help Center" [ref=e163]:
+                  - /url: /help
+              - listitem [ref=e164]:
+                - link "Documentation" [ref=e165]:
+                  - /url: /cms/documentation
+              - listitem [ref=e166]:
+                - link "Community" [ref=e167]:
+                  - /url: /cms/community
+              - listitem [ref=e168]:
+                - link "System Status" [ref=e169]:
+                  - /url: /cms/status
+              - listitem [ref=e170]:
+                - button "Contact Support" [ref=e171] [cursor=pointer]
+        - generic [ref=e173]:
+          - heading "Stay Updated" [level=3] [ref=e174]
+          - paragraph [ref=e175]: Get the latest updates, tips, and industry insights delivered to your inbox.
+          - generic [ref=e176]:
+            - textbox "Enter your email" [ref=e177]
+            - button "Subscribe" [ref=e178] [cursor=pointer]
+        - generic [ref=e179]:
+          - link "Facebook" [ref=e180]:
+            - /url: "#"
+            - img [ref=e181]
+          - link "Twitter" [ref=e183]:
+            - /url: "#"
+            - img [ref=e184]
+          - link "LinkedIn" [ref=e186]:
+            - /url: "#"
+            - img [ref=e187]
+          - link "YouTube" [ref=e191]:
+            - /url: "#"
+            - img [ref=e192]
+          - link "Instagram" [ref=e195]:
+            - /url: "#"
+            - img [ref=e196]
+      - generic [ref=e201]:
+        - generic [ref=e202]: © 2025 Fixzit. All rights reserved.
+        - generic [ref=e203]:
+          - link "🏠 Back to Home" [ref=e204]:
+            - /url: /
+            - generic [ref=e205]: 🏠
+            - generic [ref=e206]: Back to Home
+          - link "Privacy Policy" [ref=e207]:
+            - /url: /cms/privacy
+          - link "Terms of Service" [ref=e208]:
+            - /url: /cms/terms
+          - link "Cookies" [ref=e209]:
+            - /url: /cms/cookies
+          - link "Accessibility" [ref=e210]:
+            - /url: /cms/accessibility
+          - link "Sitemap" [ref=e211]:
+            - /url: /cms/sitemap
+          - generic [ref=e212]:
+            - generic [ref=e213]: ﷼
+            - generic [ref=e214]: SAR
+  - button "Open Help" [ref=e216] [cursor=pointer]:
+    - img [ref=e217] [cursor=pointer]
+  - button "common.help" [ref=e220] [cursor=pointer]:
+    - generic [ref=e223] [cursor=pointer]:
+      - img [ref=e224] [cursor=pointer]
+      - generic [ref=e227] [cursor=pointer]: Help
+```

@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
+import { isMockDB } from "@/src/lib/mongo";
 
 const PropertyType = ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "LAND"] as const;
 const PropertyStatus = ["ACTIVE", "UNDER_MAINTENANCE", "VACANT", "OCCUPIED", "SOLD", "RENTED"] as const;
@@ -183,12 +184,12 @@ PropertySchema.index({ tenantId: 1, type: 1 });
 PropertySchema.index({ tenantId: 1, 'address.city': 1 });
 PropertySchema.index({ tenantId: 1, 'units.status': 1 });
 PropertySchema.index({ 'address.coordinates': '2dsphere' });
+// Text search for name/description/tags
+PropertySchema.index({ name: 'text', description: 'text', tags: 'text' });
 
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 
 // Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
-
 export const Property = isMockDB
   ? new MockModel('properties') as any
   : (models.Property || model("Property", PropertySchema));

@@ -15,22 +15,20 @@ export async function GET(req: NextRequest) {
     mockDatabase: isMockDB
   };
 
-  // Check database connectivity
+  // Check database connectivity (permission-agnostic ping)
   try {
-    if (isMockDB) {
-      healthStatus.database = 'mock-connected';
-      healthStatus.status = 'healthy';
-    } else {
-      await db;
-      healthStatus.database = 'connected';
-
-      // Test database query only if not mock
-      try {
-        const collections = await (db as any).listCollections().toArray();
-        healthStatus.database = `connected (${collections.length} collections)`;
-      } catch {
-        healthStatus.database = 'connected (query failed)';
+    const conn: any = await db;
+    try {
+      // Prefer a lightweight ping over listing collections (avoids permission issues)
+      const nativeDb = conn?.connection?.db || conn?.db || conn;
+      if (nativeDb?.admin) {
+        const ping = await nativeDb.admin().ping();
+        healthStatus.database = ping?.ok === 1 ? 'connected (ping ok)' : 'connected (ping unknown)';
+      } else {
+        healthStatus.database = 'connected';
       }
+    } catch {
+      healthStatus.database = 'connected';
     }
   } catch (error) {
     healthStatus.status = 'degraded';
@@ -49,7 +47,7 @@ export async function GET(req: NextRequest) {
   // Determine overall status
   if (healthStatus.database === 'disconnected') {
     healthStatus.status = 'critical';
-  } else if (healthStatus.database.startsWith('connected') || healthStatus.database === 'mock-connected') {
+  } else if (healthStatus.database.startsWith('connected')) {
     healthStatus.status = 'healthy';
   } else {
     healthStatus.status = 'degraded';

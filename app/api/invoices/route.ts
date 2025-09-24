@@ -107,10 +107,10 @@ export async function POST(req: NextRequest) {
     const qrCode = await generateZATCAQR({
       sellerName: data.issuer.name,
       vatNumber: data.issuer.taxId,
-      timestamp: new Date(data.issueDate).toISOString(),
-      total: total.toString(),
-      vatAmount: totalTax.toString()
-    });
+      timestamp: new Date(data.issueDate),
+      total: Number(total),
+      vat: Number(totalTax)
+    } as any);
 
     const invoice = await Invoice.create({
       tenantId: user.tenantId,

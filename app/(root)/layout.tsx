@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import "../globals.css";
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: 'Fixzit — Facility Management + Marketplace',
@@ -8,11 +7,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body className="bg-white">
-        <main>{children}</main>
-      </body>
-    </html>
-  );
+  // This layout is intentionally minimal as the main layout.tsx handles everything
+  return <>{children}</>;
 }

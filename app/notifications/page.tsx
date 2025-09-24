@@ -74,9 +74,8 @@ export default function NotificationsPage() {
         break;
     }
 
-    // Apply category/priority filtering
+    // Apply additional filtering if needed
     const matchesFilter = filter === 'all' || notif.category === filter ||
-                         (filter === 'unread' && !notif.read) ||
                          (filter === 'high' && notif.priority === 'high');
 
     return matchesSearch && matchesTab && matchesFilter;
@@ -413,7 +412,10 @@ export default function NotificationsPage() {
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mt-4">
           <button
-            onClick={() => setSelectedTab('all')}
+            onClick={() => {
+              setSelectedTab('all');
+              setFilter('all');
+            }}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               selectedTab === 'all'
                 ? 'border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]'
@@ -423,7 +425,10 @@ export default function NotificationsPage() {
             All ({tabCounts.all})
           </button>
           <button
-            onClick={() => setSelectedTab('unread')}
+            onClick={() => {
+              setSelectedTab('unread');
+              setFilter('all');
+            }}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               selectedTab === 'unread'
                 ? 'border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]'
@@ -433,7 +438,10 @@ export default function NotificationsPage() {
             Unread ({tabCounts.unread})
           </button>
           <button
-            onClick={() => setSelectedTab('urgent')}
+            onClick={() => {
+              setSelectedTab('urgent');
+              setFilter('all');
+            }}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors relative ${
               selectedTab === 'urgent'
                 ? 'border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]'
@@ -509,7 +517,7 @@ export default function NotificationsPage() {
                       <button
                         onClick={() => markAsRead(notif.id)}
                         className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
-                        title="Mark as read"
+                        title={'Mark as read'}
                       >
                         <Check size={16} />
                       </button>

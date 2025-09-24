@@ -1,13 +1,13 @@
-// app/marketplace/page.tsx - Public marketplace landing
 'use client';
+// app/marketplace/page.tsx - Public marketplace landing
 import Link from 'next/link';
 import { Package, Building2, Search, Filter, Shield, Users, Truck } from 'lucide-react';
 
-export default function PublicMarketplacePage() {
+export default function MarketplacePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#0061A8] to-[#00A859] text-white py-16">
+      <section className="bg-[#0061A8] text-white py-16">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             Fixzit Marketplace

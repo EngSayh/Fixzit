@@ -1,1 +1,18 @@
-{}
+{
+  "/page": "app/page.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/login/page": "app/login/page.js",
+  "/api/session/me/route": "app/api/session/me/route.js",
+  "/api/ai/chat/route": "app/api/ai/chat/route.js",
+  "/marketplace/properties/page": "app/marketplace/properties/page.js",
+  "/api/marketplace/properties/route": "app/api/marketplace/properties/route.js",
+  "/marketplace/properties/[id]/page": "app/marketplace/properties/[id]/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/privacy/page": "app/privacy/page.js",
+  "/marketplace/materials/page": "app/marketplace/materials/page.js",
+  "/terms/page": "app/terms/page.js",
+  "/api/marketplace/products/route": "app/api/marketplace/products/route.js",
+  "/aqar/page": "app/aqar/page.js",
+  "/aqar/properties/page": "app/aqar/properties/page.js",
+  "/souq/page": "app/souq/page.js"
+}

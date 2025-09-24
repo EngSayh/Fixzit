@@ -50,7 +50,6 @@ export const dict: Record<Lang, Record<string, string>> = {
     'footer.tagline': 'Facility Management + Marketplaces, together.',
     'footer.platform': 'Platform',
     'footer.marketplaces': 'Marketplaces',
-    'footer.company': 'Company',
   },
   ar: {
     'buttons.lang': 'English',
@@ -101,7 +100,6 @@ export const dict: Record<Lang, Record<string, string>> = {
     'footer.tagline': 'إدارة المرافق + الأسواق، معًا.',
     'footer.platform': 'المنصة',
     'footer.marketplaces': 'الأسواق',
-    'footer.company': 'الشركة',
   },
 };
 

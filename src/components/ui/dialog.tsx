@@ -9,6 +9,7 @@ interface DialogProps {
 interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {}
 interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 interface DialogTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+interface DialogDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 interface DialogTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
@@ -46,6 +47,15 @@ export const DialogTitle: React.FC<DialogTitleProps> = ({ className = '', ...pro
   return (
     <h2
       className={`text-lg font-semibold leading-none tracking-tight ${className}`}
+      {...props}
+    />
+  );
+};
+
+export const DialogDescription: React.FC<DialogDescriptionProps> = ({ className = '', ...props }) => {
+  return (
+    <p
+      className={`text-sm text-gray-600 ${className}`}
       {...props}
     />
   );

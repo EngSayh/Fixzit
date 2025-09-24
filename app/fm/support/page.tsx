@@ -47,9 +47,9 @@ export default function SupportPage() {
               <p className="text-sm text-gray-600 mt-1">View and respond to support tickets</p>
             </Link>
             
-            <Link href="/admin/cms" className="block border border-gray-200 rounded p-4 hover:bg-gray-50">
-              <h3 className="font-medium text-gray-900">CMS Editor</h3>
-              <p className="text-sm text-gray-600 mt-1">Edit privacy, terms, and about pages</p>
+            <Link href="/admin/settings" className="block border border-gray-200 rounded p-4 hover:bg-gray-50">
+              <h3 className="font-medium text-gray-900">Admin Settings</h3>
+              <p className="text-sm text-gray-600 mt-1">Edit company info, social links, and footer</p>
             </Link>
           </div>
         </div>

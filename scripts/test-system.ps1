@@ -49,7 +49,7 @@ Write-Host "Starting comprehensive system test..." -ForegroundColor Cyan
 Write-Host "Testing Pages:" -ForegroundColor Yellow
 foreach ($page in $testPages) {
   try {
-    $response = Invoke-WebRequest -Uri "http://localhost:3000$page" -Method GET -TimeoutSec 10
+    $null = Invoke-WebRequest -Uri "http://localhost:3000$page" -Method GET -TimeoutSec 10
     Write-Host "[OK] $page" -ForegroundColor Green
     $results.pages += @{ page = $page; status = "OK" }
   }
@@ -65,9 +65,9 @@ foreach ($api in $testApis) {
   try {
     if ($api -eq '/api/auth/login') {
       $body = '{"email":"admin@fixzit.co","password":"Admin@123"}'
-      $response = Invoke-WebRequest -Uri "http://localhost:3000$api" -Method POST -ContentType "application/json" -Body $body -TimeoutSec 10
+      $null = Invoke-WebRequest -Uri "http://localhost:3000$api" -Method POST -ContentType "application/json" -Body $body -TimeoutSec 10
     } else {
-      $response = Invoke-WebRequest -Uri "http://localhost:3000$api" -Method GET -TimeoutSec 10
+      $null = Invoke-WebRequest -Uri "http://localhost:3000$api" -Method GET -TimeoutSec 10
     }
     Write-Host "[OK] $api" -ForegroundColor Green
     $results.apis += @{ api = $api; status = "OK" }
@@ -117,8 +117,8 @@ Write-Host "Errors found: $($results.errors.Count)"
 
 if ($results.errors.Count -gt 0) {
   Write-Host "Errors found:" -ForegroundColor Red
-  foreach ($error in $results.errors) {
-    Write-Host "- $($error.page) $($error.api): $($error.error)" -ForegroundColor Red
+  foreach ($testError in $results.errors) {
+    Write-Host "- $($testError.page) $($testError.api): $($testError.error)" -ForegroundColor Red
   }
 } else {
   Write-Host "All tests passed!" -ForegroundColor Green

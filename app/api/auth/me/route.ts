@@ -39,6 +39,14 @@ const mockUsers: Record<string, {
 
 export async function GET(request: NextRequest) {
   try {
+    // Handle static generation
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return NextResponse.json({
+        user: null,
+        message: 'Static generation mode'
+      });
+    }
+
     // In a real implementation, you would validate the session/JWT token here
     // For demo purposes, we'll use a simple approach
 

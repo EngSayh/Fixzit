@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from 'next/navigation';
 import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Youtube, Instagram } from "lucide-react";
 import SupportPopup from "@/src/components/SupportPopup";
 import { useI18n } from '@/src/providers/RootProviders';
@@ -12,6 +13,8 @@ export default function Footer(){
 
   // Get i18n context
   const { t, isRTL } = useI18n();
+  const pathname = usePathname();
+  const isMarketplace = pathname?.startsWith('/marketplace') || pathname?.startsWith('/souq') || pathname?.startsWith('/aqar');
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +25,7 @@ export default function Footer(){
   };
 
   return (
-    <footer className="mt-16 border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
+    <footer className="mt-16 border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur" data-testid="global-footer">
       {/* Main Footer Content */}
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-10">
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 text-sm">
@@ -41,7 +44,7 @@ export default function Footer(){
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                <span>{t('footer.contact.email', 'info@fixzit.com')}</span>
+                <span>{(() => { const email = t('footer.contact.email', 'info@fixzit.com'); return isMarketplace ? email.replace('@',' [at] ') : email; })()}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
@@ -52,37 +55,37 @@ export default function Footer(){
 
           {/* Company Links */}
           <div>
-            <div className="font-semibold mb-3">{t('footer.company', 'Company')}</div>
+            <div className="font-semibold mb-3">{t('footer.company.title', 'Company')}</div>
             <ul className="space-y-2 opacity-80">
-              <li><Link href="/cms/about" className="hover:underline transition-colors">{t('footer.about', 'About')}</Link></li>
-              <li><Link href="/careers" className="hover:underline transition-colors">{t('footer.careers', 'Careers')}</Link></li>
-              <li><Link href="/cms/contact" className="hover:underline transition-colors">{t('footer.contact', 'Contact')}</Link></li>
-              <li><Link href="/cms/partners" className="hover:underline transition-colors">{t('footer.partners', 'Partners')}</Link></li>
-              <li><Link href="/cms/investors" className="hover:underline transition-colors">{t('footer.investors', 'Investors')}</Link></li>
+              <li><Link href="/cms/about" className="hover:underline transition-colors">{t('footer.company.about', 'About')}</Link></li>
+              <li><Link href="/careers" className="hover:underline transition-colors">{t('footer.company.careers', 'Careers')}</Link></li>
+              <li><Link href="/cms/contact" className="hover:underline transition-colors">{t('footer.company.contact', 'Contact')}</Link></li>
+              <li><Link href="/cms/partners" className="hover:underline transition-colors">{t('footer.company.partners', 'Partners')}</Link></li>
+              <li><Link href="/cms/investors" className="hover:underline transition-colors">{t('footer.company.investors', 'Investors')}</Link></li>
             </ul>
           </div>
 
           {/* Solutions */}
           <div>
-            <div className="font-semibold mb-3">{t('footer.solutions', 'Solutions')}</div>
+            <div className="font-semibold mb-3">{t('footer.product.title', 'Solutions')}</div>
             <ul className="space-y-2 opacity-80">
-              <li><Link href="/fm" className="hover:underline transition-colors">{t('footer.fm', 'Facility Management')}</Link></li>
-              <li><Link href="/souq" className="hover:underline transition-colors">{t('footer.souq', 'Material Marketplace')}</Link></li>
-              <li><Link href="/aqar" className="hover:underline transition-colors">{t('footer.aqar', 'Real Estate')}</Link></li>
-              <li><Link href="/cms/integrations" className="hover:underline transition-colors">{t('footer.integrations', 'Integrations')}</Link></li>
-              <li><Link href="/cms/api" className="hover:underline transition-colors">{t('footer.api', 'API Access')}</Link></li>
+              <li><Link href="/fm" className="hover:underline transition-colors">{t('footer.product.features', 'Facility Management')}</Link></li>
+              <li><Link href="/souq" className="hover:underline transition-colors">{t('footer.product.enterprise', 'Material Marketplace')}</Link></li>
+              <li><Link href="/aqar" className="hover:underline transition-colors">{t('footer.resources.title', 'Real Estate')}</Link></li>
+              <li><Link href="/cms/integrations" className="hover:underline transition-colors">{t('footer.product.updates', 'Integrations')}</Link></li>
+              <li><Link href="/cms/api" className="hover:underline transition-colors">{t('footer.resources.api', 'API Reference')}</Link></li>
             </ul>
           </div>
 
           {/* Support & Legal */}
           <div>
-            <div className="font-semibold mb-3">{t('footer.support', 'Support')}</div>
+            <div className="font-semibold mb-3">{t('footer.support.title', 'Support')}</div>
             <ul className="space-y-2 opacity-80">
-              <li><Link href="/help" className="hover:underline transition-colors">{t('footer.help', 'Help Center')}</Link></li>
-              <li><Link href="/cms/documentation" className="hover:underline transition-colors">{t('footer.docs', 'Documentation')}</Link></li>
-              <li><Link href="/cms/community" className="hover:underline transition-colors">{t('footer.community', 'Community')}</Link></li>
-              <li><Link href="/cms/status" className="hover:underline transition-colors">{t('footer.status', 'System Status')}</Link></li>
-              <li><button className="hover:underline text-left transition-colors" onClick={()=>setOpen(true)}>{t('footer.ticket', 'Open a ticket')}</button></li>
+              <li><Link href="/help" className="hover:underline transition-colors">{t('footer.support.help', 'Help Center')}</Link></li>
+              <li><Link href="/cms/documentation" className="hover:underline transition-colors">{t('footer.resources.docs', 'Documentation')}</Link></li>
+              <li><Link href="/cms/community" className="hover:underline transition-colors">{t('footer.support.community', 'Community')}</Link></li>
+              <li><Link href="/cms/status" className="hover:underline transition-colors">{t('footer.support.status', 'System Status')}</Link></li>
+              <li><button className="hover:underline text-left transition-colors" onClick={()=>setOpen(true)}>{t('footer.support.contact', 'Contact Support')}</button></li>
             </ul>
           </div>
         </div>
@@ -146,12 +149,20 @@ export default function Footer(){
             <div>
               © {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}
             </div>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/cms/privacy" className="hover:underline transition-colors">{t('footer.privacy', 'Privacy')}</Link>
-              <Link href="/cms/terms" className="hover:underline transition-colors">{t('footer.terms', 'Terms')}</Link>
-              <Link href="/cms/cookies" className="hover:underline transition-colors">{t('footer.cookies', 'Cookies')}</Link>
-              <Link href="/cms/accessibility" className="hover:underline transition-colors">{t('footer.accessibility', 'Accessibility')}</Link>
-              <Link href="/cms/sitemap" className="hover:underline transition-colors">{t('footer.sitemap', 'Sitemap')}</Link>
+            <div className="flex flex-wrap gap-4 items-center">
+              <Link href="/" className="hover:underline transition-colors flex items-center gap-1" data-testid="back-home">
+                <span>🏠</span>
+                <span>{t('footer.home', 'Back to Home')}</span>
+              </Link>
+              <Link href="/cms/privacy" className="hover:underline transition-colors">{t('footer.legal.privacy', 'Privacy Policy')}</Link>
+              <Link href="/cms/terms" className="hover:underline transition-colors">{t('footer.legal.terms', 'Terms of Service')}</Link>
+              <Link href="/cms/cookies" className="hover:underline transition-colors">{t('footer.legal.cookies', 'Cookies')}</Link>
+              <Link href="/cms/accessibility" className="hover:underline transition-colors">{t('footer.legal.accessibility', 'Accessibility')}</Link>
+              <Link href="/cms/sitemap" className="hover:underline transition-colors">{t('footer.resources.sitemap', 'Sitemap')}</Link>
+              <span className="flex items-center gap-1" data-testid="footer-currency">
+                <span className="text-base" aria-hidden>{(typeof window!=='undefined' && (localStorage.getItem('fxz_currency')||'SAR'))==='USD'?'$':(typeof window!=='undefined' && (localStorage.getItem('fxz_currency')||'SAR'))==='EUR'?'€':(typeof window!=='undefined' && (localStorage.getItem('fxz_currency')||'SAR'))==='AED'?'د.إ':(typeof window!=='undefined' && (localStorage.getItem('fxz_currency')||'SAR'))==='GBP'?'£':'﷼'}</span>
+                <span>{typeof window!=='undefined' ? (localStorage.getItem('fxz_currency')||'SAR') : 'SAR'}</span>
+              </span>
             </div>
           </div>
         </div>
