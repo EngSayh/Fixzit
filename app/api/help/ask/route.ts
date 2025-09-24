@@ -9,6 +9,12 @@ type AskRequest = {
   category?: string;
 };
 
+function redactPII(s: string) {
+  return s
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
+    .replace(/\b(?:\+?\d[\s-]?){7,}\b/g, '[redacted phone]');
+}
+
 /**
  * Builds a plain-text heuristic answer from a list of article contexts for a given question.
  *
@@ -77,7 +83,11 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
  */
 export async function POST(req: NextRequest) {
   try {
-    const { question, limit = 5, category }: AskRequest = await req.json();
+    const body = await req.json().catch(() => ({} as AskRequest));
+    const question = typeof body?.question === 'string' ? body.question : '';
+    const rawLimit = Number((body as any)?.limit);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(8, Math.floor(rawLimit)) : 5;
+    const category = typeof body?.category === 'string' ? body.category : undefined;
     if (!question || !question.trim()) {
       return NextResponse.json({ error: 'Missing question' }, { status: 400 });
     }
@@ -99,11 +109,14 @@ export async function POST(req: NextRequest) {
       .limit(Math.min(8, Math.max(1, limit)))
       .toArray();
 
-    const contexts = docs.map((d: Doc) => ({ title: d.title, text: d.content || '' }));
-    const contextTexts = contexts.map((c: { title: string; text: string }) => `${c.title}\n${c.text}`);
+    const contexts = docs.slice(0, 3).map((d: Doc) => ({
+      title: d.title,
+      text: (d.content || '').slice(0, 2000)
+    }));
+    const contextTexts = contexts.map((c) => `${c.title}\n${c.text}`);
 
     // Try to summarize with OpenAI if configured; otherwise deterministic heuristic
-    const aiAnswer = await maybeSummarizeWithOpenAI(question, contextTexts);
+    const aiAnswer = await maybeSummarizeWithOpenAI(redactPII(question), contextTexts);
     const answer = aiAnswer || buildHeuristicAnswer(question, contexts);
 
     const citations = docs.map((d: Doc) => ({ slug: d.slug, title: d.title, updatedAt: d.updatedAt }));
