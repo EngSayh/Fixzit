@@ -7,11 +7,22 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 type Hit = { id: string; type: string; title: string; href: string; subtitle?: string };
 
+function clampLimit(raw: string | null): number {
+  let lim = Number.parseInt((raw ?? "5"), 10);
+  if (!Number.isFinite(lim)) lim = 5;
+  lim = Math.max(1, Math.min(20, Math.floor(lim)));
+  return lim;
+}
+
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const scope = (searchParams.get("scope") || "fm").toLowerCase();
   const q = (searchParams.get("q") || "").trim();
-  const limit = Math.min(Number(searchParams.get("limit") || 5), 20);
+  const limit = clampLimit(searchParams.get("limit"));
 
   if (!q) return NextResponse.json({ results: [] });
 
@@ -30,12 +41,13 @@ export async function GET(req: NextRequest) {
     const searchFM = async () => {
       await db; // ensure mongoose is ready
       const woFilter: any = { deletedAt: { $exists: false }, tenantId };
+      const safe = escapeRegex(q);
       const woQuery: any = q
         ? {
             $or: [
-              { title: { $regex: q, $options: "i" } },
-              { description: { $regex: q, $options: "i" } },
-              { code: { $regex: q, $options: "i" } },
+              { title: { $regex: safe, $options: "i" } },
+              { description: { $regex: safe, $options: "i" } },
+              { code: { $regex: safe, $options: "i" } },
             ],
           }
         : {};
@@ -52,10 +64,10 @@ export async function GET(req: NextRequest) {
       const propQuery: any = q
         ? {
             $or: [
-              { name: { $regex: q, $options: "i" } },
-              { description: { $regex: q, $options: "i" } },
-              { code: { $regex: q, $options: "i" } },
-              { "address.city": { $regex: q, $options: "i" } },
+              { name: { $regex: safe, $options: "i" } },
+              { description: { $regex: safe, $options: "i" } },
+              { code: { $regex: safe, $options: "i" } },
+              { "address.city": { $regex: safe, $options: "i" } },
             ],
           }
         : {};
@@ -78,9 +90,9 @@ export async function GET(req: NextRequest) {
         active: true,
         tenantId,
         $or: [
-          { title: { $regex: q, $options: "i" } },
-          { description: { $regex: q, $options: "i" } },
-          { sku: { $regex: q, $options: "i" } },
+          { title: { $regex: escapeRegex(q), $options: "i" } },
+          { description: { $regex: escapeRegex(q), $options: "i" } },
+          { sku: { $regex: escapeRegex(q), $options: "i" } },
         ],
       };
       const prodItems = await products.find(productFilter).limit(limit).toArray();
@@ -91,8 +103,8 @@ export async function GET(req: NextRequest) {
       const vendorFilter: any = {
         tenantId,
         $or: [
-          { name: { $regex: q, $options: "i" } },
-          { "contact.primary.name": { $regex: q, $options: "i" } },
+          { name: { $regex: escapeRegex(q), $options: "i" } },
+          { "contact.primary.name": { $regex: escapeRegex(q), $options: "i" } },
         ],
       };
       const vendorItems = await vendors.find(vendorFilter).limit(limit).toArray();
@@ -105,10 +117,10 @@ export async function GET(req: NextRequest) {
       const propQuery: any = q
         ? {
             $or: [
-              { name: { $regex: q, $options: "i" } },
-              { description: { $regex: q, $options: "i" } },
-              { code: { $regex: q, $options: "i" } },
-              { "address.city": { $regex: q, $options: "i" } },
+              { name: { $regex: escapeRegex(q), $options: "i" } },
+              { description: { $regex: escapeRegex(q), $options: "i" } },
+              { code: { $regex: escapeRegex(q), $options: "i" } },
+              { "address.city": { $regex: escapeRegex(q), $options: "i" } },
             ],
           }
         : {};
