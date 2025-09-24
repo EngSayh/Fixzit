@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, isMockDB } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
   if (!isMockDB && !process.env.MONGODB_URI) {
     return new NextResponse('Service unavailable', { status: 503 });

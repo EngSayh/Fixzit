@@ -1,4 +1,6 @@
-import { dbConnect } from '@/src/db/mongoose'; import DiscountRule from '@/src/models/DiscountRule';
+import { dbConnect } from '@/src/db/mongoose';
+import DiscountRule from '@/src/models/DiscountRule';
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
