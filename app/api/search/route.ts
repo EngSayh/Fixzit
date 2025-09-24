@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { getDatabase } from '@/lib/mongodb';
 
 type Hit = { id: string; entity: string; title: string; subtitle?: string; href: string };
@@ -38,15 +39,24 @@ export async function GET(req: NextRequest) {
   // Provide safe fallback if DB is not reachable (no placeholders)
   if (!db) return NextResponse.json([]);
 
+  // Enforce authentication and tenant scoping
+  let tenantId: string | null = null;
+  try {
+    const user = await getSessionUser(req);
+    tenantId = user.tenantId;
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const hits: Hit[] = [];
   try {
     if (app === 'fm') {
       const [wos, props, tenants, vendors, invoices] = await Promise.all([
-        db.collection('workOrders').find({ $text: { $search: q } }).project({ title: 1, code: 1 }).limit(8).toArray(),
-        db.collection('properties').find({ $text: { $search: q } }).project({ name: 1, address: 1 }).limit(6).toArray(),
-        db.collection('tenants').find({ $text: { $search: q } }).project({ name: 1, code: 1 }).limit(6).toArray(),
-        db.collection('vendors').find({ $text: { $search: q } }).project({ name: 1 }).limit(6).toArray(),
-        db.collection('invoices').find({ $text: { $search: q } }).project({ invoiceNumber: 1, status: 1 }).limit(6).toArray(),
+        db.collection('workOrders').find({ tenantId, $text: { $search: q } }).project({ title: 1, code: 1 }).limit(8).toArray(),
+        db.collection('properties').find({ tenantId, $text: { $search: q } }).project({ name: 1, address: 1 }).limit(6).toArray(),
+        db.collection('tenants').find({ tenantId, $text: { $search: q } }).project({ name: 1, code: 1 }).limit(6).toArray(),
+        db.collection('vendors').find({ tenantId, $text: { $search: q } }).project({ name: 1 }).limit(6).toArray(),
+        db.collection('invoices').find({ tenantId, $text: { $search: q } }).project({ invoiceNumber: 1, status: 1 }).limit(6).toArray(),
       ]);
       wos.forEach((r: any) => hits.push({ id: String(r._id), entity: 'work_orders', title: r.title || r.code || `WO ${r._id}`, href: mapHref(app, 'work_orders', r._id) }));
       props.forEach((r: any) => hits.push({ id: String(r._id), entity: 'properties', title: r.name || `Property ${r._id}`, subtitle: r.address?.city, href: mapHref(app, 'properties', r._id) }));
@@ -55,10 +65,10 @@ export async function GET(req: NextRequest) {
       invoices.forEach((r: any) => hits.push({ id: String(r._id), entity: 'invoices', title: r.invoiceNumber ? `Invoice ${r.invoiceNumber}` : `Invoice ${r._id}`, href: mapHref(app, 'invoices', r._id) }));
     } else if (app === 'souq') {
       const [products, rfqs, orders, vendors] = await Promise.all([
-        db.collection('products').find({ $text: { $search: q } }).project({ name: 1, sku: 1 }).limit(10).toArray(),
-        db.collection('rfqs').find({ $text: { $search: q } }).project({ title: 1, status: 1 }).limit(6).toArray(),
-        db.collection('orders').find({ $text: { $search: q } }).project({ orderNumber: 1, status: 1 }).limit(6).toArray(),
-        db.collection('vendors').find({ $text: { $search: q } }).project({ name: 1 }).limit(6).toArray(),
+        db.collection('products').find({ tenantId, $text: { $search: q } }).project({ name: 1, sku: 1 }).limit(10).toArray(),
+        db.collection('rfqs').find({ tenantId, $text: { $search: q } }).project({ title: 1, status: 1 }).limit(6).toArray(),
+        db.collection('orders').find({ tenantId, $text: { $search: q } }).project({ orderNumber: 1, status: 1 }).limit(6).toArray(),
+        db.collection('vendors').find({ tenantId, $text: { $search: q } }).project({ name: 1 }).limit(6).toArray(),
       ]);
       products.forEach((r: any) => hits.push({ id: String(r._id), entity: 'products', title: r.name || r.sku || `Item ${r._id}`, subtitle: r.sku, href: mapHref(app, 'products', r._id) }));
       rfqs.forEach((r: any) => hits.push({ id: String(r._id), entity: 'rfqs', title: r.title || `RFQ ${r._id}`, subtitle: r.status, href: mapHref(app, 'rfqs', r._id) }));
@@ -66,9 +76,9 @@ export async function GET(req: NextRequest) {
       vendors.forEach((r: any) => hits.push({ id: String(r._id), entity: 'vendors', title: r.name || `Vendor ${r._id}`, href: mapHref(app, 'vendors', r._id) }));
     } else {
       const [listings, projects, agents] = await Promise.all([
-        db.collection('listings').find({ $text: { $search: q } }).project({ title: 1, location: 1, price: 1 }).limit(10).toArray(),
-        db.collection('projects').find({ $text: { $search: q } }).project({ name: 1 }).limit(6).toArray(),
-        db.collection('agents').find({ $text: { $search: q } }).project({ name: 1, company: 1 }).limit(6).toArray(),
+        db.collection('listings').find({ tenantId, $text: { $search: q } }).project({ title: 1, location: 1, price: 1 }).limit(10).toArray(),
+        db.collection('projects').find({ tenantId, $text: { $search: q } }).project({ name: 1 }).limit(6).toArray(),
+        db.collection('agents').find({ tenantId, $text: { $search: q } }).project({ name: 1, company: 1 }).limit(6).toArray(),
       ]);
       listings.forEach((r: any) => hits.push({ id: String(r._id), entity: 'listings', title: r.title || `Listing ${r._id}`, subtitle: r.location?.city || r.price, href: mapHref(app, 'listings', r._id) }));
       projects.forEach((r: any) => hits.push({ id: String(r._id), entity: 'projects', title: r.name || `Project ${r._id}`, href: mapHref(app, 'projects', r._id) }));

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDatabase } from "@/lib/mongodb";
+import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 const notificationSchema = z.object({
   title: z.string().min(1),
@@ -22,8 +23,15 @@ export async function GET(req: NextRequest) {
 
   const db = await getDatabase().catch(() => null);
   if (!db) return NextResponse.json({ items: [], total: 0, page, limit, hasMore: false });
+  let tenantId: string | null = null;
+  try {
+    const user = await getSessionUser(req);
+    tenantId = user.tenantId;
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-  const match: any = {};
+  const match: any = { tenantId };
   if (q) match.$text = { $search: q };
   if (category && category !== 'all') match.category = category;
   if (priority && priority !== 'all') match.priority = priority;
@@ -51,6 +59,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const db = await getDatabase().catch(() => null);
   if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
+  let tenantId: string | null = null;
+  try {
+    const user = await getSessionUser(req);
+    tenantId = user.tenantId;
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const body = await req.json();
   const data = notificationSchema.parse(body);
@@ -61,7 +76,7 @@ export async function POST(req: NextRequest) {
     type: data.type,
     priority: data.priority,
     category: data.category,
-    tenantId: data.tenantId || 't-001',
+    tenantId,
     read: false,
     timestamp: new Date().toISOString(),
   };
