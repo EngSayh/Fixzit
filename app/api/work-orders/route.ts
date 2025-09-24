@@ -3,6 +3,12 @@ import { db } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
+import { 
+  createProblemResponse, 
+  createValidationErrorResponse, 
+  createServerErrorResponse,
+  extractErrorDetails 
+} from "@/src/lib/errors/problemDetails";
 
 const createSchema = z.object({
   title: z.string().min(3),
@@ -68,31 +74,52 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await requireAbility("CREATE")(req);
-  if (user instanceof NextResponse) return user as any;
-  await db;
+  try {
+    const user = await requireAbility("CREATE")(req);
+    if (user instanceof NextResponse) return user as any;
+    await db;
 
-  const body = await req.json();
-  const data = createSchema.parse(body);
+    const body = await req.json();
+    const data = createSchema.parse(body);
 
-  // generate code per-tenant sequence (simplified)
-  const seq = Math.floor((Date.now() / 1000) % 100000);
-  const code = `WO-${new Date().getFullYear()}-${seq}`;
+    // generate code per-tenant sequence (simplified)
+    const seq = Math.floor((Date.now() / 1000) % 100000);
+    const code = `WO-${new Date().getFullYear()}-${seq}`;
 
-  const wo = await (WorkOrder as any).create({
-    tenantId: user.tenantId,
-    code,
-    title: data.title,
-    description: data.description,
-    priority: data.priority,
-    category: data.category,
-    subcategory: data.subcategory,
-    propertyId: data.propertyId,
-    unitId: data.unitId,
-    requester: data.requester,
-    status: "SUBMITTED",
-    statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
-    createdBy: user.id
-  });
-  return NextResponse.json(wo, { status: 201 });
+    const wo = await (WorkOrder as any).create({
+      tenantId: user.tenantId,
+      code,
+      title: data.title,
+      description: data.description,
+      priority: data.priority,
+      category: data.category,
+      subcategory: data.subcategory,
+      propertyId: data.propertyId,
+      unitId: data.unitId,
+      requester: data.requester,
+      status: "SUBMITTED",
+      statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
+      createdBy: user.id
+    });
+    return NextResponse.json(wo, { status: 201 });
+  } catch (error) {
+    console.error('Work order creation failed:', error);
+    
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(
+        error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message
+        })),
+        req.url
+      );
+    }
+
+    const errorDetails = extractErrorDetails(error);
+    return createServerErrorResponse(
+      'Failed to create work order',
+      req.url,
+      `WO-API-SAVE-002-${Date.now()}`
+    );
+  }
 }

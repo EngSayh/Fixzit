@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useError } from '@/src/contexts/ErrorContext';
 
 type ErrorState = {
   hasError: boolean;
@@ -23,6 +24,7 @@ type ErrorFix = {
 
 export default class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorState> {
   state: ErrorState = { hasError: false, retryCount: 0 };
+  private errorContext: any = null;
 
   // Auto-fix strategies
   private errorFixes: ErrorFix[] = [
@@ -191,8 +193,19 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       errorId: errorReport.errorId
     });
 
-    // Log error to QA system
-    this.logErrorToQA(errorReport);
+    // Use new error context if available
+    if (this.errorContext) {
+      this.errorContext.reportError('SYS-UI-RENDER-001', err.message, {
+        stack: err.stack,
+        category: 'UI',
+        severity: 'ERROR',
+        module: 'System',
+        autoTicket: true
+      });
+    } else {
+      // Fallback to old QA logging
+      this.logErrorToQA(errorReport);
+    }
 
     // Attempt auto-fix
     this.attemptAutoFix(err);

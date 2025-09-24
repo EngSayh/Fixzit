@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/src/contexts/ThemeContext';
 import { TranslationProvider } from '@/src/contexts/TranslationContext';
 import { ResponsiveProvider } from '@/src/contexts/ResponsiveContext';
+import { ErrorProvider } from '@/src/contexts/ErrorContext';
 import ErrorBoundary from '@/src/components/ErrorBoundary';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -37,16 +38,18 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <ResponsiveProvider>
       <TranslationProvider>
         <ThemeProvider>
-          <ErrorBoundary>
-            {isClient ? children : (
-              <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading...</p>
+          <ErrorProvider>
+            <ErrorBoundary>
+              {isClient ? children : (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </ErrorBoundary>
+              )}
+            </ErrorBoundary>
+          </ErrorProvider>
         </ThemeProvider>
       </TranslationProvider>
     </ResponsiveProvider>
