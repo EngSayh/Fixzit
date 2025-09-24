@@ -54,8 +54,7 @@ export async function POST(req: NextRequest) {
     type Doc = { slug: string; title: string; content: string; updatedAt?: Date };
     const coll = db.collection<Doc>('helparticles');
 
-    // Ensure text index exists (idempotent)
-    await coll.createIndex({ title: 'text', content: 'text', tags: 'text' });
+    // Text index is created by scripts/add-database-indexes.js
 
     const filter: any = { status: 'PUBLISHED' };
     if (category) filter.category = category;
