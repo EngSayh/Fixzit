@@ -25,11 +25,14 @@ export default function InvoicesPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, mutate } = useSWR(
-    `/api/invoices?search=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}`,
+    `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}`,
     fetcher
   );
 
-  const invoices = data?.items || [];
+  const invoices = (data?.data || []).map((inv: any) => ({
+    ...inv,
+    _id: inv.id
+  }));
 
   return (
     <div className="space-y-6">
@@ -401,10 +404,20 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/invoices', {
+          const response = await fetch('/api/finance/invoices', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
-        body: JSON.stringify(formData)
+            headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant', 'x-user-id': 'demo-user' },
+            body: JSON.stringify({
+              issueDate: formData.issueDate,
+              dueDate: formData.dueDate,
+              currency: formData.currency,
+              lines: formData.items.map((it: any) => ({
+                description: it.description,
+                qty: it.quantity,
+                unitPrice: it.unitPrice,
+                vatRate: it.tax?.rate ?? 15
+              }))
+            })
       });
 
       if (response.ok) {
