@@ -2,7 +2,11 @@
 // Guarantees: if MONGODB_URI is set and USE_MOCK_DB != 'true', we connect to a real MongoDB via Mongoose.
 // Mock DB is used ONLY when explicitly requested or URI is missing.
 
-import type { Db } from 'mongodb';
+// Avoid hard dependency on mongodb types in environments without type resolution
+type Db = any;
+
+// For TS environments without Node typings
+declare const require: any;
 
 let mongoose: any;
 try {
@@ -11,8 +15,9 @@ try {
   mongoose = null;
 }
 
-const uri = process.env.MONGODB_URI || '';
-const forceMock = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
+const env = (globalThis as any)?.process?.env || {};
+const uri = env.MONGODB_URI || '';
+const forceMock = String(env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 class MockDB {
   private connected: boolean = false;
