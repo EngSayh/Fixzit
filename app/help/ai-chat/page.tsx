@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Send, Bot, User, X } from 'lucide-react';
 
+type ChatMessage = { id: string; type: 'bot' | 'user'; content: string; timestamp: Date };
+
 export default function AIChatPage() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       type: 'bot',
@@ -18,10 +20,11 @@ export default function AIChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage = {
+    const question = input.trim();
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user' as const,
-      content: input.trim(),
+      content: question,
       timestamp: new Date()
     };
 
@@ -29,20 +32,35 @@ export default function AIChatPage() {
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const botMessage = {
+    try {
+      const res = await fetch('/api/help/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+      const content = data?.answer || 'Sorry, I could not find an answer.';
+      const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot' as const,
-        content: `I understand you're asking about "${input.trim()}". This is a simulated response from the AI assistant. In a real implementation, this would connect to an AI service to provide intelligent answers about Fixzit features, help articles, and support guidance.`,
+        content,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
+    } catch (e) {
+      const botMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot' as const,
+        content: 'There was an error processing your request. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -74,7 +92,7 @@ export default function AIChatPage() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.map((message) => (
+            {messages.map((message: ChatMessage) => (
               <div
                 key={message.id}
                 className={`flex items-start gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}

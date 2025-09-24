@@ -18,11 +18,27 @@ export default function SupportTicketPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: formData.subject,
+          module: formData.module,
+          type: formData.type,
+          priority: formData.priority,
+          category: 'General',
+          subCategory: 'Other',
+          text: formData.description,
+          requester: {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || undefined
+          }
+        })
+      });
+      if (!res.ok) throw new Error('Failed to create ticket');
       alert('🎯 Support Ticket Created Successfully!\n\nYour ticket has been submitted and our support team will get back to you within 24 hours.');
-      setIsSubmitting(false);
       setFormData({
         subject: '',
         module: 'FM',
@@ -33,7 +49,11 @@ export default function SupportTicketPage() {
         email: '',
         phone: ''
       });
-    }, 2000);
+    } catch {
+      alert('There was an error submitting your ticket. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

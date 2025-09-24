@@ -1,13 +1,15 @@
-import { db } from "@/src/lib/mongo";
-import { HelpArticle } from "@/src/server/models/HelpArticle";
+import { getDatabase } from "@/lib/mongodb";
 import Link from "next/link";
 
 export const revalidate = 60;
 
+type Article = { slug: string; title: string; content: string; category?: string; updatedAt?: string | Date };
+
 export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
-  await db;
-  const a = await (HelpArticle as any).findOne({ slug: params.slug });
-  if (!a || a.status!=="PUBLISHED"){
+  const db = await getDatabase();
+  const coll = db.collection<Article>('helparticles');
+  const a = await coll.findOne({ slug: params.slug, status: 'PUBLISHED' } as any);
+  if (!a){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }
   return (
@@ -35,7 +37,7 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
             
             <div className="mt-8 pt-6 border-t border-gray-200">
               <div className="flex items-center justify-between text-sm text-gray-600">
-                <div>Last updated {new Date(a.updatedAt).toLocaleDateString()}</div>
+                <div>Last updated {a.updatedAt ? new Date(a.updatedAt).toLocaleDateString() : ''}</div>
                 <Link 
                   href="/help" 
                   className="text-[var(--fixzit-blue)] hover:text-[var(--fixzit-blue)]/80 font-medium"
