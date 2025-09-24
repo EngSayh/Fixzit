@@ -188,8 +188,8 @@ InvoiceSchema.index({ tenantId: 1, 'zatca.status': 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 
-// Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
+// Check if we're using mock database (explicit flag only)
+const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 export const Invoice = isMockDB
   ? new MockModel('invoices') as any
