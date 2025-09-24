@@ -44,3 +44,4 @@ Thumbs.db
 # Hosting/platform
 .vercel
 .netlify
+node_modules
