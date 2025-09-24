@@ -9,6 +9,18 @@ type AskRequest = {
   category?: string;
 };
 
+/**
+ * Builds a plain-text heuristic answer from a list of article contexts for a given question.
+ *
+ * Produces a short human-readable summary: a header indicating whether any matching articles
+ * were found for `question`, followed by up to three bullet lines. Each bullet contains the
+ * context's title and a whitespace-normalized snippet of its text (trimmed to 400 characters).
+ * A trailing ellipsis is added to a snippet when it was truncated.
+ *
+ * @param question - The user's question used in the header.
+ * @param contexts - Array of contexts where each item has a `title` and `text`; only the first three are used.
+ * @returns A single newline-separated string containing the header and bullet lines.
+ */
 function buildHeuristicAnswer(question: string, contexts: Array<{ title: string; text: string }>) {
   const lines: string[] = [];
   lines.push(contexts.length ? `Here is what I found about: "${question}"` : `No matching articles found for: "${question}"`);
@@ -22,6 +34,15 @@ function buildHeuristicAnswer(question: string, contexts: Array<{ title: string;
   return lines.join("\n");
 }
 
+/**
+ * Optionally requests an OpenAI chat completion to produce a concise answer based on provided contexts.
+ *
+ * If OPENAI_API_KEY is not set, the request fails, the API returns a non-OK response, or an error occurs, this function returns `null`.
+ *
+ * @param question - The user's question to answer.
+ * @param contexts - Array of context strings to provide to the model (each typically "title\ntext").
+ * @returns A string with the model's reply, or `null` if no API key is configured or the request fails.
+ */
 async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -43,6 +64,17 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
   }
 }
 
+/**
+ * Handle POST requests to answer a user question by searching help articles and optionally using OpenAI.
+ *
+ * Validates the request body for a non-empty `question` (responds 400 if missing), queries the `helparticles`
+ * MongoDB collection (ensuring a text index) for published articles (optionally filtered by `category`),
+ * and builds an answer from either an OpenAI summary (when OPENAI_API_KEY is configured and the call succeeds)
+ * or a deterministic heuristic summary. The JSON response contains `answer` and `citations` (matched docs' slug,
+ * title, and updatedAt). Returns a 500 response on unexpected errors.
+ *
+ * @returns A NextResponse with JSON `{ answer, citations }` on success, or `{ error }` with status 400/500 on failure.
+ */
 export async function POST(req: NextRequest) {
   try {
     const { question, limit = 5, category }: AskRequest = await req.json();
