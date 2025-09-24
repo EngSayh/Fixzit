@@ -3,6 +3,7 @@ import { db } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { Property } from "@/src/server/models/Property";
 import { getCollections } from "@/lib/db/collections";
+import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 type Hit = { id: string; type: string; title: string; href: string; subtitle?: string };
 
@@ -14,21 +15,21 @@ export async function GET(req: NextRequest) {
 
   if (!q) return NextResponse.json({ results: [] });
 
-  // Optional tenant scoping via x-user header (JSON)
-  let tenantId: string | undefined;
+  // Enforce auth and tenant scoping
+  let tenantId: string;
   try {
-    const hdr = req.headers.get("x-user");
-    if (hdr) tenantId = JSON.parse(hdr).tenantId;
-  } catch {}
+    const user = await getSessionUser(req);
+    tenantId = user.tenantId;
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const results: Hit[] = [];
 
-    if (scope === "fm") {
+    const searchFM = async () => {
       await db; // ensure mongoose is ready
-      const woFilter: any = { deletedAt: { $exists: false } };
-      if (tenantId) woFilter.tenantId = tenantId;
-      // Use text search if index exists; always provide regex fallback
+      const woFilter: any = { deletedAt: { $exists: false }, tenantId };
       const woQuery: any = q
         ? {
             $or: [
@@ -47,8 +48,7 @@ export async function GET(req: NextRequest) {
         results.push({ id: String(w._id), type: "work_orders", title: w.title || w.code, href: `/work-orders/${w._id}`, subtitle: w.code })
       );
 
-      const propFilter: any = {};
-      if (tenantId) propFilter.tenantId = tenantId;
+      const propFilter: any = { tenantId };
       const propQuery: any = q
         ? {
             $or: [
@@ -67,11 +67,16 @@ export async function GET(req: NextRequest) {
       props.forEach((p: any) =>
         results.push({ id: String(p._id), type: "properties", title: p.name, href: `/properties/${p._id}`, subtitle: p.address?.city })
       );
+    };
+
+    if (scope === "fm") {
+      await searchFM();
     } else if (scope === "souq") {
       const { products, vendors } = await getCollections();
 
       const productFilter: any = {
         active: true,
+        tenantId,
         $or: [
           { title: { $regex: q, $options: "i" } },
           { description: { $regex: q, $options: "i" } },
@@ -84,6 +89,7 @@ export async function GET(req: NextRequest) {
       );
 
       const vendorFilter: any = {
+        tenantId,
         $or: [
           { name: { $regex: q, $options: "i" } },
           { "contact.primary.name": { $regex: q, $options: "i" } },
@@ -95,8 +101,7 @@ export async function GET(req: NextRequest) {
       );
     } else if (scope === "aqar") {
       await db;
-      const propFilter: any = { type: { $in: ["RESIDENTIAL", "COMMERCIAL"] } };
-      if (tenantId) propFilter.tenantId = tenantId;
+      const propFilter: any = { type: { $in: ["RESIDENTIAL", "COMMERCIAL"] }, tenantId };
       const propQuery: any = q
         ? {
             $or: [
@@ -116,13 +121,8 @@ export async function GET(req: NextRequest) {
         results.push({ id: String(p._id), type: "listings", title: p.name, href: `/aqar/properties?highlight=${p._id}`, subtitle: p.address?.city })
       );
     } else {
-      // Fallback to FM
-      await db;
-      const woItems = await (WorkOrder as any)
-        .find({ $or: [{ title: { $regex: q, $options: "i" } }, { description: { $regex: q, $options: "i" } }, { code: { $regex: q, $options: "i" } }] })
-        .limit(limit)
-        .lean();
-      woItems.forEach((w: any) => results.push({ id: String(w._id), type: "work_orders", title: w.title || w.code, href: `/work-orders/${w._id}` }));
+      // Fallback to FM search
+      await searchFM();
     }
 
     // De-duplicate by href
