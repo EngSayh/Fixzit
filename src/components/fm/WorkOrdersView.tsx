@@ -421,7 +421,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               <label className="mb-1 block text-sm font-medium text-gray-700">Priority</label>
               <Select
                 value={form.priority}
-                onValueChange={(value: WorkOrderPriority) => setForm((prev) => ({ ...prev, priority: value }))}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, priority: value as WorkOrderPriority }))}
               >
                 <SelectTrigger>
                   <SelectValue />

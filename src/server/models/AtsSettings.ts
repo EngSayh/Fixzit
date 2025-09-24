@@ -37,7 +37,12 @@ export interface AtsSettingsModel extends Model<AtsSettingsDoc> {
 }
 
 AtsSettingsSchema.methods.shouldAutoReject = function(this: AtsSettingsDoc, input: AutoRejectOptions): AutoRejectDecision {
-  const rules = this.knockoutRules || {};
+  const rules = (this.knockoutRules ?? {}) as {
+    minYears?: number;
+    requiredSkills?: string[];
+    autoRejectMissingExperience?: boolean;
+    autoRejectMissingSkills?: boolean;
+  };
   const experience = input.experience ?? 0;
   const skills = (input.skills || []).map(skill => skill.toLowerCase());
 
@@ -79,7 +84,12 @@ class AtsSettingsMockModel extends MockModel {
   private attach(doc: any) {
     if (!doc) return doc;
     doc.shouldAutoReject = (input: AutoRejectOptions): AutoRejectDecision => {
-      const rules = doc.knockoutRules || {};
+      const rules = (doc.knockoutRules ?? {}) as {
+        minYears?: number;
+        requiredSkills?: string[];
+        autoRejectMissingExperience?: boolean;
+        autoRejectMissingSkills?: boolean;
+      };
       const experience = input.experience ?? 0;
       const skills = (input.skills || []).map((skill: string) => skill.toLowerCase());
       if (rules.minYears && experience < rules.minYears) {
@@ -125,6 +135,6 @@ class AtsSettingsMockModel extends MockModel {
 
 export const AtsSettings: AtsSettingsModel = isMockDB
   ? new AtsSettingsMockModel() as unknown as AtsSettingsModel
-  : (models.AtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
+  : ((models.AtsSettings as AtsSettingsModel) || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
 
 export type { AutoRejectOptions, AutoRejectDecision };
