@@ -17,7 +17,7 @@ export async function list(tenantId: string, q?:string, status?:string) {
 export async function post(tenantId:string, id: string, input: unknown, actorId?:string, ip?:string) {
   const data = InvoicePost.parse(input);
   const status = data.action === "POST" ? "POSTED" : "VOID";
-  const inv = await repo.setStatus(id, status);
+  const inv = await repo.setStatus(id, tenantId, status);
   await audit(tenantId, actorId, "invoice.updateStatus", `invoice:${inv.number}`, { status }, ip);
   return inv;
 }
