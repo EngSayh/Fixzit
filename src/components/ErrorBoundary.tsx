@@ -209,7 +209,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       const safeUser = user ? { userId: user.id, tenant: user.tenantId } : undefined;
       const payload = {
         code: 'UI-UI-RENDER-001',
-        incidentKey: this.state.errorId,
+        incidentKey: errorReport.errorId,
         message: truncate(errorReport.error.message, 500),
         details: truncate(errorReport.error.stack, 4000),
         userContext: safeUser,
