@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   const allowedModules = ACCESS[userRole as keyof typeof ACCESS] || [];
   const forbid = () => NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   if (scope === 'souq' && !allowedModules.includes('marketplace')) return forbid();
-  if (scope === 'aqar' && !allowedModules.includes('marketplace')) return forbid();
+  if (scope === 'aqar' && !allowedModules.includes('properties')) return forbid();
   if (scope === 'fm' && !(allowedModules.includes('work-orders') || allowedModules.includes('properties'))) return forbid();
 
   try {
@@ -56,45 +56,49 @@ export async function GET(req: NextRequest) {
 
     const searchFM = async () => {
       await db; // ensure mongoose is ready
-      const woFilter: any = { deletedAt: { $exists: false }, tenantId };
       const safe = escapeRegex(q);
-      const woQuery: any = q
-        ? {
-            $or: [
-              { title: { $regex: safe, $options: "i" } },
-              { description: { $regex: safe, $options: "i" } },
-              { code: { $regex: safe, $options: "i" } },
-            ],
-          }
-        : {};
-      const woItems = await WorkOrderModel
-        .find({ ...woFilter, ...woQuery })
-        .sort({ updatedAt: -1 })
-        .limit(limit)
-        .lean();
-      woItems.forEach((w: any) =>
-        results.push({ id: String(w._id), type: "work_orders", title: w.title || w.code, href: `/work-orders/${w._id}`, subtitle: w.code })
-      );
-
-      const propFilter: any = { tenantId };
-      const propQuery: any = q
-        ? {
-            $or: [
-              { name: { $regex: safe, $options: "i" } },
-              { description: { $regex: safe, $options: "i" } },
-              { code: { $regex: safe, $options: "i" } },
-              { "address.city": { $regex: safe, $options: "i" } },
-            ],
-          }
-        : {};
-      const props = await PropertyModel
-        .find({ ...propFilter, ...propQuery })
-        .sort({ updatedAt: -1 })
-        .limit(limit)
-        .lean();
-      props.forEach((p: any) =>
-        results.push({ id: String(p._id), type: "properties", title: p.name, href: `/properties/${p._id}`, subtitle: p.address?.city })
-      );
+      // Return only datasets the role can access
+      if (allowedModules.includes('work-orders')) {
+        const woFilter: any = { deletedAt: { $exists: false }, tenantId };
+        const woQuery: any = q
+          ? {
+              $or: [
+                { title: { $regex: safe, $options: "i" } },
+                { description: { $regex: safe, $options: "i" } },
+                { code: { $regex: safe, $options: "i" } },
+              ],
+            }
+          : {};
+        const woItems = await WorkOrderModel
+          .find({ ...woFilter, ...woQuery })
+          .sort({ updatedAt: -1 })
+          .limit(limit)
+          .lean();
+        woItems.forEach((w: any) =>
+          results.push({ id: String(w._id), type: "work_orders", title: w.title || w.code, href: `/work-orders/${w._id}`, subtitle: w.code })
+        );
+      }
+      if (allowedModules.includes('properties')) {
+        const propFilter: any = { tenantId };
+        const propQuery: any = q
+          ? {
+              $or: [
+                { name: { $regex: safe, $options: "i" } },
+                { description: { $regex: safe, $options: "i" } },
+                { code: { $regex: safe, $options: "i" } },
+                { "address.city": { $regex: safe, $options: "i" } },
+              ],
+            }
+          : {};
+        const props = await PropertyModel
+          .find({ ...propFilter, ...propQuery })
+          .sort({ updatedAt: -1 })
+          .limit(limit)
+          .lean();
+        props.forEach((p: any) =>
+          results.push({ id: String(p._id), type: "properties", title: p.name, href: `/properties/${p._id}`, subtitle: p.address?.city })
+        );
+      }
     };
 
     if (scope === "fm") {
