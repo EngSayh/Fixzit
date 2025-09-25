@@ -91,6 +91,7 @@ export default function HelpHome() {
 
   const [articles, setArticles] = useState<HelpArticle[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -98,6 +99,7 @@ export default function HelpHome() {
       try {
         const res = await fetch('/api/help/articles');
         const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Failed to load articles');
         const items = (data?.items || []).map((a: any) => ({
           id: a.slug,
           title: a.title,
@@ -107,8 +109,10 @@ export default function HelpHome() {
           lastUpdated: a.updatedAt ? new Date(a.updatedAt).toISOString().slice(0,10) : ''
         })) as HelpArticle[];
         setArticles(items);
-      } catch {
+        setLoadError(null);
+      } catch (err: any) {
         setArticles([]);
+        setLoadError('There was an error loading help articles. Please try again.');
       } finally {
         setLoadingArticles(false);
       }
@@ -253,6 +257,12 @@ export default function HelpHome() {
             </p>
           </div>
 
+          {loadError && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+              {loadError}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {(loadingArticles ? [] : articles).map((article) => (
               <div key={article.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow">
@@ -286,7 +296,7 @@ export default function HelpHome() {
                 </div>
               </div>
             ))}
-            {(!loadingArticles && articles.length === 0) && (
+            {(!loadingArticles && !loadError && articles.length === 0) && (
               <div className="text-center text-gray-500">No articles found.</div>
             )}
           </div>
