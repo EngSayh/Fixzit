@@ -5,6 +5,10 @@ on:
     paths:
       - "docs/requirements/**"
       - "scripts/build-req-index.mjs"
+  pull_request:
+    paths:
+      - "docs/requirements/**"
+      - "scripts/build-req-index.mjs"
 
 jobs:
   build:
