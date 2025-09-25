@@ -8,6 +8,11 @@ import {
   validateCallback,
   verifyPayment
 } from '@/src/lib/paytabs';
+import {
+  normalizePaytabsStatus,
+  normalizePaytabsString,
+  parseCartAmount
+} from '@/src/lib/paytabs/callback';
 import { Invoice } from '@/src/server/models/Invoice';
 
 type InvoicePaymentRecord = {
@@ -38,21 +43,6 @@ type InvoiceDocument = Document & {
   markModified(path: string): void;
   save(): Promise<InvoiceDocument>;
 };
-
-function parseCartAmount(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return null;
-}
 
 export async function POST(req: NextRequest) {
   const signature = readPaytabsSignature(req.headers);
@@ -97,31 +87,22 @@ export async function POST(req: NextRequest) {
 
   try {
     const callback = body as Record<string, unknown>;
-    const { tran_ref, cart_id, payment_result } = callback;
+    const transactionReference = normalizePaytabsString(callback.tran_ref);
+    const cartId = normalizePaytabsString(callback.cart_id);
+    const paymentResult = callback.payment_result;
 
-    if (
-      typeof tran_ref !== 'string' || tran_ref.trim() === '' ||
-      typeof cart_id !== 'string' || cart_id.trim() === '' ||
-      typeof payment_result !== 'object' || payment_result === null
-    ) {
+    if (!transactionReference || !cartId || typeof paymentResult !== 'object' || paymentResult === null) {
       return NextResponse.json({ error: 'Missing or invalid required fields' }, { status: 400 });
     }
-
-    const transactionReference = tran_ref.trim();
-    const cartId = cart_id.trim();
 
     const paymentInfo =
       typeof callback.payment_info === 'object' && callback.payment_info !== null
         ? (callback.payment_info as Record<string, unknown>)
         : {};
     const paymentMethod =
-      typeof paymentInfo.payment_method === 'string' && paymentInfo.payment_method.trim() !== ''
-        ? paymentInfo.payment_method
-        : 'UNKNOWN';
-    const cardScheme =
-      typeof paymentInfo.card_scheme === 'string' && paymentInfo.card_scheme.trim() !== ''
-        ? paymentInfo.card_scheme
-        : paymentMethod;
+      normalizePaytabsString(paymentInfo.payment_method) ?? 'UNKNOWN';
+    const cardScheme = normalizePaytabsString(paymentInfo.card_scheme);
+    const schemeDisplay = cardScheme ?? paymentMethod;
 
     const amountValue = parseCartAmount(callback.cart_amount);
 
@@ -129,15 +110,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
     }
 
-    const paymentResult = payment_result as Record<string, unknown>;
-    const responseStatus =
-      typeof paymentResult.response_status === 'string'
-        ? paymentResult.response_status
-        : '';
-    const responseMessage =
-      typeof paymentResult.response_message === 'string'
-        ? paymentResult.response_message
-        : undefined;
+    const structuredResult = paymentResult as Record<string, unknown>;
+    const responseStatus = normalizePaytabsStatus(structuredResult.response_status);
+    const responseMessage = normalizePaytabsString(structuredResult.response_message) ?? undefined;
 
     // Verify payment with PayTabs
     const verification = await verifyPayment(transactionReference);
@@ -150,14 +125,9 @@ export async function POST(req: NextRequest) {
       verificationResult.payment_result && typeof verificationResult.payment_result === 'object'
         ? (verificationResult.payment_result as Record<string, unknown>)
         : {};
-    const verificationStatus =
-      typeof verificationPaymentResult.response_status === 'string'
-        ? verificationPaymentResult.response_status
-        : '';
+    const verificationStatus = normalizePaytabsStatus(verificationPaymentResult.response_status);
     const verificationMessage =
-      typeof verificationPaymentResult.response_message === 'string'
-        ? verificationPaymentResult.response_message
-        : undefined;
+      normalizePaytabsString(verificationPaymentResult.response_message) ?? undefined;
 
     await db;
     const invoiceModel = Invoice as unknown as { findById(id: string): Promise<InvoiceDocument | null> };
@@ -197,9 +167,7 @@ export async function POST(req: NextRequest) {
     };
 
     const cartCurrency =
-      typeof callback.cart_currency === 'string' && callback.cart_currency.trim() !== ''
-        ? callback.cart_currency.trim().toUpperCase()
-        : '';
+      normalizePaytabsString(callback.cart_currency)?.toUpperCase() ?? '';
     const invoiceCurrency =
       typeof invoice.currency === 'string' && invoice.currency.trim() !== ''
         ? invoice.currency.trim().toUpperCase()
@@ -279,7 +247,7 @@ export async function POST(req: NextRequest) {
     if (responseStatus === 'A' && verificationStatus === 'A') {
       // Payment successful
       invoice.status = 'PAID';
-      const successNotes = `Payment via ${cardScheme}`;
+      const successNotes = `Payment via ${schemeDisplay}`;
       const statusChanged = existingPayment?.status !== 'COMPLETED';
       upsertPayment('COMPLETED', successNotes);
 
