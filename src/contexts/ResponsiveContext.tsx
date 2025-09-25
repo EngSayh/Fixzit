@@ -8,6 +8,7 @@ interface ResponsiveContextType {
   screenInfo: ScreenInfo;
   isReady: boolean;
   responsiveClasses: ReturnType<typeof getResponsiveClasses>;
+  isRTL: boolean;
   updateScreenInfo: () => void;
 }
 
@@ -15,13 +16,15 @@ const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undef
 
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
+  const { isRTL } = useTranslation();
 
   const responsiveClasses = getResponsiveClasses(screenInfo);
 
-  const value = {
+  const value: ResponsiveContextType = {
     screenInfo,
     isReady,
     responsiveClasses,
+    isRTL,
     updateScreenInfo
   };
 
@@ -66,8 +69,8 @@ export function useResponsiveLayout() {
       screenInfo: fallbackScreenInfo,
       isReady: false,
       responsiveClasses: getResponsiveClasses(fallbackScreenInfo),
+      isRTL,
       updateScreenInfo: () => {},
-      isRTL
     };
   }
 
