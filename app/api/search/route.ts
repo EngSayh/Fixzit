@@ -89,6 +89,7 @@ const COLLECTION_NAME: Record<SearchEntity, string> = {
 
 interface RequestContext {
   tenantId: string;
+  tenantObjectId: ObjectId | null;
   role: Role;
   userId?: string;
   orgId: ObjectId | null;
@@ -155,9 +156,11 @@ function resolveRequestContext(req: NextRequest): RequestContext | null {
       toObjectId(typeof parsedUser?.orgId === 'string' ? parsedUser.orgId : undefined);
 
     const fallbackOrgId = toObjectId(tenantId);
+    const tenantObjectId = toObjectId(tenantId);
 
     return {
       tenantId,
+      tenantObjectId,
       role,
       userId,
       orgId,
@@ -283,16 +286,31 @@ function applyScopeFilter(entity: SearchEntity, baseQuery: Record<string, any>, 
   const query: Record<string, any> = { ...baseQuery };
 
   if (TENANT_SCOPED_ENTITIES.has(entity)) {
-    query.tenantId = context.tenantId;
-  }
+    const tenantFilters: (string | ObjectId)[] = [];
+    if (context.tenantId) {
+      tenantFilters.push(context.tenantId);
+    }
+    if (context.tenantObjectId) {
+      tenantFilters.push(context.tenantObjectId);
+    }
 
-  if (ORG_SCOPED_ENTITIES.has(entity)) {
-    const orgId = context.orgId ?? context.fallbackOrgId;
-    if (!orgId) {
+    if (tenantFilters.length === 0) {
       return null;
     }
 
-    query.orgId = orgId;
+    query.tenantId = tenantFilters.length === 1 ? tenantFilters[0] : { $in: tenantFilters };
+  }
+
+  if (ORG_SCOPED_ENTITIES.has(entity)) {
+    const orgCandidates = [context.orgId, context.fallbackOrgId].filter(
+      (value): value is ObjectId => value instanceof ObjectId
+    );
+
+    if (orgCandidates.length === 0) {
+      return null;
+    }
+
+    query.orgId = orgCandidates.length === 1 ? orgCandidates[0] : { $in: orgCandidates };
   }
 
   return query;
