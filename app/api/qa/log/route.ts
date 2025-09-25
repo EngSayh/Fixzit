@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
+    const parsed = Number(searchParams.get('limit'));
+    const limit = Math.min(Number.isFinite(parsed) && parsed > 0 ? parsed : 100, 1000);
     const eventType = searchParams.get('event');
 
     // Return empty array for mock database
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ logs: [], mock: true });
     }
 
-    let query = {};
+    let query = {} as any;
     if (eventType) {
       query = { event: eventType };
     }
