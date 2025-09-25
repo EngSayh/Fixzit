@@ -15,26 +15,34 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     let baseSlug = (body.title || 'job').toString().toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
-    let slug = baseSlug;
-    let counter = 1;
-    while (await (Job as any).findOne({ orgId: platformOrg, slug })) slug = `${baseSlug}-${counter++}`;
-    const job = await (Job as any).create({
-      orgId: platformOrg,
-      title: body.title,
-      department: body.department || 'General',
-      jobType: body.jobType || 'full-time',
-      location: body.location || { city: body.city || '', country: body.country || '', mode: body.mode || 'onsite' },
-      salaryRange: body.salaryRange || { min: 0, max: 0, currency: 'SAR' },
-      description: body.description || '',
-      requirements: body.requirements || [],
-      benefits: body.benefits || [],
-      skills: body.skills || [],
-      tags: body.tags || [],
-      status: 'pending',
-      visibility: 'public',
-      slug,
-      postedBy: 'public'
-    });
+    let job: any = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt}`;
+      try {
+        job = await (Job as any).create({
+          orgId: platformOrg,
+          title: body.title,
+          department: body.department || 'General',
+          jobType: body.jobType || 'full-time',
+          location: body.location || { city: body.city || '', country: body.country || '', mode: body.mode || 'onsite' },
+          salaryRange: body.salaryRange || { min: 0, max: 0, currency: 'SAR' },
+          description: body.description || '',
+          requirements: body.requirements || [],
+          benefits: body.benefits || [],
+          skills: body.skills || [],
+          tags: body.tags || [],
+          status: 'pending',
+          visibility: 'public',
+          slug,
+          postedBy: 'public'
+        });
+        break;
+      } catch (e: any) {
+        const dup = e?.code === 11000 || String(e?.message || '').includes('duplicate key');
+        if (!dup || attempt === 5) throw e;
+      }
+    }
+    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     console.error('Public post error:', error);
