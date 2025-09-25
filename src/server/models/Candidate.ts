@@ -51,7 +51,7 @@ class CandidateMockModel extends MockModel {
   private attach(doc: any) {
     if (!doc) return doc;
     (doc as any).save = async () => {
-      await this.findByIdAndUpdate((doc as any)._id, { $set: doc });
+      await this.findByIdAndUpdate(doc._id, { $set: doc });
       return doc;
     };
     return doc;
