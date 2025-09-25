@@ -16,6 +16,8 @@ const UpdateDiscountSchema = z.object({
   active: z.boolean().default(true)
 });
 
+const ADMIN_ROLES = new Set(['ADMIN', 'STAFF', 'SUPER_ADMIN', 'CORPORATE_ADMIN']);
+
 function formatDiscountResponse(discount: any) {
   return {
     ok: true,
@@ -29,14 +31,28 @@ function formatDiscountResponse(discount: any) {
   };
 }
 
-function isAuthorizedAdmin(role?: string) {
-  return role === 'ADMIN' || role === 'STAFF';
+function isAuthorizedAdmin(role?: string | null) {
+  if (!role) {
+    return false;
+  }
+
+  const normalized = role.trim().toUpperCase();
+  return ADMIN_ROLES.has(normalized);
+}
+
+async function resolveAuthorizedContext(request: NextRequest) {
+  const context = await resolveMarketplaceContext(request);
+  if (!context.userId || !isAuthorizedAdmin(context.role)) {
+    return null;
+  }
+
+  return context;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const context = await resolveMarketplaceContext(request);
-    if (!context.userId || !isAuthorizedAdmin(context.role)) {
+    const context = await resolveAuthorizedContext(request);
+    if (!context) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -57,8 +73,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const context = await resolveMarketplaceContext(req);
-    if (!context.userId || !isAuthorizedAdmin(context.role)) {
+    const context = await resolveAuthorizedContext(req);
+    if (!context) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
