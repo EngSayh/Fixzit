@@ -121,49 +121,71 @@ export async function POST(req: NextRequest) {
       invoice.payments = [];
     }
 
-    // Idempotency guard for repeated callbacks with the same transaction reference
-    if (invoice.payments.some((payment: any) => payment?.transactionId === transactionReference)) {
-      return NextResponse.json({ success: true });
+    if (!Array.isArray(invoice.history)) {
+      invoice.history = [];
     }
+
+    const existingPayment = invoice.payments.find(
+      (payment: any) => payment?.transactionId === transactionReference
+    );
+
+    const upsertPayment = (
+      status: 'COMPLETED' | 'FAILED',
+      notes: string
+    ) => {
+      const baseDetails = {
+        date: new Date(),
+        amount: amountValue,
+        method: paymentMethod,
+        reference: transactionReference,
+        status,
+        transactionId: transactionReference,
+        notes
+      };
+
+      if (existingPayment) {
+        existingPayment.date = baseDetails.date;
+        existingPayment.amount = baseDetails.amount;
+        existingPayment.method = baseDetails.method;
+        existingPayment.reference = baseDetails.reference;
+        existingPayment.status = baseDetails.status;
+        existingPayment.transactionId = baseDetails.transactionId;
+        existingPayment.notes = baseDetails.notes;
+      } else {
+        invoice.payments.push(baseDetails);
+      }
+    };
 
     // Update invoice based on payment result
     if (responseStatus === 'A' && verificationStatus === 'A') {
       // Payment successful
       invoice.status = 'PAID';
-      invoice.payments.push({
-        date: new Date(),
-        amount: amountValue,
-        method: paymentMethod,
-        reference: transactionReference,
-        status: 'COMPLETED',
-        transactionId: transactionReference,
-        notes: `Payment via ${cardScheme}`
-      });
+      const successNotes = `Payment via ${cardScheme}`;
+      const wasCompleted = existingPayment?.status === 'COMPLETED';
+      upsertPayment('COMPLETED', successNotes);
 
-      invoice.history.push({
-        action: 'PAID',
-        performedBy: 'SYSTEM',
-        performedAt: new Date(),
-        details: `Payment completed via PayTabs. Transaction: ${transactionReference}`
-      });
+      if (!wasCompleted) {
+        invoice.history.push({
+          action: 'PAID',
+          performedBy: 'SYSTEM',
+          performedAt: new Date(),
+          details: `Payment completed via PayTabs. Transaction: ${transactionReference}`
+        });
+      }
     } else {
       // Payment failed
-      invoice.payments.push({
-        date: new Date(),
-        amount: amountValue,
-        method: paymentMethod,
-        reference: transactionReference,
-        status: 'FAILED',
-        transactionId: transactionReference,
-        notes: responseMessage || verificationMessage || 'Payment failed'
-      });
+      const failureNotes = responseMessage || verificationMessage || 'Payment failed';
+      const wasFailed = existingPayment?.status === 'FAILED';
+      upsertPayment('FAILED', failureNotes);
 
-      invoice.history.push({
-        action: 'PAYMENT_FAILED',
-        performedBy: 'SYSTEM',
-        performedAt: new Date(),
-        details: `Payment failed: ${responseMessage ?? verificationMessage ?? 'Unknown reason'}. Transaction: ${transactionReference}`
-      });
+      if (!wasFailed) {
+        invoice.history.push({
+          action: 'PAYMENT_FAILED',
+          performedBy: 'SYSTEM',
+          performedAt: new Date(),
+          details: `Payment failed: ${responseMessage ?? verificationMessage ?? 'Unknown reason'}. Transaction: ${transactionReference}`
+        });
+      }
     }
 
     await invoice.save();
