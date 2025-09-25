@@ -25,8 +25,8 @@ const CandidateSchema = new Schema({
 CandidateSchema.index({ orgId: 1, emailLower: 1 }, { unique: true });
 
 CandidateSchema.pre('validate', function(next) {
-  if (this.email) {
-    this.emailLower = this.email.toLowerCase();
+  if ((this as any).email) {
+    (this as any).emailLower = (this as any).email.toLowerCase();
   }
   next();
 });
@@ -50,7 +50,7 @@ class CandidateMockModel extends MockModel {
 
   private attach(doc: any) {
     if (!doc) return doc;
-    doc.save = async () => {
+    (doc as any).save = async () => {
       await this.findByIdAndUpdate(doc._id, { $set: doc });
       return doc;
     };

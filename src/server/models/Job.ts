@@ -68,11 +68,11 @@ class JobMockModel extends MockModel {
 
   private attach(doc: any) {
     if (!doc) return doc;
-    doc.publish = async () => {
-      doc.status = 'published';
-      doc.visibility = doc.visibility || 'public';
-      doc.publishedAt = new Date();
-      await this.findByIdAndUpdate(doc._id, { $set: { status: doc.status, visibility: doc.visibility, publishedAt: doc.publishedAt } });
+    (doc as any).publish = async () => {
+      (doc as any).status = 'published';
+      (doc as any).visibility = (doc as any).visibility || 'public';
+      (doc as any).publishedAt = new Date();
+      await this.findByIdAndUpdate((doc as any)._id, { $set: { status: (doc as any).status, visibility: (doc as any).visibility, publishedAt: (doc as any).publishedAt } });
       return doc;
     };
     return doc;
