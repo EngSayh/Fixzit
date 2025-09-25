@@ -91,6 +91,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const forwardedFor = req.headers.get('x-forwarded-for') ?? '';
+    const candidateIp = forwardedFor
+      .split(',')
+      .map(segment => segment.trim())
+      .find(segment => segment.length > 0);
+    const requestIp = candidateIp ?? req.headers.get('x-real-ip') ?? undefined;
+    const requestUserAgent = req.headers.get('user-agent') ?? undefined;
+
     const callback = body as Record<string, unknown>;
     const transactionReference = normalizePaytabsString(callback.tran_ref);
     const cartId = normalizePaytabsString(callback.cart_id);
@@ -172,7 +180,9 @@ export async function POST(req: NextRequest) {
         action,
         performedBy: 'SYSTEM',
         performedAt: new Date(),
-        details
+        details,
+        ipAddress: requestIp,
+        userAgent: requestUserAgent
       };
       historyEntries.push(entry);
 
