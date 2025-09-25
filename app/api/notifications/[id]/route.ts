@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-  const doc = await notifications.findOne({ _id, tenantId });
+  const doc = await notifications.findOne({ _id: _id as any, tenantId });
   if (!doc) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   return NextResponse.json(doc);
 }
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (typeof read === 'boolean') update.$set.read = read;
   if (typeof archived === 'boolean') update.$set.archived = archived;
 
-  const res = await notifications.findOneAndUpdate({ _id, tenantId }, update, { returnDocument: 'after' });
+  const res = await notifications.findOneAndUpdate({ _id: _id as any, tenantId }, update, { returnDocument: 'after' });
   if (!res.value) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   return NextResponse.json(res.value);
 }
@@ -53,7 +53,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-  const res = await notifications.deleteOne({ _id, tenantId });
+  const res = await notifications.deleteOne({ _id: _id as any, tenantId });
   if (!res.deletedCount) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   return NextResponse.json({ success: true });
 }
