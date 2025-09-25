@@ -29,6 +29,10 @@ export async function POST(req: NextRequest) {
   }
 
   // 3) Create Subscription snapshot (status pending until paid)
+  const firstCycleMonths = body.billingCycle === 'annual' ? 12 : 1;
+  const next = new Date();
+  next.setMonth(next.getMonth() + firstCycleMonths);
+
   const sub = await Subscription.create({
     customerId: customer._id,
     planType: body.planType,
@@ -38,12 +42,12 @@ export async function POST(req: NextRequest) {
     totalMonthly: (quote as any).monthly,
     billingCycle: body.billingCycle,
     annualDiscountPct: (quote as any).annualDiscountPct,
-    status: 'active',
+    status: 'pending',
     seatTotal: body.seatTotal,
     currency: (quote as any).currency,
     paytabsRegion: body.paytabsRegion || 'GLOBAL',
     startedAt: new Date(),
-    nextInvoiceAt: new Date()
+    nextInvoiceAt: next
   });
 
   // 4) First invoice amount:
