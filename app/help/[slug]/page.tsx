@@ -33,9 +33,8 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
   if (!a){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }
-  // Inherit global dir from ClientLayout (can enhance later to be content locale aware)
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" dir={undefined as any}>
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Breadcrumb */}
       <section className="bg-gradient-to-r from-[#0061A8] to-[#00A859] text-white py-8">
         <div className="mx-auto max-w-4xl px-6">
