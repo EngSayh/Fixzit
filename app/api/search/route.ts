@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+
 import { APPS, AppKey } from '@/src/config/topbar-modules';
+import { db } from '@/src/lib/mongo';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+type SearchResult = {
+  id: string;
+  entity: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  score: number;
+};
+
+const DEFAULT_LIMIT = 20;
+const PER_ENTITY_LIMIT = 5;
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +25,8 @@ export async function GET(req: NextRequest) {
     const app = (searchParams.get('app') || 'fm') as AppKey;
     const q = (searchParams.get('q') || '').trim();
     const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
+    const limitParam = Number.parseInt(searchParams.get('limit') ?? '', 10);
+    const resultLimit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : DEFAULT_LIMIT;
 
     if (!q) {
       return NextResponse.json({ results: [] });
@@ -20,144 +38,86 @@ export async function GET(req: NextRequest) {
     }
 
     const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
-    const results: any[] = [];
+    const uniqueEntities = Array.from(new Set(searchEntities)).filter(Boolean);
 
-    // Search across different entity types based on app
-    for (const entity of searchEntities) {
+    const entityQueries = uniqueEntities.map(async entity => {
       try {
-        let collection: any;
-        let searchQuery: any = { $text: { $search: q } };
-        let projection: any = { score: { $meta: 'textScore' } };
-
-        switch (entity) {
-          case 'work_orders':
-            collection = db.collection('work_orders');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'properties':
-            collection = db.collection('properties');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'units':
-            collection = db.collection('units');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'tenants':
-            collection = db.collection('tenants');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'vendors':
-            collection = db.collection('vendors');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'invoices':
-            collection = db.collection('invoices');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'products':
-            collection = db.collection('products');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'services':
-            collection = db.collection('services');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'rfqs':
-            collection = db.collection('rfqs');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'orders':
-            collection = db.collection('orders');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'listings':
-            collection = db.collection('listings');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'projects':
-            collection = db.collection('projects');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          case 'agents':
-            collection = db.collection('agents');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
-            break;
-          default:
-            continue;
+        const { collection, query } = resolveCollectionAndQuery(entity, q);
+        if (!collection) {
+          return [] as SearchResult[];
         }
 
-        if (collection) {
-          const items = await collection
-            .find(searchQuery)
-            .project(projection)
-            .sort({ score: { $meta: 'textScore' } })
-            .limit(5)
-            .toArray();
+        const items = await collection
+          .find(query)
+          .project({ score: { $meta: 'textScore' } })
+          .sort({ score: { $meta: 'textScore' } })
+          .limit(PER_ENTITY_LIMIT)
+          .toArray();
 
-          items.forEach((item: any) => {
-            const result = {
-              id: item._id?.toString() || '',
-              entity,
-              title: item.title || item.name || item.code || `Untitled ${entity}`,
-              subtitle: item.description || item.address || item.status || '',
-              href: generateHref(entity, item._id?.toString() || ''),
-              score: item.score || 0
-            };
-            results.push(result);
-          });
-        }
+        return items.map((item: Record<string, any>) => ({
+          id: item._id?.toString() ?? '',
+          entity,
+          title: item.title || item.name || item.code || `Untitled ${entity}`,
+          subtitle: item.description || item.address || item.status || '',
+          href: generateHref(entity, item._id?.toString() ?? ''),
+          score: item.score ?? 0
+        }));
       } catch (error) {
         console.warn(`Search failed for entity ${entity}:`, error);
-        // Continue with other entities
+        return [] as SearchResult[];
       }
-    }
+    });
 
-    // Sort by score and limit results
+    const settled = await Promise.allSettled(entityQueries);
+    const results = settled.flatMap(result => (result.status === 'fulfilled' ? result.value : []));
+
     results.sort((a, b) => (b.score || 0) - (a.score || 0));
-    return NextResponse.json({ results: results.slice(0, 20) });
 
+    return NextResponse.json(
+      { results: results.slice(0, resultLimit) },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error) {
     console.error('Search API error:', error);
     return NextResponse.json({ results: [] }, { status: 500 });
+  }
+}
+
+function resolveCollectionAndQuery(entity: string, q: string) {
+  const baseQuery = {
+    $text: { $search: q },
+    deletedAt: { $exists: false }
+  };
+
+  switch (entity) {
+    case 'work_orders':
+      return { collection: db.collection('work_orders'), query: baseQuery };
+    case 'properties':
+      return { collection: db.collection('properties'), query: baseQuery };
+    case 'units':
+      return { collection: db.collection('units'), query: baseQuery };
+    case 'tenants':
+      return { collection: db.collection('tenants'), query: baseQuery };
+    case 'vendors':
+      return { collection: db.collection('vendors'), query: baseQuery };
+    case 'invoices':
+      return { collection: db.collection('invoices'), query: baseQuery };
+    case 'products':
+      return { collection: db.collection('products'), query: baseQuery };
+    case 'services':
+      return { collection: db.collection('services'), query: baseQuery };
+    case 'rfqs':
+      return { collection: db.collection('rfqs'), query: baseQuery };
+    case 'orders':
+      return { collection: db.collection('orders'), query: baseQuery };
+    case 'listings':
+      return { collection: db.collection('listings'), query: baseQuery };
+    case 'projects':
+      return { collection: db.collection('projects'), query: baseQuery };
+    case 'agents':
+      return { collection: db.collection('agents'), query: baseQuery };
+    default:
+      return { collection: null, query: baseQuery };
   }
 }
 
