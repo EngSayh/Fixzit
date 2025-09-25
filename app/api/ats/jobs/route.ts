@@ -15,8 +15,16 @@ export async function GET(req: NextRequest) {
     }
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
-    const status = searchParams.get('status') || 'published';
-    const orgId = searchParams.get('orgId') || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    const statusParam = searchParams.get('status') || 'published';
+    const requestedOrgId = searchParams.get('orgId') || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const { getUserFromToken } = await import('@/src/lib/auth');
+    const user = token ? await getUserFromToken(token) : null;
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
+    const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
+    const orgId = isPrivileged ? (searchParams.get('orgId') || (user as any)?.tenantId || requestedOrgId) : requestedOrgId;
+    const status = isPrivileged ? statusParam : 'published';
     const department = searchParams.get('department');
     const location = searchParams.get('location');
     const jobType = searchParams.get('jobType');
