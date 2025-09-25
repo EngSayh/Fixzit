@@ -49,14 +49,13 @@ export async function GET(req: NextRequest) {
       query.sort({ updatedAt: -1 });
     }
     const docs = await query
-      .sort({ updatedAt: -1 })
       .limit(24)
       .lean();
 
     return NextResponse.json({ items: docs });
   } catch (error) {
     console.error('search error', error);
-    return NextResponse.json({ items: [] });
+    return NextResponse.json({ error: 'Server error', items: [] }, { status: 500 });
   }
 }
 
