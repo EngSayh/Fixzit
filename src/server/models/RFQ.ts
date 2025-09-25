@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const RFQStatus = ["DRAFT", "PUBLISHED", "BIDDING", "CLOSED", "AWARDED", "CANCELLED"] as const;
 const BidStatus = ["SUBMITTED", "UNDER_REVIEW", "ACCEPTED", "REJECTED", "WITHDRAWN"] as const;
@@ -200,6 +199,9 @@ RFQSchema.index({ tenantId: 1, 'location.city': 1 });
 RFQSchema.index({ tenantId: 1, 'bids.status': 1 });
 
 export type RFQDoc = InferSchemaType<typeof RFQSchema>;
+
+// Check if we're using mock database (explicit flag only)
+const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 export const RFQ = isMockDB
   ? new MockModel('rfqs') as any
