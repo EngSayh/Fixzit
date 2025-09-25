@@ -21,28 +21,7 @@ type SearchResult = {
 const DEFAULT_LIMIT = 20;
 const PER_ENTITY_LIMIT = 5;
 
-type SearchRole =
-  | 'SUPER_ADMIN'
-  | 'ADMIN'
-  | 'STAFF'
-  | 'CORPORATE_ADMIN'
-  | 'FM_MANAGER'
-  | 'FINANCE'
-  | 'HR'
-  | 'PROCUREMENT'
-  | 'PROPERTY_MANAGER'
-  | 'EMPLOYEE'
-  | 'TECHNICIAN'
-  | 'VENDOR'
-  | 'CUSTOMER'
-  | 'OWNER'
-  | 'AUDITOR'
-  | 'DISPATCHER'
-  | 'TENANT'
-  | 'SUPPORT'
-  | 'BUYER';
-
-const ALL_ROLES: SearchRole[] = [
+const ALL_ROLES = [
   'SUPER_ADMIN',
   'ADMIN',
   'STAFF',
@@ -62,7 +41,9 @@ const ALL_ROLES: SearchRole[] = [
   'TENANT',
   'SUPPORT',
   'BUYER'
-];
+  ] as const;
+
+type SearchRole = (typeof ALL_ROLES)[number];
 
 const APP_ALLOWED_ROLES: Record<AppKey, SearchRole[]> = {
   fm: [
