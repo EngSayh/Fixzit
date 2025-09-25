@@ -23,13 +23,19 @@ class MockDB {
   private connected: boolean = false;
   async connect() { this.connected = true; return this; }
   get readyState() { return 1; }
-  async collection(_name: string) {
+  collection(_name: string) {
+    const cursor = {
+      sort: (_: any) => cursor,
+      limit: (_: number) => cursor,
+      toArray: async () => [] as any[],
+    };
     return {
       insertOne: async (_doc: any) => ({ insertedId: 'mock-id' }),
-      find: () => ({ toArray: async () => [], sort: () => this, limit: () => this }),
-      findOne: async () => null,
-      updateOne: async () => ({ modifiedCount: 1 }),
-      deleteOne: async () => ({ deletedCount: 1 })
+      find: (_?: any) => cursor,
+      findOne: async (_?: any) => null,
+      updateOne: async (_filter?: any, _update?: any, _opts?: any) => ({ modifiedCount: 1 }),
+      deleteOne: async (_filter?: any) => ({ deletedCount: 1 }),
+      createIndex: async (_spec?: any, _opts?: any) => ({ ok: 1 })
     };
   }
   async listCollections() { return { toArray: async () => [] }; }

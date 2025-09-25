@@ -205,11 +205,14 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     try {
       const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('x-user') : null;
       const user = userStr ? JSON.parse(userStr) : null;
+      const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
+      const safeUser = user ? { userId: user.id, tenant: user.tenantId } : undefined;
       const payload = {
         code: 'UI-UI-RENDER-001',
-        message: errorReport.error.message,
-        details: errorReport.error.stack,
-        userContext: user ? { userId: user.id, tenant: user.tenantId, email: user.email } : undefined,
+        incidentKey: this.state.errorId,
+        message: truncate(errorReport.error.message, 500),
+        details: truncate(errorReport.error.stack, 4000),
+        userContext: safeUser,
         clientContext: {
           url: errorReport.url,
           userAgent: errorReport.userAgent,
