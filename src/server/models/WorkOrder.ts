@@ -2,7 +2,7 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
 import { isMockDB } from "@/src/lib/mongo";
 
 const Status = ["DRAFT","SUBMITTED","DISPATCHED","IN_PROGRESS","ON_HOLD","COMPLETED","VERIFIED","CLOSED","CANCELLED"] as const;
-const Priority = ["LOW","MEDIUM","HIGH","URGENT"] as const;
+const Priority = ["LOW","MEDIUM","HIGH","CRITICAL"] as const;
 
 // Mock data store for development - singleton to persist data
 class MockWorkOrderStore {
@@ -27,6 +27,8 @@ class MockWorkOrderStore {
           description: "Air conditioning system in Tower A unit 1204 is not working properly",
           priority: "HIGH",
           status: "SUBMITTED",
+          slaMinutes: 720,
+          dueAt: new Date(Date.now() + 720 * 60 * 1000),
           statusHistory: [],
           createdBy: "u-admin-1",
           createdAt: new Date("2025-01-20T10:00:00Z"),
@@ -38,8 +40,10 @@ class MockWorkOrderStore {
           code: "WO-2025-002",
           title: "Water leak in ceiling",
           description: "Water leak from ceiling in Villa 9 main bathroom",
-          priority: "URGENT",
+          priority: "CRITICAL",
           status: "DISPATCHED",
+          slaMinutes: 240,
+          dueAt: new Date(Date.now() + 240 * 60 * 1000),
           statusHistory: [{ from: "SUBMITTED", to: "DISPATCHED", byUserId: "u-admin-1", at: new Date("2025-01-19T14:30:00Z") }],
           createdBy: "u-admin-1",
           assigneeUserId: "tech-007",
