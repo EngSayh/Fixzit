@@ -8,8 +8,13 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
 
   // Validate callback signature against the raw payload bytes as provided by PayTabs
-  if (!validateCallback(rawBody, signature)) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+  try {
+    if (!validateCallback(rawBody, signature)) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+  } catch (error) {
+    console.error('Signature validation error (config?):', error);
+    return NextResponse.json({ error: 'Signature validation failed' }, { status: 500 });
   }
 
   let body: unknown;
@@ -110,6 +115,15 @@ export async function POST(req: NextRequest) {
     if (!invoice) {
       console.error('Invoice not found for payment callback:', cartId);
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    }
+
+    if (!Array.isArray(invoice.payments)) {
+      invoice.payments = [];
+    }
+
+    // Idempotency guard for repeated callbacks with the same transaction reference
+    if (invoice.payments.some((payment: any) => payment?.transactionId === transactionReference)) {
+      return NextResponse.json({ success: true });
     }
 
     // Update invoice based on payment result
