@@ -60,13 +60,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Dedupe: return existing if same incidentKey exists
+  // Determine tenant scope and dedupe within that scope only
+  const tenantScope = sessionUser?.tenantId || req.headers.get('x-tenant-id') || req.headers.get('x-tenant') || null;
   const existing = incidentKey
-    ? await native.collection('error_events').findOne(
-        sessionUser?.tenantId
-          ? { incidentKey, $or: [{ 'sessionUser.tenantId': sessionUser.tenantId }, { sessionUser: null }] }
-          : { incidentKey, sessionUser: null }
-      )
+    ? await native.collection('error_events').findOne({ incidentKey, tenantScope })
     : null;
   if (existing) {
     return NextResponse.json({ ok: true, incidentId: existing.incidentId, ticketId: existing.ticketId }, { status: 202 });
@@ -128,7 +125,7 @@ export async function POST(req: NextRequest) {
   // Persist ticket linkage for dedupe/analytics
   if (ticket) {
     await native.collection('error_events').updateOne(
-      { incidentId },
+      { incidentId, tenantScope },
       { $set: { ticketId: ticket.code } }
     );
   }
