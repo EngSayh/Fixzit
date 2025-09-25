@@ -4,11 +4,12 @@ import { headers } from 'next/headers';
 
 async function fetchProducts(q: string) {
   const h = headers();
-  const proto = h.get('x-forwarded-proto') ?? 'http';
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  const base = `${proto}://${host}`;
-  const url = `${base}/api/marketplace/search${q ? `?q=${encodeURIComponent(q)}` : ''}`;
-  const res = await fetch(url, { cache: 'no-store', headers: { cookie: h.get('cookie') || '' } });
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  const url = new URL(`/api/marketplace/search${q ? `?q=${encodeURIComponent(q)}` : ''}`, baseUrl);
+  const cookie = h.get('cookie');
+  const res = await fetch(url.toString(), { cache: 'no-store', headers: cookie ? { cookie } : undefined });
   if (!res.ok) return { items: [] };
   return res.json();
 }
