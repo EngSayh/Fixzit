@@ -37,6 +37,7 @@
     "clean:root": "tsx scripts/janitor.ts --apply",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "docs:marketplace-bible": "tsx scripts/generate-marketplace-bible.ts"
+    "kb:watch": "tsx scripts/kb-change-stream.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
