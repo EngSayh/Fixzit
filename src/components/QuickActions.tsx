@@ -27,8 +27,9 @@ function getScope(pathname: string): string {
 }
 
 function can(perm?: string): boolean {
-  // TODO: wire real RBAC; for now show all by default
-  return true;
+  if (!perm) return true;
+  // TODO: integrate with real RBAC (client-side). Default to hide when unknown.
+  return false;
 }
 
 export default function QuickActions() {

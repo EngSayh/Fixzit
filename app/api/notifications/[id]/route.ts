@@ -30,12 +30,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
   const update: any = {};
   if (typeof body.read === 'boolean') update.read = body.read;
   if (typeof body.archived === 'boolean') update.archived = body.archived;
-  await db.collection('notifications').updateOne({ _id: new ObjectId(params.id), tenantId }, { $set: update });
-  const item = await db.collection('notifications').findOne({ _id: new ObjectId(params.id), tenantId });
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+  }
+  const _id = new ObjectId(params.id);
+  const res = await db.collection('notifications').updateOne({ _id, tenantId }, { $set: update });
+  if (res.matchedCount === 0) {
+    return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+  }
+  const item = await db.collection('notifications').findOne({ _id, tenantId }).catch(() => null);
+  if (!item) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   return NextResponse.json(item);
 }
 
@@ -50,6 +63,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  await db.collection('notifications').deleteOne({ _id: new ObjectId(params.id), tenantId });
+  const res = await db.collection('notifications').deleteOne({ _id: new ObjectId(params.id), tenantId });
+  if (res.deletedCount === 0) {
+    return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+  }
   return NextResponse.json({ success: true });
 }

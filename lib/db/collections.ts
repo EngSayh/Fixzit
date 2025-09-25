@@ -18,6 +18,7 @@ export const COLLECTIONS = {
   INVOICES: 'invoices',
   RFQS: 'rfqs',
   REVIEWS: 'reviews',
+  NOTIFICATIONS: 'notifications',
   AUDIT_LOGS: 'auditLogs'
 } as const;
 
@@ -69,4 +70,10 @@ export async function createIndexes() {
   // Invoices
   await db.collection(COLLECTIONS.INVOICES).createIndex({ invoiceNumber: 1 }, { unique: true });
   await db.collection(COLLECTIONS.INVOICES).createIndex({ tenantId: 1 });
+
+  // Notifications (text search on title/message/category)
+  await db.collection(COLLECTIONS.NOTIFICATIONS).createIndex(
+    { title: 'text', message: 'text', category: 'text' },
+    { name: 'notifications_text_search' }
+  );
 }

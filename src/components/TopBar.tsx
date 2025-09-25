@@ -175,6 +175,8 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
     }
   };
 
+  const unreadCount = notifications.filter((n: Notification) => !n.read).length;
+
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#023047] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>
       <div className={`flex items-center gap-3 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -208,10 +210,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {notifications.filter((n: Notification) => !n.read).length > 0
-                      ? `${notifications.filter((n: Notification) => !n.read).length} ${t('common.unread', 'unread')}`
-                      : t('common.noNotifications', 'No new notifications')
-                    }
+                    {unreadCount > 0 ? `${unreadCount} ${t('common.unread', 'unread')}` : t('common.noNotifications', 'No new notifications')}
                   </div>
                 </div>
                 <button

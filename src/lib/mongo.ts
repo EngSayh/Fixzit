@@ -47,15 +47,24 @@ class MockDB {
 
 let conn = (global as any)._mongoose;
 if (!conn) {
-  if (mongoose) {
+  const preferMock = process.env.USE_MOCK_DB === 'true';
+  if (preferMock) {
+    conn = new MockDB().connect();
+  } else if (mongoose && typeof mongoose.connect === 'function') {
     try {
-      conn = (global as any)._mongoose = mongoose.connect(uri, { autoIndex: true, maxPoolSize: 10 });
+      const opts = { autoIndex: true, maxPoolSize: 10, serverSelectionTimeoutMS: 5000 } as any;
+      conn = mongoose.connect(uri, opts);
     } catch {
-      conn = (global as any)._mongoose = new MockDB().connect();
+      conn = new MockDB().connect();
     }
+    conn = Promise.resolve(conn).catch((err: any) => {
+      console.warn('WARNING: mongoose.connect() rejected; falling back to MockDB:', err?.message || err);
+      return new MockDB().connect();
+    });
   } else {
-    conn = (global as any)._mongoose = new MockDB().connect();
+    conn = new MockDB().connect();
   }
+  (global as any)._mongoose = conn;
 }
 export const db = conn;
 
