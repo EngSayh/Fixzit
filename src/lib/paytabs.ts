@@ -250,12 +250,18 @@ function decodeSignature(signature: string): Buffer | null {
     return null;
   }
 
+  const normalizedSignature = trimmed.replace(/^sha256=/i, '');
+
+  if (!normalizedSignature) {
+    return null;
+  }
+
   try {
-    if (/^[0-9a-f]+$/i.test(trimmed) && trimmed.length % 2 === 0) {
-      return Buffer.from(trimmed, 'hex');
+    if (/^[0-9a-f]+$/i.test(normalizedSignature) && normalizedSignature.length % 2 === 0) {
+      return Buffer.from(normalizedSignature, 'hex');
     }
 
-    return Buffer.from(trimmed, 'base64');
+    return Buffer.from(normalizedSignature, 'base64');
   } catch (error) {
     console.warn('Failed to decode PayTabs signature.');
     return null;
