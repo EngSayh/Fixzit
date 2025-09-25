@@ -87,7 +87,8 @@ export async function GET(request: NextRequest) {
     await dbConnect();
     const discount = await DiscountRule.findOne({
       code: DISCOUNT_CODE,
-      orgId: context.orgId
+      orgId: context.orgId,
+      tenantKey: context.tenantKey
     }).lean();
 
     return NextResponse.json(formatDiscountResponse(discount), {
@@ -114,7 +115,11 @@ export async function PUT(req: NextRequest) {
     const payload = UpdateDiscountSchema.parse(body);
 
     const discount = await DiscountRule.findOneAndUpdate(
-      { code: DISCOUNT_CODE, orgId: context.orgId },
+      {
+        code: DISCOUNT_CODE,
+        orgId: context.orgId,
+        tenantKey: context.tenantKey
+      },
       {
         code: DISCOUNT_CODE,
         orgId: context.orgId,

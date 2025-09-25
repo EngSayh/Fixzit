@@ -123,6 +123,7 @@ const COLLECTION_NAME: Record<SearchEntity, string> = {
 
 interface RequestContext {
   tenantId: string;
+  tenantKey: string;
   tenantObjectId: ObjectId | null;
   role: SearchRole;
   userId?: string;
@@ -181,7 +182,7 @@ async function resolveRequestContext(req: NextRequest): Promise<RequestContext |
 
     const payload = token ? verifyToken(token) : null;
 
-    let tenantId = payload?.tenantId;
+    let tenantId = payload?.tenantId?.trim();
     let role = normalizeRole(payload?.role ?? null);
     let userId = payload?.id;
 
@@ -190,7 +191,8 @@ async function resolveRequestContext(req: NextRequest): Promise<RequestContext |
       if (devHeader) {
         try {
           const parsed = JSON.parse(devHeader);
-          tenantId = tenantId ?? parsed?.tenantId ?? parsed?.tenant_id;
+          const parsedTenant = (parsed?.tenantId ?? parsed?.tenant_id) as string | undefined;
+          tenantId = tenantId ?? parsedTenant?.trim();
           role = role ?? normalizeRole(parsed?.role) ?? normalizeRole(parsed?.professional?.role ?? null);
           userId = userId ?? parsed?.id ?? parsed?._id;
         } catch (error) {
@@ -199,15 +201,25 @@ async function resolveRequestContext(req: NextRequest): Promise<RequestContext |
       }
     }
 
+    if ((!tenantId || !role) && process.env.NODE_ENV !== 'production') {
+      const fallbackTenant = process.env.DEFAULT_TENANT_ID?.trim();
+      if (fallbackTenant) {
+        tenantId = tenantId ?? fallbackTenant;
+        role = role ?? 'SUPER_ADMIN';
+      }
+    }
+
     if (!tenantId || !role) {
       return null;
     }
 
+    const tenantKey = tenantId;
     const tenantObjectId = toObjectId(tenantId);
     const orgId = tenantObjectId;
 
     return {
       tenantId,
+      tenantKey,
       tenantObjectId,
       role,
       userId,
@@ -363,6 +375,7 @@ function buildTenantScopeClause(context: RequestContext): Record<string, any> | 
   const values: ScopeValue[] = [];
 
   pushScopeValue(values, context.tenantId);
+  pushScopeValue(values, context.tenantKey);
   pushObjectIdVariants(values, context.tenantObjectId);
   pushObjectIdVariants(values, context.orgId);
   pushObjectIdVariants(values, context.fallbackOrgId);
@@ -376,6 +389,7 @@ function buildOrgScopeClause(context: RequestContext): Record<string, any> | nul
   pushObjectIdVariants(values, context.orgId);
   pushObjectIdVariants(values, context.fallbackOrgId);
   pushScopeValue(values, context.tenantId);
+  pushScopeValue(values, context.tenantKey);
 
   return buildScopeDisjunction(ORG_FIELD_CANDIDATES, values);
 }

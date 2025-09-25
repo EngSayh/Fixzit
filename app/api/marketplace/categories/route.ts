@@ -37,7 +37,10 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const categories = await Category.find({ orgId: context.orgId })
+    const categories = await Category.find({
+      orgId: context.orgId,
+      tenantKey: context.tenantKey
+    })
       .sort({ createdAt: 1 })
       .lean();
     const serialized = categories.map(category => serializeCategory(category));
