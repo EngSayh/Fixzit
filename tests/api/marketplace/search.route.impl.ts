@@ -43,7 +43,7 @@ export const MarketplaceProduct = {
     globalThis.__mp_find_calls__.push([filter]);
     const chain = {
       sort(sortArg: any) {
-        global_this.__mp_sort_calls__.push(sortArg);
+        globalThis.__mp_sort_calls__.push(sortArg);
         return chain2;
       },
     };
