@@ -20,8 +20,10 @@ export async function GET(req: NextRequest) {
   const category = searchParams.get("category") || "";
   const priority = searchParams.get("priority") || "";
   const read = searchParams.get("read") || "";
-  const page = Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10));
-  const limit = Math.max(1, Math.min(100, Number.parseInt(searchParams.get("limit") || "20", 10)));
+  const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const rawLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
 
   let tenantId: string;
   try {
