@@ -50,7 +50,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [openResults, setOpenResults] = useState(false);
   const [results, setResults] = useState<Array<{id:string; type:string; title:string; href:string; subtitle?:string}>>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const closeResultsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeResultsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -126,7 +126,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   }, [pathname]);
 
   useEffect(() => () => {
-    if (closeResultsTimeoutRef.current !== undefined) {
+    if (closeResultsTimeoutRef.current) {
       clearTimeout(closeResultsTimeoutRef.current);
     }
   }, []);
@@ -301,7 +301,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
             onChange={(e)=>{ setQuery(e.target.value); setOpenResults(true); }}
             onFocus={() => {
               if (closeResultsTimeoutRef.current) {
-                clearTimeout(closeResultsTimeoutRef.current as unknown as number);
+                clearTimeout(closeResultsTimeoutRef.current);
                 closeResultsTimeoutRef.current = null;
               }
               setOpenResults(true);
