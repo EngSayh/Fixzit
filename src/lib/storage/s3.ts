@@ -11,20 +11,15 @@ export function getS3Client() {
 
 export async function getPresignedGetUrl(key: string, expiresSeconds = 600): Promise<string> {
   const client = getS3Client();
-  const cmd = new PutObjectCommand({ Bucket: BUCKET, Key: key });
-  // Note: For GET, use a GET-capable command; we intentionally generate a GET URL using a workaround via signer below.
-  // The SDK v3 presigner requires an HTTP method; we synthesize one via request signing options.
-  // Simpler: reuse s3-request-presigner with an unsigned request not supported directly; instead, use @aws-sdk/client-s3 GetObjectCommand but avoid importing here to save size.
-  // To keep dependencies minimal, dynamically import only when needed:
   const { GetObjectCommand } = await import('@aws-sdk/client-s3');
   const getCmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
-  return await getSignedUrl(client as any, getCmd as any, { expiresIn: expiresSeconds });
+  return await getSignedUrl(client, getCmd, { expiresIn: expiresSeconds });
 }
 
 export async function getPresignedPutUrl(key: string, contentType: string, expiresSeconds = 600): Promise<string> {
   const client = getS3Client();
   const cmd = new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType });
-  return await getSignedUrl(client as any, cmd as any, { expiresIn: expiresSeconds });
+  return await getSignedUrl(client, cmd, { expiresIn: expiresSeconds });
 }
 
 export async function putObjectBuffer(key: string, buffer: Buffer, contentType: string) {
