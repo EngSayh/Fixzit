@@ -49,6 +49,11 @@ export function AutoFixAgent() {
     errorsRef.current = errors;
   }, [errors]);
 
+  useEffect(() => {
+    roleRef.current = role;
+    orgIdRef.current = orgId;
+  }, [role, orgId]);
+
   const sendBatch = useCallback(async () => {
     if (!eventBuffer.current.length) return;
     const payload = eventBuffer.current.splice(0, eventBuffer.current.length);
