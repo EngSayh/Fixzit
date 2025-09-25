@@ -5,7 +5,7 @@ const uri = process.env.MONGODB_URI || "";
 
 // Central flag to control mock mode explicitly
 const USE_MOCK_DB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-export const isMockDB = USE_MOCK_DB;
+export const isMockDB = USE_MOCK_DB || !uri;
 
 // Very small in-memory mock only when explicitly enabled or no URI
 class MockDB {
@@ -42,7 +42,9 @@ if (!conn) {
       dbName: process.env.MONGODB_DB || 'fixzit'
     });
   } else {
-    throw new Error("Mongo URI missing or mongoose unavailable. Set MONGODB_URI or enable USE_MOCK_DB=true.");
+    // Fallback to mock if neither condition met
+    console.warn("⚠️ Falling back to MockDB (no MONGODB_URI set).");
+    conn = (global as any)._mongoose = new MockDB();
   }
 }
 
