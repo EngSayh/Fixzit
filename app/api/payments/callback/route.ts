@@ -4,16 +4,38 @@ import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const signature = req.headers.get('signature') || '';
+  const signature = req.headers.get('signature') ?? '';
+  const rawBody = await req.text();
 
-    // Validate callback signature
-    if (!validateCallback(body, signature)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+  // Validate callback signature against the raw payload bytes as provided by PayTabs
+  if (!validateCallback(rawBody, signature)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+  }
+
+  let body: unknown;
+
+  try {
+    body = JSON.parse(rawBody);
+  } catch (error) {
+    console.error('Failed to parse PayTabs callback payload:', error);
+    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+  }
+
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+  }
+
+  try {
+    const callback = body as Record<string, any>;
+    const { tran_ref, cart_id, payment_result } = callback;
+
+    if (!tran_ref || !cart_id || !payment_result) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { tran_ref, cart_id, payment_result } = body;
+    const paymentInfo = (callback.payment_info ?? {}) as Record<string, any>;
+    const paymentMethod = paymentInfo.payment_method ?? 'UNKNOWN';
+    const cardScheme = paymentInfo.card_scheme ?? paymentMethod;
 
     // Verify payment with PayTabs
     const verification = await verifyPayment(tran_ref);
@@ -32,12 +54,12 @@ export async function POST(req: NextRequest) {
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
-        method: body.payment_info.payment_method,
+        amount: parseFloat(callback.cart_amount),
+        method: paymentMethod,
         reference: tran_ref,
         status: 'COMPLETED',
         transactionId: tran_ref,
-        notes: `Payment via ${body.payment_info.card_scheme || body.payment_info.payment_method}`
+        notes: `Payment via ${cardScheme}`
       });
 
       invoice.history.push({
@@ -50,8 +72,8 @@ export async function POST(req: NextRequest) {
       // Payment failed
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
-        method: body.payment_info?.payment_method || 'UNKNOWN',
+        amount: parseFloat(callback.cart_amount),
+        method: paymentMethod,
         reference: tran_ref,
         status: 'FAILED',
         transactionId: tran_ref,
