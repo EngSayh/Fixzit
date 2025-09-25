@@ -109,16 +109,18 @@ export async function POST(req: NextRequest) {
     // Prefer vector search if available
     let docs: Doc[] = [];
     try {
+      const { embedText } = await import('@/src/ai/embeddings');
+      const qVec = await embedText(question);
       const vec = await fetch(new URL('/api/kb/search', req.nextUrl).toString(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: await (await import('@/src/ai/embeddings')).embedText(question), lang, role, route, limit })
+        body: JSON.stringify({ query: qVec, lang, role, route, limit })
       });
       if (vec.ok) {
         const json = await vec.json();
         const chunks = json?.results || [];
-        // Fetch corresponding articles for context assembly (or use chunk text)
-        docs = chunks.map((c: any) => ({ slug: '', title: '', content: c.text, updatedAt: undefined }));
+        // Use chunk text directly as context; citations sourced from articleId
+        docs = chunks.map((c: any) => ({ slug: c.articleId || '', title: '', content: c.text, updatedAt: undefined }));
       }
     } catch {}
 
