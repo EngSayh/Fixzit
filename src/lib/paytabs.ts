@@ -181,7 +181,10 @@ export function validateCallback(payload: PaytabsSignedPayload, signature: strin
     return false;
   }
 
-  assertConfig();
+  if (!PAYTABS_CONFIG.serverKey) {
+    console.error('PayTabs server key is not configured');
+    return false;
+  }
 
   const expected = generateSignature(payload);
   const provided = decodeSignature(signature);
@@ -220,6 +223,10 @@ function normalizePayload(payload: PaytabsSignedPayload): Buffer | null {
 }
 
 function generateSignature(payload: PaytabsSignedPayload): Buffer | null {
+  if (!PAYTABS_CONFIG.serverKey) {
+    return null;
+  }
+
   const normalized = normalizePayload(payload);
 
   if (!normalized) {
