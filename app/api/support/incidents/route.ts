@@ -13,11 +13,13 @@ export async function POST(req: NextRequest) {
   const now = new Date();
 
   const incidentId: string = body?.incidentId || `INC-${now.getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const incidentKey: string | undefined = body?.incidentKey || incidentId;
   const code: string = body?.code || 'UI-UI-UNKNOWN-000';
   const category: string = body?.category || 'Support';
   const severity: string = body?.severity || 'P2';
-  const message: string = body?.message || 'Application error';
-  const details: string | undefined = body?.details || body?.stack;
+  const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
+  const message: string = truncate(body?.message || 'Application error', 500) as string;
+  const details: string | undefined = truncate(body?.details || body?.stack, 4000);
 
   // Derive authenticated user/tenant if available; ignore spoofed body.userContext
   let sessionUser: { id: string; role: string; tenantId: string } | null = null;
@@ -28,8 +30,17 @@ export async function POST(req: NextRequest) {
     sessionUser = null;
   }
 
+  // Dedupe: return existing if same incidentKey exists
+  const existing = incidentKey
+    ? await native.collection('error_events').findOne({ incidentKey })
+    : null;
+  if (existing) {
+    return NextResponse.json({ ok: true, incidentId: existing.incidentId, ticketId: existing.ticketId }, { status: 202 });
+  }
+
   // Store minimal incident document for indexing/analytics
   await native.collection('error_events').insertOne({
+    incidentKey,
     incidentId,
     code,
     category,
@@ -42,10 +53,14 @@ export async function POST(req: NextRequest) {
   });
 
   // Auto-create a Support Ticket (same model used by /api/support/tickets)
-  const ticketCode = `SUP-${now.getFullYear()}-${Math.floor(Math.random() * 100000)}`;
-  const ticket = await (SupportTicket as any).create({
+  let ticket: any | null = null;
+  const genCode = () => `SUP-${now.getFullYear()}-${Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0')}`;
+  for (let i = 0; i < 5; i++) {
+    const ticketCode = genCode();
+    try {
+      ticket = await (SupportTicket as any).create({
     tenantId: sessionUser?.tenantId || undefined,
-    code: ticketCode,
+        code: ticketCode,
     subject: `[${code}] ${message}`.slice(0, 140),
     module: 'Other',
     type: 'Bug',
@@ -63,12 +78,30 @@ export async function POST(req: NextRequest) {
       {
         byUserId: sessionUser?.id || undefined,
         byRole: sessionUser ? 'USER' : 'GUEST',
-        text: `${message}\n\n${details || ''}`.trim(),
+            text: `${message}\n\n${details || ''}`.trim(),
         at: now
       }
-    ]
-  });
+        ]
+      });
+      break;
+    } catch (e: any) {
+      if (e?.code === 11000) continue; // duplicate code -> retry
+      throw e;
+    }
+  }
+
+  // Persist ticket linkage for dedupe/analytics
+  if (ticket) {
+    await native.collection('error_events').updateOne(
+      { incidentId },
+      { $set: { ticketId: ticket.code } }
+    );
+  }
 
   return NextResponse.json({ ok: true, incidentId, ticketId: ticket?.code }, { status: 202 });
+}
+
+export async function GET() {
+  return new NextResponse(null, { status: 405 });
 }
 

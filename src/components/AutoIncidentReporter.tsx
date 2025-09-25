@@ -18,14 +18,14 @@ export default function AutoIncidentReporter(){
       const url = '/api/support/incidents';
       try {
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        // @ts-ignore
-        if (navigator.sendBeacon && navigator.sendBeacon(url, blob)) return;
+        if ('sendBeacon' in navigator && typeof (navigator as any).sendBeacon === 'function' && (navigator as any).sendBeacon(url, blob)) return;
       } catch {}
       fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});
     };
 
     const onErr = (ev: ErrorEvent) => {
-      const user = getUser();
+      const u = getUser();
+      const user = u ? { userId: u.id, tenant: u.tenantId } : undefined;
       const ctx = buildCtx();
       send({ code: 'UI-UI-UNKNOWN-000', message: ev.message, details: ev.error?.stack, userContext: user, clientContext: ctx });
     };
@@ -33,7 +33,8 @@ export default function AutoIncidentReporter(){
       const reason: any = ev.reason;
       const msg = typeof reason === 'string' ? reason : (reason?.message || 'Unhandled rejection');
       const stack = reason?.stack ? String(reason.stack) : undefined;
-      const user = getUser();
+      const u = getUser();
+      const user = u ? { userId: u.id, tenant: u.tenantId } : undefined;
       const ctx = buildCtx();
       send({ code: 'UI-UI-UNKNOWN-000', message: msg, details: stack, userContext: user, clientContext: ctx });
     };
