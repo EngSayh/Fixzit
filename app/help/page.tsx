@@ -146,8 +146,9 @@ export default function HelpHome() {
     }
   };
 
+  // Respect global dir set by ClientLayout; nothing custom here
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" dir={undefined as any}>
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[#023047] via-[#0061A8] to-[#00A859] text-white py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
