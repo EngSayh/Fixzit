@@ -210,7 +210,7 @@ function normalizePayload(payload: PaytabsSignedPayload): Buffer | null {
     try {
       return Buffer.from(payload as ArrayBufferLike);
     } catch (error) {
-      console.warn('Failed to normalise PayTabs payload for signature verification.');
+      console.warn('Failed to normalize PayTabs payload for signature verification.');
       return null;
     }
   }

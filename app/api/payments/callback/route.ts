@@ -26,39 +26,103 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const callback = body as Record<string, any>;
+    const callback = body as Record<string, unknown>;
     const { tran_ref, cart_id, payment_result } = callback;
 
-    if (!tran_ref || !cart_id || !payment_result) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (
+      typeof tran_ref !== 'string' || tran_ref.trim() === '' ||
+      typeof cart_id !== 'string' || cart_id.trim() === '' ||
+      typeof payment_result !== 'object' || payment_result === null
+    ) {
+      return NextResponse.json({ error: 'Missing or invalid required fields' }, { status: 400 });
     }
 
-    const paymentInfo = (callback.payment_info ?? {}) as Record<string, any>;
-    const paymentMethod = paymentInfo.payment_method ?? 'UNKNOWN';
-    const cardScheme = paymentInfo.card_scheme ?? paymentMethod;
+    const transactionReference = tran_ref.trim();
+    const cartId = cart_id.trim();
+
+    const paymentInfo =
+      typeof callback.payment_info === 'object' && callback.payment_info !== null
+        ? (callback.payment_info as Record<string, unknown>)
+        : {};
+    const paymentMethod =
+      typeof paymentInfo.payment_method === 'string' && paymentInfo.payment_method.trim() !== ''
+        ? paymentInfo.payment_method
+        : 'UNKNOWN';
+    const cardScheme =
+      typeof paymentInfo.card_scheme === 'string' && paymentInfo.card_scheme.trim() !== ''
+        ? paymentInfo.card_scheme
+        : paymentMethod;
+
+    const amountValue = (() => {
+      const rawAmount = callback.cart_amount;
+
+      if (typeof rawAmount === 'number' && Number.isFinite(rawAmount)) {
+        return rawAmount;
+      }
+
+      if (typeof rawAmount === 'string') {
+        const parsed = Number.parseFloat(rawAmount);
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+
+      return null;
+    })();
+
+    if (amountValue === null) {
+      return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
+    }
+
+    const paymentResult = payment_result as Record<string, unknown>;
+    const responseStatus =
+      typeof paymentResult.response_status === 'string'
+        ? paymentResult.response_status
+        : '';
+    const responseMessage =
+      typeof paymentResult.response_message === 'string'
+        ? paymentResult.response_message
+        : undefined;
 
     // Verify payment with PayTabs
-    const verification = await verifyPayment(tran_ref);
+    const verification = await verifyPayment(transactionReference);
+
+    const verificationResult =
+      verification && typeof verification === 'object'
+        ? (verification as Record<string, unknown>)
+        : {};
+    const verificationPaymentResult =
+      verificationResult.payment_result && typeof verificationResult.payment_result === 'object'
+        ? (verificationResult.payment_result as Record<string, unknown>)
+        : {};
+    const verificationStatus =
+      typeof verificationPaymentResult.response_status === 'string'
+        ? verificationPaymentResult.response_status
+        : '';
+    const verificationMessage =
+      typeof verificationPaymentResult.response_message === 'string'
+        ? verificationPaymentResult.response_message
+        : undefined;
 
     await db;
-    const invoice = await (Invoice as any).findById(cart_id);
+    const invoice = await (Invoice as any).findById(cartId);
 
     if (!invoice) {
-      console.error('Invoice not found for payment callback:', cart_id);
+      console.error('Invoice not found for payment callback:', cartId);
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
     // Update invoice based on payment result
-    if (payment_result.response_status === 'A' && verification.payment_result.response_status === 'A') {
+    if (responseStatus === 'A' && verificationStatus === 'A') {
       // Payment successful
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(callback.cart_amount),
+        amount: amountValue,
         method: paymentMethod,
-        reference: tran_ref,
+        reference: transactionReference,
         status: 'COMPLETED',
-        transactionId: tran_ref,
+        transactionId: transactionReference,
         notes: `Payment via ${cardScheme}`
       });
 
@@ -66,25 +130,25 @@ export async function POST(req: NextRequest) {
         action: 'PAID',
         performedBy: 'SYSTEM',
         performedAt: new Date(),
-        details: `Payment completed via PayTabs. Transaction: ${tran_ref}`
+        details: `Payment completed via PayTabs. Transaction: ${transactionReference}`
       });
     } else {
       // Payment failed
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(callback.cart_amount),
+        amount: amountValue,
         method: paymentMethod,
-        reference: tran_ref,
+        reference: transactionReference,
         status: 'FAILED',
-        transactionId: tran_ref,
-        notes: payment_result.response_message || 'Payment failed'
+        transactionId: transactionReference,
+        notes: responseMessage || verificationMessage || 'Payment failed'
       });
 
       invoice.history.push({
         action: 'PAYMENT_FAILED',
         performedBy: 'SYSTEM',
         performedAt: new Date(),
-        details: `Payment failed: ${payment_result.response_message}. Transaction: ${tran_ref}`
+        details: `Payment failed: ${responseMessage ?? verificationMessage ?? 'Unknown reason'}. Transaction: ${transactionReference}`
       });
     }
 
