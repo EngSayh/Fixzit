@@ -48,7 +48,11 @@ export default function SupportTicketPage() {
           }
         })
       });
-      if (!res.ok) throw new Error('Failed to create ticket');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        const apiMsg = (payload && (payload.error || payload.message)) || `Request failed (${res.status})`;
+        throw new Error(apiMsg);
+      }
       alert('🎯 Support Ticket Created Successfully!\n\nYour ticket has been submitted and our support team will get back to you within 24 hours.');
       setFormData({
         subject: '',
@@ -60,8 +64,9 @@ export default function SupportTicketPage() {
         email: '',
         phone: ''
       });
-    } catch {
-      alert('There was an error submitting your ticket. Please try again.');
+    } catch (err: any) {
+      const msg = err?.message || 'There was an error submitting your ticket. Please try again.';
+      alert(msg);
     } finally {
       setIsSubmitting(false);
     }
