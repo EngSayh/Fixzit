@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-const SEARCH_DEBOUNCE_MS = 180;
-const BLUR_CLOSE_DELAY_MS = 120;
 import { Bell, Search, User, ChevronDown } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import LanguageSelector from './i18n/LanguageSelector';
@@ -11,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 
+const SEARCH_DEBOUNCE_MS = 180;
+const BLUR_CLOSE_DELAY_MS = 120;
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {
   'common.brand': 'FIXZIT ENTERPRISE',
