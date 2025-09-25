@@ -39,6 +39,21 @@ type InvoiceDocument = Document & {
   save(): Promise<InvoiceDocument>;
 };
 
+/**
+ * Converts the PayTabs `cart_amount` payload value into a finite number.
+ *
+ * The gateway may return the amount as a string (e.g. "147.25") or a number
+ * depending on the integration path. This helper normalizes the value and
+ * guarantees that callers receive either a valid numeric amount or `null`
+ * when the payload is malformed.
+ *
+ * @param value - Raw `cart_amount` value received from PayTabs.
+ * @returns The parsed amount as a number, or `null` if the value is invalid.
+ *
+ * @example
+ * const amount = parseCartAmount('249.99');
+ * // amount === 249.99
+ */
 function parseCartAmount(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
