@@ -57,7 +57,10 @@ export async function GET(request: NextRequest) {
     }
 
     await dbConnect();
-    const discount = await DiscountRule.findOne({ code: DISCOUNT_CODE }).lean();
+    const discount = await DiscountRule.findOne({
+      code: DISCOUNT_CODE,
+      orgId: context.orgId
+    }).lean();
 
     return NextResponse.json(formatDiscountResponse(discount), {
       headers: { 'Cache-Control': 'no-store' }
@@ -83,9 +86,11 @@ export async function PUT(req: NextRequest) {
     const payload = UpdateDiscountSchema.parse(body);
 
     const discount = await DiscountRule.findOneAndUpdate(
-      { code: DISCOUNT_CODE },
+      { code: DISCOUNT_CODE, orgId: context.orgId },
       {
         code: DISCOUNT_CODE,
+        orgId: context.orgId,
+        tenantKey: context.tenantKey,
         type: payload.type,
         value: payload.value,
         active: payload.active

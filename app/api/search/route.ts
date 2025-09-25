@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId, Db } from 'mongodb';
 
 import { APPS, AppKey, SearchEntity } from '@/src/config/topbar-modules';
-import type { Role } from '@/src/lib/rbac';
 import { getNativeDb } from '@/src/lib/mongo';
+import { verifyToken } from '@/src/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,26 @@ type SearchResult = {
 const DEFAULT_LIMIT = 20;
 const PER_ENTITY_LIMIT = 5;
 
-type SearchRole = Role | 'STAFF';
+type SearchRole =
+  | 'SUPER_ADMIN'
+  | 'ADMIN'
+  | 'STAFF'
+  | 'CORPORATE_ADMIN'
+  | 'FM_MANAGER'
+  | 'FINANCE'
+  | 'HR'
+  | 'PROCUREMENT'
+  | 'PROPERTY_MANAGER'
+  | 'EMPLOYEE'
+  | 'TECHNICIAN'
+  | 'VENDOR'
+  | 'CUSTOMER'
+  | 'OWNER'
+  | 'AUDITOR'
+  | 'DISPATCHER'
+  | 'TENANT'
+  | 'SUPPORT'
+  | 'BUYER';
 
 const ALL_ROLES: SearchRole[] = [
   'SUPER_ADMIN',
@@ -38,7 +57,11 @@ const ALL_ROLES: SearchRole[] = [
   'VENDOR',
   'CUSTOMER',
   'OWNER',
-  'AUDITOR'
+  'AUDITOR',
+  'DISPATCHER',
+  'TENANT',
+  'SUPPORT',
+  'BUYER'
 ];
 
 const APP_ALLOWED_ROLES: Record<AppKey, SearchRole[]> = {
@@ -55,10 +78,12 @@ const APP_ALLOWED_ROLES: Record<AppKey, SearchRole[]> = {
     'EMPLOYEE',
     'TECHNICIAN',
     'OWNER',
-    'AUDITOR'
+    'AUDITOR',
+    'DISPATCHER',
+    'SUPPORT'
   ],
-  souq: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CORPORATE_ADMIN', 'PROCUREMENT', 'FM_MANAGER', 'VENDOR', 'CUSTOMER'],
-  aqar: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CORPORATE_ADMIN', 'FM_MANAGER', 'OWNER', 'CUSTOMER']
+  souq: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CORPORATE_ADMIN', 'PROCUREMENT', 'FM_MANAGER', 'VENDOR', 'CUSTOMER', 'BUYER'],
+  aqar: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CORPORATE_ADMIN', 'FM_MANAGER', 'OWNER', 'CUSTOMER', 'TENANT']
 };
 
 const TENANT_SCOPED_ENTITIES = new Set<SearchEntity>([
@@ -129,7 +154,7 @@ function normalizeRole(value?: string | null): SearchRole | null {
     return null;
   }
 
-  const candidate = value.trim().toUpperCase().replace(/[\s-]+/g, '_') as Role;
+  const candidate = value.trim().toUpperCase().replace(/[\s-]+/g, '_') as SearchRole;
   return ALL_ROLES.includes(candidate) ? candidate : null;
 }
 
@@ -156,35 +181,49 @@ function toObjectId(value?: string | null): ObjectId | null {
   }
 }
 
-function resolveRequestContext(req: NextRequest): RequestContext | null {
+function getBearerToken(req: NextRequest): string | null {
+  const header = req.headers.get('authorization');
+  if (header && header.startsWith('Bearer ')) {
+    const token = header.slice(7).trim();
+    if (token) {
+      return token;
+    }
+  }
+  return null;
+}
+
+async function resolveRequestContext(req: NextRequest): Promise<RequestContext | null> {
   try {
-    const userHeader = req.headers.get('x-user');
-    const parsedUser = userHeader ? JSON.parse(userHeader) : undefined;
+    const cookieToken = req.cookies.get('fixzit_auth')?.value ?? null;
+    const bearerToken = getBearerToken(req);
+    const token = cookieToken ?? bearerToken;
 
-    const headerTenant = req.headers.get('x-tenant-id') ?? req.headers.get('x-org-id');
-    const cookieTenant = req.cookies.get('fixzit_org')?.value ?? req.cookies.get('fixzit_tenant')?.value;
-    const userTenant = typeof parsedUser?.tenantId === 'string' ? parsedUser.tenantId : undefined;
+    const payload = token ? verifyToken(token) : null;
 
-    const tenantId = (headerTenant ?? userTenant ?? cookieTenant ?? process.env.DEFAULT_TENANT_ID ?? '').trim();
+    let tenantId = payload?.tenantId;
+    let role = normalizeRole(payload?.role ?? null);
+    let userId = payload?.id;
 
-    if (!tenantId) {
+    if ((!tenantId || !role) && process.env.NODE_ENV !== 'production') {
+      const devHeader = req.headers.get('x-user');
+      if (devHeader) {
+        try {
+          const parsed = JSON.parse(devHeader);
+          tenantId = tenantId ?? parsed?.tenantId ?? parsed?.tenant_id;
+          role = role ?? normalizeRole(parsed?.role) ?? normalizeRole(parsed?.professional?.role ?? null);
+          userId = userId ?? parsed?.id ?? parsed?._id;
+        } catch (error) {
+          console.warn('Failed to parse development x-user header', error);
+        }
+      }
+    }
+
+    if (!tenantId || !role) {
       return null;
     }
 
-    const role =
-      normalizeRole(req.headers.get('x-user-role')) ||
-      normalizeRole(parsedUser?.role) ||
-      normalizeRole(parsedUser?.professional?.role) ||
-      normalizeRole(req.headers.get('x-role')) ||
-      'CUSTOMER';
-
-    const userId = typeof parsedUser?.id === 'string' ? parsedUser.id : req.headers.get('x-user-id') ?? undefined;
-    const orgId =
-      toObjectId(req.headers.get('x-org-id')) ||
-      toObjectId(typeof parsedUser?.orgId === 'string' ? parsedUser.orgId : undefined);
-
-    const fallbackOrgId = toObjectId(tenantId);
     const tenantObjectId = toObjectId(tenantId);
+    const orgId = tenantObjectId;
 
     return {
       tenantId,
@@ -192,7 +231,7 @@ function resolveRequestContext(req: NextRequest): RequestContext | null {
       role,
       userId,
       orgId,
-      fallbackOrgId
+      fallbackOrgId: tenantObjectId
     };
   } catch (error) {
     console.warn('Failed to resolve search request context', error);
@@ -207,7 +246,7 @@ function ensureRoleAllowed(app: AppKey, role: SearchRole): boolean {
 
 export async function GET(req: NextRequest) {
   try {
-    const context = resolveRequestContext(req);
+    const context = await resolveRequestContext(req);
     if (!context) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
