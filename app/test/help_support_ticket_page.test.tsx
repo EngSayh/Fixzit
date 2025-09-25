@@ -12,7 +12,7 @@ import userEvent from '@testing-library/user-event';
 // IMPORTANT: Adjust this import path to the actual component path in your repo.
 // The snippet shows the component definition only; if it's under `app/help/support/page.tsx`,
 // or similar, change accordingly. For now, we import from a relative inline path assumption.
-import SupportTicketPage from '../help_support_ticket_page.test'; // FIXME: replace with actual component path
+import SupportTicketPage from '../help/support-ticket/page';
 
 // Helpers to mock global APIs
 const originalFetch = global.fetch;
