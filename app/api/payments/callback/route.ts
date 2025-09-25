@@ -161,10 +161,10 @@ export async function POST(req: NextRequest) {
       // Payment successful
       invoice.status = 'PAID';
       const successNotes = `Payment via ${cardScheme}`;
-      const wasCompleted = existingPayment?.status === 'COMPLETED';
+      const statusChanged = existingPayment?.status !== 'COMPLETED';
       upsertPayment('COMPLETED', successNotes);
 
-      if (!wasCompleted) {
+      if (statusChanged) {
         invoice.history.push({
           action: 'PAID',
           performedBy: 'SYSTEM',
@@ -175,10 +175,10 @@ export async function POST(req: NextRequest) {
     } else {
       // Payment failed
       const failureNotes = responseMessage || verificationMessage || 'Payment failed';
-      const wasFailed = existingPayment?.status === 'FAILED';
+      const statusChanged = existingPayment?.status !== 'FAILED';
       upsertPayment('FAILED', failureNotes);
 
-      if (!wasFailed) {
+      if (statusChanged) {
         invoice.history.push({
           action: 'PAYMENT_FAILED',
           performedBy: 'SYSTEM',
