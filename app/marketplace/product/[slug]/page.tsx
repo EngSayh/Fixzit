@@ -27,8 +27,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
           <div className="text-2xl font-bold">{bb?.price?.toLocaleString()} {bb?.currency}</div>
           <div className="text-sm text-gray-600">{bb?.inStock ? 'In Stock' : 'Backorder'} · Lead {bb?.leadDays} days</div>
           <div className="flex gap-2 mt-3">
-            <Link href="/cart" className="px-4 py-2 bg-[#febd69] text-black rounded hover:opacity-90">Add to Cart</Link>
-            <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-[#ffd814] text-black rounded hover:opacity-90">Buy Now (PO)</Link>
+            <Link href="/cart" className="px-4 py-2 bg-[#FFB400] text-black rounded hover:opacity-90">Add to Cart</Link>
+            <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-[#00A859] text-white rounded hover:opacity-90">Buy Now (PO)</Link>
           </div>
         </div>
       </div>

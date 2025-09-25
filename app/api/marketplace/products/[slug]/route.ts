@@ -2,11 +2,14 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { MarketplaceProduct } from '@/src/server/models/MarketplaceProduct';
-import { getTenantFromRequest } from '@/src/server/utils/tenant';
+import { getAuthFromRequest, requireMarketplaceReadRole } from '@/src/server/utils/tenant';
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
-    const tenantId = getTenantFromRequest(req) || 'demo-tenant';
+    const { tenantId, role } = getAuthFromRequest(req);
+    if (!tenantId || !requireMarketplaceReadRole(role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const doc = await (MarketplaceProduct as any).findOne({ tenantId, slug: params.slug });
     if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
