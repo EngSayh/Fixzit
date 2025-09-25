@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell, Search, User, ChevronDown } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import LanguageSelector from './i18n/LanguageSelector';
@@ -47,6 +47,8 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [query, setQuery] = useState('');
   const [openResults, setOpenResults] = useState(false);
   const [results, setResults] = useState<Array<{id:string; type:string; title:string; href:string; subtitle?:string}>>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const closeResultsTimeoutRef = useRef<number | undefined>();
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -78,20 +80,54 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
       : t('aqar.search.placeholder', 'Search listings, projects, agents…');
 
   useEffect(() => {
-    if (!query.trim()) { setResults([]); return; }
+    if (!query.trim()) {
+      setResults([]);
+      setSearchError(null);
+      setOpenResults(false);
+      return;
+    }
     const ac = new AbortController();
     const run = async () => {
       try {
-        const r = await fetch(`/api/search?scope=${scope}&q=${encodeURIComponent(query)}`, { signal: ac.signal });
+        const r = await fetch(`/api/search?scope=${scope}&q=${encodeURIComponent(query)}`,
+          { signal: ac.signal, headers: { accept: 'application/json' } }
+        );
+        if (!r.ok) {
+          if (r.status === 401) setSearchError('Authentication required');
+          else if (r.status === 403) setSearchError('Access denied for this search scope');
+          else setSearchError(`Search failed (${r.status})`);
+          setResults([]);
+          return;
+        }
         const json = await r.json();
-        setResults(json.results || []);
-      } catch (err) {
+        if (json.error) {
+          setSearchError(json.error);
+          setResults([]);
+          return;
+        }
+        setSearchError(null);
+        setResults(Array.isArray(json.results) ? json.results : []);
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
         console.error('Search request failed:', err);
+        setSearchError('Network error - please check your connection');
+        setResults([]);
       }
     };
     const id = setTimeout(run, 180);
     return () => { ac.abort(); clearTimeout(id); };
   }, [query, scope]);
+
+  useEffect(() => {
+    setOpenResults(false);
+    setResults([]);
+  }, [pathname]);
+
+  useEffect(() => () => {
+    if (closeResultsTimeoutRef.current !== undefined) {
+      clearTimeout(closeResultsTimeoutRef.current);
+    }
+  }, []);
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
@@ -261,24 +297,55 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
           <input
             value={query}
             onChange={(e)=>{ setQuery(e.target.value); setOpenResults(true); }}
-            onFocus={()=> setOpenResults(true)}
-            onBlur={()=> setTimeout(()=> setOpenResults(false), 120)}
+            onFocus={() => {
+              if (closeResultsTimeoutRef.current !== undefined) {
+                clearTimeout(closeResultsTimeoutRef.current);
+                closeResultsTimeoutRef.current = undefined;
+              }
+              setOpenResults(true);
+            }}
+            onBlur={()=>{
+              closeResultsTimeoutRef.current = window.setTimeout(()=>{
+                setOpenResults(false);
+                closeResultsTimeoutRef.current = undefined;
+              }, 120);
+            }}
             className={`bg-transparent outline-none py-1 text-sm placeholder-white/70 ${screenInfo.isTablet ? 'w-48' : 'w-64'} ${isRTL ? 'text-right' : ''}`}
             placeholder={placeholder}
-            aria-label="Global Search"
+            aria-label={t('common.search.aria', 'Global Search')}
+            aria-expanded={openResults && results.length > 0}
+            aria-controls="global-search-results"
           />
-          {openResults && results.length > 0 && (
+          {openResults && (results.length > 0 || searchError) && (
             <div className={`absolute top-full mt-2 w-[28rem] max-w-[70vw] bg-white text-gray-900 rounded-lg shadow-xl border z-50 ${isRTL ? 'left-0' : 'right-0'}`}>
-              <ul className="max-h-80 overflow-auto py-1">
-                {results.map(r => (
-                  <li key={`${r.type}:${r.id}`}>
-                    <Link href={r.href} className="block px-3 py-2 hover:bg-gray-50" onClick={()=> setOpenResults(false)}>
-                      <div className="text-sm font-medium">{r.title}</div>
-                      {r.subtitle && <div className="text-[11px] text-gray-500">{r.type} • {r.subtitle}</div>}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              {searchError ? (
+                <div className="p-4 text-center">
+                  <div className="text-red-600 text-sm font-medium mb-2">Search Error</div>
+                  <div className="text-xs text-gray-600 mb-3">{searchError}</div>
+                  <button
+                    onMouseDown={() => {
+                      setSearchError(null);
+                      const current = query;
+                      setQuery('');
+                      setTimeout(() => setQuery(current), 10);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Retry Search
+                  </button>
+                </div>
+              ) : (
+                <ul id="global-search-results" role="listbox" className="max-h-80 overflow-auto py-1">
+                  {results.map(r => (
+                    <li key={`${r.type}:${r.id}`} role="option">
+                      <Link href={r.href} className="block px-3 py-2 hover:bg-gray-50" onMouseDown={()=> setOpenResults(false)}>
+                        <div className="text-sm font-medium">{r.title}</div>
+                        {r.subtitle && <div className="text-[11px] text-gray-500">{r.type} • {r.subtitle}</div>}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </div>
