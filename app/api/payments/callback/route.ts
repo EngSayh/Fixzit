@@ -35,6 +35,8 @@ type InvoiceDocument = Document & {
   save(): Promise<InvoiceDocument>;
 };
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   const signatureHeader =
     req.headers.get('signature') ??
