@@ -52,20 +52,47 @@ export async function GET(req: NextRequest){
     const filter: any = { };
     if (status) filter.status = status;
     if (category) filter.category = category;
-    if (q) filter.$text = { $search: q };
-
-    const cursor = coll.find(filter as any, {
-      projection: q ? { score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } : { slug: 1, title: 1, category: 1, updatedAt: 1 }
-    });
-
-    if (q) {
-      cursor.sort({ score: { $meta: "textScore" } });
-    } else {
-      cursor.sort({ updatedAt: -1 });
+    
+    function escapeRegExp(input: string) {
+      return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    const total = await coll.countDocuments(filter);
-    const items = await cursor.skip(skip).limit(limit).toArray();
+    let items: any[] = [];
+    let total = 0;
+
+    if (q) {
+      // Try $text search first; fallback to regex if text index is missing
+      const textFilter = { ...filter, $text: { $search: q } } as any;
+      const textProjection = { score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as any;
+      try {
+        total = await coll.countDocuments(textFilter);
+        items = await coll
+          .find(textFilter, { projection: textProjection })
+          .sort({ score: { $meta: "textScore" } })
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+      } catch (err: any) {
+        // Fallback when text index is missing
+        const safe = new RegExp(escapeRegExp(q), 'i');
+        const regexFilter = { ...filter, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
+        total = await coll.countDocuments(regexFilter);
+        items = await coll
+          .find(regexFilter, { projection: { slug: 1, title: 1, category: 1, updatedAt: 1 } })
+          .sort({ updatedAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+      }
+    } else {
+      total = await coll.countDocuments(filter);
+      items = await coll
+        .find(filter as any, { projection: { slug: 1, title: 1, category: 1, updatedAt: 1 } })
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+    }
 
     return NextResponse.json({
       items,
