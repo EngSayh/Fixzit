@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       title: d.title,
       text: (d.content || '').slice(0, 2000)
     }));
-    const contextTexts = contexts.map((c) => `${c.title}\n${c.text}`);
+    const contextTexts = contexts.map((c) => `${c.title}\n${redactPII(c.text)}`);
 
     // Try to summarize with OpenAI if configured; otherwise deterministic heuristic
     const aiAnswer = await maybeSummarizeWithOpenAI(redactPII(question), contextTexts);
