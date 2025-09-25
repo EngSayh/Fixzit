@@ -16,8 +16,10 @@ export function getAuthFromRequest(req: any): AuthContext {
 
 export function requireMarketplaceReadRole(role: string | null): boolean {
   if (!role) return false;
+  // Drive from canonical governance matrix where marketplace access is defined
   const allowed = new Set([
-    'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'PROPERTY_MANAGER', 'EMPLOYEE', 'TECHNICIAN', 'TENANT', 'VENDOR', 'CUSTOMER'
+    'SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'FINANCE', 'HR', 'PROCUREMENT',
+    'PROPERTY_MANAGER', 'EMPLOYEE', 'TECHNICIAN', 'VENDOR', 'CUSTOMER', 'OWNER', 'AUDITOR'
   ]);
   return allowed.has(role);
 }
