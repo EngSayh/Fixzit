@@ -182,7 +182,7 @@ export function validateCallback(payload: PaytabsSignedPayload, signature: strin
   }
 
   if (!PAYTABS_CONFIG.serverKey) {
-    console.error('PayTabs server key is not configured');
+    console.error('PayTabs server key is not configured. Set PAYTABS_SERVER_KEY environment variable.');
     return false;
   }
 
@@ -213,7 +213,11 @@ function normalizePayload(payload: PaytabsSignedPayload): Buffer | null {
     try {
       return Buffer.from(payload as ArrayBufferLike);
     } catch (error) {
-      console.warn('Failed to normalize PayTabs payload for signature verification.');
+      console.warn(
+        `Failed to normalize PayTabs payload for signature verification (type: ${typeof payload}): ${
+          error instanceof Error ? error.message : error
+        }`
+      );
       return null;
     }
   }
@@ -253,7 +257,9 @@ function decodeSignature(signature: string): Buffer | null {
 
     return Buffer.from(trimmed, 'base64');
   } catch (error) {
-    console.warn('Failed to decode PayTabs signature.');
+    console.warn(
+      `Failed to decode PayTabs signature: ${error instanceof Error ? error.message : error}`
+    );
     return null;
   }
 }
