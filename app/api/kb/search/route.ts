@@ -1,0 +1,80 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getDatabase } from '@/lib/mongodb';
+import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
+
+/**
+ * POST /api/kb/search
+ * Body: { query: number[] (embedding), lang?: string, role?: string, route?: string, limit?: number }
+ * Returns: top-N chunks scoped by tenantId/lang/role/route with vectorSearch or lexical fallback.
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const query = body?.query as number[] | undefined;
+    const lang = typeof body?.lang === 'string' ? body.lang : undefined;
+    const role = typeof body?.role === 'string' ? body.role : undefined;
+    const route = typeof body?.route === 'string' ? body.route : undefined;
+    const limitRaw = Number(body?.limit);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(12, Math.floor(limitRaw)) : 8;
+    if (!Array.isArray(query) || query.length === 0) {
+      return NextResponse.json({ error: 'Missing query embedding' }, { status: 400 });
+    }
+
+    const db = await getDatabase();
+    const coll = db.collection('kb_embeddings');
+
+    const scope: any = {
+      $and: [
+        { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] },
+      ]
+    };
+    if (lang) scope.$and.push({ lang });
+    if (role) scope.$and.push({ roleScopes: { $in: [role] } });
+    if (route) scope.$and.push({ route });
+
+    let results: any[] = [];
+    try {
+      const pipe = [
+        {
+          $vectorSearch: {
+            index: process.env.KB_VECTOR_INDEX || 'kb-embeddings-index',
+            path: 'embedding',
+            queryVector: query,
+            numCandidates: 200,
+            limit
+          }
+        },
+        { $match: scope },
+        {
+          $project: {
+            articleId: 1,
+            chunkId: 1,
+            text: 1,
+            lang: 1,
+            route: 1,
+            roleScopes: 1,
+            score: { $meta: 'vectorSearchScore' }
+          }
+        }
+      ];
+      results = await (coll as any).aggregate(pipe).toArray();
+    } catch (e) {
+      // Fallback to lexical search on text
+      const safe = new RegExp((body?.q || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const filter = { ...scope, text: safe } as any;
+      results = await coll
+        .find(filter, { projection: { articleId: 1, chunkId: 1, text: 1, lang: 1, route: 1, roleScopes: 1 } })
+        .limit(limit)
+        .toArray();
+    }
+
+    return NextResponse.json({ results });
+  } catch (err) {
+    console.error('kb/search error', err);
+    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+  }
+}
+
