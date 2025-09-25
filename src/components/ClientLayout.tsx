@@ -9,6 +9,7 @@ import HelpWidget from './HelpWidget';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
+import dynamic from 'next/dynamic';
 import PreferenceBroadcast from './PreferenceBroadcast';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -118,9 +119,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       </TopBarProvider>
       <HelpWidget />
       <ErrorTest />
-      {/* Auto incident reporter (non-intrusive) */}
-      {/* eslint-disable-next-line @typescript-eslint/no-var-requires */}
-      {require && (()=>{ try { const Comp = require('@/src/components/AutoIncidentReporter').default; return <Comp/>; } catch { return null; } })()}
+      {dynamic(()=>import('@/src/components/AutoIncidentReporter'),{ ssr:false })({})}
     </div>
   );
 }

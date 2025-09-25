@@ -221,9 +221,14 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
           time: errorReport.timestamp
         }
       };
+      // Prevent duplicate submission if AutoIncidentReporter already sent for this errorId
+      if (typeof sessionStorage !== 'undefined') {
+        const last = sessionStorage.getItem('fxz_last_incident');
+        if (last === errorReport.errorId) return;
+        sessionStorage.setItem('fxz_last_incident', errorReport.errorId);
+      }
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-      // @ts-ignore
-      if (!(navigator.sendBeacon && navigator.sendBeacon('/api/support/incidents', blob))) {
+      if (!('sendBeacon' in navigator) || !(navigator as any).sendBeacon('/api/support/incidents', blob)) {
         fetch('/api/support/incidents', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true });
       }
     } catch {}
