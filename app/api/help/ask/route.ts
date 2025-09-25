@@ -101,7 +101,9 @@ export async function POST(req: NextRequest) {
 
     // Text index is created by scripts/add-database-indexes.js
 
-    const filter: any = { status: 'PUBLISHED', tenantId: user.tenantId };
+    // Enforce tenant isolation; allow global articles with no tenantId
+    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
 
     let docs: Doc[] = [];
