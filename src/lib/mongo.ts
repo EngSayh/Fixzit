@@ -25,17 +25,20 @@ class MockDB {
   }
 
   // Mock methods for Edge Runtime compatibility
-  async collection(name: string) {
+  collection(name: string) {
+    const emptyCursor = {
+      toArray: async () => [] as any[],
+      sort: () => emptyCursor,
+      limit: () => emptyCursor
+    };
+
     return {
       insertOne: async (doc: any) => ({ insertedId: 'mock-id' }),
-      find: () => ({
-        toArray: async () => [],
-        sort: () => this,
-        limit: () => this
-      }),
+      find: () => emptyCursor,
       findOne: async () => null,
       updateOne: async () => ({ modifiedCount: 1 }),
       deleteOne: async () => ({ deletedCount: 1 }),
+      aggregate: () => ({ toArray: async () => [] as any[] }),
     };
   }
 

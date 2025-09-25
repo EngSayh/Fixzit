@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
     const timeRange = url.searchParams.get('timeRange') || '24h';
     const module = url.searchParams.get('module');
     const severity = url.searchParams.get('severity');
-    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const limitParam = parseInt(url.searchParams.get('limit') || '50', 10);
+    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 200) : 50;
 
     // Calculate time range
     const now = new Date();
@@ -95,8 +96,16 @@ export async function GET(req: NextRequest) {
     ];
 
     const dbInstance = await db;
-    const collection = dbInstance.collection('error_events');
-    const aggregatedErrors = await collection.aggregate(pipeline).toArray();
+    const rawCollection =
+      typeof (dbInstance as any).collection === 'function'
+        ? await (dbInstance as any).collection('error_events')
+        : (dbInstance as any).connection?.collection?.('error_events');
+
+    if (!rawCollection || typeof rawCollection.aggregate !== 'function') {
+      throw new Error('Error events collection is not available');
+    }
+
+    const aggregatedErrors = await rawCollection.aggregate(pipeline).toArray();
 
     // Get summary statistics
     const summaryPipeline = [
@@ -171,7 +180,7 @@ export async function GET(req: NextRequest) {
       }
     ];
 
-    const summary = await collection.aggregate(summaryPipeline).toArray();
+    const summary = await rawCollection.aggregate(summaryPipeline).toArray();
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { useError } from '@/src/contexts/ErrorContext';
+import { ErrorContext, useError } from '@/src/contexts/ErrorContext';
 
 interface Props {
   children: React.ReactNode;
@@ -13,7 +13,8 @@ interface State {
 }
 
 export default class EnhancedErrorBoundary extends React.Component<Props, State> {
-  private errorContext: any = null;
+  static contextType = ErrorContext;
+  declare context: React.ContextType<typeof ErrorContext>;
 
   constructor(props: Props) {
     super(props);
@@ -33,8 +34,8 @@ export default class EnhancedErrorBoundary extends React.Component<Props, State>
     });
 
     // Report error using the new context
-    if (this.errorContext) {
-      this.errorContext.reportError('SYS-UI-RENDER-001', error.message, {
+    if (this.context) {
+      this.context.reportError('SYS-UI-RENDER-001', error.message, {
         stack: error.stack,
         category: 'UI',
         severity: 'ERROR',
