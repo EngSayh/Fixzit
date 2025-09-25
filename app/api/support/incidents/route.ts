@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     incidentId: z.string().max(64).optional(),
     incidentKey: z.string().max(128).optional(),
     userContext: z.object({ userId: z.string().optional(), tenant: z.string().optional(), email: z.string().email().optional(), phone: z.string().optional() }).optional(),
-    clientContext: z.record(z.string(), z.any()).optional()
+    clientContext: z.record(z.string(), z.unknown()).optional()
   });
   const safe = schema.parse(body);
   const now = new Date();
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
-      ticket = await (SupportTicket as any).create({
+      ticket = await SupportTicket.create({
     tenantId: sessionUser?.tenantId || undefined,
         code: ticketCode,
     subject: `[${code}] ${message}`.slice(0, 140),
