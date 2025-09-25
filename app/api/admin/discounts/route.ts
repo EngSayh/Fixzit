@@ -10,24 +10,52 @@ export const dynamic = 'force-dynamic';
 
 const DISCOUNT_CODE = 'ANNUAL' as const;
 
+type DiscountShape = {
+  code: typeof DISCOUNT_CODE;
+  type: 'percent' | 'amount';
+  value: number;
+  active: boolean;
+};
+
+const DEFAULT_DISCOUNT: DiscountShape = Object.freeze({
+  code: DISCOUNT_CODE,
+  type: 'percent',
+  value: 0,
+  active: false
+});
+
 const UpdateDiscountSchema = z.object({
   value: z.number().nonnegative(),
-  type: z.enum(['percent', 'amount']).default('percent'),
-  active: z.boolean().default(true)
+  type: z.enum(['percent', 'amount']).default(DEFAULT_DISCOUNT.type),
+  active: z.boolean().default(DEFAULT_DISCOUNT.active)
 });
 
 const ADMIN_ROLES = new Set(['ADMIN', 'STAFF', 'SUPER_ADMIN', 'CORPORATE_ADMIN']);
 
-function formatDiscountResponse(discount: any) {
+function toDiscountShape(candidate: unknown): DiscountShape | null {
+  if (!candidate || typeof candidate !== 'object') {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  const type = record.type === 'amount' ? 'amount' : DEFAULT_DISCOUNT.type;
+  const value = typeof record.value === 'number' ? record.value : DEFAULT_DISCOUNT.value;
+  const active = typeof record.active === 'boolean' ? record.active : DEFAULT_DISCOUNT.active;
+
+  return {
+    code: DISCOUNT_CODE,
+    type,
+    value,
+    active
+  };
+}
+
+function formatDiscountResponse(discount: unknown) {
+  const normalized = toDiscountShape(discount) ?? DEFAULT_DISCOUNT;
+
   return {
     ok: true,
-    data:
-      discount ?? {
-        code: DISCOUNT_CODE,
-        type: 'percent',
-        value: 0,
-        active: false
-      }
+    data: normalized
   };
 }
 
