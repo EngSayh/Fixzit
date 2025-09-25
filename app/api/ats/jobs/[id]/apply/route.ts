@@ -100,8 +100,9 @@ export async function POST(
         const buffer = Buffer.from(bytes);
         const uploadDir = path.join(process.cwd(), 'uploads', 'resumes'); // non-public path
         await fs.mkdir(uploadDir, { recursive: true });
-        const safeName = (resumeFile as any).name.replace(/[^\w.\-]+/g, '_');
-        const fileName = `${Date.now()}-${safeName}`;
+        const uuid = (await import('crypto')).randomUUID();
+        const safeExt = ((resumeFile as any).name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fileName = `${uuid}.${safeExt}`;
         const filePath = path.join(uploadDir, fileName);
         await fs.writeFile(filePath, buffer);
         // Store only a non-public reference; retrieval must be authorized via a separate signed URL endpoint
