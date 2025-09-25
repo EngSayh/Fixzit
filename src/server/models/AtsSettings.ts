@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 interface AutoRejectOptions {
   experience?: number;
@@ -73,8 +74,6 @@ AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
   }
   return doc;
 };
-
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 class AtsSettingsMockModel extends MockModel {
   constructor() {
