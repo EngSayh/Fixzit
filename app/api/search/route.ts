@@ -4,7 +4,7 @@ import { ObjectId, Db } from 'mongodb';
 
 import { APPS, AppKey, SearchEntity } from '@/src/config/topbar-modules';
 import type { Role } from '@/src/lib/rbac';
-import { db } from '@/src/lib/mongo';
+import { getNativeDb } from '@/src/lib/mongo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -184,11 +184,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const mongooseConnection = await db; // Ensure database connection
-    const nativeDb: Db | null =
-      mongooseConnection && typeof (mongooseConnection as any).connection?.db !== 'undefined'
-        ? ((mongooseConnection as any).connection.db as Db | null)
-        : null;
+    const nativeDb = await getNativeDb();
 
     if (!nativeDb) {
       console.error('Search API error: MongoDB connection unavailable');
