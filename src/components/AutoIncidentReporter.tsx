@@ -1,8 +1,15 @@
 'use client';
 import { useEffect } from 'react';
 
+declare global { interface Window { __incidentReporter?: boolean; __incidentLastAt?: number; } }
+
 export default function AutoIncidentReporter(){
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const enabled = String(process.env.NEXT_PUBLIC_ENABLE_INCIDENTS || 'true') !== 'false';
+      if (!enabled || window.__incidentReporter) return;
+      window.__incidentReporter = true;
+    }
     const getUser = () => {
       try { return localStorage.getItem('x-user') ? JSON.parse(localStorage.getItem('x-user') as string) : null; } catch { return null; }
     };
@@ -15,6 +22,9 @@ export default function AutoIncidentReporter(){
       network: typeof navigator !== 'undefined' ? (navigator.onLine ? 'online' : 'offline') : undefined
     });
     const send = (payload: any) => {
+      const now = Date.now();
+      if (window.__incidentLastAt && now - window.__incidentLastAt < 30000) return; // throttle 30s
+      window.__incidentLastAt = now;
       const url = '/api/support/incidents';
       try {
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
