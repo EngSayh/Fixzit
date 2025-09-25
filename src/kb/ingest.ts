@@ -1,0 +1,53 @@
+import { getDatabase } from '@/lib/mongodb';
+import { embedText } from '@/src/ai/embeddings';
+import { chunkText } from './chunk';
+
+type UpsertArgs = {
+  orgId: string | null;
+  tenantId?: string | null;
+  articleId: string;
+  lang?: string;
+  roleScopes?: string[];
+  route?: string;
+  title?: string;
+  content: string;
+};
+
+export async function upsertArticleEmbeddings(args: UpsertArgs) {
+  const db = await getDatabase();
+  const coll = db.collection('kb_embeddings');
+  const { articleId, content, lang, roleScopes, route } = args;
+  const chunks = chunkText(content, 1200, 200);
+  const ops: any[] = [];
+  let index = 0;
+  for (const chunk of chunks) {
+    const embedding = await embedText(chunk.text);
+    ops.push({
+      updateOne: {
+        filter: { articleId, chunkId: index },
+        update: {
+          $set: {
+            articleId,
+            chunkId: index,
+            text: chunk.text,
+            embedding,
+            lang: lang || 'en',
+            route: route || '/help',
+            roleScopes: roleScopes && roleScopes.length ? roleScopes : ['USER'],
+            updatedAt: new Date()
+          }
+        },
+        upsert: true
+      }
+    });
+    index += 1;
+  }
+  if (ops.length) await (coll as any).bulkWrite(ops, { ordered: false });
+}
+
+export async function deleteArticleEmbeddings(articleId: string) {
+  const db = await getDatabase();
+  const coll = db.collection('kb_embeddings');
+  await coll.deleteMany({ articleId });
+}
+
