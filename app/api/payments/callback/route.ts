@@ -55,15 +55,23 @@ type InvoiceDocument = Document & {
  * // amount === 249.99
  */
 function parseCartAmount(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
   }
 
   if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
+    const trimmed = value.trim();
+
+    if (trimmed.length === 0) {
+      return null;
     }
+
+    if (!/^-?\d+(\.\d+)?$/.test(trimmed)) {
+      return null;
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   return null;
