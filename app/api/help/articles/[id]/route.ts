@@ -55,13 +55,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const res = await coll.findOneAndUpdate(filter as any, update, { returnDocument: 'after' } as any);
     const article = (res as any)?.value || null;
     if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    // Trigger async KB ingest (best-effort)
+    // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/kb/ingest`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleId: article.slug, content: article.content, lang: 'en', route: `/help/${article.slug}`, roleScopes: ['USER'] })
-      }).catch(() => {});
+      const { upsertArticleEmbeddings } = await import('@/src/kb/ingest');
+      await upsertArticleEmbeddings({
+        orgId: null,
+        tenantId: null,
+        articleId: article.slug,
+        lang: 'en',
+        route: `/help/${article.slug}`,
+        roleScopes: ['USER'],
+        content: article.content || ''
+      });
     } catch {}
     return NextResponse.json(article);
   } catch (err: any) {
