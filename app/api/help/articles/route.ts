@@ -79,9 +79,11 @@ export async function GET(req: NextRequest){
           .limit(limit)
           .toArray();
       } catch (err: any) {
-        // Fallback when text index is missing
+        // Fallback when text index is missing (restrict by recent updatedAt to reduce scan)
         const safe = new RegExp(escapeRegExp(q), 'i');
-        const regexFilter = { ...filter, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
         total = await coll.countDocuments(regexFilter);
         items = await coll
           .find(regexFilter, { projection: { slug: 1, title: 1, category: 1, updatedAt: 1 } })

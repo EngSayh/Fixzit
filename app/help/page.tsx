@@ -37,9 +37,8 @@ interface Tutorial {
  * @returns A React element for the Help center landing page.
  */
 export default function HelpHome() {
-  const { isRTL } = (() => {
-    try { return useTranslation(); } catch { return { isRTL: false } as any; }
-  })();
+  const ctx = useTranslation() as any;
+  const isRTL = !!(ctx && ctx.isRTL);
   const [showAIChat, setShowAIChat] = useState(false);
   const [showSupportTicket, setShowSupportTicket] = useState(false);
 
