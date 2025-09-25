@@ -43,7 +43,7 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
             <div>
               <p className="text-sm uppercase tracking-wide text-[#0061A8]">Search results</p>
               <h1 className="text-2xl font-semibold text-[#0F1111]">
-                {searchData.pagination.total} result(s) for '{searchParams.q ?? 'All products'}'
+                {searchData.pagination.total} result(s) for &lsquo;{searchParams.q ?? "All products"}&rsquo;
               </h1>
             </div>
             <Link
