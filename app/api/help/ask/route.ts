@@ -106,25 +106,42 @@ export async function POST(req: NextRequest) {
     const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
 
+    // Prefer vector search if available
     let docs: Doc[] = [];
     try {
-      docs = await coll
-        .find({ ...filter, $text: { $search: question } }, {
-          projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, content: 1, updatedAt: 1 }
-        })
-        .sort({ score: { $meta: 'textScore' } })
-        .limit(Math.min(8, Math.max(1, limit)))
-        .toArray();
-    } catch (err: any) {
-      // Fallback when text index is missing: case-insensitive regex across title/content/tags
-      const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      docs = await coll
-        .find({ ...filter, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any, {
-          projection: { slug: 1, title: 1, content: 1, updatedAt: 1 }
-        })
-        .sort({ updatedAt: -1 })
-        .limit(Math.min(8, Math.max(1, limit)))
-        .toArray();
+      const vec = await fetch(new URL('/api/kb/search', req.nextUrl).toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: await (await import('@/src/ai/embeddings')).embedText(question), lang, role, route, limit })
+      });
+      if (vec.ok) {
+        const json = await vec.json();
+        const chunks = json?.results || [];
+        // Fetch corresponding articles for context assembly (or use chunk text)
+        docs = chunks.map((c: any) => ({ slug: '', title: '', content: c.text, updatedAt: undefined }));
+      }
+    } catch {}
+
+    if (!docs || docs.length === 0) {
+      try {
+        docs = await coll
+          .find({ ...filter, $text: { $search: question } }, {
+            projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, content: 1, updatedAt: 1 }
+          })
+          .sort({ score: { $meta: 'textScore' } })
+          .limit(Math.min(8, Math.max(1, limit)))
+          .toArray();
+      } catch (err: any) {
+        // Fallback when text index is missing: case-insensitive regex across title/content/tags
+        const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        docs = await coll
+          .find({ ...filter, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any, {
+            projection: { slug: 1, title: 1, content: 1, updatedAt: 1 }
+          })
+          .sort({ updatedAt: -1 })
+          .limit(Math.min(8, Math.max(1, limit)))
+          .toArray();
+      }
     }
 
     const contexts = docs.slice(0, 3).map((d: Doc) => ({
