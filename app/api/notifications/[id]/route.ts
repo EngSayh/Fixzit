@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (typeof archived === 'boolean') update.$set.archived = archived;
 
   const updated = await notifications.findOneAndUpdate({ _id: _id as any, tenantId }, update, { returnDocument: 'after' });
-  const value = updated && (updated as any).value;
+  const value = updated as any;
   if (!value) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   const normalized = { id: String(value._id), ...value, _id: undefined };
   return NextResponse.json(normalized);
