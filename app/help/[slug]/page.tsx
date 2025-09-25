@@ -2,6 +2,7 @@ import { getDatabase } from "@/lib/mongodb";
 import { cookies, headers } from 'next/headers';
 import { verifyToken } from '@/src/lib/auth';
 import Link from "next/link";
+import { renderMarkdownSanitized } from '@/src/lib/markdown';
 
 export const revalidate = 60;
 
@@ -56,7 +57,7 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
             <article
               className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]"
-              dangerouslySetInnerHTML={{ __html: renderMarkdownSafe(a.content) }}
+              dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(a.content) }}
             />
             
             <div className="mt-8 pt-6 border-t border-gray-200">
@@ -101,12 +102,4 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
       </div>
     </div>
   );
-}
-function renderMarkdownSafe(md: string) {
-  const escape = (s: string) => s.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!));
-  const safe = escape(md || '');
-  return safe
-    .split(/\n{2,}/)
-    .map(p => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
-    .join("");
 }
