@@ -1,4 +1,5 @@
-import { Schema, model, models, Types, InferSchemaType } from 'mongoose';
+import { Schema, Types, InferSchemaType, type Model } from 'mongoose';
+import { typedModel } from '@/src/lib/mongoose-typed';
 
 const CandidateSchema = new Schema({
   orgId: { type: String, index: true, required: true },
@@ -27,6 +28,7 @@ CandidateSchema.statics.findByEmail = function(orgId: string, email: string) {
 };
 
 export type CandidateDoc = InferSchemaType<typeof CandidateSchema>;
+export type CandidateModel = Model<CandidateDoc>;
 
-export const Candidate = (models.Candidate || model('Candidate', CandidateSchema)) as any;
+export const Candidate = typedModel<CandidateDoc>('Candidate', CandidateSchema) as CandidateModel;
 

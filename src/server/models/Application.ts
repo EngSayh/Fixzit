@@ -1,4 +1,5 @@
-import { Schema, model, models, Types, InferSchemaType } from 'mongoose';
+import { Schema, Types, InferSchemaType, type Model } from 'mongoose';
+import { typedModel } from '@/src/lib/mongoose-typed';
 
 const ApplicationSchema = new Schema({
   orgId: { type: String, index: true, required: true },
@@ -20,6 +21,7 @@ const ApplicationSchema = new Schema({
 ApplicationSchema.index({ orgId: 1, jobId: 1, candidateId: 1 }, { unique: true });
 
 export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema>;
+export type ApplicationModel = Model<ApplicationDoc>;
 
-export const Application = (models.Application || model('Application', ApplicationSchema)) as any;
+export const Application = typedModel<ApplicationDoc>('Application', ApplicationSchema) as ApplicationModel;
 

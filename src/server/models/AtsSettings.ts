@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, InferSchemaType, type Model } from 'mongoose';
+import { typedModel } from '@/src/lib/mongoose-typed';
 
 const AtsSettingsSchema = new Schema({
   orgId: { type: String, index: true, unique: true },
@@ -12,14 +13,18 @@ const AtsSettingsSchema = new Schema({
   }
 }, { timestamps: true });
 
+export interface AtsSettingsStatics {
+  findOrCreateForOrg(orgId: string): Promise<AtsSettingsDoc>;
+}
 export type AtsSettingsDoc = InferSchemaType<typeof AtsSettingsSchema>;
+export type AtsSettingsModel = Model<AtsSettingsDoc> & AtsSettingsStatics;
 
-AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
-  let doc = await this.findOne({ orgId });
-  if (!doc) {
-    doc = await this.create({ orgId });
-  }
-  return doc;
+AtsSettingsSchema.statics.findOrCreateForOrg = function(orgId: string) {
+  return this.findOneAndUpdate(
+    { orgId },
+    { $setOnInsert: { orgId } },
+    { upsert: true, new: true }
+  );
 };
 
 AtsSettingsSchema.methods.shouldAutoReject = function(input: { experience: number; skills: string[] }) {
@@ -30,5 +35,5 @@ AtsSettingsSchema.methods.shouldAutoReject = function(input: { experience: numbe
   return { reject, reason: reject ? 'Does not meet minimum requirements' : undefined };
 };
 
-export const AtsSettings = (models.AtsSettings || model('AtsSettings', AtsSettingsSchema)) as any;
+export const AtsSettings = typedModel<AtsSettingsDoc>('AtsSettings', AtsSettingsSchema) as AtsSettingsModel;
 
