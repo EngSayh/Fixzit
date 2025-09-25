@@ -174,7 +174,9 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-export function validateCallback(payload: unknown, signature: string): boolean {
+type PaytabsSignedPayload = string | Buffer | ArrayBufferLike | ArrayBufferView;
+
+export function validateCallback(payload: PaytabsSignedPayload, signature: string): boolean {
   if (!signature) {
     return false;
   }
@@ -184,18 +186,49 @@ export function validateCallback(payload: unknown, signature: string): boolean {
   const expected = generateSignature(payload);
   const provided = decodeSignature(signature);
 
-  if (!provided || expected.length !== provided.length) {
+  if (!expected || !provided || expected.length !== provided.length) {
     return false;
   }
 
   return crypto.timingSafeEqual(expected, provided);
 }
 
-function generateSignature(payload: unknown): Buffer {
-  const canonicalPayload = canonicalizePayload(payload);
+function normalizePayload(payload: PaytabsSignedPayload): Buffer | null {
+  if (typeof payload === 'string') {
+    return Buffer.from(payload, 'utf8');
+  }
+
+  if (Buffer.isBuffer(payload)) {
+    return payload;
+  }
+
+  if (ArrayBuffer.isView(payload)) {
+    return Buffer.from(payload.buffer, payload.byteOffset, payload.byteLength);
+  }
+
+  if (typeof payload === 'object' && payload !== null && 'byteLength' in payload) {
+    try {
+      return Buffer.from(payload as ArrayBufferLike);
+    } catch (error) {
+      console.warn('Failed to normalise PayTabs payload for signature verification.');
+      return null;
+    }
+  }
+
+  console.warn('Unsupported payload type for PayTabs signature verification.');
+  return null;
+}
+
+function generateSignature(payload: PaytabsSignedPayload): Buffer | null {
+  const normalized = normalizePayload(payload);
+
+  if (!normalized) {
+    return null;
+  }
+
   return crypto
     .createHmac('sha256', PAYTABS_CONFIG.serverKey)
-    .update(canonicalPayload)
+    .update(normalized)
     .digest();
 }
 
@@ -213,36 +246,9 @@ function decodeSignature(signature: string): Buffer | null {
 
     return Buffer.from(trimmed, 'base64');
   } catch (error) {
-    console.warn('Failed to decode PayTabs signature:', error);
+    console.warn('Failed to decode PayTabs signature.');
     return null;
   }
-}
-
-function canonicalizePayload(payload: unknown): string {
-  if (payload === null || payload === undefined) {
-    return '';
-  }
-
-  if (Array.isArray(payload)) {
-    return `[${payload.map(canonicalizePayload).join(',')}]`;
-  }
-
-  if (typeof payload === 'object') {
-    return `{${Object.keys(payload)
-      .sort()
-      .map(key => `${key}:${canonicalizePayload((payload as Record<string, unknown>)[key])}`)
-      .join(',')}}`;
-  }
-
-  if (typeof payload === 'number' && Number.isFinite(payload)) {
-    return payload.toString();
-  }
-
-  if (typeof payload === 'boolean') {
-    return payload ? 'true' : 'false';
-  }
-
-  return String(payload);
 }
 
 // Payment methods supported in Saudi Arabia
