@@ -4,6 +4,7 @@ import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { Property } from "@/src/server/models/Property";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { ACCESS } from "@/src/lib/rbac";
 
 type Hit = { id: string; type: string; title: string; href: string; subtitle?: string };
 
@@ -28,12 +29,21 @@ export async function GET(req: NextRequest) {
 
   // Enforce auth and tenant scoping
   let tenantId: string;
+  let userRole: string;
   try {
     const user = await getSessionUser(req);
     tenantId = user.tenantId;
+    userRole = String(user.role);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Per-scope RBAC guard
+  const allowedModules = ACCESS[userRole as keyof typeof ACCESS] || [];
+  const forbid = () => NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (scope === 'souq' && !allowedModules.includes('marketplace')) return forbid();
+  if (scope === 'aqar' && !allowedModules.includes('marketplace')) return forbid();
+  if (scope === 'fm' && !(allowedModules.includes('work-orders') || allowedModules.includes('properties'))) return forbid();
 
   try {
     const results: Hit[] = [];
