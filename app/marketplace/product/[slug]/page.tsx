@@ -1,6 +1,7 @@
 // @ts-nocheck
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 async function fetchPdp(slug: string) {
   const h = headers();
@@ -16,7 +17,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const p = data?.product;
   const bb = data?.buyBox;
 
-  if (!p) return <div className="p-6">Not found</div>;
+  if (!p) return notFound();
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-8 grid grid-cols-12 gap-8">
