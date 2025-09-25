@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const query = body?.query as number[] | undefined;
+    const qText = typeof body?.q === 'string' ? body.q : undefined;
     const lang = typeof body?.lang === 'string' ? body.lang : undefined;
     const role = typeof body?.role === 'string' ? body.role : undefined;
     const route = typeof body?.route === 'string' ? body.route : undefined;
@@ -62,8 +63,8 @@ export async function POST(req: NextRequest) {
       ];
       results = await (coll as any).aggregate(pipe).toArray();
     } catch (e) {
-      // Fallback to lexical search on text
-      const safe = new RegExp((body?.q || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      // Fallback to lexical search on text; require original question text
+      const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       const filter = { ...scope, text: safe } as any;
       results = await coll
         .find(filter, { projection: { articleId: 1, chunkId: 1, text: 1, lang: 1, route: 1, roleScopes: 1 } })
