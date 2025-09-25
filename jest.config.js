@@ -1,13 +1,15 @@
-/** Minimal Jest config. If your project already has one, delete this file. */
+/** @type {import('jest').Config} */
 module.exports = {
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+    '^@/(.*)$': '<rootDir>/$1',
+    '^(.*)\\.js$': '$1'
+  },
   transform: {
-    '^.+\\.(t|j)sx?$': ['ts-jest', { tsconfig: 'tsconfig.json', useESM: true }],
+    '^.+\\.(t|j)sx?$': ['ts-jest', { tsconfig: 'tsconfig.json', useESM: true }]
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'json', 'node'],
   extensionsToTreatAsEsm: ['.ts', '.tsx', '.mjs'],
-  moduleNameMapper: {
-    // Allow mocking ESM-like imports that end in .js from TS context
-    '^(.*)\\.js$': '$1',
-  },
-}
+  setupFilesAfterEnv: []
+};
