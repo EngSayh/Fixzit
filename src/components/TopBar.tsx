@@ -50,7 +50,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [openResults, setOpenResults] = useState(false);
   const [results, setResults] = useState<Array<{id:string; type:string; title:string; href:string; subtitle?:string}>>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const closeResultsTimeoutRef = useRef<number | undefined>();
+  const closeResultsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -300,16 +300,16 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
             value={query}
             onChange={(e)=>{ setQuery(e.target.value); setOpenResults(true); }}
             onFocus={() => {
-              if (closeResultsTimeoutRef.current !== undefined) {
-                clearTimeout(closeResultsTimeoutRef.current);
-                closeResultsTimeoutRef.current = undefined;
+              if (closeResultsTimeoutRef.current) {
+                clearTimeout(closeResultsTimeoutRef.current as unknown as number);
+                closeResultsTimeoutRef.current = null;
               }
               setOpenResults(true);
             }}
             onBlur={()=>{
-              closeResultsTimeoutRef.current = window.setTimeout(()=>{
+              closeResultsTimeoutRef.current = setTimeout(()=>{
                 setOpenResults(false);
-                closeResultsTimeoutRef.current = undefined;
+                closeResultsTimeoutRef.current = null;
               }, BLUR_CLOSE_DELAY_MS);
             }}
             className={`bg-transparent outline-none py-1 text-sm placeholder-white/70 ${screenInfo.isTablet ? 'w-48' : 'w-64'} ${isRTL ? 'text-right' : ''}`}
