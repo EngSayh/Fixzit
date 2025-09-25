@@ -1,39 +1,102 @@
-// @ts-nocheck
-import Link from 'next/link';
-import { headers } from 'next/headers';
+import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import ProductCard from '@/src/components/marketplace/ProductCard';
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
-async function fetchProducts(q: string) {
-  const h = headers();
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-  const url = new URL(`/api/marketplace/search${q ? `?q=${encodeURIComponent(q)}` : ''}`, baseUrl);
-  const cookie = h.get('cookie');
-  const res = await fetch(url.toString(), { cache: 'no-store', headers: cookie ? { cookie } : undefined });
-  if (!res.ok) return { items: [] };
-  return res.json();
+async function loadHomepageData() {
+  const [categoriesResponse, featuredResponse] = await Promise.all([
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8')
+  ]);
+
+  const categories = categoriesResponse.data as any[];
+  const featured = featuredResponse.data.items as any[];
+
+  const carousels = await Promise.all(
+    categories.slice(0, 4).map(async category => {
+      const response = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+      return {
+        category,
+        items: response.data.items as any[]
+      };
+    })
+  );
+
+  return { categories, featured, carousels };
 }
 
-export default async function MarketplacePage({ searchParams }: { searchParams?: { q?: string } }) {
-  const q = (searchParams?.q || '').trim();
-  const data = await fetchProducts(q);
+export default async function MarketplaceHome() {
+  const { categories, featured, carousels } = await loadHomepageData();
+  const departments = categories.map(category => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Fixzit Marketplace</h1>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {(data.items || []).map((p: any) => (
-          <Link key={p._id || p.slug} href={`/marketplace/product/${p.slug}`} className="border rounded p-3 hover:shadow">
-            <div className="aspect-square bg-gray-50 rounded mb-2"></div>
-            <div className="text-sm line-clamp-2 mb-1">{p.title}</div>
-            <div className="text-[13px] text-gray-500">⭐ {p?.rating?.avg ?? 0} · {p?.rating?.count ?? 0}</div>
-            <div className="text-[12px] text-green-700">Lead {p?.inventories?.[0]?.leadDays ?? 3} days</div>
-          </Link>
+    <div className="min-h-screen bg-[#F5F6F8]">
+      <TopBarAmazon departments={departments} />
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#0061A8] via-[#00A859] to-[#0061A8] p-10 text-white shadow-xl">
+            <p className="text-sm uppercase tracking-[0.3em] text-white/70">Fixzit Souq</p>
+            <h1 className="mt-4 text-4xl font-bold">Facilities, MRO & Construction Marketplace</h1>
+            <p className="mt-3 max-w-xl text-lg text-white/80">
+              Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
+              <span className="rounded-full bg-white/20 px-4 py-2">Rapid RFQ</span>
+              <span className="rounded-full bg-white/20 px-4 py-2">Work Order linked orders</span>
+              <span className="rounded-full bg-white/20 px-4 py-2">Finance ready invoices</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 rounded-3xl border border-[#0061A8]/20 bg-white/90 p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-[#0F1111]">Live Operational KPIs</h2>
+            <div className="grid gap-3 text-sm text-gray-700">
+              <div className="rounded-2xl bg-[#0061A8]/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-[#0061A8]">Open approvals</p>
+                <p className="text-2xl font-bold text-[#0061A8]">3</p>
+              </div>
+              <div className="rounded-2xl bg-[#FFB400]/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-[#FF9800]">Pending deliveries</p>
+                <p className="text-2xl font-bold text-[#FF9800]">7</p>
+              </div>
+              <div className="rounded-2xl bg-[#00A859]/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-[#00A859]">Finance ready</p>
+                <p className="text-2xl font-bold text-[#00A859]">5</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-[#0F1111]">Featured for your organisation</h2>
+            <a href="/marketplace/search" className="text-sm font-semibold text-[#0061A8] hover:underline">
+              View all
+            </a>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {featured.map(product => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        </section>
+
+        {carousels.map(carousel => (
+          <section key={carousel.category.slug} className="mt-12 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-[#0F1111]">{carousel.category.name?.en ?? carousel.category.slug}</h3>
+              <a
+                href={`/marketplace/search?cat=${carousel.category.slug}`}
+                className="text-sm font-semibold text-[#0061A8] hover:underline"
+              >
+                Explore all
+              </a>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {carousel.items.map((product: any) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          </section>
         ))}
-      </div>
-      {(data.items || []).length === 0 && (
-        <div className="text-gray-600">No products yet. Seed the marketplace and refresh.</div>
-      )}
+      </main>
     </div>
   );
 }

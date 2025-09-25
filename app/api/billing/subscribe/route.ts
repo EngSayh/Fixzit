@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const sub = await Subscription.create({
     customerId: customer._id,
     planType: body.planType,
-    items: quote.items.map((i:any)=>({ moduleId: undefined, // resolved later in worker if needed
+    items: (quote.items || []).map((i:any)=>({ moduleId: undefined, // resolved later in worker if needed
       moduleCode: i.module, // keep code snapshot
       seatCount: i.seatCount, unitPriceMonthly: i.unitPriceMonthly, billingCategory: i.billingCategory })),
     totalMonthly: quote.monthly,

@@ -60,7 +60,7 @@ async function main() {
 
   // 3) Work Orders (varied priorities/status, with SLA dueAt)
   const woSeeds = [
-    { title: 'AC not cooling – Lvl 12', priority: 'URGENT', status: 'SUBMITTED', prop: 0 },
+    { title: 'AC not cooling – Lvl 12', priority: 'CRITICAL', status: 'SUBMITTED', prop: 0 },
     { title: 'Water leak – Lobby', priority: 'HIGH', status: 'DISPATCHED', prop: 0 },
     { title: 'Lighting replacement – Car Park', priority: 'MEDIUM', status: 'IN_PROGRESS', prop: 0 },
     { title: 'Gate sensor calibration', priority: 'LOW', status: 'COMPLETED', prop: 2 },
