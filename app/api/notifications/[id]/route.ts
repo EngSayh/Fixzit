@@ -40,7 +40,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const updated = await notifications.findOneAndUpdate({ _id: _id as any, tenantId }, update, { returnDocument: 'after' });
   const value = updated && (updated as any).value;
   if (!value) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-  return NextResponse.json(value);
+  const normalized = { id: String(value._id), ...value, _id: undefined };
+  return NextResponse.json(normalized);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
