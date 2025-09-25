@@ -4,8 +4,26 @@ import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
-  const signature = req.headers.get('signature') ?? '';
-  const rawBuffer = Buffer.from(await req.arrayBuffer());
+  const signatureHeader =
+    req.headers.get('signature') ??
+    req.headers.get('x-signature') ??
+    req.headers.get('x-paytabs-signature') ??
+    '';
+  const signature = signatureHeader.trim();
+
+  if (!signature) {
+    return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
+  }
+
+  let rawBuffer: Buffer;
+
+  try {
+    rawBuffer = Buffer.from(await req.arrayBuffer());
+  } catch (error) {
+    console.error('Failed to read PayTabs callback body:', error);
+    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+  }
+
   const rawBody = rawBuffer.toString('utf8');
 
   // Validate callback signature against the raw payload bytes as provided by PayTabs
