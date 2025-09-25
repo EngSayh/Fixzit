@@ -1,8 +1,15 @@
 // @ts-nocheck
 import Link from 'next/link';
 
+import { headers } from 'next/headers';
 async function fetchPdp(slug: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/api/marketplace/products/${slug}`, { cache: 'no-store' });
+  const h = headers();
+  const cookie = h.get('cookie');
+  const res = await fetch(`/api/marketplace/products/${slug}`, {
+    cache: 'no-store',
+    headers: cookie ? { cookie } : undefined,
+    credentials: 'include'
+  } as any);
   return res.json();
 }
 
