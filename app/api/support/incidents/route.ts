@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, getNativeDb } from '@/src/lib/mongo';
 import { SupportTicket } from '@/src/server/models/SupportTicket';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
+import { z } from 'zod';
 
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
@@ -10,16 +11,28 @@ export async function POST(req: NextRequest) {
   const native = await getNativeDb();
 
   const body = await req.json();
+  const schema = z.object({
+    code: z.string().max(50).optional(),
+    message: z.string().max(500).optional(),
+    details: z.string().max(4000).optional(),
+    stack: z.string().max(4000).optional(),
+    severity: z.enum(['CRITICAL','P0','P1','P2','P3']).optional(),
+    category: z.string().max(50).optional(),
+    incidentId: z.string().max(64).optional(),
+    incidentKey: z.string().max(128).optional(),
+    userContext: z.object({ userId: z.string().optional(), tenant: z.string().optional(), email: z.string().email().optional(), phone: z.string().optional() }).optional(),
+    clientContext: z.record(z.any()).optional()
+  });
+  const safe = schema.parse(body);
   const now = new Date();
 
-  const incidentId: string = body?.incidentId || `INC-${now.getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const incidentKey: string | undefined = body?.incidentKey || incidentId;
-  const code: string = body?.code || 'UI-UI-UNKNOWN-000';
-  const category: string = body?.category || 'Support';
-  const severity: string = body?.severity || 'P2';
-  const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
-  const message: string = truncate(body?.message || 'Application error', 500) as string;
-  const details: string | undefined = truncate(body?.details || body?.stack, 4000);
+  const incidentId: string = safe.incidentId || `INC-${now.getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const incidentKey: string | undefined = safe.incidentKey || incidentId;
+  const code: string = safe.code || 'UI-UI-UNKNOWN-000';
+  const category: string = safe.category || 'Support';
+  const severity: string = safe.severity || 'P2';
+  const message: string = (safe.message || 'Application error');
+  const details: string | undefined = (safe.details || safe.stack);
 
   // Derive authenticated user/tenant if available; ignore spoofed body.userContext
   let sessionUser: { id: string; role: string; tenantId: string } | null = null;
@@ -32,7 +45,11 @@ export async function POST(req: NextRequest) {
 
   // Dedupe: return existing if same incidentKey exists
   const existing = incidentKey
-    ? await native.collection('error_events').findOne({ incidentKey })
+    ? await native.collection('error_events').findOne(
+        sessionUser?.tenantId
+          ? { incidentKey, $or: [{ 'sessionUser.tenantId': sessionUser.tenantId }, { sessionUser: null }] }
+          : { incidentKey, sessionUser: null }
+      )
     : null;
   if (existing) {
     return NextResponse.json({ ok: true, incidentId: existing.incidentId, ticketId: existing.ticketId }, { status: 202 });
@@ -49,6 +66,7 @@ export async function POST(req: NextRequest) {
     details,
     sessionUser: sessionUser || null,
     clientContext: body?.clientContext || null,
+    tenantScope: sessionUser?.tenantId || null,
     createdAt: now
   });
 
