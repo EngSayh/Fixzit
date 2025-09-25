@@ -8,6 +8,13 @@ import { serializeCategory } from '@/src/lib/marketplace/serializers';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const CATEGORY_ALLOWED_ROLES = new Set([
+  'ADMIN',
+  'STAFF',
+  'SUPER_ADMIN',
+  'CORPORATE_ADMIN'
+]);
+
 function sortCategories<T extends { name?: { en?: string }; createdAt?: Date | string | number }>(nodes: T[]): T[] {
   return [...nodes].sort((a, b) => {
     const aName = a.name?.en ?? '';
@@ -27,6 +34,12 @@ function sortCategories<T extends { name?: { en?: string }; createdAt?: Date | s
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
+    const normalizedRole = context.role ? context.role.toUpperCase() : '';
+
+    if (!CATEGORY_ALLOWED_ROLES.has(normalizedRole)) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
 
     const categories = await Category.find({ orgId: context.orgId })

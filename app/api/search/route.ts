@@ -21,9 +21,12 @@ type SearchResult = {
 const DEFAULT_LIMIT = 20;
 const PER_ENTITY_LIMIT = 5;
 
-const ALL_ROLES: Role[] = [
+type SearchRole = Role | 'STAFF';
+
+const ALL_ROLES: SearchRole[] = [
   'SUPER_ADMIN',
   'ADMIN',
+  'STAFF',
   'CORPORATE_ADMIN',
   'FM_MANAGER',
   'FINANCE',
@@ -38,10 +41,11 @@ const ALL_ROLES: Role[] = [
   'AUDITOR'
 ];
 
-const APP_ALLOWED_ROLES: Record<AppKey, Role[]> = {
+const APP_ALLOWED_ROLES: Record<AppKey, SearchRole[]> = {
   fm: [
     'SUPER_ADMIN',
     'ADMIN',
+    'STAFF',
     'CORPORATE_ADMIN',
     'FM_MANAGER',
     'FINANCE',
@@ -53,8 +57,8 @@ const APP_ALLOWED_ROLES: Record<AppKey, Role[]> = {
     'OWNER',
     'AUDITOR'
   ],
-  souq: ['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN', 'PROCUREMENT', 'FM_MANAGER', 'VENDOR', 'CUSTOMER'],
-  aqar: ['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'OWNER', 'CUSTOMER']
+  souq: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CORPORATE_ADMIN', 'PROCUREMENT', 'FM_MANAGER', 'VENDOR', 'CUSTOMER'],
+  aqar: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CORPORATE_ADMIN', 'FM_MANAGER', 'OWNER', 'CUSTOMER']
 };
 
 const TENANT_SCOPED_ENTITIES = new Set<SearchEntity>([
@@ -70,6 +74,30 @@ const TENANT_SCOPED_ENTITIES = new Set<SearchEntity>([
 ]);
 
 const ORG_SCOPED_ENTITIES = new Set<SearchEntity>(['products', 'services', 'rfqs', 'orders']);
+
+const TENANT_FIELD_CANDIDATES = [
+  'tenantId',
+  'tenant_id',
+  'tenant',
+  'tenantKey',
+  'orgId',
+  'org_id',
+  'org',
+  'organizationId',
+  'organization_id',
+  'ownerOrgId',
+  'platformOrgId'
+] as const;
+
+const ORG_FIELD_CANDIDATES = [
+  'orgId',
+  'org_id',
+  'org',
+  'organizationId',
+  'organization_id',
+  'platformOrgId',
+  'ownerOrgId'
+] as const;
 
 const COLLECTION_NAME: Record<SearchEntity, string> = {
   work_orders: 'work_orders',
@@ -90,13 +118,13 @@ const COLLECTION_NAME: Record<SearchEntity, string> = {
 interface RequestContext {
   tenantId: string;
   tenantObjectId: ObjectId | null;
-  role: Role;
+  role: SearchRole;
   userId?: string;
   orgId: ObjectId | null;
   fallbackOrgId: ObjectId | null;
 }
 
-function normalizeRole(value?: string | null): Role | null {
+function normalizeRole(value?: string | null): SearchRole | null {
   if (!value) {
     return null;
   }
@@ -172,7 +200,7 @@ function resolveRequestContext(req: NextRequest): RequestContext | null {
   }
 }
 
-function ensureRoleAllowed(app: AppKey, role: Role): boolean {
+function ensureRoleAllowed(app: AppKey, role: SearchRole): boolean {
   const allowed = APP_ALLOWED_ROLES[app];
   return allowed.includes(role);
 }
@@ -270,46 +298,111 @@ function resolveCollectionAndQuery(connection: Db, entity: SearchEntity, q: stri
     deletedAt: { $exists: false }
   };
 
-  const scopedQuery = applyScopeFilter(entity, baseQuery, context);
-  if (!scopedQuery) {
+  const scopeClauses = buildScopeClauses(entity, context);
+  if (scopeClauses === null) {
     return { collection: null, query: baseQuery };
   }
 
-  return { collection, query: scopedQuery };
+  if (scopeClauses.length === 0) {
+    return { collection, query: baseQuery };
+  }
+
+  return { collection, query: { $and: [baseQuery, ...scopeClauses] } };
 }
 
-function applyScopeFilter(entity: SearchEntity, baseQuery: Record<string, any>, context: RequestContext) {
-  const query: Record<string, any> = { ...baseQuery };
+type ScopeValue = string | ObjectId;
+
+function buildScopeClauses(entity: SearchEntity, context: RequestContext): Record<string, any>[] | null {
+  const clauses: Record<string, any>[] = [];
 
   if (TENANT_SCOPED_ENTITIES.has(entity)) {
-    const tenantFilters: (string | ObjectId)[] = [];
-    if (context.tenantId) {
-      tenantFilters.push(context.tenantId);
-    }
-    if (context.tenantObjectId) {
-      tenantFilters.push(context.tenantObjectId);
-    }
-
-    if (tenantFilters.length === 0) {
+    const tenantClause = buildTenantScopeClause(context);
+    if (!tenantClause) {
       return null;
     }
-
-    query.tenantId = tenantFilters.length === 1 ? tenantFilters[0] : { $in: tenantFilters };
+    clauses.push(tenantClause);
   }
 
   if (ORG_SCOPED_ENTITIES.has(entity)) {
-    const orgCandidates = [context.orgId, context.fallbackOrgId].filter(
-      (value): value is ObjectId => value instanceof ObjectId
-    );
-
-    if (orgCandidates.length === 0) {
+    const orgClause = buildOrgScopeClause(context);
+    if (!orgClause) {
       return null;
     }
-
-    query.orgId = orgCandidates.length === 1 ? orgCandidates[0] : { $in: orgCandidates };
+    clauses.push(orgClause);
   }
 
-  return query;
+  return clauses;
+}
+
+function buildTenantScopeClause(context: RequestContext): Record<string, any> | null {
+  const values: ScopeValue[] = [];
+
+  pushScopeValue(values, context.tenantId);
+  pushObjectIdVariants(values, context.tenantObjectId);
+  pushObjectIdVariants(values, context.orgId);
+  pushObjectIdVariants(values, context.fallbackOrgId);
+
+  return buildScopeDisjunction(TENANT_FIELD_CANDIDATES, values);
+}
+
+function buildOrgScopeClause(context: RequestContext): Record<string, any> | null {
+  const values: ScopeValue[] = [];
+
+  pushObjectIdVariants(values, context.orgId);
+  pushObjectIdVariants(values, context.fallbackOrgId);
+  pushScopeValue(values, context.tenantId);
+
+  return buildScopeDisjunction(ORG_FIELD_CANDIDATES, values);
+}
+
+function buildScopeDisjunction(fields: readonly string[], values: ScopeValue[]): Record<string, any> | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const uniqueFields = [...new Set(fields)].filter(field => field && field.trim().length > 0);
+  if (uniqueFields.length === 0) {
+    return null;
+  }
+
+  const clauseValue = values.length === 1 ? values[0] : { $in: values };
+  const orConditions = uniqueFields.map(field => ({ [field]: clauseValue }));
+
+  return orConditions.length > 0 ? { $or: orConditions } : null;
+}
+
+function pushObjectIdVariants(target: ScopeValue[], value: ObjectId | null) {
+  if (!value) {
+    return;
+  }
+
+  pushScopeValue(target, value);
+  try {
+    pushScopeValue(target, value.toHexString());
+  } catch (_) {
+    // Ignore conversion errors – ObjectId-like values may not expose toHexString
+  }
+}
+
+function pushScopeValue(target: ScopeValue[], candidate?: string | ObjectId | null) {
+  if (candidate == null) {
+    return;
+  }
+
+  if (typeof candidate === 'string') {
+    const trimmed = candidate.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (!target.some(value => typeof value === 'string' && value === trimmed)) {
+      target.push(trimmed);
+    }
+    return;
+  }
+
+  if (!target.some(value => value instanceof ObjectId && value.equals(candidate))) {
+    target.push(candidate);
+  }
 }
 
 function generateHref(entity: string, id: string): string {
