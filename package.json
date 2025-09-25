@@ -88,7 +88,12 @@
     "typescript": "^5.0.0",
     "zod": "^4.1.11",
     "webpack": "^5.101.3",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "unified": "^11.0.5",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

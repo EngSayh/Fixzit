@@ -98,7 +98,7 @@ export async function POST(
         const path = pathMod.default || (pathMod as any);
         const bytes = await (resumeFile as any).arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const uploadDir = path.join(process.cwd(), 'uploads', 'resumes'); // non-public path
+        const uploadDir = path.join(process.cwd(), 'private-uploads', 'resumes'); // non-public path
         await fs.mkdir(uploadDir, { recursive: true });
         const uuid = (await import('crypto')).randomUUID();
         const safeExt = ((resumeFile as any).name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
