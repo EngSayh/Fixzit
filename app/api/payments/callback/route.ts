@@ -146,6 +146,54 @@ export async function POST(req: NextRequest) {
       invoice.markModified('history');
     }
 
+    const appendHistory = (action: string, details: string) => {
+      invoice.history.push({
+        action,
+        performedBy: 'SYSTEM',
+        performedAt: new Date(),
+        details
+      });
+      invoice.markModified('history');
+    };
+
+    const cartCurrency =
+      typeof callback.cart_currency === 'string' && callback.cart_currency.trim() !== ''
+        ? callback.cart_currency.trim().toUpperCase()
+        : '';
+    const invoiceCurrency =
+      typeof invoice.currency === 'string' && invoice.currency.trim() !== ''
+        ? invoice.currency.trim().toUpperCase()
+        : '';
+
+    if (cartCurrency && invoiceCurrency && cartCurrency !== invoiceCurrency) {
+      appendHistory(
+        'PAYMENT_MISMATCH',
+        `Rejected PayTabs callback with mismatched currency. Expected ${invoiceCurrency}, received ${cartCurrency}. Transaction: ${transactionReference}`
+      );
+      await invoice.save();
+      return NextResponse.json({ error: 'Currency mismatch' }, { status: 400 });
+    }
+
+    if (amountValue <= 0) {
+      appendHistory(
+        'PAYMENT_MISMATCH',
+        `Rejected PayTabs callback with non-positive amount (${amountValue}). Transaction: ${transactionReference}`
+      );
+      await invoice.save();
+      return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
+    }
+
+    const invoiceTotal = typeof invoice.total === 'number' ? invoice.total : null;
+
+    if (invoiceTotal !== null && Math.abs(invoiceTotal - amountValue) > 0.01) {
+      appendHistory(
+        'PAYMENT_MISMATCH',
+        `Rejected PayTabs callback due to amount mismatch. Expected ${invoiceTotal.toFixed(2)}, received ${amountValue.toFixed(2)}. Transaction: ${transactionReference}`
+      );
+      await invoice.save();
+      return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+    }
+
     const existingPayment = invoice.payments.find(
       (payment: any) => payment?.transactionId === transactionReference
     );
@@ -196,13 +244,10 @@ export async function POST(req: NextRequest) {
       upsertPayment('COMPLETED', successNotes);
 
       if (statusChanged) {
-        invoice.history.push({
-          action: 'PAID',
-          performedBy: 'SYSTEM',
-          performedAt: new Date(),
-          details: `Payment completed via PayTabs. Transaction: ${transactionReference}`
-        });
-        invoice.markModified('history');
+        appendHistory(
+          'PAID',
+          `Payment completed via PayTabs. Transaction: ${transactionReference}`
+        );
       }
     } else {
       // Payment failed
@@ -211,13 +256,10 @@ export async function POST(req: NextRequest) {
       upsertPayment('FAILED', failureNotes);
 
       if (statusChanged) {
-        invoice.history.push({
-          action: 'PAYMENT_FAILED',
-          performedBy: 'SYSTEM',
-          performedAt: new Date(),
-          details: `Payment failed: ${responseMessage ?? verificationMessage ?? 'Unknown reason'}. Transaction: ${transactionReference}`
-        });
-        invoice.markModified('history');
+        appendHistory(
+          'PAYMENT_FAILED',
+          `Payment failed: ${responseMessage ?? verificationMessage ?? 'Unknown reason'}. Transaction: ${transactionReference}`
+        );
       }
     }
 
