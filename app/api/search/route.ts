@@ -30,7 +30,8 @@ function mapHref(app: 'fm'|'souq'|'aqar', entity: string, id: any): string {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const app = (url.searchParams.get('app') || 'fm') as 'fm'|'souq'|'aqar';
+  const rawApp = (url.searchParams.get('app') || 'fm').toLowerCase();
+  const app = (rawApp === 'fm' || rawApp === 'souq' || rawApp === 'aqar' ? rawApp : 'fm') as 'fm'|'souq'|'aqar';
   const q = (url.searchParams.get('q') || '').trim();
   if (!q) return NextResponse.json([], { status: 200 });
 
@@ -41,19 +42,44 @@ export async function GET(req: NextRequest) {
 
   // Enforce authentication and tenant scoping
   let tenantId: string | null = null;
+  let userRole: string | null = null;
   try {
     const user = await getSessionUser(req);
     tenantId = user.tenantId;
+    // basic role capture; extend to roles array if available
+    // @ts-ignore dynamic
+    userRole = (user?.role as string) || (Array.isArray((user as any)?.roles) ? (user as any).roles[0] : null);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const hits: Hit[] = [];
-  // Optional: gate collections by role. Minimal example; expand per your role matrix
+  // Gate collections by role (minimal; align to your 14‑role matrix as needed)
   const allow = (collection: string) => {
-    // Example: block finance for non-finance roles; expand as needed
-    // In a full implementation, fetch user.role and check a map
-    return true;
+    const role = (userRole || '').toUpperCase();
+    const FM = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','FM_MANAGER','TECHNICIAN','SUPPORT','AUDITOR']);
+    const FIN = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','FINANCE','AUDITOR']);
+    const SOUQ = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','PROCUREMENT','VENDOR','AUDITOR']);
+    const AQAR = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','OWNER','AUDITOR']);
+    switch (collection) {
+      case 'workOrders':
+      case 'properties':
+      case 'tenants':
+      case 'vendors':
+        return FM.has(role) || (collection === 'vendors' && SOUQ.has(role));
+      case 'invoices':
+        return FIN.has(role);
+      case 'products':
+      case 'rfqs':
+      case 'orders':
+        return SOUQ.has(role);
+      case 'listings':
+      case 'projects':
+      case 'agents':
+        return AQAR.has(role);
+      default:
+        return false;
+    }
   };
   try {
     if (app === 'fm') {

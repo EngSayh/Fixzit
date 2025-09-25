@@ -28,8 +28,8 @@ function getScope(pathname: string): string {
 
 function can(perm?: string): boolean {
   if (!perm) return true;
-  // TODO: integrate with real RBAC (client-side). Default to hide when unknown.
-  return false;
+  // TODO: integrate with real RBAC; show during development to avoid empty UI
+  return true;
 }
 
 export default function QuickActions() {
