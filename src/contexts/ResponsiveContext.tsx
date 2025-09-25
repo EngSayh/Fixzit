@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/src/hooks/useScreenSize';
+import { useTranslation } from '@/src/contexts/TranslationContext';
 
 interface ResponsiveContextType {
   screenInfo: ScreenInfo;
@@ -45,6 +46,7 @@ export function useResponsiveContext() {
 // Convenience hook that combines both screen size and responsive context
 export function useResponsive() {
   const context = useContext(ResponsiveContext);
+  const translationContext = useTranslation();
 
   if (!context) {
     // Fallback when context is not available
@@ -65,7 +67,7 @@ export function useResponsive() {
         isHighResolution: false
       },
       isReady: true,
-      isRTL: false,
+      isRTL: translationContext.isRTL,
       responsiveClasses: {
         container: 'max-w-6xl mx-auto px-8',
         grid: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
@@ -80,20 +82,8 @@ export function useResponsive() {
     };
   }
 
-  // Try to get isRTL from TranslationContext
-  let isRTL = context.isRTL;
-  try {
-    // Import useTranslation at module level to avoid SSR issues
-    const { useTranslation } = require('@/src/contexts/TranslationContext');
-    const translationContext = useTranslation();
-    isRTL = translationContext.isRTL;
-  } catch {
-    // Fallback if translation context is not available
-    isRTL = false;
-  }
-
   return {
     ...context,
-    isRTL
+    isRTL: translationContext.isRTL
   };
 }
