@@ -1,6 +1,7 @@
 import { dbConnect } from '@/src/db/mongoose'; import DiscountRule from '@/src/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
   await dbConnect(); const d = await DiscountRule.findOne({ code: 'ANNUAL' });
   return NextResponse.json(d || { code:'ANNUAL', value:0, active:false });

@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const TenantType = ["INDIVIDUAL", "COMPANY", "GOVERNMENT"] as const;
 const LeaseStatus = ["ACTIVE", "EXPIRED", "TERMINATED", "RENEWAL_PENDING", "UNDER_NEGOTIATION"] as const;
@@ -184,6 +183,9 @@ TenantSchema.index({ tenantId: 1, 'contact.primary.email': 1 });
 TenantSchema.index({ tenantId: 1, 'properties.occupancy.status': 1 });
 
 export type TenantDoc = InferSchemaType<typeof TenantSchema>;
+
+// Check if we're using mock database (explicit flag only)
+const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 export const Tenant = isMockDB
   ? new MockModel('tenants') as any
