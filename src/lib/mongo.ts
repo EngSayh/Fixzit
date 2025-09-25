@@ -34,7 +34,7 @@ let conn = (global as any)._mongoose;
 if (!conn) {
   if (isMockDB) {
     console.warn("⚠️ Mock DB mode — using in-memory stub. Not for production.");
-    conn = (global as any)._mongoose = new MockDB();
+    conn = (global as any)._mongoose = new MockDB().connect();
   } else if (mongoose && uri) {
     conn = (global as any)._mongoose = mongoose.connect(uri, {
       autoIndex: true,
@@ -44,7 +44,7 @@ if (!conn) {
   } else {
     // Fallback to mock if neither condition met
     console.warn("⚠️ Falling back to MockDB (no MONGODB_URI set).");
-    conn = (global as any)._mongoose = new MockDB();
+    conn = (global as any)._mongoose = new MockDB().connect();
   }
 }
 
