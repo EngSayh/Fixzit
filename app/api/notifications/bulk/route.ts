@@ -25,15 +25,19 @@ export async function POST(req: NextRequest) {
   const ids = notificationIds.map(id => { try { return new ObjectId(id); } catch { return null; } }).filter(Boolean) as ObjectId[];
   const filter = { _id: { $in: ids }, tenantId } as any;
 
-  let res;
+  let res: any;
   if (action === 'delete') {
     res = await notifications.deleteMany(filter);
+    if (!res.deletedCount) return NextResponse.json({ error: 'No notifications found to delete' }, { status: 404 });
   } else if (action === 'archive') {
     res = await notifications.updateMany(filter, { $set: { archived: true, updatedAt: new Date() } });
+    if (!res.modifiedCount) return NextResponse.json({ error: 'No notifications found to archive' }, { status: 404 });
   } else if (action === 'mark-read') {
     res = await notifications.updateMany(filter, { $set: { read: true, updatedAt: new Date() } });
+    if (!res.modifiedCount) return NextResponse.json({ error: 'No notifications found to mark as read' }, { status: 404 });
   } else if (action === 'mark-unread') {
     res = await notifications.updateMany(filter, { $set: { read: false, updatedAt: new Date() } });
+    if (!res.modifiedCount) return NextResponse.json({ error: 'No notifications found to mark as unread' }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true });
