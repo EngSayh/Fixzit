@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 const REGIONS = {
   KSA: 'https://secure.paytabs.sa',
   UAE: 'https://secure.paytabs.com',
@@ -172,17 +174,75 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-export function validateCallback(payload: any, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
-  const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+export function validateCallback(payload: unknown, signature: string): boolean {
+  if (!signature) {
+    return false;
+  }
+
+  assertConfig();
+
+  const expected = generateSignature(payload);
+  const provided = decodeSignature(signature);
+
+  if (!provided || expected.length !== provided.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expected, provided);
 }
 
-function generateSignature(payload: any): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+function generateSignature(payload: unknown): Buffer {
+  const canonicalPayload = canonicalizePayload(payload);
+  return crypto
+    .createHmac('sha256', PAYTABS_CONFIG.serverKey)
+    .update(canonicalPayload)
+    .digest();
+}
+
+function decodeSignature(signature: string): Buffer | null {
+  const trimmed = signature.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    if (/^[0-9a-f]+$/i.test(trimmed) && trimmed.length % 2 === 0) {
+      return Buffer.from(trimmed, 'hex');
+    }
+
+    return Buffer.from(trimmed, 'base64');
+  } catch (error) {
+    console.warn('Failed to decode PayTabs signature:', error);
+    return null;
+  }
+}
+
+function canonicalizePayload(payload: unknown): string {
+  if (payload === null || payload === undefined) {
+    return '';
+  }
+
+  if (Array.isArray(payload)) {
+    return `[${payload.map(canonicalizePayload).join(',')}]`;
+  }
+
+  if (typeof payload === 'object') {
+    return `{${Object.keys(payload)
+      .sort()
+      .map(key => `${key}:${canonicalizePayload((payload as Record<string, unknown>)[key])}`)
+      .join(',')}}`;
+  }
+
+  if (typeof payload === 'number' && Number.isFinite(payload)) {
+    return payload.toString();
+  }
+
+  if (typeof payload === 'boolean') {
+    return payload ? 'true' : 'false';
+  }
+
+  return String(payload);
 }
 
 // Payment methods supported in Saudi Arabia
