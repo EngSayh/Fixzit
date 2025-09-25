@@ -70,3 +70,15 @@ export const db = conn;
 
 // Prefer real DB by default; allow explicit override via env if needed
 export const isMockDB = process.env.USE_MOCK_DB === 'true' ? true : false;
+
+// Provide a Database-like handle for consumers expecting a MongoDB Database API
+export async function getDatabase(): Promise<any> {
+  const connection = await db;
+  // Mock path exposes collection directly
+  if (connection && typeof (connection as any).collection === 'function') return connection;
+  // Mongoose path: prefer driver db
+  const m = connection as any;
+  if (m?.connection?.db) return m.connection.db;
+  if (m?.db && typeof m.db.collection === 'function') return m.db;
+  throw new Error('No database handle available');
+}
