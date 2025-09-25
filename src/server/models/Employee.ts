@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, InferSchemaType, type Model } from 'mongoose';
+import { typedModel } from '@/src/lib/mongoose-typed';
 
 const EmployeeSchema = new Schema({
   orgId: { type: String, index: true, required: true },
@@ -18,5 +19,6 @@ const EmployeeSchema = new Schema({
 }, { timestamps: true });
 
 export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema>;
+export type EmployeeModel = Model<EmployeeDoc>;
 
-export const Employee = (models.Employee || model('Employee', EmployeeSchema)) as any;
+export const Employee = typedModel<EmployeeDoc>('Employee', EmployeeSchema) as EmployeeModel;
