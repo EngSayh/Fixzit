@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
   const { action, notificationIds } = bulkActionSchema.parse(body);
   const { notifications } = await getCollections();
 
-  const ids = notificationIds.map(id => { try { return new ObjectId(id); } catch { return null; } }).filter(Boolean) as ObjectId[];
+  const toObjectId = (id: string) => { try { return new ObjectId(id); } catch { return null; } };
+  const ids = notificationIds.map(toObjectId).filter(Boolean) as ObjectId[];
   const filter = { _id: { $in: ids }, tenantId } as any;
 
   let res: any;

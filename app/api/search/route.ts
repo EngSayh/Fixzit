@@ -8,6 +8,7 @@ import { makeQueryableModel, type QueryableModel } from "./queryHelpers";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import { ACCESS } from "@/src/lib/rbac";
+import { escapeRegex } from "@/src/lib/regex";
 
 type Hit = { id: string; type: string; title: string; href: string; subtitle?: string };
 
@@ -16,10 +17,6 @@ function clampLimit(raw: string | null): number {
   if (!Number.isFinite(lim)) lim = 5;
   lim = Math.max(1, Math.min(20, Math.floor(lim)));
   return lim;
-}
-
-function escapeRegex(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function GET(req: NextRequest) {
@@ -157,9 +154,15 @@ export async function GET(req: NextRequest) {
       await searchFM();
     }
 
-    // De-duplicate by href
+    // De-duplicate by href (clearer loop)
     const seen = new Set<string>();
-    const deduped = results.filter((r) => (seen.has(r.href) ? false : (seen.add(r.href), true)));
+    const deduped: Hit[] = [];
+    for (const r of results) {
+      if (!seen.has(r.href)) {
+        seen.add(r.href);
+        deduped.push(r);
+      }
+    }
     return NextResponse.json({ results: deduped.slice(0, 25) });
   } catch (err) {
     console.error("/api/search error", err);
