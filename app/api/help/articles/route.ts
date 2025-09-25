@@ -41,7 +41,7 @@ export async function GET(req: NextRequest){
     const rawPage = Number(sp.get("page"));
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
     const rawLimit = Number(sp.get("limit"));
-    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(50, Math.floor(rawLimit)) : 20;
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(50, Math.floor(rawLimit))) : 20;
     const skip = (page - 1) * limit;
 
     const db = await getDatabase();
