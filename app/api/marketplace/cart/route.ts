@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCollections } from '@/lib/db/collections';
 import { jwtVerify } from 'jose';
 import { z } from 'zod';
+import { ObjectId } from 'mongodb';
 
 const AddToCartSchema = z.object({
   productId: z.string(),
@@ -15,15 +16,25 @@ export async function GET(req: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    const { payload } = await jwtVerify(token, secret);
-    
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('JWT_SECRET is not configured');
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    let payload: any;
+    try {
+      ({ payload } = await jwtVerify(token, new TextEncoder().encode(secret)));
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { carts, products } = await getCollections();
-    
+
     // Get or create cart
-    let cart = await carts.findOne({ userId: payload.id as string });
-    
+    let cart = await carts.findOne({ userId: payload.id as string, tenantId: payload.tenantId as string });
+
     if (!cart) {
       const newCart = {
         userId: payload.id as string,
@@ -35,23 +46,30 @@ export async function GET(req: NextRequest) {
         updatedAt: new Date()
       };
       const result = await carts.insertOne(newCart);
-      cart = { ...newCart, _id: result.insertedId.toString() };
+      cart = { ...newCart, _id: result.insertedId };
     }
-    
+
     // Enrich cart items with product data
-    const productIds = cart.items.map(item => item.productId);
-    const productsList = await products.find({ _id: { $in: productIds } }).toArray();
-    const productMap = new Map(productsList.map(p => [p._id, p]));
-    
+    const rawIds = cart.items.map(item => item.productId);
+    const productObjectIds = rawIds
+      .filter((id: string) => ObjectId.isValid(id))
+      .map((id: string) => new ObjectId(id));
+    const productsList = await products.find({
+      _id: { $in: productObjectIds },
+      tenantId: payload.tenantId as string
+    }).toArray();
+    const productMap = new Map(productsList.map((p) => [p._id.toString(), p]));
+
     const enrichedItems = cart.items.map(item => ({
       ...item,
-      product: productMap.get(item.productId)
+      product: productMap.get(item.productId) ?? null
     }));
-    
+
     return NextResponse.json({
       ok: true,
       data: {
         ...cart,
+        _id: cart._id?.toString?.() ?? cart._id,
         items: enrichedItems
       }
     });
@@ -71,21 +89,38 @@ export async function POST(req: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    const { payload } = await jwtVerify(token, secret);
-    
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('JWT_SECRET is not configured');
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    let payload: any;
+    try {
+      ({ payload } = await jwtVerify(token, new TextEncoder().encode(secret)));
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { productId, quantity } = AddToCartSchema.parse(body);
-    
+
     const { carts, products } = await getCollections();
-    
+
     // Get product
-    const product = await products.findOne({ _id: productId });
+    if (!ObjectId.isValid(productId)) {
+      return NextResponse.json({ error: 'Invalid productId' }, { status: 400 });
+    }
+
+    const product = await products.findOne({
+      _id: new ObjectId(productId),
+      tenantId: payload.tenantId as string
+    });
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
-    
+
     // Check stock
     if (product.stock < quantity) {
       return NextResponse.json(
@@ -93,10 +128,10 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Get or create cart
-    let cart = await carts.findOne({ userId: payload.id as string });
-    
+    let cart = await carts.findOne({ userId: payload.id as string, tenantId: payload.tenantId as string });
+
     if (!cart) {
       const newCart = {
         userId: payload.id as string,
@@ -108,14 +143,23 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date()
       };
       const result = await carts.insertOne(newCart);
-      cart = { ...newCart, _id: result.insertedId.toString() };
+      cart = { ...newCart, _id: result.insertedId };
     }
-    
+
     // Update cart items
     const existingItemIndex = cart.items.findIndex(item => item.productId === productId);
-    
+
+    const currentQty = existingItemIndex >= 0 ? cart.items[existingItemIndex].quantity : 0;
+    const plannedQty = currentQty + quantity;
+    if (product.stock < plannedQty) {
+      return NextResponse.json(
+        { error: 'Insufficient stock', available: Math.max(product.stock - currentQty, 0) },
+        { status: 400 }
+      );
+    }
+
     if (existingItemIndex >= 0) {
-      cart.items[existingItemIndex].quantity += quantity;
+      cart.items[existingItemIndex].quantity = plannedQty;
     } else {
       cart.items.push({
         productId,
@@ -130,13 +174,13 @@ export async function POST(req: NextRequest) {
     
     // Update cart
     await carts.updateOne(
-      { _id: cart._id },
+      { userId: payload.id as string, tenantId: payload.tenantId as string },
       { $set: { items: cart.items, total: cart.total, updatedAt: cart.updatedAt } }
     );
-    
+
     return NextResponse.json({
       ok: true,
-      data: cart
+      data: { ...cart, _id: cart._id?.toString?.() ?? cart._id }
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

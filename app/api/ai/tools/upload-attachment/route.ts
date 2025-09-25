@@ -37,19 +37,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'workOrderId and file required' }, { status: 400 });
     }
 
+    if (!ObjectId.isValid(workOrderId)) {
+      return NextResponse.json({ error: 'Invalid workOrderId' }, { status: 400 });
+    }
+
     const db = await getDatabase();
     const col = db.collection<Record<string, any>>('work_orders');
     const wo = await col.findOne({ _id: new ObjectId(workOrderId), orgId: user.orgId });
     if (!wo) return NextResponse.json({ error: 'Work order not found' }, { status: 404 });
 
     let finalUrl: string | null = fileUrl || null;
+    if (finalUrl) {
+      try {
+        const parsed = new URL(finalUrl);
+        const allowedHosts = (process.env.ALLOWED_ATTACHMENT_HOSTS || '')
+          .split(',')
+          .map((h) => h.trim())
+          .filter(Boolean);
+        if (allowedHosts.length && !allowedHosts.includes(parsed.host)) {
+          return NextResponse.json({ error: 'fileUrl host not allowed' }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Invalid fileUrl' }, { status: 400 });
+      }
+    }
+
     if (!finalUrl && dataUrl) {
       const uploaded = await uploadFromDataUrl(dataUrl, `work-orders/${workOrderId}`);
-      finalUrl = uploaded.url;
+      finalUrl = uploaded?.url || null;
+    }
+
+    if (!finalUrl) {
+      return NextResponse.json({ error: 'Failed to resolve file URL' }, { status: 502 });
     }
 
     const attachment = {
-      id: new ObjectId().toString(),
+      id: new ObjectId().toHexString(),
       byUserId: user.id,
       byRole: user.role,
       caption: caption || null,
@@ -63,10 +86,14 @@ export async function POST(req: NextRequest) {
       $set: { updatedAt: new Date() }
     };
 
-    await col.updateOne(
-      { _id: new ObjectId(workOrderId) },
+    const updateResult = await col.updateOne(
+      { _id: new ObjectId(workOrderId), orgId: user.orgId },
       updateDoc
     );
+
+    if (updateResult.matchedCount !== 1) {
+      return NextResponse.json({ error: 'Work order not found or not accessible' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true, data: { attachmentId: attachment.id, fileUrl: attachment.fileUrl, message: 'Attached' } });
   } catch (e) {

@@ -34,18 +34,16 @@ export async function GET(req: NextRequest) {
     // Export registry
     const data = exportErrorRegistry(format);
     
-    // Set appropriate headers
-    const headers: HeadersInit = {
-      'Content-Disposition': `attachment; filename=error-registry-${new Date().toISOString().split('T')[0]}.${format}`,
-    };
-    
     if (format === 'csv') {
-      headers['Content-Type'] = 'text/csv';
-    } else {
-      headers['Content-Type'] = 'application/json';
+      return new NextResponse(data as string, {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename=error-registry-${new Date().toISOString().split('T')[0]}.csv`,
+        },
+      });
     }
-    
-    return new NextResponse(data, { headers });
+
+    return NextResponse.json(data);
     
   } catch (error) {
     console.error('Error exporting registry:', error);
