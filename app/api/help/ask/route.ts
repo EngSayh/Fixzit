@@ -13,7 +13,8 @@ type AskRequest = {
 function redactPII(s: string) {
   return s
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
-    .replace(/\b(?:\+?\d[\s-]?){7,}\b/g, '[redacted phone]');
+    // Phone patterns: optional country code, optional area code, standard 7-10 digits with separators
+    .replace(/\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g, '[redacted phone]');
 }
 
 /**
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
           'cookie': req.headers.get('cookie') || '',
           'authorization': req.headers.get('authorization') || ''
         },
-        body: JSON.stringify({ query: qVec, lang, role, route, limit })
+        body: JSON.stringify({ query: qVec, q: question, lang, role, route, limit })
       });
       if (vec.ok) {
         const json = await vec.json();
