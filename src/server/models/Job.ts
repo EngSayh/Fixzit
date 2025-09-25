@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const JobStatuses = ['draft', 'pending', 'published', 'closed', 'archived'] as const;
 const JobVisibilities = ['internal', 'public'] as const;
@@ -58,8 +59,6 @@ JobSchema.methods.publish = async function(this: JobDoc) {
 };
 
 export interface JobModel extends Model<JobDoc> {}
-
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 class JobMockModel extends MockModel {
   constructor() {

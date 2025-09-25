@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const CandidateSchema = new Schema({
   orgId: { type: String, required: true, index: true },
@@ -40,8 +41,6 @@ export interface CandidateModel extends Model<CandidateDoc> {
 CandidateSchema.statics.findByEmail = function(orgId: string, email: string) {
   return this.findOne({ orgId, emailLower: email.toLowerCase() });
 };
-
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 class CandidateMockModel extends MockModel {
   constructor() {
