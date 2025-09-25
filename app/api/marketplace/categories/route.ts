@@ -28,6 +28,13 @@ export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
 
+    if (!context?.orgId) {
+      return NextResponse.json(
+        { ok: false, error: 'Tenant context could not be resolved' },
+        { status: 400 }
+      );
+    }
+
     await dbConnect();
 
     const categories = await Category.find({ orgId: context.orgId })
