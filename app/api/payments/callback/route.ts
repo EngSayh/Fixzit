@@ -1,7 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+import type { Document } from 'mongoose';
+
+import { db } from '@/src/lib/mongo';
 import { verifyPayment, validateCallback } from '@/src/lib/paytabs';
 import { Invoice } from '@/src/server/models/Invoice';
-import { db } from '@/src/lib/mongo';
+
+type InvoicePaymentRecord = {
+  date?: Date;
+  amount?: number;
+  method?: string;
+  reference?: string;
+  status?: string;
+  transactionId?: string;
+  notes?: string;
+};
+
+type InvoiceHistoryEntry = {
+  action?: string;
+  performedBy?: string;
+  performedAt?: Date;
+  details?: string;
+  ipAddress?: string;
+  userAgent?: string;
+};
+
+type InvoiceDocument = Document & {
+  status: string;
+  currency?: string | null;
+  total?: number | null;
+  payments: InvoicePaymentRecord[] | undefined;
+  history: InvoiceHistoryEntry[] | undefined;
+  markModified(path: string): void;
+  save(): Promise<InvoiceDocument>;
+};
 
 export async function POST(req: NextRequest) {
   const signatureHeader =
@@ -129,25 +161,34 @@ export async function POST(req: NextRequest) {
         : undefined;
 
     await db;
-    const invoice = await (Invoice as any).findById(cartId);
+    const invoiceModel = Invoice as unknown as { findById(id: string): Promise<InvoiceDocument | null> };
+    const invoice = await invoiceModel.findById(cartId);
 
     if (!invoice) {
       console.error('Invoice not found for payment callback:', cartId);
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    if (!Array.isArray(invoice.payments)) {
-      invoice.payments = [];
+    let payments: InvoicePaymentRecord[];
+    if (Array.isArray(invoice.payments)) {
+      payments = invoice.payments;
+    } else {
+      payments = [];
+      invoice.payments = payments;
       invoice.markModified('payments');
     }
 
-    if (!Array.isArray(invoice.history)) {
-      invoice.history = [];
+    let history: InvoiceHistoryEntry[];
+    if (Array.isArray(invoice.history)) {
+      history = invoice.history;
+    } else {
+      history = [];
+      invoice.history = history;
       invoice.markModified('history');
     }
 
     const appendHistory = (action: string, details: string) => {
-      invoice.history.push({
+      history.push({
         action,
         performedBy: 'SYSTEM',
         performedAt: new Date(),
@@ -194,8 +235,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
     }
 
-    const existingPayment = invoice.payments.find(
-      (payment: any) => payment?.transactionId === transactionReference
+    const existingPayment = payments.find(
+      (payment: InvoicePaymentRecord) => payment?.transactionId === transactionReference
     );
 
     const upsertPayment = (
@@ -230,7 +271,7 @@ export async function POST(req: NextRequest) {
           invoice.markModified('payments');
         }
       } else {
-        invoice.payments.push(baseDetails);
+        payments.push(baseDetails);
         invoice.markModified('payments');
       }
     };
