@@ -1,4 +1,6 @@
 import { getDatabase } from "@/lib/mongodb";
+import { cookies, headers } from 'next/headers';
+import { verifyToken } from '@/src/lib/auth';
 import Link from "next/link";
 
 export const revalidate = 60;
@@ -14,9 +16,20 @@ type Article = { slug: string; title: string; content: string; category?: string
  * @returns JSX for the help article page or a fallback message when the article is unavailable.
  */
 export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
+  // Extract auth token from cookies or headers to determine tenantId
+  const cookieStore = cookies();
+  const cookieToken = cookieStore.get('fixzit_auth')?.value;
+  const authHeader = headers().get('authorization') || '';
+  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  const token = cookieToken || bearer;
+  const payload = token ? verifyToken(token) : null;
+
   const db = await getDatabase();
   const coll = db.collection<Article>('helparticles');
-  const a = await coll.findOne({ slug: params.slug, status: 'PUBLISHED' } as any);
+  const tenantScope = payload?.tenantId
+    ? { $or: [ { tenantId: payload.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] }
+    : { $or: [ { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+  const a = await coll.findOne({ slug: params.slug, status: 'PUBLISHED', ...tenantScope } as any);
   if (!a){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const user = token ? await getUserFromToken(token) : null;
     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
-    const orgId = isPrivileged ? (searchParams.get('orgId') || (user as any)?.tenantId || requestedOrgId) : requestedOrgId;
+    const orgId = isPrivileged ? ((user as any)?.tenantId || requestedOrgId) : requestedOrgId;
     const status = isPrivileged ? statusParam : 'published';
     const department = searchParams.get('department');
     const location = searchParams.get('location');
