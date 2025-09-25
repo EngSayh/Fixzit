@@ -99,7 +99,7 @@ export default function LanguageSelector({ variant = 'default' as 'default' | 'c
       >
         <Globe className="w-4 h-4" />
         <span className={variant === 'compact' ? 'text-xs' : 'text-sm'}>
-          {sel.flag} {variant === 'compact' ? sel.code.toUpperCase() : `${sel.native}`}
+          {sel.flag} {variant === 'compact' ? sel.code.toUpperCase() : sel.native}
         </span>
       </button>
       {open && (
