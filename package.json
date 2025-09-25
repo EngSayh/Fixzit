@@ -36,13 +36,16 @@
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
     "clean:root": "tsx scripts/janitor.ts --apply",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
-    "docs:marketplace-bible": "tsx scripts/generate-marketplace-bible.ts"
-    "kb:watch": "tsx scripts/kb-change-stream.ts"
+    "docs:marketplace-bible": "tsx scripts/generate-marketplace-bible.ts",
+    "kb:watch": "tsx scripts/kb-change-stream.ts",
+    "verify:sanitize": "tsx scripts/verify-sanitize-and-signed-urls.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.654.0",
+    "@aws-sdk/s3-request-presigner": "^3.654.0",
     "@prisma/client": "^6.16.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
