@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
+import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,8 @@ const COLLECTION = 'helparticles';
  */
 export async function GET(req: NextRequest){
   try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const url = new URL(req.url);
     const sp = url.searchParams;
     const category = sp.get("category") || undefined;
@@ -49,7 +52,7 @@ export async function GET(req: NextRequest){
 
     // Indexes are created by scripts/add-database-indexes.js
 
-    const filter: any = { };
+    const filter: any = { tenantId: user.tenantId };
     if (status) filter.status = status;
     if (category) filter.category = category;
     

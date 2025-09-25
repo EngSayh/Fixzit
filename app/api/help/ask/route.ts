@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
+import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,8 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
  */
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await req.json().catch(() => ({} as AskRequest));
     const question = typeof body?.question === 'string' ? body.question : '';
     const rawLimit = Number((body as any)?.limit);
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     // Text index is created by scripts/add-database-indexes.js
 
-    const filter: any = { status: 'PUBLISHED' };
+    const filter: any = { status: 'PUBLISHED', tenantId: user.tenantId };
     if (category) filter.category = category;
 
     let docs: Doc[] = [];
@@ -140,6 +143,5 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Test-only exports
-export { buildHeuristicAnswer as __private_buildHeuristicAnswer, maybeSummarizeWithOpenAI as __private_maybeSummarizeWithOpenAI };
+// Note: Do not export any non-standard route fields; Next.js restricts exports to HTTP methods only.
 
