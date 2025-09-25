@@ -23,7 +23,22 @@ export async function POST(req: NextRequest) {
     userContext: z.object({ userId: z.string().optional(), tenant: z.string().optional(), email: z.string().email().optional(), phone: z.string().optional() }).optional(),
     clientContext: z.record(z.string(), z.unknown()).optional()
   });
-  const safe = schema.parse(body);
+  let safe: z.infer<typeof schema>;
+  try {
+    safe = schema.parse(body);
+  } catch (err: any) {
+    const issues = err?.issues ?? [];
+    return NextResponse.json(
+      {
+        type: 'https://docs.fixzit/errors/invalid-incident-payload',
+        title: 'Invalid incident payload',
+        status: 400,
+        detail: 'One or more fields are invalid',
+        errors: issues
+      },
+      { status: 400, headers: { 'content-type': 'application/problem+json' } }
+    );
+  }
   const now = new Date();
 
   const incidentId: string = safe.incidentId || `INC-${now.getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
@@ -46,7 +61,7 @@ export async function POST(req: NextRequest) {
   // Simple in-memory rate limiting (best-effort) per user or IP
   const globalAny: any = global as any;
   if (!globalAny.__incidentsRate) globalAny.__incidentsRate = new Map<string, { ts: number; count: number }>();
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || (req as any).ip || 'anonymous';
+  const ip = (req as any).ip || 'anonymous';
   const rateKey = sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`;
   const nowMs = Date.now();
   const windowMs = 30_000; // 30s window
