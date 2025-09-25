@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -63,13 +63,6 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
 
   const router = useRouter();
 
-  // Fetch notifications when dropdown opens
-  useEffect(() => {
-    if (notifOpen && notifications.length === 0) {
-      fetchNotifications();
-    }
-  }, [notifOpen]);
-
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -100,7 +93,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
     }
   }, [notifOpen]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/notifications?limit=5&read=false', {
@@ -168,7 +161,14 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (notifOpen && notifications.length === 0) {
+      fetchNotifications();
+    }
+  }, [notifOpen, notifications.length, fetchNotifications]);
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();

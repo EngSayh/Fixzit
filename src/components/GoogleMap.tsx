@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader } from 'lucide-react';
 
 interface GoogleMapProps {
@@ -27,6 +27,37 @@ export default function GoogleMap({
   const [loading, setLoading] = useState(true);
   const markersRef = useRef<google.maps.Marker[]>([]);
 
+  const initializeMap = useCallback(() => {
+    if (!mapRef.current || !window.google) return;
+
+    const mapInstance = new google.maps.Map(mapRef.current, {
+      center,
+      zoom,
+      mapTypeControl: true,
+      streetViewControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+      styles: [
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        }
+      ]
+    });
+
+    if (onMapClick) {
+      mapInstance.addListener('click', (event: google.maps.MapMouseEvent) => {
+        if (event.latLng) {
+          onMapClick(event.latLng.lat(), event.latLng.lng());
+        }
+      });
+    }
+
+    setMap(mapInstance);
+    setLoading(false);
+  }, [center, zoom, onMapClick]);
+
   useEffect(() => {
     // Load Google Maps script
     if (!window.google) {
@@ -45,7 +76,7 @@ export default function GoogleMap({
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
     };
-  }, []);
+  }, [initializeMap]);
 
   useEffect(() => {
     if (map) {
@@ -87,37 +118,6 @@ export default function GoogleMap({
       });
     }
   }, [markers, map]);
-
-  const initializeMap = () => {
-    if (!mapRef.current || !window.google) return;
-
-    const mapInstance = new google.maps.Map(mapRef.current, {
-      center,
-      zoom,
-      mapTypeControl: true,
-      streetViewControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
-        }
-      ]
-    });
-
-    if (onMapClick) {
-      mapInstance.addListener('click', (event: google.maps.MapMouseEvent) => {
-        if (event.latLng) {
-          onMapClick(event.latLng.lat(), event.latLng.lng());
-        }
-      });
-    }
-
-    setMap(mapInstance);
-    setLoading(false);
-  };
 
   return (
     <div className="relative" style={{ height }}>
