@@ -79,6 +79,7 @@ class CandidateMockModel extends MockModel {
   }
 }
 
+const existingCandidateModel = models.Candidate as CandidateModel | undefined;
 export const Candidate: CandidateModel = isMockDB
-  ? new CandidateMockModel() as unknown as CandidateModel
-  : (models.Candidate || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema));
+  ? (new CandidateMockModel() as unknown as CandidateModel)
+  : (existingCandidateModel || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema));
