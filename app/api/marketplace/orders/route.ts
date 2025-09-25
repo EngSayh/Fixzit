@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+
 import { dbConnect } from '@/src/db/mongoose';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import Order from '@/src/models/marketplace/Order';
 import { serializeOrder } from '@/src/lib/marketplace/serializers';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const QuerySchema = z.object({
   status: z.string().optional()

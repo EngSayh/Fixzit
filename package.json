@@ -6,6 +6,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
     "typecheck": "tsc -p .",
     "qa:verify": "node scripts/qa/halt-fix-verify.mjs",
     "verify": "node qa/scripts/verify.mjs",
@@ -34,7 +35,8 @@
     "artifacts:init": "mkdir -p _artifacts",
     "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
-    "clean:root": "tsx scripts/janitor.ts --apply"
+    "clean:root": "tsx scripts/janitor.ts --apply",
+    "bundle:check": "webpack --config webpack.config.js --mode=production"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -84,6 +86,8 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.0",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -92,6 +96,8 @@
     "@types/node": "^22.18.6",
     "autoprefixer": "^10.4.16",
     "concurrently": "^9.2.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.5.4",
     "fast-glob": "^3.3.3",
     "picocolors": "^1.1.1",
     "postcss": "^8.4.31",

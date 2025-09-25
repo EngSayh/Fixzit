@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
+import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/src/hooks/useScreenSize';
 
 interface ResponsiveContextType {
@@ -15,6 +16,7 @@ const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undef
 
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
+  const { isRTL } = useTranslation();
 
   const responsiveClasses = getResponsiveClasses(screenInfo);
 
@@ -22,8 +24,7 @@ export function ResponsiveProvider({ children }: { children: ReactNode }) {
     screenInfo,
     isReady,
     responsiveClasses,
-    // isRTL will be available when used in components with useResponsive hook
-    isRTL: false, // This will be overridden in the useResponsive hook
+    isRTL,
     updateScreenInfo
   };
 
@@ -80,20 +81,5 @@ export function useResponsive() {
     };
   }
 
-  // Try to get isRTL from TranslationContext
-  let isRTL = context.isRTL;
-  try {
-    // Import useTranslation at module level to avoid SSR issues
-    const { useTranslation } = require('@/src/contexts/TranslationContext');
-    const translationContext = useTranslation();
-    isRTL = translationContext.isRTL;
-  } catch {
-    // Fallback if translation context is not available
-    isRTL = false;
-  }
-
-  return {
-    ...context,
-    isRTL
-  };
+  return context;
 }
