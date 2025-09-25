@@ -53,7 +53,9 @@ export async function GET(req: NextRequest){
 
     // Indexes are created by scripts/add-database-indexes.js
 
-    const filter: any = { tenantId: user.tenantId };
+    // Enforce tenant isolation; allow global articles with no tenantId
+    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const filter: any = { ...tenantScope };
     if (status) filter.status = status;
     if (category) filter.category = category;
     
