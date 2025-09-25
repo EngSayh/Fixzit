@@ -16,6 +16,7 @@ import {
 import { Invoice } from '@/src/server/models/Invoice';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const CURRENCY_TOLERANCE = 0.01;
 
