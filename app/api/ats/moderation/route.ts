@@ -23,6 +23,9 @@ export async function PUT(req: NextRequest) {
 
     const job = await (Job as any).findById(jobId);
     if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+    if (String(job.orgId) !== String((user as any).tenantId)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     if (action === 'approve') {
       job.status = 'published' as any;
