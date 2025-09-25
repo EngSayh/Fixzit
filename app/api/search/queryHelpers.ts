@@ -11,22 +11,23 @@ export type QueryableModel<T> = {
 };
 
 export function makeQueryableModel<T>(model: any): QueryableModel<T> {
+  const wrapChain = (chain: any): QueryChain<T> => ({
+    sort(sort: any) {
+      const next = chain.sort(sort);
+      return wrapChain(next);
+    },
+    limit(n: number) {
+      const next = chain.limit(n);
+      return wrapChain(next);
+    },
+    async lean() {
+      return await chain.lean();
+    }
+  });
+
   return {
     find(filter: any) {
-      const chain = model.find(filter);
-      return {
-        sort(sort: any) {
-          chain.sort(sort);
-          return this as QueryChain<T>;
-        },
-        limit(n: number) {
-          chain.limit(n);
-          return this as QueryChain<T>;
-        },
-        async lean() {
-          return await chain.lean();
-        }
-      } as QueryChain<T>;
+      return wrapChain(model.find(filter));
     }
   } as QueryableModel<T>;
 }

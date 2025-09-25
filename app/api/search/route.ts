@@ -15,7 +15,7 @@ type Hit = { id: string; type: string; title: string; href: string; subtitle?: s
 function clampLimit(raw: string | null): number {
   let lim = Number.parseInt((raw ?? "5"), 10);
   if (!Number.isFinite(lim)) lim = 5;
-  lim = Math.max(1, Math.min(20, Math.floor(lim)));
+  lim = Math.max(1, Math.min(20, lim));
   return lim;
 }
 
