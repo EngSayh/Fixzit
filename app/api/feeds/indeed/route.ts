@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+
 import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   await db();

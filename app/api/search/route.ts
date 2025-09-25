@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+
 import { APPS, AppKey } from '@/src/config/topbar-modules';
+import { db } from '@/src/lib/mongo';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
