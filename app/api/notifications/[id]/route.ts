@@ -16,7 +16,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!_id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   const doc = await notifications.findOne({ _id: _id as any, tenantId });
   if (!doc) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-  return NextResponse.json(doc);
+  const { _id: rawId, ...rest } = doc as any;
+  return NextResponse.json({ id: String(rawId), ...rest });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
