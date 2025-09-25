@@ -20,8 +20,10 @@ export async function GET(req: NextRequest) {
     const department = searchParams.get('department');
     const location = searchParams.get('location');
     const jobType = searchParams.get('jobType');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const pageRaw = Number.parseInt(searchParams.get('page') ?? '', 10);
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const limitRaw = Number.parseInt(searchParams.get('limit') ?? '', 10);
+    const limit = Math.max(1, Math.min(Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 20, 100));
     const filter: any = { orgId };
     if (status !== 'all') filter.status = status;
     if (department) filter.department = department;
