@@ -5,10 +5,18 @@ import { notFound } from 'next/navigation';
 
 async function fetchPdp(slug: string) {
   const h = headers();
-  const proto = h.get('x-forwarded-proto') ?? 'http';
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  const base = `${proto}://${host}`;
-  const res = await fetch(`${base}/api/marketplace/products/${slug}`, { cache: 'no-store', headers: { cookie: h.get('cookie') || '' } });
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  const url = new URL(`/api/marketplace/products/${slug}`, baseUrl);
+  const cookie = h.get('cookie');
+  const res = await fetch(url.toString(), {
+    cache: 'no-store',
+    headers: cookie ? { cookie } : undefined,
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load marketplace PDP (${res.status})`);
+  }
   return res.json();
 }
 
