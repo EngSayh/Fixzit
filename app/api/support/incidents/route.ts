@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     incidentId: z.string().max(64).optional(),
     incidentKey: z.string().max(128).optional(),
     userContext: z.object({ userId: z.string().optional(), tenant: z.string().optional(), email: z.string().email().optional(), phone: z.string().optional() }).optional(),
-    clientContext: z.record(z.any()).optional()
+    clientContext: z.record(z.string(), z.any()).optional()
   });
   const safe = schema.parse(body);
   const now = new Date();
@@ -41,6 +41,23 @@ export async function POST(req: NextRequest) {
     sessionUser = { id: user.id, role: user.role, tenantId: user.tenantId } as any;
   } catch {
     sessionUser = null;
+  }
+
+  // Simple in-memory rate limiting (best-effort) per user or IP
+  const globalAny: any = global as any;
+  if (!globalAny.__incidentsRate) globalAny.__incidentsRate = new Map<string, { ts: number; count: number }>();
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || (req as any).ip || 'anonymous';
+  const rateKey = sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`;
+  const nowMs = Date.now();
+  const windowMs = 30_000; // 30s window
+  const entry = globalAny.__incidentsRate.get(rateKey);
+  if (!entry || nowMs - entry.ts > windowMs) {
+    globalAny.__incidentsRate.set(rateKey, { ts: nowMs, count: 1 });
+  } else {
+    entry.count += 1;
+    if (entry.count > 3) {
+      return new NextResponse(null, { status: 429 });
+    }
   }
 
   // Dedupe: return existing if same incidentKey exists
