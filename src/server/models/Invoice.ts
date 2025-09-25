@@ -189,6 +189,12 @@ InvoiceSchema.index({ tenantId: 1, 'zatca.status': 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 
+<<<<<<< HEAD
+=======
+// Check if we're using mock database (explicit flag only)
+const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
+
+>>>>>>> origin/main
 export const Invoice = isMockDB
   ? new MockModel('invoices') as any
   : (models.Invoice || model("Invoice", InvoiceSchema));

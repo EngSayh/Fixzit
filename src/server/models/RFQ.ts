@@ -201,6 +201,12 @@ RFQSchema.index({ tenantId: 1, 'bids.status': 1 });
 
 export type RFQDoc = InferSchemaType<typeof RFQSchema>;
 
+<<<<<<< HEAD
+=======
+// Check if we're using mock database (explicit flag only)
+const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
+
+>>>>>>> origin/main
 export const RFQ = isMockDB
   ? new MockModel('rfqs') as any
   : (models.RFQ || model("RFQ", RFQSchema));

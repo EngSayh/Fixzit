@@ -18,6 +18,12 @@ HelpArticleSchema.index({ title:"text", content:"text", tags:"text" });
 
 export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
 
+<<<<<<< HEAD
+=======
+// Check if we're using mock database (explicit flag only)
+const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
+
+>>>>>>> origin/main
 export const HelpArticle = isMockDB 
   ? new MockModel('helparticles') as any
   : (models.HelpArticle || model("HelpArticle", HelpArticleSchema));

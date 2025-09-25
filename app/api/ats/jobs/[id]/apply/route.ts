@@ -156,8 +156,13 @@ export async function POST(
       skills: candidateSkills,
       requiredSkills: job.skills,
       experience: yearsOfExperience,
+<<<<<<< HEAD
       minYears: job.screeningRules?.minYears
     }, atsSettings.scoringWeights);
+=======
+      minExperience: job.screeningRules?.minYears
+    }, atsSettings?.scoringWeights || undefined);
+>>>>>>> origin/main
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({
