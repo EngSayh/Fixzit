@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/src/contexts/TranslationContext';
 import Link from 'next/link';
 import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText, Headphones } from 'lucide-react';
 import HelpWidget from '@/src/components/HelpWidget';
@@ -36,6 +37,9 @@ interface Tutorial {
  * @returns A React element for the Help center landing page.
  */
 export default function HelpHome() {
+  const { isRTL } = (() => {
+    try { return useTranslation(); } catch { return { isRTL: false } as any; }
+  })();
   const [showAIChat, setShowAIChat] = useState(false);
   const [showSupportTicket, setShowSupportTicket] = useState(false);
 
@@ -146,9 +150,8 @@ export default function HelpHome() {
     }
   };
 
-  // Respect global dir set by ClientLayout; nothing custom here
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" dir={undefined as any}>
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[#023047] via-[#0061A8] to-[#00A859] text-white py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
