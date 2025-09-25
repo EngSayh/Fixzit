@@ -530,7 +530,7 @@ export default function SignupPage() {
                     className="mt-1 h-4 w-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
                   />
                   <span className="text-sm text-gray-600">
-                    I'd like to receive updates and promotional emails about Fixzit Enterprise
+                    I&apos;d like to receive updates and promotional emails about Fixzit Enterprise
                   </span>
                 </label>
               </div>
