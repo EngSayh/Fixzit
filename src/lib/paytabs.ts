@@ -257,9 +257,7 @@ function decodeSignature(signature: string): Buffer | null {
 
     return Buffer.from(trimmed, 'base64');
   } catch (error) {
-    console.warn(
-      `Failed to decode PayTabs signature: ${error instanceof Error ? error.message : error}`
-    );
+    console.warn('Failed to decode PayTabs signature.');
     return null;
   }
 }
