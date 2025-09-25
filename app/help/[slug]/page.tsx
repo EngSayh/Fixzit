@@ -33,8 +33,11 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
   if (!a){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }
+  // Derive dir from Accept-Language (simple heuristic); ClientLayout will enforce on client
+  const accept = headers().get('accept-language') || '';
+  const isRTL = accept.toLowerCase().startsWith('ar');
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Breadcrumb */}
       <section className="bg-gradient-to-r from-[#0061A8] to-[#00A859] text-white py-8">
         <div className="mx-auto max-w-4xl px-6">
