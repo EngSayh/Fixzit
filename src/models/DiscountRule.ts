@@ -6,8 +6,8 @@ const DiscountRuleSchema = new Schema(
     tenantKey: { type: String, required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, required: true, index: true },
     type: { type: String, enum: ['percent', 'amount'], default: 'percent' },
-    value: Number, // e.g. 15
-    active: { type: Boolean, default: true },
+    value: { type: Number, min: 0, default: 0 }, // e.g. 15
+    active: { type: Boolean, default: false },
     editableBy: { type: [String], default: ['SUPER_ADMIN'] }
   },
   { timestamps: true }

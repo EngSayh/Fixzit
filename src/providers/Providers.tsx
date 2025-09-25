@@ -27,8 +27,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ResponsiveProvider>
-      <TranslationProvider>
+    <TranslationProvider>
+      <ResponsiveProvider>
         <CurrencyProvider>
           <ThemeProvider>
             <ErrorBoundary>
@@ -36,8 +36,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             </ErrorBoundary>
           </ThemeProvider>
         </CurrencyProvider>
-      </TranslationProvider>
-    </ResponsiveProvider>
+      </ResponsiveProvider>
+    </TranslationProvider>
   );
 }
 

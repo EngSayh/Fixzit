@@ -25,7 +25,7 @@ function getBrandPalette() {
   return { ...BRAND_COLORS };
 }
 
-function verifyBrandColor(hex) {
+function isBrandColor(hex) {
   if (typeof hex !== 'string') {
     return false;
   }
@@ -37,5 +37,5 @@ function verifyBrandColor(hex) {
 module.exports = {
   getBuildMetadata,
   getBrandPalette,
-  verifyBrandColor,
+  isBrandColor,
 };

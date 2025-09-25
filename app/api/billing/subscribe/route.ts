@@ -6,6 +6,8 @@ import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
 import { computeQuote } from '@/src/lib/pricing';
 import { createHppRequest } from '@/src/lib/paytabs';
 
+export const runtime = 'nodejs';
+
 // Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, paytabsRegion, returnUrl, callbackUrl}
 export async function POST(req: NextRequest) {
   await dbConnect();

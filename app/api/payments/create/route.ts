@@ -4,6 +4,8 @@ import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);

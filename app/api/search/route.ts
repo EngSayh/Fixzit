@@ -20,6 +20,7 @@ type SearchResult = {
 
 const DEFAULT_LIMIT = 20;
 const PER_ENTITY_LIMIT = 5;
+const MAX_SEARCH_LIMIT = 50;
 
 const ALL_ROLES = [
   'SUPER_ADMIN',
@@ -155,7 +156,7 @@ function toObjectId(value?: string | null): ObjectId | null {
       return new ObjectId(trimmed);
     }
 
-    const digest = crypto.createHash('sha1').update(trimmed).digest('hex');
+    const digest = crypto.createHash('sha256').update(trimmed).digest('hex');
     return new ObjectId(digest.slice(0, 24));
   } catch (error) {
     console.warn('Failed to derive ObjectId from tenant/org identifier', error);
@@ -265,7 +266,10 @@ export async function GET(req: NextRequest) {
     const q = (searchParams.get('q') || '').trim();
     const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
     const limitParam = Number.parseInt(searchParams.get('limit') ?? '', 10);
-    const resultLimit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : DEFAULT_LIMIT;
+    const resultLimit =
+      Number.isFinite(limitParam) && limitParam > 0
+        ? Math.min(limitParam, MAX_SEARCH_LIMIT)
+        : DEFAULT_LIMIT;
 
     if (!q) {
       return NextResponse.json({ results: [] });
@@ -288,7 +292,16 @@ export async function GET(req: NextRequest) {
 
         const items = await collection
           .find(query)
-          .project({ score: { $meta: 'textScore' } })
+          .project({
+            _id: 1,
+            title: 1,
+            name: 1,
+            code: 1,
+            description: 1,
+            address: 1,
+            status: 1,
+            score: { $meta: 'textScore' }
+          })
           .sort({ score: { $meta: 'textScore' } })
           .limit(PER_ENTITY_LIMIT)
           .toArray();
@@ -332,7 +345,7 @@ function resolveCollectionAndQuery(connection: Db, entity: SearchEntity, q: stri
 
   const baseQuery: Record<string, any> = {
     $text: { $search: q },
-    deletedAt: { $exists: false }
+    deletedAt: null
   };
 
   const scopeClauses = buildScopeClauses(entity, context);
