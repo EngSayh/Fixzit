@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { dbConnect } from '@/src/db/mongoose';
-import Category from '@/src/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+import Category from '@/src/models/marketplace/Category';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {

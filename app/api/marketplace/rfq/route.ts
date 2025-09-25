@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+
 import { dbConnect } from '@/src/db/mongoose';
-import RFQ from '@/src/models/marketplace/RFQ';
-import { serializeRFQ } from '@/src/lib/marketplace/serializers';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
+import { serializeRFQ } from '@/src/lib/marketplace/serializers';
+import RFQ from '@/src/models/marketplace/RFQ';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const CreateRFQSchema = z.object({
   title: z.string().min(1),
