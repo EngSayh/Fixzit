@@ -91,6 +91,9 @@ export async function POST(req: NextRequest) {
     const rawLimit = Number((body as any)?.limit);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(8, Math.floor(rawLimit)) : 5;
     const category = typeof body?.category === 'string' ? body.category : undefined;
+    const lang = typeof (body as any)?.lang === 'string' ? (body as any).lang : 'en';
+    const role = (user as any)?.role || undefined;
+    const route = typeof (body as any)?.route === 'string' ? (body as any).route : undefined;
     if (!question || !question.trim()) {
       return NextResponse.json({ error: 'Missing question' }, { status: 400 });
     }
