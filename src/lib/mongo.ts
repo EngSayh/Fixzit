@@ -39,6 +39,12 @@ type MaybeMongooseConnection = {
 };
 
 export async function getNativeDb(): Promise<Db | null> {
+  if (isMockDB) {
+    // In mock mode there is no native Mongo driver connection – callers should
+    // gracefully handle a null return value without attempting to hit the
+    // database.
+    return null;
+  }
   try {
     const connection = await db;
     const mongooseConnection =
