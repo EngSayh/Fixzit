@@ -43,7 +43,8 @@ export async function GET(req: NextRequest){
     const status: 'PUBLISHED' = 'PUBLISHED';
     const rawPage = Number(sp.get("page"));
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
-    const rawLimit = Number(sp.get("limit"));
+    const limitParam = sp.get("limit");
+    const rawLimit = limitParam === null ? NaN : Number(limitParam);
     const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(50, Math.floor(rawLimit))) : 20;
     const skip = (page - 1) * limit;
 
