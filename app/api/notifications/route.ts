@@ -14,6 +14,8 @@ const notificationSchema = z.object({
 
 // All operations now backed by Mongo collection (tenant-scoped)
 
+const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
@@ -35,19 +37,23 @@ export async function GET(req: NextRequest) {
 
   const { notifications } = await getCollections();
   const filter: any = { tenantId };
-  if (q) filter.$or = [
-    { title: { $regex: q, $options: 'i' } },
-    { message: { $regex: q, $options: 'i' } }
-  ];
+  if (q) {
+    const safe = escapeRegex(q);
+    filter.$or = [
+      { title: { $regex: safe, $options: 'i' } },
+      { message: { $regex: safe, $options: 'i' } }
+    ];
+  }
   if (category && category !== 'all') filter.category = category;
   if (priority && priority !== 'all') filter.priority = priority;
   if (read !== '') filter.read = read === 'true';
 
   const skip = (page - 1) * limit;
-  const [items, total] = await Promise.all([
+  const [rawItems, total] = await Promise.all([
     notifications.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray(),
     notifications.countDocuments(filter)
   ]);
+  const items = rawItems.map((n: any) => ({ id: String(n._id), ...n, _id: undefined }));
 
   return NextResponse.json({
     items,
