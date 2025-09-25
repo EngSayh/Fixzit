@@ -4,6 +4,19 @@ import { db, isMockDB } from '@/src/lib/mongo';
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
+/**
+ * GET handler for a health-check endpoint.
+ *
+ * Returns a JSON payload describing application health including timestamp, overall status,
+ * database connectivity, memory usage, uptime, package version, and whether a mock database is used.
+ * HTTP status codes: 200 for healthy, 206 for degraded, 503 for critical.
+ *
+ * The function performs a lightweight, permission-agnostic database "ping" when possible; if the
+ * database check fails it marks the database as `disconnected` and downgrades status. On DB check
+ * failure an error is logged to the console.
+ *
+ * The response is produced via NextResponse.json(...) with the computed HTTP status code.
+ */
 export async function GET(req: NextRequest) {
   const healthStatus = {
     timestamp: new Date().toISOString(),

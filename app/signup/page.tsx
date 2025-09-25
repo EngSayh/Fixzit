@@ -35,6 +35,27 @@ const USER_TYPES = [
   { value: 'vendor', label: 'Vendor Account', description: 'For service providers and suppliers' },
 ];
 
+/**
+ * SignupPage React component — renders the enterprise signup form with language and currency preferences.
+ *
+ * Renders a two-column signup UI (branding + form) and a success view after account creation. The form
+ * includes account type, personal/company fields, credentials, terms/newsletter options, client-side
+ * validation, and submission to the server at POST /api/auth/signup. On success the component shows a
+ * confirmation and redirects to /login after a brief delay.
+ *
+ * Side effects:
+ * - Reads and writes preferences to localStorage keys `fxz.lang` and `fixzit-currency`.
+ * - Applies the selected language's `dir` and `lang` to `document.documentElement`.
+ * - Navigates using Next.js router (router.push) after successful signup.
+ *
+ * Behavior notes:
+ * - Performs synchronous client-side validation (required fields, email format, password rules,
+ *   company name for corporate accounts, and terms acceptance) and surfaces validation or server errors
+ *   in the UI.
+ * - Builds the payload with derived fields `fullName`, `preferredLanguage`, and `preferredCurrency`.
+ *
+ * @returns JSX.Element — the signup page UI or a success confirmation view.
+ */
 export default function SignupPage() {
   const [formData, setFormData] = useState({
     firstName: '',

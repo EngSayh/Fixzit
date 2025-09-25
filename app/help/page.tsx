@@ -3,6 +3,15 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Server-rendered Knowledge Base page that lists published help articles.
+ *
+ * Fetches up to 60 documents from the `knowledge_articles` collection with `status: 'PUBLISHED'`
+ * (projecting `title`, `lang`, `module`, and `slug`) and renders a responsive grid of article cards
+ * linking to `/help/{slug}`. If no articles are found, renders a simple empty state message.
+ *
+ * @returns A Promise resolving to the page's JSX (server component).
+ */
 export default async function KbPage() {
   const db = await getDb();
   const native = (db as any).connection?.db || (db as any).db;

@@ -5,6 +5,22 @@ import { Job } from '@/src/server/models/Job';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/**
+ * GET handler that returns an XML jobs feed for Indeed-like consumers.
+ *
+ * During Next.js production build (when NEXT_PHASE === 'phase-production-build') this returns
+ * a minimal XML containing only publisher metadata to avoid database access. Otherwise it
+ * connects to the database, fetches jobs with status "published" and visibility "public"
+ * (sorted by publishedAt descending), and returns an XML <source> document with one <job>
+ * entry per job.
+ *
+ * Each <job> element includes: title, date (UTC), referencenumber (slug), url (PUBLIC_BASE_URL/careers/{slug}
+ * or https://fixzit.co fallback), company ("Fixzit"), city, country, description, salary
+ * (min-max and currency, with currency defaulting to "SAR"), jobtype, and category
+ * (department or "General").
+ *
+ * @returns A NextResponse containing the XML feed with Content-Type "application/xml; charset=utf-8".
+ */
 export async function GET() {
   // Avoid DB access during static build/export
   if (process.env.NEXT_PHASE === 'phase-production-build') {

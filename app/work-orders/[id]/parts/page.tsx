@@ -4,6 +4,20 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, ShoppingCart } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
+/**
+ * Page component for searching marketplace parts and adding them to a work order.
+ *
+ * Renders a searchable list of marketplace products, lets the user add parts with quantities
+ * to a selected list, and builds a purchase order object from the selected parts.
+ *
+ * Side effects:
+ * - Fetches marketplace products from `/api/marketplace/products?q=...` when the search term changes.
+ * - Creates a purchase order object and logs it to the console (also shows an alert) when "Create Purchase Order" is clicked.
+ *
+ * Uses route param `id` as the work order identifier displayed in the header and included in the PO.
+ *
+ * @returns The page's JSX.
+ */
 export default function WorkOrderPartsPage() {
   const params = useParams();
   const workOrderId = params.id;

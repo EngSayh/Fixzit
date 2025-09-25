@@ -35,6 +35,17 @@ const incidentSchema = z.object({
   additionalContext: z.any().optional()
 });
 
+/**
+ * Handles incoming incident reports (fire-and-forget).
+ *
+ * Validates the request body against `incidentSchema`, records or updates an ErrorEvent (upsert),
+ * creates an ErrorOccurrence, and optionally creates a SupportTicket when `autoTicket` is true
+ * and severity is not `P3`. If a session user exists it is merged into the incident's userContext
+ * (session values take precedence). Always returns HTTP 202 Accepted immediately — even on internal
+ * errors — to preserve a non-blocking, fire-and-forget behavior.
+ *
+ * @returns A NextResponse with status 202 and a JSON body containing `{ ok: true, incidentId, ticketId? }`
+ */
 export async function POST(req: NextRequest) {
   try {
     await db;
@@ -180,7 +191,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Helper functions
+/**
+ * Map an incident/module name to the corresponding ticket module code.
+ *
+ * @param module - Human-readable module name from the incident payload
+ * @returns Ticket module code (e.g., 'FM', 'Souq', 'Account'); returns 'Other' if no mapping exists
+ */
 function mapModuleToTicketModule(module: string): string {
   const moduleMap: Record<string, string> = {
     'Dashboard': 'FM',
@@ -202,6 +218,12 @@ function mapModuleToTicketModule(module: string): string {
   return moduleMap[module] || 'Other';
 }
 
+/**
+ * Maps an incident severity code (P0–P3) to the corresponding ticket priority label.
+ *
+ * @param severity - Severity code such as `'P0'`, `'P1'`, `'P2'`, or `'P3'`.
+ * @returns The corresponding priority: `'Urgent'` for P0, `'High'` for P1, `'Medium'` for P2, `'Low'` for P3. Defaults to `'Medium'` for unknown values.
+ */
 function mapSeverityToPriority(severity: string): string {
   switch (severity) {
     case 'P0': return 'Urgent';
@@ -212,6 +234,17 @@ function mapSeverityToPriority(severity: string): string {
   }
 }
 
+/**
+ * Build a Markdown-formatted message summarizing an incident for use as the initial ticket message.
+ *
+ * The message includes incident metadata (ID, code, module, severity, category, timestamp),
+ * the error message and optional details, a numbered list of validation/error items, client
+ * and HTTP problem context, and a fenced stack trace. The stack trace is truncated to
+ * the first 1000 characters to limit message size.
+ *
+ * @param data - Incident payload containing fields like `incidentId`, `code`, `module`, `severity`, `category`, `timestamp`, `message`, and optional `details`, `errors`, `clientContext`, `problemDetails`, and `stack`.
+ * @returns A single string (Markdown) suitable for the ticket's initial message body.
+ */
 function formatTicketMessage(data: any): string {
   const sections = [
     `🚨 **Automated Error Report**`,

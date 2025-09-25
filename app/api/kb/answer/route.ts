@@ -2,6 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/src/lib/mongo';
 
+/**
+ * Obtain an OpenAI embedding vector for the given text.
+ *
+ * Requests the OpenAI embeddings API (model `text-embedding-3-small`) and returns the first embedding vector.
+ *
+ * @param text - Input text to embed.
+ * @returns The embedding vector as an array of numbers, or an empty array if the response contains no embedding.
+ * @throws Error if OPENAI_API_KEY is not set or the embedding request fails (non-OK response).
+ */
 async function embed(text: string): Promise<number[]> {
   const apiKey = process.env.OPENAI_API_KEY || '';
   if (!apiKey) throw new Error('OPENAI_API_KEY not set');
@@ -15,6 +24,18 @@ async function embed(text: string): Promise<number[]> {
   return json.data?.[0]?.embedding || [];
 }
 
+/**
+ * Generates a concise answer (in English or Arabic) based solely on provided context chunks by querying OpenAI's chat API.
+ *
+ * The function sends a system instruction (language-specific) and a user message containing the question and the joined context chunks to an OpenAI chat model, and returns the model's text output. The returned text is expected to include a final "Sources" section as requested in the prompt.
+ *
+ * @param question - The user's question to be answered.
+ * @param chunks - Context passages (text) that the model should use as the sole basis for the answer; these are joined with separators and provided as "Context".
+ * @param lang - Response language: 'ar' for Arabic or 'en' for English; also determines the system instruction language.
+ * @returns The generated answer string from the chat model, or an empty string if the model response has no content.
+ * @throws If the OPENAI_API_KEY environment variable is not set.
+ * @throws If the OpenAI API responds with a non-ok HTTP status (message includes the status code).
+ */
 async function synthesize(question: string, chunks: string[], lang: 'ar'|'en') {
   const apiKey = process.env.OPENAI_API_KEY || '';
   if (!apiKey) throw new Error('OPENAI_API_KEY not set');
@@ -37,6 +58,25 @@ async function synthesize(question: string, chunks: string[], lang: 'ar'|'en') {
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Handle POST requests to retrieve a RAG-style answer and source scores from the knowledge base.
+ *
+ * Expects a JSON body with `question`, `orgId`, `lang`, `role`, and optional `route`. Validates inputs,
+ * computes an embedding for the question, searches KB embeddings (preferring Atlas Vector Search and
+ * falling back to in-memory cosine ranking), synthesizes a concise answer using relevant context chunks,
+ * and returns the answer together with source scores.
+ *
+ * If required fields are missing, responds with 400 and `{ error: 'Missing params' }`. On internal errors,
+ * responds with 500 and `{ error: string, answer: '', sources: [] }`.
+ *
+ * @param req - Incoming NextRequest whose JSON body must include:
+ *   - `question` (string): the user's question
+ *   - `orgId` (string): organization identifier
+ *   - `lang` ('ar' | 'en'): language for synthesis
+ *   - `role` (string): role used to filter role-scoped documents
+ *   - `route`? (string): optional route to further filter documents
+ * @returns A NextResponse with JSON: `{ answer: string, sources: Array<{ articleId: string, score: number }>, error?: string }`.
+ */
 export async function POST(req: NextRequest) {
   try {
     const { question, orgId, lang, role, route } = await req.json();

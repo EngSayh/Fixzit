@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/src/lib/db';
 import { KbAnalytics } from '@/src/db/models/KbAnalytics';
 
+/**
+ * Records an analytics event from the request body into the KbAnalytics collection.
+ *
+ * Accepts a JSON payload from the incoming NextRequest, connects to the database,
+ * creates a KbAnalytics document by merging the request data with a server-side
+ * `timestamp` set to the current time, and returns a JSON response indicating success.
+ * Errors during tracking are caught and logged; the handler deliberately returns
+ * `{ success: true }` even on failure so analytics failures do not impact the caller.
+ *
+ * @returns A JSON NextResponse with `{ success: true }` (always).
+ */
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -22,6 +33,22 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Retrieve aggregated analytics for a knowledge base organization over a specified period.
+ *
+ * Accepts `orgId` (required) and `period` (optional, defaults to `"7d"`) as URL query parameters.
+ * Supported `period` values: `"24h"`, `"7d"`, `"30d"`, `"90d"`. Returns an analytics summary containing:
+ * - `period`: the requested period string
+ * - `totalSearches`: number of `search` actions since the period start
+ * - `popularSearches`: top search queries as `{ query, count }[]`
+ * - `topArticles`: top viewed articles as `{ articleId, views }[]`
+ * - `helpfulness`: `{ helpful, notHelpful, percentage }` where `percentage` is rounded (0 if no votes)
+ *
+ * If `orgId` is missing the handler responds with 400 and `{ error: 'Missing orgId' }`.
+ * On internal failures it responds with 500 and `{ error: 'Internal server error' }`.
+ *
+ * @returns A NextResponse JSON payload with the described analytics structure or an error object.
+ */
 export async function GET(req: NextRequest) {
   try {
     await connectDB();

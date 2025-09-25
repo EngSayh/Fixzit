@@ -69,6 +69,19 @@ interface Job {
   featured?: boolean;
 }
 
+/**
+ * CareersPage client component that displays job listings with search, filters, detail dialogs, and an application form.
+ *
+ * Renders a searchable, filterable list of published jobs fetched from /api/ats/jobs and provides:
+ * - a details dialog for each job (description, requirements, benefits, location, salary, skills),
+ * - an application dialog with a multi-field form and resume upload which POSTs form data to /api/ats/jobs/{jobId}/apply,
+ * - counts for open positions, unique locations, and departments.
+ *
+ * The component manages loading and submission state, opens/closes dialogs for viewing and applying, and updates listings
+ * when the search term, location filter, or department filter change.
+ *
+ * @returns A React element containing the careers page UI.
+ */
 export default function CareersPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);

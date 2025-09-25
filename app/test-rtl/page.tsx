@@ -4,6 +4,21 @@ import { useI18n } from '@/src/providers/RootProviders';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { ResponsiveContainer, ResponsiveText } from '@/src/components/ui/ResponsiveContainer';
 
+/**
+ * A developer-facing page for verifying internationalization, RTL layout, and responsive behavior.
+ *
+ * Renders controls to switch the app language, shows whether RTL is active, and displays the current
+ * document direction and language. It also lists a set of translation keys with their resolved
+ * translations (using a fallback string if missing) and a layout test box that demonstrates text
+ * alignment and current screen dimensions.
+ *
+ * Side effects:
+ * - Invokes `setLanguage('ar' | 'en')` when language buttons are clicked.
+ * - Reads `document.documentElement.lang` and `document.documentElement.dir` to display current
+ *   language and direction.
+ *
+ * @returns A React element containing the RTL and language test UI.
+ */
 export default function RTLTestPage() {
   const { t, language, setLanguage, isRTL } = useI18n();
   const { screenInfo } = useResponsive();

@@ -11,6 +11,17 @@ import { Switch } from '@/src/components/ui/switch';
 import { Bell, Globe, Lock, User, Palette, Mail } from 'lucide-react';
 import { useI18n } from '@/src/providers/RootProviders';
 
+/**
+ * Settings page component rendering profile, security, notifications, and preferences tabs.
+ *
+ * Renders a multi-tabbed settings UI with localized labels (via useI18n) and local state for
+ * notification toggles. Each tab contains form controls for editing profile information,
+ * security settings (including a two-factor toggle), notification preferences (switches that
+ * update local state), and application preferences (language, timezone, theme). Inputs and
+ * buttons are present for UI purposes but do not perform persistence in this component.
+ *
+ * @returns A React element representing the settings page.
+ */
 export default function SettingsPage() {
   const { t, language, isRTL } = useI18n();
   const [notifications, setNotifications] = useState({

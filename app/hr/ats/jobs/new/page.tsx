@@ -6,6 +6,15 @@ import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 
+/**
+ * Client-side page that renders a "Post New Job" form and handles creating a job via the ATS API.
+ *
+ * Submits form data to POST /api/ats/jobs (payload includes title, department, jobType, location {city,country,mode:'onsite'},
+ * salaryRange {min,max,currency}, description, and empty requirements/benefits/skills arrays). While submitting the UI is disabled,
+ * on success it navigates to `/hr/ats/jobs`, and on failure it shows an alert with the error message.
+ *
+ * @returns The React element for the new-job page.
+ */
 export default function NewJobPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);

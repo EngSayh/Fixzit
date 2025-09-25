@@ -37,6 +37,17 @@ interface ServiceOrder {
   location: string;
 }
 
+/**
+ * OrdersPage component — dashboard for viewing and managing purchase and service orders.
+ *
+ * Renders a searchable, filterable list of Purchase Orders and Service Orders in two tabs.
+ * - Uses the `useI18n` hook for localized strings and directionality.
+ * - Maintains local state for `searchTerm` and `statusFilter`.
+ * - Filters purchase orders by order number, vendor, and status, and displays order details,
+ *   status/priority badges, items, delivery dates, and action buttons (View/Edit/Delete).
+ *
+ * @returns The OrdersPage React component JSX.
+ */
 export default function OrdersPage() {
   const { t, language, isRTL } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');

@@ -16,6 +16,20 @@ interface Article {
   version: number;
 }
 
+/**
+ * Client-side admin page for managing knowledge-base articles.
+ *
+ * Renders a searchable, filterable table of articles fetched from /api/admin/knowledge and provides actions
+ * to create, edit, delete, and toggle an article's published status. Displays localized (EN/AR) UI text and
+ * summary statistics (total, published, in-review, draft).
+ *
+ * Side effects:
+ * - Fetches article list on mount.
+ * - Sends DELETE requests to /api/admin/knowledge/{id} to remove articles.
+ * - Sends PATCH requests to /api/admin/knowledge/{id}/status to toggle publication status.
+ *
+ * @returns The Knowledge Admin page React element.
+ */
 export default function KnowledgeAdminPage() {
   const { t, language } = useI18n();
   const [articles, setArticles] = useState<Article[]>([]);

@@ -24,6 +24,24 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
+/**
+ * Handle POST requests to create a new user account.
+ *
+ * Validates the request JSON against the signup schema, ensures the email is unique,
+ * maps `userType` to an internal role, hashes the password, stores the new user in
+ * the database, and returns the created user object with the password removed.
+ *
+ * The response payloads:
+ * - 201: { ok: true, message: "Account created successfully", user: <user without password> }
+ * - 400: { error: "An account with this email already exists" } (email taken)
+ * - 400: { error: "Invalid input data", details: [...] } (validation errors)
+ * - 500: { error: "Internal server error" } (unexpected errors)
+ *
+ * @param req - Incoming NextRequest whose JSON body must conform to the signup schema
+ *               (includes firstName, lastName, email, phone, userType, password,
+ *               confirmPassword, termsAccepted, and optional preferences).
+ * @returns A NextResponse with the appropriate status and JSON payload described above.
+ */
 export async function POST(req: NextRequest) {
   try {
     await db();

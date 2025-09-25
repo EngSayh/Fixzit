@@ -54,6 +54,16 @@ const STATUS_CONFIG = {
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: '🔴' }
 };
 
+/**
+ * RFQs management page displaying a dashboard of request-for-quote items and related actions.
+ *
+ * Renders a client-side RFQ dashboard with tabs (My RFQs, Available to Bid, Awarded), search and status filters,
+ * a list of RFQ cards (title, status, priority, metadata, estimated value, bids, optional awarded vendor),
+ * an empty state with a create action, and a quick-stats panel. Uses mock RFQ data, supports RTL input direction,
+ * and pulls localized strings via the app's i18n hook.
+ *
+ * @returns The RFQs page JSX element.
+ */
 export default function RFQsPage() {
   const { t, language, isRTL } = useI18n();
   const [activeTab, setActiveTab] = useState<'my-rfqs' | 'available' | 'awarded'>('my-rfqs');

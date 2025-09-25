@@ -46,6 +46,20 @@ interface Job {
   featured?: boolean;
 }
 
+/**
+ * Client-side page component that displays and manages ATS job postings.
+ *
+ * Renders a searchable, filterable, and paginated list of jobs with controls to
+ * view, edit, publish, view applications, and delete postings. Fetches job data
+ * from /api/ats/jobs and updates component state; publishing and deletion are
+ * performed via POST/DELETE requests to the corresponding API endpoints and
+ * trigger a refetch on success.
+ *
+ * The component maintains local state for jobs, loading, search, status and
+ * department filters, and pagination.
+ *
+ * @returns The Jobs Management page as a React element.
+ */
 export default function JobsManagementPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);

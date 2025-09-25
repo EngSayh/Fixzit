@@ -3,6 +3,14 @@ import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { getUserFromToken } from '@/src/lib/auth';
 
+/**
+ * Publishes a job by id.
+ *
+ * Looks up the job using the route parameter `id`, prevents publishing an already published job, invokes the job's `publish()` method, and returns a JSON NextResponse indicating success or an error.
+ *
+ * @param params - Route parameters; must include `id` (the job id to publish).
+ * @returns A NextResponse with JSON `{ success: boolean, data?: Job, error?: string, message?: string }` and an appropriate HTTP status (200 on success, 400/404/500 on errors).
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }

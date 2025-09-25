@@ -69,6 +69,28 @@ const mockNotifications = [
   }
 ];
 
+/**
+ * Handles GET requests for the notifications API.
+ *
+ * Returns a paginated list of notifications from an in-memory dataset, optionally filtered by query parameters.
+ *
+ * Query parameters:
+ * - `q` — full-text search applied to title and message (case-insensitive).
+ * - `category` — filter by notification category (use `all` or omit to disable).
+ * - `priority` — filter by priority (use `all` or omit to disable).
+ * - `read` — filter by read state; expected `true` or `false`.
+ * - `page` — 1-based page number (defaults to 1).
+ * - `limit` — page size, capped at 100 (defaults to 20).
+ *
+ * In static-generation mode (when `NEXT_PHASE === 'phase-production-build'`), returns an empty result set with a message indicating static generation.
+ *
+ * Response JSON shape:
+ * - `items`: array of notification objects for the current page (sorted by timestamp, newest first)
+ * - `total`: total number of notifications matching the filters
+ * - `page`: current page number
+ * - `limit`: page size used
+ * - `hasMore`: boolean indicating if more items exist beyond the current page
+ */
 export async function GET(req: NextRequest) {
   // Handle static generation
   if (process.env.NEXT_PHASE === 'phase-production-build') {

@@ -4,6 +4,23 @@ import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 
+/**
+ * Initializes a payment for an invoice and returns a payment redirect URL.
+ *
+ * Validates the authenticated session and the provided `invoiceId`, ensures the invoice
+ * exists and is not already paid, builds a payment payload from the invoice, and
+ * calls the payment provider to create a payment page. On success the invoice's history
+ * is appended with a PAYMENT_INITIATED entry and a JSON response containing the
+ * provider redirect URL and transaction reference is returned.
+ *
+ * Responses:
+ * - 200: { success: true, paymentUrl, transactionId } when payment page is created.
+ * - 400: JSON error when `invoiceId` is missing, invoice is already paid, or payment initialization failed.
+ * - 404: JSON error when invoice is not found for the authenticated user's tenant.
+ * - 500: JSON error on unexpected server-side failures.
+ *
+ * Note: `req` is the incoming NextRequest and is used for authentication and body parsing.
+ */
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);

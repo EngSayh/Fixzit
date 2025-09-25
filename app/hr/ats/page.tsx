@@ -23,6 +23,16 @@ interface StageStats {
   avgScore: number;
 }
 
+/**
+ * Client-side ATS dashboard page component.
+ *
+ * Renders the Recruitment (ATS) dashboard: header with CTA, four summary stat cards,
+ * and a tabbed interface (Pipeline, Jobs, Candidates, Interviews, Analytics).
+ * On mount it fetches job and application data to populate aggregate stats,
+ * per-stage metrics, and a list of recent applications used by the Pipeline tab.
+ *
+ * @returns The dashboard as a JSX element.
+ */
 export default function AtsHomePage() {
   const [stats, setStats] = useState({
     totalJobs: 0,

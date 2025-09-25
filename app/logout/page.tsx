@@ -4,6 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, CheckCircle } from 'lucide-react';
 
+/**
+ * Client component that logs the user out, clears client-side session data, and redirects to the login page.
+ *
+ * On mount this component calls the server logout API, removes application-specific keys from localStorage
+ * and sessionStorage, shows a brief success state, and then navigates to `/login`. If the API call fails,
+ * it still redirects immediately to the login page. The success state is displayed for approximately 1.5 seconds
+ * before redirect.
+ *
+ * @returns The logout UI (JSX) which shows a spinner while logging out and a brief success message after cleanup.
+ */
 export default function LogoutPage() {
   const router = useRouter();
   const [status, setStatus] = useState<'logging-out' | 'success'>('logging-out');

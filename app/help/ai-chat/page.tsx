@@ -3,6 +3,17 @@
 import { useState } from 'react';
 import { Send, Bot, User, X } from 'lucide-react';
 
+/**
+ * A client-side React component that renders an interactive simulated AI chat UI for Fixzit.
+ *
+ * Renders a chat interface with an initial bot greeting and local state for messages, input text,
+ * and a loading indicator. User messages are appended immediately; bot replies are simulated
+ * with a 1-second delay (no network requests). While a simulated response is pending, input and
+ * send actions are disabled. Pressing Enter (without Shift) sends the current input; Shift+Enter
+ * allows inserting newlines. A close button calls `window.close()` to close the window.
+ *
+ * @returns The chat page JSX element.
+ */
 export default function AIChatPage() {
   const [messages, setMessages] = useState([
     {

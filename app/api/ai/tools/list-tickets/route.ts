@@ -8,6 +8,25 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
 const MOCK = process.env.USE_MOCK_DB === 'true' || process.env.DISABLE_DB === 'true';
 
+/**
+ * HTTP GET handler that lists work-order tickets visible to the current user.
+ *
+ * Supports static-generation short-circuit, mock mode, and a real MongoDB-backed path:
+ * - If NEXT_PHASE === 'phase-production-build' returns an empty tickets array for static builds.
+ * - Requires an authenticated user; responds 401 JSON when unauthenticated.
+ * - Query parameters:
+ *   - `limit` (default 10) — maximum number of tickets to return.
+ *   - `status` — optional filter (e.g., `new`, `in_progress`, `completed`, `cancelled`).
+ *   - `priority` — optional filter (e.g., `low`, `medium`, `high`, `urgent`).
+ * - In MOCK mode (env flags), returns predefined mock tickets with localized message/summary.
+ * - In DB mode, queries the `work_orders` collection scoped to the user's org and involvement
+ *   (createdBy or assigneeId), joins property and assignee info, projects and formats results,
+ *   and returns a localized message plus a summary produced by `getTicketSummary`.
+ * - On database or unexpected errors, falls back to a small mock response instead of throwing.
+ *
+ * @returns A NextResponse containing a JSON object with keys: `success` (boolean), `tickets` (array),
+ *          `total` (number), `message` (localized string), and `summary` (string).
+ */
 export async function GET(req: NextRequest) {
   try {
     // Handle static generation
@@ -169,6 +188,16 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/**
+ * Record an AI-related user action in the `ai_actions` collection.
+ *
+ * Inserts a document describing the action (type, userId, orgId, details, timestamp, and source).
+ * Errors during logging are caught and written to console; the function never throws.
+ *
+ * @param user - User object; must include `id` and `orgId`.
+ * @param action - Short action identifier (e.g., `"list_tickets"`).
+ * @param details - Arbitrary additional metadata about the action.
+ */
 async function logAction(user: any, action: string, details: any) {
   try {
     const db = await getDatabase();
@@ -185,6 +214,20 @@ async function logAction(user: any, action: string, details: any) {
   }
 }
 
+/**
+ * Produce a short locale-aware summary line for a list of tickets.
+ *
+ * Returns a one-line summary that includes the total ticket count and counts of
+ * specific statuses and priorities. Counts are computed from the `status`
+ * and `priority` properties of each ticket object; the summary always reports
+ * totals for:
+ * - statuses: `new`, `in_progress`
+ * - priority: `high`
+ *
+ * @param tickets - Array of ticket objects; each ticket is expected to have `status` and `priority` fields.
+ * @param locale - Locale code; `'ar'` produces an Arabic summary, any other value produces English.
+ * @returns A single-line localized summary string (Arabic when `locale === 'ar'`, otherwise English).
+ */
 function getTicketSummary(tickets: any[], locale: string): string {
   const statusCounts = tickets.reduce((acc, ticket) => {
     acc[ticket.status] = (acc[ticket.status] || 0) + 1;

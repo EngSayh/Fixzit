@@ -11,6 +11,20 @@ declare global {
   }
 }
 
+/**
+ * Page component that shows detailed information for a single property and an embedded Google Map.
+ *
+ * Renders property metadata (name, address, type, units, occupancy, open work orders), action buttons,
+ * and a Google Map centered on the property's coordinates. The component initializes local state with
+ * a placeholder property object that uses the route `id` param as the property's `id`.
+ *
+ * Side effects:
+ * - Loads the Google Maps JavaScript API if not already present, using the `NEXT_PUBLIC_GOOGLE_MAPS_KEY`
+ *   environment variable and a global `initMap` callback, then initializes the map and a marker
+ *   centered at the property's latitude/longitude.
+ *
+ * @returns The JSX element for the property detail page.
+ */
 export default function PropertyDetailPage() {
   const params = useParams();
   const propertyId = params.id;

@@ -67,6 +67,16 @@ const PAYMENT_STATUS = {
   refunded: { label: 'Refunded', color: 'text-gray-600' }
 };
 
+/**
+ * Client-side React component that renders the Orders & Purchase Orders dashboard.
+ *
+ * Renders a tabbed, filterable list of mock purchase orders with per-order cards,
+ * status and payment badges, optional tracking info, action controls (view/download),
+ * an empty state with CTA, and an order summary panel. Uses i18n (useI18n) for all
+ * user-facing strings and maintains local UI state (active tab and search query).
+ *
+ * @returns The JSX element for the orders dashboard.
+ */
 export default function OrdersPage() {
   const { t, language, isRTL } = useI18n();
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'shipped' | 'delivered'>('all');

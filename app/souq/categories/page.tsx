@@ -87,6 +87,16 @@ const MAIN_CATEGORIES = [
   }
 ];
 
+/**
+ * Renders the Categories page UI for browsing product categories and subcategories.
+ *
+ * Displays categories in either a grid or list view, supports live search (filters categories and subcategories
+ * by the current language with English fallback), and allows expanding a category to reveal its subcategories.
+ * Also includes a Featured Brands section and quick links (RFQ, Vendors, Support). The search input respects RTL
+ * layout when applicable.
+ *
+ * @returns The page's React element tree.
+ */
 export default function CategoriesPage() {
   const { t, language, isRTL } = useI18n();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');

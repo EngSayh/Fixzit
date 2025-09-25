@@ -4,6 +4,22 @@ import Link from "next/link";
 
 export const revalidate = 60;
 
+/**
+ * Server component that renders a CMS page by slug, with optional preview mode.
+ *
+ * Renders one of three responses:
+ * - "Not found" UI when no page exists for the provided slug.
+ * - "Unavailable" UI when the page exists but is not published and preview mode is not enabled.
+ * - Full page UI when the page is published or preview mode is enabled.
+ *
+ * Preview mode is enabled when searchParams.preview === "1".
+ * The function awaits the database connection and queries the CmsPage model for the page.
+ * Page Markdown content is converted to HTML via renderMarkdown(...) and injected using
+ * `dangerouslySetInnerHTML`.
+ *
+ * @param params - Route parameters object containing `slug`.
+ * @param searchParams - Query/search parameters; used to detect preview mode (`preview=1`).
+ */
 export default async function CmsPageScreen({ params, searchParams }: { params:{slug:string}, searchParams:any }){
   await db;
   const { slug } = params;

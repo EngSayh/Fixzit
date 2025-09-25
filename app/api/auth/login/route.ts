@@ -3,6 +3,24 @@ import { db } from '@/src/lib/mongo';
 import User from '@/src/server/models/User';
 import jwt from 'jsonwebtoken';
 
+/**
+ * Authenticates a user using email and password, issues a JWT session cookie, and returns user info on success.
+ *
+ * Accepts a JSON body with `email` and `password`. On successful authentication the handler:
+ * - resets the user's failed login attempts and updates their last login timestamp,
+ * - signs a JWT (24h expiry) containing `id`, `email`, `role`, and `tenantId`,
+ * - sets an HTTP-only session cookie (`fixzit_auth`) with the token and additional non-HTTP-only cookies (`fxz_role`, optional `fxz_lang`) for UI/tests,
+ * - responds with `{ success: true, user: { id, email, name, role, orgId, modules, language } }`.
+ *
+ * Returns HTTP responses for common failure cases:
+ * - 400 when `email` or `password` is missing,
+ * - 401 for invalid credentials,
+ * - 423 if the account is locked,
+ * - 500 for unexpected server errors.
+ *
+ * @param req - NextRequest whose JSON body must include `email` and `password`.
+ * @returns A NextResponse containing either the authenticated user payload and cookies (on success) or a JSON error message with an appropriate status code.
+ */
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();

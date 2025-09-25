@@ -3,6 +3,20 @@ import { db } from '@/src/lib/mongo';
 import { Application } from '@/src/server/models/Application';
 import { getUserFromToken } from '@/src/lib/auth';
 
+/**
+ * Retrieves a single application by ID, including populated job and candidate data.
+ *
+ * Initializes the database connection, queries the Application model with `jobId` and
+ * `candidateId` populated and converted to a plain object via `lean()`, and returns
+ * the application in a JSON NextResponse.
+ *
+ * Returns 404 JSON when the application is not found, and 500 JSON on unexpected errors.
+ *
+ * @param params - Route parameters; expects `params.id` to be the application ID to fetch.
+ * @returns A NextResponse with `{ success: true, data: application }` on success,
+ *          `{ success: false, error: 'Application not found' }` with status 404 if missing,
+ *          or `{ success: false, error: 'Failed to fetch application' }` with status 500 on error.
+ */
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -36,6 +50,25 @@ export async function GET(
   }
 }
 
+/**
+ * Updates an application by ID: supports stage changes, score updates, adding notes, and setting flags/reviewers; records history and authorship, then saves the application.
+ *
+ * Accepts a JSON body with any of:
+ * - `stage` (string) — if different, updates `application.stage` and appends a history entry (details may come from `reason`).
+ * - `reason` (string) — optional explanation stored in the stage-change history entry.
+ * - `score` (number) — if different, updates `application.score` and appends a history entry describing the change.
+ * - `note` (string) — if present, appends a note object { author, text, createdAt, isPrivate } to `application.notes`.
+ * - `isPrivate` (boolean) — used when creating the note (coerced to boolean).
+ * - `flags` (array) — replaces `application.flags` when provided as an array.
+ * - `reviewers` (array) — replaces `application.reviewers` when provided as an array.
+ *
+ * Authentication: if an Authorization header with a token is provided, the token is resolved to a user via `getUserFromToken` and that user's id is recorded as the author of history/notes; otherwise actions are attributed to `'system'`.
+ *
+ * Responses:
+ * - 200 JSON { success: true, data: application } on success (returns the updated application).
+ * - 404 JSON { success: false, error: 'Application not found' } if the application does not exist.
+ * - 500 JSON { success: false, error: 'Failed to update application' } on unexpected errors.
+ */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }

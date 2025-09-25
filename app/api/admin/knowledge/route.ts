@@ -4,6 +4,18 @@ import { KnowledgeArticle } from '@/src/db/models/KnowledgeArticle';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/src/lib/auth/options';
 
+/**
+ * GET handler that lists knowledge articles with optional filtering and tenant scoping.
+ *
+ * Retrieves up to 100 KnowledgeArticle documents, selecting title, module, lang, status, tags, version, and updatedAt,
+ * sorted by most recently updated. Applies tenant scoping for non-SUPER_ADMIN users and supports optional query filters.
+ *
+ * @param req - Incoming request. Accepted query parameters:
+ *   - `module`: module name to filter by (omit or use `all` to disable).
+ *   - `status`: status to filter by (omit or use `all` to disable).
+ *   - `lang`: language to filter by (omit or use `all` to disable).
+ * @returns A NextResponse with JSON `{ articles }` on success, or `{ error: 'Unauthorized' }` / `{ error: 'Internal server error' }` with appropriate HTTP status codes.
+ */
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
@@ -42,6 +54,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/**
+ * Create a new knowledge article for the requesting user's tenant.
+ *
+ * Creates a KnowledgeArticle using the JSON body of the request, automatically setting
+ * orgId to the authenticated user's orgId, createdBy and updatedBy to the user's id,
+ * and initializing `sources` with an admin reference to that user.
+ *
+ * Only users with role `SUPER_ADMIN`, `ADMIN`, or `CORP_ADMIN` are allowed; unauthorized
+ * requests receive a 401 response. On success returns a JSON response containing the
+ * created `article`. On failure returns a 500 response with an error message.
+ *
+ * @returns A NextResponse with `{ article }` on success, or `{ error }` and an appropriate HTTP status on failure.
+ */
 export async function POST(req: NextRequest) {
   try {
     await connectDB();

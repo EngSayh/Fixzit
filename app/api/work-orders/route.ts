@@ -23,6 +23,23 @@ const createSchema = z.object({
   }).optional()
 });
 
+/**
+ * Lists work orders for the current user's tenant, with optional filtering and pagination.
+ *
+ * Queries supported via URL search params:
+ * - `q`: full-text search string
+ * - `status`: filter by work order status
+ * - `priority`: filter by priority
+ * - `page`: 1-based page number (default 1)
+ * - `limit`: page size (default 20, capped at 100)
+ *
+ * The endpoint always scopes results to the requesting user's tenant and excludes logically deleted items.
+ * Results are sorted by `createdAt` descending and paginated. When running against the in-memory/mock DB,
+ * sorting and slicing are performed in-memory; against the real DB the query uses database-level sort/skip/limit.
+ *
+ * @returns A JSON response containing `{ items, page, limit, total }` where `items` is the page of work orders,
+ * `page` and `limit` reflect the applied pagination, and `total` is the total number of matching documents.
+ */
 export async function GET(req: NextRequest) {
   await db; // This will work with mock DB too
   const user = await getSessionUser(req);
@@ -61,6 +78,24 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ items, page, limit, total });
 }
 
+/**
+ * Create a new WorkOrder from the incoming POST request.
+ *
+ * Validates and parses request JSON against `createSchema`, enforces the caller has
+ * "CREATE" ability, computes SLA fields (slaMinutes and dueAt), generates a
+ * per-tenant code, persists the WorkOrder, and returns the created document with
+ * HTTP 201.
+ *
+ * The created WorkOrder includes tenantId, code, title, description, priority,
+ * category, subcategory, propertyId, unitId, requester, status ("SUBMITTED"),
+ * statusHistory (DRAFT → SUBMITTED), slaMinutes, dueAt, createdBy, and createdAt.
+ *
+ * Errors:
+ * - Throws a validation error (ZodError) if the request body does not conform to `createSchema`.
+ * - If the requester lacks "CREATE" ability, the authorization helper may return a NextResponse which is returned directly.
+ *
+ * @returns A NextResponse with the persisted WorkOrder and HTTP status 201 on success.
+ */
 export async function POST(req: NextRequest) {
   const user = await requireAbility("CREATE")(req);
   if (user instanceof NextResponse) return user as any;

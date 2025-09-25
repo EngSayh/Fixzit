@@ -4,6 +4,16 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { MapPin, Bed, Bath, Square, Heart, Eye, Shield, Phone, Mail, Calendar, MessageSquare, Share2 } from 'lucide-react';
 
+/**
+ * Renders the Property detail page for a given property id.
+ *
+ * Displays images, details, features, specifications, neighborhood info, agent contact, and a sidebar with actions.
+ * Client-side state manages an authentication modal (for gated actions), contact reveal behavior (uses sessionStorage to count reveals),
+ * and a simple rate-limit that hides contact details after too many reveals.
+ *
+ * @param params - Route params object containing the property `id` to display.
+ * @returns A React element for the property detail page.
+ */
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authAction, setAuthAction] = useState('');

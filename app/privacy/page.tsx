@@ -1,3 +1,10 @@
+/**
+ * Privacy page component rendering placeholder privacy policy content.
+ *
+ * Renders a centered container with a "Privacy" heading and a short placeholder paragraph used for end-to-end visibility tests.
+ *
+ * @returns The React element for the privacy page.
+ */
 export default function PrivacyPage() {
   return (
     <div className="prose max-w-3xl mx-auto p-6">

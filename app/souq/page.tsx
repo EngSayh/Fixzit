@@ -42,6 +42,14 @@ const SOUQ_FEATURES = [
   }
 ];
 
+/**
+ * Client-side React page component that renders the Fixzit Souq marketplace landing page.
+ *
+ * Renders a hero section with title, description and action links to the catalog and vendors,
+ * followed by a responsive grid of feature cards driven by the `SOUQ_FEATURES` data array.
+ *
+ * @returns The page's JSX element.
+ */
 export default function SouqPage() {
   return (
     <div className="space-y-8">

@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
 
+/**
+ * Receive a QA alert payload, persist it to the `qa_alerts` MongoDB collection, and respond with success.
+ *
+ * Expects a JSON body containing `event` and `data`. Inserts a document with `event`, `data`, `timestamp`, `ip`,
+ * and `userAgent` into the `qa_alerts` collection and emits a console warning with the event and data.
+ *
+ * On success returns a JSON response `{ success: true }`. On failure returns a JSON error `{ error: 'Failed to process alert' }`
+ * with HTTP status 500.
+ *
+ * Note: The function reads request headers (`x-forwarded-for`, `user-agent`) for IP and user agent values.
+ *
+ * @returns A NextResponse with `{ success: true }` on success, or an error JSON and status 500 on failure.
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -26,6 +39,13 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Retrieve up to 50 most recent QA alerts.
+ *
+ * Queries the `qa_alerts` collection and returns alerts sorted by `timestamp` descending (newest first).
+ *
+ * @returns A JSON NextResponse containing `{ alerts: Alert[] }` on success, or `{ error: 'Failed to fetch alerts' }` with HTTP status 500 on failure.
+ */
 export async function GET(req: NextRequest) {
   try {
     const conn = await db();

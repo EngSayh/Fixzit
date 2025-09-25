@@ -7,6 +7,16 @@ import { getDatabase } from 'lib/mongodb';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit';
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
 
+/**
+ * POST handler that returns financial statements and a summary for a given owner and period.
+ *
+ * Checks authentication and role-based access (allowed roles: SUPER_ADMIN, CORP_ADMIN, MANAGEMENT, FINANCE, PROPERTY_OWNER).
+ * PROPERTY_OWNER users are restricted to their own records. Reads `ownerId` and optional `period` (defaults to 'YTD') from the request body,
+ * queries the `financial_statements` collection for the user's org, and returns up to 5 most recent statements plus a computed summary:
+ * totalRevenue, totalExpenses, netIncome, and pendingPayments. Responses are localized to Arabic (`locale === 'ar'`) where applicable.
+ *
+ * Returns 401 when unauthenticated, 403 for authorization failures, and 500 on unexpected server/database errors.
+ */
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser(req);

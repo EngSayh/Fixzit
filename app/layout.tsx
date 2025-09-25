@@ -12,6 +12,17 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = { title: 'Fixzit Enterprise', description: 'Facility Management + Marketplace' };
 
+/**
+ * Server-side root layout that initializes i18n and app providers and renders the page root.
+ *
+ * Reads the user's language from the `fxz_lang` cookie (falls back to `DEFAULT_LANG`), fetches
+ * the server-side translation dictionary for that language, and computes the document text
+ * direction (`rtl` or `ltr`). Returns the HTML root element with `lang` and `dir` attributes and
+ * wraps the page `children` with the initialized Providers, AppScopeProvider, and ClientLayout.
+ *
+ * @param children - The page content to render inside the client layout.
+ * @returns The top-level HTML/Body JSX structure for the app.
+ */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = cookies();
   const lang = (cookieStore.get('fxz_lang')?.value as Lang) || DEFAULT_LANG;

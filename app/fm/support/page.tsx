@@ -2,6 +2,17 @@
 
 import Link from 'next/link';
 
+/**
+ * Support page component rendering help resources and admin tools.
+ *
+ * Renders two cards:
+ * - "Help Resources": a link to the Knowledge Base, a "Create Support Ticket" button that attempts to
+ *   find a <footer> in the document and click its first <button> (used to open the site's support UI),
+ *   and a "Quick Help" keyboard shortcut hint.
+ * - "Admin Tools": links to Manage Tickets and Admin Settings.
+ *
+ * @returns The page's JSX element.
+ */
 export default function SupportPage() {
   return (
     <div className="p-6">

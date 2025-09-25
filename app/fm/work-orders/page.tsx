@@ -9,6 +9,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
+/**
+ * Client-side React page that displays and manages a paginated, filterable list of work orders.
+ *
+ * Renders a header with a "New Work Order" action, a filter bar (search, status, priority),
+ * a list of results fetched from `/api/work-orders` (via SWR), and pagination controls.
+ *
+ * Controls:
+ * - Search input resets to page 1 when changed.
+ * - Status and priority selects reset to page 1 when changed.
+ * - Prev/Next buttons navigate pages and are disabled at the bounds.
+ *
+ * Data behavior:
+ * - Builds a query string with `limit` (20), `page`, and optional `q`, `status`, and `priority`.
+ * - Uses SWR to fetch parsed JSON from `/api/work-orders?{query}`.
+ * - Exposes loading, empty, and populated list states; each item shows code, title, status,
+ *   priority, property ID (or "—"), due date (formatted or "—"), and an "Open" link.
+ *
+ * @returns The page's JSX element.
+ */
 export default function WorkOrdersPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>('');

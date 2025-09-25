@@ -5,6 +5,13 @@ import { Job } from '@/src/server/models/Job';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/**
+ * Returns an XML feed of public, published job listings formatted for LinkedIn.
+ *
+ * During a production build phase (`NEXT_PHASE === 'phase-production-build'`) this returns an empty `<jobs>` XML payload to avoid database access. Otherwise it ensures the database connection, queries `Job` documents with `status: 'published'` and `visibility: 'public'` (sorted by `publishedAt` desc), and renders each job as a `<job>` element containing `id` (slug), `title`, `company` (fixed to "Fixzit"), `url` (built from `PUBLIC_BASE_URL` or `https://fixzit.co`), `location` (city, country), `description`, `employmentType`, `listingType` ("Job Posting"), and `postedAt` (ISO timestamp from `publishedAt` or `createdAt`). The response is returned with Content-Type `application/xml; charset=utf-8`.
+ *
+ * @returns A NextResponse containing the generated XML feed.
+ */
 export async function GET() {
   // Avoid DB access during static build/export
   if (process.env.NEXT_PHASE === 'phase-production-build') {

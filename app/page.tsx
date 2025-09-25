@@ -5,6 +5,13 @@ import Image from 'next/image';
 import { useI18n } from '@/src/providers/RootProviders';
 import { ArrowRight, Building2, Wrench, FileText, DollarSign, Users, ShoppingBag } from 'lucide-react';
 
+/**
+ * Client React component that renders the application's landing page.
+ *
+ * Renders a multi-section marketing layout (hero with CTAs, a features/modules grid driven by a modules array, a marketplaces strip, and a CTA banner). Text is localized through the `useI18n` hook (`t`, `language`, `isRTL`) and icons/colors for feature cards are driven from the `modules` configuration within the component.
+ *
+ * @returns The landing page JSX element.
+ */
 export default function LandingPage() {
   const { t, language, isRTL } = useI18n();
 
