@@ -5,11 +5,12 @@ import { db } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get('signature') ?? '';
-  const rawBody = await req.text();
+  const rawBuffer = Buffer.from(await req.arrayBuffer());
+  const rawBody = rawBuffer.toString('utf8');
 
   // Validate callback signature against the raw payload bytes as provided by PayTabs
   try {
-    if (!validateCallback(rawBody, signature)) {
+    if (!validateCallback(rawBuffer, signature)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
   } catch (error) {
