@@ -460,7 +460,7 @@ export default function NotificationsPage() {
             <div className="text-center py-8">
               <div className="text-gray-400 mb-2">📭</div>
               <p className="text-gray-600">No notifications found</p>
-              <p className="text-sm text-gray-500">You're all caught up!</p>
+              <p className="text-sm text-gray-500">You&apos;re all caught up!</p>
             </div>
           ) : (
             filteredNotifications.map((notif: any) => (
