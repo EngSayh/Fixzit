@@ -134,6 +134,13 @@ async function addDatabaseIndexes() {
     await db.collection('helparticles').createIndex({ title: 'text', content: 'text', tags: 'text' });
     console.log('✅ Help/Knowledge Center indexes created');
 
+    // KB Embeddings indexes
+    console.log('🧠 Adding KB embeddings indexes...');
+    await db.collection('kb_embeddings').createIndex({ articleId: 1, chunkId: 1 }, { unique: true });
+    await db.collection('kb_embeddings').createIndex({ route: 1, lang: 1 });
+    await db.collection('kb_embeddings').createIndex({ roleScopes: 1 });
+    console.log('✅ KB embeddings indexes created');
+
     console.log('\n=====================================');
     console.log('✅ ALL DATABASE INDEXES CREATED SUCCESSFULLY!');
     console.log('=====================================');
