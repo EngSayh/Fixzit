@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Db } from 'mongodb';
 
 import { APPS, AppKey } from '@/src/config/topbar-modules';
 import { db } from '@/src/lib/mongo';
@@ -20,7 +21,16 @@ const PER_ENTITY_LIMIT = 5;
 
 export async function GET(req: NextRequest) {
   try {
-    await db; // Ensure database connection
+    const mongooseConnection = await db; // Ensure database connection
+    const nativeDb: Db | null =
+      mongooseConnection && typeof (mongooseConnection as any).connection?.db !== 'undefined'
+        ? ((mongooseConnection as any).connection.db as Db | null)
+        : null;
+
+    if (!nativeDb) {
+      console.error('Search API error: MongoDB connection unavailable');
+      return NextResponse.json({ results: [] }, { status: 503 });
+    }
     const { searchParams } = new URL(req.url);
     const app = (searchParams.get('app') || 'fm') as AppKey;
     const q = (searchParams.get('q') || '').trim();
@@ -42,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     const entityQueries = uniqueEntities.map(async entity => {
       try {
-        const { collection, query } = resolveCollectionAndQuery(entity, q);
+        const { collection, query } = resolveCollectionAndQuery(nativeDb, entity, q);
         if (!collection) {
           return [] as SearchResult[];
         }
@@ -83,7 +93,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function resolveCollectionAndQuery(entity: string, q: string) {
+function resolveCollectionAndQuery(connection: Db, entity: string, q: string) {
   const baseQuery = {
     $text: { $search: q },
     deletedAt: { $exists: false }
@@ -91,31 +101,31 @@ function resolveCollectionAndQuery(entity: string, q: string) {
 
   switch (entity) {
     case 'work_orders':
-      return { collection: db.collection('work_orders'), query: baseQuery };
+      return { collection: connection.collection('work_orders'), query: baseQuery };
     case 'properties':
-      return { collection: db.collection('properties'), query: baseQuery };
+      return { collection: connection.collection('properties'), query: baseQuery };
     case 'units':
-      return { collection: db.collection('units'), query: baseQuery };
+      return { collection: connection.collection('units'), query: baseQuery };
     case 'tenants':
-      return { collection: db.collection('tenants'), query: baseQuery };
+      return { collection: connection.collection('tenants'), query: baseQuery };
     case 'vendors':
-      return { collection: db.collection('vendors'), query: baseQuery };
+      return { collection: connection.collection('vendors'), query: baseQuery };
     case 'invoices':
-      return { collection: db.collection('invoices'), query: baseQuery };
+      return { collection: connection.collection('invoices'), query: baseQuery };
     case 'products':
-      return { collection: db.collection('products'), query: baseQuery };
+      return { collection: connection.collection('products'), query: baseQuery };
     case 'services':
-      return { collection: db.collection('services'), query: baseQuery };
+      return { collection: connection.collection('services'), query: baseQuery };
     case 'rfqs':
-      return { collection: db.collection('rfqs'), query: baseQuery };
+      return { collection: connection.collection('rfqs'), query: baseQuery };
     case 'orders':
-      return { collection: db.collection('orders'), query: baseQuery };
+      return { collection: connection.collection('orders'), query: baseQuery };
     case 'listings':
-      return { collection: db.collection('listings'), query: baseQuery };
+      return { collection: connection.collection('listings'), query: baseQuery };
     case 'projects':
-      return { collection: db.collection('projects'), query: baseQuery };
+      return { collection: connection.collection('projects'), query: baseQuery };
     case 'agents':
-      return { collection: db.collection('agents'), query: baseQuery };
+      return { collection: connection.collection('agents'), query: baseQuery };
     default:
       return { collection: null, query: baseQuery };
   }

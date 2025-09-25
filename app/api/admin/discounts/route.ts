@@ -3,6 +3,7 @@ import { ZodError, z } from 'zod';
 
 import { dbConnect } from '@/src/db/mongoose';
 import DiscountRule from '@/src/models/DiscountRule';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,8 +29,17 @@ function formatDiscountResponse(discount: any) {
   };
 }
 
-export async function GET() {
+function isAuthorizedAdmin(role?: string) {
+  return role === 'ADMIN' || role === 'STAFF';
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId || !isAuthorizedAdmin(context.role)) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
     const discount = await DiscountRule.findOne({ code: DISCOUNT_CODE }).lean();
 
@@ -47,6 +57,11 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
+    const context = await resolveMarketplaceContext(req);
+    if (!context.userId || !isAuthorizedAdmin(context.role)) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
     const body = await req.json();
     const payload = UpdateDiscountSchema.parse(body);
