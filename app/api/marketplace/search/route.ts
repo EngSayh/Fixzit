@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { Types } from 'mongoose';
+import { z } from 'zod';
+
+import { dbConnect } from '@/src/db/mongoose';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import { searchProducts } from '@/src/lib/marketplace/search';
 import Category from '@/src/models/marketplace/Category';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
-import { dbConnect } from '@/src/db/mongoose';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const QuerySchema = z.object({
   q: z.string().optional(),
