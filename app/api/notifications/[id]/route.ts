@@ -37,9 +37,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (typeof read === 'boolean') update.$set.read = read;
   if (typeof archived === 'boolean') update.$set.archived = archived;
 
-  const res = await notifications.findOneAndUpdate({ _id: _id as any, tenantId }, update, { returnDocument: 'after' });
-  if (!res.value) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-  return NextResponse.json(res.value);
+  const updated = await notifications.findOneAndUpdate({ _id: _id as any, tenantId }, update, { returnDocument: 'after' });
+  const value = updated && (updated as any).value;
+  if (!value) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+  return NextResponse.json(value);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
