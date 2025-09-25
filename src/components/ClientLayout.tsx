@@ -118,6 +118,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       </TopBarProvider>
       <HelpWidget />
       <ErrorTest />
+      {/* Auto incident reporter (non-intrusive) */}
+      {/* eslint-disable-next-line @typescript-eslint/no-var-requires */}
+      {require && (()=>{ try { const Comp = require('@/src/components/AutoIncidentReporter').default; return <Comp/>; } catch { return null; } })()}
     </div>
   );
 }
