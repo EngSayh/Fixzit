@@ -16,7 +16,8 @@ const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undef
 
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
-  const { isRTL } = useTranslation();
+  const translation = useTranslation();
+  const isRTL = typeof translation?.isRTL === 'boolean' ? translation.isRTL : false;
 
   const responsiveClasses = getResponsiveClasses(screenInfo);
 
@@ -46,7 +47,8 @@ export function useResponsiveContext() {
 // Convenience hook that combines both screen size and responsive context
 export function useResponsiveLayout() {
   const context = useContext(ResponsiveContext);
-  const { isRTL } = useTranslation();
+  const translation = useTranslation();
+  const isRTL = typeof translation?.isRTL === 'boolean' ? translation.isRTL : false;
 
   if (!context) {
     const fallbackScreenInfo: ScreenInfo = {
