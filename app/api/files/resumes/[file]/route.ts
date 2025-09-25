@@ -11,6 +11,8 @@ export async function GET(req: NextRequest, { params }: { params: { file: string
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
+    if (!allowed.has((user as any).role || '')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const url = new URL(req.url);
     const token = url.searchParams.get('token') || '';
@@ -41,6 +43,8 @@ export async function POST(req: NextRequest, { params }: { params: { file: strin
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
+    if (!allowed.has((user as any).role || '')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
     const token = generateToken(params.file, expires);
     return NextResponse.json({ url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(params.file)}?token=${encodeURIComponent(token)}&exp=${expires}` });

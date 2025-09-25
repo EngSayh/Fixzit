@@ -9,6 +9,8 @@ import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
  */
 export async function POST(req: NextRequest) {
   try {
+    // Best-effort local rate limiting
+    rateLimitAssert(req);
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -77,5 +79,17 @@ export async function POST(req: NextRequest) {
     console.error('kb/search error', err);
     return NextResponse.json({ error: 'Search failed' }, { status: 500 });
   }
+}
+
+const rateMap = new Map<string, { count: number; ts: number }>();
+function rateLimitAssert(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+  const key = `kb:search:${ip}`;
+  const now = Date.now();
+  const rec = rateMap.get(key) || { count: 0, ts: now };
+  if (now - rec.ts > 60_000) { rec.count = 0; rec.ts = now; }
+  rec.count += 1;
+  rateMap.set(key, rec);
+  if (rec.count > 60) throw new Error('Rate limited');
 }
 

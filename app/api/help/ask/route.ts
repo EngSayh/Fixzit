@@ -87,6 +87,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Simple in-memory rate limit per IP (best-effort)
+    rateLimitAssert(req);
     const body = await req.json().catch(() => ({} as AskRequest));
     const question = typeof body?.question === 'string' ? body.question : '';
     const rawLimit = Number((body as any)?.limit);
@@ -170,6 +172,18 @@ export async function POST(req: NextRequest) {
     console.error('help/ask error', err);
     return NextResponse.json({ error: 'Failed to generate answer' }, { status: 500 });
   }
+}
+// Very small in-memory rate limiter (per process) to reduce abuse
+const rateMap = new Map<string, { count: number; ts: number }>();
+function rateLimitAssert(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+  const key = `help:ask:${ip}`;
+  const now = Date.now();
+  const rec = rateMap.get(key) || { count: 0, ts: now };
+  if (now - rec.ts > 60_000) { rec.count = 0; rec.ts = now; }
+  rec.count += 1;
+  rateMap.set(key, rec);
+  if (rec.count > 30) throw new Error('Rate limited');
 }
 
 // Note: Do not export any non-standard route fields; Next.js restricts exports to HTTP methods only.
