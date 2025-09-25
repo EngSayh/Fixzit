@@ -28,6 +28,7 @@
       "@hooks/*": ["src/hooks/*"],
       "@schemas/*": ["src/schemas/*"],
       "@types/*": ["src/types/*"],
+      "@/types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"]
     }
   },
