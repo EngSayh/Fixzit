@@ -37,9 +37,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const db = await getDatabase();
     const coll = db.collection('helparticles');
 
-    const filter = (() => {
+    const baseFilter = (() => {
       try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
     })();
+    // Scope updates to caller's tenant or global articles
+    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const filter = { ...baseFilter, ...tenantScope } as any;
 
     const update = {
       $set: {
