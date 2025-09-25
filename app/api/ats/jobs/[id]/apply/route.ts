@@ -83,19 +83,29 @@ export async function POST(
     let resumeText = '';
     if (resumeFile) {
       try {
+        // Basic validation (MIME/size) before accepting the file
+        const allowed = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        const maxBytes = 5 * 1024 * 1024; // 5MB
+        const mime = (resumeFile as any).type || '';
+        const size = (resumeFile as any).size || 0;
+        if (!allowed.includes(mime) || size > maxBytes) {
+          return NextResponse.json({ success: false, error: 'Unsupported file type or size' }, { status: 400 });
+        }
+        // TODO: Replace with tenant-scoped, pre-signed object storage (e.g., S3) per governance
         const fsMod = await import('fs');
         const fs = fsMod.promises;
         const pathMod = await import('path');
-        const path = pathMod.default || pathMod as any;
+        const path = pathMod.default || (pathMod as any);
         const bytes = await (resumeFile as any).arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');
+        const uploadDir = path.join(process.cwd(), 'uploads', 'resumes'); // non-public path
         await fs.mkdir(uploadDir, { recursive: true });
         const safeName = (resumeFile as any).name.replace(/[^\w.\-]+/g, '_');
         const fileName = `${Date.now()}-${safeName}`;
         const filePath = path.join(uploadDir, fileName);
         await fs.writeFile(filePath, buffer);
-        resumeUrl = `/uploads/resumes/${fileName}`;
+        // Store only a non-public reference; retrieval must be authorized via a separate signed URL endpoint
+        resumeUrl = `/api/files/resumes/${fileName}`;
       } catch (err) {
         console.error('Resume save failed:', err);
       }
