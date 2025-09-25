@@ -10,7 +10,7 @@ import QuickActions from './topbar/QuickActions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {
@@ -49,7 +49,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
 
   // Get responsive context
-  const { responsiveClasses, screenInfo, isRTL } = useResponsive();
+  const { responsiveClasses, screenInfo, isRTL } = useResponsiveLayout();
 
   // Safe translation function with fallback
   let t: (key: string, fallback?: string) => string;

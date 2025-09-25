@@ -10,7 +10,7 @@ import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
 import PreferenceBroadcast from './PreferenceBroadcast';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { TopBarProvider } from '@/src/contexts/TopBarContext';
 
@@ -20,7 +20,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
   const isLandingPage = publicRoutes.has(pathname);
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
   // Safe translation access with fallback
   let language = 'ar';
   let isRTL = false;
