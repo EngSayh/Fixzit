@@ -101,13 +101,26 @@ export async function POST(req: NextRequest) {
     const filter: any = { status: 'PUBLISHED' };
     if (category) filter.category = category;
 
-    const docs = await coll
-      .find({ ...filter, $text: { $search: question } }, {
-        projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, content: 1, updatedAt: 1 }
-      })
-      .sort({ score: { $meta: 'textScore' } })
-      .limit(Math.min(8, Math.max(1, limit)))
-      .toArray();
+    let docs: Doc[] = [];
+    try {
+      docs = await coll
+        .find({ ...filter, $text: { $search: question } }, {
+          projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, content: 1, updatedAt: 1 }
+        })
+        .sort({ score: { $meta: 'textScore' } })
+        .limit(Math.min(8, Math.max(1, limit)))
+        .toArray();
+    } catch (err: any) {
+      // Fallback when text index is missing: case-insensitive regex across title/content/tags
+      const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      docs = await coll
+        .find({ ...filter, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any, {
+          projection: { slug: 1, title: 1, content: 1, updatedAt: 1 }
+        })
+        .sort({ updatedAt: -1 })
+        .limit(Math.min(8, Math.max(1, limit)))
+        .toArray();
+    }
 
     const contexts = docs.slice(0, 3).map((d: Doc) => ({
       title: d.title,
