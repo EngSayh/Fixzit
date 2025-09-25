@@ -12,7 +12,11 @@ const publicRoutes = [
   '/cms/about',
   '/careers',
   '/test',
-  '/test-simple'
+  '/test-simple',
+  // Public marketplaces (guest browse)
+  '/aqar',
+  '/souq',
+  '/marketplace'
 ];
 
 // Define API routes that require authentication
@@ -56,17 +60,10 @@ const publicMarketplaceRoutes = [
   '/souq',
   '/souq/catalog',
   '/souq/vendors',
-  '/souq/rfqs',
-  '/souq/orders',
-  '/souq/shipping',
-  '/souq/reviews',
   '/aqar',
   '/aqar/map',
   '/aqar/search',
-  '/aqar/properties',
-  '/aqar/filters',
-  '/aqar/trends',
-  '/aqar/premium'
+  '/aqar/properties'
 ];
 
 // Define protected marketplace actions (require login)
