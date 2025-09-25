@@ -92,21 +92,28 @@ export async function POST(
           return NextResponse.json({ success: false, error: 'Unsupported file type or size' }, { status: 400 });
         }
         // TODO: Replace with tenant-scoped, pre-signed object storage (e.g., S3) per governance
-        const fsMod = await import('fs');
-        const fs = fsMod.promises;
-        const pathMod = await import('path');
-        const path = pathMod.default || (pathMod as any);
         const bytes = await (resumeFile as any).arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const uploadDir = path.join(process.cwd(), 'private-uploads', 'resumes'); // non-public path
-        await fs.mkdir(uploadDir, { recursive: true });
-        const uuid = (await import('crypto')).randomUUID();
+        const cryptoMod = await import('crypto');
+        const uuid = (cryptoMod as any).randomUUID();
         const safeExt = ((resumeFile as any).name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
         const fileName = `${uuid}.${safeExt}`;
-        const filePath = path.join(uploadDir, fileName);
-        await fs.writeFile(filePath, buffer);
-        // Store only a non-public reference; retrieval must be authorized via a separate signed URL endpoint
-        resumeUrl = `/api/files/resumes/${fileName}`;
+        if (process.env.AWS_S3_BUCKET) {
+          const { putObjectBuffer, buildResumeKey } = await import('@/src/lib/storage/s3');
+          const key = buildResumeKey(job.orgId, fileName);
+          await putObjectBuffer(key, buffer, mime || 'application/octet-stream');
+          resumeUrl = `/api/files/resumes/${fileName}`;
+        } else {
+          const fsMod = await import('fs');
+          const fs = fsMod.promises;
+          const pathMod = await import('path');
+          const path = pathMod.default || (pathMod as any);
+          const uploadDir = path.join(process.cwd(), 'private-uploads', 'resumes');
+          await fs.mkdir(uploadDir, { recursive: true });
+          const filePath = path.join(uploadDir, fileName);
+          await fs.writeFile(filePath, buffer);
+          resumeUrl = `/api/files/resumes/${fileName}`;
+        }
       } catch (err) {
         console.error('Resume save failed:', err);
       }

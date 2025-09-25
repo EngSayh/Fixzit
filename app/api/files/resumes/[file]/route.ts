@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
+import { getPresignedGetUrl, buildResumeKey } from '@/src/lib/storage/s3';
 
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
@@ -23,17 +24,17 @@ export async function GET(req: NextRequest, { params }: { params: { file: string
     const expected = generateToken(params.file, exp);
     if (!timingSafeEqual(expected, token)) return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
 
+    // Prefer S3 if configured; else local fallback
+    if (process.env.AWS_S3_BUCKET) {
+      const key = buildResumeKey((user as any).tenantId, params.file);
+      const urlSigned = await getPresignedGetUrl(key, 300);
+      return NextResponse.redirect(urlSigned, { status: 302 });
+    }
     const safeName = path.basename(params.file);
     const filePath = path.join(BASE_DIR, safeName);
     const data = await fs.readFile(filePath).catch(() => null);
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return new NextResponse(data, {
-      status: 200,
-      headers: {
-        'Content-Type': contentTypeFromName(safeName),
-        'Content-Disposition': `attachment; filename="${safeName}"`
-      }
-    });
+    return new NextResponse(data, { status: 200, headers: { 'Content-Type': contentTypeFromName(safeName), 'Content-Disposition': `attachment; filename="${safeName}"` } });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch file' }, { status: 500 });
   }
