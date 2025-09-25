@@ -140,3 +140,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Test-only exports
+export { buildHeuristicAnswer as __private_buildHeuristicAnswer, maybeSummarizeWithOpenAI as __private_maybeSummarizeWithOpenAI };
+
