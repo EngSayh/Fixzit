@@ -153,7 +153,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: deduped.slice(0, 25) });
   } catch (err) {
     console.error("/api/search error", err);
-    return NextResponse.json({ results: [] }, { status: 200 });
+    return NextResponse.json({ error: "Search service temporarily unavailable" }, { status: 500 });
   }
 }
-
