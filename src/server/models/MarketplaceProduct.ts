@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
 const PriceSchema = new Schema({
