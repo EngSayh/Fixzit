@@ -4,10 +4,6 @@ import { useState, useEffect } from 'react';
 import { Bell, Search, User, ChevronDown } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import LanguageSelector from './i18n/LanguageSelector';
-import CurrencySelector from './i18n/CurrencySelector';
-import AppSwitcher from './topbar/AppSwitcher';
-import GlobalSearch from './topbar/GlobalSearch';
-import QuickActions from './topbar/QuickActions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -69,7 +65,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const pathname = usePathname();
 
   // Derive module scope from path
-  const scope: 'fm'|'souq'|'aqar' = pathname?.startsWith('/souq')
+  const scope: 'fm'|'souq'|'aqar' = (pathname?.startsWith('/souq') || pathname?.startsWith('/marketplace'))
     ? 'souq'
     : pathname?.startsWith('/aqar')
       ? 'aqar'
@@ -304,11 +300,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
       )}
       
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <QuickActions />
-        <div className="flex items-center gap-2">
-          <LanguageSelector variant="compact" />
-          <CurrencySelector variant="compact" />
-        </div>
+        <LanguageSelector />
         <div className="notification-container relative">
           <button
             onClick={() => setNotifOpen(!notifOpen)}
