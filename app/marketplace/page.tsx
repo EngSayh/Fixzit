@@ -1,14 +1,21 @@
 // @ts-nocheck
 import Link from 'next/link';
+import { headers } from 'next/headers';
 
-async function fetchProducts() {
-  const res = await fetch(`/api/marketplace/search`, { cache: 'no-store' });
+async function fetchProducts(q: string) {
+  const h = headers();
+  const proto = h.get('x-forwarded-proto') ?? 'http';
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const base = `${proto}://${host}`;
+  const url = `${base}/api/marketplace/search${q ? `?q=${encodeURIComponent(q)}` : ''}`;
+  const res = await fetch(url, { cache: 'no-store', headers: { cookie: h.get('cookie') || '' } });
   if (!res.ok) return { items: [] };
   return res.json();
 }
 
-export default async function MarketplacePage() {
-  const data = await fetchProducts();
+export default async function MarketplacePage({ searchParams }: { searchParams?: { q?: string } }) {
+  const q = (searchParams?.q || '').trim();
+  const data = await fetchProducts(q);
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-6">

@@ -1,8 +1,13 @@
 // @ts-nocheck
 import Link from 'next/link';
+import { headers } from 'next/headers';
 
 async function fetchPdp(slug: string) {
-  const res = await fetch(`/api/marketplace/products/${slug}`, { cache: 'no-store' });
+  const h = headers();
+  const proto = h.get('x-forwarded-proto') ?? 'http';
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const base = `${proto}://${host}`;
+  const res = await fetch(`${base}/api/marketplace/products/${slug}`, { cache: 'no-store', headers: { cookie: h.get('cookie') || '' } });
   return res.json();
 }
 
