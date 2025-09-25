@@ -1,29 +1,11 @@
 import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
 import ProductCard from '@/src/components/marketplace/ProductCard';
-import { cookies } from 'next/headers';
-
-async function fetchWithTenant(path: string, init?: RequestInit) {
-  const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '';
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('fixzit_auth');
-  const res = await fetch(`${origin}${path}`, {
-    cache: 'no-store',
-    headers: {
-      ...(authCookie ? { Cookie: `fixzit_auth=${authCookie.value}` } : {}),
-      ...(init?.headers as Record<string, string> | undefined)
-    },
-    ...init
-  });
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
-  }
-  return res.json();
-}
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 async function loadHomepageData() {
   const [categoriesResponse, featuredResponse] = await Promise.all([
-    fetchWithTenant('/api/marketplace/categories'),
-    fetchWithTenant('/api/marketplace/products?limit=8')
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8')
   ]);
 
   const categories = categoriesResponse.data as any[];
@@ -31,7 +13,7 @@ async function loadHomepageData() {
 
   const carousels = await Promise.all(
     categories.slice(0, 4).map(async category => {
-      const response = await fetchWithTenant(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+      const response = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
       return {
         category,
         items: response.data.items as any[]

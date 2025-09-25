@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, ShieldCheck, Timer, Truck } from 'lucide-react';
+import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from 'lucide-react';
 import clsx from 'clsx';
 import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { addProductToCart } from '@/src/lib/marketplace/cartClient';
 
 interface PDPBuyBoxProps {
   product: {
@@ -32,10 +33,22 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
   const available = (product.stock?.onHand ?? 0) - (product.stock?.reserved ?? 0);
 
   const handleAddToCart = async () => {
-    if (!onAddToCart) return;
+    if (submitting || quantity <= 0) return;
     setSubmitting(true);
     try {
-      await onAddToCart(quantity);
+      const minQty = Math.max(product.buy.minQty ?? 1, 1);
+      const effectiveQuantity = Math.max(quantity, minQty);
+      if (effectiveQuantity !== quantity) {
+        setQuantity(effectiveQuantity);
+      }
+      await addProductToCart(product._id, effectiveQuantity);
+      onAddToCart?.(effectiveQuantity);
+    } catch (error) {
+      console.error('Failed to add product to cart', error);
+      if (typeof window !== 'undefined') {
+        const message = error instanceof Error ? error.message : 'Unable to add to cart';
+        window.alert?.(`Unable to add to cart: ${message}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -86,7 +99,8 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
           disabled={submitting || available <= 0}
           className="flex items-center justify-center gap-2 rounded-full bg-[#FFB400] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Add to Cart
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+          {submitting ? 'Adding…' : 'Add to Cart'}
         </button>
         <button
           type="button"

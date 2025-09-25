@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useCurrency } from '@/src/contexts/CurrencyContext';
 import { LANGUAGE_OPTIONS } from '@/src/data/language-options';
+import { CART_UPDATED_EVENT, computeCartCount } from '@/src/lib/marketplace/cartClient';
 
 interface DepartmentOption {
   name: string;
@@ -40,6 +41,7 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
   const [openDepartments, setOpenDepartments] = useState(false);
   const [guardPassed, setGuardPassed] = useState(false);
   const [fetchingDepartments, setFetchingDepartments] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -97,6 +99,44 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
       })),
     []
   );
+
+  useEffect(() => {
+    if (!guardPassed || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function loadCartCount() {
+      try {
+        const response = await fetch('/api/marketplace/cart', { cache: 'no-store', credentials: 'include' });
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        if (!cancelled) {
+          setCartCount(computeCartCount(payload?.data));
+        }
+      } catch (error) {
+        console.error('Failed to load cart snapshot', error);
+      }
+    }
+
+    loadCartCount();
+
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ count: number }>).detail;
+      if (!cancelled && detail && typeof detail.count === 'number' && Number.isFinite(detail.count)) {
+        setCartCount(detail.count);
+      }
+    };
+
+    window.addEventListener(CART_UPDATED_EVENT, handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CART_UPDATED_EVENT, handler);
+    };
+  }, [guardPassed]);
 
   if (!guardPassed) {
     return null;
@@ -210,7 +250,7 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
           </Link>
           <Link href="/marketplace/cart" className="flex items-center gap-1 text-sm font-semibold hover:text-[#FFB400]">
             <ShoppingCart size={18} aria-hidden />
-            <span data-testid="cart-count">0</span>
+            <span data-testid="cart-count">{cartCount}</span>
           </Link>
         </div>
 

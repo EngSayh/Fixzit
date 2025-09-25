@@ -1,24 +1,11 @@
 import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
 import ProductCard from '@/src/components/marketplace/ProductCard';
 import SearchFiltersPanel from '@/src/components/marketplace/SearchFiltersPanel';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 interface SearchPageProps {
   searchParams: Record<string, string | string[] | undefined>;
-}
-
-async function fetchWithTenant(path: string) {
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('fixzit_auth');
-  const res = await fetch(path, {
-    cache: 'no-store',
-    headers: authCookie ? { Cookie: `fixzit_auth=${authCookie.value}` } : undefined
-  });
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
-  }
-  return res.json();
 }
 
 export default async function MarketplaceSearch({ searchParams }: SearchPageProps) {
@@ -31,8 +18,8 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
   }
 
   const [categoriesResponse, searchResponse] = await Promise.all([
-    fetchWithTenant('/api/marketplace/categories'),
-    fetchWithTenant(`/api/marketplace/search?${query.toString()}`)
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`)
   ]);
 
   const categories = categoriesResponse.data as any[];
