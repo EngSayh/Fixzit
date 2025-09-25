@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
-import { Job } from '@/src/server/models/Job';
-import { generateSlug } from '@/src/lib/utils';
 import { getUserFromToken } from '@/src/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    await db();
-    
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS jobs endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const JobMod = await import('@/src/server/models/Job').catch(() => null);
+    const Job = JobMod && (JobMod as any).Job;
+    if (!Job) {
+      return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
+    }
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
     const status = searchParams.get('status') || 'published';
@@ -17,23 +22,19 @@ export async function GET(req: NextRequest) {
     const jobType = searchParams.get('jobType');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
-    
     const filter: any = { orgId };
     if (status !== 'all') filter.status = status;
     if (department) filter.department = department;
     if (location) filter['location.city'] = location;
     if (jobType) filter.jobType = jobType;
     if (q) filter.$text = { $search: q };
-    
-    const jobs = await Job
+    const jobs = await (Job as any)
       .find(filter, q ? { score: { $meta: 'textScore' } } : {})
       .sort(q ? { score: { $meta: 'textScore' } } : { publishedAt: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
-    
-    const total = await Job.countDocuments(filter);
-    
+    const total = await (Job as any).countDocuments(filter);
     return NextResponse.json({ 
       success: true,
       data: jobs,
@@ -50,22 +51,30 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await db();
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS jobs endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const JobMod = await import('@/src/server/models/Job').catch(() => null);
+    const Job = JobMod && (JobMod as any).Job;
+    if (!Job) {
+      return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
+    }
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
     const userId = user?.id || 'system';
     const orgId = user?.tenantId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    
-    const baseSlug = generateSlug(body.title);
-    let slug = baseSlug;
+    let slugBase = (body.title || '').toString().toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    if (!slugBase) slugBase = 'job';
+    let slug = slugBase;
     let counter = 1;
-    while (await Job.findOne({ orgId, slug })) {
-      slug = `${baseSlug}-${counter++}`;
+    while (await (Job as any).findOne({ orgId, slug })) {
+      slug = `${slugBase}-${counter++}`;
     }
-    
-    const job = await Job.create({
+    const job = await (Job as any).create({
       ...body,
       orgId,
       slug,
