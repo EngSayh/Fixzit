@@ -40,12 +40,18 @@ export async function GET(req: NextRequest) {
     }
 
     // Build aggregation pipeline
+    const tenantScope =
+      user.role === 'SUPER_ADMIN' || user.role === 'SUPPORT'
+        ? {}
+        : { orgId: user.tenantId };
+
     const pipeline: any[] = [
       {
         $match: {
           createdAt: { $gte: startTime },
           ...(module && { module }),
-          ...(severity && { severity })
+          ...(severity && { severity }),
+          ...tenantScope
         }
       },
       {
@@ -96,7 +102,8 @@ export async function GET(req: NextRequest) {
     const summaryPipeline = [
       {
         $match: {
-          createdAt: { $gte: startTime }
+          createdAt: { $gte: startTime },
+          ...tenantScope
         }
       },
       {

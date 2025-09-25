@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { useError } from '@/src/contexts/ErrorContext';
+import { ErrorContext } from '@/src/contexts/ErrorContext';
 
 type ErrorState = {
   hasError: boolean;
@@ -24,7 +24,8 @@ type ErrorFix = {
 
 export default class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorState> {
   state: ErrorState = { hasError: false, retryCount: 0 };
-  private errorContext: any = null;
+  static contextType = ErrorContext;
+  declare context: React.ContextType<typeof ErrorContext>;
 
   // Auto-fix strategies
   private errorFixes: ErrorFix[] = [
@@ -194,8 +195,8 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     });
 
     // Use new error context if available
-    if (this.errorContext) {
-      this.errorContext.reportError('SYS-UI-RENDER-001', err.message, {
+    if (this.context) {
+      this.context.reportError('SYS-UI-RENDER-001', err.message, {
         stack: err.stack,
         category: 'UI',
         severity: 'ERROR',

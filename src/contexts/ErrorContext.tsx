@@ -20,7 +20,7 @@ interface ErrorContextType {
   toasts: ToastError[];
 }
 
-const ErrorContext = createContext<ErrorContextType | null>(null);
+export const ErrorContext = createContext<ErrorContextType | null>(null);
 
 export function useError() {
   const context = useContext(ErrorContext);
