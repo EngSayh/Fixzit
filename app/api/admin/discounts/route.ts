@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ZodError, z } from 'zod';
 
 import { dbConnect } from '@/src/db/mongoose';
 import DiscountRule from '@/src/models/DiscountRule';
@@ -6,24 +7,74 @@ import DiscountRule from '@/src/models/DiscountRule';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  await dbConnect();
-  const discount = await DiscountRule.findOne({ code: 'ANNUAL' });
+const DISCOUNT_CODE = 'ANNUAL' as const;
 
-  return NextResponse.json(
-    discount || { code: 'ANNUAL', value: 0, active: false }
-  );
+const UpdateDiscountSchema = z.object({
+  value: z.number().nonnegative(),
+  type: z.enum(['percent', 'amount']).default('percent'),
+  active: z.boolean().default(true)
+});
+
+function formatDiscountResponse(discount: any) {
+  return {
+    ok: true,
+    data:
+      discount ?? {
+        code: DISCOUNT_CODE,
+        type: 'percent',
+        value: 0,
+        active: false
+      }
+  };
+}
+
+export async function GET() {
+  try {
+    await dbConnect();
+    const discount = await DiscountRule.findOne({ code: DISCOUNT_CODE }).lean();
+
+    return NextResponse.json(formatDiscountResponse(discount), {
+      headers: { 'Cache-Control': 'no-store' }
+    });
+  } catch (error) {
+    console.error('Failed to fetch admin discount rule', error);
+    return NextResponse.json(
+      { ok: false, error: 'Unable to load discount configuration' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PUT(req: NextRequest) {
-  await dbConnect();
-  const body = await req.json();
+  try {
+    await dbConnect();
+    const body = await req.json();
+    const payload = UpdateDiscountSchema.parse(body);
 
-  const discount = await DiscountRule.findOneAndUpdate(
-    { code: 'ANNUAL' },
-    { code: 'ANNUAL', type: 'percent', value: body.value, active: true },
-    { upsert: true, new: true }
-  );
+    const discount = await DiscountRule.findOneAndUpdate(
+      { code: DISCOUNT_CODE },
+      {
+        code: DISCOUNT_CODE,
+        type: payload.type,
+        value: payload.value,
+        active: payload.active
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
 
-  return NextResponse.json(discount);
+    return NextResponse.json(formatDiscountResponse(discount));
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { ok: false, error: error.issues.map(issue => issue.message).join(', ') },
+        { status: 400 }
+      );
+    }
+
+    console.error('Failed to update admin discount rule', error);
+    return NextResponse.json(
+      { ok: false, error: 'Unable to update discount configuration' },
+      { status: 500 }
+    );
+  }
 }
