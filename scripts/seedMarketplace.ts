@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'path';
+import { access } from 'fs/promises';
 import { Types } from 'mongoose';
 import { dbConnect } from '@/src/db/mongoose';
 import Category from '@/src/models/marketplace/Category';
@@ -7,6 +9,15 @@ import Product from '@/src/models/marketplace/Product';
 import Order from '@/src/models/marketplace/Order';
 import RFQ from '@/src/models/marketplace/RFQ';
 import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
+
+async function ensureAssetExists(relativeUrl: string) {
+  const filePath = path.join(process.cwd(), 'public', relativeUrl.replace(/^\//, ''));
+  try {
+    await access(filePath);
+  } catch (error) {
+    throw new Error(`Marketplace seed asset missing: ${filePath}. Ensure marketplace docs and images are generated before seeding.`);
+  }
+}
 
 async function run() {
   await dbConnect();
@@ -59,6 +70,13 @@ async function run() {
   if (!hvacCategory || !ppeCategory) {
     throw new Error('Required categories missing after seed');
   }
+
+  await Promise.all([
+    ensureAssetExists('/images/marketplace/hvac-filter.svg'),
+    ensureAssetExists('/docs/msds/merv13.pdf'),
+    ensureAssetExists('/images/marketplace/nitrile-gloves.svg'),
+    ensureAssetExists('/docs/msds/nitrile-gloves.pdf')
+  ]);
 
   await Product.updateOne(
     { orgId, sku: 'HVAC-FLTR-MERV13-24x24' },

@@ -1,24 +1,11 @@
 import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
-
-async function fetchWithTenant(path: string) {
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('fixzit_auth');
-  const res = await fetch(path, {
-    cache: 'no-store',
-    headers: authCookie ? { Cookie: `fixzit_auth=${authCookie.value}` } : undefined
-  });
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
-  }
-  return res.json();
-}
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 export default async function CartPage() {
   const [categoriesResponse, cartResponse] = await Promise.all([
-    fetchWithTenant('/api/marketplace/categories'),
-    fetchWithTenant('/api/marketplace/cart')
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>('/api/marketplace/cart')
   ]);
 
   const departments = (categoriesResponse.data as any[]).map(category => ({

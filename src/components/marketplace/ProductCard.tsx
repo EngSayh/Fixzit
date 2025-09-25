@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, Star } from 'lucide-react';
+import { Loader2, ShoppingCart, Star } from 'lucide-react';
+import { useState } from 'react';
 import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { addProductToCart } from '@/src/lib/marketplace/cartClient';
 
 export interface MarketplaceProductCard {
   _id: string;
@@ -35,8 +37,27 @@ function formatCurrency(value: number, currency: string) {
 
 export default function ProductCard({ product, onAddToCart, isRTL }: ProductCardProps) {
   const { currency } = useCurrency();
+  const [adding, setAdding] = useState(false);
   const image = product.media?.find(item => item.role === 'GALLERY')?.url || product.media?.[0]?.url || '/images/marketplace/placeholder-product.svg';
   const displayPrice = formatCurrency(product.buy.price, product.buy.currency || currency);
+
+  const handleAddToCart = async () => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const quantity = Math.max(product.buy.minQty ?? 1, 1);
+      await addProductToCart(product._id, quantity);
+      onAddToCart?.(product._id);
+    } catch (error) {
+      console.error('Failed to add product to cart', error);
+      if (typeof window !== 'undefined') {
+        const message = error instanceof Error ? error.message : 'Unable to add to cart';
+        window.alert?.(`Unable to add to cart: ${message}`);
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div
@@ -83,11 +104,12 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
           </div>
           <button
             type="button"
-            onClick={() => onAddToCart?.(product._id)}
-            className="flex items-center gap-2 rounded-full bg-[#FFB400] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFCB4F]"
+            onClick={handleAddToCart}
+            disabled={adding}
+            className="flex items-center gap-2 rounded-full bg-[#FFB400] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            <ShoppingCart size={16} aria-hidden />
-            Add to Cart
+            {adding ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ShoppingCart size={16} aria-hidden />}
+            {adding ? 'Adding…' : 'Add to Cart'}
           </button>
         </div>
       </div>

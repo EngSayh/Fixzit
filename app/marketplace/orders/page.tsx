@@ -1,18 +1,5 @@
 import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import { cookies } from 'next/headers';
-
-async function fetchWithTenant(path: string) {
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('fixzit_auth');
-  const res = await fetch(path, {
-    cache: 'no-store',
-    headers: authCookie ? { Cookie: `fixzit_auth=${authCookie.value}` } : undefined
-  });
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
-  }
-  return res.json();
-}
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 const STATUS_BADGES: Record<string, string> = {
   APPROVAL: 'bg-amber-100 text-amber-700',
@@ -25,8 +12,8 @@ const STATUS_BADGES: Record<string, string> = {
 
 export default async function OrdersPage() {
   const [categoriesResponse, ordersResponse] = await Promise.all([
-    fetchWithTenant('/api/marketplace/categories'),
-    fetchWithTenant('/api/marketplace/orders')
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>('/api/marketplace/orders')
   ]);
 
   const departments = (categoriesResponse.data as any[]).map(category => ({

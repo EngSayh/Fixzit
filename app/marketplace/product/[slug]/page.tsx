@@ -1,29 +1,16 @@
 import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
 import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
 import ProductCard from '@/src/components/marketplace/ProductCard';
-import { cookies } from 'next/headers';
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 interface ProductPageProps {
   params: { slug: string };
 }
 
-async function fetchWithTenant(path: string) {
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('fixzit_auth');
-  const res = await fetch(path, {
-    cache: 'no-store',
-    headers: authCookie ? { Cookie: `fixzit_auth=${authCookie.value}` } : undefined
-  });
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
-  }
-  return res.json();
-}
-
 export default async function ProductDetail({ params }: ProductPageProps) {
   const [categoriesResponse, productResponse] = await Promise.all([
-    fetchWithTenant('/api/marketplace/categories'),
-    fetchWithTenant(`/api/marketplace/products/${params.slug}`)
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)
   ]);
 
   const departments = (categoriesResponse.data as any[]).map(category => ({
