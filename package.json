@@ -34,7 +34,9 @@
     "artifacts:init": "mkdir -p _artifacts",
     "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
-    "clean:root": "tsx scripts/janitor.ts --apply"
+    "clean:root": "tsx scripts/janitor.ts --apply",
+    "find:cjs": "node scripts/check-no-cjs-in-app.mjs",
+    "verify:acceptance": "node scripts/verify-acceptance-gates.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -103,5 +105,14 @@
   },
   "overrides": {
     "postcss-selector-parser": "6.0.13"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "next lint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,scss}": [
+      "prettier --write"
+    ]
   }
 }
