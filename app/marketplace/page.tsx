@@ -1,59 +1,102 @@
-'use client';
+import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import ProductCard from '@/src/components/marketplace/ProductCard';
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
-import { useState } from 'react';
+async function loadHomepageData() {
+  const [categoriesResponse, featuredResponse] = await Promise.all([
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8')
+  ]);
 
-export default function MarketplacePage() {
-  const [activeTab, setActiveTab] = useState('catalog');
+  const categories = categoriesResponse.data as any[];
+  const featured = featuredResponse.data.items as any[];
 
-  const tabs = [
-    { id: 'catalog', label: 'Catalog', description: 'Browse products and services' },
-    { id: 'vendors', label: 'Vendors', description: 'Manage approved suppliers' },
-    { id: 'rfqs', label: 'RFQs & Bids', description: 'Request for quotations' },
-    { id: 'orders', label: 'Orders & POs', description: 'Purchase orders & tracking' },
-  ];
+  const carousels = await Promise.all(
+    categories.slice(0, 4).map(async category => {
+      const response = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+      return {
+        category,
+        items: response.data.items as any[]
+      };
+    })
+  );
+
+  return { categories, featured, carousels };
+}
+
+export default async function MarketplaceHome() {
+  const { categories, featured, carousels } = await loadHomepageData();
+  const departments = categories.map(category => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fixzit Marketplace</h1>
-          <p className="text-gray-600">Browse products, vendors, and manage procurement</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F5F6F8]">
+      <TopBarAmazon departments={departments} />
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#0061A8] via-[#00A859] to-[#0061A8] p-10 text-white shadow-xl">
+            <p className="text-sm uppercase tracking-[0.3em] text-white/70">Fixzit Souq</p>
+            <h1 className="mt-4 text-4xl font-bold">Facilities, MRO & Construction Marketplace</h1>
+            <p className="mt-3 max-w-xl text-lg text-white/80">
+              Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
+              <span className="rounded-full bg-white/20 px-4 py-2">Rapid RFQ</span>
+              <span className="rounded-full bg-white/20 px-4 py-2">Work Order linked orders</span>
+              <span className="rounded-full bg-white/20 px-4 py-2">Finance ready invoices</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 rounded-3xl border border-[#0061A8]/20 bg-white/90 p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-[#0F1111]">Live Operational KPIs</h2>
+            <div className="grid gap-3 text-sm text-gray-700">
+              <div className="rounded-2xl bg-[#0061A8]/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-[#0061A8]">Open approvals</p>
+                <p className="text-2xl font-bold text-[#0061A8]">3</p>
+              </div>
+              <div className="rounded-2xl bg-[#FFB400]/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-[#FF9800]">Pending deliveries</p>
+                <p className="text-2xl font-bold text-[#FF9800]">7</p>
+              </div>
+              <div className="rounded-2xl bg-[#00A859]/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-[#00A859]">Finance ready</p>
+                <p className="text-2xl font-bold text-[#00A859]">5</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex space-x-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+        <section className="mt-12 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-[#0F1111]">Featured for your organisation</h2>
+            <a href="/marketplace/search" className="text-sm font-semibold text-[#0061A8] hover:underline">
+              View all
+            </a>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {featured.map(product => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        </section>
 
-      {/* Tab Content */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {tabs.find(tab => tab.id === activeTab)?.label}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {tabs.find(tab => tab.id === activeTab)?.description}
-          </p>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-            Browse {tabs.find(tab => tab.id === activeTab)?.label}
-          </button>
-        </div>
-      </div>
+        {carousels.map(carousel => (
+          <section key={carousel.category.slug} className="mt-12 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-[#0F1111]">{carousel.category.name?.en ?? carousel.category.slug}</h3>
+              <a
+                href={`/marketplace/search?cat=${carousel.category.slug}`}
+                className="text-sm font-semibold text-[#0061A8] hover:underline"
+              >
+                Explore all
+              </a>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {carousel.items.map((product: any) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </main>
     </div>
   );
 }
