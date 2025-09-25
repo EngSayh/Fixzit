@@ -116,7 +116,11 @@ export async function POST(req: NextRequest) {
       const qVec = await embedText(question);
       const vec = await fetch(new URL('/api/kb/search', req.nextUrl).toString(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'cookie': req.headers.get('cookie') || '',
+          'authorization': req.headers.get('authorization') || ''
+        },
         body: JSON.stringify({ query: qVec, lang, role, route, limit })
       });
       if (vec.ok) {
