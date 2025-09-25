@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId, Db } from 'mongodb';
 
 import { APPS, AppKey, SearchEntity } from '@/src/config/topbar-modules';
-import { getNativeDb } from '@/src/lib/mongo';
+import { getNativeDb, isMockDB } from '@/src/lib/mongo';
 import { verifyToken } from '@/src/lib/auth';
 
 export const runtime = 'nodejs';
@@ -254,6 +254,11 @@ export async function GET(req: NextRequest) {
     const nativeDb = await getNativeDb();
 
     if (!nativeDb) {
+      if (isMockDB) {
+        console.warn('Search API running without MongoDB (USE_MOCK_DB=true); returning empty results.');
+        return NextResponse.json({ results: [] });
+      }
+
       console.error('Search API error: MongoDB connection unavailable');
       return NextResponse.json({ results: [] }, { status: 503 });
     }
