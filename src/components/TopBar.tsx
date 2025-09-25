@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+const SEARCH_DEBOUNCE_MS = 180;
+const BLUR_CLOSE_DELAY_MS = 120;
 import { Bell, Search, User, ChevronDown } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import LanguageSelector from './i18n/LanguageSelector';
@@ -114,7 +116,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
         setResults([]);
       }
     };
-    const id = setTimeout(run, 180);
+    const id = setTimeout(run, SEARCH_DEBOUNCE_MS);
     return () => { ac.abort(); clearTimeout(id); };
   }, [query, scope]);
 
@@ -308,7 +310,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
               closeResultsTimeoutRef.current = window.setTimeout(()=>{
                 setOpenResults(false);
                 closeResultsTimeoutRef.current = undefined;
-              }, 120);
+              }, BLUR_CLOSE_DELAY_MS);
             }}
             className={`bg-transparent outline-none py-1 text-sm placeholder-white/70 ${screenInfo.isTablet ? 'w-48' : 'w-64'} ${isRTL ? 'text-right' : ''}`}
             placeholder={placeholder}

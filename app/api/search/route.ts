@@ -4,6 +4,7 @@ import { WorkOrder } from "@/src/server/models/WorkOrder";
 import type { WorkOrderDoc } from "@/src/server/models/WorkOrder";
 import { Property } from "@/src/server/models/Property";
 import type { PropertyDoc } from "@/src/server/models/Property";
+import { makeQueryableModel, type QueryableModel } from "./queryHelpers";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import { ACCESS } from "@/src/lib/rbac";
@@ -50,17 +51,8 @@ export async function GET(req: NextRequest) {
   try {
     const results: Hit[] = [];
 
-    // Provide light-weight typed wrappers for Mongoose-like query chains
-    type QueryChain<T> = {
-      sort(sort: any): QueryChain<T>;
-      limit(n: number): QueryChain<T>;
-      lean(): Promise<T[]>;
-    };
-    type QueryableModel<T> = {
-      find(filter: any): QueryChain<T>;
-    };
-    const WorkOrderModel = WorkOrder as unknown as QueryableModel<WorkOrderDoc>;
-    const PropertyModel = Property as unknown as QueryableModel<PropertyDoc>;
+    const WorkOrderModel = makeQueryableModel<WorkOrderDoc>(WorkOrder);
+    const PropertyModel = makeQueryableModel<PropertyDoc>(Property);
 
     const searchFM = async () => {
       await db; // ensure mongoose is ready
