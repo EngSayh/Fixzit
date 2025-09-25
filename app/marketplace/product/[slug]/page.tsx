@@ -1,56 +1,126 @@
-// @ts-nocheck
-import Link from 'next/link';
-import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
+import ProductCard from '@/src/components/marketplace/ProductCard';
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
-async function fetchPdp(slug: string) {
-  const h = headers();
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-  const url = new URL(`/api/marketplace/products/${slug}`, baseUrl);
-  const cookie = h.get('cookie');
-  const res = await fetch(url.toString(), {
-    cache: 'no-store',
-    headers: cookie ? { cookie } : undefined,
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to load marketplace PDP (${res.status})`);
-  }
-  return res.json();
+interface ProductPageProps {
+  params: { slug: string };
 }
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
-  const data = await fetchPdp(params.slug);
-  const p = data?.product;
-  const bb = data?.buyBox;
+export default async function ProductDetail({ params }: ProductPageProps) {
+  const [categoriesResponse, productResponse] = await Promise.all([
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)
+  ]);
 
-  if (!p) return notFound();
+  const departments = (categoriesResponse.data as any[]).map(category => ({
+    slug: category.slug,
+    name: category.name?.en ?? category.slug
+  }));
+
+  const product = productResponse.data.product;
+  const category = productResponse.data.category;
+
+  const attachments = product.media?.filter((file: any) => file.role === 'MSDS' || file.role === 'COA') ?? [];
+  const gallery = product.media?.filter((file: any) => file.role === 'GALLERY') ?? [];
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-8 grid grid-cols-12 gap-8">
-      <div className="col-span-12 md:col-span-6">
-        <div className="aspect-square bg-gray-50 rounded overflow-hidden" />
-      </div>
-      <div className="col-span-12 md:col-span-6 space-y-4">
-        <h1 className="text-2xl font-semibold">{p.title}</h1>
-        <ul className="list-disc pl-5 text-sm text-gray-700">
-          {(p.attributes||[]).slice(0,6).map((a:any,i:number)=>(<li key={i}><b>{a.key}:</b> {a.value}</li>))}
-        </ul>
-        <div className="border rounded p-4">
-          <div className="text-2xl font-bold">{bb?.price?.toLocaleString()} {bb?.currency}</div>
-          <div className="text-sm text-gray-600">{bb?.inStock ? 'In Stock' : 'Backorder'} · Lead {bb?.leadDays} days</div>
-          <div className="flex gap-2 mt-3">
-            <Link href="/cart" className="px-4 py-2 bg-[#FFB400] text-black rounded hover:opacity-90">Add to Cart</Link>
-            <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-[#00A859] text-white rounded hover:opacity-90">Buy Now (PO)</Link>
+    <div className="min-h-screen bg-[#F5F6F8]">
+      <TopBarAmazon departments={departments} />
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <nav className="text-sm text-[#0061A8]">
+          <a href="/marketplace" className="hover:underline">
+            Marketplace
+          </a>
+          <span className="mx-2 text-gray-400">/</span>
+          {category && (
+            <a href={`/marketplace/search?cat=${category.slug}`} className="hover:underline">
+              {category.name?.en ?? category.slug}
+            </a>
+          )}
+          <span className="mx-2 text-gray-400">/</span>
+          <span className="text-gray-600">{product.title.en}</span>
+        </nav>
+
+        <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="space-y-6">
+            <div className="rounded-3xl bg-white p-6 shadow-lg">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                <div className="space-y-4">
+                  <div className="overflow-hidden rounded-2xl bg-gray-100">
+                    <img
+                      src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg'}
+                      alt={product.title.en}
+                      className="h-96 w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto">
+                    {gallery.map((image: any) => (
+                      <img
+                        key={image.url}
+                        src={image.url}
+                        alt={product.title.en}
+                        className="h-16 w-16 rounded-xl border border-gray-200 object-cover"
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h1 className="text-3xl font-semibold text-[#0F1111]">{product.title.en}</h1>
+                  {product.summary && <p className="text-sm text-gray-600">{product.summary}</p>}
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p><span className="font-semibold">SKU:</span> {product.sku}</p>
+                    {product.brand && <p><span className="font-semibold">Brand:</span> {product.brand}</p>}
+                    {product.standards?.length ? (
+                      <p>
+                        <span className="font-semibold">Standards:</span> {product.standards.join(', ')}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="rounded-2xl bg-[#F8FBFF] p-4">
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Key specifications</h2>
+                    <ul className="mt-2 space-y-1 text-sm text-gray-700">
+                      {Object.entries(product.specs || {}).map(([key, value]) => (
+                        <li key={key} className="flex justify-between gap-4">
+                          <span className="font-medium capitalize text-gray-500">{key.replace(/_/g, ' ')}</span>
+                          <span>{String(value)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {attachments.length > 0 && (
+                    <div className="rounded-2xl border border-[#0061A8]/30 bg-white p-4">
+                      <h3 className="text-sm font-semibold text-[#0061A8]">Compliance documents</h3>
+                      <ul className="mt-2 space-y-2 text-sm text-[#0F1111]">
+                        {attachments.map((file: any) => (
+                          <li key={file.url}>
+                            <a href={file.url} className="hover:underline" target="_blank">
+                              {file.role === 'MSDS' ? 'Material Safety Data Sheet' : 'Certificate of Analysis'}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <section className="rounded-3xl bg-white p-6 shadow-lg">
+              <h2 className="text-xl font-semibold text-[#0F1111]">Related items</h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {product.related?.length ? (
+                  product.related.map((related: any) => <ProductCard key={related._id} product={related} />)
+                ) : (
+                  <p className="text-sm text-gray-600">Additional items will appear as catalogue grows.</p>
+                )}
+              </div>
+            </section>
           </div>
-        </div>
-      </div>
-      <section className="col-span-12">
-        <h3 className="text-lg font-semibold mb-2">About this item</h3>
-        <p className="text-sm text-gray-700">Technical data sheets (MSDS/COA), installation notes, and compliance info.</p>
-      </section>
+
+          <PDPBuyBox product={product} />
+        </section>
+      </main>
     </div>
   );
 }
-

@@ -1,29 +1,36 @@
-// @ts-nocheck
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { MarketplaceProduct } from '@/src/server/models/MarketplaceProduct';
-import { getAuthFromRequest, requireMarketplaceReadRole } from '@/src/server/utils/tenant';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+import { findProductBySlug } from '@/src/lib/marketplace/search';
+import { dbConnect } from '@/src/db/mongoose';
+import Category from '@/src/models/marketplace/Category';
+import { serializeCategory } from '@/src/lib/marketplace/serializers';
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
-  try {
-    const { tenantId, role } = getAuthFromRequest(req);
-    if (!tenantId || !requireMarketplaceReadRole(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const doc = await (MarketplaceProduct as any).findOne({ tenantId, slug: params.slug });
-    if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-    const buyBox = {
-      price: doc?.prices?.[0]?.listPrice ?? null,
-      currency: doc?.prices?.[0]?.currency ?? 'SAR',
-      inStock: (doc?.inventories?.[0]?.onHand || 0) > 0,
-      leadDays: doc?.inventories?.[0]?.leadDays ?? 3
-    };
-
-    return NextResponse.json({ product: doc, buyBox });
-  } catch (error) {
-    console.error('pdp error', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
-  }
+interface RouteParams {
+  params: { slug: string };
 }
 
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  try {
+    const context = await resolveMarketplaceContext(request);
+    const slug = decodeURIComponent(params.slug);
+    await dbConnect();
+    const product = await findProductBySlug(context.orgId, slug);
+
+    if (!product) {
+      return NextResponse.json({ ok: false, error: 'Product not found' }, { status: 404 });
+    }
+
+    const category = await Category.findOne({ _id: product.categoryId, orgId: context.orgId }).lean();
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        product,
+        category: category ? serializeCategory(category) : null
+      }
+    });
+  } catch (error) {
+    console.error('Failed to load product details', error);
+    return NextResponse.json({ ok: false, error: 'Unable to fetch product' }, { status: 500 });
+  }
+}

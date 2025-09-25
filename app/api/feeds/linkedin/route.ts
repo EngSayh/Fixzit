@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
+export const dynamic = 'force-dynamic';
 import { Job } from '@/src/server/models/Job';
 
 export async function GET() {

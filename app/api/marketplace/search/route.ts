@@ -1,61 +1,78 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { MarketplaceProduct } from '@/src/server/models/MarketplaceProduct';
-import { SearchSynonym } from '@/src/server/models/SearchSynonym';
-import { getAuthFromRequest, requireMarketplaceReadRole } from '@/src/server/utils/tenant';
+import { z } from 'zod';
+import { Types } from 'mongoose';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+import { searchProducts } from '@/src/lib/marketplace/search';
+import Category from '@/src/models/marketplace/Category';
+import { serializeCategory } from '@/src/lib/marketplace/serializers';
+import { dbConnect } from '@/src/db/mongoose';
 
-function escapeRegex(input: string) {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+const QuerySchema = z.object({
+  q: z.string().optional(),
+  cat: z.string().optional(),
+  brand: z.string().optional(),
+  std: z.string().optional(),
+  min: z.coerce.number().optional(),
+  max: z.coerce.number().optional(),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(24)
+});
 
-export async function GET(req: NextRequest) {
+export const dynamic = 'force-dynamic';
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const q = (searchParams.get('q') || '').trim();
-    const locale = (searchParams.get('locale') || 'en').toLowerCase();
-    const { tenantId, role } = getAuthFromRequest(req);
+    const params = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const query = QuerySchema.parse(params);
+    const context = await resolveMarketplaceContext(request);
+    await dbConnect();
 
-    if (!tenantId || !requireMarketplaceReadRole(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const categoryDoc = query.cat
+      ? await Category.findOne({ orgId: context.orgId, slug: query.cat }).lean()
+      : undefined;
 
-    // If no query provided, return latest products for the tenant
-    if (!q) {
-      const latest = await (MarketplaceProduct as any)
-        .find({ tenantId })
-        .sort({ updatedAt: -1 })
-        .limit(24)
-        .lean();
-      return NextResponse.json({ items: latest });
-    }
+    const categoryId = categoryDoc?._id as Types.ObjectId | undefined;
 
-    // Expand with synonyms (best effort)
-    let terms = [q];
-    try {
-      const syn = await (SearchSynonym as any).findOne({ locale, term: q.toLowerCase() });
-      if (syn && syn.synonyms?.length) terms = Array.from(new Set([q, ...syn.synonyms]));
-    } catch {}
+    const { items, pagination, facets } = await searchProducts({
+      orgId: context.orgId,
+      q: query.q,
+      categoryId,
+      brand: query.brand,
+      standard: query.std,
+      minPrice: query.min,
+      maxPrice: query.max,
+      limit: query.limit,
+      skip: (query.page - 1) * query.limit
+    });
 
-    // Build safe filter: $text at top-level; regex fallbacks in $or
-    const filter: any = { tenantId };
-    if (terms.length) filter.$text = { $search: terms.join(' ') };
-    const safe = escapeRegex(q);
-    filter.$or = [{ title: { $regex: safe, $options: 'i' } }, { brand: { $regex: safe, $options: 'i' } }];
+    const facetCategories = await Category.find({ _id: { $in: facets.categories }, orgId: context.orgId })
+      .lean()
+      .then(docs => docs.map(doc => serializeCategory(doc)));
 
-    const query = (MarketplaceProduct as any).find(filter);
-    if (filter.$text) {
-      query.sort({ score: { $meta: 'textScore' }, updatedAt: -1 }).select({ score: { $meta: 'textScore' } });
-    } else {
-      query.sort({ updatedAt: -1 });
-    }
-    const docs = await query
-      .limit(24)
-      .lean();
-
-    return NextResponse.json({ items: docs });
+    return NextResponse.json({
+      ok: true,
+      data: {
+        items,
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total: pagination.total,
+          pages: Math.ceil(pagination.total / query.limit)
+        },
+        facets: {
+          brands: facets.brands,
+          standards: facets.standards,
+          categories: facetCategories.map(category => ({
+            slug: category.slug,
+            name: category.name?.en ?? category.name?.ar ?? category.slug
+          }))
+        }
+      }
+    });
   } catch (error) {
-    console.error('search error', error);
-    return NextResponse.json({ error: 'Server error', items: [] }, { status: 500 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
+    }
+    console.error('Marketplace search failed', error);
+    return NextResponse.json({ ok: false, error: 'Search failed' }, { status: 500 });
   }
 }
-

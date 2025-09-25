@@ -157,7 +157,7 @@ export async function POST(
       requiredSkills: job.skills,
       experience: yearsOfExperience,
       minExperience: job.screeningRules?.minYears
-    }, atsSettings.scoringWeights);
+    }, atsSettings?.scoringWeights || undefined);
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({
