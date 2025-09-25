@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { Bell, Search, User, ChevronDown } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import LanguageSelector from './i18n/LanguageSelector';
+import CurrencySelector from './i18n/CurrencySelector';
+import AppSwitcher from './topbar/AppSwitcher';
+import GlobalSearch from './topbar/GlobalSearch';
+import QuickActions from './topbar/QuickActions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -289,8 +293,22 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
           </button>
         )}
       </div>
+      
+      {/* Center space retained; existing inline search handles desktop */}
+      
+      {/* Mobile search button */}
+      {screenInfo.isMobile && (
+        <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
+          <Search className="w-4 h-4" />
+        </button>
+      )}
+      
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <LanguageSelector />
+        <QuickActions />
+        <div className="flex items-center gap-2">
+          <LanguageSelector variant="compact" />
+          <CurrencySelector variant="compact" />
+        </div>
         <div className="notification-container relative">
           <button
             onClick={() => setNotifOpen(!notifOpen)}
