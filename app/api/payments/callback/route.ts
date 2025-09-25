@@ -138,10 +138,12 @@ export async function POST(req: NextRequest) {
 
     if (!Array.isArray(invoice.payments)) {
       invoice.payments = [];
+      invoice.markModified('payments');
     }
 
     if (!Array.isArray(invoice.history)) {
       invoice.history = [];
+      invoice.markModified('history');
     }
 
     const existingPayment = invoice.payments.find(
@@ -163,15 +165,25 @@ export async function POST(req: NextRequest) {
       };
 
       if (existingPayment) {
-        existingPayment.date = baseDetails.date;
-        existingPayment.amount = baseDetails.amount;
-        existingPayment.method = baseDetails.method;
-        existingPayment.reference = baseDetails.reference;
-        existingPayment.status = baseDetails.status;
-        existingPayment.transactionId = baseDetails.transactionId;
-        existingPayment.notes = baseDetails.notes;
+        const detailsChanged =
+          existingPayment.status !== baseDetails.status ||
+          existingPayment.amount !== baseDetails.amount ||
+          existingPayment.method !== baseDetails.method ||
+          existingPayment.notes !== baseDetails.notes;
+
+        if (detailsChanged) {
+          existingPayment.date = baseDetails.date;
+          existingPayment.amount = baseDetails.amount;
+          existingPayment.method = baseDetails.method;
+          existingPayment.reference = baseDetails.reference;
+          existingPayment.status = baseDetails.status;
+          existingPayment.transactionId = baseDetails.transactionId;
+          existingPayment.notes = baseDetails.notes;
+          invoice.markModified('payments');
+        }
       } else {
         invoice.payments.push(baseDetails);
+        invoice.markModified('payments');
       }
     };
 
@@ -190,6 +202,7 @@ export async function POST(req: NextRequest) {
           performedAt: new Date(),
           details: `Payment completed via PayTabs. Transaction: ${transactionReference}`
         });
+        invoice.markModified('history');
       }
     } else {
       // Payment failed
@@ -204,6 +217,7 @@ export async function POST(req: NextRequest) {
           performedAt: new Date(),
           details: `Payment failed: ${responseMessage ?? verificationMessage ?? 'Unknown reason'}. Transaction: ${transactionReference}`
         });
+        invoice.markModified('history');
       }
     }
 
