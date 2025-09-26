@@ -29,15 +29,16 @@ function redactPII(s: string) {
  * @param contexts - Array of contexts where each item has a `title` and `text`; only the first three are used.
  * @returns A single newline-separated string containing the header and bullet lines.
  */
+const MAX_SNIPPET_LENGTH = 400;
 function buildHeuristicAnswer(question: string, contexts: Array<{ title: string; text: string }>) {
   const lines: string[] = [];
   lines.push(contexts.length ? `Here is what I found about: "${question}"` : `No matching articles found for: "${question}"`);
   for (const ctx of contexts.slice(0, 3)) {
     const snippet = ctx.text
       .replace(/\s+/g, ' ')
-      .slice(0, 400)
+      .slice(0, MAX_SNIPPET_LENGTH)
       .trim();
-    lines.push(`- ${ctx.title}: ${snippet}${snippet.length === 400 ? '…' : ''}`);
+    lines.push(`- ${ctx.title}: ${snippet}${snippet.length === MAX_SNIPPET_LENGTH ? '…' : ''}`);
   }
   return lines.join("\n");
 }
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
         // Use chunk text directly as context; citations sourced from articleId
         docs = chunks.map((c: any) => ({ slug: c.articleId || '', title: '', content: c.text, updatedAt: undefined }));
       }
-    } catch {}
+    } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
 
     if (!docs || docs.length === 0) {
       try {
