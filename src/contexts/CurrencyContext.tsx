@@ -30,22 +30,38 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      const stored = window.localStorage.getItem('fixzit-currency');
-      if (stored && CURRENCY_OPTIONS.some(option => option.code === stored)) {
-        setCurrencyState(stored as CurrencyCode);
+  const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
+    // SSR-safe lazy initializer to avoid hydration mismatches
+    // 1) Check for SSR-provided DOM attribute
+    if (typeof document !== 'undefined') {
+      const fromDom = document.documentElement.getAttribute('data-currency') as CurrencyCode | null;
+      if (fromDom && CURRENCY_OPTIONS.some(o => o.code === fromDom)) {
+        return fromDom;
       }
-    } catch (error) {
-      console.warn('Could not access localStorage for currency preference:', error);
     }
-  }, []);
+    
+    // 2) Check localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
+        if (stored && CURRENCY_OPTIONS.some(o => o.code === stored)) {
+          return stored;
+        }
+        
+        // 3) Check cookie (legacy)
+        const match = document.cookie.match(/(?:^|;\s*)fxz\.currency=([^;]+)/);
+        const fromCookie = (match && match[1]) as CurrencyCode | undefined;
+        if (fromCookie && CURRENCY_OPTIONS.some(o => o.code === fromCookie)) {
+          return fromCookie;
+        }
+      } catch {
+        // silently ignore localStorage/cookie errors
+      }
+    }
+    
+    // 4) Default fallback
+    return DEFAULT_CURRENCY;
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') {

@@ -27,30 +27,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
   const [isClient, setIsClient] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Use the actual translation context
-  let t: (key: string, fallback?: string) => string;
-  let language: string;
-  let setLanguage: (lang: any) => void;
-  let isRTL: boolean;
-
-  try {
-    const context = useTranslation();
-    t = context.t;
-    language = context.language;
-    setLanguage = context.setLanguage;
-    isRTL = context.isRTL;
-  } catch {
-    // Fallback when context is not available
-    t = (key: string, fallback?: string) => fallback || key;
-    language = 'en';
-    setLanguage = (lang: any) => {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('fxz.lang', lang);
-        window.location.reload();
-      }
-    };
-    isRTL = false;
-  }
+  // Use the translation context directly - it has its own fallback
+  const { t, language, setLanguage, isRTL } = useTranslation();
 
   // Set client flag
   useEffect(() => {
@@ -87,17 +65,11 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
     );
   }, [q]);
 
-  // Handle language change with proper RTL application
+  // Handle language change - context already handles DOM updates
   const handleLanguageChange = (lang: Lang) => {
     try {
       setLanguage(lang.code as any);
       setOpen(false);
-
-      // Apply RTL immediately without page reload
-      if (typeof window !== 'undefined') {
-        document.documentElement.dir = lang.dir;
-        document.documentElement.lang = lang.code;
-      }
     } catch (error) {
       console.warn('Error changing language:', error);
       // Fallback to page reload
@@ -149,12 +121,12 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
           }`}
         >
           <div className="relative mb-2">
-            <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-gray-400" />
+            <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-gray-400 ${isRTL ? 'right-2' : 'left-2'}`} />
             <input
               type="text"
               value={q}
               onChange={event => setQ(event.target.value)}
-              className="w-full rounded border border-gray-300 bg-white pl-7 pr-2 py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30"
+              className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30`}
               placeholder={t('common.search.languages', 'Type to filter languages')}
               aria-label={t('common.search.languages', 'Type to filter languages')}
             />
