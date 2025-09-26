@@ -1,5 +1,6 @@
 // Use standard import (Node runtime for server routes)
 import mongoose from "mongoose";
+import type { Db } from "mongodb";
 
 const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/fixzit";
 
@@ -31,3 +32,37 @@ if (!conn) {
 }
 
 export const db = conn;
+
+type MaybeMongooseConnection = {
+  db?: unknown;
+  readyState?: number;
+};
+
+export async function getNativeDb(): Promise<Db | null> {
+  if (isMockDB) {
+    // In mock mode there is no native Mongo driver connection – callers should
+    // gracefully handle a null return value without attempting to hit the
+    // database.
+    return null;
+  }
+  try {
+    const connection = await db;
+    const mongooseConnection =
+      (connection as typeof mongoose | undefined)?.connection ??
+      (connection as { connection?: MaybeMongooseConnection } | undefined)?.connection;
+
+    if (!mongooseConnection || typeof mongooseConnection !== "object") {
+      return null;
+    }
+
+    const native = (mongooseConnection as MaybeMongooseConnection).db;
+    if (!native) {
+      return null;
+    }
+
+    return native as Db;
+  } catch (error) {
+    console.error("Failed to resolve native MongoDB connection", error);
+    return null;
+  }
+}

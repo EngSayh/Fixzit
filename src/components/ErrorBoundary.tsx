@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import React from 'react';
 
 type ErrorState = {
@@ -596,12 +597,12 @@ ${errorReport.error.componentStack || 'No component stack available'}
                     </button>
                   )}
 
-                  <a
+                  <Link
                     href="/help"
                     className="inline-block w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-center"
                   >
                     📚 Get Help
-                  </a>
+                  </Link>
                 </>
               )}
             </div>
