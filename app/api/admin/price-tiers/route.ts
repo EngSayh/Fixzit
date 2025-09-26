@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import PriceTier from '@/src/models/PriceTier';
 import Module from '@/src/models/Module';
 import { getUserFromToken } from '@/src/lib/auth';
+import { rateLimit } from '@/src/server/security/rateLimit';
 import { z } from 'zod';
 
 const priceTierSchema = z.object({
@@ -36,7 +37,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     await authenticateAdmin(req);
-    await dbConnect();
+    await db;
     const rows = await PriceTier.find({}).populate('moduleId','code name');
     return NextResponse.json(rows);
   } catch (error: any) {
@@ -57,7 +58,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await authenticateAdmin(req);
-    await dbConnect();
+    
+    // Rate limiting for admin operations
+    const key = `admin:price-tiers:${user.id}`;
+    const rl = rateLimit(key, 20, 60_000); // 20 requests per minute
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
+    
+    await db;
     const body = priceTierSchema.parse(await req.json());
     
     // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }

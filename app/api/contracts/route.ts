@@ -1,7 +1,8 @@
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import ServiceContract from '@/src/models/ServiceContract';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
+import { rateLimit } from '@/src/server/security/rateLimit';
 import { z } from 'zod';
 
 const contractSchema = z.object({
@@ -33,7 +34,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    await dbConnect();
+    // Rate limiting for contract operations
+    const key = `contracts:${user.tenantId}:${user.id}`;
+    const rl = rateLimit(key, 10, 60_000); // 10 contracts per minute
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Contract creation rate limit exceeded' }, { status: 429 });
+    }
+
+    await db;
     const body = contractSchema.parse(await req.json());
     
     // Tenant isolation - ensure contract belongs to user's org

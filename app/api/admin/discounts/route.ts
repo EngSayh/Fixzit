@@ -1,7 +1,8 @@
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import DiscountRule from '@/src/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
+import { rateLimit } from '@/src/server/security/rateLimit';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     await authenticateAdmin(req);
-    await dbConnect();
+    await db;
     const d = await DiscountRule.findOne({ code: 'ANNUAL' });
     return NextResponse.json(d || { code:'ANNUAL', value:0, active:false });
   } catch (error: any) {
@@ -52,7 +53,15 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const user = await authenticateAdmin(req);
-    await dbConnect();
+    
+    // Rate limiting for admin operations
+    const key = `admin:discounts:${user.id}`;
+    const rl = rateLimit(key, 5, 60_000); // 5 requests per minute for discount changes
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
+    
+    await db;
     const body = discountSchema.parse(await req.json());
     
     const d = await DiscountRule.findOneAndUpdate({ code: 'ANNUAL' },
