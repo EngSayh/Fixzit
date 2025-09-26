@@ -6,7 +6,7 @@ import ClientLayout from "@/src/components/ClientLayout";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html suppressHydrationWarning>
+    <html suppressHydrationWarning lang="en">
       <body className="min-h-screen bg-gray-50">
         <Providers>
           <ClientLayout>

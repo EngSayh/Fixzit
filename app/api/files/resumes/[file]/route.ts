@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { file: string
     const contentType = contentTypeFromName(safeName);
     const out = new Uint8Array(data.length);
     out.set(data);
-    return new NextResponse(out, { status: 200, headers: { 'Content-Type': contentType, 'Content-Disposition': `attachment; filename="${safeName}"` } });
+    return new NextResponse(out, { status: 200, headers: { 'Content-Type': contentType, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `attachment; filename="${safeName}"` } });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch file' }, { status: 500 });
   }

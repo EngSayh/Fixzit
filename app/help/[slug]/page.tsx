@@ -78,10 +78,10 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
             <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
               <h3 className="font-semibold text-[var(--fixzit-text)] mb-3">Was this helpful?</h3>
               <div className="flex gap-2">
-                <button className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                <button aria-label="Mark article as helpful" className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
                   👍 Yes
                 </button>
-                <button className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                <button aria-label="Mark article as not helpful" className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
                   👎 No
                 </button>
               </div>
