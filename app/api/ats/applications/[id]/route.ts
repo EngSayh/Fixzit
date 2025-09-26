@@ -110,9 +110,7 @@ export async function PATCH(
     // Optional: restrict stage transitions
     const allowedStages = new Set(['applied','screening','interview','offer','hired','rejected']);
     if (body.stage && body.stage !== application.stage) {
-      if (!allowedStages.has(body.stage)) {
-        return NextResponse.json({ success: false, error: 'Invalid stage' }, { status: 400 });
-      }
+    const canSeePrivate = userRoles.some((r: string) => privilegedRoles.has(r));
       const oldStage = application.stage;
       application.stage = body.stage;
       application.history.push({ action: `stage_change:${oldStage}->${body.stage}`, by: userId, at: new Date(), details: body.reason });
