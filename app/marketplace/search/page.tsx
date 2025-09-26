@@ -33,7 +33,9 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
 
   const departments = categories.map((category: any) => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
 
-  const heading = `${searchData.pagination.total} result(s) for ‘${searchParams.q ?? 'All products'}’`;
+  const rawQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
+  const queryLabel = rawQuery && rawQuery.trim().length > 0 ? rawQuery : 'All products';
+  const heading = `${searchData.pagination.total} result(s) for ‘${queryLabel}’`;
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">

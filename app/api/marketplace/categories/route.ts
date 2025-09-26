@@ -8,15 +8,17 @@ import { serializeCategory } from '@/src/lib/marketplace/serializers';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function sortCategories<T extends { name?: { en?: string }; createdAt?: Date }>(nodes: T[]): T[] {
+function sortCategories<T extends { name?: { en?: string }; createdAt?: Date | string | number }>(nodes: T[]): T[] {
   return [...nodes].sort((a, b) => {
     const aName = a.name?.en ?? '';
     const bName = b.name?.en ?? '';
     if (aName && bName) {
       return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
     }
-    if (a.createdAt && b.createdAt) {
-      return a.createdAt.getTime() - b.createdAt.getTime();
+    const aTimestamp = a?.createdAt ? new Date(a.createdAt as any).getTime() : Number.POSITIVE_INFINITY;
+    const bTimestamp = b?.createdAt ? new Date(b.createdAt as any).getTime() : Number.POSITIVE_INFINITY;
+    if (Number.isFinite(aTimestamp) && Number.isFinite(bTimestamp)) {
+      return aTimestamp - bTimestamp;
     }
     return 0;
   });
@@ -25,6 +27,14 @@ function sortCategories<T extends { name?: { en?: string }; createdAt?: Date }>(
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
+
+    if (!context?.orgId) {
+      return NextResponse.json(
+        { ok: false, error: 'Tenant context could not be resolved' },
+        { status: 400 }
+      );
+    }
+
     await dbConnect();
 
     const categories = await Category.find({ orgId: context.orgId })

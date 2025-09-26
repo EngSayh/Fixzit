@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
@@ -16,7 +18,9 @@ export default async function JobDetailPage({ params }: { params: { slug: string
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <a href="/careers" className="text-[#0061A8]">&larr; Back to Careers</a>
+        <Link href="/careers" className="text-[#0061A8]">
+          &larr; Back to Careers
+        </Link>
         <h1 className="text-3xl font-bold mt-3">{job.title}</h1>
         <div className="text-gray-600 mt-1">{job.department}</div>
         <div className="mt-6 space-y-4">
