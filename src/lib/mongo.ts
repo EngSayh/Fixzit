@@ -217,7 +217,7 @@ const uri = process.env.MONGODB_URI || '';
 const dbName = process.env.MONGODB_DB || 'fixzit';
 const USE_MOCK_DB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
-export const isMockDB = USE_MOCK_DB || !uri;
+export const isMockDB = USE_MOCK_DB;
 
 // Global connection promise
 let conn = (global as any)._mongoose as Promise<DatabaseHandle>;
@@ -232,6 +232,8 @@ if (!conn) {
       dbName,
       autoIndex: true,
       maxPoolSize: 10,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
     }).then(m => {
       // Return the native MongoDB database object
       return m.connection.db as unknown as DatabaseHandle;
@@ -264,33 +266,27 @@ export async function getDatabase(): Promise<DatabaseHandle> {
   try {
     const connection = await db;
     
-    // Mock path exposes collection directly
+    // Both MockDB and native DB expose collection directly
     if (connection && typeof connection.collection === 'function') {
       return connection;
-    }
-    
-    // Mongoose path: prefer driver db
-    const m = connection as any;
-    if (m?.connection?.db && typeof m.connection.db.collection === 'function') {
-      return m.connection.db;
-    }
-    if (m?.db && typeof m.db.collection === 'function') {
-      return m.db;
     }
     
     throw new Error('No database handle available');
   } catch (error) {
     const correlationId = new mongoose.Types.ObjectId().toString();
-    const structuredError: FixzitError = {
-      name: 'DatabaseConnectionError',
-      code: 'DB_CONNECTION_FAILED',
-      userMessage: 'Database connection is currently unavailable. Please try again later.',
-      devMessage: `Failed to get database handle: ${error}`,
-      correlationId
-    };
-    
-    console.error('Database connection error:', structuredError);
-    throw structuredError;
+    const devMessage = `Failed to get database handle: ${error}`;
+    const err = new Error(devMessage);
+    (err as any).name = 'DatabaseConnectionError';
+    (err as any).code = 'DB_CONNECTION_FAILED';
+    (err as any).userMessage = 'Database connection is currently unavailable. Please try again later.';
+    (err as any).correlationId = correlationId;
+    console.error('Database connection error:', {
+      name: (err as any).name,
+      code: (err as any).code,
+      devMessage,
+      correlationId,
+    });
+    throw err;
   }
 }
 
