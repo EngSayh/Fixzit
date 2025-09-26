@@ -53,7 +53,9 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'ATS Applications endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
+    const { db } = await import('@/src/lib/mongo');
+    await db;
     const AppMod = await import('@/src/server/models/Application').catch(() => null);
     const Application = AppMod && (AppMod as any).Application;
     if (!Application) {

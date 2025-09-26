@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS conversion endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
     const AppMod = await import('@/src/server/models/Application').catch(() => null);
     const CandMod = await import('@/src/server/models/Candidate').catch(() => null);
     const JobMod = await import('@/src/server/models/Job').catch(() => null);
