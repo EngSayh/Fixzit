@@ -404,10 +404,11 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-          const response = await fetch('/api/finance/invoices', {
+      const response = await fetch('/api/finance/invoices', {
         method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant', 'x-user-id': 'demo-user' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              type: formData.type,
               issueDate: formData.issueDate,
               dueDate: formData.dueDate,
               currency: formData.currency,

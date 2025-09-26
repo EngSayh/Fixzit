@@ -98,10 +98,10 @@ export async function POST(
       calculateExperienceFromText(resumeText + ' ' + coverLetter);
     
     // Get ATS settings
-    const atsSettings = await AtsSettings.findOrCreateForOrg(job.orgId);
+    const atsSettings = await (AtsSettings as any).findOrCreateForOrg(job.orgId);
     
     // Check for existing candidate
-    let candidate = await Candidate.findByEmail(job.orgId, email);
+    let candidate = await (Candidate as any).findOne({ orgId: job.orgId, email: email.toLowerCase().trim() });
     
     if (!candidate) {
       // Create new candidate

@@ -5,7 +5,7 @@ const CandidateSchema = new Schema({
   orgId: { type: String, index: true, required: true },
   firstName: String,
   lastName: String,
-  email: { type: String, index: true },
+  email: { type: String, index: true, lowercase: true, trim: true, required: true },
   phone: String,
   location: String,
   linkedin: String,
@@ -21,7 +21,7 @@ const CandidateSchema = new Schema({
   }
 }, { timestamps: true });
 
-CandidateSchema.index({ orgId: 1, email: 1 }, { unique: false });
+CandidateSchema.index({ orgId: 1, email: 1 }, { unique: true });
 
 CandidateSchema.statics.findByEmail = function(orgId: string, email: string) {
   return this.findOne({ orgId, email });
