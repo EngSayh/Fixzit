@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     const requestedOrgId = searchParams.get('orgId');
     const defaultOrgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
 
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const authHeader = req.headers.get('authorization') ?? '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
@@ -48,8 +48,9 @@ export async function GET(req: NextRequest) {
     if (jobType) filter.jobType = jobType;
     if (q) filter.$text = { $search: q };
     
+    const projection = !isPrivileged ? { internalNotes: 0, postedBy: 0, contactEmail: 0, applicants: 0 } : {};
     const jobs = await (Job as any)
-      .find(filter)
+      .find(filter, projection)
       .sort(q ? { score: { $meta: 'textScore' } } : { publishedAt: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -82,8 +83,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
     const body = await req.json();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const authHeader = req.headers.get('authorization') ?? '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);

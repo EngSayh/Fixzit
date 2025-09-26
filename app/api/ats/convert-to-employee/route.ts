@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
     // Check if user has permission to convert applications to employees
-    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN']);
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN','RECRUITER']);
     if (!allowedRoles.has((user as any).role || '')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
     }
     const [cand, job] = await Promise.all([
-      (Candidate as any).findById(app.candidateId).lean(),
-      (Job as any).findById(app.jobId).lean()
+      (Candidate as any).findOne({ _id: app.candidateId, orgId: app.orgId }).lean(),
+      (Job as any).findOne({ _id: app.jobId, orgId: app.orgId }).lean()
     ]);
     if (!cand || !job) return NextResponse.json({ success: false, error: 'Candidate or Job missing' }, { status: 400 });
     const orgId = app.orgId;
