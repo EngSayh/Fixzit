@@ -16,10 +16,22 @@ export async function GET(
     if (!Application) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
+    // Require auth and scope by org
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const user = token ? await getUserFromToken(token) : null;
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    // Optional: fast id sanity check to avoid cast errors
+    if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+      return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
+    }
     const application = await (Application as any)
-      .findById(params.id)
-      .populate('jobId')
-      .populate('candidateId')
+      .findOne({ _id: params.id, orgId: user.tenantId })
+      .select('-__v -attachments -internal -secrets') // tighten as needed
+      .populate('jobId', 'title department status location')
+      .populate('candidateId', 'firstName lastName email phone location')
       .lean();
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
     return NextResponse.json({ success: true, data: application });
