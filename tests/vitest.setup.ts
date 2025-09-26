@@ -60,7 +60,23 @@ const jestCompat: JestLike = Object.assign(vi, {
     moduleFactories.delete(moduleId);
     return viMock(moduleId as any, factory as any, options as any);
   },
-  doMock: viDoMock,
+  doMock(moduleId: any, factory?: any, options?: any) {
+    if (typeof moduleId === "string" && typeof factory === "function") {
+      const wrappedFactory = () => {
+        try {
+          const result = factory();
+          moduleFactories.set(moduleId, result);
+          return result;
+        } catch (error) {
+          moduleFactories.delete(moduleId);
+          throw error;
+        }
+      };
+      return viDoMock(moduleId, wrappedFactory as any, options as any);
+    }
+    moduleFactories.delete(moduleId);
+    return viDoMock(moduleId as any, factory as any, options as any);
+  },
   fn: viFn,
   spyOn: viSpyOn,
   clearAllMocks: viClearAllMocks,
