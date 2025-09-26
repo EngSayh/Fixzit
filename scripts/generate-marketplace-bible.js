@@ -14,7 +14,7 @@ function buildDocumentContent() {
   return [
     'Fixzit Marketplace Bible (v1)',
     '',
-    `Output Artifact: ${OUT_FILE.split(path.sep).pop()}`,
+    `Output Artifact: ${path.basename(OUT_FILE)}`,
     '',
     'Scope: Amazon-style marketplace for materials; governance-aligned (single header/sidebar, RTL/LTR, RBAC).',
     '',
