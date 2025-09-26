@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Loader2, ShoppingCart, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useCurrency } from '@/src/contexts/CurrencyContext';
@@ -66,7 +67,7 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <Link href={`/marketplace/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gray-100">
-        <img src={image} alt={product.title.en} className="h-full w-full object-cover transition duration-500 hover:scale-105" />
+        <Image src={image} alt={product.title.en} fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover transition duration-500 hover:scale-105" />
       </Link>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-4">
