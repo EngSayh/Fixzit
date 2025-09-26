@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
     const amountValue = parseCartAmount(callback.cart_amount);
 
     if (amountValue === null) {
+      console.error('Invalid PayTabs cart amount payload:', callback.cart_amount);
       return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
     }
 

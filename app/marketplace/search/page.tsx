@@ -22,20 +22,32 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
     serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`)
   ]);
 
-  const categories = categoriesResponse.data as any[];
-  const searchData = searchResponse.data;
-
-  const facets = {
-    categories: searchData.facets.categories,
-    brands: searchData.facets.brands,
-    standards: searchData.facets.standards
+  const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
+  const searchData = (searchResponse.data ?? {}) as {
+    items?: any[];
+    facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
+    pagination?: { total?: number };
   };
 
-  const departments = categories.map((category: any) => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
+  const items = Array.isArray(searchData.items) ? searchData.items : [];
+  const facetsData = searchData.facets ?? {};
+  const pagination = searchData.pagination ?? { total: items.length };
+
+  const facets = {
+    categories: Array.isArray(facetsData.categories) ? facetsData.categories : [],
+    brands: Array.isArray(facetsData.brands) ? facetsData.brands : [],
+    standards: Array.isArray(facetsData.standards) ? facetsData.standards : []
+  };
+
+  const departments = categories.map((category: any) => ({
+    slug: category.slug,
+    name: category.name?.en ?? category.slug
+  }));
 
   const rawQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
   const queryLabel = rawQuery && rawQuery.trim().length > 0 ? rawQuery : 'All products';
-  const heading = `${searchData.pagination.total} result(s) for ‘${queryLabel}’`;
+  const totalResults = typeof pagination.total === 'number' ? pagination.total : items.length;
+  const heading = `${totalResults} result(s) for ‘${queryLabel}’`;
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
@@ -56,9 +68,9 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
             </Link>
           </header>
 
-          {searchData.items.length ? (
+          {items.length ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {searchData.items.map((product: any) => (
+              {items.map((product: any) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>
