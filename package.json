@@ -21,7 +21,9 @@
     "verify:mongo": "tsx scripts/mongo-check.ts",
     "verify:all": "npm run verify:prep && npm run build && concurrently -k -s first \"npm run start\" \"wait-on http://localhost:3000 && npm run verify:routes && npm run verify:api && npm run verify:mongo\"",
     "doctor": "npm run lint && npm run typecheck && npm run build && npm run verify:all",
-    "test": "playwright test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
@@ -36,7 +38,7 @@
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
     "clean:root": "tsx scripts/janitor.ts --apply",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
-    "docs:marketplace-bible": "tsx scripts/generate-marketplace-bible.ts"
+    "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -101,12 +103,14 @@
     "autoprefixer": "^10.4.16",
     "concurrently": "^9.2.1",
     "fast-glob": "^3.3.3",
+    "jsdom": "^27.0.0",
     "picocolors": "^1.1.1",
     "postcss": "^8.4.31",
     "postcss-selector-parser": "6.0.13",
     "start-server-and-test": "^2.1.2",
     "tailwindcss": "^3.4.0",
     "tsx": "^4.20.5",
+    "vitest": "^3.2.4",
     "wait-on": "^7.2.0"
   },
   "overrides": {

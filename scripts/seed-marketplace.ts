@@ -3,23 +3,40 @@ import { MockDatabase } from '@/src/lib/mockDb';
 // Idempotent seed for demo-tenant marketplace data when using MockDB
 const db = MockDatabase.getInstance();
 
-function upsert(collection: string, predicate: (x: any) => boolean, doc: any) {
+export function upsert(collection: string, predicate: (x: any) => boolean, doc: any) {
   const data = db.getCollection(collection);
-  const idx = data.findIndex(predicate);
+  let idx: number;
+  try {
+    idx = data.findIndex(predicate);
+  } catch (error) {
+    throw error;
+  }
   if (idx >= 0) {
-    const updated = { ...data[idx], ...doc, updatedAt: new Date() };
+    const timestamp = Date.now();
+    const updated = { ...data[idx], ...doc, updatedAt: new Date(timestamp) };
     data[idx] = updated;
     db.setCollection(collection, data);
     return updated;
   } else {
-    const created = { ...doc, _id: Math.random().toString(36).slice(2), createdAt: new Date(), updatedAt: new Date() };
+    try {
+      predicate(doc);
+    } catch (error) {
+      throw error;
+    }
+    const timestamp = Date.now();
+    const created = {
+      ...doc,
+      _id: Math.random().toString(36).slice(2),
+      createdAt: new Date(timestamp),
+      updatedAt: new Date(timestamp)
+    };
     data.push(created);
     db.setCollection(collection, data);
     return created;
   }
 }
 
-async function main(){
+export async function main(){
   const tenantId = 'demo-tenant';
 
   // Seed synonyms
@@ -49,5 +66,7 @@ async function main(){
   console.log('✔ Marketplace seed complete (MockDB)');
 }
 
-main();
+export default main;
+
+void main();
 
