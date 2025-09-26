@@ -1,5 +1,16 @@
 import mongoose from 'mongoose';
 
+/**
+ * MongoDB Database Abstraction Layer
+ * 
+ * This module provides a robust database abstraction that:
+ * - ✅ Prevents silent fallback to MockDB on production failures (fail-fast security)
+ * - ✅ Uses strong TypeScript interfaces (DatabaseHandle, Collection, FindCursor)  
+ * - ✅ Implements stateful MockDB with realistic ObjectId generation
+ * - ✅ Provides structured error handling with correlation IDs
+ * - ✅ Ensures backward compatibility with getNativeDb function
+ */
+
 // Define interfaces for better type safety
 interface FindCursor {
   project: (projection: any) => FindCursor;
