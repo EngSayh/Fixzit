@@ -4,6 +4,9 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 type Language = 'ar' | 'en' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
 
+// Languages with right-to-left direction
+const RTL_LANGS: Language[] = ['ar', 'ur'];
+
 interface TranslationContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -39,6 +42,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'الإشعارات',
     'nav.profile': 'الملف الشخصي',
     'nav.settings': 'الإعدادات',
+    'nav.preferences': 'التفضيلات',
 
     // Common
     'common.search': 'بحث',
@@ -188,6 +192,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'فيكزيت',
+    'footer.backHome': 'العودة إلى الرئيسية',
     'footer.description': 'إدارة المنشآت + الأسواق في منصة واحدة.',
     'footer.company': 'الشركة',
     'footer.about': 'معلومات عنا',
@@ -224,6 +229,7 @@ const translations: Record<Language, Record<string, string>> = {
       'nav.notifications': 'Notifications',
       'nav.profile': 'Profile',
       'nav.settings': 'Settings',
+      'nav.preferences': 'Preferences',
 
     // Common
     'common.search': 'Search',
@@ -373,6 +379,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'Fixzit',
+    'footer.backHome': 'Back to Home',
     'footer.description': 'Facility management + marketplaces in one platform.',
     'footer.company': 'Company',
     'footer.about': 'About',
@@ -439,6 +446,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notifications',
     'nav.profile': 'Profil',
     'nav.settings': 'Paramètres',
+    'nav.preferences': 'Préférences',
 
     // Common
     'common.search': 'Rechercher',
@@ -527,6 +535,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'Fixzit',
+    'footer.backHome': 'Retour à l\'accueil',
     'footer.description': 'Gestion des installations + marchés en une plateforme.',
     'footer.company': 'Entreprise',
     'footer.about': 'À propos',
@@ -593,6 +602,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notificações',
     'nav.profile': 'Perfil',
     'nav.settings': 'Configurações',
+    'nav.preferences': 'Preferências',
 
     // Common
     'common.search': 'Pesquisar',
@@ -681,6 +691,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'Fixzit',
+    'footer.backHome': 'Voltar ao Início',
     'footer.description': 'Gestão de instalações + mercados em uma plataforma.',
     'footer.company': 'Empresa',
     'footer.about': 'Sobre',
@@ -747,6 +758,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Уведомления',
     'nav.profile': 'Профиль',
     'nav.settings': 'Настройки',
+    'nav.preferences': 'Предпочтения',
 
     // Common
     'common.search': 'Поиск',
@@ -835,6 +847,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'Fixzit',
+    'footer.backHome': 'Вернуться домой',
     'footer.description': 'Управление объектами + рынки в одной платформе.',
     'footer.company': 'Компания',
     'footer.about': 'О нас',
@@ -901,6 +914,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notificaciones',
     'nav.profile': 'Perfil',
     'nav.settings': 'Configuraciones',
+    'nav.preferences': 'Preferencias',
 
     // Common
     'common.search': 'Buscar',
@@ -989,6 +1003,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'Fixzit',
+    'footer.backHome': 'Volver al Inicio',
     'footer.description': 'Gestión de instalaciones + mercados en una plataforma.',
     'footer.company': 'Empresa',
     'footer.about': 'Acerca de',
@@ -1055,6 +1070,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'نوٹیفیکیشنز',
     'nav.profile': 'پروفائل',
     'nav.settings': 'سیٹنگز',
+    'nav.preferences': 'ترجیحات',
 
     // Common
     'common.search': 'تلاش',
@@ -1143,6 +1159,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'فکزٹ',
+    'footer.backHome': 'گھر واپس',
     'footer.description': 'سہولت مینجمنٹ + مارکیٹ پلیس ایک پلیٹ فارم میں۔',
     'footer.company': 'کمپنی',
     'footer.about': 'ہمارے بارے میں',
@@ -1209,6 +1226,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'सूचनाएं',
     'nav.profile': 'प्रोफ़ाइल',
     'nav.settings': 'सेटिंग्स',
+    'nav.preferences': 'वरीयताएं',
 
     // Common
     'common.search': 'खोज',
@@ -1297,6 +1315,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'फिक्जिट',
+    'footer.backHome': 'होम पर वापस',
     'footer.description': 'सुविधा प्रबंधन + बाजार एक मंच में।',
     'footer.company': 'कंपनी',
     'footer.about': 'हमारे बारे में',
@@ -1363,6 +1382,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': '通知',
     'nav.profile': '个人资料',
     'nav.settings': '设置',
+    'nav.preferences': '偏好',
 
     // Common
     'common.search': '搜索',
@@ -1451,6 +1471,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     'footer.brand': 'Fixzit',
+    'footer.backHome': '返回首页',
     'footer.description': '设施管理 + 市场在一个平台中。',
     'footer.company': '公司',
     'footer.about': '关于我们',
@@ -1514,7 +1535,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
           setLanguageState(savedLang);
           // Apply RTL immediately
           document.documentElement.lang = savedLang;
-          document.documentElement.dir = translations[savedLang]?.['dir'] === 'rtl' ? 'rtl' : 'ltr';
+          document.documentElement.dir = RTL_LANGS.includes(savedLang) ? 'rtl' : 'ltr';
         } else {
           setLanguageState('ar'); // Default to Arabic as per config
           document.documentElement.lang = 'ar';
@@ -1530,10 +1551,6 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Ensure client-side rendering for initial state
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -1545,7 +1562,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
         document.documentElement.lang = lang;
 
         // Immediately apply RTL direction
-        const isRTLLang = translations[lang]?.['dir'] === 'rtl';
+        const isRTLLang = RTL_LANGS.includes(lang);
         document.documentElement.dir = isRTLLang ? 'rtl' : 'ltr';
 
         // Force re-render by triggering a DOM update
@@ -1569,7 +1586,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
   const isRTL = (() => {
     try {
-      return translations[language]?.['dir'] === 'rtl';
+      return RTL_LANGS.includes(language);
     } catch (error) {
       console.warn('RTL detection error:', error);
       return false;

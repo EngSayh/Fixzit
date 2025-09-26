@@ -71,9 +71,9 @@ export default function Footer() {
         <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
-            <Link href="/privacy" className="hover:underline">Privacy</Link>
-            <Link href="/terms" className="hover:underline">Terms</Link>
-            <Link href="/support" className="hover:underline">Support</Link>
+            <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
+            <Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
+            <Link href="/support" className="hover:underline">{t('footer.support', 'Support')}</Link>
           </div>
         </div>
       </div>
