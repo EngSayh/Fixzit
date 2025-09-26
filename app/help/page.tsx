@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText, Headphones } from 'lucide-react';
-import HelpWidget from '@/src/components/HelpWidget';
+import { useState, useEffect } from &apos;react&apos;;
+import Link from &apos;next/link&apos;;
+import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText, Headphones } from &apos;lucide-react&apos;;
+import HelpWidget from &apos;@/src/components/HelpWidget&apos;;
 
 interface Tutorial {
   id: string;
@@ -11,7 +11,7 @@ interface Tutorial {
   description: string;
   category: string;
   duration: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  difficulty: &apos;Beginner&apos; | &apos;Intermediate&apos; | &apos;Advanced&apos;;
   featured?: boolean;
   completed?: boolean;
 }
@@ -32,49 +32,49 @@ export default function HelpHome() {
   // Interactive tutorials
   const tutorials: Tutorial[] = [
     {
-      id: '1',
-      title: 'Getting Started with Fixzit FM',
-      description: 'Learn the basics of facility management in Fixzit',
-      category: 'Facility Management',
-      duration: '15 min',
-      difficulty: 'Beginner',
+      id: &apos;1',
+      title: &apos;Getting Started with Fixzit FM&apos;,
+      description: &apos;Learn the basics of facility management in Fixzit&apos;,
+      category: &apos;Facility Management&apos;,
+      duration: &apos;15 min&apos;,
+      difficulty: &apos;Beginner&apos;,
       featured: true,
       completed: false
     },
     {
-      id: '2',
-      title: 'Creating Your First Work Order',
-      description: 'Step-by-step guide to create and assign work orders',
-      category: 'Work Orders',
-      duration: '10 min',
-      difficulty: 'Beginner',
+      id: &apos;2',
+      title: 'Creating Your First Work Order&apos;,
+      description: &apos;Step-by-step guide to create and assign work orders&apos;,
+      category: &apos;Work Orders&apos;,
+      duration: &apos;10 min&apos;,
+      difficulty: &apos;Beginner&apos;,
       completed: false
     },
     {
-      id: '3',
-      title: 'Vendor Management Best Practices',
-      description: 'Learn how to manage vendors and procurement processes',
-      category: 'Procurement',
-      duration: '20 min',
-      difficulty: 'Intermediate',
+      id: &apos;3',
+      title: &apos;Vendor Management Best Practices&apos;,
+      description: &apos;Learn how to manage vendors and procurement processes&apos;,
+      category: &apos;Procurement&apos;,
+      duration: &apos;20 min&apos;,
+      difficulty: &apos;Intermediate&apos;,
       completed: false
     },
     {
-      id: '4',
-      title: 'Tenant Relations & Communication',
-      description: 'Master tenant communication and relationship management',
-      category: 'Customer Service',
-      duration: '12 min',
-      difficulty: 'Beginner',
+      id: &apos;4',
+      title: 'Tenant Relations & Communication&apos;,
+      description: &apos;Master tenant communication and relationship management&apos;,
+      category: &apos;Customer Service&apos;,
+      duration: &apos;12 min&apos;,
+      difficulty: &apos;Beginner&apos;,
       completed: false
     },
     {
-      id: '5',
-      title: 'Financial Reporting & Invoicing',
-      description: 'Complete guide to financial management in Fixzit',
-      category: 'Finance',
-      duration: '25 min',
-      difficulty: 'Intermediate',
+      id: &apos;5',
+      title: &apos;Financial Reporting & Invoicing&apos;,
+      description: &apos;Complete guide to financial management in Fixzit&apos;,
+      category: &apos;Finance&apos;,
+      duration: &apos;25 min&apos;,
+      difficulty: &apos;Intermediate&apos;,
       completed: false
     }
   ];
@@ -82,50 +82,50 @@ export default function HelpHome() {
   // Help articles
   const helpArticles: HelpArticle[] = [
     {
-      id: '1',
-      title: 'How to Create Properties',
-      category: 'Properties',
-      description: 'Learn how to add and manage properties in the system',
-      readTime: '5 min',
-      lastUpdated: '2025-01-15'
+      id: &apos;1',
+      title: 'How to Create Properties&apos;,
+      category: &apos;Properties&apos;,
+      description: &apos;Learn how to add and manage properties in the system&apos;,
+      readTime: &apos;5 min&apos;,
+      lastUpdated: &apos;2025-01-15&apos;
     },
     {
-      id: '2',
-      title: 'Work Order Lifecycle',
-      category: 'Work Orders',
-      description: 'Understanding the complete work order process',
-      readTime: '8 min',
-      lastUpdated: '2025-01-14'
+      id: &apos;2',
+      title: &apos;Work Order Lifecycle&apos;,
+      category: &apos;Work Orders&apos;,
+      description: &apos;Understanding the complete work order process&apos;,
+      readTime: &apos;8 min&apos;,
+      lastUpdated: &apos;2025-01-14&apos;
     },
     {
-      id: '3',
-      title: 'Vendor Onboarding Process',
-      category: 'Vendors',
-      description: 'How to add new vendors to your system',
-      readTime: '6 min',
-      lastUpdated: '2025-01-13'
+      id: &apos;3',
+      title: 'Vendor Onboarding Process&apos;,
+      category: &apos;Vendors&apos;,
+      description: &apos;How to add new vendors to your system&apos;,
+      readTime: &apos;6 min&apos;,
+      lastUpdated: &apos;2025-01-13&apos;
     },
     {
-      id: '4',
-      title: 'Invoice Generation & Payment',
-      category: 'Finance',
-      description: 'Complete guide to invoicing and payment processing',
-      readTime: '10 min',
-      lastUpdated: '2025-01-12'
+      id: &apos;4',
+      title: &apos;Invoice Generation & Payment&apos;,
+      category: &apos;Finance&apos;,
+      description: &apos;Complete guide to invoicing and payment processing&apos;,
+      readTime: &apos;10 min&apos;,
+      lastUpdated: &apos;2025-01-12&apos;
     }
   ];
 
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
-      case 'facility management':
+      case &apos;facility management&apos;:
         return <Building2 className="w-5 h-5 text-blue-600" />;
-      case 'work orders':
+      case 'work orders&apos;:
         return <Wrench className="w-5 h-5 text-green-600" />;
-      case 'procurement':
+      case 'procurement&apos;:
         return <FileText className="w-5 h-5 text-purple-600" />;
-      case 'customer service':
+      case 'customer service&apos;:
         return <Users className="w-5 h-5 text-yellow-600" />;
-      case 'finance':
+      case 'finance&apos;:
         return <DollarSign className="w-5 h-5 text-green-600" />;
       default:
         return <BookOpen className="w-5 h-5 text-gray-600" />;
@@ -134,10 +134,10 @@ export default function HelpHome() {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Beginner': return 'bg-green-100 text-green-800';
-      case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'Advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Beginner&apos;: return &apos;bg-green-100 text-green-800&apos;;
+      case &apos;Intermediate&apos;: return &apos;bg-yellow-100 text-yellow-800&apos;;
+      case &apos;Advanced&apos;: return &apos;bg-red-100 text-red-800&apos;;
+      default: return &apos;bg-gray-100 text-gray-800&apos;;
     }
   };
 
@@ -222,7 +222,7 @@ export default function HelpHome() {
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: tutorial.completed ? '100%' : '0%' }}
+                    style={{ width: tutorial.completed ? '100%&apos; : &apos;0%&apos; }}
                   ></div>
                 </div>
                 {tutorial.completed && (

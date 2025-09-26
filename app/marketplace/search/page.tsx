@@ -1,8 +1,8 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import ProductCard from '@/src/components/marketplace/ProductCard';
-import SearchFiltersPanel from '@/src/components/marketplace/SearchFiltersPanel';
-import Link from 'next/link';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import ProductCard from &apos;@/src/components/marketplace/ProductCard&apos;;
+import SearchFiltersPanel from &apos;@/src/components/marketplace/SearchFiltersPanel&apos;;
+import Link from &apos;next/link&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 interface SearchPageProps {
   searchParams: Record<string, string | string[] | undefined>;
@@ -10,15 +10,15 @@ interface SearchPageProps {
 
 export default async function MarketplaceSearch({ searchParams }: SearchPageProps) {
   const query = new URLSearchParams();
-  for (const key of ['q', 'cat', 'brand', 'std', 'min', 'max', 'page']) {
+  for (const key of [&apos;q', 'cat&apos;, &apos;brand&apos;, 'std&apos;, &apos;min&apos;, &apos;max&apos;, &apos;page&apos;]) {
     const value = searchParams[key];
-    if (typeof value === 'string' && value.length) {
+    if (typeof value === 'string&apos; && value.length) {
       query.set(key, value);
     }
   }
 
   const [categoriesResponse, searchResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
     serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`)
   ]);
 
@@ -43,7 +43,7 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
             <div>
               <p className="text-sm uppercase tracking-wide text-[#0061A8]">Search results</p>
               <h1 className="text-2xl font-semibold text-[#0F1111]">
-                {searchData.pagination.total} result(s) for '{searchParams.q ?? 'All products'}'
+                {searchData.pagination.total} result(s) for &apos;{searchParams.q ?? &apos;All products&apos;}'
               </h1>
             </div>
             <Link

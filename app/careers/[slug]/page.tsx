@@ -1,10 +1,10 @@
-import { db } from '@/src/lib/mongo';
-import { Job } from '@/src/server/models/Job';
+import { db } from &apos;@/src/lib/mongo&apos;;
+import { Job } from &apos;@/src/server/models/Job&apos;;
 
 export default async function JobDetailPage({ params }: { params: { slug: string } }) {
   await db;
-  const orgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-  const job = await Job.findOne({ orgId, slug: params.slug, status: 'published' }).lean();
+  const orgId = process.env.NEXT_PUBLIC_ORG_ID || &apos;fixzit-platform&apos;;
+  const job = await Job.findOne({ orgId, slug: params.slug, status: &apos;published&apos; }).lean();
   if (!job) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-10">

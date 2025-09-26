@@ -29,7 +29,7 @@ function fixEmptyCatches(directory) {
       
       // Pattern 1: Empty catch blocks
       content = content.replace(
-        /} catch \(([^)]+)\) {\s*}/g,
+        /} catch (([^)]+)) {\s*}/g,
         (match, errorVar) => {
           fileFixCount++;
           return `} catch (${errorVar}) {
@@ -41,7 +41,7 @@ function fixEmptyCatches(directory) {
 
       // Pattern 2: Catch blocks with only console.log
       content = content.replace(
-        /} catch \(([^)]+)\) {\s*console\.(log|error)\([^)]+\);\s*}/g,
+        /} catch (([^)]+)) {\s*console\.(log|error)([^)]+);\s*}/g,
         (match, errorVar) => {
           fileFixCount++;
           return `} catch (${errorVar}) {
@@ -53,7 +53,7 @@ function fixEmptyCatches(directory) {
 
       // Pattern 3: Catch blocks that just return without handling
       content = content.replace(
-        /} catch \(([^)]+)\) {\s*return[^}]*;\s*}/g,
+        /} catch (([^)]+)) {\s*return[^}]*;\s*}/g,
         (match, errorVar) => {
           fileFixCount++;
           return `} catch (${errorVar}) {
@@ -82,7 +82,7 @@ function fixEmptyCatches(directory) {
           );
         } else {
           // Insert at the beginning after any existing requires
-          const requireRegex = /((?:const|let|var)\s+\w+\s*=\s*require\([^)]+\);\s*\n)*/;
+          const requireRegex = /((?:const|let|var)\s+\w+\s*=\s*require([^)]+);\s*\n)*/;
           const match = content.match(requireRegex);
           if (match && match[0]) {
             content = content.replace(match[0], match[0] + `const logger = require('${loggerPath}');\n`);

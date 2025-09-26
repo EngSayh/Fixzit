@@ -49,7 +49,7 @@ afterAll(() => {
 });
 
 function mockFetchOk(data: any) {
-  // @ts-ignore
+  // @ts-expect-error
   global.fetch = jest.fn().mockResolvedValue({
     ok: true,
     json: async () => data,
@@ -57,7 +57,7 @@ function mockFetchOk(data: any) {
 }
 
 function mockFetchFail(status: number = 500) {
-  // @ts-ignore
+  // @ts-expect-error
   global.fetch = jest.fn().mockResolvedValue({
     ok: false,
     status,

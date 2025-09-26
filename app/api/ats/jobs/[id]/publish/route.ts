@@ -12,7 +12,7 @@ export async function POST(
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     // Authentication check - token validation for future use
-    const user = token ? await getUserFromToken(token) : null;
+    await (token ? getUserFromToken(token) : null);
     
     const job = await Job.findById(params.id);
     if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });

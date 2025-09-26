@@ -3,10 +3,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { Home } from "lucide-react";
 import SupportPopup from "@/src/components/SupportPopup";
-import { useTranslation } from '@/src/contexts/TranslationContext';
-import LanguageSelector from '@/src/components/i18n/LanguageSelector';
-import CurrencySelector from '@/src/components/i18n/CurrencySelector';
-import { useCurrency, CURRENCY_OPTIONS } from '@/src/contexts/CurrencyContext';
+import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
+import LanguageSelector from &apos;@/src/components/i18n/LanguageSelector&apos;;
+import CurrencySelector from &apos;@/src/components/i18n/CurrencySelector&apos;;
+import { useCurrency, CURRENCY_OPTIONS } from &apos;@/src/contexts/CurrencyContext&apos;;
 
 export default function Footer() {
   const [open, setOpen] = useState(false);
@@ -29,10 +29,10 @@ export default function Footer() {
   return (
     <footer className="mt-16 border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
-        <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right' : ''}`}>
+        <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? &apos;text-right&apos; : &apos;'}`}>
           <Link href="/" className="inline-flex items-center gap-2 text-[#0061A8] hover:text-[#004f86]">
             <Home className="h-4 w-4" />
-            <span>{t('footer.backHome', 'Back to Home')}</span>
+            <span>{t(&apos;footer.backHome&apos;, &apos;Back to Home&apos;)}</span>
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSelector variant="compact" />
@@ -47,34 +47,34 @@ export default function Footer() {
 
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 text-sm">
           <div>
-            <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
-            <p className="opacity-70">{t('footer.description', 'Facility management + marketplaces in one platform.')}</p>
+            <div className="font-semibold mb-2">{t(&apos;footer.brand&apos;, &apos;Fixzit&apos;)}</div>
+            <p className="opacity-70">{t(&apos;footer.description&apos;, &apos;Facility management + marketplaces in one platform.&apos;)}</p>
           </div>
           <div>
-            <div className="font-semibold mb-2">{t('footer.company', 'Company')}</div>
+            <div className="font-semibold mb-2">{t(&apos;footer.company&apos;, &apos;Company&apos;)}</div>
             <ul className="space-y-1 opacity-80">
-              <li><Link href="/cms/about" className="hover:underline">{t('footer.about', 'About')}</Link></li>
-              <li><Link href="/careers" className="hover:underline">{t('footer.careers', 'Careers')}</Link></li>
+              <li><Link href="/cms/about" className="hover:underline">{t(&apos;footer.about&apos;, &apos;About&apos;)}</Link></li>
+              <li><Link href="/careers" className="hover:underline">{t(&apos;footer.careers&apos;, &apos;Careers&apos;)}</Link></li>
             </ul>
           </div>
           <div>
-            <div className="font-semibold mb-2">{t('footer.legal', 'Legal')}</div>
+            <div className="font-semibold mb-2">{t(&apos;footer.legal&apos;, &apos;Legal&apos;)}</div>
             <ul className="space-y-1 opacity-80">
-              <li><Link href="/cms/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link></li>
-              <li><Link href="/cms/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link></li>
+              <li><Link href="/cms/privacy" className="hover:underline">{t(&apos;footer.privacy&apos;, &apos;Privacy&apos;)}</Link></li>
+              <li><Link href="/cms/terms" className="hover:underline">{t(&apos;footer.terms&apos;, &apos;Terms&apos;)}</Link></li>
             </ul>
           </div>
           <div>
-            <div className="font-semibold mb-2">{t('footer.support', 'Support')}</div>
+            <div className="font-semibold mb-2">{t(&apos;footer.support&apos;, &apos;Support&apos;)}</div>
             <ul className="space-y-1 opacity-80">
-              <li><Link href="/help" className="hover:underline">{t('footer.help', 'Help Center')}</Link></li>
-              <li><button className="hover:underline text-left" onClick={()=>setOpen(true)}>{t('footer.ticket', 'Open a ticket')}</button></li>
+              <li><Link href="/help" className="hover:underline">{t(&apos;footer.help&apos;, &apos;Help Center&apos;)}</Link></li>
+              <li><button className="hover:underline text-left" onClick={()=>setOpen(true)}>{t(&apos;footer.ticket&apos;, &apos;Open a ticket&apos;)}</button></li>
             </ul>
           </div>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
-          <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
+          <div>© {new Date().getFullYear()} {t(&apos;footer.copyright&apos;, &apos;Fixzit. All rights reserved.&apos;)}</div>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:underline">Privacy</Link>
             <Link href="/terms" className="hover:underline">Terms</Link>

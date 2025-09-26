@@ -15,7 +15,7 @@ const { execSync } = require('child_process');
 const FIXES = {
   // Fix useless escape characters
   uselessEscapes: {
-    pattern: /\\([\-\+\(\)])/g,
+    pattern: /\([-+()])/g,
     replacement: '$1',
     description: 'Remove unnecessary escape characters'
   },
@@ -29,7 +29,7 @@ const FIXES = {
   
   // Fix extra semicolons at start of lines
   extraSemicolons: {
-    pattern: /^\s*;(\()/gm,
+    pattern: /^\s*;(()/gm,
     replacement: '    $1',
     description: 'Remove unnecessary semicolons'
   },
@@ -37,7 +37,7 @@ const FIXES = {
   // Fix React unescaped entities
   reactQuotes: {
     pattern: /([^&])'([^s])/g,
-    replacement: '$1&apos;$2',
+    replacement: '$1'$2',
     description: 'Escape single quotes in React'
   }
 };

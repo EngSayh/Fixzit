@@ -1,37 +1,37 @@
-'use client';
+'use client&apos;;
 
-import { useEffect } from 'react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { useEffect } from &apos;react&apos;;
+import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
+import { useCurrency } from &apos;@/src/contexts/CurrencyContext&apos;;
 
 export default function PreferenceBroadcast() {
   const { language, locale, isRTL } = useTranslation();
   const { currency } = useCurrency();
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === &apos;undefined&apos;) {
       return;
     }
 
-    const detail = { language, locale, currency, dir: isRTL ? 'rtl' : 'ltr' };
-    window.dispatchEvent(new CustomEvent('fixzit:preferences', { detail }));
+    const detail = { language, locale, currency, dir: isRTL ? &apos;rtl&apos; : &apos;ltr&apos; };
+    window.dispatchEvent(new CustomEvent(&apos;fixzit:preferences&apos;, { detail }));
 
-    const langNodes = document.querySelectorAll<HTMLElement>('[data-lang-text]');
+    const langNodes = document.querySelectorAll<HTMLElement>(&apos;[data-lang-text]&apos;);
     langNodes.forEach(node => {
       node.textContent = locale;
     });
 
-    const currencyNodes = document.querySelectorAll<HTMLElement>('[data-currency-text]');
+    const currencyNodes = document.querySelectorAll<HTMLElement>(&apos;[data-currency-text]&apos;);
     currencyNodes.forEach(node => {
       node.textContent = currency;
     });
 
-    const mirrorNodes = document.querySelectorAll<HTMLElement>('[data-preference-mirror]');
+    const mirrorNodes = document.querySelectorAll<HTMLElement>(&apos;[data-preference-mirror]&apos;);
     mirrorNodes.forEach(node => {
-      if (node.dataset.preferenceMirror === 'language') {
+      if (node.dataset.preferenceMirror === &apos;language&apos;) {
         node.textContent = locale;
       }
-      if (node.dataset.preferenceMirror === 'currency') {
+      if (node.dataset.preferenceMirror === &apos;currency&apos;) {
         node.textContent = currency;
       }
     });

@@ -1,27 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import useSWR from 'swr';
-import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Badge } from '@/src/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
-import { Textarea } from '@/src/components/ui/textarea';
-import { Separator } from '@/src/components/ui/separator';
+import { useState } from &apos;react&apos;;
+import useSWR from 'swr&apos;;
+import { Button } from &apos;@/src/components/ui/button&apos;;
+import { Input } from &apos;@/src/components/ui/input&apos;;
+import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
+import { Badge } from &apos;@/src/components/ui/badge&apos;;
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
+import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
+import { Separator } from &apos;@/src/components/ui/separator&apos;;
 import { 
   FileText, Plus, Search, Filter, Calendar, DollarSign, 
   QrCode, Send, Eye, Download, Mail, CheckCircle,
   AlertCircle, Clock, CreditCard, Printer
-} from 'lucide-react';
+} from &apos;lucide-react&apos;;
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function InvoicesPage() {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(&apos;');
   const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState(&apos;');
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, mutate } = useSWR(
@@ -64,7 +64,7 @@ export default function InvoicesPage() {
                 <p className="text-sm text-gray-600">Total Outstanding</p>
                 <p className="text-2xl font-bold">
                   {invoices
-                    .filter((inv: any) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
+                    .filter((inv: any) => inv.status !== 'PAID&apos; && inv.status !== &apos;CANCELLED&apos;)
                     .reduce((sum: number, inv: any) => sum + inv.total, 0)
                     .toLocaleString()} SAR
                 </p>
@@ -80,7 +80,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {invoices.filter((inv: any) => inv.status === 'OVERDUE').length}
+                  {invoices.filter((inv: any) => inv.status === 'OVERDUE&apos;).length}
                 </p>
               </div>
               <AlertCircle className="w-8 h-8 text-red-600" />
@@ -94,7 +94,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {invoices.filter((inv: any) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
+                  {invoices.filter((inv: any) => inv.status === 'SENT&apos; || inv.status === &apos;VIEWED&apos;).length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-yellow-600" />
@@ -109,7 +109,7 @@ export default function InvoicesPage() {
                 <p className="text-sm text-gray-600">Paid This Month</p>
                 <p className="text-2xl font-bold text-green-600">
                   {invoices.filter((inv: any) => 
-                    inv.status === 'PAID' && 
+                    inv.status === 'PAID&apos; && 
                     new Date(inv.payments?.[0]?.date).getMonth() === new Date().getMonth()
                   ).length}
                 </p>
@@ -195,40 +195,40 @@ export default function InvoicesPage() {
 function InvoiceCard({ invoice, onUpdated }: { invoice: any; onUpdated: () => void }) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'SENT':
-        return 'bg-blue-100 text-blue-800';
-      case 'VIEWED':
-        return 'bg-purple-100 text-purple-800';
-      case 'APPROVED':
-        return 'bg-green-100 text-green-800';
-      case 'PAID':
-        return 'bg-emerald-100 text-emerald-800';
-      case 'OVERDUE':
-        return 'bg-red-100 text-red-800';
-      case 'CANCELLED':
-        return 'bg-gray-100 text-gray-800';
+      case 'DRAFT&apos;:
+        return &apos;bg-gray-100 text-gray-800&apos;;
+      case &apos;SENT&apos;:
+        return &apos;bg-blue-100 text-blue-800&apos;;
+      case &apos;VIEWED&apos;:
+        return &apos;bg-purple-100 text-purple-800&apos;;
+      case &apos;APPROVED&apos;:
+        return &apos;bg-green-100 text-green-800&apos;;
+      case &apos;PAID&apos;:
+        return &apos;bg-emerald-100 text-emerald-800&apos;;
+      case &apos;OVERDUE&apos;:
+        return &apos;bg-red-100 text-red-800&apos;;
+      case &apos;CANCELLED&apos;:
+        return &apos;bg-gray-100 text-gray-800&apos;;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return &apos;bg-gray-100 text-gray-800&apos;;
     }
   };
 
   const getZATCAStatus = (status: string) => {
     switch (status) {
-      case 'CLEARED':
-        return { icon: CheckCircle, color: 'text-green-600' };
-      case 'PENDING':
-        return { icon: Clock, color: 'text-yellow-600' };
+      case &apos;CLEARED&apos;:
+        return { icon: CheckCircle, color: &apos;text-green-600&apos; };
+      case &apos;PENDING&apos;:
+        return { icon: Clock, color: &apos;text-yellow-600&apos; };
       default:
-        return { icon: AlertCircle, color: 'text-gray-600' };
+        return { icon: AlertCircle, color: &apos;text-gray-600&apos; };
     }
   };
 
-  const zatcaStatus = getZATCAStatus(invoice.zatca?.status || 'PENDING');
+  const zatcaStatus = getZATCAStatus(invoice.zatca?.status || &apos;PENDING&apos;);
   const ZatcaIcon = zatcaStatus.icon;
 
-  const daysOverdue = invoice.status === 'OVERDUE' 
+  const daysOverdue = invoice.status === &apos;OVERDUE&apos; 
     ? Math.floor((new Date().getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
@@ -267,7 +267,7 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: any; onUpdated: () => vo
           </div>
           <div>
             <p className="text-gray-600">Due Date</p>
-            <p className={`font-medium ${daysOverdue > 0 ? 'text-red-600' : ''}`}>
+            <p className={`font-medium ${daysOverdue > 0 ? &apos;text-red-600&apos; : &apos;'}`}>
               {new Date(invoice.dueDate).toLocaleDateString()}
               {daysOverdue > 0 && ` (${daysOverdue}d overdue)`}
             </p>
@@ -294,12 +294,12 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: any; onUpdated: () => vo
             <Button variant="ghost" size="sm">
               <Download className="w-4 h-4" />
             </Button>
-            {invoice.status === 'DRAFT' && (
+            {invoice.status === 'DRAFT&apos; && (
               <Button variant="ghost" size="sm">
                 <Send className="w-4 h-4" />
               </Button>
             )}
-            {(invoice.status === 'SENT' || invoice.status === 'VIEWED') && (
+            {(invoice.status === 'SENT&apos; || invoice.status === &apos;VIEWED&apos;) && (
               <Button variant="ghost" size="sm">
                 <Mail className="w-4 h-4" />
               </Button>
@@ -313,49 +313,49 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: any; onUpdated: () => vo
 
 function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
   const [formData, setFormData] = useState({
-    type: 'SALES',
+    type: &apos;SALES&apos;,
     issuer: {
-      name: 'Fixzit Enterprise Co.',
-      taxId: '300000000000003',
-      address: 'King Fahd Road, Riyadh 11564, Saudi Arabia',
-      phone: '+966 11 123 4567',
-      email: 'invoices@fixzit.co',
-      registration: 'CR-1234567890',
-      license: 'L-1234567890'
+      name: &apos;Fixzit Enterprise Co.&apos;,
+      taxId: &apos;300000000000003&apos;,
+      address: &apos;King Fahd Road, Riyadh 11564, Saudi Arabia&apos;,
+      phone: &apos;+966 11 123 4567&apos;,
+      email: &apos;invoices@fixzit.co&apos;,
+      registration: &apos;CR-1234567890&apos;,
+      license: &apos;L-1234567890&apos;
     },
     recipient: {
-      name: '',
+      name: &apos;',
       taxId: '',
-      address: '',
+      address: &apos;',
       phone: '',
-      email: '',
+      email: &apos;',
       customerId: ''
     },
-    issueDate: new Date().toISOString().split('T')[0],
+    issueDate: new Date().toISOString().split(&apos;T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    description: '',
+    description: &apos;',
     items: [{
       description: '',
       quantity: 1,
       unitPrice: 0,
       discount: 0,
       tax: {
-        type: 'VAT',
+        type: &apos;VAT&apos;,
         rate: 15,
         amount: 0
       },
       total: 0
     }],
-    currency: 'SAR',
+    currency: &apos;SAR&apos;,
     payment: {
-      method: 'BANK_TRANSFER',
-      terms: 'Net 30',
-      instructions: 'Please transfer to the following account:',
+      method: &apos;BANK_TRANSFER&apos;,
+      terms: &apos;Net 30&apos;,
+      instructions: &apos;Please transfer to the following account:&apos;,
       account: {
-        bank: 'Al Rajhi Bank',
-        accountNumber: '1234567890',
-        iban: 'SA0380000000608010167519',
-        swift: 'RJHISARI'
+        bank: &apos;Al Rajhi Bank&apos;,
+        accountNumber: &apos;1234567890&apos;,
+        iban: &apos;SA0380000000608010167519&apos;,
+        swift: &apos;RJHISARI&apos;
       }
     }
   });
@@ -381,11 +381,11 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
     setFormData({
       ...formData,
       items: [...formData.items, {
-        description: '',
+        description: &apos;',
         quantity: 1,
         unitPrice: 0,
         discount: 0,
-        tax: { type: 'VAT', rate: 15, amount: 0 },
+        tax: { type: &apos;VAT&apos;, rate: 15, amount: 0 },
         total: 0
       }]
     });
@@ -401,19 +401,19 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/invoices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+      const response = await fetch(&apos;/api/invoices&apos;, {
+        method: &apos;POST&apos;,
+        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create invoice');
+        alert(&apos;Failed to create invoice&apos;);
       }
     } catch (error) {
-      alert('Error creating invoice');
+      alert(&apos;Error creating invoice&apos;);
     }
   };
 
@@ -502,7 +502,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                 <Input
                   placeholder="Description"
                   value={item.description}
-                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                  onChange={(e) => handleItemChange(index, 'description&apos;, e.target.value)}
                   required
                 />
               </div>
@@ -511,7 +511,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                   type="number"
                   placeholder="Qty"
                   value={item.quantity}
-                  onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
+                  onChange={(e) => handleItemChange(index, 'quantity&apos;, Number(e.target.value))}
                   required
                 />
               </div>
@@ -520,7 +520,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                   type="number"
                   placeholder="Price"
                   value={item.unitPrice}
-                  onChange={(e) => handleItemChange(index, 'unitPrice', Number(e.target.value))}
+                  onChange={(e) => handleItemChange(index, 'unitPrice&apos;, Number(e.target.value))}
                   required
                 />
               </div>
@@ -529,7 +529,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                   type="number"
                   placeholder="VAT %"
                   value={item.tax.rate}
-                  onChange={(e) => handleItemChange(index, 'tax', {...item.tax, rate: Number(e.target.value)})}
+                  onChange={(e) => handleItemChange(index, 'tax&apos;, {...item.tax, rate: Number(e.target.value)})}
                 />
               </div>
               <div className="col-span-1 text-right font-medium">

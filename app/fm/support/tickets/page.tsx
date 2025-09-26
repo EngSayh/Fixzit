@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
+import { useState, useEffect } from &apos;react&apos;;
+import useSWR from 'swr&apos;;
 
 const fetcher = (url: string) => fetch(url, {
   headers: {
@@ -14,16 +14,16 @@ const fetcher = (url: string) => fetch(url, {
 }).then(r => r.json());
 
 export default function SupportTicketsPage() {
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(&apos;');
   const [priority, setPriority] = useState('');
   const { data, mutate } = useSWR(`/api/support/tickets?status=${status}&priority=${priority}`, fetcher);
 
   const updateTicket = async (id: string, updates: any) => {
     const res = await fetch(`/api/support/tickets/${id}`, {
-      method: 'PATCH',
+      method: &apos;PATCH&apos;,
       headers: {
-        'content-type': 'application/json',
-        'x-user': JSON.stringify({
+        &apos;content-type&apos;: &apos;application/json&apos;,
+        &apos;x-user&apos;: JSON.stringify({
           id: "u-admin-1",
           role: "SUPER_ADMIN",
           tenantId: "t-001"
@@ -100,10 +100,10 @@ export default function SupportTicketsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      ticket.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
-                      ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                      ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
+                      ticket.priority === 'Urgent&apos; ? &apos;bg-red-100 text-red-800&apos; :
+                      ticket.priority === &apos;High&apos; ? &apos;bg-orange-100 text-orange-800&apos; :
+                      ticket.priority === &apos;Medium&apos; ? &apos;bg-yellow-100 text-yellow-800&apos; :
+                      &apos;bg-gray-100 text-gray-800&apos;
                     }`}>
                       {ticket.priority}
                     </span>

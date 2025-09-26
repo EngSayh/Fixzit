@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search, Plus, ShoppingCart } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect } from &apos;react&apos;;
+import { Search, Plus, ShoppingCart } from &apos;lucide-react&apos;;
+import { useParams } from &apos;next/navigation&apos;;
 
 export default function WorkOrderPartsPage() {
   const params = useParams();
   const workOrderId = params.id;
   
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(&apos;');
   const [parts, setParts] = useState<Array<{
     _id: string;
     name: string;
@@ -38,7 +38,7 @@ export default function WorkOrderPartsPage() {
         setParts(data.data.products);
       }
     } catch (error) {
-      console.error('Failed to search parts:', error);
+      console.error(&apos;Failed to search parts:&apos;, error);
     } finally {
       setLoading(false);
     }
@@ -91,9 +91,9 @@ export default function WorkOrderPartsPage() {
       total: selectedParts.reduce((sum, p) => sum + (p.price * p.quantity), 0)
     };
     
-    console.log('Creating PO:', po);
+    console.log(&apos;Creating PO:&apos;, po);
     // In production, send to API
-    alert('Purchase Order created successfully!');
+    alert(&apos;Purchase Order created successfully!&apos;);
   };
   
   return (

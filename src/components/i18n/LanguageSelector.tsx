@@ -1,18 +1,18 @@
-'use client';
+'use client&apos;;
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Globe, Search } from 'lucide-react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
-import { LANGUAGE_OPTIONS, type LanguageOption } from '@/src/data/language-options';
+import { useEffect, useMemo, useRef, useState } from &apos;react&apos;;
+import { Globe, Search } from &apos;lucide-react&apos;;
+import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
+import { LANGUAGE_OPTIONS, type LanguageOption } from &apos;@/src/data/language-options&apos;;
 
 interface LanguageSelectorProps {
-  variant?: 'default' | 'compact';
+  variant?: &apos;default&apos; | &apos;compact&apos;;
 }
 
-export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
+export default function LanguageSelector({ variant = &apos;default&apos; }: LanguageSelectorProps) {
   const { locale, setLocale, isRTL } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(&apos;');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const current = useMemo<LanguageOption>(() => {
@@ -47,19 +47,19 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
       }
     };
 
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener(&apos;mousedown&apos;, handleClick);
+    return () => document.removeEventListener(&apos;mousedown&apos;, handleClick);
   }, [open]);
 
-  const buttonPadding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
-  const dropdownWidth = variant === 'compact' ? 'w-64' : 'w-80';
+  const buttonPadding = variant === &apos;compact&apos; ? &apos;px-2 py-1 text-xs&apos; : &apos;px-3 py-2 text-sm&apos;;
+  const dropdownWidth = variant === &apos;compact&apos; ? &apos;w-64&apos; : &apos;w-80&apos;;
 
   const toggle = () => setOpen(prev => !prev);
 
   const handleSelect = (option: LanguageOption) => {
     setLocale(option.locale);
     setOpen(false);
-    setQuery('');
+    setQuery(&apos;');
   };
 
   return (
@@ -71,7 +71,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
         aria-label={`Language ${current.native} (${current.iso})`}
         onClick={toggle}
         className={`flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors ${
-          isRTL ? 'flex-row-reverse' : ''
+          isRTL ? &apos;flex-row-reverse&apos; : &apos;'
         } ${buttonPadding}`}
       >
         <Globe className="h-4 w-4" />
@@ -79,7 +79,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
           <span className="text-sm" aria-hidden>
             {current.flag}
           </span>
-          {variant === 'compact' ? (
+          {variant === &apos;compact&apos; ? (
             <span className="text-xs font-medium">
               {current.iso}
             </span>
@@ -89,7 +89,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
             </span>
           )}
         </span>
-        {variant !== 'compact' && (
+        {variant !== &apos;compact&apos; && (
           <span className="text-xs text-white/80 hidden sm:inline">{current.iso}</span>
         )}
       </button>
@@ -97,7 +97,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
       {open && (
         <div
           className={`absolute z-50 mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-lg ${dropdownWidth} ${
-            isRTL ? 'left-0' : 'right-0'
+            isRTL ? &apos;left-0&apos; : &apos;right-0&apos;
           }`}
         >
           <div className="relative mb-2">
@@ -117,8 +117,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
                 <button
                   type="button"
                   className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-gray-100 ${
-                    option.locale === current.locale ? 'bg-[#0061A8]/10 text-[#0061A8]' : ''
-                  } ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                    option.locale === current.locale ? &apos;bg-[#0061A8]/10 text-[#0061A8]&apos; : &apos;'
+                  } ${isRTL ? &apos;flex-row-reverse text-right&apos; : &apos;'}`}
                   onClick={() => handleSelect(option)}
                   role="option"
                   aria-selected={option.locale === current.locale}

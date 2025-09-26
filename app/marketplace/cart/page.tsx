@@ -1,11 +1,11 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import Link from 'next/link';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import Link from &apos;next/link&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 export default async function CartPage() {
   const [categoriesResponse, cartResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/cart')
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/cart&apos;)
   ]);
 
   const departments = (categoriesResponse.data as any[]).map(category => ({
@@ -28,14 +28,14 @@ export default async function CartPage() {
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex gap-4">
                       <img
-                        src={line.product?.media?.[0]?.url || '/images/marketplace/placeholder-product.svg'}
-                        alt={line.product?.title?.en ?? 'Product image'}
+                        src={line.product?.media?.[0]?.url || '/images/marketplace/placeholder-product.svg&apos;}
+                        alt={line.product?.title?.en ?? &apos;Product image&apos;}
                         className="h-24 w-24 rounded-2xl border border-gray-200 object-cover"
                       />
                       <div>
                         <h2 className="text-lg font-semibold text-[#0F1111]">
                           <Link href={`/marketplace/product/${line.product?.slug ?? line.productId}`} className="hover:underline">
-                            {line.product?.title?.en ?? 'Marketplace item'}
+                            {line.product?.title?.en ?? 'Marketplace item&apos;}
                           </Link>
                         </h2>
                         <p className="text-sm text-gray-600">Quantity: {line.qty}</p>
