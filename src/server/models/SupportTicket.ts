@@ -33,12 +33,6 @@ SupportTicketSchema.index({ createdByUserId:1 });
 
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 
-<<<<<<< HEAD
-=======
-// Check if we're using mock database (explicit flag only)
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
->>>>>>> origin/main
 export const SupportTicket = isMockDB 
   ? new MockModel('supporttickets') as any
   : (models.SupportTicket || model("SupportTicket", SupportTicketSchema));

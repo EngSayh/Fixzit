@@ -44,6 +44,7 @@ JobSchema.methods.publish = async function publish(this: any) {
 =======
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const JobStatuses = ['draft', 'pending', 'published', 'closed', 'archived'] as const;
 const JobVisibilities = ['internal', 'public'] as const;
@@ -112,8 +113,6 @@ export const Job = isMockDB
 =======
 export interface JobModel extends Model<JobDoc> {}
 
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
 class JobMockModel extends MockModel {
   constructor() {
     super('jobs');
@@ -121,11 +120,11 @@ class JobMockModel extends MockModel {
 
   private attach(doc: any) {
     if (!doc) return doc;
-    doc.publish = async () => {
-      doc.status = 'published';
-      doc.visibility = doc.visibility || 'public';
-      doc.publishedAt = new Date();
-      await this.findByIdAndUpdate(doc._id, { $set: { status: doc.status, visibility: doc.visibility, publishedAt: doc.publishedAt } });
+    (doc as any).publish = async () => {
+      (doc as any).status = 'published';
+      (doc as any).visibility = (doc as any).visibility || 'public';
+      (doc as any).publishedAt = new Date();
+      await this.findByIdAndUpdate((doc as any)._id, { $set: { status: (doc as any).status, visibility: (doc as any).visibility, publishedAt: (doc as any).publishedAt } });
       return doc;
     };
     return doc;

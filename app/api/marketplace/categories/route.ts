@@ -4,6 +4,7 @@ import Category from '@/src/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);

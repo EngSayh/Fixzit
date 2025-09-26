@@ -32,6 +32,7 @@ export const Candidate = isMockDB
 =======
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const CandidateSchema = new Schema({
   orgId: { type: String, required: true, index: true },
@@ -57,8 +58,8 @@ const CandidateSchema = new Schema({
 CandidateSchema.index({ orgId: 1, emailLower: 1 }, { unique: true });
 
 CandidateSchema.pre('validate', function(next) {
-  if (this.email) {
-    this.emailLower = this.email.toLowerCase();
+  if ((this as any).email) {
+    (this as any).emailLower = (this as any).email.toLowerCase();
   }
   next();
 });
@@ -73,8 +74,6 @@ CandidateSchema.statics.findByEmail = function(orgId: string, email: string) {
   return this.findOne({ orgId, emailLower: email.toLowerCase() });
 };
 
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
 class CandidateMockModel extends MockModel {
   constructor() {
     super('candidates');
@@ -82,7 +81,7 @@ class CandidateMockModel extends MockModel {
 
   private attach(doc: any) {
     if (!doc) return doc;
-    doc.save = async () => {
+    (doc as any).save = async () => {
       await this.findByIdAndUpdate(doc._id, { $set: doc });
       return doc;
     };
