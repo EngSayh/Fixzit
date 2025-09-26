@@ -85,8 +85,10 @@ export async function PATCH(
     }
     if (body.note) {
       application.notes = application.notes || [];
-      // Optionally gate private notes to privileged roles
-      const canWritePrivate = Array.isArray((user as any).roles) && (user as any).roles.some((r: string) => ['ADMIN','OWNER','ATS_ADMIN','RECRUITER'].includes(r));
+      // Gate private notes to privileged roles (accept user.role or user.roles[])
+      const privilegedRoles = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+      const userRoles = Array.isArray((user as any).roles) && (user as any).roles.length > 0 ? (user as any).roles : [ (user as any).role ].filter(Boolean);
+      const canWritePrivate = userRoles.some((r: string) => privilegedRoles.has(r));
       const isPrivate = !!body.isPrivate && canWritePrivate;
       application.notes.push({ author: userId, text: String(body.note).slice(0, 5000), createdAt: new Date(), isPrivate });
     }
@@ -95,7 +97,9 @@ export async function PATCH(
     await application.save();
     const result = application.toObject();
     // Hide private notes from non-privileged users
-    const canSeePrivate = Array.isArray((user as any).roles) && (user as any).roles.some((r: string) => ['ADMIN','OWNER','ATS_ADMIN','RECRUITER'].includes(r));
+    const privilegedRoles = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+    const userRolesResult = Array.isArray((user as any).roles) && (user as any).roles.length > 0 ? (user as any).roles : [ (user as any).role ].filter(Boolean);
+    const canSeePrivate = userRolesResult.some((r: string) => privilegedRoles.has(r));
     if (!canSeePrivate && Array.isArray(result.notes)) {
       result.notes = result.notes.filter((n: any) => !n?.isPrivate);
     }
