@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 export type CurrencyCode = 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED';
 
@@ -30,50 +30,24 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
-    if (typeof document !== 'undefined') {
-      const fromDom = document.documentElement.getAttribute('data-currency') as CurrencyCode | null;
-      if (fromDom && CURRENCY_OPTIONS.some(o => o.code === fromDom)) return fromDom;
-    }
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
-        if (stored && CURRENCY_OPTIONS.some(o => o.code === stored)) return stored;
-        const match = document.cookie.match(/(?:^|;\s*)fxz\.currency=([^;]+)/);
-        const fromCookie = (match && match[1]) as CurrencyCode | undefined;
-        if (fromCookie && CURRENCY_OPTIONS.some(o => o.code === fromCookie)) return fromCookie;
-      } catch {
-        /* noop */
-      }
-    }
-    return DEFAULT_CURRENCY;
-  });
+  const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
 
-  // Prevent persisting default before we rehydrate saved preference on mount
-  const hasHydratedRef = useRef(false);
-
-  // Load saved currency after mount; then allow persistence
   useEffect(() => {
-    try {
-      const fromDom = document.documentElement.getAttribute('data-currency') as CurrencyCode | null;
-      const ls = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
-      const match = document.cookie.match(/(?:^|;\s*)fxz\.currency=([^;]+)/);
-      const fromCookie = (match && match[1]) as CurrencyCode | undefined;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-      const candidates = [fromDom, ls, fromCookie].filter(Boolean) as CurrencyCode[];
-      const valid = candidates.find(c => CURRENCY_OPTIONS.some(o => o.code === c));
-      if (valid) {
-        setCurrencyState(prev => (valid && valid !== prev ? valid : prev));
+    try {
+      const stored = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
+      if (stored && CURRENCY_OPTIONS.some(option => option.code === stored)) {
+        setCurrencyState(stored);
       }
-    } catch {
-      // ignore
-    } finally {
-      hasHydratedRef.current = true;
+    } catch (error) {
+      console.warn('Could not access localStorage for currency preference:', error);
     }
   }, []);
 
   useEffect(() => {
-    if (!hasHydratedRef.current) return;
     if (typeof window === 'undefined') {
       return;
     }
@@ -81,8 +55,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem('fixzit-currency', currency);
       document.documentElement.setAttribute('data-currency', currency);
-      const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
-      document.cookie = `fxz.currency=${currency}; Path=/; SameSite=Lax; Max-Age=31536000${secureAttr}`;
+      document.cookie = `fxz.currency=${currency}; path=/; SameSite=Lax`;
       window.dispatchEvent(
         new CustomEvent('fixzit:currency-change', {
           detail: { currency }
@@ -122,4 +95,3 @@ export function useCurrency() {
   }
   return context;
 }
-
