@@ -2,24 +2,16 @@
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/src/contexts/ThemeContext';
 import { TranslationProvider } from '@/src/contexts/TranslationContext';
-import { ResponsiveProvider } from '@/src/contexts/ResponsiveContext';
 import { CurrencyProvider } from '@/src/contexts/CurrencyContext';
+import { ResponsiveProvider } from '@/src/contexts/ResponsiveContext';
 import ErrorBoundary from '@/src/components/ErrorBoundary';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [isClient, setIsClient] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     // Set client flag immediately for screen detection
     setIsClient(true);
-
-    // Small delay to ensure proper hydration
-    const timer = setTimeout(() => {
-      setIsHydrated(true);
-    }, 100);
-
-    return () => clearTimeout(timer);
   }, []);
 
   // Don't render children until we're on the client side to avoid SSR issues

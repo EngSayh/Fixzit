@@ -6,7 +6,7 @@ import { getUserFromToken } from '@/src/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    await db();
+    await db;
     
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await db();
+    await db;
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
