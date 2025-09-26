@@ -8,6 +8,7 @@ import {
   validateCallback,
   verifyPayment
 } from '@/src/lib/paytabs';
+import { parseCartAmount } from '@/src/lib/payments/parseCartAmount';
 import { Invoice } from '@/src/server/models/Invoice';
 
 type InvoicePaymentRecord = {
@@ -38,21 +39,6 @@ type InvoiceDocument = Document & {
   markModified(path: string): void;
   save(): Promise<InvoiceDocument>;
 };
-
-function parseCartAmount(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return null;
-}
 
 export async function POST(req: NextRequest) {
   const signature = readPaytabsSignature(req.headers);

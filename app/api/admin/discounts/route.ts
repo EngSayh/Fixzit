@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ZodError, z } from 'zod';
+import { z, ZodError } from 'zod';
 
 import { dbConnect } from '@/src/db/mongoose';
 import DiscountRule from '@/src/models/DiscountRule';
