@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
 import { z } from 'zod';
 import { createSecureResponse } from '@/src/server/security/headers';
+import { 
+  unauthorizedError, 
+  notFoundError, 
+  validationError, 
+  internalServerError,
+  handleApiError 
+} from '@/src/server/utils/errorResponses';
 
 export async function GET(
   req: NextRequest,
@@ -9,7 +16,7 @@ export async function GET(
 ) {
   try {
     if (process.env.ATS_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'ATS Applications endpoint not available in this deployment' }, { status: 501 });
+      return internalServerError('ATS Applications endpoint not available in this deployment');
     }
     const { db } = await import('@/src/lib/mongo');
     await db;
@@ -49,7 +56,7 @@ export async function GET(
     }
     return createSecureResponse({ success: true, data: result });
   } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to fetch application' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -59,7 +66,7 @@ export async function PATCH(
 ) {
   try {
     if (process.env.ATS_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'ATS Applications endpoint not available in this deployment' }, { status: 501 });
+      return internalServerError('ATS Applications endpoint not available in this deployment');
     }
     const { db } = await import('@/src/lib/mongo');
     await db;
@@ -132,7 +139,7 @@ export async function PATCH(
     }
     return createSecureResponse({ success: true, data: result });
   } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to update application' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
