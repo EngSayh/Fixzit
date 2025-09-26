@@ -124,9 +124,13 @@ export async function POST(
       (skills as string).split(',').map(s => s.trim()).filter(Boolean) : 
       extractSkillsFromText(resumeText + ' ' + coverLetter);
 
-    const yearsOfExperience = experience ? 
-      parseInt(experience as string) : 
-      calculateExperienceFromText(resumeText + ' ' + coverLetter);
+    let yearsOfExperience = calculateExperienceFromText(resumeText + ' ' + coverLetter);
+    if (experience && typeof experience === 'string') {
+      const parsedYears = Number.parseInt(experience, 10);
+      if (Number.isFinite(parsedYears) && parsedYears >= 0) {
+        yearsOfExperience = parsedYears;
+      }
+    }
 
     const atsSettings = await (AtsSettings as any).findOrCreateForOrg(job.orgId);
 

@@ -1,15 +1,9 @@
-{{
-
-  "$schema": "https://json.schemastore.org/eslintrc",  "extends": [
-
-  "root": true,    "next/core-web-vitals",
-
-  "extends": ["next", "next/core-web-vitals"],    "next/typescript"
-
-  "env": {  ]
-
-    "browser": true,}
-
+{
+  "$schema": "https://json.schemastore.org/eslintrc",
+  "root": true,
+  "extends": ["next", "next/core-web-vitals", "next/typescript"],
+  "env": {
+    "browser": true,
     "es2021": true,
     "node": true
   },
