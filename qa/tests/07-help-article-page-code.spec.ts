@@ -57,7 +57,7 @@ test.describe("HelpArticlePage (code validation)", () => {
     expect(code).toMatch(/collection\s*<\s*Article\s*>\s*\(\s*["']helparticles["']\s*\)/);
 
     // findOne includes slug and status: 'PUBLISHED'
-    expect(code).toMatch(/findOne\s*\(\s*\{\s*[^}]*slug\s*:\s*params\.slug[^}]*\}\s*as\s*any\s*\)/s);
+  expect(code).toMatch(/findOne\s*\(\s*\{\s*[\s\S]*?slug\s*:\s*params\.slug[\s\S]*?\}\s*as\s*any\s*\)/);
     expect(code).toMatch(/status\s*:\s*['"]PUBLISHED['"]/);
   });
 
