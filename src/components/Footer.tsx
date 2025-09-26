@@ -1,16 +1,17 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { Home } from "lucide-react";
 import SupportPopup from "@/src/components/SupportPopup";
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
-import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { useCurrency, CURRENCY_OPTIONS } from '@/src/contexts/CurrencyContext';
 
-export default function Footer(){
-  const [open,setOpen]=useState(false);
-  const { currency, options } = useCurrency();
-  const currentCurrency = options.find(option => option.code === currency) ?? options[0];
+export default function Footer() {
+  const [open, setOpen] = useState(false);
+  const { currency } = useCurrency();
+  const currentCurrency = CURRENCY_OPTIONS.find(option => option.code === currency) ?? CURRENCY_OPTIONS[0];
 
   // Safe translation with fallback
   let t: (key: string, fallback?: string) => string;
@@ -27,16 +28,16 @@ export default function Footer(){
 
   return (
     <footer className="mt-16 border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 lg:px-6 py-10 text-sm space-y-6">
+      <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
         <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right' : ''}`}>
-          <div>
-            <div className="font-semibold mb-1">{t('footer.brand', 'Fixzit')}</div>
-            <p className="opacity-70">{t('footer.description', 'Facility management + marketplaces in one platform.')}</p>
-          </div>
+          <Link href="/" className="inline-flex items-center gap-2 text-[#0061A8] hover:text-[#004f86]">
+            <Home className="h-4 w-4" />
+            <span>{t('footer.backHome', 'Back to Home')}</span>
+          </Link>
           <div className="flex items-center gap-3">
-            <LanguageSelector />
+            <LanguageSelector variant="compact" />
             <CurrencySelector variant="compact" />
-            <span className="flex items-center gap-1 text-xs text-gray-600" aria-hidden="true">
+            <span className="flex items-center gap-1 text-xs text-gray-600">
               <span aria-hidden>{currentCurrency.flag}</span>
               <span>{currentCurrency.code}</span>
               <span className="text-gray-400">({currentCurrency.symbol})</span>
@@ -44,7 +45,11 @@ export default function Footer(){
           </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 text-sm">
+          <div>
+            <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
+            <p className="opacity-70">{t('footer.description', 'Facility management + marketplaces in one platform.')}</p>
+          </div>
           <div>
             <div className="font-semibold mb-2">{t('footer.company', 'Company')}</div>
             <ul className="space-y-1 opacity-80">
@@ -63,19 +68,12 @@ export default function Footer(){
             <div className="font-semibold mb-2">{t('footer.support', 'Support')}</div>
             <ul className="space-y-1 opacity-80">
               <li><Link href="/help" className="hover:underline">{t('footer.help', 'Help Center')}</Link></li>
-              <li><button className="hover:underline text-left" onClick={()=>setOpen(true)}>{t('footer.ticket', 'Open a ticket')}</button></li>
+              <li><button className="hover:underline text-left" onClick={() => setOpen(true)}>{t('footer.ticket', 'Open a ticket')}</button></li>
             </ul>
-          </div>
-          <div>
-            <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
-            <Link href="/" className="inline-flex items-center gap-2 text-[#0061A8] hover:text-[#004f86]">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12l2-2 7-7 7 7 2 2"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-7h6v7h3a1 1 0 0 0 1-1V10"/></svg>
-              <span>{t('footer.backHome', 'Back to Home')}</span>
-            </Link>
           </div>
         </div>
 
-        <div className="border-t border-black/5 pt-4 text-xs opacity-60 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
             <Link href="/cms/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
@@ -84,7 +82,7 @@ export default function Footer(){
           </div>
         </div>
       </div>
-      {open && <SupportPopup onClose={()=>setOpen(false)} />}
+      {open && <SupportPopup onClose={() => setOpen(false)} />}
     </footer>
   );
 }

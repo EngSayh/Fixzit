@@ -45,3 +45,6 @@ Thumbs.db
 .vercel
 .netlify
 node_modules
+
+# Ignore Next build outputs
+.next/

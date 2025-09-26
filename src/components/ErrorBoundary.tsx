@@ -1,5 +1,8 @@
 'use client';
 import React from 'react';
+import dynamic from 'next/dynamic';
+
+const SupportPopup = dynamic(() => import('@/src/components/SupportPopup'), { ssr: false });
 
 type ErrorState = {
   hasError: boolean;
@@ -12,6 +15,7 @@ type ErrorState = {
   errorId?: string;
   ticketCreated?: boolean;
   ticketId?: string;
+  showSupport?: boolean;
 };
 
 type ErrorFix = {
@@ -196,6 +200,38 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
     // Attempt auto-fix
     this.attemptAutoFix(err);
+
+    // Also auto-report an incident so Support gets a ticket without user action
+    try {
+      const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('x-user') : null;
+      const user = userStr ? JSON.parse(userStr) : null;
+      const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
+      const safeUser = user ? { userId: user.id, tenant: user.tenantId } : undefined;
+      const payload = {
+        code: 'UI-UI-RENDER-001',
+        incidentKey: errorReport.errorId,
+        message: truncate(errorReport.error.message, 500),
+        details: truncate(errorReport.error.stack, 4000),
+        userContext: safeUser,
+        clientContext: {
+          url: errorReport.url,
+          userAgent: errorReport.userAgent,
+          locale: errorReport.system.language,
+          rtl: typeof document !== 'undefined' ? (document.dir === 'rtl') : false,
+          time: errorReport.timestamp
+        }
+      };
+      // Prevent duplicate submission if AutoIncidentReporter already sent for this errorId
+      if (typeof sessionStorage !== 'undefined') {
+        const last = sessionStorage.getItem('fxz_last_incident');
+        if (last === errorReport.errorId) return;
+        sessionStorage.setItem('fxz_last_incident', errorReport.errorId);
+      }
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      if (!('sendBeacon' in navigator) || !(navigator as any).sendBeacon('/api/support/incidents', blob)) {
+        fetch('/api/support/incidents', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true });
+      }
+    } catch {}
   }
 
   private logErrorToQA = (errorReport: any) => {
@@ -365,86 +401,9 @@ ${errorReport.error.componentStack || 'No component stack available'}
     });
   };
 
-  // Create support ticket with error details
-  private createSupportTicket = async (errorReport: any) => {
-    const user = localStorage.getItem('x-user') ? JSON.parse(localStorage.getItem('x-user')!) : null;
-
-    const ticketData = {
-      subject: `System Error: ${errorReport.error.name} - ${errorReport.error.message.substring(0, 50)}...`,
-      module: 'System',
-      type: 'Bug',
-      priority: 'High',
-      text: `🚨 **Automated Error Report**
-
-**Error ID:** \`${errorReport.errorId}\`
-**Timestamp:** ${errorReport.timestamp}
-**URL:** ${errorReport.url}
-**User Agent:** ${errorReport.userAgent}
-
-**Error Details:**
-- **Type:** ${errorReport.error.name}
-- **Message:** ${errorReport.error.message}
-- **User:** ${user ? 'Authenticated' : 'Guest'}
-- **Viewport:** ${errorReport.viewport}
-
-**System Information:**
-- **Platform:** ${errorReport.system.platform}
-- **Language:** ${errorReport.system.language}
-- **Online Status:** ${errorReport.system.onLine ? 'Online' : 'Offline'}
-${errorReport.system.memory ? `- **Memory Usage:** ${Math.round(errorReport.system.memory.used / 1024 / 1024)}MB used` : ''}
-
-**Application State:**
-- **Authenticated:** ${errorReport.localStorage.hasAuth ? '✅' : '❌'}
-- **User Data:** ${errorReport.localStorage.hasUser ? '✅' : '❌'}
-- **Language Set:** ${errorReport.localStorage.hasLang ? '✅' : '❌'}
-- **Theme Set:** ${errorReport.localStorage.hasTheme ? '✅' : '❌'}
-
-**Stack Trace:**
-\`\`\`
-${errorReport.error.stack || 'No stack trace available'}
-\`\`\`
-
-**Component Stack:**
-\`\`\`
-${errorReport.error.componentStack || 'No component stack available'}
-\`\`\`
-
----
-
-*This ticket was automatically created from an error boundary. Please investigate and resolve the issue.*`,
-      requester: user ? undefined : {
-        name: 'Guest User (Error Reporter)',
-        email: 'error-report@fixzit.com',
-        phone: 'N/A'
-      }
-    };
-
-    try {
-      const response = await fetch('/api/support/tickets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...((localStorage.getItem('x-user')) ? { 'x-user': localStorage.getItem('x-user')! } : {})
-        },
-        body: JSON.stringify(ticketData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-
-        // If user is not authenticated, send welcome email
-        if (!user && ticketData.requester?.email) {
-          this.sendWelcomeEmail(ticketData.requester.email, errorReport.errorId);
-        }
-
-        return result.code;
-      } else {
-        throw new Error('Failed to create support ticket');
-      }
-    } catch (error) {
-      console.error('Failed to create support ticket:', error);
-      return null;
-    }
+  // Open Support popup for detailed submission (guests provide info; users use session)
+  private openSupport = () => {
+    this.setState({ showSupport: true });
   };
 
   // Send welcome email to new users who encountered errors
@@ -575,21 +534,10 @@ ${errorReport.error.componentStack || 'No component stack available'}
                     </button>
                   )}
 
-                  {/* Create Support Ticket */}
+                  {/* Open Support Ticket Dialog */}
                   {this.state.errorReport && !this.state.ticketCreated && (
                     <button
-                      onClick={async () => {
-                        const ticketId = await this.createSupportTicket(this.state.errorReport);
-                        if (ticketId) {
-                          this.setState({
-                            ticketCreated: true,
-                            ticketId
-                          });
-                          this.showErrorMessage(`Support ticket ${ticketId} created successfully!`);
-                        } else {
-                          this.showErrorMessage('Failed to create support ticket. Please try again.');
-                        }
-                      }}
+                      onClick={this.openSupport}
                       className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                     >
                       📝 Report to Support
@@ -650,6 +598,12 @@ ${errorReport.error.componentStack || 'No component stack available'}
               </details>
             )}
           </div>
+          {this.state.showSupport && this.state.errorReport && (
+            <SupportPopup
+              onClose={() => this.setState({ showSupport: false })}
+              errorDetails={this.state.errorReport}
+            />
+          )}
         </div>
       );
     }
