@@ -85,18 +85,24 @@ export async function POST(req: NextRequest) {
     const orgId = (user as any).tenantId;
     let slugBase = (body.title || '').toString().toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
     if (!slugBase) slugBase = 'job';
-    let slug = slugBase;
-    let counter = 1;
-    while (await (Job as any).findOne({ orgId, slug })) {
-      slug = `${slugBase}-${counter++}`;
+    let job;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const slug = attempt === 0 ? slugBase : `${slugBase}-${attempt}`;
+      try {
+        job = await (Job as any).create({
+          ...body,
+          orgId,
+          slug,
+          postedBy: userId,
+          status: body.status || 'draft'
+        });
+        break;
+      } catch (e: any) {
+        if (e?.code === 11000) continue; // duplicate slug; retry
+        throw e;
+      }
     }
-    const job = await (Job as any).create({
-      ...body,
-      orgId,
-      slug,
-      postedBy: userId,
-      status: body.status || 'draft'
-    });
+    if (!job) throw new Error('Failed to create job with unique slug');
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     console.error('Job creation error:', error);

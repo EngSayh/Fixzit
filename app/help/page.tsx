@@ -109,7 +109,7 @@ export default function HelpHome() {
           category: a.category || 'General',
           description: '',
           readTime: '',
-          lastUpdated: a.updatedAt ? new Date(a.updatedAt).toISOString().slice(0,10) : ''
+          lastUpdated: (() => { if (!a.updatedAt) return ''; const d = new Date(a.updatedAt); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0,10); })()
         })) as HelpArticle[];
         setArticles(items);
         setLoadError(null);
