@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayment, validateCallback } from '@/src/lib/paytabs';
+import { parseCartAmount } from '@/src/lib/payments/parseCartAmount';
 import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 
@@ -32,12 +33,12 @@ export async function POST(req: NextRequest) {
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
-        method: body.payment_info.payment_method,
+  amount: parseCartAmount(body.cart_amount),
+  method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
         transactionId: tran_ref,
-        notes: `Payment via ${body.payment_info.card_scheme || body.payment_info.payment_method}`
+  notes: `Payment via ${body.payment_info?.card_scheme || body.payment_info?.payment_method || 'UNKNOWN'}`
       });
 
       invoice.history.push({
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
       // Payment failed
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
+  amount: parseCartAmount(body.cart_amount),
         method: body.payment_info?.payment_method || 'UNKNOWN',
         reference: tran_ref,
         status: 'FAILED',
