@@ -173,8 +173,8 @@ describe('seed-marketplace script', () => {
     const products = db.getCollection('marketplaceproducts')
 
     // Verify two specific synonym entries exist
-    const enAc = synonyms.find(x => x.locale === 'en' && x.term === 'ac filter')
-    const arPaint = synonyms.find(x => x.locale === 'ar' && x.term === 'دهان')
+    const enAc = synonyms.find(x => x.locale === 'en' && x.term === 'ac filter')!
+    const arPaint = synonyms.find(x => x.locale === 'ar' && x.term === 'دهان')!
 
     expect(enAc).toBeTruthy()
     expect(enAc.synonyms).toEqual(expect.arrayContaining(['hvac filter', 'air filter', 'فلتر مكيف']))
@@ -183,7 +183,7 @@ describe('seed-marketplace script', () => {
     expect(arPaint.synonyms).toEqual(expect.arrayContaining(['طلاء', 'paint', 'painter']))
 
     // Verify product
-    const product = products.find(x => x.slug === 'portland-cement-type-1-2-50kg' && x.tenantId === 'demo-tenant')
+    const product = products.find(x => x.slug === 'portland-cement-type-1-2-50kg' && x.tenantId === 'demo-tenant')!
     expect(product).toBeTruthy()
     expect(product).toMatchObject({
       tenantId: 'demo-tenant',
