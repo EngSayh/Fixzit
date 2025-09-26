@@ -110,9 +110,7 @@ export async function PATCH(
     await application.save();
     const result = application.toObject();
     // Hide private notes from non-privileged users
-    const privilegedRoles = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
-    const userRolesResult = Array.isArray((user as any).roles) && (user as any).roles.length > 0 ? (user as any).roles : [ (user as any).role ].filter(Boolean);
-    const canSeePrivate = userRolesResult.some((r: string) => privilegedRoles.has(r));
+    const canSeePrivate = userRoles.some((r: string) => privilegedRoles.has(r));
     if (!canSeePrivate && Array.isArray(result.notes)) {
       result.notes = result.notes.filter((n: any) => !n?.isPrivate);
     }
