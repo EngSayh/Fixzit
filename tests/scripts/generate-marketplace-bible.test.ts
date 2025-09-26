@@ -73,11 +73,12 @@ function resolveRunnable(): { cmd: string; args: string[] } {
   return { cmd: process.execPath, args: [testFilePath] };
 }
 
-function runScriptAndCapture(): { status: number | null; stdout: string; stderr: string } {
+function runScriptAndCapture(options?: { env?: NodeJS.ProcessEnv }): { status: number | null; stdout: string; stderr: string } {
   const { cmd, args } = resolveRunnable();
+  const mergedEnv = { ...process.env, ...(options?.env ?? {}) };
   const res = spawnSync(cmd, args, {
     encoding: "utf8",
-    env: { ...process.env },
+    env: mergedEnv,
   });
   return {
     status: res.status,
@@ -198,39 +199,11 @@ const expectedContentIncludes = [
   });
 
   (usingVitest ? require("vitest") : globalThis).it("surfaces write errors when fs.writeFileSync fails (failure condition)", () => {
-    const testUtils = usingVitest
-      ? (() => {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const v = require("vitest");
-            return v.vi;
-          } catch (_) {
-            return undefined;
-          }
-        })()
-      : (typeof jest !== "undefined" ? jest : undefined);
-
-    if (!testUtils || typeof testUtils.spyOn !== "function") {
-      // If mocking not supported, skip gracefully
-      // @ts-ignore
-      globalThis.it?.skip?.("Mocking not available in this environment");
-      return;
-    }
-
-    // Ensure directory exists to isolate write failure
-    fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
-
-    const spy = testUtils.spyOn(fs, "writeFileSync").mockImplementation(() => {
-      throw new Error("disk full");
+    const { status, stderr } = runScriptAndCapture({
+      env: { FIXZIT_BIBLE_FORCE_WRITE_ERROR: "1" },
     });
 
-    const { status, stdout, stderr } = runScriptAndCapture();
-
-    // The script currently does not catch errors; Node process would exit non-zero.
-    // Accept either non-zero status or thrown error landing in stderr.
     expect(status).not.toBe(0);
-    expect(stderr).toMatch(/disk full/i);
-    // stdout likely empty on failure, but don't assert empty to avoid flakiness
-    spy.mockRestore();
+    expect(stderr).toMatch(/Forced write failure for tests/i);
   });
 });
