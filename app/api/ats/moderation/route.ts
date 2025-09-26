@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
+import { z } from 'zod';
 
 export async function PUT(req: NextRequest) {
   try {
@@ -13,7 +14,15 @@ export async function PUT(req: NextRequest) {
     if (!Job) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
-    const body = await req.json();
+    
+    const moderationSchema = z.object({
+      jobId: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid job ID'),
+      action: z.enum(['approve', 'reject', 'flag', 'unflag']),
+      reason: z.string().max(500).optional(),
+      notes: z.string().max(1000).optional()
+    });
+    
+    const body = moderationSchema.parse(await req.json());
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;

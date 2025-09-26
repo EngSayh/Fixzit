@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import { getOrCreateCart, recalcCartTotals } from '@/src/lib/marketplace/cart';
+import { rateLimit } from '@/src/server/security/rateLimit';
 import { serializeOrder } from '@/src/lib/marketplace/serializers';
 
 const CheckoutSchema = z.object({
@@ -22,9 +23,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Rate limiting for checkout operations
+    const key = `marketplace:checkout:${context.userId}`;
+    const rl = rateLimit(key, 10, 300_000); // 10 checkouts per 5 minutes
+    if (!rl.allowed) {
+      return NextResponse.json({ ok: false, error: 'Checkout rate limit exceeded' }, { status: 429 });
+    }
+
     const body = await request.json();
     const payload = CheckoutSchema.parse(body ?? {});
-    await dbConnect();
+    await db;
 
     const cart = await getOrCreateCart(context.orgId, context.userId);
     if (!cart.lines.length) {

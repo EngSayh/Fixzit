@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Product from '@/src/models/marketplace/Product';
+import { rateLimit } from '@/src/server/security/rateLimit';
+import { createSecureResponse } from '@/src/server/security/headers';
 import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
 import { serializeOrder, serializeProduct } from '@/src/lib/marketplace/serializers';
 import { getOrCreateCart, recalcCartTotals } from '@/src/lib/marketplace/cart';
@@ -18,13 +20,13 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    await dbConnect();
+    await db;
     const cart = await getOrCreateCart(context.orgId, context.userId);
     const productIds = cart.lines.map(line => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
     const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as any)]));
 
-    return NextResponse.json({
+    return createSecureResponse({
       ok: true,
       data: {
         ...serializeOrder(cart),
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
           product: productMap.get(line.productId.toString())
         }))
       }
-    });
+    }, 200, request);
   } catch (error) {
     console.error('Marketplace cart fetch failed', error);
     return NextResponse.json({ ok: false, error: 'Unable to load cart' }, { status: 500 });
@@ -47,9 +49,17 @@ export async function POST(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting for cart operations
+    const key = `marketplace:cart:${context.userId}`;
+    const rl = rateLimit(key, 60, 60_000); // 60 cart operations per minute
+    if (!rl.allowed) {
+      return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+    }
+
     const body = await request.json();
     const payload = AddToCartSchema.parse(body);
-    await dbConnect();
+    await db;
 
     const productId = objectIdFrom(payload.productId);
     const product = await Product.findOne({ _id: productId, orgId: context.orgId });
