@@ -31,14 +31,32 @@ const SearchSynonymSchema = new Schema(
 SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 
 function loadMockModel() {
-  const mod = require('../lib/mockDb');
-  if (mod && typeof mod.MockModel === 'function') {
-    return mod.MockModel;
+  try {
+    // Try requiring the TypeScript file (will work in Node with proper transpilation)
+    const mod = require('../lib/mockDb');
+    if (mod && typeof mod.MockModel === 'function') {
+      return mod.MockModel;
+    }
+    // Fallback to try other possible exports
+    if (typeof mod === 'function') {
+      return mod;
+    }
+    throw new Error('MockModel not found in mockDb module');
+  } catch (error) {
+    // If TypeScript module fails, create a simple mock
+    console.warn('MockDb module not available, using simple mock for SearchSynonym');
+    return class SimpleMock {
+      constructor(collectionName) {
+        this.collectionName = collectionName;
+        this.data = [];
+      }
+      async find() { return this.data; }
+      async findOne() { return null; }
+      async create(doc) { return doc; }
+      async findOneAndUpdate() { return null; }
+      async deleteOne() { return { deletedCount: 0 }; }
+    };
   }
-  if (typeof mod === 'function') {
-    return mod;
-  }
-  throw new Error('MockModel implementation not found');
 }
 
 const SearchSynonymModel = shouldUseMockModel()
