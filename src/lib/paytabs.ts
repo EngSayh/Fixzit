@@ -204,9 +204,24 @@ export function validateCallback(payload: any, signature: string): boolean {
 }
 
 function generateSignature(payload: any, secret: string): string {
-  const canonicalKeys = Object.keys(payload || {}).sort();
-  const canonical = JSON.stringify(payload, canonicalKeys as any);
+  const canonical = canonicalizePayload(payload);
   return crypto.createHmac('sha256', secret).update(canonical).digest('hex');
+}
+
+function canonicalizePayload(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(item => canonicalizePayload(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, val]) => `${JSON.stringify(key)}:${canonicalizePayload(val)}`);
+
+  return `{${entries.join(',')}}`;
 }
 
 // Payment methods supported in Saudi Arabia
