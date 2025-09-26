@@ -52,8 +52,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return NextResponse.json(asset);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error occurred';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('GET asset error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -76,8 +76,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     return NextResponse.json(asset);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error occurred';
-    return NextResponse.json({ error: message }, { status: 400 });
+    if (error && typeof error === 'object' && 'issues' in (error as any)) {
+      return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
+    }
+    console.error('PATCH asset error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -98,7 +101,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error occurred';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('DELETE asset error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
