@@ -1,4 +1,4 @@
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import OwnerGroup from '@/src/models/OwnerGroup';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions to manage owner groups' }, { status: 403 });
     }
 
-    await dbConnect();
+    await db;
     const body = assignPrimarySchema.parse(await req.json());
     
     // Tenant isolation - ensure group belongs to user's org

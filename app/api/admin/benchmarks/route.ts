@@ -1,7 +1,8 @@
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Benchmark from '@/src/models/Benchmark';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
+import { rateLimit } from '@/src/server/security/rateLimit';
 import { z } from 'zod';
 
 const benchmarkSchema = z.object({
@@ -33,7 +34,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     await authenticateAdmin(req);
-    await dbConnect();
+    await db;
     const benchmarks = await Benchmark.find({});
     return NextResponse.json(benchmarks);
   } catch (error: any) {
@@ -54,7 +55,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await authenticateAdmin(req);
-    await dbConnect();
+    
+    // Rate limiting for admin operations
+    const key = `admin:benchmarks:${user.id}`;
+    const rl = rateLimit(key, 10, 60_000); // 10 requests per minute
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
+    
+    await db;
     const body = benchmarkSchema.parse(await req.json());
     
     const doc = await Benchmark.create({
