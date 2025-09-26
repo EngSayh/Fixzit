@@ -107,7 +107,7 @@ class MockDB implements DatabaseHandle {
 
     return {
       insertOne: async (doc: any) => {
-        const insertedId = new mongoose.Types.ObjectId();
+        const insertedId = doc?._id ?? new mongoose.Types.ObjectId();
         const newDoc = { ...doc, _id: insertedId };
         collectionData.push(newDoc);
         return { insertedId };
@@ -183,18 +183,19 @@ class MockDB implements DatabaseHandle {
       },
 
       deleteOne: async (filter: any, options?: any) => {
-        const initialLength = collectionData.length;
-        
-        this.data[name] = collectionData.filter(item =>
-          !Object.keys(filter).every(key => {
+        const idx = collectionData.findIndex(item =>
+          Object.keys(filter).every(key => {
             if (key === '_id' && mongoose.Types.ObjectId.isValid(filter[key])) {
               return item[key].toString() === filter[key].toString();
             }
             return item[key] === filter[key];
           })
         );
-        
-        return { deletedCount: initialLength - this.data[name].length };
+        if (idx !== -1) {
+          collectionData.splice(idx, 1);
+          return { deletedCount: 1 };
+        }
+        return { deletedCount: 0 };
       },
 
       createIndex: async (spec: any, options?: any) => {
@@ -300,6 +301,14 @@ export async function getNativeDb(): Promise<any> {
   }
   
   const m: any = await db;
+  
+  // If m already is the native database object (from the connection promise),
+  // return it directly. Otherwise, extract it from the mongoose instance.
+  if (m && typeof m.collection === 'function') {
+    return m;
+  }
+  
+  // Fallback: try to get it from mongoose connection
   const connection = m?.connection || mongoose.connection;
   
   if (!connection || !connection.db) {
