@@ -3,6 +3,11 @@ import ServiceContract from '@/src/models/ServiceContract';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
 import { rateLimit } from '@/src/server/security/rateLimit';
+import { createSecureResponse } from '@/src/server/security/headers';
+import { 
+  createErrorResponse,
+  zodValidationError
+} from '@/src/server/utils/errorResponses';
 import { z } from 'zod';
 
 const contractSchema = z.object({
@@ -21,24 +26,24 @@ export async function POST(req: NextRequest) {
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createErrorResponse('Authentication required', 401, req);
     }
 
     const user = await getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createErrorResponse('Invalid token', 401, req);
     }
 
     // Role-based access control - only admins can create contracts
     if (!['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return createErrorResponse('Insufficient permissions', 403, req);
     }
 
     // Rate limiting for contract operations
     const key = `contracts:${user.tenantId}:${user.id}`;
     const rl = rateLimit(key, 10, 60_000); // 10 contracts per minute
     if (!rl.allowed) {
-      return NextResponse.json({ error: 'Contract creation rate limit exceeded' }, { status: 429 });
+      return createErrorResponse('Contract creation rate limit exceeded', 429, req);
     }
 
     await db;
@@ -53,12 +58,12 @@ export async function POST(req: NextRequest) {
     };
 
     const contract = await ServiceContract.create(contractData);
-    return NextResponse.json(contract, { status: 201 });
+    return createSecureResponse(contract, 201, req);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Contract creation failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createErrorResponse('Internal server error', 500, req);
   }
 }

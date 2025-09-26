@@ -35,11 +35,10 @@ function buildHeuristicAnswer(question: string, contexts: Array<{ title: string;
   const lines: string[] = [];
   lines.push(contexts.length ? `Here is what I found about: "${question}"` : `No matching articles found for: "${question}"`);
   for (const ctx of contexts.slice(0, 3)) {
-    const snippet = ctx.text
-      .replace(/\s+/g, ' ')
-      .slice(0, MAX_SNIPPET_LENGTH)
-      .trim();
-    lines.push(`- ${ctx.title}: ${snippet}${snippet.length === MAX_SNIPPET_LENGTH ? '…' : ''}`);
+    const originalText = ctx.text.replace(/\s+/g, ' ');
+    const wasTruncated = originalText.length > MAX_SNIPPET_LENGTH;
+    const snippet = originalText.slice(0, MAX_SNIPPET_LENGTH).trim();
+    lines.push(`- ${ctx.title}: ${snippet}${wasTruncated ? '…' : ''}`);
   }
   return lines.join("\n");
 }
@@ -56,7 +55,10 @@ function buildHeuristicAnswer(question: string, contexts: Array<{ title: string;
 async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
+  let t: NodeJS.Timeout | undefined;
   try {
+    const controller = new AbortController();
+    t = setTimeout(() => controller.abort(), 8000);
     const messages = [
       { role: 'system', content: 'Answer concisely using ONLY the provided context. Include a short step list when relevant. English only.' },
       { role: 'user', content: `Question: ${question}\n\nContext:\n${contexts.join('\n---\n')}` }
@@ -64,13 +66,16 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, temperature: 0.1 })
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, temperature: 0.1 }),
+      signal: controller.signal
     });
     if (!res.ok) return null;
     const json = await res.json();
     return json.choices?.[0]?.message?.content || null;
   } catch {
     return null;
+  } finally {
+    if (t) clearTimeout(t);
   }
 }
 
@@ -125,10 +130,9 @@ export async function POST(req: NextRequest) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'cookie': req.headers.get('cookie') || '',
           'authorization': req.headers.get('authorization') || ''
         },
-        body: JSON.stringify({ query: qVec, q: question, lang, role, route, limit })
+        body: JSON.stringify({ query: qVec, q: question, lang, role, route, limit, tenantId: (user as any)?.tenantId })
       });
       if (vec.ok) {
         const json = await vec.json();

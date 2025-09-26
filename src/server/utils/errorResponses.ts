@@ -61,10 +61,25 @@ export function notFoundError(resource = 'Resource'): Response {
 }
 
 /**
- * Handle validation errors from Zod or other sources
+ * Handle validation errors with details
  */
 export function validationError(message = 'Invalid input', details?: any): Response {
   return createErrorResponse(message, 400, details, 'VALIDATION_ERROR');
+}
+
+/**
+ * Handle Zod validation errors specifically
+ */
+export function zodValidationError(error: ZodError, req?: any): Response {
+  return createSecureResponse(
+    { 
+      error: 'Invalid input', 
+      details: error.issues,
+      code: 'VALIDATION_ERROR'
+    }, 
+    400, 
+    req
+  );
 }
 
 /**

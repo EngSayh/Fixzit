@@ -1,11 +1,11 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
-import rehypeSanitize, { defaultSchema, Schema } from 'rehype-sanitize';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 
 export async function renderMarkdownSanitized(markdown: string): Promise<string> {
-  const schema: Schema = {
+  const schema = {
     ...defaultSchema,
     attributes: {
       ...defaultSchema.attributes,
@@ -17,7 +17,7 @@ export async function renderMarkdownSanitized(markdown: string): Promise<string>
   const file = await unified()
     .use(remarkParse)
     .use(remarkRehype)
-    .use(rehypeSanitize, schema)
+    .use(rehypeSanitize, schema as any)
     .use(rehypeStringify)
     .process(markdown || '');
   return String(file);

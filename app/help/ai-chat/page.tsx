@@ -3,6 +3,12 @@
 import { useState } from 'react';
 import { Send, Bot, User, X } from 'lucide-react';
 
+// Simple unique ID generator to avoid collisions when messages are sent rapidly
+let messageIdCounter = 0;
+function generateMessageId(): string {
+  return `msg_${Date.now()}_${++messageIdCounter}`;
+}
+
 type ChatMessage = { id: string; type: 'bot' | 'user'; content: string; timestamp: Date };
 
 /**
@@ -29,7 +35,7 @@ export default function AIChatPage() {
 
     const question = input.trim();
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       type: 'user' as const,
       content: question,
       timestamp: new Date()
@@ -51,7 +57,7 @@ export default function AIChatPage() {
       }
       const content = payload.answer || 'Sorry, I could not find an answer.';
       const botMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: generateMessageId(),
         type: 'bot' as const,
         content,
         timestamp: new Date()
@@ -59,7 +65,7 @@ export default function AIChatPage() {
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       const botMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: generateMessageId(),
         type: 'bot' as const,
         content: 'There was an error processing your request. Please try again.',
         timestamp: new Date()
