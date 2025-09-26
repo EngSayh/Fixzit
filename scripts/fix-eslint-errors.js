@@ -29,17 +29,12 @@ const FIXES = {
   
   // Fix extra semicolons at start of lines
   extraSemicolons: {
-    pattern: /^\s*;(()/gm,
-    replacement: '    $1',
+    pattern: /^(\s*);(\s*\()/gm,
+    replacement: '$1$2',
     description: 'Remove unnecessary semicolons'
-  },
-
-  // Fix React unescaped entities
-  reactQuotes: {
-    pattern: /([^&])'([^s])/g,
-    replacement: '$1'$2',
-    description: 'Escape single quotes in React'
   }
+
+  // reactQuotes: Intentionally disabled; requires JSX-aware AST processing
 };
 
 // File extensions to process
