@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS public post endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
     const JobMod = await import('@/src/server/models/Job').catch(() => null);
     const Job = JobMod && (JobMod as any).Job;
     if (!Job) {
