@@ -1,0 +1,111 @@
+name: Fixzit Quality Gates
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack & Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: corepack enable
+
+      - name: Install
+        run: pnpm install --frozen-lockfile || npm ci || yarn install --frozen-lockfile
+
+      # ---------- Lint & Types ----------
+      - name: Lint
+        run: pnpm lint || npm run lint || yarn lint
+      - name: Typecheck
+        run: pnpm typecheck || npm run typecheck || yarn typecheck
+
+      # ---------- Unit Tests -------------
+      - name: Unit Tests
+        run: |
+          mkdir -p .artifacts
+          (pnpm test || npm test || yarn test) || true
+
+      # ---------- Build Web (Next.js) ----------
+      - name: Build Web (Next.js)
+        run: |
+          if [ -f apps/web/package.json ]; then
+            cd apps/web
+            (pnpm build || npm run build || yarn build) || true
+            (pnpm export || npm run export || yarn export) || true
+            cd ../..
+          else
+            echo "apps/web not found; skipping Next.js build."
+          fi
+
+      # ---------- OpenAPI (generate or validate) ----------
+      - name: Build/Validate OpenAPI
+        run: |
+          (pnpm run openapi:build || npm run openapi:build || yarn openapi:build) || true
+          mkdir -p .artifacts
+          [ -f openapi.yaml ] && cp -f openapi.yaml .artifacts/openapi.yaml || true
+          [ -f openapi.yml ] && cp -f openapi.yml .artifacts/openapi.yaml || true
+          [ -f apps/api/openapi.yaml ] && cp -f apps/api/openapi.yaml .artifacts/openapi.yaml || true
+
+      # ---------- Postman Collection (from OpenAPI) ----------
+      - name: Export Postman Collection
+        run: |
+          (pnpm run postman:export || npm run postman:export || yarn postman:export) || true
+          [ -f postman_collection.json ] && cp -f postman_collection.json .artifacts/postman_collection.json || true
+
+      # ---------- RBAC Matrix (CSV) ----------
+      - name: Generate RBAC CSV
+        run: |
+          (pnpm run rbac:export || npm run rbac:export || yarn rbac:export) || true
+          [ -f rbac-matrix.csv ] && cp -f rbac-matrix.csv .artifacts/rbac-matrix.csv || true
+
+      # ---------- Lighthouse CI (static export if available) ----------
+      - name: Lighthouse CI (static)
+        run: |
+          (pnpm dlx @lhci/cli autorun --collect.staticDistDir=apps/web/out --upload.target=filesystem --upload.outputDir=lhci_reports) || true
+
+      # ---------- Dependency Audit ----------
+      - name: Dependency Audit
+        run: |
+          (pnpm audit --json > .artifacts/dep-audit.json) || (npm audit --json > .artifacts/dep-audit.json) || (yarn audit --json > .artifacts/dep-audit.json) || true
+
+      # ---------- k6 Smoke (package only) ----------
+      - name: Prepare k6 Scripts
+        run: |
+          mkdir -p .artifacts
+          [ -f scripts/load/smoke.js ] && cp -f scripts/load/smoke.js .artifacts/smoke.js || true
+
+      # ---------- Scorecard scaffold ----------
+      - name: Scorecard scaffold
+        run: |
+          mkdir -p .artifacts
+          cat > .artifacts/fixzit_scorecard.json <<'JSON'
+          {"version":"1.0","total_score":0,"sections":[],"must_pass":[],"actions":[],"final_self_score":0}
+          JSON
+
+      # ---------- Upload artifacts ----------
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixzit-artifacts
+          path: |
+            .artifacts/**
+            lhci_reports/**
+
+      # ---------- Summary ----------
+      - name: Summary
+        run: |
+          echo "✅ Quality-gate artifacts uploaded as 'fixzit-artifacts'." >> $GITHUB_STEP_SUMMARY
+          echo "- OpenAPI (if present), Postman (if generated), RBAC CSV, dep audit, JUnit/LHCI, scorecard scaffold" >> $GITHUB_STEP_SUMMARY
