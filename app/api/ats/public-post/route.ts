@@ -7,7 +7,9 @@ export async function POST(req: NextRequest) {
   try {
     await db;
     const body = await req.json();
-    const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    // TODO: add rate limiting + CAPTCHA
+    const platformOrg = process.env.PLATFORM_ORG_ID || 'fixzit-platform';
+    // TODO: validate with zod before use
     const baseSlug = generateSlug(body.title || 'job');
     let slug = baseSlug;
     let counter = 1;

@@ -1,5 +1,5 @@
 import type { EmployeeDoc } from '@/src/server/models/Employee';
-import { toUiEmployeeStatus, toDbEmployeeStatus } from './employeeStatus';
+import { toUiEmployeeStatus, toDbEmployeeStatus, type EmployeeStatusDB } from './employeeStatus';
 
 export function toUIEmployee(doc: EmployeeDoc) {
   const obj = (typeof (doc as any).toObject === 'function') ? (doc as any).toObject() : doc;
@@ -8,7 +8,7 @@ export function toUIEmployee(doc: EmployeeDoc) {
 
 export function normalizeEmployeeInput<T extends { status?: unknown }>(p: T) {
   if (p && Object.prototype.hasOwnProperty.call(p, 'status')) {
-    return { ...(p as any), status: toDbEmployeeStatus((p as any).status) } as T & { status?: string };
+    return { ...(p as any), status: toDbEmployeeStatus((p as any).status) } as T & { status?: EmployeeStatusDB };
   }
   return p;
 }
