@@ -47,9 +47,11 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
   if (ops.length) await (coll as any).bulkWrite(ops, { ordered: false });
 }
 
-export async function deleteArticleEmbeddings(articleId: string) {
+export async function deleteArticleEmbeddings(articleId: string, tenantId?: string | null) {
   const db = await getDatabase();
   const coll = db.collection('kb_embeddings');
-  await coll.deleteMany({ articleId });
+  const filter: any = { articleId };
+  if (tenantId !== undefined) filter.tenantId = tenantId;
+  await coll.deleteMany(filter);
 }
 

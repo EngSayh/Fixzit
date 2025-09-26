@@ -176,6 +176,7 @@ export async function POST(req: NextRequest) {
 }
 // Very small in-memory rate limiter (per process) to reduce abuse
 const rateMap = new Map<string, { count: number; ts: number }>();
+const MAX_RATE_PER_MIN = Number(process.env.HELP_ASK_MAX_RATE_PER_MIN || 30);
 function rateLimitAssert(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   const key = `help:ask:${ip}`;
@@ -184,7 +185,7 @@ function rateLimitAssert(req: NextRequest) {
   if (now - rec.ts > 60_000) { rec.count = 0; rec.ts = now; }
   rec.count += 1;
   rateMap.set(key, rec);
-  if (rec.count > 30) throw new Error('Rate limited');
+  if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
 
 // Note: Do not export any non-standard route fields; Next.js restricts exports to HTTP methods only.
