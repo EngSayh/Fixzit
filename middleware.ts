@@ -157,36 +157,11 @@ export async function middleware(request: NextRequest) {
         };
 
         // Add user info to request headers for API routes
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return response;
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
       } catch (error) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    }
-
-    // Check for authentication on protected marketplace actions
-    if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-      try {
-        const authToken = request.cookies.get('fixzit_auth')?.value;
-        if (!authToken) {
-          return NextResponse.redirect(new URL('/login', request.url));
-        }
-
-        const payload = JSON.parse(atob(authToken.split('.')[1]));
-        const user = {
-          id: payload.id,
-          email: payload.email,
-          role: payload.role,
-          tenantId: payload.tenantId
-        };
-
-        // Add user context to protected marketplace actions
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return response;
-      } catch (error) {
-        return NextResponse.redirect(new URL('/login', request.url));
       }
     }
 
@@ -199,7 +174,10 @@ export async function middleware(request: NextRequest) {
     const authToken = request.cookies.get('fixzit_auth')?.value;
     if (!authToken) {
       // Redirect to login for unauthenticated users on protected routes
-      if (pathname.startsWith('/fm/')) {
+      if (
+        pathname.startsWith('/fm/') ||
+        protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))
+      ) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
       return NextResponse.next();
@@ -239,10 +217,16 @@ export async function middleware(request: NextRequest) {
 
       // FM routes - check role-based access
       if (fmRoutes.some(route => pathname.startsWith(route))) {
-        // Add user context to FM routes
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return response;
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
+      }
+
+      // Protected marketplace actions - require auth and attach user
+      if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
       }
 
       return NextResponse.next();

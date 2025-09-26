@@ -40,10 +40,23 @@ export async function GET(
     if (String((application as any).orgId) !== String(user.tenantId)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
+    const privileged = new Set(['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER']).has(user.role);
+    if (!privileged && Array.isArray((application as any).notes)) {
+      (application as any).notes = (application as any).notes.filter((n: any) => !n?.isPrivate);
+    }
     return NextResponse.json({ success: true, data: application });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === 'CastError') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid application id' },
+        { status: 400 }
+      );
+    }
     console.error('Application fetch error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch application' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch application' },
+      { status: 500 }
+    );
   }
 }
 
@@ -76,6 +89,10 @@ export async function PATCH(
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const allowed = new Set(['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'RECRUITER']);
+    if (!allowed.has(user.role)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
     const userId = user.id;
     
     const application = await Application.findById(params.id);
@@ -85,16 +102,19 @@ export async function PATCH(
     }
     
     if (body.stage && body.stage !== application.stage) {
+      (application as any).history = (application as any).history || [];
       const oldStage = application.stage;
       application.stage = body.stage;
       application.history.push({ action: `stage_change:${oldStage}->${body.stage}`, by: userId, at: new Date(), details: body.reason });
     }
     if (typeof body.score === 'number' && body.score !== application.score) {
+      (application as any).history = (application as any).history || [];
       const oldScore = application.score;
       application.score = body.score;
       application.history.push({ action: 'score_updated', by: userId, at: new Date(), details: `Score changed from ${oldScore} to ${body.score}` });
     }
     if (body.note) {
+      (application as any).notes = (application as any).notes || [];
       application.notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
     }
     if (Array.isArray(body.flags)) (application as any).flags = body.flags;
@@ -102,7 +122,10 @@ export async function PATCH(
     
     await application.save();
     return NextResponse.json({ success: true, data: application });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === 'CastError') {
+      return NextResponse.json({ success: false, error: 'Invalid application id' }, { status: 400 });
+    }
     console.error('Application update error:', error);
     return NextResponse.json({ success: false, error: 'Failed to update application' }, { status: 500 });
   }

@@ -56,21 +56,21 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+    await db;
     
     const formData = await req.formData();
     
     // Extract form fields
     let firstName = formData.get('firstName') as string | null;
     let lastName = formData.get('lastName') as string | null;
-    const fullName = formData.get('fullName') as string | null;
-    const email = formData.get('email') as string;
-    const phone = formData.get('phone') as string;
-    const location = formData.get('location') as string;
-    const coverLetter = formData.get('coverLetter') as string;
-    const skills = formData.get('skills') as string;
-    const experience = formData.get('experience') as string;
-    const linkedin = formData.get('linkedin') as string;
+    const fullName = (formData.get('fullName') as string) || null;
+    const email = (formData.get('email') as string) || '';
+    const phone = (formData.get('phone') as string) || '';
+    const location = (formData.get('location') as string) || '';
+    const coverLetter = (formData.get('coverLetter') as string) || '';
+    const skills = (formData.get('skills') as string) || '';
+    const experience = (formData.get('experience') as string) || '';
+    const linkedin = (formData.get('linkedin') as string) || '';
     const resumeFile = formData.get('resume') as File;
     
     // Derive first/last from fullName if not provided
@@ -113,9 +113,16 @@ export async function POST(
     
     if (resumeFile) {
       try {
+        // Enforce max size (e.g., 5MB) and configurable upload dir
+        const MAX_BYTES = 5 * 1024 * 1024;
+        if (typeof resumeFile.size === 'number' && resumeFile.size > MAX_BYTES) {
+          return NextResponse.json({ success: false, error: 'Resume file too large' }, { status: 413 });
+        }
+        const uploadDir = process.env.UPLOAD_DIR
+          || path.join(process.cwd(), 'uploads', 'resumes'); // avoid public/ for serverless
+        
         const bytes = await resumeFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');
         await fs.mkdir(uploadDir, { recursive: true });
         const safeName = resumeFile.name.replace(/[^\w.\-]+/g, '_');
         const fileName = `${Date.now()}-${safeName}`;
