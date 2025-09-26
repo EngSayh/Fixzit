@@ -5,6 +5,13 @@ import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 import { z } from 'zod';
 import { createSecureResponse } from '@/src/server/security/headers';
+import { 
+  unauthorizedError, 
+  notFoundError, 
+  validationError, 
+  internalServerError,
+  handleApiError 
+} from '@/src/server/utils/errorResponses';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,14 +34,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+      return notFoundError('Invoice');
     }
-
-    if (invoice.status === 'PAID') {
-      return NextResponse.json({ error: 'Invoice is already paid' }, { status: 400 });
-    }
-
-    // Create payment request
+    
+    if (invoice.status === 'paid') {
+      return validationError('Invoice is already paid');
+    }    // Create payment request
     const paymentRequest = {
       amount: invoice.total,
       currency: invoice.currency,
@@ -72,14 +77,12 @@ export async function POST(req: NextRequest) {
         transactionId: paymentResponse.transactionId
       });
     } else {
-      return NextResponse.json({ 
-        error: paymentResponse.error || 'Payment initialization failed' 
-      }, { status: 400 });
+      return validationError(paymentResponse.error || 'Payment initialization failed');
     }
   } catch (error: any) {
-    console.error('Payment creation error:', error);
-    return NextResponse.json({ 
-      error: 'Failed to create payment' 
-    }, { status: 500 });
+    if (error.name === 'ZodError') {
+      return handleApiError(error);
+    }
+    return internalServerError('Failed to create payment', error);
   }
 }
