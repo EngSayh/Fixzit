@@ -45,12 +45,19 @@ const viAdvanceTimersByTime = vi.advanceTimersByTime.bind(vi);
 const jestCompat: JestLike = Object.assign(vi, {
   mock(moduleId: any, factory?: any, options?: any) {
     if (typeof moduleId === "string" && typeof factory === "function") {
-      try {
-        moduleFactories.set(moduleId, factory());
-      } catch (error) {
-        moduleFactories.delete(moduleId);
-      }
+      const wrappedFactory = () => {
+        try {
+          const result = factory();
+          moduleFactories.set(moduleId, result);
+          return result;
+        } catch (error) {
+          moduleFactories.delete(moduleId);
+          throw error;
+        }
+      };
+      return viMock(moduleId, wrappedFactory as any, options as any);
     }
+    moduleFactories.delete(moduleId);
     return viMock(moduleId as any, factory as any, options as any);
   },
   doMock: viDoMock,
