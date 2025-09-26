@@ -32,12 +32,9 @@ export interface PaymentRequest {
   metadata?: Record<string, unknown>;
 }
 
-export interface PaymentResponse {
-  success: boolean;
-  paymentUrl?: string;
-  transactionId?: string;
-  error?: string;
-}
+export type PaymentResponse =
+  | { success: true; paymentUrl: string; transactionId: string }
+  | { success: false; error: string };
 
 export const paytabsBase = (region: string = 'GLOBAL'): string => {
   const normalized = region.toUpperCase();
@@ -80,26 +77,7 @@ export async function createHppRequest(region: string, payload: unknown) {
   return response.json();
 }
 
-type PaymentRequest = {
-  amount: number;
-  currency: string;
-  customerDetails: {
-    name: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    country: string;
-    zip: string;
-  };
-  description: string;
-  invoiceId?: string;
-  returnUrl: string;
-  callbackUrl: string;
-};
-
-type PaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
+// removed duplicate local types; using exported interfaces above
 
 export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
   try {
