@@ -5,7 +5,7 @@ import { generateSlug } from '@/src/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
-    await db();
+    await db;
     const body = await req.json();
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     const baseSlug = generateSlug(body.title || 'job');
