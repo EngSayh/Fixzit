@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
+import { z } from 'zod';
 
 export async function GET(
   req: NextRequest,
@@ -64,7 +65,17 @@ export async function PATCH(
     if (!Application) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
-    const body = await req.json();
+    const applicationUpdateSchema = z.object({
+      stage: z.enum(['applied','screening','interview','offer','hired','rejected']).optional(),
+      score: z.number().min(0).max(100).optional(),
+      note: z.string().optional(),
+      reason: z.string().optional(),
+      isPrivate: z.boolean().optional(),
+      flags: z.array(z.string()).max(50).optional(),
+      reviewers: z.array(z.string().regex(/^[a-fA-F0-9]{24}$/)).max(50).optional()
+    });
+    
+    const body = applicationUpdateSchema.parse(await req.json());
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
