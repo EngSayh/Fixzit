@@ -129,10 +129,16 @@ export async function PATCH(
     if (Array.isArray(body.flags)) (application as any).flags = body.flags.filter((f: any) => typeof f === 'string').slice(0, 50);
     if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers.filter((r: any) => /^[a-fA-F0-9]{24}$/.test(r)).slice(0, 50);
     await application.save();
-    const result = application.toObject();
+    const result: any = application.toObject();
+    // Remove sensitive/large fields (align with GET projection)
+    delete result.attachments;
+    delete result.internal;
+    delete result.secrets;
     // Hide private notes from non-privileged users
     const privilegedRoles = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
-    const userRolesResult = Array.isArray((user as any).roles) && (user as any).roles.length > 0 ? (user as any).roles : [ (user as any).role ].filter(Boolean);
+    const userRolesResult = Array.isArray((user as any).roles) && (user as any).roles.length > 0
+      ? (user as any).roles
+      : [ (user as any).role ].filter(Boolean);
     const canSeePrivate = userRolesResult.some((r: string) => privilegedRoles.has(r));
     if (!canSeePrivate && Array.isArray(result.notes)) {
       result.notes = result.notes.filter((n: any) => !n?.isPrivate);

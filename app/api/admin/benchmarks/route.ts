@@ -3,6 +3,8 @@ import Benchmark from '@/src/models/Benchmark';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
 import { rateLimit } from '@/src/server/security/rateLimit';
+import { createSecureResponse } from '@/src/server/security/headers';
+import { createErrorResponse, zodValidationError } from '@/src/server/utils/errorResponses';
 import { z } from 'zod';
 
 const benchmarkSchema = z.object({
@@ -36,19 +38,19 @@ export async function GET(req: NextRequest) {
     await authenticateAdmin(req);
     await db;
     const benchmarks = await Benchmark.find({});
-    return NextResponse.json(benchmarks);
+    return createSecureResponse(benchmarks, 200, req);
   } catch (error: any) {
     if (error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createErrorResponse('Authentication required', 401, req);
     }
     if (error.message === 'Invalid token') {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createErrorResponse('Invalid token', 401, req);
     }
     if (error.message === 'Admin access required') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Benchmark fetch failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createErrorResponse('Internal server error', 500, req);
   }
 }
 
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
     const key = `admin:benchmarks:${user.id}`;
     const rl = rateLimit(key, 10, 60_000); // 10 requests per minute
     if (!rl.allowed) {
-      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      return createErrorResponse('Rate limit exceeded', 429, req);
     }
     
     await db;
@@ -71,21 +73,21 @@ export async function POST(req: NextRequest) {
       createdBy: user.id,
       createdAt: new Date()
     });
-    return NextResponse.json(doc, { status: 201 });
+    return createSecureResponse(doc, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     if (error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createErrorResponse('Authentication required', 401, req);
     }
     if (error.message === 'Invalid token') {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createErrorResponse('Invalid token', 401, req);
     }
     if (error.message === 'Admin access required') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Benchmark creation failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createErrorResponse('Internal server error', 500, req);
   }
 }

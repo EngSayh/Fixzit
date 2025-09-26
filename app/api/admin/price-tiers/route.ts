@@ -4,6 +4,11 @@ import PriceTier from '@/src/models/PriceTier';
 import Module from '@/src/models/Module';
 import { getUserFromToken } from '@/src/lib/auth';
 import { rateLimit } from '@/src/server/security/rateLimit';
+import { createSecureResponse } from '@/src/server/security/headers';
+import { 
+  createErrorResponse,
+  zodValidationError
+} from '@/src/server/utils/errorResponses';
 import { z } from 'zod';
 
 const priceTierSchema = z.object({
@@ -39,19 +44,19 @@ export async function GET(req: NextRequest) {
     await authenticateAdmin(req);
     await db;
     const rows = await PriceTier.find({}).populate('moduleId','code name');
-    return NextResponse.json(rows);
+    return createSecureResponse(rows, 200, req);
   } catch (error: any) {
     if (error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createErrorResponse('Authentication required', 401, req);
     }
     if (error.message === 'Invalid token') {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createErrorResponse('Invalid token', 401, req);
     }
     if (error.message === 'Admin access required') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Price tier fetch failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createErrorResponse('Internal server error', 500, req);
   }
 }
 
@@ -63,7 +68,7 @@ export async function POST(req: NextRequest) {
     const key = `admin:price-tiers:${user.id}`;
     const rl = rateLimit(key, 20, 60_000); // 20 requests per minute
     if (!rl.allowed) {
-      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      return createErrorResponse('Rate limit exceeded', 429, req);
     }
     
     await db;
@@ -71,28 +76,28 @@ export async function POST(req: NextRequest) {
     
     // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
     const mod = await Module.findOne({ code: body.moduleCode });
-    if (!mod) return NextResponse.json({ error: 'MODULE_NOT_FOUND' }, { status: 400 });
+    if (!mod) return createErrorResponse('MODULE_NOT_FOUND', 400, req);
     
     const doc = await PriceTier.findOneAndUpdate(
       { moduleId: mod._id, seatsMin: body.seatsMin, seatsMax: body.seatsMax, currency: body.currency || 'USD' },
       { ...body, moduleId: mod._id, updatedBy: user.id, updatedAt: new Date() },
       { upsert: true, new: true }
     );
-    return NextResponse.json(doc, { status: 201 });
+    return createSecureResponse(doc, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     if (error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createErrorResponse('Authentication required', 401, req);
     }
     if (error.message === 'Invalid token') {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createErrorResponse('Invalid token', 401, req);
     }
     if (error.message === 'Admin access required') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Price tier creation failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createErrorResponse('Internal server error', 500, req);
   }
 }
