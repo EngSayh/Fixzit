@@ -75,7 +75,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     });
 
     await page.goto('/marketplace');
-    if (!usedStub) test.skip('SSR fetch not intercepted; skipping stub-dependent assertions');
+    if (!usedStub) test.skip();
 
     await expect(page.getByRole('heading', { level: 1, name: /fixzit marketplace/i })).toBeVisible();
 
@@ -114,7 +114,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     });
 
     await page.goto('/marketplace');
-    if (!usedStub) test.skip('SSR fetch not intercepted; skipping stub-dependent assertions');
+    if (!usedStub) test.skip();
 
     const cards = page.locator('a[href^="/marketplace/product/"].border.rounded');
     await expect(cards).toHaveCount(3);
@@ -146,7 +146,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     });
 
     await page.goto('/marketplace');
-    if (!usedStub) test.skip('SSR fetch not intercepted; skipping stub-dependent assertions');
+    if (!usedStub) test.skip();
 
     await expect(page.getByText(/No products yet\. Seed the marketplace and refresh\./i)).toBeVisible();
     await expect(page.locator('a[href^="/marketplace/product/"].border.rounded')).toHaveCount(0);
@@ -163,7 +163,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     });
 
     await page.goto('/marketplace');
-    if (!usedStub) test.skip('SSR fetch not intercepted; skipping stub-dependent assertions');
+    if (!usedStub) test.skip();
 
     await expect(page.getByText(/No products yet\. Seed the marketplace and refresh\./i)).toBeVisible();
   });
@@ -179,7 +179,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     });
 
     await page.goto('/marketplace');
-    if (!usedStub) test.skip('SSR fetch not intercepted; skipping stub-dependent assertions');
+    if (!usedStub) test.skip();
 
     await expect(page.getByText(/No products yet\. Seed the marketplace and refresh\./i)).toBeVisible();
   });
@@ -195,7 +195,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     });
 
     await page.goto('/marketplace');
-    if (!usedStub) test.skip('SSR fetch not intercepted; skipping stub-dependent assertions');
+    if (!usedStub) test.skip();
 
     const placeholders = page.locator('.aspect-square.bg-gray-50.rounded');
     await expect(placeholders).toHaveCount(2);
