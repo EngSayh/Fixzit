@@ -1,4 +1,5 @@
 import { PAYTABS_CONFIG } from './paytabs.config';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
@@ -135,16 +136,29 @@ export async function verifyPayment(tranRef: string): Promise<any> {
 }
 
 export function validateCallback(payload: any, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
-  const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  if (!signature || !PAYTABS_CONFIG.serverKey) {
+    return false;
+  }
+  try {
+    const calculatedSignature = generateSignature(payload);
+    if (calculatedSignature.length !== signature.length) return false;
+    const calculatedBuffer = Buffer.from(calculatedSignature, 'hex');
+    const signatureBuffer = Buffer.from(signature, 'hex');
+    return timingSafeEqual(calculatedBuffer, signatureBuffer);
+  } catch (error) {
+    console.error('Signature validation error:', error);
+    return false;
+  }
 }
 
 function generateSignature(payload: any): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+  if (!PAYTABS_CONFIG.serverKey) {
+    throw new Error('PayTabs server key not configured');
+  }
+  const payloadString = JSON.stringify(payload);
+  const h = createHmac('sha256', PAYTABS_CONFIG.serverKey);
+  h.update(payloadString);
+  return h.digest('hex');
 }
 
 // Payment methods supported in Saudi Arabia

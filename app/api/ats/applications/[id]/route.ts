@@ -47,8 +47,9 @@ export async function PATCH(
       application.score = body.score;
       application.history.push({ action: 'score_updated', by: userId, at: new Date(), details: `Score changed from ${oldScore} to ${body.score}` });
     }
-    if (body.note) {
-      application.notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
+    // Optional note handling if schema supports it
+    if ((application as any).notes && body.note) {
+      (application as any).notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
     }
     if (Array.isArray(body.flags)) (application as any).flags = body.flags;
     if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers;

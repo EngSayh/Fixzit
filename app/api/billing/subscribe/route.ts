@@ -29,9 +29,14 @@ export async function POST(req: NextRequest) {
   }
 
   // 3) Create Subscription snapshot (status pending until paid)
+  const startedAt = new Date();
   const firstCycleMonths = body.billingCycle === 'annual' ? 12 : 1;
-  const next = new Date();
-  next.setMonth(next.getMonth() + firstCycleMonths);
+  const next = new Date(startedAt);
+  // Clamp to avoid skipping months on month-end dates
+  next.setUTCDate(1);
+  next.setUTCMonth(next.getUTCMonth() + firstCycleMonths);
+  const daysInTargetMonth = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate();
+  next.setUTCDate(Math.min(startedAt.getUTCDate(), daysInTargetMonth));
 
   const sub = await Subscription.create({
     customerId: customer._id,
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
     seatTotal: body.seatTotal,
     currency: (quote as any).currency,
     paytabsRegion: body.paytabsRegion || 'GLOBAL',
-    startedAt: new Date(),
+    startedAt,
     nextInvoiceAt: next
   });
 
@@ -55,10 +60,12 @@ export async function POST(req: NextRequest) {
 
   const inv = await SubscriptionInvoice.create({
     subscriptionId: sub._id,
-    amount, currency: (quote as any).currency,
-    periodStart: new Date(),
-    periodEnd: new Date(new Date().setMonth(new Date().getMonth() + (body.billingCycle==='annual'?12:1))),
-    dueDate: new Date(), status: 'pending'
+    amount,
+    currency: (quote as any).currency,
+    periodStart: startedAt,
+    periodEnd: new Date(next),
+    dueDate: startedAt,
+    status: 'pending'
   });
 
   // 5) Create PayTabs HPP. For monthly: include tokenise=2 to capture token. For annual: no token needed.

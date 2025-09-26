@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
     if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
 
-    let candidate = await Candidate.findByEmail(job.orgId, profile.email);
+    let candidate = await (Candidate as any).findOne({ orgId: job.orgId, email: profile.email.toLowerCase().trim() });
     if (!candidate) {
       candidate = await Candidate.create({
         orgId: job.orgId,
