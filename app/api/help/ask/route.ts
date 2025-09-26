@@ -33,9 +33,11 @@ function redactPII(s: string) {
 // Maximum length for context snippets in heuristic answers.
 // 400 was chosen to balance informativeness and brevity for UI display and model input.
 // You can override this value by setting the MAX_SNIPPET_LENGTH environment variable.
-const MAX_SNIPPET_LENGTH = process.env.MAX_SNIPPET_LENGTH
-  ? Number(process.env.MAX_SNIPPET_LENGTH)
-  : 400;
+const MAX_SNIPPET_LENGTH_ENV = Number(process.env.MAX_SNIPPET_LENGTH);
+const MAX_SNIPPET_LENGTH =
+  Number.isFinite(MAX_SNIPPET_LENGTH_ENV) && MAX_SNIPPET_LENGTH_ENV > 0
+    ? Math.floor(MAX_SNIPPET_LENGTH_ENV)
+    : 400;
 function buildHeuristicAnswer(question: string, contexts: Array<{ title: string; text: string }>) {
   const lines: string[] = [];
   lines.push(contexts.length ? `Here is what I found about: "${question}"` : `No matching articles found for: "${question}"`);
@@ -151,12 +153,13 @@ export async function POST(req: NextRequest) {
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
       } catch (err: any) {
-        // Fallback when text index is missing: case-insensitive regex across title/content/tags
+        // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
         docs = await coll
-          .find({ ...filter, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any, {
-            projection: { slug: 1, title: 1, content: 1, updatedAt: 1 }
-          })
+          .find(regexFilter, { projection: { slug: 1, title: 1, content: 1, updatedAt: 1 } })
           .sort({ updatedAt: -1 })
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
@@ -182,10 +185,10 @@ export async function POST(req: NextRequest) {
         code: 'HELP_ASK_RATE_LIMITED',
         userMessage: 'Too many requests, please wait a minute.',
         devMessage: err.message,
-        correlationId: (crypto as any).randomUUID?.()
+        correlationId: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
       }, { status: 429 });
     }
-    const correlationId = (crypto as any).randomUUID?.();
+    const correlationId = (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
     console.error('help/ask error', { correlationId, err });
     return NextResponse.json({
       name: 'HelpAskError',
@@ -198,7 +201,11 @@ export async function POST(req: NextRequest) {
 }
 // Very small in-memory rate limiter (per process) to reduce abuse
 const rateMap = new Map<string, { count: number; ts: number }>();
-const MAX_RATE_PER_MIN = Number(process.env.HELP_ASK_MAX_RATE_PER_MIN || 30);
+const MAX_RATE_PER_MIN_ENV = Number(process.env.HELP_ASK_MAX_RATE_PER_MIN);
+const MAX_RATE_PER_MIN =
+  Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
+    ? Math.floor(MAX_RATE_PER_MIN_ENV)
+    : 30;
 function rateLimitAssert(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   const key = `help:ask:${ip}`;
