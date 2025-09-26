@@ -14,7 +14,15 @@ function getEnvBaseUrl() {
 }
 
 function getHeaderBaseUrl() {
-  const headerList = headers();
+  let headerList: ReturnType<typeof headers> | undefined;
+  try {
+    headerList = headers();
+  } catch (_) {
+    headerList = undefined;
+  }
+  if (!headerList) {
+    return undefined;
+  }
   const host = headerList.get('x-forwarded-host') ?? headerList.get('host');
   if (!host) {
     return undefined;
@@ -32,12 +40,17 @@ export function getMarketplaceBaseUrl() {
 export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   const baseUrl = getMarketplaceBaseUrl();
   const url = new URL(path, baseUrl).toString();
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('fixzit_auth');
+  let authCookieValue: string | undefined;
+  try {
+    const cookieStore = cookies();
+    authCookieValue = cookieStore.get('fixzit_auth')?.value;
+  } catch (_) {
+    authCookieValue = undefined;
+  }
   const headersInit = new Headers(init?.headers ?? {});
 
-  if (authCookie && !headersInit.has('Cookie')) {
-    headersInit.set('Cookie', `fixzit_auth=${authCookie.value}`);
+  if (authCookieValue && !headersInit.has('Cookie')) {
+    headersInit.set('Cookie', `fixzit_auth=${authCookieValue}`);
   }
 
   const response = await fetch(url, {
