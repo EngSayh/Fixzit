@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from 'crypto';
 import { getDatabase } from "@/lib/mongodb";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -109,7 +110,9 @@ export async function POST(req: NextRequest) {
     // Text index is created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no tenantId
-    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const orClauses: any[] = [ { tenantId: { $exists: false } }, { tenantId: null } ];
+    if ((user as any)?.tenantId) orClauses.unshift({ tenantId: (user as any).tenantId });
+    const tenantScope = { $or: orClauses } as any;
     const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
 
@@ -130,8 +133,12 @@ export async function POST(req: NextRequest) {
       if (vec.ok) {
         const json = await vec.json();
         const chunks = json?.results || [];
-        // Use chunk text directly as context; citations sourced from articleId
-        docs = chunks.map((c: any) => ({ slug: c.articleId || '', title: '', content: c.text, updatedAt: undefined }));
+        docs = chunks.map((c: any) => ({
+          slug: c.slug || c.articleId || '',
+          title: c.title || '',
+          content: c.text || '',
+          updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
+        }));
       }
     } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
 
@@ -169,7 +176,16 @@ export async function POST(req: NextRequest) {
 
     const citations = docs.map((d: Doc) => ({ slug: d.slug, title: d.title, updatedAt: d.updatedAt }));
     return NextResponse.json({ answer, citations });
-  } catch (err) {
+  } catch (err: any) {
+    if (err instanceof Error && err.message === 'Rate limited') {
+      return NextResponse.json({
+        name: 'RateLimited',
+        code: 'HELP_ASK_RATE_LIMITED',
+        userMessage: 'Too many requests, please wait a minute.',
+        devMessage: err.message,
+        correlationId: (crypto as any).randomUUID?.()
+      }, { status: 429 });
+    }
     console.error('help/ask error', err);
     return NextResponse.json({ error: 'Failed to generate answer' }, { status: 500 });
   }

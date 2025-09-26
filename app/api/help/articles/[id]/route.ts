@@ -59,8 +59,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     try {
       const { upsertArticleEmbeddings } = await import('@/src/kb/ingest');
       await upsertArticleEmbeddings({
-        orgId: null,
-        tenantId: null,
+        orgId: (article as any)?.orgId ?? (user as any)?.tenantId ?? null,
+        tenantId: (article as any)?.tenantId ?? (user as any)?.tenantId ?? null,
         articleId: article.slug,
         lang: 'en',
         route: `/help/${article.slug}`,
@@ -68,7 +68,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         content: article.content || ''
       });
     } catch (e) { console.error(`Failed to trigger KB ingest for article ${article.slug}:`, e); }
-    return NextResponse.json(article);
+    const response = NextResponse.json(article);
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    return response;
   } catch (err: any) {
     if (err?.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation failed', issues: err.issues }, { status: 400 });

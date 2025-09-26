@@ -42,7 +42,12 @@ export async function GET(req: NextRequest){
     const qParam = sp.get("q");
     const q = qParam && qParam.trim() !== "" ? qParam.trim() : undefined;
     const statusParam = sp.get('status');
-    const status = statusParam ? statusParam.toUpperCase() : 'PUBLISHED';
+    const requestedStatus = statusParam ? statusParam.toUpperCase() : undefined;
+    const canModerate =
+      (Array.isArray((user as any)?.permissions) && (user as any).permissions.includes('help:moderate')) ||
+      (Array.isArray((user as any)?.roles) && (user as any).roles.includes('ADMIN')) ||
+      ((user as any)?.role && ['SUPER_ADMIN','ADMIN','CORPORATE_ADMIN'].includes((user as any).role));
+    const status = canModerate && requestedStatus ? requestedStatus : 'PUBLISHED';
     const rawPage = Number(sp.get("page"));
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
     const limitParam = sp.get("limit");
@@ -111,13 +116,16 @@ export async function GET(req: NextRequest){
         .toArray();
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       items,
       page,
       limit,
       total,
       hasMore: skip + items.length < total
     });
+    // Small public cache window; underlying query is tenant-scoped
+    response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    return response;
   } catch (error) {
     console.error('Error fetching help articles:', error);
     return NextResponse.json({ error: 'Failed to fetch help articles' }, { status: 500 });
