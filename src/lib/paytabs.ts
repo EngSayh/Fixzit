@@ -49,24 +49,12 @@ export const paytabsBase = (region: string = 'GLOBAL'): string => {
   return REGIONS[normalized as PaytabsRegion] ?? REGIONS.GLOBAL;
 };
 
-const PAYTABS_CONFIG = {
+const PAYTABS_CONFIG = Object.freeze({
   profileId: process.env.PAYTABS_PROFILE_ID ?? '',
   serverKey: process.env.PAYTABS_SERVER_KEY ?? '',
-  baseUrl:
-    process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
-};
+  baseUrl: process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
+});
 
-<<<<<<< HEAD
-const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
-  baseUrl: process.env.PAYTABS_BASE_URL || REGIONS.GLOBAL
-};
-
-export async function createHppRequest(region:string, payload:any) {
-  const r = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method:'POST',
-=======
 const assertConfig = () => {
   if (!PAYTABS_CONFIG.profileId) {
     throw new Error('PayTabs profile ID is not configured');
@@ -82,7 +70,6 @@ export async function createHppRequest(region: string, payload: unknown) {
 
   const response = await fetch(`${paytabsBase(region)}/payment/request`, {
     method: 'POST',
->>>>>>> origin/main
     headers: {
       'Content-Type': 'application/json',
       Authorization: PAYTABS_CONFIG.serverKey
@@ -205,17 +192,21 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
+import crypto from 'crypto';
 export function validateCallback(payload: any, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
-  const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  if (!signature) return false;
+  const calculated = generateSignature(payload, PAYTABS_CONFIG.serverKey);
+  try {
+    return crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(signature));
+  } catch {
+    return false;
+  }
 }
 
-function generateSignature(payload: any): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+function generateSignature(payload: any, secret: string): string {
+  const canonicalKeys = Object.keys(payload || {}).sort();
+  const canonical = JSON.stringify(payload, canonicalKeys as any);
+  return crypto.createHmac('sha256', secret).update(canonical).digest('hex');
 }
 
 // Payment methods supported in Saudi Arabia
