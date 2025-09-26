@@ -23,14 +23,19 @@ export async function GET(
     if (!user?.tenantId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    // Derive privilege for PII access
+    const PRIVILEGED_ROLES = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+    const userRoles = Array.isArray((user as any).roles) && (user as any).roles.length > 0
+      ? (user as any).roles
+      : [ (user as any).role ].filter(Boolean);
+    const canSeePII = userRoles.some((r: string) => PRIVILEGED_ROLES.has(r));
+    const candidateFields = canSeePII
+      ? 'firstName lastName email phone location'
+      : 'firstName lastName location';
     // Optional: fast id sanity check to avoid cast errors
     if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
       return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
     }
-    const PRIV_ROLES = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
-    const roles = Array.isArray((user as any).roles) && (user as any).roles.length > 0 ? (user as any).roles : [ (user as any).role ].filter(Boolean);
-    const canSeePII = roles.some((r: string) => PRIV_ROLES.has(r));
-    const candidateFields = canSeePII ? 'firstName lastName email phone location' : 'firstName lastName location';
     const application = await (Application as any)
       .findOne({ _id: params.id, orgId: user.tenantId })
       .select('-__v -attachments -internal -secrets') // tighten as needed
@@ -54,8 +59,11 @@ export async function PATCH(
     }
     const { db } = await import('@/src/lib/mongo');
     await db;
+<<<<<<< HEAD
     const { db } = await import('@/src/lib/mongo');
     await db;
+=======
+>>>>>>> 44f14709 (🔒 CRITICAL: Fix PII exposure and add RBAC gates across ATS system)
     const AppMod = await import('@/src/server/models/Application').catch(() => null);
     const Application = AppMod && (AppMod as any).Application;
     if (!Application) {
@@ -67,6 +75,10 @@ export async function PATCH(
     const user = token ? await getUserFromToken(token) : null;
     if (!user?.tenantId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN','RECRUITER']);
+    if (!allowedRoles.has((user as any).role || '')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
     const userId = user.id;
     if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
