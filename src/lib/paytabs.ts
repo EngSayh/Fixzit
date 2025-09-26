@@ -274,7 +274,7 @@ function decodeSignature(signature: string): Buffer | null {
     return null;
   }
 
-  const normalizedSignature = trimmed.replace(/^sha256=/i, '');
+  const normalizedSignature = trimmed.replace(/^sha256[:=]/i, '');
 
   if (!normalizedSignature) {
     return null;

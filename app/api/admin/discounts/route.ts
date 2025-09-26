@@ -3,35 +3,92 @@ import { z, ZodError } from 'zod';
 
 import { dbConnect } from '@/src/db/mongoose';
 import DiscountRule from '@/src/models/DiscountRule';
+import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const DISCOUNT_CODE = 'ANNUAL' as const;
 
-const UpdateDiscountSchema = z.object({
-  value: z.number().nonnegative(),
-  type: z.enum(['percent', 'amount']).default('percent'),
-  active: z.boolean().default(true)
+type DiscountShape = {
+  code: typeof DISCOUNT_CODE;
+  type: 'percent' | 'amount';
+  value: number;
+  active: boolean;
+};
+
+const DEFAULT_DISCOUNT: DiscountShape = Object.freeze({
+  code: DISCOUNT_CODE,
+  type: 'percent',
+  value: 0,
+  active: false
 });
 
-function formatDiscountResponse(discount: any) {
+const UpdateDiscountSchema = z.object({
+  value: z.number().nonnegative(),
+  type: z.enum(['percent', 'amount']).default(DEFAULT_DISCOUNT.type),
+  active: z.boolean().default(DEFAULT_DISCOUNT.active)
+});
+
+const ADMIN_ROLES = new Set(['ADMIN', 'STAFF', 'SUPER_ADMIN', 'CORPORATE_ADMIN']);
+
+function toDiscountShape(candidate: unknown): DiscountShape | null {
+  if (!candidate || typeof candidate !== 'object') {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  const type = record.type === 'amount' ? 'amount' : DEFAULT_DISCOUNT.type;
+  const value = typeof record.value === 'number' ? record.value : DEFAULT_DISCOUNT.value;
+  const active = typeof record.active === 'boolean' ? record.active : DEFAULT_DISCOUNT.active;
+
   return {
-    ok: true,
-    data:
-      discount ?? {
-        code: DISCOUNT_CODE,
-        type: 'percent',
-        value: 0,
-        active: false
-      }
+    code: DISCOUNT_CODE,
+    type,
+    value,
+    active
   };
 }
 
-export async function GET() {
+function formatDiscountResponse(discount: unknown) {
+  const normalized = toDiscountShape(discount) ?? DEFAULT_DISCOUNT;
+
+  return {
+    ok: true,
+    data: normalized
+  };
+}
+
+function isAuthorizedAdmin(role?: string | null) {
+  if (!role) {
+    return false;
+  }
+
+  const normalized = role.trim().toUpperCase();
+  return ADMIN_ROLES.has(normalized);
+}
+
+async function resolveAuthorizedContext(request: NextRequest) {
+  const context = await resolveMarketplaceContext(request);
+  if (!context.userId || !isAuthorizedAdmin(context.role)) {
+    return null;
+  }
+
+  return context;
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const context = await resolveAuthorizedContext(request);
+    if (!context) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
-    const discount = await DiscountRule.findOne({ code: DISCOUNT_CODE }).lean();
+    const discount = await DiscountRule.findOne({
+      code: DISCOUNT_CODE,
+      orgId: context.orgId
+    }).lean();
 
     return NextResponse.json(formatDiscountResponse(discount), {
       headers: { 'Cache-Control': 'no-store' }
@@ -47,14 +104,21 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
+    const context = await resolveAuthorizedContext(req);
+    if (!context) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
     const body = await req.json();
     const payload = UpdateDiscountSchema.parse(body);
 
     const discount = await DiscountRule.findOneAndUpdate(
-      { code: DISCOUNT_CODE },
+      { code: DISCOUNT_CODE, orgId: context.orgId },
       {
         code: DISCOUNT_CODE,
+        orgId: context.orgId,
+        tenantKey: context.tenantKey,
         type: payload.type,
         value: payload.value,
         active: payload.active
