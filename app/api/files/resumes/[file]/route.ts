@@ -35,8 +35,9 @@ export async function GET(req: NextRequest, { params }: { params: { file: string
     const data = await fs.readFile(filePath).catch(() => null);
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const contentType = contentTypeFromName(safeName);
-    const blob = new Blob([data], { type: contentType });
-    return new NextResponse(blob as any, { status: 200, headers: { 'Content-Type': contentType, 'Content-Disposition': `attachment; filename="${safeName}"` } });
+    const out = new Uint8Array(data.length);
+    out.set(data);
+    return new NextResponse(out, { status: 200, headers: { 'Content-Type': contentType, 'Content-Disposition': `attachment; filename="${safeName}"` } });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch file' }, { status: 500 });
   }
