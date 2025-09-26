@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/src/hooks/useScreenSize';
+import { useTranslation } from '@/src/contexts/TranslationContext';
 
 interface ResponsiveContextType {
   screenInfo: ScreenInfo;
@@ -15,15 +16,15 @@ const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undef
 
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
+  const { isRTL } = useTranslation();
 
   const responsiveClasses = getResponsiveClasses(screenInfo);
 
-  const value = {
+  const value: ResponsiveContextType = {
     screenInfo,
     isReady,
     responsiveClasses,
-    // isRTL will be available when used in components with useResponsive hook
-    isRTL: false, // This will be overridden in the useResponsive hook
+    isRTL,
     updateScreenInfo
   };
 
@@ -43,53 +44,34 @@ export function useResponsiveContext() {
 }
 
 // Convenience hook that combines both screen size and responsive context
-export function useResponsive() {
+export function useResponsiveLayout() {
   const context = useContext(ResponsiveContext);
+  const { isRTL } = useTranslation();
 
   if (!context) {
-    // Fallback when context is not available
-    return {
-      screenInfo: {
-        width: 1024,
-        height: 768,
-        size: 'desktop' as const,
-        isMobile: false,
-        isTablet: false,
-        isDesktop: true,
-        isLarge: false,
-        isSmall: false,
-        isPortrait: false,
-        isLandscape: true,
-        devicePixelRatio: 1,
-        isTouchDevice: false,
-        isHighResolution: false
-      },
-      isReady: true,
-      isRTL: false,
-      responsiveClasses: {
-        container: 'max-w-6xl mx-auto px-8',
-        grid: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-        text: 'text-base',
-        spacing: 'space-y-6',
-        sidebarVisible: true,
-        mobileOptimizations: '',
-        tabletOptimizations: '',
-        desktopOptimizations: 'hover:shadow-lg'
-      },
-      updateScreenInfo: () => {}
+    const fallbackScreenInfo: ScreenInfo = {
+      width: 1024,
+      height: 768,
+      size: 'desktop',
+      isMobile: false,
+      isTablet: false,
+      isDesktop: true,
+      isLarge: false,
+      isSmall: false,
+      isPortrait: false,
+      isLandscape: true,
+      devicePixelRatio: 1,
+      isTouchDevice: false,
+      isHighResolution: false
     };
-  }
 
-  // Try to get isRTL from TranslationContext
-  let isRTL = context.isRTL;
-  try {
-    // Import useTranslation at module level to avoid SSR issues
-    const { useTranslation } = require('@/src/contexts/TranslationContext');
-    const translationContext = useTranslation();
-    isRTL = translationContext.isRTL;
-  } catch {
-    // Fallback if translation context is not available
-    isRTL = false;
+    return {
+      screenInfo: fallbackScreenInfo,
+      isReady: false,
+      responsiveClasses: getResponsiveClasses(fallbackScreenInfo),
+      isRTL,
+      updateScreenInfo: () => {},
+    };
   }
 
   return {
