@@ -26,6 +26,8 @@ export default function SupportTicketPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -53,7 +55,7 @@ export default function SupportTicketPage() {
         const apiMsg = (payload && (payload.error || payload.message)) || `Request failed (${res.status})`;
         throw new Error(apiMsg);
       }
-      alert('🎯 Support Ticket Created Successfully!\n\nYour ticket has been submitted and our support team will get back to you within 24 hours.');
+      setToast({ type: 'success', message: 'Support Ticket Created Successfully! Our team will respond within 24 hours.' });
       setFormData({
         subject: '',
         module: 'FM',
@@ -66,7 +68,7 @@ export default function SupportTicketPage() {
       });
     } catch (err: any) {
       const msg = err?.message || 'There was an error submitting your ticket. Please try again.';
-      alert(msg);
+      setToast({ type: 'error', message: msg });
     } finally {
       setIsSubmitting(false);
     }
@@ -82,6 +84,11 @@ export default function SupportTicketPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto p-4">
+        {toast && (
+          <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {toast.message}
+          </div>
+        )}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Support Ticket</h1>
