@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
-import { RFQ } from "@/src/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -71,12 +69,21 @@ const createRFQSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.RFQ_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'RFQ endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const RFQMod = await import('@/src/server/models/RFQ').catch(() => null);
+    const RFQ = RFQMod && (RFQMod as any).RFQ;
+    if (!RFQ) {
+      return NextResponse.json({ success: false, error: 'RFQ dependencies are not available in this deployment' }, { status: 501 });
+    }
     const user = await getSessionUser(req);
-    await db;
 
     const data = createRFQSchema.parse(await req.json());
 
-    const rfq = await RFQ.create({
+    const rfq = await (RFQ as any).create({
       tenantId: user.tenantId,
       code: `RFQ-${Date.now()}`,
       ...data,
@@ -99,8 +106,17 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    if (process.env.RFQ_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'RFQ endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const RFQMod = await import('@/src/server/models/RFQ').catch(() => null);
+    const RFQ = RFQMod && (RFQMod as any).RFQ;
+    if (!RFQ) {
+      return NextResponse.json({ success: false, error: 'RFQ dependencies are not available in this deployment' }, { status: 501 });
+    }
     const user = await getSessionUser(req);
-    await db;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -120,11 +136,11 @@ export async function GET(req: NextRequest) {
     }
 
     const [items, total] = await Promise.all([
-      RFQ.find(match)
+      (RFQ as any).find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      RFQ.countDocuments(match)
+      (RFQ as any).countDocuments(match)
     ]);
 
     return NextResponse.json({
