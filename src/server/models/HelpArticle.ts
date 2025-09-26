@@ -3,7 +3,8 @@ import { MockModel } from "@/src/lib/mockDb";
 import { isMockDB } from "@/src/lib/mongo";
 
 const HelpArticleSchema = new Schema({
-  slug: { type:String, required:true, unique:true },
+  tenantId: { type: String, required: true, index: true },
+  slug: { type:String, required:true, index:true },
   title: { type:String, required:true },
   content: { type:String, required:true }, // Markdown
   category: { type:String, index:true },
@@ -13,6 +14,9 @@ const HelpArticleSchema = new Schema({
   updatedBy: { type:String },
   updatedAt: { type:Date, default: Date.now }
 }, { timestamps:true });
+
+// Ensure slug uniqueness is scoped to tenant
+HelpArticleSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
 
 HelpArticleSchema.index({ title:"text", content:"text", tags:"text" });
 

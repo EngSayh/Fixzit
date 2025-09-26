@@ -11,8 +11,8 @@ const Message = new Schema({
 }, { _id: false });
 
 const SupportTicketSchema = new Schema({
-  tenantId: { type: String },
-  code: { type: String, required: true, unique: true },
+  tenantId: { type: String, required: true, index: true },
+  code: { type: String, required: true, index: true },
   subject: { type: String, required: true },
   module: { type: String, enum: ["FM","Souq","Aqar","Account","Billing","Other"], default: "Other", index: true },
   type:   { type: String, enum: ["Bug","Feature","Complaint","Billing","Access","Other"], default: "Other", index: true },
@@ -27,6 +27,9 @@ const SupportTicketSchema = new Schema({
   firstResponseAt: { type: Date },
   resolvedAt: { type: Date }
 }, { timestamps: true });
+
+// Ensure code uniqueness is scoped to tenant
+SupportTicketSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 
 SupportTicketSchema.index({ status:1, module:1, priority:1 });
 SupportTicketSchema.index({ createdByUserId:1 });
