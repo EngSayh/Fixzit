@@ -39,11 +39,12 @@ export async function GET(req: NextRequest) {
     }
     
     // Enrich cart items with product data
-    const productIds = cart.items.map(item => item.productId);
+    const cartItems = cart.items || [];
+    const productIds = cartItems.map(item => item.productId);
     const productsList = await products.find({ _id: { $in: productIds } }).toArray();
     const productMap = new Map(productsList.map(p => [p._id, p]));
     
-    const enrichedItems = cart.items.map(item => ({
+    const enrichedItems = cartItems.map(item => ({
       ...item,
       product: productMap.get(item.productId)
     }));

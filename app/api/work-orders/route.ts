@@ -54,8 +54,25 @@ export async function GET(req: NextRequest) {
       });
 
       total = await prisma.workOrder.count({ where });
-    } catch (error) {
-      console.log('PostgreSQL not available, trying MongoDB...');
+    } catch (error: any) {
+      // Only fallback for connection errors
+      const msg = String(error?.message || '');
+      const code = error?.code;
+      const isConnectionError = 
+        msg.includes('connect') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('ENOTFOUND') ||
+        msg.includes('authentication failed') ||
+        code === 'P1001' || // Connection error
+        code === 'P1008' || // Operations timed out
+        code === 'P1017';   // Server has closed the connection
+      
+      if (!isConnectionError) {
+        throw error; // Re-throw non-connection errors
+      }
+      
+      console.log('PostgreSQL connection issue, trying MongoDB fallback...');
       // Fallback to MongoDB
       const mongoDb = await connectMongoDB();
       const workOrdersCollection = mongoDb.collection('workOrders');
@@ -63,7 +80,13 @@ export async function GET(req: NextRequest) {
       const match: any = { tenantId: user.tenantId };
       if (status) match.status = status;
       if (priority) match.priority = priority;
-      if (q) match.$text = { $search: q };
+      // Use regex if text index not available
+      if (q) {
+        match.$or = [
+          { title: { $regex: q, $options: 'i' } },
+          { description: { $regex: q, $options: 'i' } }
+        ];
+      }
 
       items = await workOrdersCollection
         .find(match)
@@ -114,13 +137,30 @@ export async function POST(req: NextRequest) {
           slaHours: 72
         }
       });
-    } catch (error) {
-      console.log('PostgreSQL not available, trying MongoDB...');
+    } catch (error: any) {
+      // Only fallback for connection errors
+      const msg = String(error?.message || '');
+      const code = error?.code;
+      const isConnectionError = 
+        msg.includes('connect') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('ENOTFOUND') ||
+        msg.includes('authentication failed') ||
+        code === 'P1001' || // Connection error
+        code === 'P1008' || // Operations timed out
+        code === 'P1017';   // Server has closed the connection
+      
+      if (!isConnectionError) {
+        throw error; // Re-throw non-connection errors
+      }
+      
+      console.log('PostgreSQL connection issue, trying MongoDB fallback...');
       // Fallback to MongoDB
       const mongoDb = await connectMongoDB();
       const workOrdersCollection = mongoDb.collection('workOrders');
       
-      workOrder = await workOrdersCollection.insertOne({
+      const insertData = {
         tenantId: user.tenantId,
         code,
         title: data.title,
@@ -132,7 +172,12 @@ export async function POST(req: NextRequest) {
         slaHours: 72,
         createdAt: new Date(),
         updatedAt: new Date()
-      });
+      };
+
+      const insertResult = await workOrdersCollection.insertOne(insertData);
+
+      // Query the inserted document to maintain consistent response format
+      workOrder = await workOrdersCollection.findOne({ _id: insertResult.insertedId });
     }
 
     return NextResponse.json(workOrder, { status: 201 });

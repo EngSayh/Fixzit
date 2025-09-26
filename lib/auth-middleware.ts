@@ -10,7 +10,15 @@ export interface AuthenticatedUser {
 }
 
 export async function getSessionUser(req: NextRequest): Promise<AuthenticatedUser> {
-  const authToken = req.cookies.get('fixzit_auth')?.value;
+  // Try to get token from cookie first, then Authorization header
+  let authToken = req.cookies.get('fixzit_auth')?.value;
+  
+  if (!authToken) {
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      authToken = authHeader.substring(7);
+    }
+  }
   
   if (!authToken) {
     throw new Error('No authentication token found');
@@ -35,15 +43,23 @@ export function requireAbility(action: string) {
     try {
       const user = await getSessionUser(req);
       
-      // Basic role-based access control
+      // Comprehensive role-based access control
       const rolePermissions: Record<string, string[]> = {
         'SUPER_ADMIN': ['*'],
         'CORPORATE_ADMIN': ['CREATE', 'READ', 'UPDATE', 'DELETE'],
         'ADMIN': ['CREATE', 'READ', 'UPDATE', 'DELETE'],
         'FM_MANAGER': ['CREATE', 'READ', 'UPDATE'],
+        'PROPERTY_MANAGER': ['CREATE', 'READ', 'UPDATE'],
+        'TEAM_LEAD': ['CREATE', 'READ', 'UPDATE'],
         'TECHNICIAN': ['READ', 'UPDATE'],
+        'MAINTENANCE': ['READ', 'UPDATE'],
+        'EMPLOYEE': ['READ', 'UPDATE'],
         'TENANT': ['CREATE', 'READ'],
-        'VENDOR': ['READ']
+        'VENDOR': ['READ', 'UPDATE'],
+        'FINANCE': ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+        'HR': ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+        'OWNER': ['READ', 'UPDATE'],
+        'GUEST': ['READ']
       };
 
       const userPermissions = rolePermissions[user.role] || [];
