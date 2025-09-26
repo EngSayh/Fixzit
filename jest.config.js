@@ -9,6 +9,6 @@ module.exports = {
     '^.+\\.(t|j)sx?$': ['ts-jest', { tsconfig: 'tsconfig.json', useESM: true }]
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'json', 'node'],
-  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mjs'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   setupFilesAfterEnv: []
 };
