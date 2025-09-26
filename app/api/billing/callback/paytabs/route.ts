@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
 import Subscription from '@/src/models/Subscription';
 import PaymentMethod from '@/src/models/PaymentMethod';
 
 export async function POST(req: NextRequest) {
-  await dbConnect();
+  const client = await db;
   const payload = await req.json().catch(()=>null);
   const data = payload || {}; // if using return-url (form-data), create a separate handler
   const tranRef = data.tran_ref || data.tranRef;
