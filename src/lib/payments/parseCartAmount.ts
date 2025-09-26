@@ -19,7 +19,13 @@ export function parseCartAmount(value: unknown): number | null {
       return null;
     }
 
-    const sanitized = trimmed.replace(/[\s\u00A0_]/g, '');
+    const condensed = trimmed.replace(/[\s\u00A0_]/g, '');
+    const sanitized = condensed.replace(/[^0-9,.-]/g, '');
+    const cleaned = sanitized.replace(/^[^-\d]+/, '');
+
+    if (!cleaned) {
+      return null;
+    }
 
     const US_GROUPED = /^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
     const EU_GROUPED = /^-?\d{1,3}(?:\.\d{3})+(?:,\d+)?$/;
@@ -28,14 +34,14 @@ export function parseCartAmount(value: unknown): number | null {
 
     let normalized: string | null = null;
 
-    if (US_GROUPED.test(sanitized)) {
-      normalized = sanitized.replace(/,/g, '');
-    } else if (EU_GROUPED.test(sanitized)) {
-      normalized = sanitized.replace(/\./g, '').replace(',', '.');
-    } else if (SIMPLE_DOT.test(sanitized)) {
-      normalized = sanitized;
-    } else if (SIMPLE_COMMA.test(sanitized)) {
-      normalized = sanitized.replace(',', '.');
+    if (US_GROUPED.test(cleaned)) {
+      normalized = cleaned.replace(/,/g, '');
+    } else if (EU_GROUPED.test(cleaned)) {
+      normalized = cleaned.replace(/\./g, '').replace(',', '.');
+    } else if (SIMPLE_DOT.test(cleaned)) {
+      normalized = cleaned;
+    } else if (SIMPLE_COMMA.test(cleaned)) {
+      normalized = cleaned.replace(',', '.');
     }
 
     if (!normalized) {
