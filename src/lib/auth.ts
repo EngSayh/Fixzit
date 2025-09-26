@@ -168,7 +168,12 @@ if (isMockDB) {
   };
 } else {
   // Use real Mongoose model for non-mock mode
-  User = (await import('@/src/server/models/User')).User;
+  try {
+    User = require('@/src/server/models/User').User;
+  } catch (error) {
+    console.warn('Could not load User model:', error);
+    User = null;
+  }
 }
 
 const JWT_SECRET = (() => {
