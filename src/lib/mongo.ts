@@ -81,7 +81,30 @@ class MockDB implements DatabaseHandle {
       }
       
       project(projection: any): FindCursor {
-        // Simplified projection - just return this for chaining
+        // Basic projection: only support inclusion (fields set to 1)
+        if (projection && typeof projection === 'object') {
+          const includeFields = Object.keys(projection).filter(
+            (key) => projection[key] === 1
+          );
+          if (includeFields.length > 0) {
+            this.results = this.results.map((doc) => {
+              const projected: any = {};
+              includeFields.forEach((field) => {
+                if (doc.hasOwnProperty(field)) {
+                  projected[field] = doc[field];
+                }
+              });
+              // Always preserve _id unless explicitly excluded
+              if (
+                (projection._id === undefined || projection._id === 1) &&
+                doc.hasOwnProperty('_id')
+              ) {
+                projected._id = doc._id;
+              }
+              return projected;
+            });
+          }
+        }
         return this;
       }
       
@@ -91,7 +114,22 @@ class MockDB implements DatabaseHandle {
       }
       
       sort(sortSpec: any): FindCursor {
-        // Simplified sort - just return this for chaining
+        // Basic sort implementation: sortSpec is an object { field: 1/-1, ... }
+        if (sortSpec && typeof sortSpec === 'object') {
+          const sortFields = Object.keys(sortSpec);
+          this.results.sort((a, b) => {
+            for (const field of sortFields) {
+              const dir = sortSpec[field];
+              // Handle undefined fields gracefully
+              if (a[field] === b[field]) continue;
+              if (a[field] == null) return dir === 1 ? 1 : -1;
+              if (b[field] == null) return dir === 1 ? -1 : 1;
+              if (a[field] < b[field]) return dir === 1 ? -1 : 1;
+              if (a[field] > b[field]) return dir === 1 ? 1 : -1;
+            }
+            return 0;
+          });
+        }
         return this;
       }
       
@@ -240,13 +278,8 @@ if (!conn) {
     }).catch((err) => {
       console.error('ERROR: mongoose.connect() failed:', err?.message || err);
       
-      // Only fall back to MockDB if USE_MOCK_DB is explicitly enabled
-      if (USE_MOCK_DB) {
-        console.warn('USE_MOCK_DB=true — falling back to in-memory MockDB.');
-        return new MockDB().connect();
-      }
-      
-      // Fail fast if not explicitly using mock - this prevents silent data loss
+      // Fail fast - don't fall back to MockDB unless explicitly requested
+      // USE_MOCK_DB would have been handled at line 226, so this is a real production failure
       throw new Error(`MongoDB connection failed: ${err?.message || err}. Set USE_MOCK_DB=true to use mock database.`);
     });
   } else {
