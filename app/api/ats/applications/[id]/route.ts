@@ -10,7 +10,7 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'ATS Applications endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
     const AppMod = await import('@/src/server/models/Application').catch(() => null);
     const Application = AppMod && (AppMod as any).Application;
     if (!Application) {
@@ -27,11 +27,15 @@ export async function GET(
     if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
       return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
     }
+    const PRIV_ROLES = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+    const roles = Array.isArray((user as any).roles) && (user as any).roles.length > 0 ? (user as any).roles : [ (user as any).role ].filter(Boolean);
+    const canSeePII = roles.some((r: string) => PRIV_ROLES.has(r));
+    const candidateFields = canSeePII ? 'firstName lastName email phone location' : 'firstName lastName location';
     const application = await (Application as any)
       .findOne({ _id: params.id, orgId: user.tenantId })
       .select('-__v -attachments -internal -secrets') // tighten as needed
       .populate('jobId', 'title department status location')
-      .populate('candidateId', 'firstName lastName email phone location')
+      .populate('candidateId', candidateFields)
       .lean();
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
     return NextResponse.json({ success: true, data: application });
