@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest) {
     
     const body = moderationSchema.parse(await req.json());
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user?.tenantId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

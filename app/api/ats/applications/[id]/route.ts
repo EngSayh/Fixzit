@@ -27,7 +27,7 @@ export async function GET(
     }
     // Require auth and scope by org
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user?.tenantId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -87,7 +87,7 @@ export async function PATCH(
     
     const body = applicationUpdateSchema.parse(await req.json());
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user?.tenantId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -96,6 +96,11 @@ export async function PATCH(
     if (!allowedRoles.has((user as any).role || '')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
+    // Derive privilege for private notes access
+    const PRIVILEGED_ROLES = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+    const userRoles = Array.isArray((user as any).roles) && (user as any).roles.length > 0
+      ? (user as any).roles
+      : [ (user as any).role ].filter(Boolean);
     const userId = user.id;
     if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
       return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
@@ -135,11 +140,7 @@ export async function PATCH(
     delete result.internal;
     delete result.secrets;
     // Hide private notes from non-privileged users
-    const privilegedRoles = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
-    const userRolesResult = Array.isArray((user as any).roles) && (user as any).roles.length > 0
-      ? (user as any).roles
-      : [ (user as any).role ].filter(Boolean);
-    const canSeePrivate = userRolesResult.some((r: string) => privilegedRoles.has(r));
+    const canSeePrivate = userRoles.some((r: string) => PRIVILEGED_ROLES.has(r));
     if (!canSeePrivate && Array.isArray(result.notes)) {
       result.notes = result.notes.filter((n: any) => !n?.isPrivate);
     }
