@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
-import { Invoice } from "@/src/server/models/Invoice";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import { generateZATCAQR } from "@/src/lib/zatca";
@@ -64,8 +62,17 @@ const createInvoiceSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.INVOICE_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Invoice endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const InvoiceMod = await import('@/src/server/models/Invoice').catch(() => null);
+    const Invoice = InvoiceMod && (InvoiceMod as any).Invoice;
+    if (!Invoice) {
+      return NextResponse.json({ success: false, error: 'Invoice dependencies are not available in this deployment' }, { status: 501 });
+    }
     const user = await getSessionUser(req);
-    await db;
 
     const data = createInvoiceSchema.parse(await req.json());
 
@@ -143,8 +150,17 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    if (process.env.INVOICE_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Invoice endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const InvoiceMod = await import('@/src/server/models/Invoice').catch(() => null);
+    const Invoice = InvoiceMod && (InvoiceMod as any).Invoice;
+    if (!Invoice) {
+      return NextResponse.json({ success: false, error: 'Invoice dependencies are not available in this deployment' }, { status: 501 });
+    }
     const user = await getSessionUser(req);
-    await db;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
