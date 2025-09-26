@@ -56,9 +56,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const article = (res as any)?.value || null;
     if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
-    try {
-      const { upsertArticleEmbeddings } = await import('@/src/kb/ingest');
-      await upsertArticleEmbeddings({
+    import('@/src/kb/ingest')
+      .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
         orgId: (article as any)?.orgId ?? (user as any)?.tenantId ?? null,
         tenantId: (article as any)?.tenantId ?? (user as any)?.tenantId ?? null,
         articleId: article.slug,
@@ -66,8 +65,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         route: `/help/${article.slug}`,
         roleScopes: ['USER'],
         content: article.content || ''
-      });
-    } catch (e) { console.error(`Failed to trigger KB ingest for article ${article.slug}:`, e); }
+      }))
+      .catch((e) => console.error(`Failed to trigger KB ingest for article ${article.slug}:`, e));
     const response = NextResponse.json(article);
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
