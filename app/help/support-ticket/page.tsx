@@ -32,6 +32,7 @@ export default function SupportTicketPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      setToast(null);
       const res = await fetch('/api/support/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

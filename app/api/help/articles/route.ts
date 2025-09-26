@@ -18,7 +18,8 @@ const COLLECTION = 'helparticles';
  * - `page`: 1-based page number (minimum 1)
  * - `limit`: page size (clamped between 1 and 50, defaults to 20)
  *
- * The handler ensures required MongoDB indexes (unique `slug`, `status+updatedAt`, and a text index on `title`, `content`, and `tags`), builds a filter from the query params, and returns a JSON response with the matching items sorted by text score when `q` is provided or by `updatedAt` otherwise.
+ * Indexes are expected to be created by scripts/add-database-indexes.js (unique `slug`, `status+updatedAt`, and a text index on `title`, `content`, and `tags`).
+ * The handler builds a filter from the query params and returns a JSON response with the matching items sorted by text score when `q` is provided or by `updatedAt` otherwise.
  *
  * Successful response (200) JSON shape:
  * {
@@ -38,7 +39,8 @@ export async function GET(req: NextRequest){
     const url = new URL(req.url);
     const sp = url.searchParams;
     const category = sp.get("category") || undefined;
-    const q = sp.get("q") || undefined;
+    const qParam = sp.get("q");
+    const q = qParam && qParam.trim() !== "" ? qParam.trim() : undefined;
     const statusParam = sp.get('status');
     const status = statusParam ? statusParam.toUpperCase() : 'PUBLISHED';
     const rawPage = Number(sp.get("page"));
@@ -54,7 +56,9 @@ export async function GET(req: NextRequest){
     // Indexes are created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no tenantId
-    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const orClauses: any[] = [ { tenantId: { $exists: false } }, { tenantId: null } ];
+    if ((user as any)?.tenantId) orClauses.unshift({ tenantId: (user as any).tenantId });
+    const tenantScope = { $or: orClauses } as any;
     const filter: any = { ...tenantScope };
     if (status && status !== 'ALL') filter.status = status;
     if (category) filter.category = category;
@@ -69,16 +73,19 @@ export async function GET(req: NextRequest){
     if (q) {
       // Try $text search first; fallback to regex if text index is missing
       const textFilter = { ...filter, $text: { $search: q } } as any;
-      const textProjection = { score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as any;
+      const textProjection = { _id: 0, score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as any;
       try {
         total = await coll.countDocuments(textFilter);
         items = await coll
           .find(textFilter, { projection: textProjection })
+          .maxTimeMS(250)
           .sort({ score: { $meta: "textScore" } })
           .skip(skip)
           .limit(limit)
           .toArray();
       } catch (err: any) {
+        const isMissingTextIndex = err?.codeName === 'IndexNotFound' || err?.code === 27 || /text index required/i.test(String(err?.message || ''));
+        if (!isMissingTextIndex) throw err;
         // Fallback when text index is missing (restrict by recent updatedAt to reduce scan)
         const safe = new RegExp(escapeRegExp(q), 'i');
         const cutoffDate = new Date();
@@ -86,7 +93,8 @@ export async function GET(req: NextRequest){
         const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
         total = await coll.countDocuments(regexFilter);
         items = await coll
-          .find(regexFilter, { projection: { slug: 1, title: 1, category: 1, updatedAt: 1 } })
+          .find(regexFilter, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
+          .maxTimeMS(250)
           .sort({ updatedAt: -1 })
           .skip(skip)
           .limit(limit)
@@ -95,7 +103,8 @@ export async function GET(req: NextRequest){
     } else {
       total = await coll.countDocuments(filter);
       items = await coll
-        .find(filter as any, { projection: { slug: 1, title: 1, category: 1, updatedAt: 1 } })
+        .find(filter as any, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
+        .maxTimeMS(250)
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
