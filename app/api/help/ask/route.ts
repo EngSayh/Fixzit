@@ -30,7 +30,17 @@ function redactPII(s: string) {
  * @param contexts - Array of contexts where each item has a `title` and `text`; only the first three are used.
  * @returns A single newline-separated string containing the header and bullet lines.
  */
-const MAX_SNIPPET_LENGTH = 400;
+// Maximum length for context snippets in heuristic answers.
+// 400 was chosen to balance informativeness and brevity for UI display and model input.
+// You can override this value by setting the MAX_SNIPPET_LENGTH environment variable.
+const MAX_SNIPPET_LENGTH = process.env.MAX_SNIPPET_LENGTH
+  ? Number(process.env.MAX_SNIPPET_LENGTH)
+  : 400;
+// 400 was chosen to balance informativeness and brevity for UI display and model input.
+// You can override this value by setting the MAX_SNIPPET_LENGTH environment variable.
+const MAX_SNIPPET_LENGTH = process.env.MAX_SNIPPET_LENGTH
+  ? Number(process.env.MAX_SNIPPET_LENGTH)
+  : 400;
 function buildHeuristicAnswer(question: string, contexts: Array<{ title: string; text: string }>) {
   const lines: string[] = [];
   lines.push(contexts.length ? `Here is what I found about: "${question}"` : `No matching articles found for: "${question}"`);
@@ -125,25 +135,15 @@ export async function POST(req: NextRequest) {
     let docs: Doc[] = [];
     try {
       const { embedText } = await import('@/src/ai/embeddings');
+      const { performKbSearch } = await import('@/src/kb/search');
       const qVec = await embedText(question);
-      const vec = await fetch(new URL('/api/kb/search', req.nextUrl).toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'authorization': req.headers.get('authorization') || ''
-        },
-        body: JSON.stringify({ query: qVec, q: question, lang, role, route, limit, tenantId: (user as any)?.tenantId })
-      });
-      if (vec.ok) {
-        const json = await vec.json();
-        const chunks = json?.results || [];
-        docs = chunks.map((c: any) => ({
-          slug: c.slug || c.articleId || '',
-          title: c.title || '',
-          content: c.text || '',
-          updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
-        }));
-      }
+      const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
+      docs = (chunks || []).map((c: any) => ({
+        slug: c.slug || c.articleId || '',
+        title: c.title || '',
+        content: c.text || '',
+        updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
+      }));
     } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
 
     if (!docs || docs.length === 0) {
@@ -190,8 +190,15 @@ export async function POST(req: NextRequest) {
         correlationId: (crypto as any).randomUUID?.()
       }, { status: 429 });
     }
-    console.error('help/ask error', err);
-    return NextResponse.json({ error: 'Failed to generate answer' }, { status: 500 });
+    const correlationId = (crypto as any).randomUUID?.();
+    console.error('help/ask error', { correlationId, err });
+    return NextResponse.json({
+      name: 'HelpAskError',
+      code: 'HELP_ASK_FAILED',
+      userMessage: 'Unable to process your question. Please try again.',
+      devMessage: String(err?.message ?? err),
+      correlationId
+    }, { status: 500 });
   }
 }
 // Very small in-memory rate limiter (per process) to reduce abuse

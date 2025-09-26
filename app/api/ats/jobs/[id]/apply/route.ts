@@ -83,7 +83,7 @@ export async function POST(
     let resumeText = '';
     if (resumeFile) {
       try {
-        // Basic validation (MIME/size) before accepting the file
+        // Basic validation (MIME/size) + magic-bytes before accepting the file
         const allowed = [
           'application/pdf',
           'application/msword',
@@ -94,27 +94,16 @@ export async function POST(
         const size = (resumeFile as any).size || 0;
         const bytes = await (resumeFile as any).arrayBuffer();
         const buffer = Buffer.from(bytes);
-
-        // Magic bytes validation
         function isValidMagicBytes(buf: Buffer, mimeType: string): boolean {
-          if (mimeType === 'application/pdf') {
-            // PDF: %PDF- (25 50 44 46)
-            return buf.slice(0, 5).toString() === '%PDF-';
-          }
-          if (mimeType === 'application/msword') {
-            // DOC: D0 CF 11 E0 (OLE Compound File)
-            return buf.slice(0, 4).equals(Buffer.from([0xD0, 0xCF, 0x11, 0xE0]));
-          }
-          if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            // DOCX: ZIP file (PK\x03\x04)
-            return buf.slice(0, 4).equals(Buffer.from([0x50, 0x4B, 0x03, 0x04]));
-          }
+          if (mimeType === 'application/pdf') return buf.slice(0, 5).toString() === '%PDF-';
+          if (mimeType === 'application/msword') return buf.slice(0, 4).equals(Buffer.from([0xD0, 0xCF, 0x11, 0xE0]));
+          if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return buf.slice(0, 4).equals(Buffer.from([0x50, 0x4B, 0x03, 0x04]));
           return false;
         }
-
         if (!allowed.includes(mime) || size > maxBytes || !isValidMagicBytes(buffer, mime)) {
           return NextResponse.json({ success: false, error: 'Unsupported file type or size' }, { status: 400 });
         }
+        // buffer already created above
         const cryptoMod = await import('crypto');
         const uuid = (cryptoMod as any).randomUUID();
         const safeExt = ((resumeFile as any).name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
