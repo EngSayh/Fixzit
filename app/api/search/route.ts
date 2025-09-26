@@ -45,6 +45,8 @@ const ALL_ROLES = [
 
 type SearchRole = (typeof ALL_ROLES)[number];
 
+const APP_KEYS = Object.keys(APPS) as AppKey[];
+
 const APP_ALLOWED_ROLES: Record<AppKey, SearchRole[]> = {
   fm: [
     'SUPER_ADMIN',
@@ -121,6 +123,14 @@ const COLLECTION_NAME: Record<SearchEntity, string> = {
   agents: 'agents'
 };
 
+const ENTITY_LOOKUP: Record<string, SearchEntity> = Object.keys(COLLECTION_NAME).reduce(
+  (lookup, key) => {
+    lookup[key] = key as SearchEntity;
+    return lookup;
+  },
+  {} as Record<string, SearchEntity>
+);
+
 interface RequestContext {
   tenantId: string;
   tenantObjectId: ObjectId | null;
@@ -137,6 +147,25 @@ function normalizeRole(value?: string | null): SearchRole | null {
 
   const candidate = value.trim().toUpperCase().replace(/[\s-]+/g, '_') as SearchRole;
   return ALL_ROLES.includes(candidate) ? candidate : null;
+}
+
+function normalizeAppKey(value?: string | null): AppKey {
+  if (!value) {
+    return 'fm';
+  }
+
+  const candidate = value.trim().toLowerCase();
+  const match = APP_KEYS.find(key => key === candidate);
+  return match ?? 'fm';
+}
+
+function normalizeSearchEntity(value?: string | null): SearchEntity | null {
+  if (!value) {
+    return null;
+  }
+
+  const candidate = value.trim().toLowerCase();
+  return ENTITY_LOOKUP[candidate] ?? null;
 }
 
 function toObjectId(value?: string | null): ObjectId | null {
@@ -244,14 +273,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ results: [] }, { status: 503 });
     }
     const { searchParams } = new URL(req.url);
-    const app = (searchParams.get('app') || 'fm') as AppKey;
+    const app = normalizeAppKey(searchParams.get('app'));
 
     if (!ensureRoleAllowed(app, context.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const q = (searchParams.get('q') || '').trim();
-    const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
+    const entityOverrides = (searchParams.get('entities') || '')
+      .split(',')
+      .map(value => normalizeSearchEntity(value))
+      .filter((value): value is SearchEntity => value !== null);
     const limitParam = Number.parseInt(searchParams.get('limit') ?? '', 10);
     const resultLimit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : DEFAULT_LIMIT;
 
@@ -264,8 +296,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
-    const searchEntities = (entities.length > 0 ? entities : appConfig.searchEntities) as SearchEntity[];
-    const uniqueEntities = Array.from(new Set(searchEntities)).filter(Boolean) as SearchEntity[];
+    const searchEntities = entityOverrides.length > 0 ? entityOverrides : appConfig.searchEntities;
+    const uniqueEntities = Array.from(new Set(searchEntities)).filter(entity =>
+      Object.prototype.hasOwnProperty.call(ENTITY_LOOKUP, entity)
+    );
 
     const entityQueries = uniqueEntities.map(async entity => {
       try {

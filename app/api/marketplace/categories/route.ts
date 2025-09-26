@@ -40,7 +40,9 @@ export async function GET(request: NextRequest) {
     const categories = await Category.find({ orgId: context.orgId })
       .sort({ createdAt: 1 })
       .lean();
-    const serialized = categories.map(category => serializeCategory(category));
+    const serialized = sortCategories(
+      categories.map(category => serializeCategory(category))
+    );
 
     const parentMap = new Map<string, any[]>();
     serialized.forEach(category => {
