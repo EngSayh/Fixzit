@@ -19,7 +19,7 @@ export default function AdminCMS(){
   const [slug,setSlug]=useState("privacy");
   const [title,setTitle]=useState("");
   const [content,setContent]=useState("");
-  const [status,setStatus]=useState<"DRAFT"|"PUBLISHED">("PUBLISHED");
+  const [status,setStatus]=useState<"DRAFT"|"PUBLISHED">("DRAFT");
 
   useEffect(()=>{
     (async()=>{
@@ -34,14 +34,19 @@ export default function AdminCMS(){
   },[slug]);
 
   const save = async()=>{
-    const r = await fetch(`/api/cms/pages/${slug}`, { 
-      method:"PATCH", 
-      headers:{ 
-        "content-type":"application/json"
-      }, 
-      body:JSON.stringify({ title, content, status }) 
-    });
-    alert(r.ok ? "Saved" : "Failed");
+    try {
+      const r = await fetch(`/api/cms/pages/${slug}`, { 
+        method:"PATCH", 
+        headers:{ 
+          "content-type":"application/json"
+        }, 
+        body:JSON.stringify({ title, content, status }),
+        credentials: "same-origin"
+      });
+      alert(r.ok ? "Saved" : `Failed: ${await r.text()}`);
+    } catch (e:any) {
+      alert("Failed: network error");
+    }
   };
 
   return (

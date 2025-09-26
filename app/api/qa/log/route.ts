@@ -24,6 +24,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { event, data } = body;
 
+    // Auth gate: require session user or a shared secret when not in mock mode
+    let user: any | null = null;
+    try {
+      user = await getSessionUser(req);
+    } catch {}
+    const qaKey = req.headers.get('x-qa-key');
+    if (!isMockDB && !user && qaKey !== process.env.QA_LOG_KEY) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Log the event to console for mock database
     if (isMockDB) {
       console.log(`📝 QA Log (Mock): ${event}`, data);
@@ -40,6 +50,7 @@ export async function POST(req: NextRequest) {
     // Ensure TTL index (30 days) on timestamp
     try {
       await nativeDb.collection('qa_logs').createIndex({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 30 });
+      await nativeDb.collection('qa_logs').createIndex({ event: 1, timestamp: -1 });
     } catch {}
 
     // Log the event to database for real database, with minimal PII
@@ -91,7 +102,8 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
+    const rawLimit = Number(searchParams.get('limit') ?? '100');
+    const limit = Math.min(1000, Math.max(1, Number.isFinite(rawLimit) ? Math.trunc(rawLimit) : 100));
     const eventType = searchParams.get('event');
 
     // Return empty array for mock database

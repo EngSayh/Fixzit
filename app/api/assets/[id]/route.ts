@@ -101,6 +101,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // RBAC: restrict updates to privileged roles/permissions
+    const writeRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'ASSET_MANAGER']);
+    if (!writeRoles.has(user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     await db;
 
     const data = updateAssetSchema.parse(await req.json());
@@ -148,6 +153,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // RBAC: restrict delete (soft-decommission) to privileged roles/permissions
+    const deleteRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'ASSET_MANAGER']);
+    if (!deleteRoles.has(user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     await db;
 
     const asset = await Asset.findOneAndUpdate(
@@ -162,6 +172,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error?.name === "CastError") {
+      return NextResponse.json({ error: "Invalid asset id" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

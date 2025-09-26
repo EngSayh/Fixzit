@@ -79,7 +79,12 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const { searchParams } = new URL(req.url);

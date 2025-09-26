@@ -5,7 +5,7 @@ import { MockModel } from "@/src/lib/mockDb";
 const JobSchema = new Schema({
   orgId: { type: String, index: true, required: true },
   title: { type: String, required: true },
-  slug: { type: String, unique: true, index: true },
+  slug: { type: String, index: true },
   description: String,
   department: String,
   location: {
@@ -25,15 +25,14 @@ const JobSchema = new Schema({
 
 JobSchema.index({ orgId: 1, status: 1, publishedAt: -1 });
 JobSchema.index({ title: "text", description: "text", department: "text", jobType: "text" });
+JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 
 export type JobDoc = InferSchemaType<typeof JobSchema>;
 
 class JobMock extends MockModel {
   constructor() { super('jobs'); }
-  async findByIdAndUpdate(id: string, update: any) {
-    // Delegate to base implementation
-    // @ts-ignore
-    return super.findByIdAndUpdate(id, update, { new: true });
+  async findByIdAndUpdate(id: string, update: any): Promise<JobDoc | null> {
+    return (super.findByIdAndUpdate as any)(id, update, { new: true }) as Promise<JobDoc | null>;
   }
 }
 

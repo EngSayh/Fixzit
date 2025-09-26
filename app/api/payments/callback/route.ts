@@ -6,7 +6,8 @@ import { db } from '@/src/lib/mongo';
 export async function POST(req: NextRequest) {
   try {
     const raw = await req.text();
-    const signature = req.headers.get('signature') || '';
+    const signature =
+      (req.headers.get('signature') ?? req.headers.get('Signature') ?? '').toLowerCase();
 
     // Validate callback signature
     const valid = await validateCallbackRaw(raw, signature);
@@ -28,18 +29,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
+    // Idempotency: ignore duplicate callbacks for the same transaction
+    if (Array.isArray(invoice.payments) && invoice.payments.some((p: any) => p?.transactionId === tran_ref)) {
+      return NextResponse.json({ success: true, idempotent: true });
+    }
+
+    // Integrity: ensure the verification response matches the target invoice
+    if (verification?.cart_id && String(verification.cart_id) !== String(cart_id)) {
+      return NextResponse.json({ error: 'Mismatched cart_id' }, { status: 400 });
+    }
+
     // Update invoice based on payment result
     if (payment_result.response_status === 'A' && verification.payment_result.response_status === 'A') {
       // Payment successful
       invoice.status = 'PAID';
+      const amount =
+        Number(verification?.tran_total ?? verification?.cart_amount ?? body.cart_amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+      }
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
-        method: body.payment_info.payment_method,
+        amount,
+        method: body.payment_info?.payment_method || 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
         transactionId: tran_ref,
-        notes: `Payment via ${body.payment_info.card_scheme || body.payment_info.payment_method}`
+        notes: `Payment via ${body.payment_info?.card_scheme || body.payment_info?.payment_method || 'UNKNOWN'}`
       });
 
       invoice.history.push({
