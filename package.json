@@ -38,7 +38,7 @@
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "docs:marketplace-bible": "tsx scripts/generate-marketplace-bible.ts",
     "openapi:build": "node scripts/openapi/build.mjs",
-    "postman:export": "npx openapi-to-postmanv2 -s openapi.yaml -o postman_collection.json --pretty",
+    "postman:export": "npm run artifacts:init && mkdir -p _artifacts/postman && npx -y openapi2postmanv2 -s openapi.yaml -o _artifacts/postman/collection.json --pretty",
     "rbac:export": "node scripts/rbac/export.mjs"
   },
   "prisma": {
