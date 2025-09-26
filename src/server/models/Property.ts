@@ -187,12 +187,6 @@ PropertySchema.index({ 'address.coordinates': '2dsphere' });
 
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 
-<<<<<<< HEAD
-=======
-// Check if we're using mock database (explicit flag only)
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
->>>>>>> origin/main
 export const Property = isMockDB
   ? new MockModel('properties') as any
   : (models.Property || model("Property", PropertySchema));

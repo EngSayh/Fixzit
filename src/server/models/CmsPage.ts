@@ -14,12 +14,6 @@ const CmsPageSchema = new Schema({
 
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
 
-<<<<<<< HEAD
-=======
-// Check if we're using mock database (explicit flag only)
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
->>>>>>> origin/main
 export const CmsPage = isMockDB 
   ? new MockModel('cmspages') as any
   : (models.CmsPage || model("CmsPage", CmsPageSchema));

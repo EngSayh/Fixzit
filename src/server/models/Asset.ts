@@ -162,12 +162,6 @@ AssetSchema.index({ tenantId: 1, 'condition.score': 1 });
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 
-<<<<<<< HEAD
-=======
-// Check if we're using mock database (explicit flag only)
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
->>>>>>> origin/main
 export const Asset = isMockDB
   ? new MockModel('assets') as any
   : (models.Asset || model("Asset", AssetSchema));

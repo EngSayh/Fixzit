@@ -201,12 +201,6 @@ UserSchema.index({ tenantId: 1, 'performance.rating': -1 });
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
-<<<<<<< HEAD
-=======
-// Check if we're using mock database (explicit flag only)
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
->>>>>>> origin/main
 export const User = isMockDB
   ? new MockModel('users') as any
   : (models.User || model("User", UserSchema));

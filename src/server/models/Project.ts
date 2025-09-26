@@ -240,12 +240,6 @@ ProjectSchema.index({ tenantId: 1, 'progress.overall': -1 });
 
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
 
-<<<<<<< HEAD
-=======
-// Check if we're using mock database (explicit flag only)
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
->>>>>>> origin/main
 export const Project = isMockDB
   ? new MockModel('projects') as any
   : (models.Project || model("Project", ProjectSchema));
