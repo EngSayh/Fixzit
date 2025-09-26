@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
-import { Property } from "@/src/server/models/Property";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -64,12 +62,21 @@ const createPropertySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.PROPERTY_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Property endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const PropertyMod = await import('@/src/server/models/Property').catch(() => null);
+    const Property = PropertyMod && (PropertyMod as any).Property;
+    if (!Property) {
+      return NextResponse.json({ success: false, error: 'Property dependencies are not available in this deployment' }, { status: 501 });
+    }
     const user = await getSessionUser(req);
-    await db;
 
     const data = createPropertySchema.parse(await req.json());
 
-    const property = await Property.create({
+    const property = await (Property as any).create({
       tenantId: user.tenantId,
       code: `PROP-${Date.now()}`,
       ...data,
@@ -84,6 +91,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    if (process.env.PROPERTY_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Property endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const PropertyMod = await import('@/src/server/models/Property').catch(() => null);
+    const Property = PropertyMod && (PropertyMod as any).Property;
+    if (!Property) {
+      return NextResponse.json({ success: false, error: 'Property dependencies are not available in this deployment' }, { status: 501 });
+    }
     // For testing purposes, allow access without authentication
     let user = null;
     try {
@@ -92,7 +109,6 @@ export async function GET(req: NextRequest) {
       // Use mock user for testing
       user = { id: '1', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' };
     }
-    await db;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
