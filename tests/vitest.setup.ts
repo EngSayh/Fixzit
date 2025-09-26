@@ -139,9 +139,6 @@ Object.defineProperty(globalThis, "expect", {
 const originalResolveFilename = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, isMain, options) {
   if (typeof request === "string" && request.startsWith("@/")) {
-    if (request === "@/src/lib/mockDb" || request.startsWith("@/src/lib/mockDb")) {
-      return originalResolveFilename.call(this, request, parent, isMain, options);
-    }
     const relativePath = request.slice(2);
     const basePath = path.resolve(process.cwd(), relativePath);
     const candidates = [

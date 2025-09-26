@@ -7,7 +7,7 @@
   Primary focus:
   - Validate behavior of the "generate marketplace bible" script introduced by the PR diff:
       - Ensures output directory _artifacts is created if missing
-      - Generates Fixzit_Marketplace_Bible_v1.docx with expected content
+      - Generates Fixzit_Marketplace_Bible_v1.md with expected content
       - Logs success message with exact output path
       - Is idempotent (re-run should still succeed and preserve correct content)
   - Edge cases:
@@ -37,7 +37,7 @@ try {
 
 const REPO_ROOT = process.cwd();
 const ARTIFACTS_DIR = path.join(REPO_ROOT, "_artifacts");
-const OUT_FILE = path.join(ARTIFACTS_DIR, "Fixzit_Marketplace_Bible_v1.docx");
+const OUT_FILE = path.join(ARTIFACTS_DIR, "Fixzit_Marketplace_Bible_v1.md");
 
 // Attempt to locate the script under test.
 // Preferred guesses based on common layout:
@@ -104,7 +104,7 @@ const expectedContentStart = "Fixzit Marketplace Bible (v1)";
 const expectedContentIncludes = [
   "Scope: Amazon-style marketplace for materials",
   "/api/marketplace/search",
-  "Fixzit_Marketplace_Bible_v1.docx", // ensure name alignment if echoed or referenced
+  "Fixzit_Marketplace_Bible_v1.md", // ensure name alignment if echoed or referenced
 ];
 
 (usingVitest ? require("vitest") : globalThis).describe("scripts/generate-marketplace-bible", () => {
@@ -131,7 +131,7 @@ const expectedContentIncludes = [
     }
   });
 
-  (usingVitest ? require("vitest") : globalThis).it("creates _artifacts directory and generates the .docx with expected content (happy path)", () => {
+  (usingVitest ? require("vitest") : globalThis).it("creates _artifacts directory and generates the .md with expected content (happy path)", () => {
     expect(fs.existsSync(ARTIFACTS_DIR)).toBe(false);
     const { status, stdout, stderr } = runScriptAndCapture();
     expect(status).toBe(0);

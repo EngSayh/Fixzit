@@ -1,21 +1,8 @@
 const { Schema, model, models } = require('mongoose');
-
-function shouldUseMockModel() {
-  const env = process.env.NODE_ENV ?? 'development';
-  if ('__FIXZIT_MARKETPLACE_DB_MOCK__' in globalThis) {
-    return true;
-  }
-  if (env === 'production') {
-    return false;
-  }
-  if (process.env.USE_MOCK_DB === '1') {
-    return true;
-  }
-  if (process.env.USE_REAL_DB === '1') {
-    return false;
-  }
-  return false;
-}
+const {
+  getMarketplaceMockModelFactory,
+  shouldUseMarketplaceMockModel,
+} = require('./utils/mockModel');
 
 const ProductSchema = new Schema(
   {
@@ -67,19 +54,8 @@ ProductSchema.index({ 'title.en': 'text', 'title.ar': 'text', summary: 'text', b
 
 const ProductModel = models.MarketplaceProduct || model('MarketplaceProduct', ProductSchema);
 
-function loadMockModel() {
-  const mod = require('../lib/mockDb');
-  if (mod && typeof mod.MockModel === 'function') {
-    return mod.MockModel;
-  }
-  if (typeof mod === 'function') {
-    return mod;
-  }
-  throw new Error('MockModel implementation not found');
-}
-
-const MarketplaceProduct = shouldUseMockModel()
-  ? new (loadMockModel())('marketplaceproducts')
+const MarketplaceProduct = shouldUseMarketplaceMockModel()
+  ? new (getMarketplaceMockModelFactory())('marketplaceproducts')
   : ProductModel;
 
 module.exports = MarketplaceProduct;
