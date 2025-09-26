@@ -94,7 +94,7 @@ export async function POST(
     
     // Parse experience
     const yearsOfExperience = experience ? 
-      parseInt(experience) : 
+      parseInt(experience, 10) : 
       calculateExperienceFromText(resumeText + ' ' + coverLetter);
     
     // Get ATS settings
@@ -169,11 +169,12 @@ export async function POST(
       scoringCriteria
     );
     
-    // Check knockout rules (simplified for now)
-    const knockoutCheck = {
-      shouldReject: false,
-      reason: ''
-    };
+    // Check knockout rules
+    const knockoutCheck = atsSettings.shouldAutoReject({
+      experience: yearsOfExperience,
+      skills: candidateSkills,
+      score: score
+    });
     
     // Create application
     const application = await Application.create({
