@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { dbConnect } from '@/src/db/mongoose';
-import Product from '@/src/models/marketplace/Product';
 import { serializeProduct } from '@/src/lib/marketplace/serializers';
 import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
 
@@ -36,15 +34,24 @@ const ProductSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    if (process.env.MARKETPLACE_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { dbConnect } = await import('@/src/db/mongoose');
+    await dbConnect();
+    const ProductMod = await import('@/src/models/marketplace/Product').catch(() => null);
+    const Product = ProductMod && (ProductMod.default || ProductMod);
+    if (!Product) {
+      return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
+    }
     const context = await resolveMarketplaceContext(request);
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
-    await dbConnect();
 
     const skip = (query.page - 1) * query.limit;
     const [items, total] = await Promise.all([
-      Product.find({ orgId: context.orgId }).sort({ createdAt: -1 }).skip(skip).limit(query.limit).lean(),
-      Product.countDocuments({ orgId: context.orgId })
+      (Product as any).find({ orgId: context.orgId }).sort({ createdAt: -1 }).skip(skip).limit(query.limit).lean(),
+      (Product as any).countDocuments({ orgId: context.orgId })
     ]);
 
     return NextResponse.json({
@@ -70,6 +77,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (process.env.MARKETPLACE_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { dbConnect } = await import('@/src/db/mongoose');
+    await dbConnect();
+    const ProductMod = await import('@/src/models/marketplace/Product').catch(() => null);
+    const Product = ProductMod && (ProductMod.default || ProductMod);
+    if (!Product) {
+      return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
+    }
     const context = await resolveMarketplaceContext(request);
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -79,9 +96,8 @@ export async function POST(request: NextRequest) {
     }
     const body = await request.json();
     const payload = ProductSchema.parse(body);
-    await dbConnect();
 
-    const product = await Product.create({
+    const product = await (Product as any).create({
       ...payload,
       orgId: context.orgId,
       categoryId: objectIdFrom(payload.categoryId),

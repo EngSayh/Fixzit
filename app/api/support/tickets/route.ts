@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
-import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -16,12 +14,22 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest){
-  await db;
-  const user = await getSessionUser(req).catch(()=>null);
-  const body = createSchema.parse(await req.json());
+  try {
+    if (process.env.SUPPORT_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Support endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const SupportTicketMod = await import('@/src/server/models/SupportTicket').catch(() => null);
+    const SupportTicket = SupportTicketMod && (SupportTicketMod as any).SupportTicket;
+    if (!SupportTicket) {
+      return NextResponse.json({ success: false, error: 'Support Ticket dependencies are not available in this deployment' }, { status: 501 });
+    }
+    const user = await getSessionUser(req).catch(()=>null);
+    const body = createSchema.parse(await req.json());
 
-  const code = `SUP-${new Date().getFullYear()}-${Math.floor(Math.random()*100000)}`;
-  const ticket = await SupportTicket.create({
+    const code = `SUP-${new Date().getFullYear()}-${Math.floor(Math.random()*100000)}`;
+    const ticket = await (SupportTicket as any).create({
     tenantId: user?.tenantId,
     code,
     subject: body.subject,
@@ -37,31 +45,53 @@ export async function POST(req: NextRequest){
   });
 
   return NextResponse.json(ticket, { status: 201 });
+  } catch (error: any) {
+    console.error('Support Tickets POST error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to create support ticket' 
+    }, { status: 500 });
+  }
 }
 
 // Admin list with filters
 export async function GET(req: NextRequest){
-  await db;
-  const user = await getSessionUser(req).catch(()=>null);
-  if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
-    return NextResponse.json({ error: "Forbidden"},{ status: 403 });
-  }
-  const sp = new URL(req.url).searchParams;
-  const status = sp.get("status") || undefined;
-  const moduleKey = sp.get("module") || undefined;
-  const type = sp.get("type") || undefined;
-  const priority = sp.get("priority") || undefined;
-  const page = Math.max(1, Number(sp.get("page")||1));
-  const limit = Math.min(100, Number(sp.get("limit")||20));
-  const match:any = {};
-  if (status) match.status = status;
-  if (moduleKey) match.module = moduleKey;
-  if (type) match.type = type;
-  if (priority) match.priority = priority;
+  try {
+    if (process.env.SUPPORT_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Support endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const SupportTicketMod = await import('@/src/server/models/SupportTicket').catch(() => null);
+    const SupportTicket = SupportTicketMod && (SupportTicketMod as any).SupportTicket;
+    if (!SupportTicket) {
+      return NextResponse.json({ success: false, error: 'Support Ticket dependencies are not available in this deployment' }, { status: 501 });
+    }
+    const user = await getSessionUser(req).catch(()=>null);
+    if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
+      return NextResponse.json({ error: "Forbidden"},{ status: 403 });
+    }
+    const sp = new URL(req.url).searchParams;
+    const status = sp.get("status") || undefined;
+    const moduleKey = sp.get("module") || undefined;
+    const type = sp.get("type") || undefined;
+    const priority = sp.get("priority") || undefined;
+    const page = Math.max(1, Number(sp.get("page")||1));
+    const limit = Math.min(100, Number(sp.get("limit")||20));
+    const match:any = {};
+    if (status) match.status = status;
+    if (moduleKey) match.module = moduleKey;
+    if (type) match.type = type;
+    if (priority) match.priority = priority;
 
   const [items,total] = await Promise.all([
     (SupportTicket as any).find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
     (SupportTicket as any).countDocuments(match)
   ]);
   return NextResponse.json({ items, page, limit, total });
+  } catch (error: any) {
+    console.error('Support Tickets GET error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch support tickets' 
+    }, { status: 500 });
+  }
 }
