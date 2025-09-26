@@ -91,15 +91,53 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     // Use real database
     try {
       // Try PostgreSQL first
-      user = await prisma.user.findUnique({
-        where: { email: emailOrEmployeeNumber }
-      });
-    } catch (error) {
-      console.log('PostgreSQL not available, trying MongoDB...');
-      // Fallback to MongoDB
-      const mongoDb = await connectMongoDB();
-      const usersCollection = mongoDb.collection('users');
-      user = await usersCollection.findOne({ email: emailOrEmployeeNumber });
+      if (loginType === 'corporate') {
+        // For corporate login, search by employee number (username field)
+        user = await prisma.user.findFirst({
+          where: { 
+            OR: [
+              { username: emailOrEmployeeNumber },
+              { employeeId: emailOrEmployeeNumber }
+            ]
+          }
+        });
+      } else {
+        // For personal login, search by email
+        user = await prisma.user.findUnique({
+          where: { email: emailOrEmployeeNumber }
+        });
+      }
+    } catch (error: any) {
+      const msg = String(error?.message || '');
+      const code = error?.code;
+      const isConnErr = 
+        msg.includes('connect') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('ENOTFOUND') ||
+        msg.includes('authentication failed') ||
+        code === 'P1000' || // Prisma auth error
+        code === 'P1001';   // Prisma connection error
+        
+      if (isConnErr) {
+        console.warn('PostgreSQL connection failed, falling back to MongoDB:', msg);
+        // Fallback to MongoDB
+        const mongoDb = await connectMongoDB();
+        const usersCollection = mongoDb.collection('users');
+        
+        if (loginType === 'corporate') {
+          user = await usersCollection.findOne({ 
+            $or: [
+              { username: emailOrEmployeeNumber },
+              { employeeId: emailOrEmployeeNumber }
+            ]
+          });
+        } else {
+          user = await usersCollection.findOne({ email: emailOrEmployeeNumber });
+        }
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -110,6 +148,20 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
   // Guard against missing password hash
   if (!user.password) {
     throw new Error('Invalid credentials');
+  }
+
+  // Check user status - only allow active users to login
+  if (user.status && user.status !== 'ACTIVE') {
+    switch (user.status) {
+      case 'PENDING':
+        throw new Error('Account is pending activation. Please check your email for activation instructions.');
+      case 'SUSPENDED':
+        throw new Error('Account has been suspended. Please contact administrator.');
+      case 'INACTIVE':
+        throw new Error('Account is inactive. Please contact administrator.');
+      default:
+        throw new Error('Account access is restricted.');
+    }
   }
 
   const isValid = await verifyPassword(password, user.password);
@@ -156,12 +208,25 @@ export async function getUserFromToken(token: string) {
       user = await prisma.user.findUnique({
         where: { id: payload.id }
       });
-    } catch (error) {
-      console.log('PostgreSQL not available, trying MongoDB...');
-      // Fallback to MongoDB
-      const mongoDb = await connectMongoDB();
-      const usersCollection = mongoDb.collection('users');
-      user = await usersCollection.findOne({ _id: new ObjectId(payload.id) });
+    } catch (error: any) {
+      const msg = String(error?.message || '');
+      const code = error?.code;
+      const isConnErr =
+        msg.includes('connect') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('ENOTFOUND') ||
+        msg.includes('authentication failed') ||
+        code === 'P1000' ||
+        code === 'P1001';
+      if (isConnErr) {
+        console.warn('PostgreSQL connection failed, falling back to MongoDB:', msg);
+        const mongoDb = await connectMongoDB();
+        const usersCollection = mongoDb.collection('users');
+        user = await usersCollection.findOne({ _id: new ObjectId(payload.id) });
+      } else {
+        throw error;
+      }
     }
   }
 

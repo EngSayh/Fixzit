@@ -73,7 +73,36 @@ export async function checkDatabaseHealth(): Promise<{
 }
 
 // Graceful shutdown
-process.on('beforeExit', async () => {
-  await prisma.$disconnect();
-  await disconnectMongoDB();
+const cleanup = async () => {
+  try {
+    await prisma.$disconnect();
+    await disconnectMongoDB();
+    console.log('✅ Database connections closed gracefully');
+  } catch (error) {
+    console.error('❌ Error during database cleanup:', error);
+  }
+};
+
+process.on('SIGTERM', async () => {
+  console.log('📡 Received SIGTERM, starting graceful shutdown...');
+  await cleanup();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('📡 Received SIGINT, starting graceful shutdown...');
+  await cleanup();
+  process.exit(0);
+});
+
+process.on('uncaughtException', async (error) => {
+  console.error('💥 Uncaught exception:', error);
+  await cleanup();
+  process.exit(1);
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('💥 Unhandled rejection at:', promise, 'reason:', reason);
+  await cleanup();
+  process.exit(1);
 });

@@ -121,7 +121,7 @@ export function calculateExperienceFromText(text: string): number {
   if (matches) {
     const years = matches.map(match => {
       const num = match.match(/\d+/);
-      return num ? parseInt(num[0]) : 0;
+      return num ? parseInt(num[0], 10) : 0;
     });
     return Math.max(...years);
   }
@@ -139,9 +139,9 @@ export function scoreApplication(application: any, job: any, criteria: ScoringCr
   };
   
   const jobRequirements = {
-    requiredExperience: job.experience || 0,
-    requiredSkills: job.skills || [],
-    preferredEducation: job.education || [],
+    requiredExperience: job.requiredExperience || 0,
+    requiredSkills: job.requiredSkills || [],
+    preferredEducation: job.preferredEducation || [],
     keywords: job.keywords || [],
     location: job.location || ''
   };
