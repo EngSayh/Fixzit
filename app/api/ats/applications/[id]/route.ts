@@ -47,10 +47,21 @@ export async function PATCH(
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
-    const userId = user?.id || 'system';
-    const application = await (Application as any).findById(params.id);
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const userId = user.id;
+    if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+      return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
+    }
+    const application = await (Application as any).findOne({ _id: params.id, orgId: user.tenantId });
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    // Optional: restrict stage transitions
+    const allowedStages = new Set(['applied','screening','interview','offer','hired','rejected']);
     if (body.stage && body.stage !== application.stage) {
+      if (!allowedStages.has(body.stage)) {
+        return NextResponse.json({ success: false, error: 'Invalid stage' }, { status: 400 });
+      }
       const oldStage = application.stage;
       application.stage = body.stage;
       application.history.push({ action: `stage_change:${oldStage}->${body.stage}`, by: userId, at: new Date(), details: body.reason });
@@ -61,12 +72,22 @@ export async function PATCH(
       application.history.push({ action: 'score_updated', by: userId, at: new Date(), details: `Score changed from ${oldScore} to ${body.score}` });
     }
     if (body.note) {
-      application.notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
+      application.notes = application.notes || [];
+      // Optionally gate private notes to privileged roles
+      const canWritePrivate = Array.isArray((user as any).roles) && (user as any).roles.some((r: string) => ['ADMIN','OWNER','ATS_ADMIN','RECRUITER'].includes(r));
+      const isPrivate = !!body.isPrivate && canWritePrivate;
+      application.notes.push({ author: userId, text: String(body.note).slice(0, 5000), createdAt: new Date(), isPrivate });
     }
-    if (Array.isArray(body.flags)) (application as any).flags = body.flags;
-    if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers;
+    if (Array.isArray(body.flags)) (application as any).flags = body.flags.filter((f: any) => typeof f === 'string').slice(0, 50);
+    if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers.filter((r: any) => /^[a-fA-F0-9]{24}$/.test(r)).slice(0, 50);
     await application.save();
-    return NextResponse.json({ success: true, data: application });
+    const result = application.toObject();
+    // Hide private notes from non-privileged users
+    const canSeePrivate = Array.isArray((user as any).roles) && (user as any).roles.some((r: string) => ['ADMIN','OWNER','ATS_ADMIN','RECRUITER'].includes(r));
+    if (!canSeePrivate && Array.isArray(result.notes)) {
+      result.notes = result.notes.filter((n: any) => !n?.isPrivate);
+    }
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to update application' }, { status: 500 });
   }

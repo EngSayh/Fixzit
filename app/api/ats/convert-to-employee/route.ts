@@ -22,9 +22,20 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    // Check if user has permission to convert applications to employees
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN']);
+    if (!allowedRoles.has((user as any).role || '')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
     const { applicationId } = await req.json();
     if (!applicationId) return NextResponse.json({ success: false, error: 'applicationId required' }, { status: 400 });
-    const app = await (Application as any).findById(applicationId).lean();
+    if (!/^[a-fA-F0-9]{24}$/.test(applicationId)) {
+      return NextResponse.json({ success: false, error: 'Invalid applicationId' }, { status: 400 });
+    }
+    const app = await (Application as any).findOne({ _id: applicationId, orgId: user.tenantId }).lean();
     if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
     if (app.stage !== 'hired') return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
     const [cand, job] = await Promise.all([
