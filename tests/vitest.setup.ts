@@ -42,22 +42,6 @@ const viUseRealTimers = vi.useRealTimers.bind(vi);
 const viSetSystemTime = vi.setSystemTime.bind(vi);
 const viAdvanceTimersByTime = vi.advanceTimersByTime.bind(vi);
 
-const MOCK_DB_MODULE_IDS = new Set([
-  "@/src/lib/mockDb",
-  "../src/lib/mockDb",
-  "../src/lib/mockDb.js",
-]);
-
-const cacheMockDatabase = (moduleId: string, result: unknown) => {
-  if (!MOCK_DB_MODULE_IDS.has(moduleId)) {
-    return;
-  }
-  const maybeDb = (result as any)?.MockDatabase;
-  if (maybeDb) {
-    (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ = maybeDb;
-  }
-};
-
 const jestCompat: JestLike = Object.assign(vi, {
   mock(moduleId: any, factory?: any, options?: any) {
     if (typeof moduleId === "string" && typeof factory === "function") {
@@ -65,7 +49,6 @@ const jestCompat: JestLike = Object.assign(vi, {
         try {
           const result = factory();
           moduleFactories.set(moduleId, result);
-          cacheMockDatabase(moduleId, result);
           return result;
         } catch (error) {
           moduleFactories.delete(moduleId);
@@ -83,7 +66,6 @@ const jestCompat: JestLike = Object.assign(vi, {
         try {
           const result = factory();
           moduleFactories.set(moduleId, result);
-          cacheMockDatabase(moduleId, result);
           return result;
         } catch (error) {
           moduleFactories.delete(moduleId);
@@ -102,7 +84,6 @@ const jestCompat: JestLike = Object.assign(vi, {
   restoreAllMocks: viRestoreAllMocks,
   resetModules: ((...args: Parameters<typeof vi.resetModules>) => {
     moduleFactories.clear();
-    delete (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__;
     return viResetModules(...args);
   }) as JestLike["resetModules"],
   useFakeTimers: ((...args: Parameters<typeof vi.useFakeTimers>) => fakeTimersWrapper(...args)) as JestLike["useFakeTimers"],
@@ -139,6 +120,9 @@ Object.defineProperty(globalThis, "expect", {
 const originalResolveFilename = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, isMain, options) {
   if (typeof request === "string" && request.startsWith("@/")) {
+    if (request === "@/src/lib/mockDb" || request.startsWith("@/src/lib/mockDb")) {
+      return originalResolveFilename.call(this, request, parent, isMain, options);
+    }
     const relativePath = request.slice(2);
     const basePath = path.resolve(process.cwd(), relativePath);
     const candidates = [

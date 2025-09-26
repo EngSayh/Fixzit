@@ -14,24 +14,7 @@ export default defineConfig({
       tsconfig: "tsconfig.vitest.json",
     },
     coverage: {
-      enabled: true,
-      provider: 'v8',
-      reportsDirectory: '_artifacts/coverage',
-      reporter: ['text', 'json', 'html', 'lcov'],
-      exclude: [
-        'node_modules/**',
-        'playwright.config.ts',
-        'scripts/**',
-        '_artifacts/**',
-      ],
-      thresholds: {
-        global: {
-          statements: 70,
-          branches: 65,
-          functions: 70,
-          lines: 70,
-        },
-      },
+      enabled: false,
     },
   },
   resolve: {

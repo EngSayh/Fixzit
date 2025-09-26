@@ -4,17 +4,15 @@ const path = require('path');
 const OUT_DIR = path.join(process.cwd(), '_artifacts');
 const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.md');
 
-function ensureArtifactsDir(dirPath, fsModule) {
-  if (!fsModule.existsSync(dirPath)) {
-    fsModule.mkdirSync(dirPath, { recursive: true });
+function ensureArtifactsDir(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
   }
 }
 
 function buildDocumentContent() {
   return [
     'Fixzit Marketplace Bible (v1)',
-    '',
-    `Output Artifact: ${path.basename(OUT_FILE)}`,
     '',
     'Scope: Amazon-style marketplace for materials; governance-aligned (single header/sidebar, RTL/LTR, RBAC).',
     '',
@@ -31,20 +29,10 @@ function buildDocumentContent() {
   ].join('\n');
 }
 
-function main(options = {}) {
-  const {
-    fsModule = fs,
-    forceFailure = process.env.FIXZIT_BIBLE_FORCE_WRITE_ERROR === '1',
-  } = options;
-
-  ensureArtifactsDir(OUT_DIR, fsModule);
+function main() {
+  ensureArtifactsDir(OUT_DIR);
   const content = buildDocumentContent();
-
-  if (forceFailure) {
-    throw new Error('Forced write failure for tests');
-  }
-
-  fsModule.writeFileSync(OUT_FILE, content, 'utf8');
+  fs.writeFileSync(OUT_FILE, content, 'utf8');
   // eslint-disable-next-line no-console
   console.log('✔ Marketplace Bible generated at', OUT_FILE);
   return OUT_FILE;
@@ -53,10 +41,11 @@ function main(options = {}) {
 if (require.main === module) {
   try {
     main();
+    process.exit(0);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to generate marketplace bible', error);
-    process.exitCode = 1;
+    process.exit(1);
   }
 }
 
