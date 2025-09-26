@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         roleScopes: ['USER'],
         content: article.content || ''
       });
-    } catch {}
+    } catch (e) { console.error(`Failed to trigger KB ingest for article ${article.slug}:`, e); }
     return NextResponse.json(article);
   } catch (err: any) {
     if (err?.name === 'ZodError') {

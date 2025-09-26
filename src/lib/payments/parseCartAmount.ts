@@ -20,10 +20,10 @@ export function parseCartAmount(value: unknown, fallback = 0): number {
       s = s.replace(new RegExp('\\' + thousandSep, 'g'), '');
       if (decimalSep === ',') s = s.replace(/,/g, '.');
     } else if (lastComma !== -1) {
-      if (/^\-?\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g, '');
+      if (/^-?\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g, '');
       else s = s.replace(/,/g, '.');
     } else if (lastDot !== -1) {
-      if (/^\-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+      if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
     }
     const parsed = Number.parseFloat(s);
     return Number.isFinite(parsed) ? parsed : fallback;

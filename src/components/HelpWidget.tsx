@@ -23,13 +23,13 @@ export default function HelpWidget() {
       icon: <BookOpen className="w-5 h-5" />,
       title: 'Help Center',
       description: 'Browse tutorials and guides',
-      action: () => { const w = window.open('/help', '_blank', 'noopener,noreferrer'); if (w) w.opener = null; }
+      action: () => { window.open('/help', '_blank', 'noopener,noreferrer'); }
     },
     {
       icon: <MessageSquare className="w-5 h-5" />,
       title: 'AI Assistant',
       description: 'Ask questions and get help',
-      action: () => { const w = window.open('/help/ai-chat', '_blank', 'noopener,noreferrer'); if (w) w.opener = null; }
+      action: () => { window.open('/help/ai-chat', '_blank', 'noopener,noreferrer'); }
     }
   ];
 
@@ -90,7 +90,7 @@ export default function HelpWidget() {
           {/* Quick Actions */}
           <div className="pt-2 border-t border-gray-200 mt-4">
             <button
-              onClick={() => { const w = window.open('/help/support-ticket', '_blank', 'noopener,noreferrer'); if (w) w.opener = null; }}
+              onClick={() => { window.open('/help/support-ticket', '_blank', 'noopener,noreferrer'); }}
               className="w-full text-center py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
               Create Support Ticket
