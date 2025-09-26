@@ -48,8 +48,7 @@ export async function POST(req: NextRequest) {
       });
       
       // In production, save to database
-      console.log('Payment successful for order:', cart_id);
-      console.log('ZATCA QR generated:', zatcaQR.base64);
+      console.log('Payment successful', { order: String(cart_id).slice(0,6) + '…' });
     }
     
     return NextResponse.json({

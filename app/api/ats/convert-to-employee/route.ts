@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    // RBAC: only privileged roles may convert
+    const allowed = new Set(['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'RECRUITER_LEAD']);
+    if (!allowed.has(user.role)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     const { applicationId } = await req.json();
     if (!applicationId) return NextResponse.json({ success: false, error: 'applicationId required' }, { status: 400 });
@@ -49,21 +54,41 @@ export async function POST(req: NextRequest) {
     ]);
     if (!cand || !job) return NextResponse.json({ success: false, error: 'Candidate or Job missing' }, { status: 400 });
 
-    const orgId = app.orgId;
-    const existing = await Employee.findOne({ orgId, 'personal.email': cand.email });
-    if (existing) return NextResponse.json({ success: true, data: existing, message: 'Employee already exists' });
-
-    const employee = await Employee.create({
-      orgId,
-      personal: { firstName: cand.firstName, lastName: cand.lastName, email: cand.email, phone: cand.phone },
-      professional: { role: 'EMPLOYEE', department: job.department, title: job.title },
-      status: 'ACTIVE',
-      metadata: { source: 'ats', jobId: job._id, applicationId: app._id, convertedBy: user.id }
+    if (!cand.email) {
+      return NextResponse.json({ success: false, error: 'Candidate email missing' }, { status: 400 });
+    }
+    const orgId = (app as any).orgId;
+    const filter = { orgId, 'personal.email': cand.email };
+    const upsertUpdate = {
+      $setOnInsert: {
+        orgId,
+        personal: { firstName: cand.firstName, lastName: cand.lastName, email: cand.email, phone: cand.phone },
+        professional: { role: 'EMPLOYEE', department: job.department, title: job.title },
+        status: 'ACTIVE',
+        metadata: { source: 'ats', jobId: job._id, applicationId: app._id, convertedBy: user.id }
+      }
+    };
+    const result: any = await Employee.findOneAndUpdate(filter, upsertUpdate, {
+      new: true,
+      upsert: true,
+      rawResult: true,
+      setDefaultsOnInsert: true
     });
-    return NextResponse.json({ success: true, data: employee });
-  } catch (error) {
+    const employee = result.value;
+    const created = !!result?.lastErrorObject?.upserted;
+    return NextResponse.json({ success: true, data: employee }, { status: created ? 201 : 200 });
+  } catch (error: any) {
+    if (error?.name === 'CastError') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid applicationId' },
+        { status: 400 }
+      );
+    }
     console.error('Convert to employee error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to convert to employee' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to convert to employee' },
+      { status: 500 }
+    );
   }
 }
 

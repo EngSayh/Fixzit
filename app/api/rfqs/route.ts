@@ -84,7 +84,12 @@ const createRFQSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const data = createRFQSchema.parse(await req.json());
@@ -103,13 +108,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(rfq, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const { searchParams } = new URL(req.url);
