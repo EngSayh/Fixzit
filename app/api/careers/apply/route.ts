@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate phone number (basic validation)
-    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{8,20}$/;
-    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+    // Validate phone number (basic validation): allow 8-20 digits ignoring formatting
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length < 8 || phoneDigits.length > 20) {
       return NextResponse.json(
         { error: 'Invalid phone number format' },
         { status: 400 }
