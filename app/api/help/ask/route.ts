@@ -36,11 +36,6 @@ function redactPII(s: string) {
 const MAX_SNIPPET_LENGTH = process.env.MAX_SNIPPET_LENGTH
   ? Number(process.env.MAX_SNIPPET_LENGTH)
   : 400;
-// 400 was chosen to balance informativeness and brevity for UI display and model input.
-// You can override this value by setting the MAX_SNIPPET_LENGTH environment variable.
-const MAX_SNIPPET_LENGTH = process.env.MAX_SNIPPET_LENGTH
-  ? Number(process.env.MAX_SNIPPET_LENGTH)
-  : 400;
 function buildHeuristicAnswer(question: string, contexts: Array<{ title: string; text: string }>) {
   const lines: string[] = [];
   lines.push(contexts.length ? `Here is what I found about: "${question}"` : `No matching articles found for: "${question}"`);
