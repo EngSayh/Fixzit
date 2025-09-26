@@ -74,7 +74,7 @@ jobs:
       # ---------- Lighthouse CI (static export if available) ----------
       - name: Lighthouse CI (static)
         run: |
-          (pnpm dlx @lhci/cli autorun --collect.staticDistDir=out --upload.target=filesystem --upload.outputDir=lhci_reports) || true
+          (pnpm dlx @lhci/cli autorun --collect.staticDistDir=apps/web/out --upload.target=filesystem --upload.outputDir=lhci_reports) || true
 
       # ---------- Dependency Audit ----------
       - name: Dependency Audit
