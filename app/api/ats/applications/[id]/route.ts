@@ -30,9 +30,7 @@ export async function GET(
       ? (user as any).roles
       : [ (user as any).role ].filter(Boolean);
     const canSeePII = userRoles.some((r: string) => PRIVILEGED_ROLES.has(r));
-    const candidateFields = canSeePII
-      ? 'firstName lastName email phone location'
-      : 'firstName lastName location';
+    const candidateFields = canSeePII ? 'firstName lastName email phone location' : 'firstName lastName location';
     // Optional: fast id sanity check to avoid cast errors
     if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
       return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
@@ -44,7 +42,11 @@ export async function GET(
       .populate('candidateId', candidateFields)
       .lean();
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
-    return NextResponse.json({ success: true, data: application });
+    const result: any = application;
+    if (!canSeePII && Array.isArray(result.notes)) {
+      result.notes = result.notes.filter((n: any) => !n?.isPrivate);
+    }
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to fetch application' }, { status: 500 });
   }
