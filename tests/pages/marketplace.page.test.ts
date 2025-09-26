@@ -12,18 +12,19 @@ import { render, screen, within } from '@testing-library/react';
 
 // Mock next/link to avoid Next.js runtime during tests
 jest.mock('next/link', () => {
-  return ({ href, className, children }: any) =>
+  const MockLink = ({ href, className, children }: any) =>
     React.createElement(
       'a',
       { href, className, 'data-testid': 'next-link-mock' },
       children
     );
+  MockLink.displayName = 'MockLink';
+  return MockLink;
 });
 
 // We will import the page under test via its route path if available.
 // If your repository locates the page at app/marketplace/page.tsx, adjust the import path accordingly.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+// @ts-expect-error - Dynamic import for testing
 import MarketplacePage from '../../app/marketplace/page'; // Adjust this path to match your project structure.
 
 type Product = {

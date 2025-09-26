@@ -36,7 +36,7 @@ export default function AdminCMS(){
       <h1 className="text-2xl font-semibold">CMS Pages</h1>
       <div className="flex gap-2">
         <input className="px-3 py-2 border border-gray-300 rounded-md" value={slug} onChange={e=>setSlug(e.target.value)} placeholder="Slug (e.g., privacy)" />
-        <select className="px-3 py-2 border border-gray-300 rounded-md" value={status} onChange={e=>setStatus(e.target.value as any)}>
+        <select className="px-3 py-2 border border-gray-300 rounded-md" value={status} onChange={e=>setStatus(e.target.value as "DRAFT"|"PUBLISHED")}>
           <option value="DRAFT">DRAFT</option><option value="PUBLISHED">PUBLISHED</option>
         </select>
         <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" onClick={save}>Save</button>
