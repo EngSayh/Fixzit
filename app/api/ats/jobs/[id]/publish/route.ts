@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
