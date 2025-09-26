@@ -17,6 +17,13 @@ export async function PUT(req: NextRequest) {
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN']);
+    if (!allowedRoles.has((user as any).role || '')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     const { jobId, action } = body;
     if (!jobId || !['approve', 'reject'].includes(action)) return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 });

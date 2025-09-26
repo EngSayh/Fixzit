@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
     }
     const app = await (Application as any).findOne({ _id: applicationId, orgId: user.tenantId }).lean();
     if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
-    if (app.stage !== 'hired') return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
+    
+    if (app.stage !== 'hired') {
+      return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
+    }
     const [cand, job] = await Promise.all([
       (Candidate as any).findById(app.candidateId).lean(),
       (Job as any).findById(app.jobId).lean()
