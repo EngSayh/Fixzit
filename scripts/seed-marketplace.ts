@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { MockDatabase } from '../src/lib/mockDb';
@@ -10,17 +11,22 @@ export function upsert(collection: string, predicate: (x: any) => boolean, doc: 
   const idx = data.findIndex(predicate);
   const timestamp = Date.now();
 
+  const normalizedDoc: Record<string, unknown> =
+    (doc && typeof doc === 'object') ? (doc as Record<string, unknown>) : {};
+
   if (idx >= 0) {
-    const updated = { ...data[idx], ...doc, updatedAt: new Date(timestamp) };
+    const { _id: _ignoreId, createdAt: _ignoreCreatedAt, ...rest } = normalizedDoc;
+    const updated = { ...data[idx], ...rest, updatedAt: new Date(timestamp) };
     data[idx] = updated;
     db.setCollection(collection, data);
     return updated;
   }
 
+  const { _id: providedId, createdAt: providedCreatedAt, ...rest } = normalizedDoc;
   const created = {
-    ...doc,
-    _id: Math.random().toString(36).slice(2),
-    createdAt: new Date(timestamp),
+    ...rest,
+    _id: (typeof providedId === 'string' && providedId.length > 0) ? providedId : randomUUID(),
+    createdAt: providedCreatedAt ? new Date(providedCreatedAt as Date | number | string) : new Date(timestamp),
     updatedAt: new Date(timestamp)
   };
   data.push(created);
