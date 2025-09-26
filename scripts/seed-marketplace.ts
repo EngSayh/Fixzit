@@ -94,4 +94,6 @@ export async function main() {
 
 export default main;
 
-void main();
+if (require.main === module) {
+  void main();
+}
