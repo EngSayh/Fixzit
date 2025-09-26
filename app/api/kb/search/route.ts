@@ -31,7 +31,13 @@ export async function POST(req: NextRequest) {
 
     const scope: any = {
       $and: [
-        { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] },
+        {
+          $or: [
+            ...(user?.tenantId ? [ { tenantId: user.tenantId } ] : []),
+            { tenantId: { $exists: false } },
+            { tenantId: null }
+          ]
+        },
       ]
     };
     if (lang) scope.$and.push({ lang });
@@ -53,12 +59,16 @@ export async function POST(req: NextRequest) {
         },
         {
           $project: {
+            _id: 0,
             articleId: 1,
             chunkId: 1,
             text: 1,
             lang: 1,
             route: 1,
             roleScopes: 1,
+            slug: 1,
+            title: 1,
+            updatedAt: 1,
             score: { $meta: 'vectorSearchScore' }
           }
         }
