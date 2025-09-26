@@ -16,79 +16,203 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect package manager
+        id: pm
+        shell: bash
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+            echo "cache=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f package-lock.json ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "cache=npm" >> "$GITHUB_OUTPUT"
+          elif [ -f yarn.lock ]; then
+            echo "manager=yarn" >> "$GITHUB_OUTPUT"
+            echo "cache=yarn" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "cache=npm" >> "$GITHUB_OUTPUT"
+            echo "::warning::No lock file found. Defaulting to npm install."
+          fi
+
       - name: Enable Corepack & Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: ${{ steps.pm.outputs.cache }}
       - run: corepack enable
 
       - name: Install
-        run: pnpm install --frozen-lockfile || npm ci || yarn install --frozen-lockfile
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm)
+              pnpm install --frozen-lockfile
+              ;;
+            yarn)
+              yarn install --frozen-lockfile
+              ;;
+            *)
+              npm ci
+              ;;
+          esac
 
       # ---------- Lint & Types ----------
       - name: Lint
-        run: pnpm lint || npm run lint || yarn lint
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm lint ;;
+            yarn) yarn lint ;;
+            *) npm run lint ;;
+          esac
       - name: Typecheck
-        run: pnpm typecheck || npm run typecheck || yarn typecheck
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm typecheck ;;
+            yarn) yarn typecheck ;;
+            *) npm run typecheck ;;
+          esac
 
       # ---------- Unit Tests -------------
       - name: Unit Tests
+        shell: bash
         run: |
           mkdir -p .artifacts
-          (pnpm test || npm test || yarn test) || true
+          status=0
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm test || status=$? ;;
+            yarn) yarn test || status=$? ;;
+            *) npm test || status=$? ;;
+          esac
+          exit ${status:-0}
 
       # ---------- Build Web (Next.js) ----------
       - name: Build Web (Next.js)
+        shell: bash
         run: |
+          build_dir=""
           if [ -f apps/web/package.json ]; then
-            cd apps/web
-            (pnpm build || npm run build || yarn build) || true
-            (pnpm export || npm run export || yarn export) || true
-            cd ../..
-          else
-            echo "apps/web not found; skipping Next.js build."
+            build_dir="apps/web"
+          elif [ -f package.json ]; then
+            build_dir="."
           fi
+
+          if [ -z "$build_dir" ]; then
+            echo "No Next.js project detected; skipping build."
+            exit 0
+          fi
+
+          pushd "$build_dir" >/dev/null
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm)
+              pnpm build
+              ;;
+            yarn)
+              yarn build
+              ;;
+            *)
+              npm run build
+              ;;
+          esac
+
+          # Attempt a static export when scripts exist; otherwise fall back to Next CLI
+          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.export?0:1)"; then
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm) pnpm run export ;;
+              yarn) yarn run export ;;
+              *) npm run export ;;
+            esac
+          else
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm) pnpm exec next export ;;
+              yarn) npx --yes next export ;;
+              *) npx --yes next export ;;
+            esac
+          fi
+          popd >/dev/null
 
       # ---------- OpenAPI (generate or validate) ----------
       - name: Build/Validate OpenAPI
+        shell: bash
         run: |
-          (pnpm run openapi:build || npm run openapi:build || yarn openapi:build) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run openapi:build || true ;;
+            yarn) yarn openapi:build || true ;;
+            *) npm run openapi:build || true ;;
+          esac
           mkdir -p .artifacts
-          [ -f openapi.yaml ] && cp -f openapi.yaml .artifacts/openapi.yaml || true
-          [ -f openapi.yml ] && cp -f openapi.yml .artifacts/openapi.yaml || true
-          [ -f apps/api/openapi.yaml ] && cp -f apps/api/openapi.yaml .artifacts/openapi.yaml || true
+          for candidate in openapi.yaml openapi.yml apps/api/openapi.yaml apps/api/openapi.yml; do
+            if [ -f "$candidate" ]; then
+              cp -f "$candidate" .artifacts/openapi.yaml
+              break
+            fi
+          done
 
       # ---------- Postman Collection (from OpenAPI) ----------
       - name: Export Postman Collection
+        shell: bash
         run: |
-          (pnpm run postman:export || npm run postman:export || yarn postman:export) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run postman:export || true ;;
+            yarn) yarn postman:export || true ;;
+            *) npm run postman:export || true ;;
+          esac
           [ -f postman_collection.json ] && cp -f postman_collection.json .artifacts/postman_collection.json || true
 
       # ---------- RBAC Matrix (CSV) ----------
       - name: Generate RBAC CSV
+        shell: bash
         run: |
-          (pnpm run rbac:export || npm run rbac:export || yarn rbac:export) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run rbac:export || true ;;
+            yarn) yarn rbac:export || true ;;
+            *) npm run rbac:export || true ;;
+          esac
           [ -f rbac-matrix.csv ] && cp -f rbac-matrix.csv .artifacts/rbac-matrix.csv || true
 
       # ---------- Lighthouse CI (static export if available) ----------
       - name: Lighthouse CI (static)
+        shell: bash
         run: |
-          (pnpm dlx @lhci/cli autorun --collect.staticDistDir=apps/web/out --upload.target=filesystem --upload.outputDir=lhci_reports) || true
+          mkdir -p lhci_reports
+          if [ -d apps/web/out ]; then
+            export_dir="apps/web/out"
+          elif [ -d out ]; then
+            export_dir="out"
+          else
+            echo "No static export directory found; skipping Lighthouse."
+            exit 0
+          fi
+
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm dlx @lhci/cli autorun --collect.staticDistDir="$export_dir" --upload.target=filesystem --upload.outputDir=lhci_reports || true ;;
+            yarn) npx --yes @lhci/cli autorun --collect.staticDistDir="$export_dir" --upload.target=filesystem --upload.outputDir=lhci_reports || true ;;
+            *) npx --yes @lhci/cli autorun --collect.staticDistDir="$export_dir" --upload.target=filesystem --upload.outputDir=lhci_reports || true ;;
+          esac
 
       # ---------- Dependency Audit ----------
       - name: Dependency Audit
+        shell: bash
         run: |
-          (pnpm audit --json > .artifacts/dep-audit.json) || (npm audit --json > .artifacts/dep-audit.json) || (yarn audit --json > .artifacts/dep-audit.json) || true
+          mkdir -p .artifacts
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm audit --json > .artifacts/dep-audit.json || true ;;
+            yarn) yarn audit --json > .artifacts/dep-audit.json || true ;;
+            *) npm audit --json > .artifacts/dep-audit.json || true ;;
+          esac
 
       # ---------- k6 Smoke (package only) ----------
       - name: Prepare k6 Scripts
+        shell: bash
         run: |
           mkdir -p .artifacts
           [ -f scripts/load/smoke.js ] && cp -f scripts/load/smoke.js .artifacts/smoke.js || true
 
       # ---------- Scorecard scaffold ----------
       - name: Scorecard scaffold
+        shell: bash
         run: |
           mkdir -p .artifacts
           cat > .artifacts/fixzit_scorecard.json <<'JSON'
