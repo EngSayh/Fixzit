@@ -117,7 +117,7 @@ jobs:
               ;;
           esac
 
-          # Attempt a static export when scripts exist; otherwise fall back to Next CLI
+          # Attempt a static export only when scripts exist
           if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.export?0:1)"; then
             case "${{ steps.pm.outputs.manager }}" in
               pnpm) pnpm run export ;;
@@ -125,11 +125,7 @@ jobs:
               *) npm run export ;;
             esac
           else
-            case "${{ steps.pm.outputs.manager }}" in
-              pnpm) pnpm exec next export ;;
-              yarn) npx --yes next export ;;
-              *) npx --yes next export ;;
-            esac
+            echo "No export script found. Configure 'output: \"export\"' in next.config.js and add an export script to package.json to enable static exports."
           fi
           popd >/dev/null
 
@@ -154,12 +150,17 @@ jobs:
       - name: Export Postman Collection
         shell: bash
         run: |
+          mkdir -p .artifacts
           case "${{ steps.pm.outputs.manager }}" in
             pnpm) pnpm run postman:export || true ;;
             yarn) yarn postman:export || true ;;
             *) npm run postman:export || true ;;
           esac
-          [ -f postman_collection.json ] && cp -f postman_collection.json .artifacts/postman_collection.json || true
+          if [ -f _artifacts/postman/collection.json ]; then
+            cp -f _artifacts/postman/collection.json .artifacts/postman_collection.json
+          elif [ -f postman_collection.json ]; then
+            cp -f postman_collection.json .artifacts/postman_collection.json
+          fi
 
       # ---------- RBAC Matrix (CSV) ----------
       - name: Generate RBAC CSV
@@ -197,11 +198,22 @@ jobs:
         shell: bash
         run: |
           mkdir -p .artifacts
+          audit_status=0
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm audit --json > .artifacts/dep-audit.json || true ;;
-            yarn) yarn audit --json > .artifacts/dep-audit.json || true ;;
-            *) npm audit --json > .artifacts/dep-audit.json || true ;;
+            pnpm)
+              pnpm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              ;;
+            yarn)
+              yarn audit --json > .artifacts/dep-audit.json || audit_status=$?
+              ;;
+            *)
+              npm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              ;;
           esac
+          if [ "${audit_status}" -ne 0 ]; then
+            echo "Dependency audit detected issues. See .artifacts/dep-audit.json for details."
+            exit "$audit_status"
+          fi
 
       # ---------- k6 Smoke (package only) ----------
       - name: Prepare k6 Scripts

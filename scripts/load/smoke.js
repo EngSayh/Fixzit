@@ -7,9 +7,7 @@ export default function () {
   const base = __ENV.FIXZIT_API_BASE;
 
   if (!base) {
-    console.warn('FIXZIT_API_BASE not set; skipping smoke request.');
-    sleep(1);
-    return;
+    throw new Error('FIXZIT_API_BASE must be set before running the smoke test.');
   }
 
   const res = http.get(base);
