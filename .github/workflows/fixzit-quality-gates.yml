@@ -20,40 +20,117 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: 'npm'
       - run: corepack enable
 
+      - name: Detect package manager
+        id: pm
+        shell: bash
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f package-lock.json ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+          elif [ -f yarn.lock ]; then
+            echo "manager=yarn" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "::warning::No lock file found. Defaulting to npm install."
+          fi
+
       - name: Install
-        run: pnpm install --frozen-lockfile || npm ci || yarn install --frozen-lockfile
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm)
+              pnpm install --frozen-lockfile
+              ;;
+            yarn)
+              yarn install --frozen-lockfile
+              ;;
+            *)
+              npm ci
+              ;;
+          esac
 
       # ---------- Lint & Types ----------
       - name: Lint
-        run: pnpm lint || npm run lint || yarn lint
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm lint ;;
+            yarn) yarn lint ;;
+            *) npm run lint ;;
+          esac
       - name: Typecheck
-        run: pnpm typecheck || npm run typecheck || yarn typecheck
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm typecheck ;;
+            yarn) yarn typecheck ;;
+            *) npm run typecheck ;;
+          esac
 
       # ---------- Unit Tests -------------
       - name: Unit Tests
         run: |
           mkdir -p .artifacts
-          (pnpm test || npm test || yarn test) || true
+          status=0
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm test || status=$? ;;
+            yarn) yarn test || status=$? ;;
+            *) npm test || status=$? ;;
+          esac
+          exit ${status:-0}
 
       # ---------- Build Web (Next.js) ----------
       - name: Build Web (Next.js)
         run: |
           if [ -f apps/web/package.json ]; then
             cd apps/web
-            (pnpm build || npm run build || yarn build) || true
-            (pnpm export || npm run export || yarn export) || true
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm)
+                pnpm build || true
+                pnpm run export --if-present || pnpm exec next export || true
+                ;;
+              yarn)
+                yarn build || true
+                yarn run export || yarn next export || true
+                ;;
+              *)
+                npm run build || true
+                npm run export --if-present || npx --yes next export || true
+                ;;
+            esac
             cd ../..
+          elif [ -f package.json ]; then
+            echo "apps/web not found; running root Next.js build."
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm)
+                pnpm build || true
+                pnpm run export --if-present || pnpm exec next export || true
+                ;;
+              yarn)
+                yarn build || true
+                yarn run export || yarn next export || true
+                ;;
+              *)
+                npm run build || true
+                npm run export --if-present || npx --yes next export || true
+                ;;
+            esac
           else
-            echo "apps/web not found; skipping Next.js build."
+            echo "No Next.js project detected; skipping build."
           fi
 
       # ---------- OpenAPI (generate or validate) ----------
       - name: Build/Validate OpenAPI
         run: |
-          (pnpm run openapi:build || npm run openapi:build || yarn openapi:build) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run openapi:build || true ;;
+            yarn) yarn openapi:build || true ;;
+            *) npm run openapi:build || true ;;
+          esac
           mkdir -p .artifacts
           [ -f openapi.yaml ] && cp -f openapi.yaml .artifacts/openapi.yaml || true
           [ -f openapi.yml ] && cp -f openapi.yml .artifacts/openapi.yaml || true
@@ -62,24 +139,40 @@ jobs:
       # ---------- Postman Collection (from OpenAPI) ----------
       - name: Export Postman Collection
         run: |
-          (pnpm run postman:export || npm run postman:export || yarn postman:export) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run postman:export || true ;;
+            yarn) yarn postman:export || true ;;
+            *) npm run postman:export || true ;;
+          esac
           [ -f postman_collection.json ] && cp -f postman_collection.json .artifacts/postman_collection.json || true
 
       # ---------- RBAC Matrix (CSV) ----------
       - name: Generate RBAC CSV
         run: |
-          (pnpm run rbac:export || npm run rbac:export || yarn rbac:export) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run rbac:export || true ;;
+            yarn) yarn rbac:export || true ;;
+            *) npm run rbac:export || true ;;
+          esac
           [ -f rbac-matrix.csv ] && cp -f rbac-matrix.csv .artifacts/rbac-matrix.csv || true
 
       # ---------- Lighthouse CI (static export if available) ----------
       - name: Lighthouse CI (static)
         run: |
-          (pnpm dlx @lhci/cli autorun --collect.staticDistDir=apps/web/out --upload.target=filesystem --upload.outputDir=lhci_reports) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm dlx @lhci/cli autorun || true ;;
+            yarn) yarn dlx @lhci/cli autorun || true ;;
+            *) npx --yes @lhci/cli autorun || true ;;
+          esac
 
       # ---------- Dependency Audit ----------
       - name: Dependency Audit
         run: |
-          (pnpm audit --json > .artifacts/dep-audit.json) || (npm audit --json > .artifacts/dep-audit.json) || (yarn audit --json > .artifacts/dep-audit.json) || true
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm audit --json > .artifacts/dep-audit.json || true ;;
+            yarn) yarn audit --json > .artifacts/dep-audit.json || true ;;
+            *) npm audit --json > .artifacts/dep-audit.json || true ;;
+          esac
 
       # ---------- k6 Smoke (package only) ----------
       - name: Prepare k6 Scripts

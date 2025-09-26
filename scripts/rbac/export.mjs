@@ -7,7 +7,13 @@ import path from "node:path";
  * - Attempts to infer a route string in the same file (heuristic)
  * Adjust ROLE_PATTERNS to match your auth helpers (e.g., hasRole, can, policy).
  */
-const ROOTS = ["apps", "packages", "src"].filter(fs.existsSync);
+const ROOTS = ["apps", "packages", "src"].filter((p) => {
+  try {
+    return fs.existsSync(p);
+  } catch {
+    return false;
+  }
+});
 const ROLE_PATTERNS = [
   /authorize\(["'`](.+?)["'`]\)/g,
   /requireRole\(["'`](.+?)["'`]\)/g,
@@ -19,10 +25,7 @@ const rows = [["role","file","route_or_context","action"]];
 
 function scanFile(p) {
   const src = fs.readFileSync(p, "utf8");
-  const matches = [];
-  for (const r of ROLE_PATTERNS) {
-    for (const m of src.matchAll(r)) matches.push(m[1]);
-  }
+  const matches = ROLE_PATTERNS.flatMap((regex) => [...src.matchAll(regex)].map((m) => m[1]));
   if (matches.length === 0) return;
   const route = (src.match(ROUTE_REGEX)?.[1]) || "";
   matches.forEach((role) => rows.push([role, p, route, "allow"]));
@@ -37,6 +40,11 @@ function walk(dir) {
 }
 ROOTS.forEach(walk);
 
-const csv = rows.map((r)=>r.map((x)=>`"${(x||"").replace(/"/g,'""')}"`).join(",")).join("\n");
+const toCsvRow = (row) => {
+  const escape = (val) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+  return row.map(escape).join(",");
+};
+
+const csv = rows.map(toCsvRow).join("\n");
 fs.writeFileSync("rbac-matrix.csv", csv);
 console.log(`[rbac] exported ${rows.length-1} entries to rbac-matrix.csv`);
