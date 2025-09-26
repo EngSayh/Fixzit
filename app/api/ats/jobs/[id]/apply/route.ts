@@ -115,8 +115,6 @@ export async function POST(
         if (!allowed.includes(mime) || size > maxBytes || !isValidMagicBytes(buffer, mime)) {
           return NextResponse.json({ success: false, error: 'Unsupported file type or size' }, { status: 400 });
         }
-        const bytes = await (resumeFile as any).arrayBuffer();
-        const buffer = Buffer.from(bytes);
         const cryptoMod = await import('crypto');
         const uuid = (cryptoMod as any).randomUUID();
         const safeExt = ((resumeFile as any).name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
