@@ -4,7 +4,10 @@ const LOCAL_URI_PATTERNS = [/localhost/i, /127\.0\.0\.1/];
 
 function shouldUseMockModel() {
   const env = process.env.NODE_ENV ?? 'development';
-  if (env !== 'development') {
+  if (process.env.USE_REAL_DB === '1') {
+    return false;
+  }
+  if (env === 'production') {
     return false;
   }
 
@@ -28,7 +31,7 @@ const SearchSynonymSchema = new Schema(
 SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 
 function loadMockModel() {
-  const mod = require('@/src/lib/mockDb');
+  const mod = require('../lib/mockDb');
   if (mod && typeof mod.MockModel === 'function') {
     return mod.MockModel;
   }

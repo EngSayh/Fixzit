@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const OUT_DIR = path.join(process.cwd(), '_artifacts');
-const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.docx');
+const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.md');
 
 function ensureArtifactsDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
