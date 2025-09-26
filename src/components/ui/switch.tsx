@@ -1,12 +1,12 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
-interface SwitchProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
+interface SwitchProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, &apos;onChange&apos;> {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }
 
 export const Switch: React.FC<SwitchProps> = ({ 
-  className = '', 
+  className = &apos;', 
   checked = false,
   onCheckedChange,
   ...props 
@@ -23,14 +23,14 @@ export const Switch: React.FC<SwitchProps> = ({
       role="switch"
       aria-checked={checked}
       className={`peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 ${
-        checked ? 'bg-blue-600' : 'bg-gray-200'
+        checked ? &apos;bg-blue-600&apos; : &apos;bg-gray-200&apos;
       } ${className}`}
       onClick={handleClick}
       {...props}
     >
       <span
         className={`pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0'
+          checked ? &apos;translate-x-5&apos; : &apos;translate-x-0&apos;
         }`}
       />
     </button>

@@ -1,7 +1,7 @@
-'use client';
+'use client&apos;;
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/src/hooks/useScreenSize';
+import React, { createContext, useContext, ReactNode } from &apos;react&apos;;
+import { useScreenSize, ScreenInfo, getResponsiveClasses } from &apos;@/src/hooks/useScreenSize&apos;;
 
 interface ResponsiveContextType {
   screenInfo: ScreenInfo;
@@ -37,7 +37,7 @@ export function ResponsiveProvider({ children }: { children: ReactNode }) {
 export function useResponsiveContext() {
   const context = useContext(ResponsiveContext);
   if (context === undefined) {
-    throw new Error('useResponsiveContext must be used within a ResponsiveProvider');
+    throw new Error(&apos;useResponsiveContext must be used within a ResponsiveProvider&apos;);
   }
   return context;
 }
@@ -52,7 +52,7 @@ export function useResponsive() {
       screenInfo: {
         width: 1024,
         height: 768,
-        size: 'desktop' as const,
+        size: &apos;desktop&apos; as const,
         isMobile: false,
         isTablet: false,
         isDesktop: true,
@@ -67,14 +67,14 @@ export function useResponsive() {
       isReady: true,
       isRTL: false,
       responsiveClasses: {
-        container: 'max-w-6xl mx-auto px-8',
-        grid: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-        text: 'text-base',
-        spacing: 'space-y-6',
+        container: &apos;max-w-6xl mx-auto px-8&apos;,
+        grid: &apos;grid-cols-1 md:grid-cols-2 lg:grid-cols-3&apos;,
+        text: &apos;text-base&apos;,
+        spacing: 'space-y-6&apos;,
         sidebarVisible: true,
-        mobileOptimizations: '',
-        tabletOptimizations: '',
-        desktopOptimizations: 'hover:shadow-lg'
+        mobileOptimizations: &apos;',
+        tabletOptimizations: &apos;',
+        desktopOptimizations: &apos;hover:shadow-lg&apos;
       },
       updateScreenInfo: () => {}
     };
@@ -84,7 +84,7 @@ export function useResponsive() {
   let isRTL = context.isRTL;
   try {
     // Import useTranslation at module level to avoid SSR issues
-    const { useTranslation } = require('@/src/contexts/TranslationContext');
+    const { useTranslation } = require(&apos;@/src/contexts/TranslationContext&apos;);
     const translationContext = useTranslation();
     isRTL = translationContext.isRTL;
   } catch {

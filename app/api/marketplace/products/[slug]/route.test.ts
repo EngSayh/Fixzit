@@ -1,7 +1,6 @@
 // Tests for app/api/marketplace/products/[slug]/route.ts
 // Framework: Jest (or Vitest-compatible with minor changes: jest -> vi)
 
-// NextResponse used in route implementation but not directly in tests
 
 // IMPORTANT: We import the route implementation.
 // If your project alias resolution differs, adjust the relative path accordingly.

@@ -1,8 +1,8 @@
-'use client';
+'use client&apos;;
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from &apos;react&apos;;
 
-export type CurrencyCode = 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED';
+export type CurrencyCode = &apos;SAR&apos; | &apos;USD&apos; | &apos;EUR&apos; | &apos;GBP&apos; | &apos;AED&apos;;
 
 export type CurrencyOption = {
   code: CurrencyCode;
@@ -12,14 +12,14 @@ export type CurrencyOption = {
 };
 
 export const CURRENCY_OPTIONS: CurrencyOption[] = [
-  { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', flag: '🇸🇦' },
-  { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
-  { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
-  { code: 'GBP', name: 'Pound Sterling', symbol: '£', flag: '🇬🇧' },
-  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪' }
+  { code: &apos;SAR&apos;, name: &apos;Saudi Riyal&apos;, symbol: &apos;﷼', flag: &apos;🇸🇦&apos; },
+  { code: &apos;USD&apos;, name: &apos;US Dollar&apos;, symbol: &apos;$', flag: &apos;🇺🇸&apos; },
+  { code: &apos;EUR&apos;, name: &apos;Euro&apos;, symbol: &apos;€', flag: &apos;🇪🇺&apos; },
+  { code: &apos;GBP&apos;, name: &apos;Pound Sterling&apos;, symbol: &apos;£', flag: &apos;🇬🇧&apos; },
+  { code: &apos;AED&apos;, name: &apos;UAE Dirham&apos;, symbol: &apos;د.إ&apos;, flag: &apos;🇦🇪&apos; }
 ];
 
-const DEFAULT_CURRENCY: CurrencyCode = 'SAR';
+const DEFAULT_CURRENCY: CurrencyCode = &apos;SAR&apos;;
 
 interface CurrencyContextType {
   currency: CurrencyCode;
@@ -33,36 +33,36 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === &apos;undefined&apos;) {
       return;
     }
 
     try {
-      const stored = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
+      const stored = window.localStorage.getItem(&apos;fixzit-currency&apos;) as CurrencyCode | null;
       if (stored && CURRENCY_OPTIONS.some(option => option.code === stored)) {
         setCurrencyState(stored);
       }
     } catch (error) {
-      console.warn('Could not access localStorage for currency preference:', error);
+      console.warn(&apos;Could not access localStorage for currency preference:&apos;, error);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === &apos;undefined&apos;) {
       return;
     }
 
     try {
-      window.localStorage.setItem('fixzit-currency', currency);
-      document.documentElement.setAttribute('data-currency', currency);
+      window.localStorage.setItem(&apos;fixzit-currency&apos;, currency);
+      document.documentElement.setAttribute(&apos;data-currency&apos;, currency);
       document.cookie = `fxz.currency=${currency}; path=/; SameSite=Lax`;
       window.dispatchEvent(
-        new CustomEvent('fixzit:currency-change', {
+        new CustomEvent(&apos;fixzit:currency-change&apos;, {
           detail: { currency }
         })
       );
     } catch (error) {
-      console.warn('Could not persist currency preference:', error);
+      console.warn(&apos;Could not persist currency preference:&apos;, error);
     }
   }, [currency]);
 

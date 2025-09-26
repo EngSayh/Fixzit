@@ -1,17 +1,17 @@
-'use client';
+'use client&apos;;
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { CircleDollarSign, Search } from 'lucide-react';
-import { useCurrency, CURRENCY_OPTIONS, type CurrencyOption } from '@/src/contexts/CurrencyContext';
+import { useEffect, useMemo, useRef, useState } from &apos;react&apos;;
+import { CircleDollarSign, Search } from &apos;lucide-react&apos;;
+import { useCurrency, CURRENCY_OPTIONS, type CurrencyOption } from &apos;@/src/contexts/CurrencyContext&apos;;
 
 interface CurrencySelectorProps {
-  variant?: 'default' | 'compact';
+  variant?: &apos;default&apos; | &apos;compact&apos;;
 }
 
-export default function CurrencySelector({ variant = 'default' }: CurrencySelectorProps) {
+export default function CurrencySelector({ variant = &apos;default&apos; }: CurrencySelectorProps) {
   const { currency, setCurrency } = useCurrency();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(&apos;');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const current = useMemo<CurrencyOption>(() => {
@@ -43,19 +43,19 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
       }
     };
 
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener(&apos;mousedown&apos;, handleClick);
+    return () => document.removeEventListener(&apos;mousedown&apos;, handleClick);
   }, [open]);
 
-  const buttonPadding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
-  const dropdownWidth = variant === 'compact' ? 'w-56' : 'w-64';
+  const buttonPadding = variant === &apos;compact&apos; ? &apos;px-2 py-1 text-xs&apos; : &apos;px-3 py-2 text-sm&apos;;
+  const dropdownWidth = variant === &apos;compact&apos; ? &apos;w-56&apos; : &apos;w-64&apos;;
 
   const toggle = () => setOpen(prev => !prev);
 
   const handleSelect = (option: CurrencyOption) => {
     setCurrency(option.code);
     setOpen(false);
-    setQuery('');
+    setQuery(&apos;');
   };
 
   return (
@@ -73,7 +73,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
           <span className="text-sm" aria-hidden>
             {current.flag}
           </span>
-          {variant === 'compact' ? (
+          {variant === &apos;compact&apos; ? (
             <span className="text-xs font-semibold">{current.code}</span>
           ) : (
             <span className="text-sm font-semibold">{current.code}</span>
@@ -102,7 +102,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                 <button
                   type="button"
                   className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-gray-100 ${
-                    option.code === current.code ? 'bg-[#0061A8]/10 text-[#0061A8]' : ''
+                    option.code === current.code ? &apos;bg-[#0061A8]/10 text-[#0061A8]&apos; : &apos;'
                   }`}
                   onClick={() => handleSelect(option)}
                   role="option"

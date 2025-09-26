@@ -1,7 +1,7 @@
-'use client';
+'use client&apos;;
 
-import { useEffect, useRef, useState } from 'react';
-import { Loader } from 'lucide-react';
+import { useEffect, useRef, useState } from &apos;react&apos;;
+import { Loader } from &apos;lucide-react&apos;;
 
 interface GoogleMapProps {
   center: { lat: number; lng: number };
@@ -19,7 +19,7 @@ export default function GoogleMap({
   center, 
   zoom = 13, 
   markers = [], 
-  height = '400px',
+  height = &apos;400px&apos;,
   onMapClick 
 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -30,7 +30,7 @@ export default function GoogleMap({
   useEffect(() => {
     // Load Google Maps script
     if (!window.google) {
-      const script = document.createElement('script');
+      const script = document.createElement('script&apos;);
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
       script.async = true;
       script.defer = true;
@@ -72,13 +72,13 @@ export default function GoogleMap({
           const infoWindow = new google.maps.InfoWindow({
             content: `
               <div class="p-2">
-                <h3 class="font-semibold">${markerData.title || ''}</h3>
+                <h3 class="font-semibold">${markerData.title || &apos;'}</h3>
                 <p class="text-sm text-gray-600">${markerData.info}</p>
               </div>
             `
           });
 
-          marker.addListener('click', () => {
+          marker.addListener(&apos;click&apos;, () => {
             infoWindow.open(map, marker);
           });
         }
@@ -100,15 +100,15 @@ export default function GoogleMap({
       zoomControl: true,
       styles: [
         {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
+          featureType: &apos;poi&apos;,
+          elementType: &apos;labels&apos;,
+          stylers: [{ visibility: &apos;off&apos; }]
         }
       ]
     });
 
     if (onMapClick) {
-      mapInstance.addListener('click', (event: google.maps.MapMouseEvent) => {
+      mapInstance.addListener(&apos;click&apos;, (event: google.maps.MapMouseEvent) => {
         if (event.latLng) {
           onMapClick(event.latLng.lat(), event.latLng.lng());
         }
