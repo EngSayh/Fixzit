@@ -62,10 +62,17 @@ export async function POST(req: NextRequest, { params }: { params: { file: strin
 
 function generateToken(name: string, exp: number | undefined, userId: string, tenantId: string) {
   const raw = process.env.FILE_SIGNING_SECRET;
-  const secret = typeof raw === 'string' ? raw.trim() : '';
+  let secret = typeof raw === 'string' ? raw.trim() : '';
   const WEAK = new Set(['', 'dev-secret-change-me', 'changeme', 'secret', 'password']);
   if (process.env.NODE_ENV === 'production' && WEAK.has(secret)) {
     throw new Error('FILE_SIGNING_SECRET must be set to a strong, non-default value in production');
+  }
+  // In non-production, generate an ephemeral in-memory secret if unset/weak to avoid predictable tokens
+  if (process.env.NODE_ENV !== 'production' && WEAK.has(secret)) {
+    if (!(globalThis as any).__DEV_FILE_SIGN_SECRET__) {
+      (globalThis as any).__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString('hex');
+    }
+    secret = (globalThis as any).__DEV_FILE_SIGN_SECRET__;
   }
   const payload = `${tenantId}:${userId}:${name}:${exp || ''}`;
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
