@@ -32,12 +32,9 @@ export interface PaymentRequest {
   metadata?: Record<string, unknown>;
 }
 
-export interface PaymentResponse {
-  success: boolean;
-  paymentUrl?: string;
-  transactionId?: string;
-  error?: string;
-}
+export type PaymentResponse =
+  | { success: true; paymentUrl: string; transactionId: string }
+  | { success: false; error: string };
 
 export const paytabsBase = (region: string = 'GLOBAL'): string => {
   const normalized = region.toUpperCase();
@@ -49,12 +46,11 @@ export const paytabsBase = (region: string = 'GLOBAL'): string => {
   return REGIONS[normalized as PaytabsRegion] ?? REGIONS.GLOBAL;
 };
 
-const PAYTABS_CONFIG = {
+const PAYTABS_CONFIG = Object.freeze({
   profileId: process.env.PAYTABS_PROFILE_ID ?? '',
   serverKey: process.env.PAYTABS_SERVER_KEY ?? '',
-  baseUrl:
-    process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
-};
+  baseUrl: process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
+});
 
 const assertConfig = () => {
   if (!PAYTABS_CONFIG.profileId) {
@@ -80,6 +76,8 @@ export async function createHppRequest(region: string, payload: unknown) {
 
   return response.json();
 }
+
+// removed duplicate local types; using exported interfaces above
 
 export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
   try {
@@ -172,17 +170,36 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
+import crypto from 'crypto';
 export function validateCallback(payload: any, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
-  const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  if (!signature) return false;
+  const calculated = generateSignature(payload, PAYTABS_CONFIG.serverKey);
+  try {
+    return crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(signature));
+  } catch {
+    return false;
+  }
 }
 
-function generateSignature(payload: any): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+function generateSignature(payload: any, secret: string): string {
+  const canonical = canonicalizePayload(payload);
+  return crypto.createHmac('sha256', secret).update(canonical).digest('hex');
+}
+
+function canonicalizePayload(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(item => canonicalizePayload(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, val]) => `${JSON.stringify(key)}:${canonicalizePayload(val)}`);
+
+  return `{${entries.join(',')}}`;
 }
 
 // Payment methods supported in Saudi Arabia
