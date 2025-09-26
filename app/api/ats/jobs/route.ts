@@ -28,8 +28,9 @@ export async function GET(req: NextRequest) {
     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
     const tenantOrgId = (user as any)?.tenantId || null;
     
-    // Privileged users may override to any provided orgId; everyone else is pinned
-    const orgId = isPrivileged
+    // Only platform-level admins can override orgId; otherwise pin to caller's tenant/default
+    const mayOverrideOrg = (user as any)?.role === 'SUPER_ADMIN' || (user as any)?.role === 'CORPORATE_ADMIN';
+    const orgId = mayOverrideOrg
       ? (requestedOrgId || tenantOrgId || defaultOrgId)
       : (tenantOrgId || defaultOrgId);
 
