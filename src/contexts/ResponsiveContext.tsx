@@ -69,15 +69,17 @@ export function useResponsiveLayout() {
   const context = useContext(ResponsiveContext);
   const { isRTL } = useTranslation();
 
-  if (!context) {
-    return buildFallback(isRTL);
-  }
+  return useMemo(() => {
+    if (!context) {
+      return buildFallback(isRTL);
+    }
 
-  if (context.isRTL === isRTL) {
-    return context;
-  }
+    if (context.isRTL === isRTL) {
+      return context;
+    }
 
-  return { ...context, isRTL };
+    return { ...context, isRTL };
+  }, [context, isRTL]);
 }
 
 // Backwards-compatible alias for legacy imports

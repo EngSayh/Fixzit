@@ -36,4 +36,11 @@ test('rejects malformed inputs', () => {
 test('rejects non-finite numbers', () => {
   assert.equal(parseCartAmount(Infinity), null);
   assert.equal(parseCartAmount(NaN), null);
+  assert.equal(parseCartAmount('NaN'), null);
+});
+
+test('parses values with currency markers', () => {
+  assert.equal(parseCartAmount('SAR\u00A01,234.50'), 1234.5);
+  assert.equal(parseCartAmount('1\u00A0234,50\u00A0SAR'), 1234.5);
+  assert.equal(parseCartAmount('د.إ.‏1,234.50'), 1234.5);
 });
