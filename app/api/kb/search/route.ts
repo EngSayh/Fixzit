@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
             path: 'embedding',
             queryVector: query,
             numCandidates: 200,
-            limit
+            limit,
+            filter: scope
           }
         },
-        { $match: scope },
         {
           $project: {
             articleId: 1,
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
           }
         }
       ];
-      results = await (coll as any).aggregate(pipe).toArray();
+      results = await (coll as any).aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
     } catch (e) {
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
