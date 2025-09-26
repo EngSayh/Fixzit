@@ -48,56 +48,6 @@ export async function POST(req: NextRequest) {
     }
     if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
-        const dup = e?.code === 11000 || String(e?.message || '').includes('duplicate key');
-        if (!dup || attempt === 5) throw e;
-      }
-    }
-    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
-    return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     console.error('Public post error:', error);
     return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });

@@ -59,11 +59,6 @@ export async function PATCH(
     }
     const { db } = await import('@/src/lib/mongo');
     await db;
-<<<<<<< HEAD
-    const { db } = await import('@/src/lib/mongo');
-    await db;
-=======
->>>>>>> 44f14709 (🔒 CRITICAL: Fix PII exposure and add RBAC gates across ATS system)
     const AppMod = await import('@/src/server/models/Application').catch(() => null);
     const Application = AppMod && (AppMod as any).Application;
     if (!Application) {
