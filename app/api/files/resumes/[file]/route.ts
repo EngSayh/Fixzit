@@ -59,6 +59,9 @@ export async function POST(req: NextRequest, { params }: { params: { file: strin
 
 function generateToken(name: string, exp?: number) {
   const secret = process.env.FILE_SIGNING_SECRET || 'dev-secret-change-me';
+  if (process.env.NODE_ENV === 'production' && secret === 'dev-secret-change-me') {
+    throw new Error('FILE_SIGNING_SECRET must be set in production');
+  }
   const payload = `${name}:${exp || ''}`;
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }

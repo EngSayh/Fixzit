@@ -16,7 +16,7 @@ type UpsertArgs = {
 export async function upsertArticleEmbeddings(args: UpsertArgs) {
   const db = await getDatabase();
   const coll = db.collection('kb_embeddings');
-  const { articleId, content, lang, roleScopes, route } = args;
+  const { articleId, content, lang, roleScopes, route, orgId, tenantId } = args;
   const chunks = chunkText(content, 1200, 200);
   const ops: any[] = [];
   let index = 0;
@@ -34,6 +34,8 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
             lang: lang || 'en',
             route: route || '/help',
             roleScopes: roleScopes && roleScopes.length ? roleScopes : ['USER'],
+            orgId: orgId ?? null,
+            tenantId: tenantId ?? null,
             updatedAt: new Date()
           }
         },
