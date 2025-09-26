@@ -16,14 +16,23 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
     const statusParam = searchParams.get('status') || 'published';
+    
+    // Only capture the raw override; defaults and tenant-scoping come next
+    const requestedOrgId = searchParams.get('orgId');
+    const defaultOrgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const { getUserFromToken } = await import('@/src/lib/auth');
     const user = token ? await getUserFromToken(token) : null;
     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
-    // Always restrict to caller's tenant; ignore arbitrary orgId for all users
-    const orgId = (user && (user as any).tenantId) ? (user as any).tenantId : (process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform');
+    const tenantOrgId = (user as any)?.tenantId || null;
+    
+    // Privileged users may override to any provided orgId; everyone else is pinned
+    const orgId = isPrivileged
+      ? (requestedOrgId || tenantOrgId || defaultOrgId)
+      : (tenantOrgId || defaultOrgId);
+
     const status = isPrivileged ? statusParam : 'published';
     const department = searchParams.get('department');
     const location = searchParams.get('location');
@@ -32,90 +41,15 @@ export async function GET(req: NextRequest) {
     const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
     const limitRaw = Number.parseInt(searchParams.get('limit') ?? '', 10);
     const limit = Math.max(1, Math.min(Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 20, 100));
-    const filter: any = { orgId };
-// … earlier in the handler …
-    // Only capture the raw override; defaults and tenant-scoping come next
-    const requestedOrgId = searchParams.get('orgId');
-    const defaultOrgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-
-     const authHeader = req.headers.get('authorization') || '';
-     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-     const { getUserFromToken } = await import('@/src/lib/auth');
-     const user = token ? await getUserFromToken(token) : null;
-     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
-     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
-    const tenantOrgId = (user as any)?.tenantId || null;
--
-    // Privileged users may override to any provided orgId; everyone else is pinned
-    const orgId = isPrivileged
-      ? (requestedOrgId || tenantOrgId || defaultOrgId)
-      : (tenantOrgId || defaultOrgId);
-
-     const status = isPrivileged ? statusParam : 'published';
- // … rest of the handler …
-    // Only capture the raw override; defaults and tenant-scoping come next
-    const requestedOrgId = searchParams.get('orgId');
-    const defaultOrgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-
-     const authHeader = req.headers.get('authorization') || '';
-     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-     const { getUserFromToken } = await import('@/src/lib/auth');
-     const user = token ? await getUserFromToken(token) : null;
-     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
-     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
-    const tenantOrgId = (user as any)?.tenantId || null;
--
-    // Privileged users may override to any provided orgId; everyone else is pinned
-    const orgId = isPrivileged
-      ? (requestedOrgId || tenantOrgId || defaultOrgId)
-      : (tenantOrgId || defaultOrgId);
-
-     const status = isPrivileged ? statusParam : 'published';
- // … rest of the handler …
-    // Only capture the raw override; defaults and tenant-scoping come next
-    const requestedOrgId = searchParams.get('orgId');
-    const defaultOrgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-
-     const authHeader = req.headers.get('authorization') || '';
-     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-     const { getUserFromToken } = await import('@/src/lib/auth');
-     const user = token ? await getUserFromToken(token) : null;
-     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
-     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
-    const tenantOrgId = (user as any)?.tenantId || null;
--
-    // Privileged users may override to any provided orgId; everyone else is pinned
-    const orgId = isPrivileged
-      ? (requestedOrgId || tenantOrgId || defaultOrgId)
-      : (tenantOrgId || defaultOrgId);
-
-     const status = isPrivileged ? statusParam : 'published';
- // … rest of the handler …
-    // Only capture the raw override; defaults and tenant-scoping come next
-    const requestedOrgId = searchParams.get('orgId');
-    const defaultOrgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-
-     const authHeader = req.headers.get('authorization') || '';
-     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-     const { getUserFromToken } = await import('@/src/lib/auth');
-     const user = token ? await getUserFromToken(token) : null;
-     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
-     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
-    const tenantOrgId = (user as any)?.tenantId || null;
--
-    // Privileged users may override to any provided orgId; everyone else is pinned
-    const orgId = isPrivileged
-      ? (requestedOrgId || tenantOrgId || defaultOrgId)
-      : (tenantOrgId || defaultOrgId);
-
-     const status = isPrivileged ? statusParam : 'published';
- // … rest of the handler …
+    
+    const filter: any = { orgId, status };
     if (department) filter.department = department;
     if (location) filter['location.city'] = location;
     if (jobType) filter.jobType = jobType;
     if (q) filter.$text = { $search: q };
+    
     const jobs = await (Job as any)
-      .find(filter, q ? { score: { $meta: 'textScore' } } : {})
+      .find(filter)
       .sort(q ? { score: { $meta: 'textScore' } } : { publishedAt: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
