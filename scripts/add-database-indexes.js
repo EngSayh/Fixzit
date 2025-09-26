@@ -132,6 +132,8 @@ async function addDatabaseIndexes() {
     await db.collection('helparticles').createIndex({ slug: 1 }, { unique: true });
     await db.collection('helparticles').createIndex({ status: 1, updatedAt: -1 });
     await db.collection('helparticles').createIndex({ title: 'text', content: 'text', tags: 'text' });
+    await db.collection('helparticles').createIndex({ tenantId: 1, status: 1 });
+    await db.collection('helparticles').createIndex({ tenantId: 1, category: 1, status: 1 });
     console.log('✅ Help/Knowledge Center indexes created');
 
     // KB Embeddings indexes
