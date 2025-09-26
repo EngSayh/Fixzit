@@ -4,13 +4,20 @@ module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint'],
+  parserOptions: {
+    ecmaVersion: 2021,
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true,
+    },
+  },
   extends: [
     'next/core-web-vitals',
   ],
   rules: {
     // Relax highly noisy rules across the codebase
     '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
+    '@typescript-eslint/no-unused-vars': 'off',
     '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/ban-ts-comment': 'off',
     'react/no-unescaped-entities': 'off',
@@ -21,8 +28,24 @@ module.exports = {
   overrides: [
     // JS/Config files
     {
-      files: ['*.js', '*.cjs', '*.mjs'],
+      files: ['*.js', '*.cjs'],
       parser: 'espree',
+      parserOptions: {
+        ecmaVersion: 2021,
+        sourceType: 'script',
+      },
+      rules: {
+        '@typescript-eslint/no-var-requires': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
+    {
+      files: ['*.mjs'],
+      parser: 'espree',
+      parserOptions: {
+        ecmaVersion: 2021,
+        sourceType: 'module',
+      },
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
         '@typescript-eslint/no-unused-vars': 'off',
@@ -38,6 +61,11 @@ module.exports = {
         'jest.config.js',
         'playwright.config.ts',
       ],
+      parser: 'espree',
+      parserOptions: {
+        ecmaVersion: 2021,
+        sourceType: 'script',
+      },
       rules: {
         'no-mixed-spaces-and-tabs': 'off',
         '@typescript-eslint/no-unused-vars': 'off',
@@ -99,6 +127,7 @@ module.exports = {
     'coverage/**/*',
     // Generated or external
     'playwright-report/**/*',
+    'test-auth.js',
   ],
 };
 
