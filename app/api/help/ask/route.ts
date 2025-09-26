@@ -120,26 +120,15 @@ export async function POST(req: NextRequest) {
     let docs: Doc[] = [];
     try {
       const { embedText } = await import('@/src/ai/embeddings');
+      const { performKbSearch } = await import('@/src/kb/search');
       const qVec = await embedText(question);
-      const vec = await fetch(new URL('/api/kb/search', req.nextUrl).toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'cookie': req.headers.get('cookie') || '',
-          'authorization': req.headers.get('authorization') || ''
-        },
-        body: JSON.stringify({ query: qVec, q: question, lang, role, route, limit })
-      });
-      if (vec.ok) {
-        const json = await vec.json();
-        const chunks = json?.results || [];
-        docs = chunks.map((c: any) => ({
-          slug: c.slug || c.articleId || '',
-          title: c.title || '',
-          content: c.text || '',
-          updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
-        }));
-      }
+      const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
+      docs = (chunks || []).map((c: any) => ({
+        slug: c.slug || c.articleId || '',
+        title: c.title || '',
+        content: c.text || '',
+        updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
+      }));
     } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
 
     if (!docs || docs.length === 0) {
