@@ -3,16 +3,21 @@ import { createPaymentPage } from '@/src/lib/paytabs';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
+import { z } from 'zod';
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    const body = await req.json();
+    
+    const paymentSchema = z.object({
+      invoiceId: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid invoice ID'),
+      returnUrl: z.string().url().optional(),
+      cancelUrl: z.string().url().optional(),
+      paymentMethod: z.enum(['credit_card', 'bank_transfer', 'wallet']).optional()
+    });
+    
+    const body = paymentSchema.parse(await req.json());
     const { invoiceId } = body;
-
-    if (!invoiceId) {
-      return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
-    }
 
     await db;
     const invoice = await (Invoice as any).findOne({ 

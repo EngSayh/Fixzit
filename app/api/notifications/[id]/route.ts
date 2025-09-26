@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
+import { z } from "zod";
+
+const updateNotificationSchema = z.object({
+  read: z.boolean().optional(),
+  archived: z.boolean().optional()
+});
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   let tenantId: string;
@@ -28,8 +34,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const body = await req.json();
-  const { read, archived } = body as { read?: boolean; archived?: boolean };
+  const body = updateNotificationSchema.parse(await req.json());
+  const { read, archived } = body;
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
