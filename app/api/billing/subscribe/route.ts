@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Customer from '@/src/models/Customer';
 import Subscription from '@/src/models/Subscription';
 import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
 import { computeQuote } from '@/src/lib/pricing';
 import { createHppRequest } from '@/src/lib/paytabs';
 import { getUserFromToken } from '@/src/lib/auth';
+import { rateLimit } from '@/src/server/security/rateLimit';
 import { z } from 'zod';
 
 const subscriptionSchema = z.object({
@@ -43,7 +44,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions to manage subscriptions' }, { status: 403 });
     }
 
-    await dbConnect();
+    // Rate limiting for subscription operations
+    const key = `billing:subscribe:${user.tenantId}`;
+    const rl = rateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Subscription rate limit exceeded. Please wait before creating another subscription.' }, { status: 429 });
+    }
+
+    await db;
     const body = subscriptionSchema.parse(await req.json());
 
     // 1) Upsert customer - ensure tenant isolation

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Benchmark from '@/src/models/Benchmark';
 import { computeQuote } from '@/src/lib/pricing';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import { z } from 'zod';
 
 const compareSchema = z.object({
@@ -14,7 +14,7 @@ const compareSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await dbConnect();
+    await db;
     const body = compareSchema.parse(await req.json());
     
     const ours = await computeQuote(body) as any;
