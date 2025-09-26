@@ -46,8 +46,9 @@ export function upsert(collection: string, predicate: (x: any) => boolean, doc: 
     return updated;
   }
 
-  // Allow predicates that validate incoming docs to signal errors even when
-  // the target collection is initially empty.
+  // The predicate function is called on the normalized document for validation purposes.
+  // This side effect allows predicates to validate the document structure and signal errors,
+  // even when creating new entries and the target collection is initially empty.
   predicate(normalizedDoc);
 
   const { _id: providedId, createdAt: providedCreatedAt, ...rest } = normalizedDoc;
