@@ -24,7 +24,7 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
     const embedding = await embedText(chunk.text);
     ops.push({
       updateOne: {
-        filter: { articleId, chunkId: index },
+        filter: { articleId, chunkId: index, tenantId: tenantId ?? null, orgId: orgId ?? null },
         update: {
           $set: {
             articleId,
@@ -47,11 +47,9 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
   if (ops.length) await (coll as any).bulkWrite(ops, { ordered: false });
 }
 
-export async function deleteArticleEmbeddings(articleId: string, tenantId?: string | null) {
+export async function deleteArticleEmbeddings(articleId: string, tenantId: string | null) {
   const db = await getDatabase();
   const coll = db.collection('kb_embeddings');
-  const filter: any = { articleId };
-  if (tenantId !== undefined) filter.tenantId = tenantId;
-  await coll.deleteMany(filter);
+  await coll.deleteMany({ articleId, tenantId });
 }
 
