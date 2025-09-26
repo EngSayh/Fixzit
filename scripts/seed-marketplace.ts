@@ -23,10 +23,11 @@ export function upsert(collection: string, predicate: (x: any) => boolean, doc: 
   }
 
   const { _id: providedId, createdAt: providedCreatedAt, ...rest } = normalizedDoc;
+  const candidateCreatedAt = providedCreatedAt ? new Date(providedCreatedAt as Date | number | string) : new Date(timestamp);
   const created = {
     ...rest,
     _id: (typeof providedId === 'string' && providedId.length > 0) ? providedId : randomUUID(),
-    createdAt: providedCreatedAt ? new Date(providedCreatedAt as Date | number | string) : new Date(timestamp),
+    createdAt: isNaN(candidateCreatedAt.getTime()) ? new Date(timestamp) : candidateCreatedAt,
     updatedAt: new Date(timestamp)
   };
   data.push(created);
@@ -35,6 +36,11 @@ export function upsert(collection: string, predicate: (x: any) => boolean, doc: 
 }
 
 export async function main() {
+  if (process.env.USE_MOCK_DB !== 'true') {
+    throw new Error(
+      'Refusing to seed MockDB. Set USE_MOCK_DB=true to proceed in non-production environments.'
+    );
+  }
   const tenantId = 'demo-tenant';
 
   // Seed synonyms
