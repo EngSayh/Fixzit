@@ -42,6 +42,9 @@ export function AutoFixAgent() {
   const hudRef = useRef<HTMLDivElement>(null);
   const eventBuffer = useRef<QaEvent[]>([]);
   const originalFetchRef = useRef<any>(null);
+  const sendingRef = useRef(false);
+  const activeRef = useRef(active);
+  const haltedRef = useRef(halted);
 
   const errorsRef = useRef(errors);
   errorsRef.current = errors;
@@ -51,12 +54,25 @@ export function AutoFixAgent() {
     orgIdRef.current = orgId;
   }, [role, orgId]);
 
+  useEffect(() => { activeRef.current = active; }, [active]);
+  useEffect(() => { haltedRef.current = halted; }, [halted]);
+
   const sendBatch = useCallback(async () => {
+    if (sendingRef.current) return;
     if (!eventBuffer.current.length) return;
-    const payload = eventBuffer.current.splice(0, eventBuffer.current.length);
+    sendingRef.current = true;
+    const payload = [...eventBuffer.current];
     try {
       await fetch('/api/qa/log', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ batch: payload }) });
-    } catch { /* logging should never crash the app */ }
+      eventBuffer.current.splice(0, payload.length);
+    } catch {
+      /* logging should never crash the app; events remain for retry */
+    } finally {
+      sendingRef.current = false;
+      if (eventBuffer.current.length) {
+        setTimeout(() => { void sendBatch(); }, 0);
+      }
+    }
   }, []);
 
   // ---- CLICK TRACER (capture phase) ----
@@ -82,11 +98,13 @@ export function AutoFixAgent() {
         },
       };
       eventBuffer.current.push(evt);
-      if (!halted) sendBatch();
+      if (!haltedRef.current) {
+        setTimeout(() => { void sendBatch(); }, 0);
+      }
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
-  }, [halted, sendBatch]);
+  }, [sendBatch]);
 
   // ---- CONSOLE & RUNTIME ----
   const bufferConsole = useCallback((rec: ConsoleRecord) => {
@@ -132,13 +150,29 @@ export function AutoFixAgent() {
     return { note: 'No heuristic matched; logged for follow-up.' };
   }, []);
 
-  const haltAndHeal = useCallback(async (type: QaEvent['type'], msg: string) => {
-    if (!active || halted) return;
+  const haltAndHeal = useCallback(async (_type: QaEvent['type'], msg: string) => {
+    if (!activeRef.current || haltedRef.current) return;
     setHalted(true);
+    haltedRef.current = true;
     await capture('before');
+    if (!activeRef.current) {
+      haltedRef.current = false;
+      setHalted(false);
+      return;
+    }
     const { note } = await tryHeuristics(msg);
     setLastNote(note);
+    if (!activeRef.current) {
+      haltedRef.current = false;
+      setHalted(false);
+      return;
+    }
     await wait(10000);
+    if (!activeRef.current) {
+      haltedRef.current = false;
+      setHalted(false);
+      return;
+    }
     await capture('after');
     const currentErrors = errorsRef.current;
     const strictInput = {
@@ -149,8 +183,9 @@ export function AutoFixAgent() {
     const clean = passesStrict(strictInput);
     bufferGate(clean);
     await sendBatch();
+    haltedRef.current = false;
     setHalted(false);
-  }, [active, halted, capture, tryHeuristics, bufferGate, sendBatch]);
+  }, [bufferGate, capture, sendBatch, tryHeuristics]);
 
   useEffect(() => {
     const undo = hijackConsole((rec: ConsoleRecord) => {
@@ -185,29 +220,41 @@ export function AutoFixAgent() {
   }, [bufferConsole, bufferRuntime, haltAndHeal]);
 
   // ---- NETWORK ----
+  const haltAndHealRef = useRef(haltAndHeal);
+  const bufferNetworkRef = useRef(bufferNetwork);
+
+  useEffect(() => { haltAndHealRef.current = haltAndHeal; }, [haltAndHeal]);
+  useEffect(() => { bufferNetworkRef.current = bufferNetwork; }, [bufferNetwork]);
+
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (originalFetchRef.current) return;
-    originalFetchRef.current = window.fetch.bind(window);
+    const originalFetch = window.fetch.bind(window);
+    originalFetchRef.current = originalFetch;
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : (input as any).url;
       try {
-        const res = await originalFetchRef.current(input, init);
+        const res = await originalFetch(input, init);
         if (!res.ok) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
-          const url = typeof input === 'string' ? input : (input as any).url;
-          bufferNetwork(url, res.status);
-          haltAndHeal('network-error', `HTTP ${res.status} on ${url}`);
+          bufferNetworkRef.current?.(url, res.status);
+          haltAndHealRef.current?.('network-error', `HTTP ${res.status} on ${url}`);
         }
         return res;
       } catch (err:any) {
         setErrors(s => ({ ...s, network: s.network + 1 }));
-        const url = typeof input === 'string' ? input : (input as any).url;
-        bufferNetwork(url, -1);
-        haltAndHeal('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
+        bufferNetworkRef.current?.(url, -1);
+        haltAndHealRef.current?.('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
         throw err;
       }
     };
-    return () => { if (originalFetchRef.current) window.fetch = originalFetchRef.current; };
-  }, [bufferNetwork, haltAndHeal]);
+    return () => {
+      if (originalFetchRef.current) {
+        window.fetch = originalFetchRef.current;
+        originalFetchRef.current = null;
+      }
+    };
+  }, []);
 
   // ---- HUD (draggable, non-invasive) ----
   useEffect(() => {
