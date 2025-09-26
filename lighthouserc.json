@@ -1,7 +1,7 @@
 {
   "ci": {
     "collect": {
-      "staticDistDir": "out",
+      "staticDistDir": "apps/web/out",
       "numberOfRuns": 1
     },
     "assert": {
