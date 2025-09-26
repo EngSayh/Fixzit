@@ -18,7 +18,11 @@ export async function POST(req: NextRequest) {
     // TODO: enforce rate limiting per IP/org before proceeding.
 
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    let baseSlug = (body.title || 'job').toString().toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    let titleStr = typeof body.title === 'string' ? body.title : '';
+    titleStr = titleStr.trim();
+    if (!titleStr) titleStr = 'job';
+    let baseSlug = titleStr.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    if (!baseSlug) baseSlug = 'job';
     let job: any = null;
     for (let attempt = 0; attempt < 6; attempt++) {
       const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt}`;
