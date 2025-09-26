@@ -186,8 +186,15 @@ export async function POST(req: NextRequest) {
         correlationId: (crypto as any).randomUUID?.()
       }, { status: 429 });
     }
-    console.error('help/ask error', err);
-    return NextResponse.json({ error: 'Failed to generate answer' }, { status: 500 });
+    const correlationId = (crypto as any).randomUUID?.();
+    console.error('help/ask error', { correlationId, err });
+    return NextResponse.json({
+      name: 'HelpAskError',
+      code: 'HELP_ASK_FAILED',
+      userMessage: 'Unable to process your question. Please try again.',
+      devMessage: String(err?.message ?? err),
+      correlationId
+    }, { status: 500 });
   }
 }
 // Very small in-memory rate limiter (per process) to reduce abuse
