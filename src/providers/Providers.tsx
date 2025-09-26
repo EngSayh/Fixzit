@@ -1,10 +1,10 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { ThemeProvider } from '@/src/contexts/ThemeContext';
-import { TranslationProvider } from '@/src/contexts/TranslationContext';
-import { CurrencyProvider } from '@/src/contexts/CurrencyContext';
-import { ResponsiveProvider } from '@/src/contexts/ResponsiveContext';
-import ErrorBoundary from '@/src/components/ErrorBoundary';
+'use client&apos;;
+import { useState, useEffect } from &apos;react&apos;;
+import { ThemeProvider } from &apos;@/src/contexts/ThemeContext&apos;;
+import { TranslationProvider } from &apos;@/src/contexts/TranslationContext&apos;;
+import { CurrencyProvider } from &apos;@/src/contexts/CurrencyContext&apos;;
+import { ResponsiveProvider } from &apos;@/src/contexts/ResponsiveContext&apos;;
+import ErrorBoundary from &apos;@/src/components/ErrorBoundary&apos;;
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [isClient, setIsClient] = useState(false);
@@ -14,7 +14,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     setIsClient(true);
   }, []);
 
-  // Don't render children until we're on the client side to avoid SSR issues
+  // Don&apos;t render children until we&apos;re on the client side to avoid SSR issues
   if (!isClient) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

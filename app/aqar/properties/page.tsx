@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Filter, MapPin, Bed, Bath, Square, Heart, User, LogIn, TrendingUp } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from &apos;react&apos;;
+import { Search, Filter, MapPin, Bed, Bath, Square, Heart, User, LogIn, TrendingUp } from &apos;lucide-react&apos;;
+import Link from &apos;next/link&apos;;
 
 interface Property {
   id: string;
   title: string;
-  type: 'sale' | 'rent' | 'commercial';
+  type: 'sale&apos; | &apos;rent&apos; | &apos;commercial&apos;;
   price: string;
   location: string;
   beds: number;
@@ -23,128 +23,128 @@ interface Property {
 
 const SAMPLE_PROPERTIES: Property[] = [
   {
-    id: '1',
-    title: 'Luxury Villa - Al Olaya',
-    type: 'sale',
-    price: 'SAR 3,500,000',
-    location: 'Al Olaya, Riyadh',
+    id: &apos;1',
+    title: 'Luxury Villa - Al Olaya&apos;,
+    type: 'sale&apos;,
+    price: &apos;SAR 3,500,000&apos;,
+    location: &apos;Al Olaya, Riyadh&apos;,
     beds: 5,
     baths: 6,
     area: 450,
-    image: '/img/logo.jpg',
-    agent: 'Premium Properties Ltd',
+    image: &apos;/img/logo.jpg&apos;,
+    agent: &apos;Premium Properties Ltd&apos;,
     isVerified: true,
     isPremium: true,
-    features: ['Swimming Pool', 'Garden', 'Garage', 'Security'],
+    features: [&apos;Swimming Pool&apos;, &apos;Garden&apos;, &apos;Garage&apos;, &apos;Security&apos;],
     rating: 4.8
   },
   {
-    id: '2',
-    title: 'Modern Apartment - Downtown',
-    type: 'rent',
-    price: 'SAR 8,500/month',
-    location: 'King Fahd Road, Riyadh',
+    id: &apos;2',
+    title: 'Modern Apartment - Downtown&apos;,
+    type: &apos;rent&apos;,
+    price: &apos;SAR 8,500/month&apos;,
+    location: &apos;King Fahd Road, Riyadh&apos;,
     beds: 2,
     baths: 2,
     area: 120,
-    image: '/img/logo.jpg',
-    agent: 'City Living Realty',
+    image: &apos;/img/logo.jpg&apos;,
+    agent: &apos;City Living Realty&apos;,
     isVerified: true,
-    features: ['City View', 'Balcony', 'Parking', 'Gym Access'],
+    features: [&apos;City View&apos;, &apos;Balcony&apos;, &apos;Parking&apos;, &apos;Gym Access&apos;],
     rating: 4.5
   },
   {
-    id: '3',
-    title: 'Office Space - Business District',
-    type: 'commercial',
-    price: 'SAR 15,000/month',
-    location: 'Business Bay, Riyadh',
+    id: &apos;3',
+    title: &apos;Office Space - Business District&apos;,
+    type: &apos;commercial&apos;,
+    price: &apos;SAR 15,000/month&apos;,
+    location: &apos;Business Bay, Riyadh&apos;,
     beds: 0,
     baths: 2,
     area: 200,
-    image: '/img/logo.jpg',
-    agent: 'Commercial Properties Co',
+    image: &apos;/img/logo.jpg&apos;,
+    agent: &apos;Commercial Properties Co&apos;,
     isVerified: true,
-    features: ['Furnished', 'Meeting Rooms', 'Reception', 'Parking'],
+    features: [&apos;Furnished&apos;, &apos;Meeting Rooms&apos;, &apos;Reception&apos;, &apos;Parking&apos;],
     rating: 4.7
   },
   {
-    id: '4',
-    title: 'Cozy Family Home - Family District',
-    type: 'sale',
-    price: 'SAR 1,800,000',
-    location: 'Al Malaz, Riyadh',
+    id: &apos;4',
+    title: 'Cozy Family Home - Family District&apos;,
+    type: 'sale&apos;,
+    price: &apos;SAR 1,800,000&apos;,
+    location: &apos;Al Malaz, Riyadh&apos;,
     beds: 4,
     baths: 3,
     area: 280,
-    image: '/img/logo.jpg',
-    agent: 'Family Homes Realty',
+    image: &apos;/img/logo.jpg&apos;,
+    agent: &apos;Family Homes Realty&apos;,
     isVerified: true,
-    features: ['Garden', 'Play Area', 'Storage', 'Quiet Area'],
+    features: [&apos;Garden&apos;, &apos;Play Area&apos;, &apos;Storage&apos;, &apos;Quiet Area&apos;],
     rating: 4.6
   },
   {
-    id: '5',
-    title: 'Studio Apartment - City Center',
-    type: 'rent',
-    price: 'SAR 4,200/month',
-    location: 'City Center, Riyadh',
+    id: &apos;5',
+    title: 'Studio Apartment - City Center&apos;,
+    type: &apos;rent&apos;,
+    price: &apos;SAR 4,200/month&apos;,
+    location: &apos;City Center, Riyadh&apos;,
     beds: 1,
     baths: 1,
     area: 60,
-    image: '/img/logo.jpg',
-    agent: 'Urban Living',
+    image: &apos;/img/logo.jpg&apos;,
+    agent: &apos;Urban Living&apos;,
     isVerified: true,
-    features: ['Modern Design', 'City View', 'Public Transport'],
+    features: [&apos;Modern Design&apos;, &apos;City View&apos;, &apos;Public Transport&apos;],
     rating: 4.3
   },
   {
-    id: '6',
-    title: 'Penthouse with Sea View',
+    id: &apos;6',
+    title: &apos;Penthouse with Sea View&apos;,
     type: 'sale',
-    price: 'SAR 5,200,000',
-    location: 'Corniche, Jeddah',
+    price: &apos;SAR 5,200,000&apos;,
+    location: &apos;Corniche, Jeddah&apos;,
     beds: 3,
     baths: 4,
     area: 320,
-    image: '/api/placeholder/400/250',
-    agent: 'Luxury Estates',
+    image: &apos;/api/placeholder/400/250&apos;,
+    agent: &apos;Luxury Estates&apos;,
     isVerified: true,
     isPremium: true,
-    features: ['Sea View', 'Terrace', 'Private Pool', 'Concierge'],
+    features: [&apos;Sea View&apos;, &apos;Terrace&apos;, &apos;Private Pool&apos;, &apos;Concierge&apos;],
     rating: 4.9
   }
 ];
 
 export default function AqarPropertiesPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [priceRange, setPriceRange] = useState('all');
+  const [searchTerm, setSearchTerm] = useState(&apos;');
+  const [selectedType, setSelectedType] = useState(&apos;all&apos;);
+  const [priceRange, setPriceRange] = useState(&apos;all&apos;);
 
   const filteredProperties = SAMPLE_PROPERTIES.filter(property => {
     const matchesSearch = property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          property.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === 'all' || property.type === selectedType;
+    const matchesType = selectedType === &apos;all&apos; || property.type === selectedType;
     return matchesSearch && matchesType;
   });
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'sale': return 'bg-green-100 text-green-800';
-      case 'rent': return 'bg-blue-100 text-blue-800';
-      case 'commercial': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'sale&apos;: return &apos;bg-green-100 text-green-800&apos;;
+      case &apos;rent&apos;: return &apos;bg-blue-100 text-blue-800&apos;;
+      case &apos;commercial&apos;: return &apos;bg-purple-100 text-purple-800&apos;;
+      default: return &apos;bg-gray-100 text-gray-800&apos;;
     }
   };
 
   const handleFavorite = (propertyId: string) => {
     // Redirect to login if not authenticated
-    window.location.href = '/login?redirect=/aqar/properties&action=favorite';
+    window.location.href = &apos;/login?redirect=/aqar/properties&action=favorite&apos;;
   };
 
   const handleContactAgent = (propertyId: string) => {
     // Redirect to login if not authenticated
-    window.location.href = '/login?redirect=/aqar/properties&action=contact-agent';
+    window.location.href = &apos;/login?redirect=/aqar/properties&action=contact-agent&apos;;
   };
 
   return (
@@ -263,11 +263,11 @@ export default function AqarPropertiesPage() {
                 </button>
 
                 <div className={`absolute bottom-2 right-2 px-3 py-1 rounded-full text-white text-sm font-medium ${
-                  property.type === 'sale' ? 'bg-green-600' :
-                  property.type === 'rent' ? 'bg-blue-600' : 'bg-purple-600'
+                  property.type === 'sale&apos; ? &apos;bg-green-600&apos; :
+                  property.type === &apos;rent&apos; ? &apos;bg-blue-600&apos; : &apos;bg-purple-600&apos;
                 }`}>
-                  {property.type === 'sale' ? 'For Sale' :
-                   property.type === 'rent' ? 'For Rent' : 'Commercial'}
+                  {property.type === 'sale&apos; ? &apos;For Sale&apos; :
+                   property.type === &apos;rent&apos; ? &apos;For Rent&apos; : &apos;Commercial&apos;}
                 </div>
               </div>
 

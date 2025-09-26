@@ -41,7 +41,7 @@ const mockArticles = [
 
 export async function POST(req: NextRequest){
   try {
-    const { question, contextRoute } = schema.parse(await req.json());
+    const { question } = schema.parse(await req.json());
 
     // Simple keyword search in mock articles
     const q = question.toLowerCase();

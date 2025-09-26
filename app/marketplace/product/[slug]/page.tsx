@@ -1,7 +1,7 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
-import ProductCard from '@/src/components/marketplace/ProductCard';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import PDPBuyBox from &apos;@/src/components/marketplace/PDPBuyBox&apos;;
+import ProductCard from &apos;@/src/components/marketplace/ProductCard&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 interface ProductPageProps {
   params: { slug: string };
@@ -9,7 +9,7 @@ interface ProductPageProps {
 
 export default async function ProductDetail({ params }: ProductPageProps) {
   const [categoriesResponse, productResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
     serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)
   ]);
 
@@ -21,12 +21,12 @@ export default async function ProductDetail({ params }: ProductPageProps) {
   const product = productResponse.data.product;
   const category = productResponse.data.category;
 
-  const attachments = product.media?.filter((file: any) => file.role === 'MSDS' || file.role === 'COA') ?? [];
-  const gallery = product.media?.filter((file: any) => file.role === 'GALLERY') ?? [];
+  const attachments = product.media?.filter((file: any) => file.role === &apos;MSDS&apos; || file.role === &apos;COA&apos;) ?? [];
+  const gallery = product.media?.filter((file: any) => file.role === &apos;GALLERY&apos;) ?? [];
 
-  const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
+  const FIXZIT_COLORS = { primary: &apos;#0061A8&apos;, success: &apos;#00A859&apos;, warning: &apos;#FFB400&apos; } as const;
   return (
-    <div className="min-h-screen bg-[#F5F6F8]" style={{ direction: 'ltr' }}>
+    <div className="min-h-screen bg-[#F5F6F8]" style={{ direction: 'ltr&apos; }}>
       <TopBarAmazon departments={departments} />
       <main className="mx-auto max-w-7xl px-4 py-8">
         <nav className="text-sm text-[#0061A8]">
@@ -50,7 +50,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
                 <div className="space-y-4">
                   <div className="overflow-hidden rounded-2xl bg-gray-100">
                     <img
-                      src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg'}
+                      src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg&apos;}
                       alt={product.title.en}
                       className="h-96 w-full object-cover"
                     />
@@ -74,7 +74,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
                     {product.brand && <p><span className="font-semibold">Brand:</span> {product.brand}</p>}
                     {product.standards?.length ? (
                       <p>
-                        <span className="font-semibold">Standards:</span> {product.standards.join(', ')}
+                        <span className="font-semibold">Standards:</span> {product.standards.join(', &apos;)}
                       </p>
                     ) : null}
                   </div>
@@ -83,7 +83,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
                     <ul className="mt-2 space-y-1 text-sm text-gray-700">
                       {Object.entries(product.specs || {}).map(([key, value]) => (
                         <li key={key} className="flex justify-between gap-4">
-                          <span className="font-medium capitalize text-gray-500">{key.replace(/_/g, ' ')}</span>
+                          <span className="font-medium capitalize text-gray-500">{key.replace(/_/g, &apos; ')}</span>
                           <span>{String(value)}</span>
                         </li>
                       ))}
@@ -96,7 +96,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
                         {attachments.map((file: any) => (
                           <li key={file.url}>
                             <a href={file.url} className="hover:underline" target="_blank">
-                              {file.role === 'MSDS' ? 'Material Safety Data Sheet' : 'Certificate of Analysis'}
+                              {file.role === 'MSDS&apos; ? &apos;Material Safety Data Sheet&apos; : &apos;Certificate of Analysis&apos;}
                             </a>
                           </li>
                         ))}

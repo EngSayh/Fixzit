@@ -20,7 +20,7 @@ import fs from "fs";
 import { spawnSync } from "child_process";
 
 // Try Vitest first; if running under Jest, fall back to globals.
-// @ts-ignore
+// @ts-expect-error
 let usingVitest = false;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -212,7 +212,7 @@ const expectedContentIncludes = [
 
     if (!testUtils || typeof testUtils.spyOn !== "function") {
       // If mocking not supported, skip gracefully
-      // @ts-ignore
+      // @ts-expect-error
       globalThis.it?.skip?.("Mocking not available in this environment");
       return;
     }

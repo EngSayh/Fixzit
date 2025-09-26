@@ -1,10 +1,10 @@
-'use client';
+'use client&apos;;
 
-import Link from 'next/link';
-import { Loader2, ShoppingCart, Star } from 'lucide-react';
-import { useState } from 'react';
-import { useCurrency } from '@/src/contexts/CurrencyContext';
-import { addProductToCart } from '@/src/lib/marketplace/cartClient';
+import Link from &apos;next/link&apos;;
+import { Loader2, ShoppingCart, Star } from &apos;lucide-react&apos;;
+import { useState } from &apos;react&apos;;
+import { useCurrency } from &apos;@/src/contexts/CurrencyContext&apos;;
+import { addProductToCart } from &apos;@/src/lib/marketplace/cartClient&apos;;
 
 export interface MarketplaceProductCard {
   _id: string;
@@ -26,8 +26,8 @@ interface ProductCardProps {
 
 function formatCurrency(value: number, currency: string) {
   try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+    return new Intl.NumberFormat(&apos;en-US&apos;, {
+      style: &apos;currency&apos;,
       currency
     }).format(value);
   } catch (error) {
@@ -38,7 +38,7 @@ function formatCurrency(value: number, currency: string) {
 export default function ProductCard({ product, onAddToCart, isRTL }: ProductCardProps) {
   const { currency } = useCurrency();
   const [adding, setAdding] = useState(false);
-  const image = product.media?.find(item => item.role === 'GALLERY')?.url || product.media?.[0]?.url || '/images/marketplace/placeholder-product.svg';
+  const image = product.media?.find(item => item.role === &apos;GALLERY&apos;)?.url || product.media?.[0]?.url || &apos;/images/marketplace/placeholder-product.svg&apos;;
   const displayPrice = formatCurrency(product.buy.price, product.buy.currency || currency);
 
   const handleAddToCart = async () => {
@@ -49,9 +49,9 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
       await addProductToCart(product._id, quantity);
       onAddToCart?.(product._id);
     } catch (error) {
-      console.error('Failed to add product to cart', error);
-      if (typeof window !== 'undefined') {
-        const message = error instanceof Error ? error.message : 'Unable to add to cart';
+      console.error(&apos;Failed to add product to cart&apos;, error);
+      if (typeof window !== &apos;undefined&apos;) {
+        const message = error instanceof Error ? error.message : &apos;Unable to add to cart&apos;;
         window.alert?.(`Unable to add to cart: ${message}`);
       }
     } finally {
@@ -63,7 +63,7 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
     <div
       className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
       data-testid="product-card"
-      dir={isRTL ? 'rtl' : 'ltr'}
+      dir={isRTL ? &apos;rtl&apos; : &apos;ltr&apos;}
     >
       <Link href={`/marketplace/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gray-100">
         <img src={image} alt={product.title.en} className="h-full w-full object-cover transition duration-500 hover:scale-105" />
@@ -109,7 +109,7 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
             className="flex items-center gap-2 rounded-full bg-[#FFB400] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {adding ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ShoppingCart size={16} aria-hidden />}
-            {adding ? 'Adding…' : 'Add to Cart'}
+            {adding ? &apos;Adding…&apos; : &apos;Add to Cart&apos;}
           </button>
         </div>
       </div>

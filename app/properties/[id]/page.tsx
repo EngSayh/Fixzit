@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MapPin, Home, Users, Wrench } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect } from &apos;react&apos;;
+import { MapPin, Home, Users, Wrench } from &apos;lucide-react&apos;;
+import { useParams } from &apos;next/navigation&apos;;
 
 // Google Maps type declaration
 declare global {
@@ -17,11 +17,11 @@ export default function PropertyDetailPage() {
   
   const [property, setProperty] = useState({
     id: propertyId,
-    name: 'Al Faisaliah Tower',
-    address: 'King Fahd Road, Riyadh 12211, Saudi Arabia',
+    name: &apos;Al Faisaliah Tower&apos;,
+    address: &apos;King Fahd Road, Riyadh 12211, Saudi Arabia&apos;,
     lat: 24.6892,
     lng: 46.6857,
-    type: 'Commercial',
+    type: &apos;Commercial&apos;,
     units: 45,
     occupancy: 89,
     openWorkOrders: 7
@@ -30,7 +30,7 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     // Load Google Maps
     if (!window.google) {
-      const script = document.createElement('script');
+      const script = document.createElement('script&apos;);
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&callback=initMap`;
       script.async = true;
       window.initMap = initializeMap;
@@ -41,8 +41,8 @@ export default function PropertyDetailPage() {
   }, []);
   
   const initializeMap = () => {
-    if (typeof window !== 'undefined' && window.google && window.google.maps) {
-      const map = new window.google.maps.Map(document.getElementById('property-map'), {
+    if (typeof window !== &apos;undefined&apos; && window.google && window.google.maps) {
+      const map = new window.google.maps.Map(document.getElementById(&apos;property-map&apos;), {
         center: { lat: property.lat, lng: property.lng },
         zoom: 16,
         mapTypeControl: false,
@@ -119,7 +119,7 @@ export default function PropertyDetailPage() {
             <div 
               id="property-map" 
               className="w-full h-96 rounded-lg border"
-              style={{ minHeight: '400px' }}
+              style={{ minHeight: '400px&apos; }}
             />
           </div>
           

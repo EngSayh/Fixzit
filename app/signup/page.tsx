@@ -1,49 +1,49 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '../../src/components/ui/button';
-import { Input } from '../../src/components/ui/input';
-import { Textarea } from '../../src/components/ui/textarea';
-import { Label } from '../../src/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../src/components/ui/select';
+import { useState, useEffect } from &apos;react&apos;;
+import { Button } from &apos;../../src/components/ui/button&apos;;
+import { Input } from &apos;../../src/components/ui/input&apos;;
+import { Textarea } from &apos;../../src/components/ui/textarea&apos;;
+import { Label } from &apos;../../src/components/ui/label&apos;;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;../../src/components/ui/select&apos;;
 import {
   Eye, EyeOff, UserPlus, Mail, Lock, Building2, Phone,
   Globe, ChevronDown, ArrowLeft, CheckCircle, AlertCircle
-} from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+} from &apos;lucide-react&apos;;
+import Link from &apos;next/link&apos;;
+import { useRouter } from &apos;next/navigation&apos;;
 
-type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
+type Lang = { code: string; native: string; flag: string; dir: &apos;ltr&apos; | &apos;rtl&apos; };
 const LANGUAGES: Lang[] = [
-  { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-  { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'fr', native: 'Français', flag: '🇫🇷', dir: 'ltr' },
-  { code: 'es', native: 'Español', flag: '🇪🇸', dir: 'ltr' },
+  { code: &apos;ar&apos;, native: &apos;العربية&apos;, flag: &apos;🇸🇦&apos;, dir: &apos;rtl&apos; },
+  { code: &apos;en&apos;, native: &apos;English&apos;, flag: &apos;🇬🇧&apos;, dir: &apos;ltr&apos; },
+  { code: &apos;fr&apos;, native: &apos;Français&apos;, flag: &apos;🇫🇷&apos;, dir: &apos;ltr&apos; },
+  { code: &apos;es&apos;, native: &apos;Español&apos;, flag: &apos;🇪🇸&apos;, dir: &apos;ltr&apos; },
 ];
 
 const CURRENCIES = [
-  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: &apos;SAR&apos;, symbol: &apos;ر.س&apos;, name: &apos;Saudi Riyal&apos; },
+  { code: &apos;USD&apos;, symbol: &apos;$', name: &apos;US Dollar&apos; },
+  { code: &apos;EUR&apos;, symbol: &apos;€', name: 'Euro&apos; },
+  { code: &apos;GBP&apos;, symbol: &apos;£', name: &apos;British Pound&apos; },
 ];
 
 const USER_TYPES = [
-  { value: 'personal', label: 'Personal Account', description: 'For individual users' },
-  { value: 'corporate', label: 'Corporate Account', description: 'For businesses and organizations' },
-  { value: 'vendor', label: 'Vendor Account', description: 'For service providers and suppliers' },
+  { value: &apos;personal&apos;, label: &apos;Personal Account&apos;, description: &apos;For individual users&apos; },
+  { value: &apos;corporate&apos;, label: &apos;Corporate Account&apos;, description: &apos;For businesses and organizations&apos; },
+  { value: &apos;vendor&apos;, label: &apos;Vendor Account&apos;, description: &apos;For service providers and suppliers&apos; },
 ];
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
-    firstName: '',
+    firstName: &apos;',
     lastName: '',
-    email: '',
+    email: &apos;',
     phone: '',
-    companyName: '',
-    userType: 'personal',
-    password: '',
-    confirmPassword: '',
+    companyName: &apos;',
+    userType: 'personal&apos;,
+    password: &apos;',
+    confirmPassword: &apos;',
     termsAccepted: false,
     newsletter: true,
   });
@@ -62,8 +62,8 @@ export default function SignupPage() {
 
   // Load saved preferences
   useEffect(() => {
-    const savedLang = localStorage.getItem('fxz.lang');
-    const savedCurrency = localStorage.getItem('fixzit-currency');
+    const savedLang = localStorage.getItem(&apos;fxz.lang&apos;);
+    const savedCurrency = localStorage.getItem(&apos;fixzit-currency&apos;);
 
     if (savedLang) {
       const found = LANGUAGES.find(l => l.code === savedLang);
@@ -78,7 +78,7 @@ export default function SignupPage() {
   // Handle language change
   const handleLanguageChange = (lang: Lang) => {
     setSelectedLang(lang);
-    localStorage.setItem('fxz.lang', lang.code);
+    localStorage.setItem(&apos;fxz.lang&apos;, lang.code);
     document.documentElement.dir = lang.dir;
     document.documentElement.lang = lang.code;
     setShowLangDropdown(false);
@@ -87,7 +87,7 @@ export default function SignupPage() {
   // Handle currency change
   const handleCurrencyChange = (currency: typeof CURRENCIES[0]) => {
     setSelectedCurrency(currency);
-    localStorage.setItem('fixzit-currency', currency.code);
+    localStorage.setItem(&apos;fixzit-currency&apos;, currency.code);
     setShowCurrencyDropdown(false);
   };
 
@@ -98,27 +98,27 @@ export default function SignupPage() {
       [field]: value
     }));
     // Clear errors when user starts typing
-    if (error) setError('');
+    if (error) setError(&apos;');
   };
 
   // Form validation
   const validateForm = () => {
-    if (!formData.firstName.trim()) return 'First name is required';
-    if (!formData.lastName.trim()) return 'Last name is required';
-    if (!formData.email.trim()) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Please enter a valid email';
-    if (!formData.phone.trim()) return 'Phone number is required';
-    if (formData.userType === 'corporate' && !formData.companyName.trim()) return 'Company name is required for corporate accounts';
-    if (formData.password.length < 8) return 'Password must be at least 8 characters';
-    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
-    if (!formData.termsAccepted) return 'Please accept the terms and conditions';
+    if (!formData.firstName.trim()) return 'First name is required&apos;;
+    if (!formData.lastName.trim()) return &apos;Last name is required&apos;;
+    if (!formData.email.trim()) return &apos;Email is required&apos;;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return &apos;Please enter a valid email&apos;;
+    if (!formData.phone.trim()) return &apos;Phone number is required&apos;;
+    if (formData.userType === &apos;corporate&apos; && !formData.companyName.trim()) return &apos;Company name is required for corporate accounts&apos;;
+    if (formData.password.length < 8) return &apos;Password must be at least 8 characters&apos;;
+    if (formData.password !== formData.confirmPassword) return &apos;Passwords do not match&apos;;
+    if (!formData.termsAccepted) return &apos;Please accept the terms and conditions&apos;;
     return null;
   };
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError(&apos;');
 
     const validationError = validateForm();
     if (validationError) {
@@ -135,10 +135,10 @@ export default function SignupPage() {
         preferredCurrency: selectedCurrency.code,
       };
 
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
+      const response = await fetch(&apos;/api/auth/signup&apos;, {
+        method: &apos;POST&apos;,
         headers: {
-          'Content-Type': 'application/json',
+          &apos;Content-Type&apos;: &apos;application/json&apos;,
         },
         body: JSON.stringify(signupData),
       });
@@ -146,18 +146,18 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Signup failed');
+        throw new Error(data.error || &apos;Signup failed&apos;);
       }
 
       if (data.ok) {
         setSuccess(true);
         // Redirect to login after 2 seconds
         setTimeout(() => {
-          router.push('/login');
+          router.push(&apos;/login&apos;);
         }, 2000);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed');
+      setError(err instanceof Error ? err.message : &apos;Signup failed&apos;);
     } finally {
       setLoading(false);
     }
@@ -261,7 +261,7 @@ export default function SignupPage() {
                         key={lang.code}
                         onClick={() => handleLanguageChange(lang)}
                         className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 ${
-                          lang.code === selectedLang.code ? 'bg-[#0061A8]/10' : ''
+                          lang.code === selectedLang.code ? &apos;bg-[#0061A8]/10&apos; : &apos;'
                         }`}
                       >
                         <span className="text-xl">{lang.flag}</span>
@@ -296,7 +296,7 @@ export default function SignupPage() {
                         key={currency.code}
                         onClick={() => handleCurrencyChange(currency)}
                         className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 text-gray-900 text-sm ${
-                          currency.code === selectedCurrency.code ? 'bg-[#0061A8]/10' : ''
+                          currency.code === selectedCurrency.code ? &apos;bg-[#0061A8]/10&apos; : &apos;'
                         }`}
                       >
                         <span className="font-medium">{currency.symbol}</span>
@@ -328,7 +328,7 @@ export default function SignupPage() {
                 <Label htmlFor="userType" className="block text-sm font-medium text-gray-700 mb-2">
                   Account Type
                 </Label>
-                <Select value={formData.userType} onValueChange={(value) => handleChange('userType', value)}>
+                <Select value={formData.userType} onValueChange={(value) => handleChange('userType&apos;, value)}>
                   <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
@@ -356,7 +356,7 @@ export default function SignupPage() {
                     type="text"
                     placeholder="Enter your first name"
                     value={formData.firstName}
-                    onChange={(e) => handleChange('firstName', e.target.value)}
+                    onChange={(e) => handleChange('firstName&apos;, e.target.value)}
                     className="h-12"
                     required
                   />
@@ -370,7 +370,7 @@ export default function SignupPage() {
                     type="text"
                     placeholder="Enter your last name"
                     value={formData.lastName}
-                    onChange={(e) => handleChange('lastName', e.target.value)}
+                    onChange={(e) => handleChange('lastName&apos;, e.target.value)}
                     className="h-12"
                     required
                   />
@@ -389,7 +389,7 @@ export default function SignupPage() {
                     type="email"
                     placeholder="Enter your email address"
                     value={formData.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
+                    onChange={(e) => handleChange('email&apos;, e.target.value)}
                     className="pl-10 h-12"
                     required
                   />
@@ -408,7 +408,7 @@ export default function SignupPage() {
                     type="tel"
                     placeholder="+966 XX XXX XXXX"
                     value={formData.phone}
-                    onChange={(e) => handleChange('phone', e.target.value)}
+                    onChange={(e) => handleChange('phone&apos;, e.target.value)}
                     className="pl-10 h-12"
                     required
                   />
@@ -416,7 +416,7 @@ export default function SignupPage() {
               </div>
 
               {/* Company Name (for corporate accounts) */}
-              {formData.userType === 'corporate' && (
+              {formData.userType === 'corporate&apos; && (
                 <div>
                   <Label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
                     Company Name *
@@ -428,7 +428,7 @@ export default function SignupPage() {
                       type="text"
                       placeholder="Enter your company name"
                       value={formData.companyName}
-                      onChange={(e) => handleChange('companyName', e.target.value)}
+                      onChange={(e) => handleChange('companyName&apos;, e.target.value)}
                       className="pl-10 h-12"
                       required
                     />
@@ -446,10 +446,10 @@ export default function SignupPage() {
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
                       id="password"
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? 'text&apos; : &apos;password&apos;}
                       placeholder="Create a strong password"
                       value={formData.password}
-                      onChange={(e) => handleChange('password', e.target.value)}
+                      onChange={(e) => handleChange('password&apos;, e.target.value)}
                       className="pl-10 pr-10 h-12"
                       required
                       minLength={8}
@@ -472,10 +472,10 @@ export default function SignupPage() {
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
                       id="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
+                      type={showConfirmPassword ? 'text&apos; : &apos;password&apos;}
                       placeholder="Confirm your password"
                       value={formData.confirmPassword}
-                      onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                      onChange={(e) => handleChange('confirmPassword&apos;, e.target.value)}
                       className="pl-10 pr-10 h-12"
                       required
                       minLength={8}
@@ -505,15 +505,15 @@ export default function SignupPage() {
                   <input
                     type="checkbox"
                     checked={formData.termsAccepted}
-                    onChange={(e) => handleChange('termsAccepted', e.target.checked)}
+                    onChange={(e) => handleChange('termsAccepted&apos;, e.target.checked)}
                     className="mt-1 h-4 w-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
                     required
                   />
                   <span className="text-sm text-gray-600">
-                    I agree to the{' '}
+                    I agree to the{&apos; '}
                     <Link href="/terms" className="text-[#0061A8] hover:underline">
                       Terms of Service
-                    </Link>{' '}
+                    </Link>{&apos; '}
                     and{' '}
                     <Link href="/privacy" className="text-[#0061A8] hover:underline">
                       Privacy Policy
@@ -526,7 +526,7 @@ export default function SignupPage() {
                   <input
                     type="checkbox"
                     checked={formData.newsletter}
-                    onChange={(e) => handleChange('newsletter', e.target.checked)}
+                    onChange={(e) => handleChange('newsletter&apos;, e.target.checked)}
                     className="mt-1 h-4 w-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
                   />
                   <span className="text-sm text-gray-600">
@@ -558,7 +558,7 @@ export default function SignupPage() {
             {/* Login Link */}
             <div className="mt-6 text-center">
               <p className="text-gray-600">
-                Already have an account?{' '}
+                Already have an account?{&apos; '}
                 <Link href="/login" className="text-[#0061A8] hover:underline font-medium">
                   Sign in here
                 </Link>

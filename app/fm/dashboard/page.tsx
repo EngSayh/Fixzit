@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Button } from '@/src/components/ui/button';
-import { Badge } from '@/src/components/ui/badge';
-import Link from 'next/link';
+import { useState, useEffect } from &apos;react&apos;;
+import useSWR from 'swr&apos;;
+import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
+import { Button } from &apos;@/src/components/ui/button&apos;;
+import { Badge } from &apos;@/src/components/ui/badge&apos;;
+import Link from &apos;next/link&apos;;
 import { 
   Building2, Users, Wrench, ShoppingCart, DollarSign, 
   ClipboardList, AlertCircle, TrendingUp, Calendar,
   ChevronRight, Plus, Search, Bell
-} from 'lucide-react';
+} from &apos;lucide-react&apos;;
 
 const fetcher = (url: string) => fetch(url, {
   headers: { 
     "x-tenant-id": "demo-tenant",
-    "Authorization": `Bearer ${localStorage.getItem('fixzit_token') || ''}`
+    "Authorization": `Bearer ${localStorage.getItem(&apos;fixzit_token&apos;) || &apos;'}`
   }
 }).then(r => r.json());
 
@@ -23,22 +23,22 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('fixzit_user');
+    const userStr = localStorage.getItem(&apos;fixzit_user&apos;);
     if (userStr) {
       setUser(JSON.parse(userStr));
     }
   }, []);
 
   // Fetch dashboard data
-  const { data: workOrders } = useSWR('/api/work-orders?limit=5', fetcher);
-  const { data: properties } = useSWR('/api/properties?limit=5', fetcher);
-  const { data: assets } = useSWR('/api/assets?status=MAINTENANCE&limit=5', fetcher);
-  const { data: invoices } = useSWR('/api/invoices?status=OVERDUE&limit=5', fetcher);
+  const { data: workOrders } = useSWR(&apos;/api/work-orders?limit=5&apos;, fetcher);
+  const { data: properties } = useSWR(&apos;/api/properties?limit=5&apos;, fetcher);
+  const { data: assets } = useSWR(&apos;/api/assets?status=MAINTENANCE&limit=5&apos;, fetcher);
+  const { data: invoices } = useSWR(&apos;/api/invoices?status=OVERDUE&limit=5&apos;, fetcher);
 
   const stats = {
     workOrders: {
       total: workOrders?.total || 0,
-      pending: workOrders?.items?.filter((wo: any) => wo.status === 'SUBMITTED').length || 0,
+      pending: workOrders?.items?.filter((wo: any) => wo.status === &apos;SUBMITTED&apos;).length || 0,
       overdue: workOrders?.items?.filter((wo: any) => new Date(wo.dueAt) < new Date()).length || 0
     },
     properties: {
@@ -48,8 +48,8 @@ export default function DashboardPage() {
     },
     assets: {
       total: assets?.total || 0,
-      critical: assets?.items?.filter((a: any) => a.criticality === 'CRITICAL').length || 0,
-      maintenance: assets?.items?.filter((a: any) => a.status === 'MAINTENANCE').length || 0
+      critical: assets?.items?.filter((a: any) => a.criticality === &apos;CRITICAL&apos;).length || 0,
+      maintenance: assets?.items?.filter((a: any) => a.status === &apos;MAINTENANCE&apos;).length || 0
     },
     finance: {
       overdue: invoices?.total || 0,
@@ -63,7 +63,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name || 'User'}</p>
+          <p className="text-gray-600">Welcome back, {user?.name || 'User&apos;}</p>
         </div>
         <div className="flex items-center space-x-4">
           <Button variant="outline" className="flex items-center gap-2">
@@ -163,10 +163,10 @@ export default function DashboardPage() {
                 <div key={wo._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full ${
-                      wo.priority === 'CRITICAL' ? 'bg-red-500' :
-                      wo.priority === 'HIGH' ? 'bg-orange-500' :
-                      wo.priority === 'MEDIUM' ? 'bg-yellow-500' :
-                      'bg-green-500'
+                      wo.priority === 'CRITICAL&apos; ? &apos;bg-red-500&apos; :
+                      wo.priority === &apos;HIGH&apos; ? &apos;bg-orange-500&apos; :
+                      wo.priority === &apos;MEDIUM&apos; ? &apos;bg-yellow-500&apos; :
+                      &apos;bg-green-500&apos;
                     }`} />
                     <div>
                       <p className="font-medium text-sm">{wo.code}</p>

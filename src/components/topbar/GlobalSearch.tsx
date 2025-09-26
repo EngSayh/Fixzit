@@ -1,8 +1,8 @@
-'use client';
+'use client&apos;;
 
-import { useState, useEffect, useRef } from 'react';
-import { useTopBar } from '@/src/contexts/TopBarContext';
-import { Search, Command } from 'lucide-react';
+import { useState, useEffect, useRef } from &apos;react&apos;;
+import { useTopBar } from &apos;@/src/contexts/TopBarContext&apos;;
+import { Search, Command } from &apos;lucide-react&apos;;
 
 interface SearchResult {
   id: string;
@@ -14,7 +14,7 @@ interface SearchResult {
 
 export default function GlobalSearch() {
   const { app, searchPlaceholder, searchEntities } = useTopBar();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(&apos;');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,7 +39,7 @@ export default function GlobalSearch() {
         const params = new URLSearchParams({
           app,
           q: query,
-          entities: searchEntities.join(',')
+          entities: searchEntities.join(&apos;,')
         });
 
         const response = await fetch(`/api/search?${params}`);
@@ -49,7 +49,7 @@ export default function GlobalSearch() {
           setOpen(true);
         }
       } catch (error) {
-        console.error('Search failed:', error);
+        console.error(&apos;Search failed:&apos;, error);
         setResults([]);
       } finally {
         setLoading(false);
@@ -71,29 +71,29 @@ export default function GlobalSearch() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener(&apos;mousedown&apos;, handleClickOutside);
+    return () => document.removeEventListener(&apos;mousedown&apos;, handleClickOutside);
   }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+      if ((event.ctrlKey || event.metaKey) && event.key === &apos;k') {
         event.preventDefault();
-        const input = document.querySelector('input[aria-label="Global search"]') as HTMLInputElement;
+        const input = document.querySelector(&apos;input[aria-label="Global search"]&apos;) as HTMLInputElement;
         if (input) {
           input.focus();
         }
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener(&apos;keydown&apos;, handleKeyDown);
+    return () => document.removeEventListener(&apos;keydown&apos;, handleKeyDown);
   }, []);
 
   const handleResultClick = (href: string) => {
     setOpen(false);
-    setQuery('');
+    setQuery(&apos;');
     window.location.href = href;
   };
 
@@ -139,7 +139,7 @@ export default function GlobalSearch() {
                       )}
                     </div>
                     <div className="text-xs text-gray-400 uppercase tracking-wide">
-                      {result.entity.replace('_', ' ')}
+                      {result.entity.replace(&apos;_', &apos; ')}
                     </div>
                   </div>
                 </button>

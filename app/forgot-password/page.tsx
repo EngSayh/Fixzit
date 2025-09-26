@@ -1,11 +1,11 @@
-'use client'
+'use client&apos;
 
 export default function ForgotPassword() {
   const toggleLang = () => {
     const html = document.documentElement;
-    const now = html.getAttribute('dir') === 'rtl' ? 'ltr' : 'rtl';
-    html.setAttribute('dir', now);
-    html.setAttribute('lang', now === 'rtl' ? 'ar' : 'en');
+    const now = html.getAttribute(&apos;dir&apos;) === &apos;rtl&apos; ? &apos;ltr&apos; : &apos;rtl&apos;;
+    html.setAttribute(&apos;dir&apos;, now);
+    html.setAttribute(&apos;lang&apos;, now === &apos;rtl&apos; ? &apos;ar&apos; : &apos;en&apos;);
   }
 
   return (
@@ -19,39 +19,39 @@ export default function ForgotPassword() {
       </div>
 
       <div className="fxz-app">
-        <main className="fxz-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="fxz-content" style={{ maxWidth: '400px', width: '100%' }}>
+        <main className="fxz-main" style={{ display: 'flex&apos;, alignItems: &apos;center&apos;, justifyContent: &apos;center&apos; }}>
+          <div className="fxz-content" style={{ maxWidth: '400px&apos;, width: &apos;100%&apos; }}>
             <div className="fxz-card">
-              <h2 style={{ margin: '0 0 20px', textAlign: 'center' }}>Reset Password</h2>
+              <h2 style={{ margin: '0 0 20px&apos;, textAlign: &apos;center&apos; }}>Reset Password</h2>
               
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+              <div style={{ marginBottom: &apos;20px&apos; }}>
+                <label style={{ display: &apos;block&apos;, marginBottom: &apos;8px&apos;, fontWeight: &apos;500&apos; }}>
                   Email Address
                 </label>
                 <input
                   type="email"
                   placeholder="Enter your email"
                   style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid var(--fxz-border)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none'
+                    width: '100%&apos;,
+                    padding: &apos;12px&apos;,
+                    border: &apos;1px solid var(--fxz-border)&apos;,
+                    borderRadius: &apos;8px&apos;,
+                    fontSize: &apos;14px&apos;,
+                    outline: &apos;none&apos;
                   }}
                 />
               </div>
 
               <button
                 className="fxz-btn primary"
-                style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => alert('Password reset email sent!')}
+                style={{ width: '100%&apos;, justifyContent: &apos;center&apos; }}
+                onClick={() => alert(&apos;Password reset email sent!&apos;)}
               >
                 Send Reset Link
               </button>
 
-              <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                <a href="/login" style={{ color: 'var(--fxz-blue)', fontSize: '14px' }}>
+              <div style={{ marginTop: &apos;16px&apos;, textAlign: &apos;center&apos; }}>
+                <a href="/login" style={{ color: 'var(--fxz-blue)&apos;, fontSize: &apos;14px&apos; }}>
                   Back to Login
                 </a>
               </div>

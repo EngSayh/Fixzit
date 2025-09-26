@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState } from &apos;react&apos;;
 
 export default function SupportTicketPage() {
   const [formData, setFormData] = useState({
-    subject: '',
-    module: 'FM',
-    type: 'Bug',
-    priority: 'Medium',
-    description: '',
+    subject: &apos;',
+    module: &apos;FM&apos;,
+    type: &apos;Bug&apos;,
+    priority: &apos;Medium&apos;,
+    description: &apos;',
     name: '',
-    email: '',
+    email: &apos;',
     phone: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,17 +21,17 @@ export default function SupportTicketPage() {
 
     // Simulate API call
     setTimeout(() => {
-      alert('🎯 Support Ticket Created Successfully!\n\nYour ticket has been submitted and our support team will get back to you within 24 hours.');
+      alert(&apos;🎯 Support Ticket Created Successfully!\n\nYour ticket has been submitted and our support team will get back to you within 24 hours.&apos;);
       setIsSubmitting(false);
       setFormData({
-        subject: '',
-        module: 'FM',
-        type: 'Bug',
-        priority: 'Medium',
-        description: '',
-        name: '',
+        subject: &apos;',
+        module: 'FM&apos;,
+        type: &apos;Bug&apos;,
+        priority: &apos;Medium&apos;,
+        description: &apos;',
+        name: &apos;',
         email: '',
-        phone: ''
+        phone: &apos;'
       });
     }, 2000);
   };
@@ -199,7 +199,7 @@ export default function SupportTicketPage() {
                 disabled={isSubmitting}
                 className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
+                {isSubmitting ? &apos;Submitting...&apos; : &apos;Submit Ticket&apos;}
               </button>
             </div>
           </form>
