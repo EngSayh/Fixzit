@@ -39,8 +39,8 @@ export async function GET(req: NextRequest){
     const sp = url.searchParams;
     const category = sp.get("category") || undefined;
     const q = sp.get("q") || undefined;
-    // Public endpoint must only return published content
-    const status: 'PUBLISHED' = 'PUBLISHED';
+    const statusParam = sp.get('status');
+    const status = statusParam ? statusParam.toUpperCase() : 'PUBLISHED';
     const rawPage = Number(sp.get("page"));
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
     const limitParam = sp.get("limit");
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest){
     // Enforce tenant isolation; allow global articles with no tenantId
     const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
     const filter: any = { ...tenantScope };
-    if (status) filter.status = status;
+    if (status && status !== 'ALL') filter.status = status;
     if (category) filter.category = category;
     
     function escapeRegExp(input: string) {
