@@ -50,7 +50,7 @@ jest.mock('@/src/lib/marketplace/serializers', () => {
   };
 });
 
-import { GET } from '../../../../app/api/marketplace/products/[slug]/route.ts';
+import { GET } from '../../../../app/api/marketplace/products/[slug]/route';
 
 const { resolveMarketplaceContext } = jest.requireMock('@/src/lib/marketplace/context');
 const { findProductBySlug } = jest.requireMock('@/src/lib/marketplace/search');
