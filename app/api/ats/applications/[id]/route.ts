@@ -18,7 +18,7 @@ export async function GET(
     }
     // Require auth and scope by org
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user?.tenantId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -66,7 +66,7 @@ export async function PATCH(
     }
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user?.tenantId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
