@@ -8,7 +8,7 @@ import { WOPriority } from "@/src/server/work-orders/wo.schema";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string }}) {
   await db;
-  const user = await requireAbility("READ")(req);
+  const user = await requireAbility("VIEW")(req);
   if (user instanceof NextResponse) return user as any;
   if (!user?.tenantId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
