@@ -65,7 +65,7 @@ const ProductSchema = new Schema(
 ProductSchema.index({ orgId: 1, sku: 1 }, { unique: true });
 ProductSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 ProductSchema.index({ orgId: 1, status: 1 });
-ProductSchema.index({ title: 'text', summary: 'text', brand: 'text', standards: 'text' });
+ProductSchema.index({ 'title.en': 'text', 'title.ar': 'text', summary: 'text', brand: 'text', standards: 'text' });
 
 const ProductModel = models.MarketplaceProduct || model('MarketplaceProduct', ProductSchema);
 
