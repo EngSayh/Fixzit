@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
-import { Asset } from "@/src/server/models/Asset";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -48,12 +46,21 @@ const createAssetSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.ASSET_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
+    const Asset = AssetMod && (AssetMod as any).Asset;
+    if (!Asset) {
+      return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
+    }
     const user = await getSessionUser(req);
-    await db;
 
     const data = createAssetSchema.parse(await req.json());
 
-    const asset = await Asset.create({
+    const asset = await (Asset as any).create({
       tenantId: user.tenantId,
       code: `AST-${Date.now()}`,
       ...data,
@@ -68,6 +75,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    if (process.env.ASSET_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
+    const Asset = AssetMod && (AssetMod as any).Asset;
+    if (!Asset) {
+      return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
+    }
     // For testing purposes, allow access without authentication
     let user = null;
     try {
@@ -76,7 +93,6 @@ export async function GET(req: NextRequest) {
       // Use mock user for testing
       user = { id: '1', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' };
     }
-    await db;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
