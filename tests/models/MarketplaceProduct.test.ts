@@ -131,8 +131,8 @@ describe('MarketplaceProduct Schema', () => {
     // Convert to comparable strings to avoid deep diffs on options
     const normalized = indexes.map(([spec, opts]: [Record<string, any>, Record<string, any>]) => ({
       spec,
-      unique: Boolean(opts && opts.unique),
-      text: Object.values(spec).some((v) => v === 'text'),
+      unique: Boolean(opts && (opts as Record<string, any>).unique),
+      text: Object.values(spec).some((v: any) => v === 'text'),
     }));
 
     // Unique compound indexes
@@ -145,7 +145,7 @@ describe('MarketplaceProduct Schema', () => {
 
     // Text index over title, brand, searchable, attributes.value
     const hasTextIndex = normalized.some(
-      (idx) =>
+      (idx: { spec: Record<string, any>; text: boolean }) =>
         idx.text &&
         idx.spec['title'] === 'text' &&
         idx.spec['brand'] === 'text' &&

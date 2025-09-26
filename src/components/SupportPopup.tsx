@@ -3,9 +3,6 @@ import { useState, useEffect } from "react";
 
 const api = async (url: string, opts?: RequestInit) => {
   const headers: any = { "content-type": "application/json" };
-  const userStr = localStorage.getItem("x-user");
-  if (userStr) headers["x-user"] = userStr;
-
   const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -13,7 +10,7 @@ const api = async (url: string, opts?: RequestInit) => {
 
 export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>void, errorDetails?: any }){
   const [subject,setSubject]=useState(errorDetails ? `Error Report: ${errorDetails.type}` : "");
-  const [moduleKey,setModule]=useState("System");
+  const [moduleKey,setModule]=useState("Other");
   const [type,setType]=useState("Bug");
   const [priority,setPriority]=useState("Medium");
   const [text,setText]=useState("");
@@ -27,7 +24,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
   useEffect(() => {
     if (errorDetails) {
       setSubject(`System Error: ${errorDetails.error?.name || 'Unknown'} - ${errorDetails.error?.message?.substring(0, 50) || ''}...`);
-      setModule("System");
+      setModule("Other");
       setType("Bug");
       setPriority("High");
       setText(generateErrorDescription(errorDetails));
@@ -131,6 +128,15 @@ We've sent a welcome email to ${email} with registration instructions and next s
         submitBtn.disabled = false;
         submitBtn.textContent = "Submit Ticket";
       }
+    }
+  };
+
+  const copyDetails = async () => {
+    try {
+      await navigator.clipboard.writeText(text || subject);
+      alert("Details copied to clipboard");
+    } catch {
+      // no-op
     }
   };
 
@@ -308,6 +314,13 @@ We've sent a welcome email to ${email} with registration instructions and next s
               onClick={onClose}
             >
               Cancel
+            </button>
+            <button
+              className="px-6 py-3 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onClick={copyDetails}
+              disabled={!subject.trim() && !text.trim()}
+            >
+              Copy details
             </button>
             <button
               className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
