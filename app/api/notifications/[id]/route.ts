@@ -3,6 +3,7 @@ import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
+import { createSecureResponse } from '@/src/server/security/headers';
 
 const updateNotificationSchema = z.object({
   read: z.boolean().optional(),
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const doc = await notifications.findOne({ _id: _id as any, tenantId });
   if (!doc) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   const { _id: rawId, ...rest } = doc as any;
-  return NextResponse.json({ id: String(rawId), ...rest });
+  return createSecureResponse({ id: String(rawId), ...rest });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -48,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const value = updated as any;
   if (!value) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   const normalized = { id: String(value._id), ...value, _id: undefined };
-  return NextResponse.json(normalized);
+  return createSecureResponse(normalized);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
@@ -64,5 +65,5 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!_id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   const res = await notifications.deleteOne({ _id: _id as any, tenantId });
   if (!res.deletedCount) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-  return NextResponse.json({ success: true });
+  return createSecureResponse({ success: true });
 }

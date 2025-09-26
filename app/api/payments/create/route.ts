@@ -4,6 +4,7 @@ import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 import { z } from 'zod';
+import { createSecureResponse } from '@/src/server/security/headers';
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
       });
       await invoice.save();
 
-      return NextResponse.json({
+      return createSecureResponse({
         success: true,
         paymentUrl: paymentResponse.paymentUrl,
         transactionId: paymentResponse.transactionId

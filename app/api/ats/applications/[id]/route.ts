@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
 import { z } from 'zod';
+import { createSecureResponse } from '@/src/server/security/headers';
 
 export async function GET(
   req: NextRequest,
@@ -46,7 +47,7 @@ export async function GET(
     if (!canSeePII && Array.isArray(result.notes)) {
       result.notes = result.notes.filter((n: any) => !n?.isPrivate);
     }
-    return NextResponse.json({ success: true, data: result });
+    return createSecureResponse({ success: true, data: result });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to fetch application' }, { status: 500 });
   }
@@ -129,7 +130,7 @@ export async function PATCH(
     if (!canSeePrivate && Array.isArray(result.notes)) {
       result.notes = result.notes.filter((n: any) => !n?.isPrivate);
     }
-    return NextResponse.json({ success: true, data: result });
+    return createSecureResponse({ success: true, data: result });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to update application' }, { status: 500 });
   }
