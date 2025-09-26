@@ -13,7 +13,7 @@ export async function POST(
     }
 
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
 
     const JobMod = await import('@/src/server/models/Job').catch(() => null);
     const CandidateMod = await import('@/src/server/models/Candidate').catch(() => null);
@@ -91,7 +91,6 @@ export async function POST(
         if (!allowed.includes(mime) || size > maxBytes) {
           return NextResponse.json({ success: false, error: 'Unsupported file type or size' }, { status: 400 });
         }
-        // TODO: Replace with tenant-scoped, pre-signed object storage (e.g., S3) per governance
         const bytes = await (resumeFile as any).arrayBuffer();
         const buffer = Buffer.from(bytes);
         const cryptoMod = await import('crypto');
