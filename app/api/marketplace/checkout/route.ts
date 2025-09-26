@@ -5,6 +5,7 @@ import { db } from '@/src/lib/mongo';
 import { getOrCreateCart, recalcCartTotals } from '@/src/lib/marketplace/cart';
 import { rateLimit } from '@/src/server/security/rateLimit';
 import { serializeOrder } from '@/src/lib/marketplace/serializers';
+import { createSecureResponse } from '@/src/server/security/headers';
 
 const CheckoutSchema = z.object({
   shipTo: z
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     await cart.save();
 
-    return NextResponse.json({
+    return createSecureResponse({
       ok: true,
       data: serializeOrder(cart)
     });
