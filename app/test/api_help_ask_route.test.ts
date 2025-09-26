@@ -7,6 +7,57 @@
 
 import type { NextResponse } from 'next/server'
 
+type MockContext = {
+  createIndexCalls: unknown[];
+  findQuery: unknown;
+  findOptions: unknown;
+  docs: Array<Record<string, unknown>>;
+};
+
+type MockFindChain = {
+  sort: jest.Mock<MockFindChain, [unknown?]>;
+  limit: jest.Mock<MockFindChain, [unknown?]>;
+  toArray: jest.Mock<Promise<MockContext['docs']>, []>;
+};
+
+const mockCtx: MockContext = {
+  createIndexCalls: [],
+  findQuery: null,
+  findOptions: null,
+  docs: [],
+};
+
+const createFindChain = (): MockFindChain => {
+  const chain: Partial<MockFindChain> = {};
+  chain.sort = jest.fn(() => chain as MockFindChain);
+  chain.limit = jest.fn(() => chain as MockFindChain);
+  chain.toArray = jest.fn(async () => mockCtx.docs);
+  return chain as MockFindChain;
+};
+
+const mockColl = {
+  createIndex: jest.fn(async (spec: unknown) => {
+    mockCtx.createIndexCalls.push(spec);
+    return 'ok';
+  }),
+  find: jest.fn((query: unknown, options: unknown) => {
+    mockCtx.findQuery = query;
+    mockCtx.findOptions = options;
+    return createFindChain();
+  }),
+};
+
+const mockDb = {
+  collection: jest.fn(() => mockColl),
+};
+
+const mockedMongoModule = {
+  getDatabase: jest.fn(async () => mockDb),
+};
+
+// Mock the database helper before importing the module
+jest.mock('@/lib/mongodb', () => mockedMongoModule);
+
 // Import the module under test; adjust the path if the route file differs
 // Common Next.js path pattern: app/api/help/ask/route.ts
 // We import named exports to test pure helpers and POST handler.
@@ -15,53 +66,13 @@ let POST: (req: any) => Promise<NextResponse>;
 let __private_buildHeuristicAnswer: (q: string, ctxs: Array<{ title: string; text: string }>) => string;
 let __private_maybeSummarizeWithOpenAI: (q: string, ctxs: string[]) => Promise<string | null>;
 
-// Mock the database helper before importing the module
-jest.mock('@/lib/mongodb', () => {
-  // Build a flexible stub that we can adjust per-test
-  const mockCtx: any = {
-    createIndexCalls: [] as any[],
-    findQuery: null as any,
-    findOptions: null as any,
-    docs: [] as any[],
-  };
-
-  const coll = {
-    createIndex: jest.fn(async (spec: any) => {
-      mockCtx.createIndexCalls.push(spec);
-      return 'ok';
-    }),
-    find: jest.fn((query: any, options: any) => {
-      mockCtx.findQuery = query;
-      mockCtx.findOptions = options;
-      const chain = {
-        sort: jest.fn(() => chain),
-        limit: jest.fn(() => chain),
-        toArray: jest.fn(async () => mockCtx.docs),
-      };
-      return chain;
-    }),
-  };
-
-  const db = {
-    collection: jest.fn(() => coll),
-  };
-
-  return {
-    getDatabase: jest.fn(async () => db),
-    __mockCtx: mockCtx,
-    __coll: coll,
-    __db: db,
-  };
-});
-
-// Capture the mock context so tests can assert behavior
-import { __mockCtx, __coll, __db } from '@/lib/mongodb';
-
 // Helper to (re)import the route module fresh per test to reset internal state
 async function importFresh() {
   jest.resetModules();
+  mockedMongoModule.getDatabase.mockResolvedValue(mockDb);
+  mockDb.collection.mockReturnValue(mockColl);
   // Re-establish mocks post-reset
-  jest.doMock('@/lib/mongodb', () => ({ getDatabase: jest.fn(async () => __db), __mockCtx, __coll, __db }));
+  jest.doMock('@/lib/mongodb', () => mockedMongoModule);
   const mod = await import('../../app/api/help/ask/route');
   routeModule = mod as any;
   POST = mod.POST as any;
@@ -77,12 +88,14 @@ const makeReq = (payload: any) => ({ json: async () => payload });
 beforeEach(async () => {
   jest.useFakeTimers().setSystemTime(new Date('2024-01-02T03:04:05Z'));
   // reset mock ctx
-  __mockCtx.createIndexCalls.length = 0;
-  __mockCtx.findQuery = null;
-  __mockCtx.findOptions = null;
-  __mockCtx.docs = [];
+  mockCtx.createIndexCalls.length = 0;
+  mockCtx.findQuery = null;
+  mockCtx.findOptions = null;
+  mockCtx.docs = [];
   // reset mocks
   jest.clearAllMocks();
+  mockedMongoModule.getDatabase.mockResolvedValue(mockDb);
+  mockDb.collection.mockReturnValue(mockColl);
   // reset env and global.fetch
   delete (process.env as any).OPENAI_API_KEY;
   (global as any).fetch = undefined;
@@ -185,17 +198,17 @@ describe('POST handler', () => {
   });
 
   test('ensures text index created and queries with $text search including category filter', async () => {
-    __mockCtx.docs = [];
+    mockCtx.docs = [];
     const resp: any = await POST(makeReq({ question: 'reset password', category: 'account' }));
-    expect(__coll.createIndex).toHaveBeenCalledWith({ title: 'text', content: 'text', tags: 'text' });
-    expect(__coll.find).toHaveBeenCalled();
-    expect(__mockCtx.findQuery).toEqual(expect.objectContaining({
+    expect(mockColl.createIndex).toHaveBeenCalledWith({ title: 'text', content: 'text', tags: 'text' });
+    expect(mockColl.find).toHaveBeenCalled();
+    expect(mockCtx.findQuery).toEqual(expect.objectContaining({
       status: 'PUBLISHED',
       category: 'account',
       $text: { $search: 'reset password' },
     }));
     // Projection should include score meta and desired fields
-    expect(__mockCtx.findOptions).toEqual(expect.objectContaining({
+    expect(mockCtx.findOptions).toEqual(expect.objectContaining({
       projection: expect.objectContaining({
         score: expect.any(Object),
         slug: 1, title: 1, content: 1, updatedAt: 1,
@@ -209,13 +222,13 @@ describe('POST handler', () => {
 
   test('limits results between 1 and 8 and falls back to heuristic when no OPENAI_API_KEY', async () => {
     // Prepare docs > 3 to test truncation in heuristic
-    __mockCtx.docs = Array.from({ length: 6 }).map((_, i) => ({
+  mockCtx.docs = Array.from({ length: 6 }).map((_, i) => ({
       slug: `s${i}`, title: `T${i}`, content: `content ${i} ` + 'x'.repeat(20), updatedAt: new Date('2024-01-0' + ((i % 9) + 1)),
     }));
     // No OPENAI_API_KEY ensures heuristic path
     const resp: any = await POST(makeReq({ question: 'billing', limit: 100 }));
     // limit should be clamped to 8; we assert at least that it was invoked and returned docs handled
-    expect(__coll.find).toHaveBeenCalled();
+  expect(mockColl.find).toHaveBeenCalled();
     const body = await resp.json();
     expect(body.answer.split('\n').filter((l: string) => l.startsWith('- '))).toHaveLength(3);
     expect(Array.isArray(body.citations)).toBe(true);
@@ -228,7 +241,7 @@ describe('POST handler', () => {
       ok: true,
       json: async () => ({ choices: [{ message: { content: 'AI summary' } }] }),
     }));
-    __mockCtx.docs = [
+  mockCtx.docs = [
       { slug: 'a', title: 'Alpha', content: 'Lorem ipsum' },
       { slug: 'b', title: 'Beta', content: 'Dolor sit' },
     ];
@@ -240,7 +253,7 @@ describe('POST handler', () => {
 
   test('returns 500 on unexpected error and logs', async () => {
     // Force getDatabase().collection().find() to throw
-    (__coll.find as jest.Mock).mockImplementationOnce(() => { throw new Error('db fail'); });
+  (mockColl.find as jest.Mock).mockImplementationOnce(() => { throw new Error('db fail'); });
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const resp: any = await POST(makeReq({ question: 'anything' }));
     expect(resp.status).toBe(500);
