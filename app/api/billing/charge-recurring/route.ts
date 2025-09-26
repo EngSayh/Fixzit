@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
 import Subscription from '@/src/models/Subscription';
+import { createSecureResponse } from '@/src/server/security/headers';
 import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
 import PaymentMethod from '@/src/models/PaymentMethod';
 
@@ -37,5 +38,5 @@ export async function POST(req: NextRequest) {
     s.nextInvoiceAt = new Date(new Date().setMonth(today.getMonth()+1)); await s.save();
   }
 
-  return NextResponse.json({ ok: true, count: dueSubs.length });
+  return createSecureResponse({ ok: true, count: dueSubs.length });
 }

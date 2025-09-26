@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
 import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
+import { createSecureResponse } from '@/src/server/security/headers';
 import Subscription from '@/src/models/Subscription';
 import PaymentMethod from '@/src/models/PaymentMethod';
 
@@ -37,5 +38,5 @@ export async function POST(req: NextRequest) {
     await sub.save();
   }
 
-  return NextResponse.json({ ok: true });
+  return createSecureResponse({ ok: true });
 }
