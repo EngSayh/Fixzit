@@ -51,8 +51,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     return NextResponse.json(asset);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -74,8 +75,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     return NextResponse.json(asset);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 
@@ -95,7 +97,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

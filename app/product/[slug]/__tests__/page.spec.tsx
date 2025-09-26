@@ -51,7 +51,7 @@ describe('ProductPage', () => {
 
   test('renders Not found when product is missing', async () => {
     // Mock fetch to return data without product
-    // @ts-ignore
+    // @ts-expect-error - Mocking global fetch for testing
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ buyBox: { price: 1, currency: 'USD', inStock: false, leadDays: 10 } }),
     });
@@ -68,7 +68,7 @@ describe('ProductPage', () => {
   });
 
   test('renders title, attributes (max 6), price/currency, stock status, lead days, and action links', async () => {
-    // @ts-ignore
+    // @ts-expect-error - Mocking global fetch for testing
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => makeData(),
     });
@@ -111,7 +111,7 @@ describe('ProductPage', () => {
   });
 
   test('uses NEXT_PUBLIC_FRONTEND_URL if set when fetching PDP', async () => {
-    // @ts-ignore
+    // @ts-expect-error - Mocking global fetch for testing
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => makeData(),
     });
@@ -127,7 +127,7 @@ describe('ProductPage', () => {
   });
 
   test('renders Backorder when not in stock and shows correct lead days', async () => {
-    // @ts-ignore
+    // @ts-expect-error - Mocking global fetch for testing
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => makeData({ buyBox: { price: 99, currency: 'EUR', inStock: false, leadDays: 9 } }),
     });
@@ -143,7 +143,7 @@ describe('ProductPage', () => {
   });
 
   test('handles empty attributes array gracefully', async () => {
-    // @ts-ignore
+    // @ts-expect-error - Mocking global fetch for testing
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({
         product: { title: 'No Attrs', attributes: [] },
@@ -161,7 +161,7 @@ describe('ProductPage', () => {
   });
 
   test('tolerates missing buyBox gracefully (optional chaining)', async () => {
-    // @ts-ignore
+    // @ts-expect-error - Mocking global fetch for testing
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({
         product: { title: 'No BuyBox', attributes: [{ key: 'A', value: 'B' }] },
