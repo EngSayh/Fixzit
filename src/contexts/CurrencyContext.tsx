@@ -62,8 +62,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
       const candidates = [fromDom, ls, fromCookie].filter(Boolean) as CurrencyCode[];
       const valid = candidates.find(c => CURRENCY_OPTIONS.some(o => o.code === c));
-      if (valid && valid !== currency) {
-        setCurrencyState(valid);
+      if (valid) {
+        setCurrencyState(prev => (valid && valid !== prev ? valid : prev));
       }
     } catch {
       // ignore

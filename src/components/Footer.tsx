@@ -5,12 +5,12 @@ import SupportPopup from "@/src/components/SupportPopup";
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
-import { useCurrency, CURRENCY_OPTIONS } from '@/src/contexts/CurrencyContext';
+import { useCurrency } from '@/src/contexts/CurrencyContext';
 
 export default function Footer(){
   const [open,setOpen]=useState(false);
-  const { currency } = useCurrency();
-  const currentCurrency = CURRENCY_OPTIONS.find(option => option.code === currency) ?? CURRENCY_OPTIONS[0];
+  const { currency, options } = useCurrency();
+  const currentCurrency = options.find(option => option.code === currency) ?? options[0];
 
   // Safe translation with fallback
   let t: (key: string, fallback?: string) => string;
@@ -36,7 +36,7 @@ export default function Footer(){
           <div className="flex items-center gap-3">
             <LanguageSelector />
             <CurrencySelector variant="compact" />
-            <span className="flex items-center gap-1 text-xs text-gray-600">
+            <span className="flex items-center gap-1 text-xs text-gray-600" aria-hidden="true">
               <span aria-hidden>{currentCurrency.flag}</span>
               <span>{currentCurrency.code}</span>
               <span className="text-gray-400">({currentCurrency.symbol})</span>

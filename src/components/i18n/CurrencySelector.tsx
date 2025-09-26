@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { CircleDollarSign, Search } from 'lucide-react';
-import { useCurrency, CURRENCY_OPTIONS, type CurrencyOption } from '@/src/contexts/CurrencyContext';
+import { useCurrency, type CurrencyOption } from '@/src/contexts/CurrencyContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 
 interface CurrencySelectorProps {
@@ -10,7 +10,7 @@ interface CurrencySelectorProps {
 }
 
 export default function CurrencySelector({ variant = 'default' }: CurrencySelectorProps) {
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, options } = useCurrency();
   const { t, isRTL } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -19,21 +19,21 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
   const listboxId = useId();
 
   const current = useMemo<CurrencyOption>(() => {
-    return CURRENCY_OPTIONS.find(option => option.code === currency) ?? CURRENCY_OPTIONS[0];
-  }, [currency]);
+    return options.find(option => option.code === currency) ?? options[0];
+  }, [currency, options]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) {
-      return CURRENCY_OPTIONS;
+      return options;
     }
-    return CURRENCY_OPTIONS.filter(option => {
+    return options.filter(option => {
       return (
         option.code.toLowerCase().includes(term) ||
         option.name.toLowerCase().includes(term)
       );
     });
-  }, [query]);
+  }, [query, options]);
 
   useEffect(() => {
     if (!open) {
