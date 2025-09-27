@@ -1,118 +1,106 @@
-// Mock Job model for ATS functionality
-export interface Job {
-  id: string;
-  title: string;
-  description: string;
-  department: string;
-  location: string;
-  type: 'full-time' | 'part-time' | 'contract' | 'internship';
-  status: 'draft' | 'published' | 'closed' | 'pending';
-  requirements: string[];
-  benefits: string[];
-  salaryRange?: {
-    min: number;
-    max: number;
-    currency: string;
-  };
-  postedAt: Date;
-  closingDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
+import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
+
+const JobStatuses = ['draft', 'pending', 'published', 'closed', 'archived'] as const;
+const JobVisibilities = ['internal', 'public'] as const;
+const JobTypes = ['full-time', 'part-time', 'contract', 'temporary', 'internship', 'remote', 'hybrid'] as const;
+const WorkModes = ['onsite', 'remote', 'hybrid'] as const;
+
+type JobStatus = typeof JobStatuses[number];
+
+const JobSchema = new Schema({
+  orgId: { type: String, required: true, index: true },
+  slug: { type: String, required: true },
+  title: { type: String, required: true },
+  department: { type: String },
+  jobType: { type: String, enum: JobTypes, default: 'full-time' },
+  status: { type: String, enum: JobStatuses, default: 'draft', index: true },
+  visibility: { type: String, enum: JobVisibilities, default: 'internal', index: true },
+  location: {
+    city: { type: String },
+    country: { type: String },
+    mode: { type: String, enum: WorkModes, default: 'onsite' }
+  },
+  salaryRange: {
+    min: { type: Number, default: 0 },
+    max: { type: Number, default: 0 },
+    currency: { type: String, default: 'SAR' }
+  },
+  description: { type: String },
+  requirements: { type: [String], default: [] },
+  responsibilities: { type: [String], default: [] },
+  benefits: { type: [String], default: [] },
+  skills: { type: [String], default: [] },
+  tags: { type: [String], default: [] },
+  screeningRules: {
+    minYears: { type: Number, default: 0 },
+    requiredSkills: { type: [String], default: [] }
+  },
+  metadata: { type: Schema.Types.Mixed, default: {} },
+  postedBy: { type: String },
+  publishedAt: { type: Date },
+  applicationCount: { type: Number, default: 0 }
+}, { timestamps: true });
+
+JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
+JobSchema.index({ title: 'text', description: 'text', requirements: 'text', skills: 'text', tags: 'text' });
+
+export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
+
+JobSchema.methods.publish = async function(this: JobDoc) {
+  if (this.status !== 'published') {
+    this.status = 'published';
+    this.visibility = this.visibility || 'public';
+    this.publishedAt = new Date();
+    await this.save();
+  }
+  return this;
+};
+
+export interface JobModel extends Model<JobDoc> {}
+
+class JobMockModel extends MockModel {
+  constructor() {
+    super('jobs');
+  }
+
+  private attach(doc: any) {
+    if (!doc) return doc;
+    (doc as any).publish = async () => {
+      (doc as any).status = 'published';
+      (doc as any).visibility = (doc as any).visibility || 'public';
+      (doc as any).publishedAt = new Date();
+      await this.findByIdAndUpdate((doc as any)._id, { $set: { status: (doc as any).status, visibility: (doc as any).visibility, publishedAt: (doc as any).publishedAt } });
+      return doc;
+    };
+    return doc;
+  }
+
+  override async create(doc: any) {
+    const created = await super.create({
+      status: doc?.status || 'draft',
+      visibility: doc?.visibility || 'internal',
+      applicationCount: 0,
+      screeningRules: { minYears: 0, requiredSkills: [] },
+      ...doc
+    });
+    return this.attach(created);
+  }
+
+  override async findById(id: string) {
+    const doc = await super.findById(id);
+    return this.attach(doc);
+  }
+
+  override async findOne(query: any) {
+    const doc = await super.findOne(query);
+    return this.attach(doc);
+  }
 }
 
-// Mock implementation - replace with actual database integration
-export class JobModel {
-  static async findById(id: string): Promise<Job | null> {
-    // Mock implementation
-    return {
-      id,
-      title: 'Software Engineer',
-      description: 'We are looking for a talented software engineer...',
-      department: 'Engineering',
-      location: 'Riyadh, Saudi Arabia',
-      type: 'full-time',
-      status: 'published',
-      requirements: ['Bachelor\'s degree in Computer Science', '3+ years experience'],
-      benefits: ['Health insurance', 'Flexible working hours'],
-      salaryRange: {
-        min: 80000,
-        max: 120000,
-        currency: 'SAR'
-      },
-      postedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-  }
+export const Job: JobModel = isMockDB
+  ? new JobMockModel() as unknown as JobModel
+  : (models.Job || model<JobDoc>('Job', JobSchema));
 
-  static async findAll(filter?: any): Promise<Job[]> {
-    // Mock implementation
-    return [
-      await this.findById('job-1'),
-      await this.findById('job-2')
-    ].filter(Boolean) as Job[];
-  }
-
-  static async create(data: Partial<Job>): Promise<Job> {
-    // Mock implementation
-    return {
-      id: `job-${Date.now()}`,
-      title: data.title || '',
-      description: data.description || '',
-      department: data.department || '',
-      location: data.location || '',
-      type: data.type || 'full-time',
-      status: data.status || 'draft',
-      requirements: data.requirements || [],
-      benefits: data.benefits || [],
-      salaryRange: data.salaryRange,
-      postedAt: data.postedAt || new Date(),
-      closingDate: data.closingDate,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-  }
-
-  static async findOne(filter: any): Promise<Job | null> {
-    // Mock implementation - would normally query database
-    if (filter.id) {
-      return this.findById(filter.id);
-    }
-    return null;
-  }
-
-  static async find(filter: any, projection?: any): Promise<{
-    skip: (n: number) => any;
-    limit: (n: number) => any;
-    sort: (s: any) => any;
-    toArray: () => Promise<Job[]>;
-  }> {
-    // Mock implementation - return chainable query builder
-    const mockJobs = await this.findAll();
-    
-    return {
-      skip: (n: number) => ({
-        limit: (limit: number) => ({
-          sort: (s: any) => ({
-            toArray: async () => mockJobs.slice(n, n + limit)
-          })
-        })
-      }),
-      limit: (n: number) => ({
-        sort: (s: any) => ({
-          toArray: async () => mockJobs.slice(0, n)
-        })
-      }),
-      sort: (s: any) => ({
-        toArray: async () => mockJobs
-      }),
-      toArray: async () => mockJobs
-    };
-  }
-
-  static async countDocuments(filter: any): Promise<number> {
-    // Mock implementation
-    const jobs = await this.findAll();
-    return jobs.length;
-  }
-}
+export type { JobStatus };

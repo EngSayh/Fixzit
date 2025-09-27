@@ -1,24 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
-import { ApplicationModel as Application } from '@/src/server/models/Application';
 import { getUserFromToken } from '@/src/lib/auth';
+import { z } from 'zod';
+import { createSecureResponse } from '@/src/server/security/headers';
+import { 
+  unauthorizedError, 
+  notFoundError, 
+  validationError, 
+  internalServerError,
+  handleApiError 
+} from '@/src/server/utils/errorResponses';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
-    const application = await Application
-      .findById(params.id)
-      .populate('jobId')
-      .populate('candidateId')
+    if (process.env.ATS_ENABLED !== 'true') {
+      return internalServerError('ATS Applications endpoint not available in this deployment');
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await db;
+    const AppMod = await import('@/src/server/models/Application').catch(() => null);
+    const Application = AppMod && (AppMod as any).Application;
+    if (!Application) {
+      return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
+    }
+    // Require auth and scope by org
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const user = token ? await getUserFromToken(token) : null;
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    // Derive privilege for PII access
+    const PRIVILEGED_ROLES = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+    const userRoles = Array.isArray((user as any).roles) && (user as any).roles.length > 0
+      ? (user as any).roles
+      : [ (user as any).role ].filter(Boolean);
+    const canSeePII = userRoles.some((r: string) => PRIVILEGED_ROLES.has(r));
+    const candidateFields = canSeePII ? 'firstName lastName email phone location' : 'firstName lastName location';
+    // Optional: fast id sanity check to avoid cast errors
+    if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+      return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
+    }
+    const application = await (Application as any)
+      .findOne({ _id: params.id, orgId: user.tenantId })
+      .select('-__v -attachments -internal -secrets') // tighten as needed
+      .populate('jobId', 'title department status location')
+      .populate('candidateId', candidateFields)
       .lean();
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
-    return NextResponse.json({ success: true, data: application });
+    const result: any = application;
+    if (!canSeePII && Array.isArray(result.notes)) {
+      result.notes = result.notes.filter((n: any) => !n?.isPrivate);
+    }
+    return createSecureResponse({ success: true, data: result });
   } catch (error) {
-    console.error('Application fetch error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch application' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -27,17 +65,54 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
-    const body = await req.json();
+    if (process.env.ATS_ENABLED !== 'true') {
+      return internalServerError('ATS Applications endpoint not available in this deployment');
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await db;
+    const AppMod = await import('@/src/server/models/Application').catch(() => null);
+    const Application = AppMod && (AppMod as any).Application;
+    if (!Application) {
+      return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
+    }
+    const applicationUpdateSchema = z.object({
+      stage: z.enum(['applied','screening','interview','offer','hired','rejected']).optional(),
+      score: z.number().min(0).max(100).optional(),
+      note: z.string().optional(),
+      reason: z.string().optional(),
+      isPrivate: z.boolean().optional(),
+      flags: z.array(z.string()).max(50).optional(),
+      reviewers: z.array(z.string().regex(/^[a-fA-F0-9]{24}$/)).max(50).optional()
+    });
+    
+    const body = applicationUpdateSchema.parse(await req.json());
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
-    const userId = user?.id || 'system';
-    
-    const application = await Application.findById(params.id);
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN','RECRUITER']);
+    if (!allowedRoles.has((user as any).role || '')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+    // Derive privilege for private notes access
+    const PRIVILEGED_ROLES = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+    const userRoles = Array.isArray((user as any).roles) && (user as any).roles.length > 0
+      ? (user as any).roles
+      : [ (user as any).role ].filter(Boolean);
+    const userId = user.id;
+    if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+      return NextResponse.json({ success: false, error: 'Invalid id' }, { status: 400 });
+    }
+    const application = await (Application as any).findOne({ _id: params.id, orgId: user.tenantId });
     if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
-    
+    // Optional: restrict stage transitions
+    const allowedStages = new Set(['applied','screening','interview','offer','hired','rejected']);
     if (body.stage && body.stage !== application.stage) {
+      if (!allowedStages.has(body.stage)) {
+        return NextResponse.json({ success: false, error: 'Invalid stage' }, { status: 400 });
+      }
       const oldStage = application.stage;
       application.stage = body.stage;
       application.history.push({ action: `stage_change:${oldStage}->${body.stage}`, by: userId, at: new Date(), details: body.reason });
@@ -48,16 +123,30 @@ export async function PATCH(
       application.history.push({ action: 'score_updated', by: userId, at: new Date(), details: `Score changed from ${oldScore} to ${body.score}` });
     }
     if (body.note) {
-      application.notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
+      application.notes = application.notes || [];
+      // Gate private notes to privileged roles (accept user.role or user.roles[])
+      const privilegedRoles = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
+      const userRoles = Array.isArray((user as any).roles) && (user as any).roles.length > 0 ? (user as any).roles : [ (user as any).role ].filter(Boolean);
+      const canWritePrivate = userRoles.some((r: string) => privilegedRoles.has(r));
+      const isPrivate = !!body.isPrivate && canWritePrivate;
+      application.notes.push({ author: userId, text: String(body.note).slice(0, 5000), createdAt: new Date(), isPrivate });
     }
-    if (Array.isArray(body.flags)) (application as any).flags = body.flags;
-    if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers;
-    
+    if (Array.isArray(body.flags)) (application as any).flags = body.flags.filter((f: any) => typeof f === 'string').slice(0, 50);
+    if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers.filter((r: any) => /^[a-fA-F0-9]{24}$/.test(r)).slice(0, 50);
     await application.save();
-    return NextResponse.json({ success: true, data: application });
+    const result: any = application.toObject();
+    // Remove sensitive/large fields (align with GET projection)
+    delete result.attachments;
+    delete result.internal;
+    delete result.secrets;
+    // Hide private notes from non-privileged users
+    const canSeePrivate = userRoles.some((r: string) => PRIVILEGED_ROLES.has(r));
+    if (!canSeePrivate && Array.isArray(result.notes)) {
+      result.notes = result.notes.filter((n: any) => !n?.isPrivate);
+    }
+    return createSecureResponse({ success: true, data: result });
   } catch (error) {
-    console.error('Application update error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to update application' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

@@ -1,34 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
-import { JobModel as Job } from '@/server/models/Job';
-import { generateSlug } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
-    await db();
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS public post endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await db;
+    const JobMod = await import('@/src/server/models/Job').catch(() => null);
+    const Job = JobMod && (JobMod as any).Job;
+    if (!Job) {
+      return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
+    }
     const body = await req.json();
+    // Basic validation
+    const rawTitle = (body?.title ?? '').toString();
+    const title = rawTitle.trim();
+    if (!title) {
+      return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 });
+    }
+    if (title.length > 140) {
+      return NextResponse.json({ success: false, error: 'Title too long' }, { status: 400 });
+    }
+    // TODO: verify CAPTCHA token (Turnstile/hCaptcha) here and reject on failure.
+    // TODO: enforce rate limiting per IP/org before proceeding.
+
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    const baseSlug = generateSlug(body.title || 'job');
-    let slug = baseSlug;
-    let counter = 1;
-    while (await Job.findOne({ orgId: platformOrg, slug })) slug = `${baseSlug}-${counter++}`;
-    const job = await Job.create({
-      orgId: platformOrg,
-      title: body.title,
-      department: body.department || 'General',
-      jobType: body.jobType || 'full-time',
-      location: body.location || { city: body.city || '', country: body.country || '', mode: body.mode || 'onsite' },
-      salaryRange: body.salaryRange || { min: 0, max: 0, currency: 'SAR' },
-      description: body.description || '',
-      requirements: body.requirements || [],
-      benefits: body.benefits || [],
-      skills: body.skills || [],
-      tags: body.tags || [],
-      status: 'pending',
-      visibility: 'public',
-      slug,
-      postedBy: 'public'
-    });
+    let baseSlug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    if (!baseSlug) baseSlug = 'job';
+    let job: any = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt}`;
+      try {
+        job = await (Job as any).create({
+          orgId: platformOrg,
+          title: body.title,
+          department: body.department || 'General',
+          jobType: body.jobType || 'full-time',
+          location: body.location || { city: body.city || '', country: body.country || '', mode: 'onsite' },
+          salaryRange: body.salaryRange || { min: 0, max: 0, currency: 'SAR' },
+          description: body.description || '',
+          requirements: body.requirements || [],
+          benefits: body.benefits || [],
+          skills: body.skills || [],
+          tags: body.tags || [],
+          status: 'pending',
+          visibility: 'public',
+          slug,
+          postedBy: 'public'
+        });
+        break;
+      } catch (e: any) {
+        const dup = e?.code === 11000 || String(e?.message || '').includes('duplicate key');
+        if (!dup || attempt === 5) throw e;
+      }
+    }
+    if (!job) return NextResponse.json({ success: false, error: 'Failed to submit job' }, { status: 500 });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     console.error('Public post error:', error);

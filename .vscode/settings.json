@@ -14,5 +14,7 @@
     "**/_artifacts/**": true,
     "**/node_modules/**": true,
     "**/.next/**": true
-  }
+  },
+  "task.quickOpen.history": 30,
+  "problems.showCurrentInStatus": true
 }

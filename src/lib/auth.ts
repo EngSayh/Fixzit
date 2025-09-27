@@ -167,25 +167,19 @@ if (isMockDB) {
     }
   };
 } else {
-  // Use real Mongoose model for production
+  // Use real Mongoose model for non-mock mode
   User = (await import('@/src/server/models/User')).User;
 }
 
 const JWT_SECRET = (() => {
   const envSecret = process.env.JWT_SECRET?.trim();
-  if (envSecret) {
-    return envSecret;
-  }
-
+  if (envSecret) return envSecret;
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET environment variable must be configured in production environments.');
+    throw new Error('JWT_SECRET must be configured in production.');
   }
-
-  const fallbackSecret = randomBytes(32).toString('hex');
-  console.warn(
-    'JWT_SECRET is not set. Using an ephemeral secret for this process. Sessions will be invalidated on restart.'
-  );
-  return fallbackSecret;
+  const ephemeral = randomBytes(32).toString('hex');
+  console.warn('JWT_SECRET missing. Using ephemeral dev secret; tokens reset on restart.');
+  return ephemeral;
 })();
 
 export interface AuthToken {

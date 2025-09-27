@@ -1,55 +1,84 @@
-// Mock Candidate model for ATS functionality
-export interface Candidate {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  resumeUrl?: string;
-  linkedinProfile?: string;
-  createdAt: Date;
-  updatedAt: Date;
+import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
+import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
+
+const CandidateSchema = new Schema({
+  orgId: { type: String, required: true, index: true },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true },
+  emailLower: { type: String, required: true, index: true },
+  phone: { type: String },
+  location: { type: String },
+  linkedin: { type: String },
+  skills: { type: [String], default: [] },
+  experience: { type: Number, default: 0 },
+  resumeUrl: { type: String },
+  resumeText: { type: String },
+  source: { type: String, default: 'careers' },
+  consents: {
+    privacy: { type: Boolean, default: true },
+    contact: { type: Boolean, default: true },
+    dataRetention: { type: Boolean, default: true }
+  }
+}, { timestamps: true });
+
+CandidateSchema.index({ orgId: 1, emailLower: 1 }, { unique: true });
+
+CandidateSchema.pre('validate', function(next) {
+  if ((this as any).email) {
+    (this as any).emailLower = (this as any).email.toLowerCase();
+  }
+  next();
+});
+
+export type CandidateDoc = InferSchemaType<typeof CandidateSchema> & Document;
+
+export interface CandidateModel extends Model<CandidateDoc> {
+  findByEmail(orgId: string, email: string): Promise<CandidateDoc | null>;
 }
 
-// Mock implementation - replace with actual database integration
-export class CandidateModel {
-  static async findById(id: string): Promise<Candidate | null> {
-    // Mock implementation
-    return {
-      id,
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      phone: '+966501234567',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+CandidateSchema.statics.findByEmail = function(orgId: string, email: string) {
+  return this.findOne({ orgId, emailLower: email.toLowerCase() });
+};
+
+class CandidateMockModel extends MockModel {
+  constructor() {
+    super('candidates');
   }
 
-  static async create(data: Partial<Candidate>): Promise<Candidate> {
-    // Mock implementation
-    return {
-      id: `candidate-${Date.now()}`,
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      email: data.email || '',
-      phone: data.phone,
-      resumeUrl: data.resumeUrl,
-      linkedinProfile: data.linkedinProfile,
-      createdAt: new Date(),
-      updatedAt: new Date()
+  private attach(doc: any) {
+    if (!doc) return doc;
+    (doc as any).save = async () => {
+      await this.findByIdAndUpdate(doc._id, { $set: doc });
+      return doc;
     };
+    return doc;
   }
 
-  static async findByEmail(email: string): Promise<Candidate | null> {
-    // Mock implementation
-    return {
-      id: `candidate-${email.split('@')[0]}`,
-      firstName: 'John',
-      lastName: 'Doe',
-      email,
-      createdAt: new Date(),
-      updatedAt: new Date()
+  override async create(doc: any) {
+    const payload = {
+      skills: [],
+      consents: { privacy: true, contact: true, dataRetention: true },
+      ...doc,
+      emailLower: doc.email?.toLowerCase()
     };
+    const created = await super.create(payload);
+    return this.attach(created);
+  }
+
+  async findByEmail(orgId: string, email: string) {
+    const doc = await super.findOne({ orgId, emailLower: email.toLowerCase() });
+    return this.attach(doc);
+  }
+
+  override async findOne(query: any) {
+    const doc = await super.findOne(query);
+    return this.attach(doc);
   }
 }
+
+const existingCandidateModel = models.Candidate as CandidateModel | undefined;
+export const Candidate: CandidateModel = isMockDB
+  ? (new CandidateMockModel() as unknown as CandidateModel)
+  : (existingCandidateModel || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema));
