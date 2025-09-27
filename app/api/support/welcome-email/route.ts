@@ -69,7 +69,7 @@ The Fixzit Enterprise Team
     return NextResponse.json({
       success: true,
       message: 'Welcome email queued for sending',
-      emailId: `WEL-${Date.now()}`,
+      emailId: `WEL-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       recipient: body.email,
       subject: body.subject
     });

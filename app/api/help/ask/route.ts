@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from 'crypto';
 import { getDatabase } from "@/lib/mongodb";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -29,16 +30,22 @@ function redactPII(s: string) {
  * @param contexts - Array of contexts where each item has a `title` and `text`; only the first three are used.
  * @returns A single newline-separated string containing the header and bullet lines.
  */
-const MAX_SNIPPET_LENGTH = 400;
+// Maximum length for context snippets in heuristic answers.
+// 400 was chosen to balance informativeness and brevity for UI display and model input.
+// You can override this value by setting the MAX_SNIPPET_LENGTH environment variable.
+const MAX_SNIPPET_LENGTH_ENV = Number(process.env.MAX_SNIPPET_LENGTH);
+const MAX_SNIPPET_LENGTH =
+  Number.isFinite(MAX_SNIPPET_LENGTH_ENV) && MAX_SNIPPET_LENGTH_ENV > 0
+    ? Math.floor(MAX_SNIPPET_LENGTH_ENV)
+    : 400;
 function buildHeuristicAnswer(question: string, contexts: Array<{ title: string; text: string }>) {
   const lines: string[] = [];
   lines.push(contexts.length ? `Here is what I found about: "${question}"` : `No matching articles found for: "${question}"`);
   for (const ctx of contexts.slice(0, 3)) {
-    const snippet = ctx.text
-      .replace(/\s+/g, ' ')
-      .slice(0, MAX_SNIPPET_LENGTH)
-      .trim();
-    lines.push(`- ${ctx.title}: ${snippet}${snippet.length === MAX_SNIPPET_LENGTH ? '…' : ''}`);
+    const originalText = ctx.text.replace(/\s+/g, ' ');
+    const wasTruncated = originalText.length > MAX_SNIPPET_LENGTH;
+    const snippet = originalText.slice(0, MAX_SNIPPET_LENGTH).trim();
+    lines.push(`- ${ctx.title}: ${snippet}${wasTruncated ? '…' : ''}`);
   }
   return lines.join("\n");
 }
@@ -55,7 +62,10 @@ function buildHeuristicAnswer(question: string, contexts: Array<{ title: string;
 async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
+  let t: NodeJS.Timeout | undefined;
   try {
+    const controller = new AbortController();
+    t = setTimeout(() => controller.abort(), 8000);
     const messages = [
       { role: 'system', content: 'Answer concisely using ONLY the provided context. Include a short step list when relevant. English only.' },
       { role: 'user', content: `Question: ${question}\n\nContext:\n${contexts.join('\n---\n')}` }
@@ -63,13 +73,16 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, temperature: 0.1 })
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, temperature: 0.1 }),
+      signal: controller.signal
     });
     if (!res.ok) return null;
     const json = await res.json();
     return json.choices?.[0]?.message?.content || null;
   } catch {
     return null;
+  } finally {
+    if (t) clearTimeout(t);
   }
 }
 
@@ -109,7 +122,9 @@ export async function POST(req: NextRequest) {
     // Text index is created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no tenantId
-    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const orClauses: any[] = [ { tenantId: { $exists: false } }, { tenantId: null } ];
+    if ((user as any)?.tenantId) orClauses.unshift({ tenantId: (user as any).tenantId });
+    const tenantScope = { $or: orClauses } as any;
     const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
 
@@ -117,22 +132,15 @@ export async function POST(req: NextRequest) {
     let docs: Doc[] = [];
     try {
       const { embedText } = await import('@/src/ai/embeddings');
+      const { performKbSearch } = await import('@/src/kb/search');
       const qVec = await embedText(question);
-      const vec = await fetch(new URL('/api/kb/search', req.nextUrl).toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'cookie': req.headers.get('cookie') || '',
-          'authorization': req.headers.get('authorization') || ''
-        },
-        body: JSON.stringify({ query: qVec, q: question, lang, role, route, limit })
-      });
-      if (vec.ok) {
-        const json = await vec.json();
-        const chunks = json?.results || [];
-        // Use chunk text directly as context; citations sourced from articleId
-        docs = chunks.map((c: any) => ({ slug: c.articleId || '', title: '', content: c.text, updatedAt: undefined }));
-      }
+      const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
+      docs = (chunks || []).map((c: any) => ({
+        slug: c.slug || c.articleId || '',
+        title: c.title || '',
+        content: c.text || '',
+        updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
+      }));
     } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
 
     if (!docs || docs.length === 0) {
@@ -145,12 +153,13 @@ export async function POST(req: NextRequest) {
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
       } catch (err: any) {
-        // Fallback when text index is missing: case-insensitive regex across title/content/tags
+        // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
         docs = await coll
-          .find({ ...filter, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any, {
-            projection: { slug: 1, title: 1, content: 1, updatedAt: 1 }
-          })
+          .find(regexFilter, { projection: { slug: 1, title: 1, content: 1, updatedAt: 1 } })
           .sort({ updatedAt: -1 })
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
@@ -169,13 +178,34 @@ export async function POST(req: NextRequest) {
 
     const citations = docs.map((d: Doc) => ({ slug: d.slug, title: d.title, updatedAt: d.updatedAt }));
     return NextResponse.json({ answer, citations });
-  } catch (err) {
-    console.error('help/ask error', err);
-    return NextResponse.json({ error: 'Failed to generate answer' }, { status: 500 });
+  } catch (err: any) {
+    if (err instanceof Error && err.message === 'Rate limited') {
+      return NextResponse.json({
+        name: 'RateLimited',
+        code: 'HELP_ASK_RATE_LIMITED',
+        userMessage: 'Too many requests, please wait a minute.',
+        devMessage: err.message,
+        correlationId: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
+      }, { status: 429 });
+    }
+    const correlationId = (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    console.error('help/ask error', { correlationId, err });
+    return NextResponse.json({
+      name: 'HelpAskError',
+      code: 'HELP_ASK_FAILED',
+      userMessage: 'Unable to process your question. Please try again.',
+      devMessage: String(err?.message ?? err),
+      correlationId
+    }, { status: 500 });
   }
 }
 // Very small in-memory rate limiter (per process) to reduce abuse
 const rateMap = new Map<string, { count: number; ts: number }>();
+const MAX_RATE_PER_MIN_ENV = Number(process.env.HELP_ASK_MAX_RATE_PER_MIN);
+const MAX_RATE_PER_MIN =
+  Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
+    ? Math.floor(MAX_RATE_PER_MIN_ENV)
+    : 30;
 function rateLimitAssert(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   const key = `help:ask:${ip}`;
@@ -184,7 +214,7 @@ function rateLimitAssert(req: NextRequest) {
   if (now - rec.ts > 60_000) { rec.count = 0; rec.ts = now; }
   rec.count += 1;
   rateMap.set(key, rec);
-  if (rec.count > 30) throw new Error('Rate limited');
+  if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
 
 // Note: Do not export any non-standard route fields; Next.js restricts exports to HTTP methods only.

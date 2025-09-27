@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Product from '@/src/models/marketplace/Product';
 import { serializeProduct } from '@/src/lib/marketplace/serializers';
 import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    await dbConnect();
+    const client = await db;
 
     const filter: any = { orgId: context.orgId };
     if (context.role === 'VENDOR') {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const payload = UpsertSchema.parse(body);
-    await dbConnect();
+    const client = await db;
 
     const data = {
       orgId: context.orgId,

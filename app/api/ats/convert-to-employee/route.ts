@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS conversion endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db; // Ensure the connection is established, do not invoke as a function
     const AppMod = await import('@/src/server/models/Application').catch(() => null);
     const CandMod = await import('@/src/server/models/Candidate').catch(() => null);
     const JobMod = await import('@/src/server/models/Job').catch(() => null);
@@ -20,16 +20,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    // Check if user has permission to convert applications to employees
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN','RECRUITER']);
+    if (!allowedRoles.has((user as any).role || '')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
     const { applicationId } = await req.json();
     if (!applicationId) return NextResponse.json({ success: false, error: 'applicationId required' }, { status: 400 });
-    const app = await (Application as any).findById(applicationId).lean();
+    if (!/^[a-fA-F0-9]{24}$/.test(applicationId)) {
+      return NextResponse.json({ success: false, error: 'Invalid applicationId' }, { status: 400 });
+    }
+    const app = await (Application as any).findOne({ _id: applicationId, orgId: user.tenantId }).lean();
     if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
-    if (app.stage !== 'hired') return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
+    
+    if (app.stage !== 'hired') {
+      return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
+    }
     const [cand, job] = await Promise.all([
-      (Candidate as any).findById(app.candidateId).lean(),
-      (Job as any).findById(app.jobId).lean()
+      (Candidate as any).findOne({ _id: app.candidateId, orgId: app.orgId }).lean(),
+      (Job as any).findOne({ _id: app.jobId, orgId: app.orgId }).lean()
     ]);
     if (!cand || !job) return NextResponse.json({ success: false, error: 'Candidate or Job missing' }, { status: 400 });
     const orgId = app.orgId;
