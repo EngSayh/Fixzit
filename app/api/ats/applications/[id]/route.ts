@@ -43,15 +43,37 @@ export async function GET(
       
     if (!application) return notFoundError('Application');
     
-    // Filter sensitive data based on role permissions
+    // Standardized role evaluation for PII protection
     const privilegedRoles = new Set(['ADMIN','OWNER','ATS_ADMIN','RECRUITER','SUPER_ADMIN','CORPORATE_ADMIN']);
     const userRoles = Array.isArray((user as any).roles) && (user as any).roles.length > 0
       ? (user as any).roles
       : [ (user as any).role ].filter(Boolean);
     const canSeePII = userRoles.some((r: string) => privilegedRoles.has(r));
     
-    if (!canSeePII && Array.isArray((application as any).notes)) {
-      (application as any).notes = (application as any).notes.filter((n: any) => !n?.isPrivate);
+    // Filter sensitive data for non-privileged users
+    if (!canSeePII) {
+      // Remove private notes
+      if (Array.isArray((application as any).notes)) {
+        (application as any).notes = (application as any).notes.filter((n: any) => !n?.isPrivate);
+      }
+      
+      // Remove PII from candidate data if populated
+      if ((application as any).candidateId) {
+        const candidate = (application as any).candidateId;
+        delete candidate.email;
+        delete candidate.phone;
+        delete candidate.resumeText;
+        delete candidate.resumeUrl;
+        delete candidate.address;
+        delete candidate.dateOfBirth;
+        delete candidate.nationalId;
+        delete candidate.consents;
+      }
+      
+      // Remove resumeText from application itself
+      delete (application as any).resumeText;
+      delete (application as any).resumeUrl;
+      delete (application as any).personalData;
     }
     
     return createSecureResponse({ success: true, data: application }, 200, req);
