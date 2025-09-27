@@ -55,8 +55,6 @@ ProductSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 ProductSchema.index({ orgId: 1, status: 1 });
 ProductSchema.index({ 'title.en': 'text', 'title.ar': 'text', summary: 'text', brand: 'text', standards: 'text' });
 
-const ProductModel = models.MarketplaceProduct || model('MarketplaceProduct', ProductSchema);
-
 let cachedMockMarketplaceProduct;
 
 const useMockModel = shouldUseMarketplaceMockModel();
@@ -68,7 +66,21 @@ if (useMockModel && !cachedMockMarketplaceProduct) {
   }
 }
 
-const MarketplaceProduct = useMockModel ? cachedMockMarketplaceProduct : ProductModel;
+let MarketplaceProduct;
+
+if (useMockModel) {
+  MarketplaceProduct = cachedMockMarketplaceProduct;
+} else {
+  const existingModel = models.MarketplaceProduct;
+  const isMongooseModel = Boolean(existingModel?.schema instanceof Schema);
+
+  if (!isMongooseModel && existingModel) {
+    delete models.MarketplaceProduct;
+  }
+
+  const productModel = models.MarketplaceProduct || model('MarketplaceProduct', ProductSchema);
+  MarketplaceProduct = productModel;
+}
 
 module.exports = MarketplaceProduct;
 module.exports.MarketplaceProduct = MarketplaceProduct;

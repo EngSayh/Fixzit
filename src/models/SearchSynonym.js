@@ -29,9 +29,20 @@ if (useMockModel && !cachedMockSearchSynonym) {
   }
 }
 
-const SearchSynonymModel = useMockModel
-  ? cachedMockSearchSynonym
-  : (models.SearchSynonym || model('SearchSynonym', SearchSynonymSchema));
+let SearchSynonymModel;
+
+if (useMockModel) {
+  SearchSynonymModel = cachedMockSearchSynonym;
+} else {
+  const existingModel = models.SearchSynonym;
+  const isMongooseModel = Boolean(existingModel?.schema instanceof Schema);
+
+  if (!isMongooseModel && existingModel) {
+    delete models.SearchSynonym;
+  }
+
+  SearchSynonymModel = models.SearchSynonym || model('SearchSynonym', SearchSynonymSchema);
+}
 
 module.exports = SearchSynonymModel;
 module.exports.SearchSynonym = SearchSynonymModel;
