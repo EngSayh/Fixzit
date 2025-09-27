@@ -1,9 +1,18 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import url from 'node:url';
+import {
+  getProjectRoot,
+  resolvePath,
+  generateMarketplaceData,
+  validateMarketplaceData,
+  log,
+  safeAsync
+} from './_shared/marketplace.js';
 
 const require = createRequire(import.meta.url);
 
+// Import only necessary CJS modules with ESM compatibility
 const {
   DEFAULT_TENANT_ID,
   COLLECTIONS,
