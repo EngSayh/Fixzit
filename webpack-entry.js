@@ -22,7 +22,7 @@ function getBuildMetadata() {
 }
 
 function getBrandPalette() {
-  return { ...BRAND_COLORS };
+  return BRAND_COLORS;
 }
 
 function verifyBrandColor(hex) {
