@@ -4,14 +4,20 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 
+type MockDocument = Record<string, unknown>;
+
 type MockDbInstance = {
-  getCollection: (name: string) => any[];
-  setCollection: (name: string, data: any[]) => void;
+  getCollection: (name: string) => MockDocument[];
+  setCollection: (name: string, data: MockDocument[]) => void;
 };
 
 type MockDbModule = { MockDatabase: { getInstance: () => MockDbInstance } };
 
-type UpsertFn = (collection: string, predicate: (x: any) => boolean, doc: any) => any;
+type UpsertFn = (
+  collection: string,
+  predicate: (entry: MockDocument) => boolean,
+  doc: MockDocument
+) => MockDocument;
 
 function resolveMockDatabase(): MockDbModule["MockDatabase"] {
   const mod = require('../src/lib/mockDb.js') as MockDbModule;

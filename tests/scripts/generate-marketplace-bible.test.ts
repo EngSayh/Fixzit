@@ -218,7 +218,7 @@ const expectedContentIncludes = [
 
   (usingVitest ? require("vitest") : globalThis).it("surfaces write errors when fs.writeFileSync fails (failure condition)", () => {
     const { status, stderr } = runScriptAndCapture({
-      env: { FIXZIT_BIBLE_FORCE_WRITE_ERROR: "1" },
+      env: { FIXZIT_BIBLE_FORCE_WRITE_ERROR: "1", NODE_ENV: "test" },
     });
 
     expect(status).not.toBe(0);

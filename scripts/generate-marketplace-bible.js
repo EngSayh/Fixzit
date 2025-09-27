@@ -39,8 +39,20 @@ function main(options = {}) {
     correlationId = randomUUID(),
   } = options;
 
-  const shouldForceFailure =
-    forceFailure || process.env.FIXZIT_BIBLE_FORCE_WRITE_ERROR === '1';
+  const envWantsFailure = process.env.FIXZIT_BIBLE_FORCE_WRITE_ERROR === '1';
+  const isTestEnv = (process.env.NODE_ENV ?? '').toLowerCase() === 'test';
+  let shouldForceFailure = forceFailure;
+
+  if (!shouldForceFailure && envWantsFailure) {
+    if (isTestEnv) {
+      shouldForceFailure = true;
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[${correlationId}] Ignoring FIXZIT_BIBLE_FORCE_WRITE_ERROR because NODE_ENV is '${process.env.NODE_ENV ?? ''}'`
+      );
+    }
+  }
 
   ensureArtifactsDir(OUT_DIR, fsModule);
   const content = buildDocumentContent();
