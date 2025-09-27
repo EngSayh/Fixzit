@@ -119,7 +119,6 @@ export function extractSkillsFromText(text: string): string[] {
 
 export function calculateExperienceFromText(text: string): number {
   if (!text) return 0;
-
   const patterns = [
     /(\d{1,2})\s*\+?\s*(?:years|yrs|y)\s+of\s+experience/gi,
     /(\d{1,2})\s*\+?\s*(?:years|yrs|y)/gi,

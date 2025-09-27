@@ -24,8 +24,9 @@ export default async function ProductDetail({ params }: ProductPageProps) {
   const attachments = product.media?.filter((file: any) => file.role === 'MSDS' || file.role === 'COA') ?? [];
   const gallery = product.media?.filter((file: any) => file.role === 'GALLERY') ?? [];
 
+  const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8]" style={{ direction: 'ltr' }}>
       <TopBarAmazon departments={departments} />
       <main className="mx-auto max-w-7xl px-4 py-8">
         <nav className="text-sm text-[#0061A8]">
@@ -39,7 +40,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
             </a>
           )}
           <span className="mx-2 text-gray-400">/</span>
-          <span className="text-gray-600">{product.title.en}</span>
+          <span className="text-gray-600" style={{ color: FIXZIT_COLORS.primary }}>{product.title.en}</span>
         </nav>
 
         <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
