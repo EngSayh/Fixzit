@@ -1,9 +1,3 @@
-import crypto from 'crypto';
-
-type HeaderGetter = {
-  get(name: string): string | null | undefined;
-};
-
 const REGIONS = {
   KSA: 'https://secure.paytabs.sa',
   UAE: 'https://secure.paytabs.com',
@@ -38,12 +32,9 @@ export interface PaymentRequest {
   metadata?: Record<string, unknown>;
 }
 
-export interface PaymentResponse {
-  success: boolean;
-  paymentUrl?: string;
-  transactionId?: string;
-  error?: string;
-}
+export type PaymentResponse =
+  | { success: true; paymentUrl: string; transactionId: string }
+  | { success: false; error: string };
 
 export const paytabsBase = (region: string = 'GLOBAL'): string => {
   const normalized = region.toUpperCase();
@@ -55,12 +46,11 @@ export const paytabsBase = (region: string = 'GLOBAL'): string => {
   return REGIONS[normalized as PaytabsRegion] ?? REGIONS.GLOBAL;
 };
 
-const PAYTABS_CONFIG = {
+const PAYTABS_CONFIG = Object.freeze({
   profileId: process.env.PAYTABS_PROFILE_ID ?? '',
   serverKey: process.env.PAYTABS_SERVER_KEY ?? '',
-  baseUrl:
-    process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
-};
+  baseUrl: process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
+});
 
 const assertConfig = () => {
   if (!PAYTABS_CONFIG.profileId) {
@@ -86,6 +76,8 @@ export async function createHppRequest(region: string, payload: unknown) {
 
   return response.json();
 }
+
+// removed duplicate local types; using exported interfaces above
 
 export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
   try {
@@ -178,118 +170,36 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-type PaytabsSignedPayload = string | Buffer | ArrayBufferLike | ArrayBufferView;
-
-export function validateCallback(payload: PaytabsSignedPayload, signature: string): boolean {
-  if (!signature) {
-    return false;
-  }
-
-  if (!PAYTABS_CONFIG.serverKey) {
-    console.error('PayTabs server key is not configured. Set PAYTABS_SERVER_KEY environment variable.');
-    return false;
-  }
-
-  const expected = generateSignature(payload);
-  const provided = decodeSignature(signature);
-
-  if (!expected || !provided || expected.length !== provided.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(expected, provided);
-}
-
-export const PAYTABS_SIGNATURE_HEADERS = [
-  'x-paytabs-signature',
-  'paytabs-signature',
-  'x-signature',
-  'signature'
-] as const;
-
-export function readPaytabsSignature(headers: HeaderGetter): string | null {
-  for (const name of PAYTABS_SIGNATURE_HEADERS) {
-    const raw = headers.get(name);
-    if (typeof raw === 'string') {
-      const trimmed = raw.trim();
-      if (trimmed) {
-        return trimmed;
-      }
-    }
-  }
-  return null;
-}
-
-function normalizePayload(payload: PaytabsSignedPayload): Buffer | null {
-  if (typeof payload === 'string') {
-    return Buffer.from(payload, 'utf8');
-  }
-
-  if (Buffer.isBuffer(payload)) {
-    return payload;
-  }
-
-  if (ArrayBuffer.isView(payload)) {
-    return Buffer.from(payload.buffer, payload.byteOffset, payload.byteLength);
-  }
-
-  if (typeof payload === 'object' && payload !== null && 'byteLength' in payload) {
-    try {
-      return Buffer.from(payload as ArrayBufferLike);
-    } catch (error) {
-      console.warn(
-        `Failed to normalize PayTabs payload for signature verification (type: ${typeof payload}): ${
-          error instanceof Error ? error.message : error
-        }`
-      );
-      return null;
-    }
-  }
-
-  console.warn('Unsupported payload type for PayTabs signature verification.');
-  return null;
-}
-
-function generateSignature(payload: PaytabsSignedPayload): Buffer | null {
-  if (!PAYTABS_CONFIG.serverKey) {
-    return null;
-  }
-
-  const normalized = normalizePayload(payload);
-
-  if (!normalized) {
-    return null;
-  }
-
-  return crypto
-    .createHmac('sha256', PAYTABS_CONFIG.serverKey)
-    .update(normalized)
-    .digest();
-}
-
-function decodeSignature(signature: string): Buffer | null {
-  const trimmed = signature.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  const normalizedSignature = trimmed.replace(/^sha256[:=]/i, '');
-
-  if (!normalizedSignature) {
-    return null;
-  }
-
+import crypto from 'crypto';
+export function validateCallback(payload: any, signature: string): boolean {
+  if (!signature) return false;
+  const calculated = generateSignature(payload, PAYTABS_CONFIG.serverKey);
   try {
-    if (/^[0-9a-f]+$/i.test(normalizedSignature) && normalizedSignature.length % 2 === 0) {
-      return Buffer.from(normalizedSignature, 'hex');
-    }
-
-    return Buffer.from(normalizedSignature, 'base64');
-  } catch (error) {
-    console.warn('Failed to decode PayTabs signature.');
-    return null;
+    return crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(signature));
+  } catch {
+    return false;
   }
+}
+
+function generateSignature(payload: any, secret: string): string {
+  const canonical = canonicalizePayload(payload);
+  return crypto.createHmac('sha256', secret).update(canonical).digest('hex');
+}
+
+function canonicalizePayload(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(item => canonicalizePayload(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, val]) => `${JSON.stringify(key)}:${canonicalizePayload(val)}`);
+
+  return `{${entries.join(',')}}`;
 }
 
 // Payment methods supported in Saudi Arabia

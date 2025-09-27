@@ -32,8 +32,12 @@ function readHeaderValue(req: NextRequest | Request | null | undefined, key: str
     if (value) return value;
   }
 
-  const serverHeaders = headers();
-  return serverHeaders.get(key) ?? undefined;
+  try {
+    const serverHeaders = headers();
+    return serverHeaders.get(key) ?? undefined;
+  } catch (_) {
+    return undefined;
+  }
 }
 
 function readCookieValue(req: NextRequest | null | undefined, key: string) {

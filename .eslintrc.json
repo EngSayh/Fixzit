@@ -1,6 +1,19 @@
 {
+  "$schema": "https://json.schemastore.org/eslintrc",
   "root": true,
-  "extends": ["next/core-web-vitals"],
+  "extends": ["next", "next/core-web-vitals", "next/typescript"],
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "ignorePatterns": [
+    "node_modules",
+    ".next",
+    "packages/**/node_modules"
+  ],
   "plugins": [],
-  "rules": {}
+  "rules": {
+    "@next/next/no-img-element": "warn"
+  }
 }
