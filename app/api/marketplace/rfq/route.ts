@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-
-import { dbConnect } from '@/src/db/mongoose';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
-import { serializeRFQ } from '@/src/lib/marketplace/serializers';
+import { db } from '@/src/lib/mongo';
 import RFQ from '@/src/models/marketplace/RFQ';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+import { serializeRFQ } from '@/src/lib/marketplace/serializers';
+import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
 
 const CreateRFQSchema = z.object({
   title: z.string().min(1),
@@ -26,7 +22,7 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    await dbConnect();
+    const client = await db;
     const rfqs = await RFQ.find({ orgId: context.orgId }).sort({ createdAt: -1 }).limit(50);
     return NextResponse.json({ ok: true, data: rfqs.map(rfq => serializeRFQ(rfq)) });
   } catch (error) {
@@ -44,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const payload = CreateRFQSchema.parse(body);
-    await dbConnect();
+    const client = await db;
 
     const rfq = await RFQ.create({
       orgId: context.orgId,

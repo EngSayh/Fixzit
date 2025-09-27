@@ -1,0 +1,186 @@
+/**
+ * Testing library/framework: Jest + @testing-library/react.
+ * If the repo uses Vitest instead, these tests should be compatible with minor adjustments (e.g., vi instead of jest).
+ */
+
+import React from 'react'
+import { render, screen, within } from '@testing-library/react'
+
+// Next.js server components return JSX from an async function; we can await and then render the result.
+import ProductPage from '../page'
+
+// Mock next/link to render simple anchor for test environment
+jest.mock('next/link', () => {
+  return ({ href, className, children }: any) => <a href={href} className={className}>{children}</a>;
+});
+
+// Simple helper to set process env for tests
+const withEnv = (key: string, value: string, fn: () => Promise<void> | void) => {
+  const prev = process.env[key];
+  process.env[key] = value;
+  const maybePromise = fn();
+  const restore = () => { if (prev === undefined) delete process.env[key]; else process.env[key] = prev; };
+  if (maybePromise && typeof (maybePromise as any).then === 'function') {
+    return (maybePromise as Promise<void>).finally(restore);
+  } else {
+    restore();
+    return;
+  }
+};
+
+describe('ProductPage', () => {
+  const makeData = (overrides?: Partial<any>) => {
+    const base = {
+      product: {
+        title: 'Acme Widget',
+        attributes: Array.from({ length: 10 }).map((_, i) => ({ key: `K${i+1}`, value: `V${i+1}` })),
+      },
+      buyBox: {
+        price: 1234.56,
+        currency: 'USD',
+        inStock: true,
+        leadDays: 3,
+      }
+    };
+    return { ...base, ...(overrides||{}) };
+  };
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  test('renders Not found when product is missing', async () => {
+    // Mock fetch to return data without product
+    // @ts-ignore
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ buyBox: { price: 1, currency: 'USD', inStock: false, leadDays: 10 } }),
+    });
+
+    const res = await ProductPage({ params: { slug: 'missing' } });
+    render(res as any);
+
+    expect(screen.getByText('Not found')).toBeInTheDocument();
+    // Ensure fetch called with correct URL default (no env set)
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/marketplace/products/missing',
+      expect.objectContaining({ cache: 'no-store' })
+    );
+  });
+
+  test('renders title, attributes (max 6), price/currency, stock status, lead days, and action links', async () => {
+    // @ts-ignore
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => makeData(),
+    });
+
+    const res = await ProductPage({ params: { slug: 'acme-widget' } });
+    render(res as any);
+
+    // Title
+    expect(screen.getByRole('heading', { level: 1, name: 'Acme Widget' })).toBeInTheDocument();
+
+    // Attributes limited to 6, in order with "key: value"
+    const list = screen.getByRole('list');
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(6);
+    expect(items[0]).toHaveTextContent(/^K1:\s*V1$/);
+    expect(items[5]).toHaveTextContent(/^K6:\s*V6$/);
+
+    // Price and currency
+    // Using toLocaleString() means decimals and thousands may vary; check both parts loosely.
+    const priceEl = screen.getByText(/USD$/);
+    expect(priceEl).toHaveTextContent('USD');
+    expect(priceEl.textContent).toMatch(/\d/);
+
+    // Stock status + lead days
+    expect(screen.getByText(/In Stock/)).toBeInTheDocument();
+    expect(screen.getByText(/Lead 3 days/)).toBeInTheDocument();
+
+    // Links
+    const addToCart = screen.getByRole('link', { name: 'Add to Cart' });
+    expect(addToCart).toHaveAttribute('href', '/cart');
+
+    const buyNow = screen.getByRole('link', { name: 'Buy Now (PO)' });
+    expect(buyNow).toHaveAttribute('href', '/orders/new?mode=buy-now');
+
+    // fetch called with default base URL
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/marketplace/products/acme-widget',
+      expect.objectContaining({ cache: 'no-store' })
+    );
+  });
+
+  test('uses NEXT_PUBLIC_FRONTEND_URL if set when fetching PDP', async () => {
+    // @ts-ignore
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => makeData(),
+    });
+
+    await withEnv('NEXT_PUBLIC_FRONTEND_URL', 'https://example.com', async () => {
+      const res = await ProductPage({ params: { slug: 'env-based' } });
+      render(res as any);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://example.com/api/marketplace/products/env-based',
+        expect.objectContaining({ cache: 'no-store' })
+      );
+    });
+  });
+
+  test('renders Backorder when not in stock and shows correct lead days', async () => {
+    // @ts-ignore
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => makeData({ buyBox: { price: 99, currency: 'EUR', inStock: false, leadDays: 9 } }),
+    });
+
+    const res = await ProductPage({ params: { slug: 'backorder' } });
+    render(res as any);
+
+    expect(screen.getByText(/Backorder/)).toBeInTheDocument();
+    expect(screen.getByText(/Lead 9 days/)).toBeInTheDocument();
+
+    const priceEl = screen.getByText(/EUR$/);
+    expect(priceEl).toBeInTheDocument();
+  });
+
+  test('handles empty attributes array gracefully', async () => {
+    // @ts-ignore
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({
+        product: { title: 'No Attrs', attributes: [] },
+        buyBox: { price: 10, currency: 'USD', inStock: true, leadDays: 1 }
+      }),
+    });
+
+    const res = await ProductPage({ params: { slug: 'no-attrs' } });
+    render(res as any);
+
+    expect(screen.getByRole('heading', { name: 'No Attrs' })).toBeInTheDocument();
+    // UL exists but has no list items
+    const list = screen.getByRole('list');
+    expect(within(list).queryAllByRole('listitem')).toHaveLength(0);
+  });
+
+  test('tolerates missing buyBox gracefully (optional chaining)', async () => {
+    // @ts-ignore
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({
+        product: { title: 'No BuyBox', attributes: [{ key: 'A', value: 'B' }] },
+        buyBox: undefined
+      }),
+    });
+
+    const res = await ProductPage({ params: { slug: 'no-bb' } });
+    render(res as any);
+
+    // Should still render title and attributes; price/currency text may be incomplete due to undefined
+    expect(screen.getByRole('heading', { name: 'No BuyBox' })).toBeInTheDocument();
+    const list = screen.getByRole('list');
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(1);
+    expect(items[0]).toHaveTextContent(/^A:\s*B$/);
+
+    // The price container exists in markup; but text might be "undefined undefined"
+    // We assert the section exists to ensure component didn't crash.
+    expect(screen.getByText(/About this item/)).toBeInTheDocument();
+  });
+});

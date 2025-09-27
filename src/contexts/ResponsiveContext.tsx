@@ -16,16 +16,15 @@ const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undef
 
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
-  const translation = useTranslation();
-  const isRTL = typeof translation?.isRTL === 'boolean' ? translation.isRTL : false;
 
   const responsiveClasses = getResponsiveClasses(screenInfo);
 
-  const value: ResponsiveContextType = {
+  const value = {
     screenInfo,
     isReady,
     responsiveClasses,
-    isRTL,
+    // isRTL will be available when used in components with useResponsive hook
+    isRTL: false, // This will be overridden in the useResponsive hook
     updateScreenInfo
   };
 
@@ -47,33 +46,50 @@ export function useResponsiveContext() {
 // Convenience hook that combines both screen size and responsive context
 export function useResponsiveLayout() {
   const context = useContext(ResponsiveContext);
-  const translation = useTranslation();
-  const isRTL = typeof translation?.isRTL === 'boolean' ? translation.isRTL : false;
 
   if (!context) {
-    const fallbackScreenInfo: ScreenInfo = {
-      width: 1024,
-      height: 768,
-      size: 'desktop',
-      isMobile: false,
-      isTablet: false,
-      isDesktop: true,
-      isLarge: false,
-      isSmall: false,
-      isPortrait: false,
-      isLandscape: true,
-      devicePixelRatio: 1,
-      isTouchDevice: false,
-      isHighResolution: false
-    };
-
+    // Fallback when context is not available
     return {
-      screenInfo: fallbackScreenInfo,
-      isReady: false,
-      responsiveClasses: getResponsiveClasses(fallbackScreenInfo),
-      isRTL,
-      updateScreenInfo: () => {},
+      screenInfo: {
+        width: 1024,
+        height: 768,
+        size: 'desktop' as const,
+        isMobile: false,
+        isTablet: false,
+        isDesktop: true,
+        isLarge: false,
+        isSmall: false,
+        isPortrait: false,
+        isLandscape: true,
+        devicePixelRatio: 1,
+        isTouchDevice: false,
+        isHighResolution: false
+      },
+      isReady: true,
+      isRTL: false,
+      responsiveClasses: {
+        container: 'max-w-6xl mx-auto px-8',
+        grid: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+        text: 'text-base',
+        spacing: 'space-y-6',
+        sidebarVisible: true,
+        mobileOptimizations: '',
+        tabletOptimizations: '',
+        desktopOptimizations: 'hover:shadow-lg'
+      },
+      updateScreenInfo: () => {}
     };
+  }
+
+  // Try to get isRTL from TranslationContext
+  let isRTL = context.isRTL;
+  try {
+    // Use proper ESM import instead of require() to avoid webpack_require.n errors
+    const translationContext = useTranslation();
+    isRTL = translationContext.isRTL;
+  } catch {
+    // Fallback if translation context is not available
+    isRTL = false;
   }
 
   return {
@@ -81,3 +97,6 @@ export function useResponsiveLayout() {
     isRTL
   };
 }
+
+// Backward compatibility alias
+export const useResponsive = useResponsiveLayout;
