@@ -4,45 +4,42 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 
+type MockDocument = Record<string, unknown>;
+
 type MockDbInstance = {
-  getCollection: (name: string) => any[];
-  setCollection: (name: string, data: any[]) => void;
+  getCollection: (name: string) => MockDocument[];
+  setCollection: (name: string, data: MockDocument[]) => void;
 };
 
 type MockDbModule = { MockDatabase: { getInstance: () => MockDbInstance } };
 
-type UpsertFn = (collection: string, predicate: (x: any) => boolean, doc: any) => any;
-
-function resolveMockDatabase(): MockDbModule["MockDatabase"] {
-  const mod = require('../src/lib/mockDb.js') as MockDbModule;
-  if (mod && mod.MockDatabase) {
-    return mod.MockDatabase;
-  }
-  throw new Error('MockDatabase implementation not found');
-}
+type UpsertFn = (
+  collection: string,
+  predicate: (entry: MockDocument) => boolean,
+  doc: MockDocument
+) => MockDocument;
 
 const {
   DEFAULT_TENANT_ID,
+  COLLECTIONS,
   createUpsert,
   getSeedData,
+  resolveMockDatabase,
 } = require('./seed-marketplace-shared.js') as {
   DEFAULT_TENANT_ID: string;
+  COLLECTIONS: { SYNONYMS: string; PRODUCTS: string };
   createUpsert: (db: MockDbInstance) => UpsertFn;
   getSeedData: (tenantId?: string) => {
     synonyms: Array<Record<string, unknown>>;
     products: Array<Record<string, unknown>>;
   };
+  resolveMockDatabase: () => MockDbModule["MockDatabase"];
 };
 
-function getMockDatabase(): { getInstance: () => MockDbInstance } {
-  const globalMock = (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__;
-  if (globalMock) {
-    return globalMock as { getInstance: () => MockDbInstance };
-  }
-  return resolveMockDatabase();
-}
+const MockDatabase = (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__
+  ? ((globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ as { getInstance: () => MockDbInstance })
+  : resolveMockDatabase();
 
-const MockDatabase = getMockDatabase();
 // Idempotent seed for demo-tenant marketplace data when using MockDB
 const db = MockDatabase.getInstance();
 
@@ -52,9 +49,12 @@ export async function main() {
   const tenantId = DEFAULT_TENANT_ID;
   const { synonyms, products } = getSeedData(tenantId);
 
+  // eslint-disable-next-line no-console
+  console.log(`[Marketplace seed] Preparing data for tenant: ${tenantId}`);
+
   synonyms.forEach((synonym) => {
     upsert(
-      'searchsynonyms',
+      COLLECTIONS.SYNONYMS,
       (entry: Record<string, unknown>) => entry.locale === synonym.locale && entry.term === synonym.term,
       synonym,
     );
@@ -62,7 +62,7 @@ export async function main() {
 
   products.forEach((product) => {
     upsert(
-      'marketplaceproducts',
+      COLLECTIONS.PRODUCTS,
       (entry: Record<string, unknown>) => entry.tenantId === tenantId && entry.slug === product.slug,
       product,
     );
