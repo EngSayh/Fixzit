@@ -8,18 +8,10 @@ import ErrorBoundary from '@/src/components/ErrorBoundary';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [isClient, setIsClient] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     // Set client flag immediately for screen detection
     setIsClient(true);
-
-    // Small delay to ensure proper hydration
-    const timer = setTimeout(() => {
-      setIsHydrated(true);
-    }, 100);
-
-    return () => clearTimeout(timer);
   }, []);
 
   // Don't render children until we're on the client side to avoid SSR issues

@@ -1,0 +1,56 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 286 >>
+stream
+BT
+/F1 20 Tf
+72 732 Td
+( Fixzit Souq Material Safety Data Sheet ) Tj
+0 -28 Td
+( Product: FiltrationPro MERV 13 Air Filter 24x24in ) Tj
+0 -28 Td
+( Standards: ASHRAE 52.2, EN 779 \(M6/F7\) ) Tj
+0 -28 Td
+( Composition: Galvanized steel frame, synthetic media fibers ) Tj
+0 -28 Td
+( Handling: Install with airflow arrow orientation; avoid bending media. ) Tj
+0 -28 Td
+( PPE: Gloves and eye protection recommended during replacement. ) Tj
+0 -28 Td
+( Storage: Keep dry at 5-40C; palletize to avoid compression. ) Tj
+0 -28 Td
+( Spill: Capture loose fibers with HEPA vacuum. ) Tj
+0 -28 Td
+( First Aid: Rinse eyes if dust enters; seek care if irritation persists. ) Tj
+0 -28 Td
+( Fire: Non-flammable; packaging may burn. Use standard extinguishers. ) Tj
+0 -28 Td
+( SDS Issued: 2024-04-18 · Prepared by Fixzit Industrial Safety ) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000063 00000 n 
+0000000116 00000 n 
+0000000220 00000 n 
+0000000575 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+643
+%%EOF
