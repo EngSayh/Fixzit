@@ -18,6 +18,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
   const buttonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
+  const hintId = useId();
 
   const current = useMemo<CurrencyOption>(() => {
     return options.find(option => option.code === currency) ?? options[0];
@@ -115,10 +116,15 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
               value={query}
               onChange={event => setQuery(event.target.value)}
               ref={inputRef}
+              role="searchbox"
+              aria-describedby={hintId}
               className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30`}
               placeholder={t('i18n.filterCurrencies', 'Type to filter currencies')}
               aria-label={t('i18n.filterCurrencies', 'Type to filter currencies')}
             />
+            <p id={hintId} className="sr-only">
+              {t('a11y.currencySelectorHelp', 'Use arrow keys to navigate, Enter to select, Esc to close')}
+            </p>
           </div>
           <ul className="max-h-64 overflow-auto" role="listbox" id={listboxId}>
             {filtered.map(option => (

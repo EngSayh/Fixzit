@@ -58,6 +58,20 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Cross-tab sync for currency updates written to localStorage
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'fixzit-currency' && typeof e.newValue === 'string') {
+        const next = e.newValue as CurrencyCode;
+        if (CURRENCY_OPTIONS.some(o => o.code === next)) {
+          setCurrencyState(prev => (prev !== next ? next : prev));
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   // Persist only after hydration
   useEffect(() => {
     if (!hydratedRef.current) return;
