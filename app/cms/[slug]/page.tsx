@@ -1,7 +1,6 @@
 import { CmsPage } from "@/src/server/models/CmsPage";
 import { db } from "@/src/lib/mongo";
 import Link from "next/link";
-import { renderMarkdownSanitized } from "@/src/lib/markdown";
 
 export const revalidate = 60;
 
@@ -41,7 +40,7 @@ export default async function CmsPageScreen({ params, searchParams }: { params:{
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
           <article 
             className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]" 
-            dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(page.content) }} 
+            dangerouslySetInnerHTML={{ __html: await renderMarkdown(page.content) }} 
           />
           
           <div className="mt-8 pt-6 border-t border-gray-200">
@@ -64,4 +63,34 @@ export default async function CmsPageScreen({ params, searchParams }: { params:{
   );
 }
 
-
+// Enhanced markdown to HTML renderer
+async function renderMarkdown(md: string){
+  let html = md;
+  
+  // Headers
+  html = html.replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold mt-6 mb-3">$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>');
+  
+  // Lists
+  html = html.replace(/^\* (.+)$/gim, '<li class="ml-4">$1</li>');
+  html = html.replace(/^- (.+)$/gim, '<li class="ml-4">$1</li>');
+  html = html.replace(/(<li.*>.*<\/li>)/g, '<ul class="list-disc pl-6 mb-4">$1</ul>');
+  
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:underline">$1</a>');
+  
+  // Paragraphs
+  html = html.split(/\n{2,}/).map(p => {
+    if (!p.match(/^<[h|u|o|l]/)) {
+      return `<p class="mb-4">${p.replace(/\n/g,"<br/>")}</p>`;
+    }
+    return p;
+  }).join("");
+  
+  return html;
+}
