@@ -7,7 +7,14 @@
  // We will dynamically import the module under test using a relative path guess.
  // Update the import below to match your actual module path if different.
  // Try common locations in order via require.resolve in a try/catch chain.
-let lib: any;
+interface PayTabsHelpers {
+  // Add expected function signatures here, e.g.:
+  // createPayment(params: CreatePaymentParams): Promise<PaymentResult>;
+  // verifyPayment(id: string): Promise<VerificationResult>;
+  // For now, use index signature to allow any property, but avoid `any` type.
+  [key: string]: unknown;
+}
+let lib: PayTabsHelpers;
 function loadModule() {
   const candidates = [
     './lib-paytabs',                 // same folder (unlikely)
