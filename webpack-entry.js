@@ -10,7 +10,7 @@ const BRAND_COLORS = Object.freeze({
 function getBuildMetadata() {
   const timestamp = new Date().toISOString();
   const fingerprint = createHash('sha256')
-    .update(`${pkg.name}@${pkg.version}:${timestamp}`)
+    .update(`${pkg.name}@${pkg.version}`)
     .digest('hex');
 
   return Object.freeze({
