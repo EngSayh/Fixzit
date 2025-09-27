@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 
@@ -75,7 +76,7 @@ const isDirectExecution = (() => {
     if (!entryArg) {
       return false;
     }
-    const entryPath = fileURLToPath(pathToFileURL(entryArg));
+    const entryPath = path.resolve(entryArg);
     return entryPath === thisFile;
   } catch {
     return false;

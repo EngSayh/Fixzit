@@ -15,8 +15,19 @@ const SearchSynonymSchema = new Schema(
 
 SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 
-const SearchSynonymModel = shouldUseMarketplaceMockModel()
-  ? new (getMarketplaceMockModelFactory())('searchsynonyms')
+let cachedMockSearchSynonym;
+
+const useMockModel = shouldUseMarketplaceMockModel();
+
+if (useMockModel && !cachedMockSearchSynonym) {
+  cachedMockSearchSynonym = new (getMarketplaceMockModelFactory())('searchsynonyms');
+  if (models && typeof models === 'object') {
+    models.SearchSynonym = cachedMockSearchSynonym;
+  }
+}
+
+const SearchSynonymModel = useMockModel
+  ? cachedMockSearchSynonym
   : (models.SearchSynonym || model('SearchSynonym', SearchSynonymSchema));
 
 module.exports = SearchSynonymModel;

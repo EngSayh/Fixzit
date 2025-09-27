@@ -89,9 +89,10 @@ function runScriptAndCapture(options?: { env?: NodeJS.ProcessEnv }): { status: n
 
 function cleanArtifacts() {
   try {
-    if (fs.existsSync(ARTIFACTS_DIR)) {
-      fs.rmSync(ARTIFACTS_DIR, { recursive: true, force: true });
+    if (fs.existsSync(OUT_FILE)) {
+      fs.unlinkSync(OUT_FILE);
     }
+    ensureCoverageSupport();
   } catch {
     /* ignore */
   }
@@ -149,7 +150,7 @@ const expectedContentIncludes = [
   });
 
   (usingVitest ? require("vitest") : globalThis).it("creates _artifacts directory and generates the .md with expected content (happy path)", () => {
-    expect(fs.existsSync(ARTIFACTS_DIR)).toBe(false);
+    expect(fs.existsSync(OUT_FILE)).toBe(false);
     const { status, stdout, stderr } = runScriptAndCapture();
     expect(status).toBe(0);
 

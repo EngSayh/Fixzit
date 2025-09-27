@@ -1,5 +1,6 @@
 import { MockDatabase } from '../src/lib/mockDb.js';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import url from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -39,7 +40,7 @@ const isDirectExecution = (() => {
     const thisFile = url.fileURLToPath(import.meta.url);
     const entryArg = process.argv[1];
     if (!entryArg) return false;
-    const entryPath = url.fileURLToPath(url.pathToFileURL(entryArg));
+    const entryPath = path.resolve(entryArg);
     return entryPath === thisFile;
   } catch {
     return false;

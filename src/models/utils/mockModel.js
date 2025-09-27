@@ -1,9 +1,16 @@
 const path = require('path');
 
+const LOCAL_URI_PATTERNS = [/localhost/i, /127\.0\.0\.1/, /0\.0\.0\.0/];
+
 function shouldUseMarketplaceMockModel() {
   const env = process.env.NODE_ENV ?? 'development';
 
-  if (typeof globalThis !== 'undefined' && '__FIXZIT_MARKETPLACE_DB_MOCK__' in globalThis) {
+  const injectedMock =
+    typeof globalThis !== 'undefined'
+      ? (globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__)
+      : undefined;
+
+  if (injectedMock) {
     return true;
   }
 
@@ -11,11 +18,24 @@ function shouldUseMarketplaceMockModel() {
     return false;
   }
 
+  if (process.env.USE_MOCK_DB === '1') {
+    return true;
+  }
+
   if (env === 'production') {
     return false;
   }
 
-  if (process.env.USE_MOCK_DB === '1') {
+  if (env === 'test') {
+    return true;
+  }
+
+  const uri = process.env.MONGODB_URI ?? '';
+  if (!uri) {
+    return true;
+  }
+
+  if (LOCAL_URI_PATTERNS.some(pattern => pattern.test(uri))) {
     return true;
   }
 

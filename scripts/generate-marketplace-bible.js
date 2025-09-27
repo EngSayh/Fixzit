@@ -34,13 +34,16 @@ function buildDocumentContent() {
 function main(options = {}) {
   const {
     fsModule = fs,
-    forceFailure = process.env.FIXZIT_BIBLE_FORCE_WRITE_ERROR === '1',
+    forceFailure = false,
   } = options;
+
+  const shouldForceFailure =
+    forceFailure || process.env.FIXZIT_BIBLE_FORCE_WRITE_ERROR === '1';
 
   ensureArtifactsDir(OUT_DIR, fsModule);
   const content = buildDocumentContent();
 
-  if (forceFailure) {
+  if (shouldForceFailure) {
     throw new Error('Forced write failure for tests');
   }
 

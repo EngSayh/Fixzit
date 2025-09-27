@@ -54,9 +54,18 @@ ProductSchema.index({ 'title.en': 'text', 'title.ar': 'text', summary: 'text', b
 
 const ProductModel = models.MarketplaceProduct || model('MarketplaceProduct', ProductSchema);
 
-const MarketplaceProduct = shouldUseMarketplaceMockModel()
-  ? new (getMarketplaceMockModelFactory())('marketplaceproducts')
-  : ProductModel;
+let cachedMockMarketplaceProduct;
+
+const useMockModel = shouldUseMarketplaceMockModel();
+
+if (useMockModel && !cachedMockMarketplaceProduct) {
+  cachedMockMarketplaceProduct = new (getMarketplaceMockModelFactory())('marketplaceproducts');
+  if (models && typeof models === 'object') {
+    models.MarketplaceProduct = cachedMockMarketplaceProduct;
+  }
+}
+
+const MarketplaceProduct = useMockModel ? cachedMockMarketplaceProduct : ProductModel;
 
 module.exports = MarketplaceProduct;
 module.exports.MarketplaceProduct = MarketplaceProduct;
