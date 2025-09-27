@@ -27,18 +27,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
+    // Validate amount once
+    const amount = parseCartAmount(body.cart_amount, Number.NaN);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
+    }
     // Update invoice based on payment result
     if (payment_result.response_status === 'A' && verification.payment_result.response_status === 'A') {
       // Payment successful
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-  amount: parseCartAmount(body.cart_amount),
+        amount,
   method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
         transactionId: tran_ref,
-  notes: `Payment via ${body.payment_info?.card_scheme || body.payment_info?.payment_method || 'UNKNOWN'}`
+        notes: `Payment via ${body.payment_info?.card_scheme || body.payment_info?.payment_method || 'UNKNOWN'}`
       });
 
       invoice.history.push({
@@ -51,7 +56,7 @@ export async function POST(req: NextRequest) {
       // Payment failed
       invoice.payments.push({
         date: new Date(),
-  amount: parseCartAmount(body.cart_amount),
+        amount,
         method: body.payment_info?.payment_method || 'UNKNOWN',
         reference: tran_ref,
         status: 'FAILED',
