@@ -191,7 +191,12 @@ Namespace QualityAssuranceAgent.E2ETesting
             _logger.LogInformation("🎭 Initializing Playwright...")
             
             ' Install browsers if needed
-            Microsoft.Playwright.Program.Main({"install"})
+            Try
+                Microsoft.Playwright.Program.Main({"install"})
+            Catch ex As Exception
+                _logger.LogError(ex, "❌ Playwright browser installation failed. Please check your network connection and environment.")
+                Throw
+            End Try
             
             _playwright = Await Playwright.CreateAsync()
             _browser = Await _playwright.Chromium.LaunchAsync(New BrowserTypeLaunchOptions With {
