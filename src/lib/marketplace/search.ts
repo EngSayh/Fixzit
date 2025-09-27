@@ -3,7 +3,7 @@ import path from 'path';
 import { MarketplaceProduct } from '@/src/models/marketplace/Product';
 import { Types } from 'mongoose';
 import Product from '@/src/models/marketplace/Product';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import { serializeProduct } from './serializers';
 
 interface SynonymMap {
@@ -59,7 +59,7 @@ export interface MarketplaceSearchFilters {
 }
 
 export async function searchProducts(filters: MarketplaceSearchFilters) {
-  await dbConnect();
+  const client = await db;
   const query: Record<string, unknown> = { orgId: filters.orgId, status: 'ACTIVE' };
 
   if (filters.q) {
@@ -121,7 +121,7 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
 }
 
 export async function findProductBySlug(orgId: Types.ObjectId, slug: string) {
-  await dbConnect();
+  const client = await db;
   const product = await Product.findOne({ orgId, slug }).lean();
   if (!product) return null;
   return serializeProduct(product as MarketplaceProduct);

@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
+import { isMockDB } from "@/src/lib/mongo";
 
 const SLAType = ["RESPONSE_TIME", "RESOLUTION_TIME", "UPTIME", "AVAILABILITY", "MAINTENANCE"] as const;
 const SLAPriority = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
@@ -169,9 +170,6 @@ SLASchema.index({ tenantId: 1, status: 1 });
 SLASchema.index({ tenantId: 1, priority: 1 });
 
 export type SLADoc = InferSchemaType<typeof SLASchema>;
-
-// Check if we're using mock database (explicit flag only)
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 export const SLA = isMockDB
   ? new MockModel('slas') as any

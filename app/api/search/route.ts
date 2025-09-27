@@ -1,155 +1,171 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/src/lib/mongo";
+import { WorkOrder } from "@/src/server/models/WorkOrder";
+import type { WorkOrderDoc } from "@/src/server/models/WorkOrder";
+import { Property } from "@/src/server/models/Property";
+import type { PropertyDoc } from "@/src/server/models/Property";
+import { makeQueryableModel, type QueryableModel } from "./queryHelpers";
+import { getCollections } from "@/lib/db/collections";
+import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { ACCESS } from "@/src/lib/rbac";
+import { escapeRegex } from "@/src/lib/regex";
 
-import { APPS, AppKey } from '@/src/config/topbar-modules';
-import { db } from '@/src/lib/mongo';
+type Hit = { id: string; type: string; title: string; href: string; subtitle?: string };
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
-type SearchResult = {
-  id: string;
-  entity: string;
-  title: string;
-  subtitle: string;
-  href: string;
-  score: number;
-};
-
-const DEFAULT_LIMIT = 20;
-const PER_ENTITY_LIMIT = 5;
+function clampLimit(raw: string | null): number {
+  let lim = Number.parseInt((raw ?? "5"), 10);
+  if (!Number.isFinite(lim)) lim = 5;
+  lim = Math.max(1, Math.min(20, lim));
+  return lim;
+}
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const scope = (searchParams.get("scope") || "fm").toLowerCase();
+  const q = (searchParams.get("q") || "").trim();
+  const limit = clampLimit(searchParams.get("limit"));
+
+  if (!q) return NextResponse.json({ results: [] });
+
+  // Enforce auth and tenant scoping
+  let tenantId: string;
+  let userRole: string;
   try {
-    await db; // Ensure database connection
-    const { searchParams } = new URL(req.url);
-    const app = (searchParams.get('app') || 'fm') as AppKey;
-    const q = (searchParams.get('q') || '').trim();
-    const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
-    const limitParam = Number.parseInt(searchParams.get('limit') ?? '', 10);
-    const resultLimit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : DEFAULT_LIMIT;
+    const user = await getSessionUser(req);
+    tenantId = user.tenantId;
+    userRole = String(user.role);
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    if (!q) {
-      return NextResponse.json({ results: [] });
-    }
+  // Per-scope RBAC guard
+  const allowedModules = ACCESS[userRole as keyof typeof ACCESS] || [];
+  const forbid = () => NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (scope === 'souq' && !allowedModules.includes('marketplace')) return forbid();
+  if (scope === 'aqar' && !allowedModules.includes('properties')) return forbid();
+  if (scope === 'fm' && !(allowedModules.includes('work-orders') || allowedModules.includes('properties'))) return forbid();
 
-    const appConfig = APPS[app];
-    if (!appConfig) {
-      return NextResponse.json({ results: [] });
-    }
+  try {
+    const results: Hit[] = [];
 
-    const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
-    const uniqueEntities = Array.from(new Set(searchEntities)).filter(Boolean);
+    const WorkOrderModel = makeQueryableModel<WorkOrderDoc>(WorkOrder);
+    const PropertyModel = makeQueryableModel<PropertyDoc>(Property);
 
-    const entityQueries = uniqueEntities.map(async entity => {
-      try {
-        const { collection, query } = resolveCollectionAndQuery(entity, q);
-        if (!collection) {
-          return [] as SearchResult[];
-        }
-
-        const items = await collection
-          .find(query)
-          .project({ score: { $meta: 'textScore' } })
-          .sort({ score: { $meta: 'textScore' } })
-          .limit(PER_ENTITY_LIMIT)
-          .toArray();
-
-        return items.map((item: Record<string, any>) => ({
-          id: item._id?.toString() ?? '',
-          entity,
-          title: item.title || item.name || item.code || `Untitled ${entity}`,
-          subtitle: item.description || item.address || item.status || '',
-          href: generateHref(entity, item._id?.toString() ?? ''),
-          score: item.score ?? 0
-        }));
-      } catch (error) {
-        console.warn(`Search failed for entity ${entity}:`, error);
-        return [] as SearchResult[];
+    const searchFM = async () => {
+      await db; // ensure mongoose is ready
+      const safe = escapeRegex(q);
+      // Return only datasets the role can access
+      if (allowedModules.includes('work-orders')) {
+        const woFilter: any = { deletedAt: { $exists: false }, tenantId };
+        const woQuery: any = q
+          ? {
+              $or: [
+                { title: { $regex: safe, $options: "i" } },
+                { description: { $regex: safe, $options: "i" } },
+                { code: { $regex: safe, $options: "i" } },
+              ],
+            }
+          : {};
+        const woItems = await WorkOrderModel
+          .find({ ...woFilter, ...woQuery })
+          .sort({ updatedAt: -1 })
+          .limit(limit)
+          .lean();
+        woItems.forEach((w: any) =>
+          results.push({ id: String(w._id), type: "work_orders", title: w.title || w.code, href: `/work-orders/${w._id}`, subtitle: w.code })
+        );
       }
-    });
+      if (allowedModules.includes('properties')) {
+        const propFilter: any = { tenantId };
+        const propQuery: any = q
+          ? {
+              $or: [
+                { name: { $regex: safe, $options: "i" } },
+                { description: { $regex: safe, $options: "i" } },
+                { code: { $regex: safe, $options: "i" } },
+                { "address.city": { $regex: safe, $options: "i" } },
+              ],
+            }
+          : {};
+        const props = await PropertyModel
+          .find({ ...propFilter, ...propQuery })
+          .sort({ updatedAt: -1 })
+          .limit(limit)
+          .lean();
+        props.forEach((p: any) =>
+          results.push({ id: String(p._id), type: "properties", title: p.name, href: `/properties/${p._id}`, subtitle: p.address?.city })
+        );
+      }
+    };
 
-    const settled = await Promise.allSettled(entityQueries);
-    const results = settled.flatMap(result => (result.status === 'fulfilled' ? result.value : []));
+    if (scope === "fm") {
+      await searchFM();
+    } else if (scope === "souq") {
+      const { products, vendors } = await getCollections();
 
-    results.sort((a, b) => (b.score || 0) - (a.score || 0));
+      const productFilter: any = {
+        active: true,
+        tenantId,
+        $or: [
+          { title: { $regex: escapeRegex(q), $options: "i" } },
+          { description: { $regex: escapeRegex(q), $options: "i" } },
+          { sku: { $regex: escapeRegex(q), $options: "i" } },
+        ],
+      };
+      const prodItems = await products.find(productFilter).limit(limit).toArray();
+      prodItems.forEach((p: any) =>
+        results.push({ id: String(p._id), type: "products", title: p.title, href: `/souq/catalog/${p._id}`, subtitle: p.sku })
+      );
 
-    return NextResponse.json(
-      { results: results.slice(0, resultLimit) },
-      { headers: { 'Cache-Control': 'no-store' } }
-    );
-  } catch (error) {
-    console.error('Search API error:', error);
-    return NextResponse.json({ results: [] }, { status: 500 });
-  }
-}
+      const vendorFilter: any = {
+        tenantId,
+        $or: [
+          { name: { $regex: escapeRegex(q), $options: "i" } },
+          { "contact.primary.name": { $regex: escapeRegex(q), $options: "i" } },
+        ],
+      };
+      const vendorItems = await vendors.find(vendorFilter).limit(limit).toArray();
+      vendorItems.forEach((v: any) =>
+        results.push({ id: String(v._id), type: "vendors", title: v.name, href: `/souq/vendors/${v._id}` })
+      );
+    } else if (scope === "aqar") {
+      await db;
+      const propFilter: any = { type: { $in: ["RESIDENTIAL", "COMMERCIAL"] }, tenantId };
+      const propQuery: any = q
+        ? {
+            $or: [
+              { name: { $regex: escapeRegex(q), $options: "i" } },
+              { description: { $regex: escapeRegex(q), $options: "i" } },
+              { code: { $regex: escapeRegex(q), $options: "i" } },
+              { "address.city": { $regex: escapeRegex(q), $options: "i" } },
+            ],
+          }
+        : {};
+      const listings = await PropertyModel
+        .find({ ...propFilter, ...propQuery })
+        .sort({ updatedAt: -1 })
+        .limit(limit)
+        .lean();
+      listings.forEach((p: any) =>
+        results.push({ id: String(p._id), type: "listings", title: p.name, href: `/aqar/properties?highlight=${p._id}`, subtitle: p.address?.city })
+      );
+    } else {
+      // Fallback to FM search
+      await searchFM();
+    }
 
-function resolveCollectionAndQuery(entity: string, q: string) {
-  const baseQuery = {
-    $text: { $search: q },
-    deletedAt: { $exists: false }
-  };
-
-  switch (entity) {
-    case 'work_orders':
-      return { collection: db.collection('work_orders'), query: baseQuery };
-    case 'properties':
-      return { collection: db.collection('properties'), query: baseQuery };
-    case 'units':
-      return { collection: db.collection('units'), query: baseQuery };
-    case 'tenants':
-      return { collection: db.collection('tenants'), query: baseQuery };
-    case 'vendors':
-      return { collection: db.collection('vendors'), query: baseQuery };
-    case 'invoices':
-      return { collection: db.collection('invoices'), query: baseQuery };
-    case 'products':
-      return { collection: db.collection('products'), query: baseQuery };
-    case 'services':
-      return { collection: db.collection('services'), query: baseQuery };
-    case 'rfqs':
-      return { collection: db.collection('rfqs'), query: baseQuery };
-    case 'orders':
-      return { collection: db.collection('orders'), query: baseQuery };
-    case 'listings':
-      return { collection: db.collection('listings'), query: baseQuery };
-    case 'projects':
-      return { collection: db.collection('projects'), query: baseQuery };
-    case 'agents':
-      return { collection: db.collection('agents'), query: baseQuery };
-    default:
-      return { collection: null, query: baseQuery };
-  }
-}
-
-function generateHref(entity: string, id: string): string {
-  switch (entity) {
-    case 'work_orders':
-      return `/work-orders/${id}`;
-    case 'properties':
-      return `/properties/${id}`;
-    case 'units':
-      return `/properties/units/${id}`;
-    case 'tenants':
-      return `/tenants/${id}`;
-    case 'vendors':
-      return `/vendors/${id}`;
-    case 'invoices':
-      return `/finance/invoices/${id}`;
-    case 'products':
-      return `/marketplace/products/${id}`;
-    case 'services':
-      return `/marketplace/services/${id}`;
-    case 'rfqs':
-      return `/marketplace/rfqs/${id}`;
-    case 'orders':
-      return `/marketplace/orders/${id}`;
-    case 'listings':
-      return `/aqar/listings/${id}`;
-    case 'projects':
-      return `/aqar/projects/${id}`;
-    case 'agents':
-      return `/aqar/agents/${id}`;
-    default:
-      return `/record/${entity}/${id}`;
+    // De-duplicate by href (clearer loop)
+    const seen = new Set<string>();
+    const deduped: Hit[] = [];
+    for (const r of results) {
+      if (!seen.has(r.href)) {
+        seen.add(r.href);
+        deduped.push(r);
+      }
+    }
+    return NextResponse.json({ results: deduped.slice(0, 25) });
+  } catch (err) {
+    console.error("/api/search error", err);
+    return NextResponse.json({ error: "Search service temporarily unavailable" }, { status: 500 });
   }
 }
