@@ -1,26 +1,88 @@
-const REGIONS: Record<string,string> = {
-  KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
-  EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
-  JORDAN:'https://secure-jordan.paytabs.com', KUWAIT:'https://secure-kuwait.paytabs.com',
-  GLOBAL:'https://secure-global.paytabs.com'
+const REGIONS = {
+  KSA: 'https://secure.paytabs.sa',
+  UAE: 'https://secure.paytabs.com',
+  EGYPT: 'https://secure-egypt.paytabs.com',
+  OMAN: 'https://secure-oman.paytabs.com',
+  JORDAN: 'https://secure-jordan.paytabs.com',
+  KUWAIT: 'https://secure-kuwait.paytabs.com',
+  GLOBAL: 'https://secure-global.paytabs.com'
+} as const;
+
+type PaytabsRegion = keyof typeof REGIONS;
+
+export interface PaytabsCustomerDetails {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  zip: string;
+}
+
+export interface PaymentRequest {
+  amount: number;
+  currency: string;
+  description: string;
+  customerDetails: PaytabsCustomerDetails;
+  callbackUrl: string;
+  returnUrl: string;
+  invoiceId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export type PaymentResponse =
+  | { success: true; paymentUrl: string; transactionId: string }
+  | { success: false; error: string };
+
+export const paytabsBase = (region: string = 'GLOBAL'): string => {
+  const normalized = region.toUpperCase();
+
+  if (normalized === 'SAU' || normalized === 'SA') {
+    return REGIONS.KSA;
+  }
+
+  return REGIONS[normalized as PaytabsRegion] ?? REGIONS.GLOBAL;
 };
 
-export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
+const PAYTABS_CONFIG = Object.freeze({
+  profileId: process.env.PAYTABS_PROFILE_ID ?? '',
+  serverKey: process.env.PAYTABS_SERVER_KEY ?? '',
+  baseUrl: process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
+});
 
-export async function createHppRequest(region:string, payload:any) {
-  const r = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method:'POST',
+const assertConfig = () => {
+  if (!PAYTABS_CONFIG.profileId) {
+    throw new Error('PayTabs profile ID is not configured');
+  }
+
+  if (!PAYTABS_CONFIG.serverKey) {
+    throw new Error('PayTabs server key is not configured');
+  }
+};
+
+export async function createHppRequest(region: string, payload: unknown) {
+  assertConfig();
+
+  const response = await fetch(`${paytabsBase(region)}/payment/request`, {
+    method: 'POST',
     headers: {
-      'Content-Type':'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!,
+      'Content-Type': 'application/json',
+      Authorization: PAYTABS_CONFIG.serverKey
     },
     body: JSON.stringify(payload)
   });
-  return r.json();
+
+  return response.json();
 }
+
+// removed duplicate local types; using exported interfaces above
 
 export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
   try {
+    assertConfig();
+
     const payload = {
       profile_id: PAYTABS_CONFIG.profileId,
       tran_type: 'sale',
@@ -29,11 +91,11 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
       cart_currency: request.currency,
       cart_amount: request.amount.toFixed(2),
       cart_description: request.description,
-      
+
       // URLs
       return: request.returnUrl,
       callback: request.callbackUrl,
-      
+
       // Customer details
       customer_details: {
         name: request.customerDetails.name,
@@ -85,18 +147,10 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
   }
 }
 
-/**
- * Verify a PayTabs transaction by reference.
- *
- * Sends a POST request to the PayTabs /payment/query endpoint using configured profile credentials
- * and returns the parsed JSON response from PayTabs.
- *
- * @param tranRef - The PayTabs transaction reference (tran_ref) to verify.
- * @returns The parsed JSON response from the PayTabs verification endpoint.
- * @throws Re-throws any network or fetch errors that occur while calling the API.
- */
 export async function verifyPayment(tranRef: string): Promise<any> {
   try {
+    assertConfig();
+
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
@@ -116,44 +170,36 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-/**
- * Verifies a PayTabs callback payload by computing an HMAC-SHA256 of the raw body and comparing it to the provided signature header.
- *
- * Uses the server key from PAYTABS_API_SERVER_KEY or PAYTABS_SERVER_KEY environment variables. Comparison is performed in constant time to mitigate timing attacks.
- *
- * @param rawBody - Raw callback request body (exact bytes used to compute the HMAC)
- * @param signatureHeader - Hex-encoded HMAC-SHA256 signature from the callback headers
- * @returns True if the computed signature matches `signatureHeader`; false if the keys are missing, the signatures differ, or an error occurs during verification
- */
-export async function validateCallbackRaw(rawBody: string, signatureHeader: string | null | undefined): Promise<boolean> {
-  const serverKey = process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
-  if (!serverKey || !signatureHeader) return false;
+import crypto from 'crypto';
+export function validateCallback(payload: any, signature: string): boolean {
+  if (!signature) return false;
+  const calculated = generateSignature(payload, PAYTABS_CONFIG.serverKey);
   try {
-    const enc = new TextEncoder();
-    const key = await globalThis.crypto.subtle.importKey(
-      'raw',
-      enc.encode(serverKey),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const sig = await globalThis.crypto.subtle.sign('HMAC', key, enc.encode(rawBody));
-    const bytes = new Uint8Array(sig);
-    let hex = '';
-    for (let i = 0; i < bytes.length; i++) {
-      const h = bytes[i].toString(16).padStart(2, '0');
-      hex += h;
-    }
-    // constant-time compare
-    if (hex.length !== signatureHeader.length) return false;
-    let diff = 0;
-    for (let i = 0; i < hex.length; i++) {
-      diff |= hex.charCodeAt(i) ^ signatureHeader.charCodeAt(i);
-    }
-    return diff === 0;
+    return crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(signature));
   } catch {
     return false;
   }
+}
+
+function generateSignature(payload: any, secret: string): string {
+  const canonical = canonicalizePayload(payload);
+  return crypto.createHmac('sha256', secret).update(canonical).digest('hex');
+}
+
+function canonicalizePayload(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(item => canonicalizePayload(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, val]) => `${JSON.stringify(key)}:${canonicalizePayload(val)}`);
+
+  return `{${entries.join(',')}}`;
 }
 
 // Payment methods supported in Saudi Arabia

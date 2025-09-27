@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     const rfq = await RFQ.create({
       tenantId: user.tenantId,
-      code: `RFQ-${Date.now()}`,
+      code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
       timeline: data.timeline,

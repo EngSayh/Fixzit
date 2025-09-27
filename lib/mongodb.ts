@@ -1,34 +1,36 @@
 import { MongoClient, Db, MongoClientOptions } from 'mongodb';
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Please add your Mongo URI to .env.local');
-}
-
-const uri = process.env.MONGODB_URI;
+// Do not throw at import time; defer validation until first use to avoid build-time crashes
+const uri = process.env.MONGODB_URI || '';
 const options: MongoClientOptions = {};
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+let client: MongoClient | undefined;
+let clientPromise: Promise<MongoClient> | undefined;
 
 declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-if (process.env.NODE_ENV === 'development') {
+if (uri && process.env.NODE_ENV === 'development') {
   if (!global._mongoClientPromise) {
     client = new MongoClient(uri, options);
     global._mongoClientPromise = client.connect();
   }
   clientPromise = global._mongoClientPromise;
-} else {
+} else if (uri) {
   client = new MongoClient(uri, options);
   clientPromise = client.connect();
 }
 
-export default clientPromise;
+export default clientPromise as Promise<MongoClient> | undefined;
 
 // Helper to get database
 export async function getDatabase(): Promise<Db> {
-  const client = await clientPromise;
-  return client.db();
+  if (!clientPromise) {
+    if (!uri) throw new Error('MONGODB_URI is not configured');
+    client = new MongoClient(uri, options);
+    clientPromise = client.connect();
+  }
+  const cli = await clientPromise;
+  return cli.db();
 }

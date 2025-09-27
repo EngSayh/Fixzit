@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const project = await Project.create({
       tenantId: user.tenantId,
-      code: `PRJ-${Date.now()}`,
+      code: `PRJ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "PLANNING",
       progress: {
