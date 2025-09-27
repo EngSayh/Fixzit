@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { isMockDB, db } from '@/src/lib/mongo';
 
 // Dynamic import for User model to avoid Edge Runtime issues
@@ -166,11 +167,20 @@ if (isMockDB) {
     }
   };
 } else {
-  // Use real Mongoose model for production
+  // Use real Mongoose model for non-mock mode
   User = (await import('@/src/server/models/User')).User;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fixzit-enterprise-secret-2024';
+const JWT_SECRET = (() => {
+  const envSecret = process.env.JWT_SECRET?.trim();
+  if (envSecret) return envSecret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET must be configured in production.');
+  }
+  const ephemeral = randomBytes(32).toString('hex');
+  console.warn('JWT_SECRET missing. Using ephemeral dev secret; tokens reset on restart.');
+  return ephemeral;
+})();
 
 export interface AuthToken {
   id: string;

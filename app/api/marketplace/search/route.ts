@@ -22,6 +22,7 @@ const QuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(24)
 });
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());

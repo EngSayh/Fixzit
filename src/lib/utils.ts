@@ -1,10 +1,12 @@
 export function generateSlug(input: string): string {
-  return input
-    .toLowerCase()
+  const base = (input ?? '')
+    .toString()
     .normalize('NFKD')
+    .toLowerCase()
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-')
-    || 'item';
+    .replace(/-{2,}/g, '-');
+
+  return base || 'item';
 }
