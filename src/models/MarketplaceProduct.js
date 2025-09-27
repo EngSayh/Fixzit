@@ -4,6 +4,8 @@ const {
   shouldUseMarketplaceMockModel,
 } = require('./utils/mockModel');
 
+const COLLECTION_NAME = 'marketplaceproducts';
+
 const ProductSchema = new Schema(
   {
     orgId: { type: Schema.Types.ObjectId, required: true, index: true },
@@ -59,7 +61,7 @@ let cachedMockMarketplaceProduct;
 const useMockModel = shouldUseMarketplaceMockModel();
 
 if (useMockModel && !cachedMockMarketplaceProduct) {
-  cachedMockMarketplaceProduct = new (getMarketplaceMockModelFactory())('marketplaceproducts');
+  cachedMockMarketplaceProduct = new (getMarketplaceMockModelFactory())(COLLECTION_NAME);
   if (models && typeof models === 'object') {
     models.MarketplaceProduct = cachedMockMarketplaceProduct;
   }

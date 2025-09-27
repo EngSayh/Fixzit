@@ -4,6 +4,8 @@ const {
   shouldUseMarketplaceMockModel,
 } = require('./utils/mockModel');
 
+const COLLECTION_NAME = 'searchsynonyms';
+
 const SearchSynonymSchema = new Schema(
   {
     locale: { type: String, enum: ['en', 'ar'], required: true, index: true },
@@ -20,7 +22,7 @@ let cachedMockSearchSynonym;
 const useMockModel = shouldUseMarketplaceMockModel();
 
 if (useMockModel && !cachedMockSearchSynonym) {
-  cachedMockSearchSynonym = new (getMarketplaceMockModelFactory())('searchsynonyms');
+  cachedMockSearchSynonym = new (getMarketplaceMockModelFactory())(COLLECTION_NAME);
   if (models && typeof models === 'object') {
     models.SearchSynonym = cachedMockSearchSynonym;
   }

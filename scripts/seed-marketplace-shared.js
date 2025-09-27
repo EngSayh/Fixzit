@@ -2,6 +2,11 @@ const { randomUUID } = require('node:crypto');
 
 const DEFAULT_TENANT_ID = 'demo-tenant';
 
+const COLLECTIONS = {
+  SYNONYMS: 'searchsynonyms',
+  PRODUCTS: 'marketplaceproducts',
+};
+
 function normalizeDocument(doc) {
   if (!doc || typeof doc !== 'object') {
     return {};
@@ -79,6 +84,7 @@ function getSeedData(tenantId = DEFAULT_TENANT_ID) {
 
 module.exports = {
   DEFAULT_TENANT_ID,
+  COLLECTIONS,
   createUpsert,
   getSeedData,
 };

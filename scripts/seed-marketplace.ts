@@ -23,10 +23,12 @@ function resolveMockDatabase(): MockDbModule["MockDatabase"] {
 
 const {
   DEFAULT_TENANT_ID,
+  COLLECTIONS,
   createUpsert,
   getSeedData,
 } = require('./seed-marketplace-shared.js') as {
   DEFAULT_TENANT_ID: string;
+  COLLECTIONS: { SYNONYMS: string; PRODUCTS: string };
   createUpsert: (db: MockDbInstance) => UpsertFn;
   getSeedData: (tenantId?: string) => {
     synonyms: Array<Record<string, unknown>>;
@@ -49,7 +51,7 @@ export async function main() {
 
   synonyms.forEach((synonym) => {
     upsert(
-      'searchsynonyms',
+      COLLECTIONS.SYNONYMS,
       (entry: Record<string, unknown>) => entry.locale === synonym.locale && entry.term === synonym.term,
       synonym,
     );
@@ -57,7 +59,7 @@ export async function main() {
 
   products.forEach((product) => {
     upsert(
-      'marketplaceproducts',
+      COLLECTIONS.PRODUCTS,
       (entry: Record<string, unknown>) => entry.tenantId === tenantId && entry.slug === product.slug,
       product,
     );

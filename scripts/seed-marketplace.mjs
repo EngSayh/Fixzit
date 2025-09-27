@@ -5,7 +5,7 @@ import url from 'node:url';
 
 const require = createRequire(import.meta.url);
 
-const { DEFAULT_TENANT_ID, createUpsert, getSeedData } = require('./seed-marketplace-shared.js');
+const { DEFAULT_TENANT_ID, COLLECTIONS, createUpsert, getSeedData } = require('./seed-marketplace-shared.js');
 
 // Idempotent seed for demo-tenant marketplace data when using MockDB
 const db = MockDatabase.getInstance();
@@ -18,7 +18,7 @@ export async function main() {
 
   synonyms.forEach((synonym) => {
     upsert(
-      'searchsynonyms',
+      COLLECTIONS.SYNONYMS,
       (entry) => entry.locale === synonym.locale && entry.term === synonym.term,
       synonym,
     );
@@ -26,7 +26,7 @@ export async function main() {
 
   products.forEach((product) => {
     upsert(
-      'marketplaceproducts',
+      COLLECTIONS.PRODUCTS,
       (entry) => entry.tenantId === tenantId && entry.slug === product.slug,
       product,
     );
