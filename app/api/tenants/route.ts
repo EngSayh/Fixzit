@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     const tenant = await Tenant.create({
       tenantId: user.tenantId,
-      code: `TEN-${Date.now()}`,
+      code: `TEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
