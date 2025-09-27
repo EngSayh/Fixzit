@@ -49,8 +49,7 @@ type FetchResponse = {
   json: () => Promise<any>;
 };
 function mockFetchOnce(impl: (input: RequestInfo | URL, init?: RequestInit) => Promise<FetchResponse>) {
-  // @ts-ignore
-  global.fetch = jest.fn(impl);
+  (global as any).fetch = jest.fn(impl);
 }
 
 function setEnv(obj: Record<string, string | undefined>) {
