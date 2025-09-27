@@ -1,56 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
-import Benchmark from '@/src/db/models/Benchmark';
-import { quotePrice } from '@/src/services/pricing';
+import Benchmark from '@/src/models/Benchmark';
+import { computeQuote } from '@/src/lib/pricing';
+import { db } from '@/src/lib/mongo';
+import { z } from 'zod';
+
+const compareSchema = z.object({
+  seatTotal: z.number().positive(),
+  billingCycle: z.enum(['monthly', 'annual']),
+  items: z.array(z.object({
+    moduleCode: z.string().min(1)
+  }))
+});
 
 export async function POST(req: NextRequest) {
-  await dbConnect();
-  const body = await req.json();
+  try {
+    await db;
+    const body = compareSchema.parse(await req.json());
+    
+    const ours = await computeQuote(body) as any;
+    if (ours.contactSales) return NextResponse.json(ours);
 
-  const modules = body.modules || body.items?.map((item: any) => item.moduleCode);
-  const seats = Number(body.seats ?? body.seatTotal);
-  const billingCycle = body.billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY';
-  const currency = body.currency ?? 'USD';
+    const rows = await Benchmark.find({});
+    const perUserRows = rows.filter(r => r.pricingModel==='per_user_month' && r.priceMonthly);
+    const monthlyMedian = perUserRows.sort((a,b)=>a.priceMonthly-b.priceMonthly)[Math.floor(perUserRows.length/2)]?.priceMonthly || 0;
 
-  if (!Array.isArray(modules) || modules.length === 0) {
-    return NextResponse.json({ error: 'MODULES_REQUIRED' }, { status: 400 });
+    const compMonthly = monthlyMedian * body.seatTotal; // FM core-like proxy
+    const diff = ours.monthly - compMonthly;
+    return NextResponse.json({
+      ours: { monthly: ours.monthly, annualTotal: ours.annualTotal, items: ours.items },
+      market: { perUserMedianMonthly: monthlyMedian, teamMonthly: compMonthly },
+      position: diff === 0 ? 'PAR' : diff < 0 ? 'BELOW_MARKET' : 'ABOVE_MARKET'
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+    }
+    console.error('Benchmark comparison failed:', error);
+    return NextResponse.json({ error: 'Failed to compare benchmarks' }, { status: 500 });
   }
-
-  const quote = await quotePrice({
-    priceBookCurrency: currency,
-    seats,
-    modules,
-    billingCycle,
-  });
-
-  if (quote.requiresQuote) {
-    return NextResponse.json(quote);
-  }
-
-  const vendors = await Benchmark.find({}).lean();
-  const perSeatPrices = vendors.flatMap((vendor: any) =>
-    (vendor.plans || [])
-      .map((plan: any) => plan.price_per_user_month_usd)
-      .filter((price: any) => typeof price === 'number')
-  );
-
-  perSeatPrices.sort((a, b) => a - b);
-  const medianIndex = Math.floor(perSeatPrices.length / 2);
-  const medianPrice = perSeatPrices.length ? perSeatPrices[medianIndex] : 0;
-  const marketMonthly = medianPrice * seats;
-  const diff = quote.total - marketMonthly;
-
-  return NextResponse.json({
-    ours: {
-      total: quote.total,
-      billingCycle,
-      lines: quote.lines,
-      annualDiscount: quote.annualDiscount,
-    },
-    market: {
-      perUserMedianMonthly: medianPrice,
-      teamMonthly: marketMonthly,
-    },
-    position: diff === 0 ? 'PAR' : diff < 0 ? 'BELOW_MARKET' : 'ABOVE_MARKET',
-  });
 }

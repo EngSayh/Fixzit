@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 interface AutoRejectOptions {
   experience?: number;
@@ -44,7 +45,7 @@ AtsSettingsSchema.methods.shouldAutoReject = function(this: AtsSettingsDoc, inpu
     autoRejectMissingSkills?: boolean;
   };
   const experience = input.experience ?? 0;
-  const skills = (input.skills || []).map((skill) => skill.toLowerCase());
+  const skills = (input.skills || []).map(skill => skill.toLowerCase());
 
   if (rules.minYears && experience < rules.minYears) {
     return { reject: true, reason: `Requires minimum ${rules.minYears} years of experience` };
@@ -54,7 +55,7 @@ AtsSettingsSchema.methods.shouldAutoReject = function(this: AtsSettingsDoc, inpu
     return { reject: true, reason: 'Experience information missing' };
   }
 
-  const requiredSkills = (rules.requiredSkills || []).map((skill) => skill.toLowerCase());
+  const requiredSkills = (rules.requiredSkills || []).map(skill => skill.toLowerCase());
   if (rules.autoRejectMissingSkills && requiredSkills.length > 0) {
     const missing = requiredSkills.filter(skill => !skills.includes(skill));
     if (missing.length > 0) {
@@ -74,8 +75,6 @@ AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
   return doc;
 };
 
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
 class AtsSettingsMockModel extends MockModel {
   constructor() {
     super('atssettings');
@@ -84,7 +83,12 @@ class AtsSettingsMockModel extends MockModel {
   private attach(doc: any) {
     if (!doc) return doc;
     doc.shouldAutoReject = (input: AutoRejectOptions): AutoRejectDecision => {
-      const rules = doc.knockoutRules || {};
+      const rules = (doc.knockoutRules || {}) as {
+        minYears?: number;
+        requiredSkills?: string[];
+        autoRejectMissingExperience?: boolean;
+        autoRejectMissingSkills?: boolean;
+      };
       const experience = input.experience ?? 0;
       const skills = (input.skills || []).map((skill: string) => skill.toLowerCase());
       if (rules.minYears && experience < rules.minYears) {
@@ -128,11 +132,9 @@ class AtsSettingsMockModel extends MockModel {
   }
 }
 
-const mongooseModel = (models.AtsSettings as AtsSettingsModel) ||
-  model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema);
-
+const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
 export const AtsSettings: AtsSettingsModel = isMockDB
   ? (new AtsSettingsMockModel() as unknown as AtsSettingsModel)
-  : mongooseModel;
+  : (existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
 
 export type { AutoRejectOptions, AutoRejectDecision };
