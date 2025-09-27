@@ -64,23 +64,66 @@ export async function POST(
       );
     }
     
-    // Process resume file (save to public/uploads/resumes)
+    // Process resume file (secure private storage with validation)
     let resumeUrl = '';
     let resumeText = '';
     
     if (resumeFile) {
       try {
+        // Validate file type and size BEFORE processing
+        const allowedTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        const maxSize = 5 * 1024 * 1024; // 5MB limit
+        
+        if (!allowedTypes.includes(resumeFile.type)) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Invalid file type. Only PDF and Word documents are allowed.' 
+          }, { status: 400 });
+        }
+        
+        if (resumeFile.size > maxSize) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'File too large. Maximum size is 5MB.' 
+          }, { status: 400 });
+        }
+        
         const bytes = await resumeFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');
+        
+        // Magic byte validation for additional security
+        const isValidPDF = buffer.slice(0, 4).toString() === '%PDF';
+        const isValidDOC = buffer.slice(0, 4).equals(Buffer.from([0xD0, 0xCF, 0x11, 0xE0]));
+        const isValidDOCX = buffer.slice(0, 4).equals(Buffer.from([0x50, 0x4B, 0x03, 0x04]));
+        
+        if (resumeFile.type === 'application/pdf' && !isValidPDF) {
+          return NextResponse.json({ success: false, error: 'Invalid PDF file' }, { status: 400 });
+        }
+        
+        // Use PRIVATE storage directory with tenant isolation
+        const uploadDir = path.join(process.cwd(), 'private', 'uploads', 'resumes', user.tenantId);
         await fs.mkdir(uploadDir, { recursive: true });
-        const safeName = resumeFile.name.replace(/[^\w.\-]+/g, '_');
-        const fileName = `${Date.now()}-${safeName}`;
+        
+        // Use cryptographically secure filename
+        const fileExt = resumeFile.name.split('.').pop()?.toLowerCase() || 'pdf';
+        const safeExt = fileExt.replace(/[^a-z0-9]/g, '');
+        const fileName = `${crypto.randomUUID()}.${safeExt}`;
         const filePath = path.join(uploadDir, fileName);
+        
         await fs.writeFile(filePath, buffer);
-        resumeUrl = `/uploads/resumes/${fileName}`;
+        
+        // Generate signed URL for private file access
+        resumeUrl = `/api/files/resumes/${fileName}?tenant=${user.tenantId}`;
       } catch (err) {
         console.error('Resume save failed:', err);
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Failed to process resume file' 
+        }, { status: 500 });
       }
       
       // Basic text surrogate for scoring/search
@@ -126,7 +169,7 @@ export async function POST(
       });
     } else {
       // Update existing candidate info
-      candidate.skills = [...new Set([...candidate.skills, ...candidateSkills])];
+      candidate.skills = [...new Set([...(candidate.skills || []), ...candidateSkills])];
       if (resumeUrl) candidate.resumeUrl = resumeUrl;
       if (resumeText) candidate.resumeText = resumeText;
       if (linkedin) candidate.linkedin = linkedin;
