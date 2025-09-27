@@ -4,10 +4,21 @@ import url from 'node:url';
 
 const require = createRequire(import.meta.url);
 
-const { DEFAULT_TENANT_ID, COLLECTIONS, createUpsert, getSeedData, resolveMockDatabase } = require('./seed-marketplace-shared.js');
+const {
+  DEFAULT_TENANT_ID,
+  COLLECTIONS,
+  createUpsert,
+  getSeedData,
+  resolveMockDatabase,
+} = require('./seed-marketplace-shared.js');
 
 // Idempotent seed for demo-tenant marketplace data when using MockDB
-const db = resolveMockDatabase().getInstance();
+const mockDbFromGlobal = globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__;
+const MockDatabase = mockDbFromGlobal && typeof mockDbFromGlobal.getInstance === 'function'
+  ? mockDbFromGlobal
+  : resolveMockDatabase();
+
+const db = MockDatabase.getInstance();
 
 export const upsert = createUpsert(db);
 
