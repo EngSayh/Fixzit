@@ -30,7 +30,7 @@ function verifyBrandColor(hex) {
     return false;
   }
 
-  const normalized = hex.trim().toUpperCase();
+  const normalized = hex.trim().toLowerCase();
   return Object.values(BRAND_COLORS).some(color => color === normalized);
 }
 
