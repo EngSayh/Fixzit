@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const EmployeeSchema = new Schema({
   orgId: { type: String, required: true, index: true },
@@ -22,8 +23,6 @@ const EmployeeSchema = new Schema({
 EmployeeSchema.index({ orgId: 1, 'personal.email': 1 }, { unique: true });
 
 export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
-
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
 class EmployeeMockModel extends MockModel {
   constructor() {

@@ -10,7 +10,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   await db;
   const user = await getSessionUser(req).catch(()=>null);
   const body = schema.parse(await req.json());
-  const t = await (SupportTicket as any).findById(params.id);
+  // Validate MongoDB ObjectId format
+  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+  const t = await (SupportTicket as any).findOne({ 
+    _id: params.id, 
+    $or: [
+      { tenantId: user?.tenantId },
+      { createdByUserId: user?.id },
+      // Allow admins to reply to any ticket
+      ...(user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
+    ]
+  });
   if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // End user may reply only to own ticket; admins can reply to any
