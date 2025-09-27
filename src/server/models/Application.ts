@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const ApplicationStages = [
   'applied',
@@ -67,8 +68,6 @@ export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Documen
 
 export interface ApplicationModel extends Model<ApplicationDoc> {}
 
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
 function attachHistoryDefaults(application: any) {
   if (!application) return application;
   if (!Array.isArray(application.history) || application.history.length === 0) {
@@ -108,8 +107,9 @@ class ApplicationMockModel extends MockModel {
   }
 }
 
+const existingApplication = models.Application as ApplicationModel | undefined;
 export const Application: ApplicationModel = isMockDB
-  ? new ApplicationMockModel() as unknown as ApplicationModel
-  : (models.Application || model<ApplicationDoc>('Application', ApplicationSchema));
+  ? (new ApplicationMockModel() as unknown as ApplicationModel)
+  : (existingApplication || model<ApplicationDoc, ApplicationModel>('Application', ApplicationSchema));
 
 export type { AutoRejectResult, KnockoutInput, ApplicationStage };
