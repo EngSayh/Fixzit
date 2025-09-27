@@ -14,6 +14,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
   const { t, isRTL } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +54,28 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
       if (event.key === 'Escape') {
         setOpen(false);
         queueMicrotask(() => buttonRef.current?.focus());
+        return;
+      }
+      if (filtered.length === 0) return;
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setActiveIndex(prev => (prev + 1) % filtered.length);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setActiveIndex(prev => (prev - 1 + filtered.length) % filtered.length);
+        return;
+      }
+      if (event.key === 'Enter') {
+        const target = filtered[activeIndex];
+        if (target) {
+          setCurrency(target.code);
+          setOpen(false);
+          setQuery('');
+          queueMicrotask(() => buttonRef.current?.focus());
+        }
+        return;
       }
     };
 
@@ -66,6 +89,13 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);
+
+  // Initialize the active option when opening or when the filter changes
+  useEffect(() => {
+    if (!open) return;
+    const idx = filtered.findIndex(o => o.code === current.code);
+    setActiveIndex(idx >= 0 ? idx : 0);
+  }, [open, filtered, current.code]);
 
   const buttonPadding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
   const dropdownWidth = variant === 'compact' ? 'w-56' : 'w-64';
@@ -117,6 +147,8 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
               ref={inputRef}
               role="searchbox"
               aria-describedby={hintId}
+              aria-controls={listboxId}
+              aria-activedescendant={open && filtered[activeIndex] ? `${listboxId}-option-${filtered[activeIndex].code}` : undefined}
               className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30`}
               placeholder={t('i18n.filterCurrencies', 'Type to filter currencies')}
               aria-label={t('i18n.filterCurrencies', 'Type to filter currencies')}
@@ -126,13 +158,14 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
             </p>
           </div>
           <ul className="max-h-64 overflow-auto" role="listbox" id={listboxId}>
-            {filtered.map(option => (
+            {filtered.map((option, idx) => (
               <li key={option.code}>
                 <button
                   type="button"
+                  id={`${listboxId}-option-${option.code}`}
                   className={`flex w-full items-center gap-3 rounded-md px-2 py-2 hover:bg-gray-100 ${
                     option.code === current.code ? 'bg-[#0061A8]/10 text-[#0061A8]' : ''
-                  } ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                  } ${idx === activeIndex ? 'ring-1 ring-[#0061A8]/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                   onClick={() => handleSelect(option)}
                   role="option"
                   aria-selected={option.code === current.code}
