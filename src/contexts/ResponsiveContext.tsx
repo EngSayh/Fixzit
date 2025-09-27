@@ -1,7 +1,8 @@
-'use client&apos;;
+'use client';
 
-import React, { createContext, useContext, ReactNode } from &apos;react&apos;;
-import { useScreenSize, ScreenInfo, getResponsiveClasses } from &apos;@/src/hooks/useScreenSize&apos;;
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/src/hooks/useScreenSize';
+import { useTranslation } from '@/src/contexts/TranslationContext';
 
 interface ResponsiveContextType {
   screenInfo: ScreenInfo;
@@ -37,13 +38,13 @@ export function ResponsiveProvider({ children }: { children: ReactNode }) {
 export function useResponsiveContext() {
   const context = useContext(ResponsiveContext);
   if (context === undefined) {
-    throw new Error(&apos;useResponsiveContext must be used within a ResponsiveProvider&apos;);
+    throw new Error('useResponsiveContext must be used within a ResponsiveProvider');
   }
   return context;
 }
 
 // Convenience hook that combines both screen size and responsive context
-export function useResponsive() {
+export function useResponsiveLayout() {
   const context = useContext(ResponsiveContext);
 
   if (!context) {
@@ -52,7 +53,7 @@ export function useResponsive() {
       screenInfo: {
         width: 1024,
         height: 768,
-        size: &apos;desktop&apos; as const,
+        size: 'desktop' as const,
         isMobile: false,
         isTablet: false,
         isDesktop: true,
@@ -67,14 +68,14 @@ export function useResponsive() {
       isReady: true,
       isRTL: false,
       responsiveClasses: {
-        container: &apos;max-w-6xl mx-auto px-8&apos;,
-        grid: &apos;grid-cols-1 md:grid-cols-2 lg:grid-cols-3&apos;,
-        text: &apos;text-base&apos;,
-        spacing: 'space-y-6&apos;,
+        container: 'max-w-6xl mx-auto px-8',
+        grid: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+        text: 'text-base',
+        spacing: 'space-y-6',
         sidebarVisible: true,
-        mobileOptimizations: &apos;',
-        tabletOptimizations: &apos;',
-        desktopOptimizations: &apos;hover:shadow-lg&apos;
+        mobileOptimizations: '',
+        tabletOptimizations: '',
+        desktopOptimizations: 'hover:shadow-lg'
       },
       updateScreenInfo: () => {}
     };
@@ -83,8 +84,7 @@ export function useResponsive() {
   // Try to get isRTL from TranslationContext
   let isRTL = context.isRTL;
   try {
-    // Import useTranslation at module level to avoid SSR issues
-    const { useTranslation } = require(&apos;@/src/contexts/TranslationContext&apos;);
+    // Use proper ESM import instead of require() to avoid webpack_require.n errors
     const translationContext = useTranslation();
     isRTL = translationContext.isRTL;
   } catch {
@@ -97,3 +97,6 @@ export function useResponsive() {
     isRTL
   };
 }
+
+// Backward compatibility alias
+export const useResponsive = useResponsiveLayout;

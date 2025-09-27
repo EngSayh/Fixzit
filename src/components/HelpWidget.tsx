@@ -1,24 +1,35 @@
-'use client&apos;;
+'use client';
 
-import { useState } from &apos;react&apos;;
-import { HelpCircle, MessageSquare, BookOpen, X, ChevronUp, ChevronDown } from &apos;lucide-react&apos;;
+import { useEffect, useState } from 'react';
+import { HelpCircle, MessageSquare, BookOpen, X, ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function HelpWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        setIsOpen(true);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const helpOptions = [
     {
       icon: <BookOpen className="w-5 h-5" />,
-      title: &apos;Help Center&apos;,
-      description: &apos;Browse tutorials and guides&apos;,
-      action: () => window.open(&apos;/help&apos;, &apos;_blank&apos;)
+      title: 'Help Center',
+      description: 'Browse tutorials and guides',
+      action: () => { window.open('/help', '_blank', 'noopener,noreferrer'); }
     },
     {
       icon: <MessageSquare className="w-5 h-5" />,
-      title: &apos;AI Assistant&apos;,
-      description: &apos;Ask questions and get help&apos;,
-      action: () => window.open(&apos;/help/ai-chat&apos;, &apos;_blank&apos;)
+      title: 'AI Assistant',
+      description: 'Ask questions and get help',
+      action: () => { window.open('/help/ai-chat', '_blank', 'noopener,noreferrer'); }
     }
   ];
 
@@ -79,7 +90,7 @@ export default function HelpWidget() {
           {/* Quick Actions */}
           <div className="pt-2 border-t border-gray-200 mt-4">
             <button
-              onClick={() => window.open(&apos;/help/support-ticket&apos;, &apos;_blank&apos;)}
+              onClick={() => { window.open('/help/support-ticket', '_blank', 'noopener,noreferrer'); }}
               className="w-full text-center py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
               Create Support Ticket
