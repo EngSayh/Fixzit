@@ -46,7 +46,7 @@ function shouldUseMarketplaceMockModel() {
   if (hasInjectedMock) {
     const injectedMock = globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__;
     // Tests can assign "false" explicitly to fall back to the real database without
-    // deleting the sentinel. Treat any truthy value as "use the mock".
+    // deleting the sentinel. Treat any truthy value as "use the mock", and any falsy value (including false) as "do not use the mock".
     return Boolean(injectedMock);
   }
 
