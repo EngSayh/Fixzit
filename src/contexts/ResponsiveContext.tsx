@@ -43,7 +43,7 @@ export function useResponsiveContext() {
 }
 
 // Convenience hook that combines both screen size and responsive context
-export function useResponsive() {
+export function useResponsiveLayout() {
   const context = useContext(ResponsiveContext);
 
   if (!context) {
@@ -97,3 +97,6 @@ export function useResponsive() {
     isRTL
   };
 }
+
+// Backward compatibility alias
+export const useResponsive = useResponsiveLayout;

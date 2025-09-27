@@ -1,7 +1,7 @@
 import { getDatabase } from '@/lib/mongodb';
 import type { 
   Tenant, User, Property, WorkOrder, Category, Vendor, 
-  Product, Cart, Order, Invoice, RFQ, Review 
+  Product, Cart, Order, Invoice, RFQ, Review, NotificationDoc 
 } from '@/lib/models';
 
 // Collection names
@@ -18,6 +18,7 @@ export const COLLECTIONS = {
   INVOICES: 'invoices',
   RFQS: 'rfqs',
   REVIEWS: 'reviews',
+  NOTIFICATIONS: 'notifications',
   AUDIT_LOGS: 'auditLogs'
 } as const;
 
@@ -37,7 +38,8 @@ export async function getCollections() {
     orders: db.collection<Order>(COLLECTIONS.ORDERS),
     invoices: db.collection<Invoice>(COLLECTIONS.INVOICES),
     rfqs: db.collection<RFQ>(COLLECTIONS.RFQS),
-    reviews: db.collection<Review>(COLLECTIONS.REVIEWS)
+    reviews: db.collection<Review>(COLLECTIONS.REVIEWS),
+    notifications: db.collection<NotificationDoc>(COLLECTIONS.NOTIFICATIONS)
   };
 }
 
