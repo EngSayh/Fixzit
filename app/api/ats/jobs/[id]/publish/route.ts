@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await db();
+    await db;
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;

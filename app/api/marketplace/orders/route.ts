@@ -13,6 +13,7 @@ const QuerySchema = z.object({
   status: z.string().optional()
 });
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
