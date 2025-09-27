@@ -117,7 +117,8 @@ export function AutoFixAgent() {
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       try {
         const res = await originalFetchRef.current(input, init);
-        if (!res.ok) {
+        // Only intercept if agent is active
+        if (active && !res.ok) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
           const url = typeof input === 'string' ? input : (input as any).url;
           bufferNetwork(url, res.status);
@@ -125,15 +126,18 @@ export function AutoFixAgent() {
         }
         return res;
       } catch (err:any) {
-        setErrors(s => ({ ...s, network: s.network + 1 }));
-        const url = typeof input === 'string' ? input : (input as any).url;
-        bufferNetwork(url, -1);
-        haltAndHeal('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
+        // Only intercept if agent is active
+        if (active) {
+          setErrors(s => ({ ...s, network: s.network + 1 }));
+          const url = typeof input === 'string' ? input : (input as any).url;
+          bufferNetwork(url, -1);
+          haltAndHeal('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
+        }
         throw err;
       }
     };
     return () => { if (originalFetchRef.current) window.fetch = originalFetchRef.current; };
-  }, []);
+  }, [active]); // Add active dependency
 
   // ---- HALT–FIX–VERIFY ----
   const haltAndHeal = async (type: QaEvent['type'], msg: string) => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
-import { Application } from '@/src/server/models/Application';
+import { ApplicationModel as Application } from '@/src/server/models/Application';
 import { getUserFromToken } from '@/src/lib/auth';
 
 export async function GET(

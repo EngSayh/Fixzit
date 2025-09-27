@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollections } from '@/lib/db/collections';
+import { getCollections, safeInsertOne } from '@/lib/db/collections';
 import { z } from 'zod';
+import { 
+  extractTenantId, 
+  extractLanguage 
+} from '@/lib/marketplace/serverFetch';
+import {
+  extractCorrelationId,
+  logWithCorrelation
+} from '@/lib/marketplace/correlation';
+import { 
+  createSecureResponse, 
+  securityMiddleware 
+} from '@/lib/marketplace/security';
+import { getMarketplaceErrorMessage } from '@/lib/i18n';
+import { addTimestamps } from '@/lib/utils/timestamp';
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -12,7 +26,21 @@ const QuerySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  // Handle CORS preflight
+  const securityCheck = securityMiddleware()(req);
+  if (securityCheck) return securityCheck;
+
+  const correlationId = extractCorrelationId(req);
+  const tenantId = extractTenantId(req);
+  const language = extractLanguage(req);
+
   try {
+    logWithCorrelation('marketplace-products', 'Fetching products', {
+      tenantId,
+      language,
+      url: req.url
+    }, correlationId);
+
     const { searchParams } = new URL(req.url);
     const query = QuerySchema.parse(Object.fromEntries(searchParams));
     
@@ -52,8 +80,10 @@ export async function GET(req: NextRequest) {
     const total = await products.countDocuments(filter);
     
     // Enrich with vendor data
-    const vendorIds = [...new Set(productsList.map(p => p.vendorId))];
-    const vendorsList = await vendors.find({ _id: { $in: vendorIds } }).toArray();
+    const vendorIds = [...new Set(productsList.map(p => p.vendorId).filter(Boolean))];
+    const vendorsList = vendorIds.length > 0 
+      ? await vendors.find({ _id: { $in: vendorIds } }).toArray()
+      : [];
     const vendorMap = new Map(vendorsList.map(v => [v._id, v]));
     
     const enrichedProducts = productsList.map(product => ({
@@ -61,7 +91,13 @@ export async function GET(req: NextRequest) {
       vendor: vendorMap.get(product.vendorId)
     }));
     
-    return NextResponse.json({
+    logWithCorrelation('marketplace-products', 'Products fetched successfully', {
+      count: enrichedProducts.length,
+      total,
+      page: query.page
+    }, correlationId);
+
+    return createSecureResponse({
       ok: true,
       data: {
         products: enrichedProducts,
@@ -71,19 +107,33 @@ export async function GET(req: NextRequest) {
           total,
           pages: Math.ceil(total / query.limit)
         }
-      }
+      },
+      correlationId
     });
+    
   } catch (error) {
+    logWithCorrelation('marketplace-products', 'Products fetch failed', {
+      error: error instanceof Error ? error.message : String(error)
+    }, correlationId);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid query parameters', details: error.issues },
+      const message = getMarketplaceErrorMessage('validation', language, 'Invalid query parameters');
+      return createSecureResponse(
+        { 
+          error: message,
+          details: error.issues,
+          correlationId
+        },
         { status: 400 }
       );
     }
     
-    console.error('Products fetch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
+    const message = getMarketplaceErrorMessage('server', language, 'Internal server error');
+    return createSecureResponse(
+      { 
+        error: message,
+        correlationId
+      },
       { status: 500 }
     );
   }
@@ -103,11 +153,24 @@ const CreateProductSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const correlationId = extractCorrelationId(req);
+  const tenantId = extractTenantId(req);
+  const language = extractLanguage(req);
+
   try {
+    logWithCorrelation('marketplace-products', 'Creating product', {
+      tenantId,
+      language
+    }, correlationId);
+
     // Check auth
     const token = req.cookies.get('fixzit_auth')?.value;
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const message = getMarketplaceErrorMessage('unauthorized', language, 'Unauthorized');
+      return createSecureResponse(
+        { error: message, correlationId },
+        { status: 401 }
+      );
     }
     
     const body = await req.json();
@@ -118,39 +181,58 @@ export async function POST(req: NextRequest) {
     // Check if SKU exists
     const existing = await products.findOne({ sku: data.sku });
     if (existing) {
-      return NextResponse.json(
-        { error: 'SKU already exists' },
+      const message = getMarketplaceErrorMessage('validation', language, 'SKU already exists');
+      return createSecureResponse(
+        { error: message, correlationId },
         { status: 409 }
       );
     }
     
-    const product = {
+    const productData = {
       ...data,
-      tenantId: 'default', // TODO: Get from auth context
+      tenantId: tenantId || 'default',
       rating: 0,
       reviewCount: 0,
-      active: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      active: true
     };
     
-    const result = await products.insertOne(product);
+    const product = addTimestamps(productData);
+    const result = await safeInsertOne('products', product);
     
-    return NextResponse.json({
+    logWithCorrelation('marketplace-products', 'Product created successfully', {
+      productId: result.insertedId,
+      sku: data.sku
+    }, correlationId);
+    
+    return createSecureResponse({
       ok: true,
-      data: { ...product, _id: result.insertedId }
+      data: { ...product, _id: result.insertedId },
+      correlationId
     }, { status: 201 });
+    
   } catch (error) {
+    logWithCorrelation('marketplace-products', 'Product creation failed', {
+      error: error instanceof Error ? error.message : String(error)
+    }, correlationId);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.issues },
+      const message = getMarketplaceErrorMessage('validation', language, 'Invalid input');
+      return createSecureResponse(
+        { 
+          error: message,
+          details: error.issues,
+          correlationId
+        },
         { status: 400 }
       );
     }
     
-    console.error('Product creation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
+    const message = getMarketplaceErrorMessage('server', language, 'Internal server error');
+    return createSecureResponse(
+      { 
+        error: message,
+        correlationId
+      },
       { status: 500 }
     );
   }

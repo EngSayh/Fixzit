@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
-import { Job } from '@/src/server/models/Job';
-import { generateSlug } from '@/src/lib/utils';
+import { JobModel as Job } from '@/server/models/Job';
+import { generateSlug } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
