@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const asset = await Asset.create({
       tenantId: user.tenantId,
-      code: `AST-${Date.now()}`,
+      code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
