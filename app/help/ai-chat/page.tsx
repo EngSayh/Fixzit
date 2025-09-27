@@ -19,7 +19,7 @@ export default function AIChatPage() {
     if (!input.trim() || isLoading) return;
 
     const userMessage = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       type: 'user' as const,
       content: input.trim(),
       timestamp: new Date()
@@ -32,9 +32,9 @@ export default function AIChatPage() {
     // Simulate AI response
     setTimeout(() => {
       const botMessage = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         type: 'bot' as const,
-        content: `I understand you're asking about "${input.trim()}". This is a simulated response from the AI assistant. In a real implementation, this would connect to an AI service to provide intelligent answers about Fixzit features, help articles, and support guidance.`,
+        content: "I'm here to help! However, please note that this is a demo response. In a real implementation, this would connect to an AI service to provide actual assistance with your Fixzit questions.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
