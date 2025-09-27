@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 interface AutoRejectOptions {
   experience?: number;
@@ -37,7 +38,7 @@ export interface AtsSettingsModel extends Model<AtsSettingsDoc> {
 }
 
 AtsSettingsSchema.methods.shouldAutoReject = function(this: AtsSettingsDoc, input: AutoRejectOptions): AutoRejectDecision {
-  const rules = (this.knockoutRules ?? {}) as {
+  const rules = (this.knockoutRules || {}) as {
     minYears?: number;
     requiredSkills?: string[];
     autoRejectMissingExperience?: boolean;
@@ -74,8 +75,6 @@ AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
   return doc;
 };
 
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
 class AtsSettingsMockModel extends MockModel {
   constructor() {
     super('atssettings');
@@ -84,7 +83,7 @@ class AtsSettingsMockModel extends MockModel {
   private attach(doc: any) {
     if (!doc) return doc;
     doc.shouldAutoReject = (input: AutoRejectOptions): AutoRejectDecision => {
-      const rules = (doc.knockoutRules ?? {}) as {
+      const rules = (doc.knockoutRules || {}) as {
         minYears?: number;
         requiredSkills?: string[];
         autoRejectMissingExperience?: boolean;
@@ -133,8 +132,9 @@ class AtsSettingsMockModel extends MockModel {
   }
 }
 
+const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
 export const AtsSettings: AtsSettingsModel = isMockDB
-  ? new AtsSettingsMockModel() as unknown as AtsSettingsModel
-  : ((models.AtsSettings as AtsSettingsModel) || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
+  ? (new AtsSettingsMockModel() as unknown as AtsSettingsModel)
+  : (existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
 
 export type { AutoRejectOptions, AutoRejectDecision };
