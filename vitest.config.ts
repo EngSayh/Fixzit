@@ -4,11 +4,12 @@ import path from "path";
 export default defineConfig({
   test: {
     globals: true,
-    include: ["tests/**/*.{test,spec}.ts", "tests/**/*.{test,spec}.tsx"],
-    environment: "jsdom",
-    environmentMatchGlobs: [
-      ["tests/server/**", "node"],
+    include: [
+      "tests/**/*.{test,spec}.ts",
+      "tests/**/*.{test,spec}.tsx",
     ],
+    exclude: ["tests/server/**"],
+    environment: "jsdom",
     setupFiles: ["./tests/vitest.setup.ts"],
     typecheck: {
       tsconfig: "tsconfig.vitest.json",
@@ -34,6 +35,15 @@ export default defineConfig({
       },
     },
   },
+  projects: [
+    {
+      test: {
+        name: "server",
+        include: ["tests/server/**/*.{test,spec}.ts"],
+        environment: "node",
+      },
+    },
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
