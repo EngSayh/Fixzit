@@ -68,13 +68,19 @@ interface MockDbModuleLike {
   };
 }
 
+type GlobalWithMarketplaceMock = typeof globalThis & {
+  __FIXZIT_MARKETPLACE_DB_MOCK__?: MockDbModuleLike['MockDatabase'];
+};
+
+const globalMarketplaceEnv = globalThis as GlobalWithMarketplaceMock;
+
 const cacheMockDatabase = (moduleId: string, result: unknown) => {
   if (!MOCK_DB_MODULE_IDS.has(moduleId)) {
     return;
   }
   const maybeDb = (result as MockDbModuleLike | undefined)?.MockDatabase;
   if (maybeDb) {
-    (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ = maybeDb;
+    globalMarketplaceEnv.__FIXZIT_MARKETPLACE_DB_MOCK__ = maybeDb;
   }
 };
 
@@ -122,7 +128,7 @@ const jestCompat: JestLike = Object.assign(vi, {
   restoreAllMocks: viRestoreAllMocks,
   resetModules: ((...args: Parameters<typeof vi.resetModules>) => {
     moduleFactories.clear();
-    delete (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__;
+    delete globalMarketplaceEnv.__FIXZIT_MARKETPLACE_DB_MOCK__;
     return viResetModules(...args);
   }) as JestLike["resetModules"],
   useFakeTimers: ((...args: Parameters<typeof vi.useFakeTimers>) => fakeTimersWrapper(...args)) as JestLike["useFakeTimers"],

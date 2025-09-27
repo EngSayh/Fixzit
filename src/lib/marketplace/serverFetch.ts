@@ -46,25 +46,30 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   const baseUrl = getMarketplaceBaseUrl();
   const url = new URL(path, baseUrl).toString();
   let authCookieValue: string | undefined;
-  let cookieCorrelationId: string | undefined;
+  let errorCorrelationId: string | undefined;
   try {
     const cookieStore = cookies();
     authCookieValue = cookieStore.get('fixzit_auth')?.value;
   } catch (error) {
-    cookieCorrelationId = randomUUID();
+    errorCorrelationId = randomUUID();
     const message = error instanceof Error ? error.message : String(error);
     // eslint-disable-next-line no-console
-    console.debug('[MarketplaceFetch] cookies() unavailable', { correlationId: cookieCorrelationId, message });
+    console.debug('[MarketplaceFetch] cookies() unavailable', { correlationId: errorCorrelationId, message });
     authCookieValue = undefined;
   }
   const headersInit = new Headers(init?.headers ?? {});
 
   if (authCookieValue) {
     const existing = headersInit.get('Cookie');
-    const nextCookieValue = existing
-      ? `${existing}; fixzit_auth=${authCookieValue}`
-      : `fixzit_auth=${authCookieValue}`;
-    headersInit.set('Cookie', nextCookieValue);
+    const parsedCookies = existing
+      ? existing
+          .split(';')
+          .map((cookie) => cookie.trim())
+          .filter(Boolean)
+          .filter((cookie) => !cookie.toLowerCase().startsWith('fixzit_auth='))
+      : [];
+    parsedCookies.push(`fixzit_auth=${authCookieValue}`);
+    headersInit.set('Cookie', parsedCookies.join('; '));
   }
 
   const response = await fetch(url, {
@@ -74,7 +79,7 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   });
 
   if (!response.ok) {
-    const correlationId = cookieCorrelationId ?? randomUUID();
+    const correlationId = errorCorrelationId ?? randomUUID();
     const errorPayload = {
       name: 'MarketplaceFetchError',
       code: 'HTTP_ERROR',
