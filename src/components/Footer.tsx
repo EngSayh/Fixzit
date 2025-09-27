@@ -37,11 +37,6 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <LanguageSelector variant="compact" />
             <CurrencySelector variant="compact" />
-            <span className="flex items-center gap-1 text-xs text-gray-600" aria-hidden>
-              <span aria-hidden>{currentCurrency.flag}</span>
-              <span>{currentCurrency.code}</span>
-              <span className="text-gray-400">({currentCurrency.symbol})</span>
-            </span>
           </div>
         </div>
 
