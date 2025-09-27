@@ -1,14 +1,13 @@
-import { MockDatabase } from '../src/lib/mockDb.js';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import url from 'node:url';
 
 const require = createRequire(import.meta.url);
 
-const { DEFAULT_TENANT_ID, COLLECTIONS, createUpsert, getSeedData } = require('./seed-marketplace-shared.js');
+const { DEFAULT_TENANT_ID, COLLECTIONS, createUpsert, getSeedData, resolveMockDatabase } = require('./seed-marketplace-shared.js');
 
 // Idempotent seed for demo-tenant marketplace data when using MockDB
-const db = MockDatabase.getInstance();
+const db = resolveMockDatabase().getInstance();
 
 export const upsert = createUpsert(db);
 

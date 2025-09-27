@@ -1,6 +1,9 @@
 const { randomUUID } = require('node:crypto');
+const { createRequire } = require('node:module');
 
 const { MARKETPLACE_COLLECTIONS } = require('../src/models/utils/collectionNames.js');
+
+const localRequire = createRequire(__filename);
 
 const DEFAULT_TENANT_FALLBACK = 'demo-tenant';
 
@@ -66,6 +69,35 @@ function createUpsert(db) {
   };
 }
 
+function resolveMockDatabase() {
+  const candidates = [
+    '../src/lib/mockDb.js',
+    '../src/lib/mockDb.ts',
+    '../src/lib/mockDb',
+  ];
+
+  const errors = [];
+
+  for (const candidate of candidates) {
+    try {
+      const moduleExport = localRequire(candidate);
+      if (moduleExport && moduleExport.MockDatabase) {
+        return moduleExport.MockDatabase;
+      }
+      if (moduleExport && typeof moduleExport.getInstance === 'function') {
+        return moduleExport;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      errors.push(`${candidate}: ${message}`);
+    }
+  }
+
+  throw new Error(
+    `MockDatabase implementation not found. Tried -> ${errors.join('; ')}`
+  );
+}
+
 function getSeedData(tenantId = DEFAULT_TENANT_ID) {
   return {
     synonyms: [
@@ -113,4 +145,5 @@ module.exports = {
   COLLECTIONS,
   createUpsert,
   getSeedData,
+  resolveMockDatabase,
 };

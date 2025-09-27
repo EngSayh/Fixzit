@@ -19,19 +19,12 @@ type UpsertFn = (
   doc: MockDocument
 ) => MockDocument;
 
-function resolveMockDatabase(): MockDbModule["MockDatabase"] {
-  const mod = require('../src/lib/mockDb.js') as MockDbModule;
-  if (mod && mod.MockDatabase) {
-    return mod.MockDatabase;
-  }
-  throw new Error('MockDatabase implementation not found');
-}
-
 const {
   DEFAULT_TENANT_ID,
   COLLECTIONS,
   createUpsert,
   getSeedData,
+  resolveMockDatabase,
 } = require('./seed-marketplace-shared.js') as {
   DEFAULT_TENANT_ID: string;
   COLLECTIONS: { SYNONYMS: string; PRODUCTS: string };
@@ -40,6 +33,7 @@ const {
     synonyms: Array<Record<string, unknown>>;
     products: Array<Record<string, unknown>>;
   };
+  resolveMockDatabase: () => MockDbModule["MockDatabase"];
 };
 
 const MockDatabase = (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__
