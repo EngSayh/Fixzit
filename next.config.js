@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 const nextConfig = {
   // App Router is enabled by default in Next.js 14
   // No need for experimental.appDir anymore
@@ -93,6 +95,12 @@ const nextConfig = {
 
   // API Rewrites to backend server
   async rewrites() {
+    if (!isDevelopment) {
+      // Avoid rewriting API requests to localhost when running in production
+      // (e.g. on Vercel) where the backend is not available.
+      return [];
+    }
+
     return [
       // Ensure auth API routes are handled first
       {
