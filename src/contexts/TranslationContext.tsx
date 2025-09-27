@@ -243,6 +243,9 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'No new notifications',
     'common.allCaughtUp': "You're all caught up!",
     'common.viewAll': 'View all notifications',
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Search catalog, vendors, RFQs, orders…',
+    'aqar.search.placeholder': 'Search listings, projects, agents…',
     'common.cancel': 'Cancel',
     'common.edit': 'Edit',
     'common.delete': 'Delete',
@@ -423,6 +426,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Closed',
   },
   fr: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Rechercher catalogue, fournisseurs, DP, commandes…',
+    'aqar.search.placeholder': 'Rechercher annonces, projets, agents…',
     // Navigation
     'nav.dashboard': 'Tableau de bord',
     'nav.work-orders': 'Ordres de travail',
@@ -575,6 +581,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Fermé',
   }, // French
   pt: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Pesquisar catálogo, fornecedores, RFQs, pedidos…',
+    'aqar.search.placeholder': 'Pesquisar anúncios, projetos, agentes…',
     // Navigation
     'nav.dashboard': 'Painel',
     'nav.work-orders': 'Ordens de Trabalho',
@@ -727,6 +736,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Fechado',
   }, // Portuguese
   ru: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Поиск: каталог, поставщики, RFQ, заказы…',
+    'aqar.search.placeholder': 'Поиск объявлений, проектов, агентов…',
     // Navigation
     'nav.dashboard': 'Панель управления',
     'nav.work-orders': 'Рабочие заказы',
@@ -879,6 +891,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Закрыто',
   }, // Russian
   es: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Buscar catálogo, proveedores, RFQs, pedidos…',
+    'aqar.search.placeholder': 'Buscar anuncios, proyectos, agentes…',
     // Navigation
     'nav.dashboard': 'Panel de control',
     'nav.work-orders': 'Órdenes de trabajo',
@@ -1031,6 +1046,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Cerrado',
   }, // Spanish
   ur: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'کیٹلاگ، سپلائرز، RFQs، آرڈرز میں تلاش کریں…',
+    'aqar.search.placeholder': 'لسٹنگز، پروجیکٹس، ایجنٹس میں تلاش کریں…',
     // Navigation
     'nav.dashboard': 'ڈیش بورڈ',
     'nav.work-orders': 'کام کے آرڈرز',
@@ -1183,6 +1201,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'بند',
   }, // Urdu
   hi: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'कैटलॉग, विक्रेता, RFQ, ऑर्डर खोजें…',
+    'aqar.search.placeholder': 'लिस्टिंग, प्रोजेक्ट, एजेंट खोजें…',
     // Navigation
     'nav.dashboard': 'डैशबोर्ड',
     'nav.work-orders': 'कार्य आदेश',
@@ -1335,6 +1356,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'बंद',
   }, // Hindi
   zh: {
+    // TopBar search placeholders
+    'souq.search.placeholder': '搜索目录、供应商、RFQ、订单…',
+    'aqar.search.placeholder': '搜索房源、项目、经纪人…',
     // Navigation
     'nav.dashboard': '仪表板',
     'nav.work-orders': '工作订单',

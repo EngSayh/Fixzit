@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { db, isMockDB } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
-  await db();
+  if (!isMockDB && !process.env.MONGODB_URI) {
+    return new NextResponse('Service unavailable', { status: 503 });
+  }
+  await db;
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })
     .lean();
