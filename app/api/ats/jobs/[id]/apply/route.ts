@@ -104,8 +104,8 @@ export async function POST(
           return NextResponse.json({ success: false, error: 'Invalid PDF file' }, { status: 400 });
         }
         
-        // Use PRIVATE storage directory with tenant isolation
-        const uploadDir = path.join(process.cwd(), 'private', 'uploads', 'resumes', user.tenantId);
+        // Use PRIVATE storage directory with tenant isolation using job's orgId
+        const uploadDir = path.join(process.cwd(), 'private', 'uploads', 'resumes', job.orgId || 'default');
         await fs.mkdir(uploadDir, { recursive: true });
         
         // Use cryptographically secure filename
@@ -117,7 +117,7 @@ export async function POST(
         await fs.writeFile(filePath, buffer);
         
         // Generate signed URL for private file access
-        resumeUrl = `/api/files/resumes/${fileName}?tenant=${user.tenantId}`;
+        resumeUrl = `/api/files/resumes/${fileName}?tenant=${job.orgId || 'default'}`;
       } catch (err) {
         console.error('Resume save failed:', err);
         return NextResponse.json({ 
