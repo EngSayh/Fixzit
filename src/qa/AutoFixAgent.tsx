@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { nanoid } from 'nanoid';
 import { getDomPath } from './domPath';
@@ -31,36 +31,23 @@ export function AutoFixAgent() {
   });
 
   // Get from context or localStorage
-  const role = typeof window !== 'undefined'
+  const role = typeof window !== 'undefined' 
     ? (localStorage.getItem('fixzit-role') || 'Guest')
     : 'Guest';
   const orgId = typeof window !== 'undefined'
     ? (localStorage.getItem('fixzit-org') || 'unknown')
     : 'unknown';
-  const roleRef = useRef(role);
-  const orgIdRef = useRef(orgId);
   const hudRef = useRef<HTMLDivElement>(null);
   const eventBuffer = useRef<QaEvent[]>([]);
   const originalFetchRef = useRef<any>(null);
 
-  const errorsRef = useRef(errors);
-
-  useEffect(() => {
-    errorsRef.current = errors;
-  }, [errors]);
-
-  useEffect(() => {
-    roleRef.current = role;
-    orgIdRef.current = orgId;
-  }, [role, orgId]);
-
-  const sendBatch = useCallback(async () => {
+  const sendBatch = async () => {
     if (!eventBuffer.current.length) return;
     const payload = eventBuffer.current.splice(0, eventBuffer.current.length);
     try {
       await fetch('/api/qa/log', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ batch: payload }) });
     } catch { /* logging should never crash the app */ }
-  }, []);
+  };
 
   // ---- CLICK TRACER (capture phase) ----
   useEffect(() => {
@@ -75,8 +62,7 @@ export function AutoFixAgent() {
         id: nanoid(),
         type: 'click',
         route: window.location.pathname,
-        role: roleRef.current,
-        orgId: orgIdRef.current,
+        role, orgId,
         ts: Date.now(),
         meta: {
           tag,
@@ -89,67 +75,9 @@ export function AutoFixAgent() {
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
-  }, [halted, sendBatch]);
+  }, [halted, role, orgId]);
 
   // ---- CONSOLE & RUNTIME ----
-  const bufferConsole = useCallback((rec: ConsoleRecord) => {
-    eventBuffer.current.push({ id: nanoid(), type: 'console', route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: rec });
-  }, []);
-
-  const bufferRuntime = useCallback((type: QaEvent['type'], message: string, stack?: string) => {
-    eventBuffer.current.push({ id: nanoid(), type, route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: { message, stack } });
-  }, []);
-
-  const bufferNetwork = useCallback((url: string, status: number) => {
-    eventBuffer.current.push({ id: nanoid(), type: 'network-error', route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: { url, status } });
-  }, []);
-
-  const bufferGate = useCallback((clean: boolean) => {
-    eventBuffer.current.push({ id: nanoid(), type: 'gate', route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: { clean, errors: errorsRef.current } });
-  }, []);
-
-  const capture = useCallback(async (phase:'before'|'after') => {
-    try {
-      const canvas = await html2canvas(document.body, { backgroundColor: null, scale: 0.6 });
-      const data = canvas.toDataURL('image/jpeg', 0.6);
-      eventBuffer.current.push({
-        id: nanoid(),
-        type: 'gate',
-        route: window.location.pathname,
-        role: roleRef.current,
-        orgId: orgIdRef.current,
-        ts: Date.now(),
-        meta: { phase, errors: errorsRef.current },
-        screenshot: data
-      });
-    } catch {}
-  }, []);
-
-  const tryHeuristics = useCallback(async (message:string) => {
-    if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== '1') return { note: 'Auto-heal disabled' };
-    for (const h of heuristics) {
-      if (h.test({ message })) {
-        try { return await h.apply(); } catch { /* ignore */ }
-      }
-    }
-    return { note: 'No heuristic matched; logged for follow-up.' };
-  }, []);
-
-  const haltAndHeal = useCallback(async (type: QaEvent['type'], msg: string) => {
-    if (!active || halted) return;
-    setHalted(true);
-    await capture('before');
-    const { note } = await tryHeuristics(msg);
-    setLastNote(note);
-    await wait(10000);
-    await capture('after');
-    const currentErrors = errorsRef.current;
-    const clean = passesStrict({ consoleErrors: currentErrors.console, networkFailures: currentErrors.network, hydrationErrors: currentErrors.hydration });
-    bufferGate(clean);
-    await sendBatch();
-    setHalted(false);
-  }, [active, halted, capture, tryHeuristics, bufferGate, sendBatch]);
-
   useEffect(() => {
     const undo = hijackConsole((rec: ConsoleRecord) => {
       if (rec.level === 'error') {
@@ -180,15 +108,25 @@ export function AutoFixAgent() {
     });
 
     return () => { undo(); window.removeEventListener('error', onError); window.removeEventListener('unhandledrejection', onRejection); };
-  }, [bufferConsole, bufferRuntime, haltAndHeal]);
+  }, []);
 
-  // ---- NETWORK ----
+  // ---- NETWORK ---- (Fixed: Prevent fetch interceptor detaching)
   useEffect(() => {
-    if (originalFetchRef.current) return;
-    originalFetchRef.current = window.fetch.bind(window);
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    // Store original fetch only if not already stored
+    if (!originalFetchRef.current) {
+      originalFetchRef.current = window.fetch.bind(window);
+    }
+
+    // Set up interceptor with reliability checks
+    const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       try {
-        const res = await originalFetchRef.current(input, init);
+        // Use the stored original fetch to avoid recursion
+        const originalFetch = originalFetchRef.current;
+        if (!originalFetch) {
+          throw new Error('Original fetch reference lost');
+        }
+
+        const res = await originalFetch(input, init);
         if (!res.ok) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
           const url = typeof input === 'string' ? input : (input as any).url;
@@ -204,8 +142,69 @@ export function AutoFixAgent() {
         throw err;
       }
     };
-    return () => { if (originalFetchRef.current) window.fetch = originalFetchRef.current; };
-  }, [bufferNetwork, haltAndHeal]);
+
+    window.fetch = interceptedFetch;
+
+    return () => { 
+      // Only restore if we're the current interceptor
+      if (window.fetch === interceptedFetch && originalFetchRef.current) {
+        window.fetch = originalFetchRef.current;
+      }
+    };
+  }, [active]); // Depend on active state to ensure reliability
+
+  // ---- HALT–FIX–VERIFY ----
+  const haltAndHeal = async (type: QaEvent['type'], msg: string) => {
+    if (!active || halted) return;
+    setHalted(true);
+    await capture('before');
+    const { note } = await tryHeuristics(msg);
+    setLastNote(note);
+    // wait 10s (per STRICT) then capture again
+    await wait(10000);
+    await capture('after');
+    // Check gates and only then un-halt
+    const clean = passesStrict({ consoleErrors: errors.console, networkFailures: errors.network, hydrationErrors: errors.hydration });
+    bufferGate(clean);
+    await sendBatch();
+    setHalted(false);
+  };
+
+  const tryHeuristics = async (message:string) => {
+    if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== '1') return { note: 'Auto-heal disabled' };
+    for (const h of heuristics) {
+      if (h.test({ message })) {
+        try { return await h.apply(); } catch { /* ignore */ }
+      }
+    }
+    return { note: 'No heuristic matched; logged for follow-up.' };
+  };
+
+  const capture = async (phase:'before'|'after') => {
+    try {
+      const canvas = await html2canvas(document.body, { backgroundColor: null, scale: 0.6 });
+      const data = canvas.toDataURL('image/jpeg', 0.6);
+      eventBuffer.current.push({
+        id: nanoid(),
+        type: 'gate',
+        route: window.location.pathname, role, orgId, ts: Date.now(),
+        meta: { phase, errors }, screenshot: data
+      });
+    } catch {}
+  };
+
+  const bufferConsole = (rec: ConsoleRecord) => {
+    eventBuffer.current.push({ id: nanoid(), type: 'console', route: window.location.pathname, role, orgId, ts: Date.now(), meta: rec });
+  };
+  const bufferRuntime = (type: QaEvent['type'], message: string, stack?: string) => {
+    eventBuffer.current.push({ id: nanoid(), type, route: window.location.pathname, role, orgId, ts: Date.now(), meta: { message, stack } });
+  };
+  const bufferNetwork = (url: string, status: number) => {
+    eventBuffer.current.push({ id: nanoid(), type: 'network-error', route: window.location.pathname, role, orgId, ts: Date.now(), meta: { url, status } });
+  };
+  const bufferGate = (clean: boolean) => {
+    eventBuffer.current.push({ id: nanoid(), type: 'gate', route: window.location.pathname, role, orgId, ts: Date.now(), meta: { clean, errors } });
+  };
 
   // ---- HUD (draggable, non-invasive) ----
   useEffect(() => {
