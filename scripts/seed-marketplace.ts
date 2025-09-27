@@ -1,53 +1,91 @@
-import { MockDatabase } from '@/src/lib/mockDb';
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const require = createRequire(import.meta.url);
+
+type MockDbInstance = {
+  getCollection: (name: string) => any[];
+  setCollection: (name: string, data: any[]) => void;
+};
+
+type MockDbModule = { MockDatabase: { getInstance: () => MockDbInstance } };
+
+type UpsertFn = (collection: string, predicate: (x: any) => boolean, doc: any) => any;
+
+function resolveMockDatabase(): MockDbModule["MockDatabase"] {
+  const mod = require('../src/lib/mockDb.js') as MockDbModule;
+  if (mod && mod.MockDatabase) {
+    return mod.MockDatabase;
+  }
+  throw new Error('MockDatabase implementation not found');
+}
+
+const {
+  DEFAULT_TENANT_ID,
+  createUpsert,
+  getSeedData,
+} = require('./seed-marketplace-shared.js') as {
+  DEFAULT_TENANT_ID: string;
+  createUpsert: (db: MockDbInstance) => UpsertFn;
+  getSeedData: (tenantId?: string) => {
+    synonyms: Array<Record<string, unknown>>;
+    products: Array<Record<string, unknown>>;
+  };
+};
+
+const MockDatabase = (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__
+  ? ((globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ as { getInstance: () => MockDbInstance })
+  : resolveMockDatabase();
 
 // Idempotent seed for demo-tenant marketplace data when using MockDB
 const db = MockDatabase.getInstance();
 
-function upsert(collection: string, predicate: (x: any) => boolean, doc: any) {
-  const data = db.getCollection(collection);
-  const idx = data.findIndex(predicate);
-  if (idx >= 0) {
-    const updated = { ...data[idx], ...doc, updatedAt: new Date() };
-    data[idx] = updated;
-    db.setCollection(collection, data);
-    return updated;
-  } else {
-    const created = { ...doc, _id: Math.random().toString(36).slice(2), createdAt: new Date(), updatedAt: new Date() };
-    data.push(created);
-    db.setCollection(collection, data);
-    return created;
-  }
-}
+export const upsert = createUpsert(db);
 
-async function main(){
-  const tenantId = 'demo-tenant';
+export async function main() {
+  const tenantId = DEFAULT_TENANT_ID;
+  const { synonyms, products } = getSeedData(tenantId);
 
-  // Seed synonyms
-  upsert('searchsynonyms', x=>x.locale==='en' && x.term==='ac filter', {
-    locale:'en', term:'ac filter', synonyms:['hvac filter','air filter','فلتر مكيف']
-  });
-  upsert('searchsynonyms', x=>x.locale==='ar' && x.term==='دهان', {
-    locale:'ar', term:'دهان', synonyms:['طلاء','paint','painter']
+  synonyms.forEach((synonym) => {
+    upsert(
+      'searchsynonyms',
+      (entry: Record<string, unknown>) => entry.locale === synonym.locale && entry.term === synonym.term,
+      synonym,
+    );
   });
 
-  // Seed one demo product
-  upsert('marketplaceproducts', x=>x.tenantId===tenantId && x.slug==='portland-cement-type-1-2-50kg', {
-    tenantId,
-    sku:'CEM-001-50',
-    slug:'portland-cement-type-1-2-50kg',
-    title:'Portland Cement Type I/II — 50kg',
-    brand:'Fixzit Materials',
-    attributes:[{ key:'Standard', value:'ASTM C150' },{ key:'Type', value:'I/II' }],
-    images:[],
-    prices:[{ currency:'SAR', listPrice: 16.5 }],
-    inventories:[{ onHand: 200, leadDays: 2 }],
-    rating:{ avg:4.6, count:123 },
-    searchable:'Portland Cement ASTM C150 50kg Type I/II'
+  products.forEach((product) => {
+    upsert(
+      'marketplaceproducts',
+      (entry: Record<string, unknown>) => entry.tenantId === tenantId && entry.slug === product.slug,
+      product,
+    );
   });
 
   // eslint-disable-next-line no-console
   console.log('✔ Marketplace seed complete (MockDB)');
 }
 
-main();
+export default main;
 
+const isDirectExecution = (() => {
+  try {
+    const thisFile = fileURLToPath(import.meta.url);
+    const entryArg = process.argv[1];
+    if (!entryArg) {
+      return false;
+    }
+    const entryPath = fileURLToPath(pathToFileURL(entryArg));
+    return entryPath === thisFile;
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectExecution) {
+  main().catch(error => {
+    // eslint-disable-next-line no-console
+    console.error('Failed to seed marketplace (MockDB)', error);
+    process.exitCode = 1;
+  });
+}
