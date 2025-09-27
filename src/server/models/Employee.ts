@@ -1,29 +1,35 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
-import { isMockDB } from "@/src/lib/mongo";
-import { MockModel } from "@/src/lib/mockDb";
+import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
+import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const EmployeeSchema = new Schema({
-  orgId: { type: String, index: true, required: true },
+  orgId: { type: String, required: true, index: true },
   personal: {
-    firstName: String,
-    lastName: String,
-    email: { type: String, index: true },
-    phone: String
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String }
   },
   professional: {
-    role: String,
-    department: String,
-    title: String
+    role: { type: String, default: 'EMPLOYEE' },
+    department: { type: String },
+    title: { type: String },
+    startDate: { type: Date }
   },
-  status: { type: String, default: 'ACTIVE', index: true },
-  metadata: Schema.Types.Mixed
+  status: { type: String, enum: ['ACTIVE', 'INACTIVE', 'ONBOARDING'], default: 'ACTIVE' },
+  metadata: { type: Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
 EmployeeSchema.index({ orgId: 1, 'personal.email': 1 }, { unique: true });
 
-export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema>;
+export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
 
-export const Employee: any = isMockDB
-  ? new MockModel('employees')
-  : (models.Employee || model("Employee", EmployeeSchema));
+class EmployeeMockModel extends MockModel {
+  constructor() {
+    super('employees');
+  }
+}
 
+export const Employee = isMockDB
+  ? new EmployeeMockModel() as any
+  : (models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema));

@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     const tenant = await Tenant.create({
       tenantId: user.tenantId,
-      code: `TEN-${Date.now()}`,
+      code: `TEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
@@ -87,13 +87,10 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // For testing purposes, allow access without authentication
-    let user = null;
-    try {
-      user = await getSessionUser(req);
-    } catch {
-      // Use mock user for testing
-      user = { id: '1', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' };
+    // Require authentication - no bypass allowed
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
     await db;
 

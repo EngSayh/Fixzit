@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPayment, validateCallbackRaw } from '@/src/lib/paytabs';
+import { verifyPayment, validateCallback } from '@/src/lib/paytabs';
+import { parseCartAmount } from '@/src/lib/payments/parseCartAmount';
 import { Invoice } from '@/src/server/models/Invoice';
 import { db } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
-    const raw = await req.text();
-    const signature =
-      (req.headers.get('signature') ?? req.headers.get('Signature') ?? '').toLowerCase();
+    const body = await req.json();
+    const signature = req.headers.get('signature') || '';
 
     // Validate callback signature
-    const valid = await validateCallbackRaw(raw, signature);
-    if (!valid) {
+    if (!validateCallback(body, signature)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    const body = JSON.parse(raw);
     const { tran_ref, cart_id, payment_result } = body;
 
     // Verify payment with PayTabs
@@ -29,29 +27,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    // Idempotency: ignore duplicate callbacks for the same transaction
-    if (Array.isArray(invoice.payments) && invoice.payments.some((p: any) => p?.transactionId === tran_ref)) {
-      return NextResponse.json({ success: true, idempotent: true });
+    // Validate amount once
+    const amount = parseCartAmount(body.cart_amount, Number.NaN);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
     }
-
-    // Integrity: ensure the verification response matches the target invoice
-    if (verification?.cart_id && String(verification.cart_id) !== String(cart_id)) {
-      return NextResponse.json({ error: 'Mismatched cart_id' }, { status: 400 });
-    }
-
     // Update invoice based on payment result
     if (payment_result.response_status === 'A' && verification.payment_result.response_status === 'A') {
       // Payment successful
       invoice.status = 'PAID';
-      const amount =
-        Number(verification?.tran_total ?? verification?.cart_amount ?? body.cart_amount);
-      if (!Number.isFinite(amount) || amount <= 0) {
-        return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
-      }
       invoice.payments.push({
         date: new Date(),
         amount,
-        method: body.payment_info?.payment_method || 'UNKNOWN',
+  method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
         transactionId: tran_ref,
@@ -68,7 +56,7 @@ export async function POST(req: NextRequest) {
       // Payment failed
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
+        amount,
         method: body.payment_info?.payment_method || 'UNKNOWN',
         reference: tran_ref,
         status: 'FAILED',

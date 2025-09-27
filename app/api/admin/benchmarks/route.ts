@@ -1,59 +1,93 @@
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Benchmark from '@/src/models/Benchmark';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
+import { getUserFromToken } from '@/src/lib/auth';
+import { rateLimit } from '@/src/server/security/rateLimit';
+import { createSecureResponse } from '@/src/server/security/headers';
+import { createErrorResponse, zodValidationError } from '@/src/server/utils/errorResponses';
+import { z } from 'zod';
 
-/**
- * Retrieve all Benchmark documents, restricted to authorized admin users.
- *
- * Connects to the database, validates the session user from `req`, and returns
- * all Benchmark records when the user has one of the roles: `CORPORATE_ADMIN`,
- * `SUPER_ADMIN`, or `ADMIN`.
- *
- * @param req - Incoming NextRequest used to resolve the session user.
- * @returns A NextResponse with:
- *  - status 200 and a JSON array of Benchmark documents on success,
- *  - status 403 and `{ error: "Forbidden" }` if the user's role is not allowed,
- *  - status 401 and `{ error: "Unauthorized" }` when authentication fails.
- */
+const benchmarkSchema = z.object({
+  name: z.string().min(1),
+  category: z.string().min(1),
+  value: z.number(),
+  unit: z.string().optional(),
+  description: z.string().optional()
+});
+
+async function authenticateAdmin(req: NextRequest) {
+  const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
+  if (!token) {
+    throw new Error('Authentication required');
+  }
+
+  const user = await getUserFromToken(token);
+  if (!user) {
+    throw new Error('Invalid token');
+  }
+
+  if (!['SUPER_ADMIN'].includes(user.role)) {
+    throw new Error('Admin access required');
+  }
+
+  return user;
+}
+
 export async function GET(req: NextRequest) {
-  await dbConnect();
   try {
-    const user = await getSessionUser(req as any);
-    const allowed = ['CORPORATE_ADMIN', 'SUPER_ADMIN', 'ADMIN'];
-    if (!allowed.includes(user.role as any)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    return NextResponse.json(await Benchmark.find({}));
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    await authenticateAdmin(req);
+    await db;
+    const benchmarks = await Benchmark.find({});
+    return createSecureResponse(benchmarks, 200, req);
+  } catch (error: any) {
+    if (error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401, req);
+    }
+    if (error.message === 'Invalid token') {
+      return createErrorResponse('Invalid token', 401, req);
+    }
+    if (error.message === 'Admin access required') {
+      return createErrorResponse('Admin access required', 403, req);
+    }
+    console.error('Benchmark fetch failed:', error);
+    return createErrorResponse('Internal server error', 500, req);
   }
 }
-/**
- * Create a new Benchmark document.
- *
- * Accepts a JSON body describing the Benchmark and requires an authenticated user
- * with one of the roles: `CORPORATE_ADMIN`, `SUPER_ADMIN`, or `ADMIN`.
- * On success returns the created Benchmark as JSON.
- * Returns 403 if the user is not authorized, 401 for authentication-related failures
- * (e.g., unauthenticated or invalid/expired token), or 500 for other creation errors.
- *
- * @param req - NextRequest whose JSON body contains the Benchmark fields to create.
- * @returns A NextResponse with the created Benchmark document on success or an error object.
- */
+
 export async function POST(req: NextRequest) {
-  await dbConnect();
   try {
-    const user = await getSessionUser(req as any);
-    const allowed = ['CORPORATE_ADMIN', 'SUPER_ADMIN', 'ADMIN'];
-    if (!allowed.includes(user.role as any)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    const body = await req.json();
-    const doc = await Benchmark.create(body);
-    return NextResponse.json(doc);
-  } catch (e) {
-    const msg = (e as any)?.message || 'Unauthorized';
-    if (msg === 'Unauthenticated' || msg === 'Invalid or expired token') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const user = await authenticateAdmin(req);
+    
+    // Rate limiting for admin operations
+    const key = `admin:benchmarks:${user.id}`;
+    const rl = rateLimit(key, 10, 60_000); // 10 requests per minute
+    if (!rl.allowed) {
+      return createErrorResponse('Rate limit exceeded', 429, req);
     }
-    console.error('admin/benchmarks POST error:', e);
-    return NextResponse.json({ error: 'Failed to create benchmark' }, { status: 500 });
+    
+    await db;
+    const body = benchmarkSchema.parse(await req.json());
+    
+    const doc = await Benchmark.create({
+      ...body,
+      createdBy: user.id,
+      createdAt: new Date()
+    });
+    return createSecureResponse(doc, 201, req);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    if (error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401, req);
+    }
+    if (error.message === 'Invalid token') {
+      return createErrorResponse('Invalid token', 401, req);
+    }
+    if (error.message === 'Admin access required') {
+      return createErrorResponse('Admin access required', 403, req);
+    }
+    console.error('Benchmark creation failed:', error);
+    return createErrorResponse('Internal server error', 500, req);
   }
 }

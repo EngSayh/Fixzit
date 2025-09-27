@@ -2,6 +2,17 @@
 
 import { useState } from 'react';
 
+/**
+ * Renders a support ticket submission form and handles creating tickets via the app API.
+ *
+ * The component displays fields for subject, module, type, priority, description, and contact information.
+ * On submit it sends a POST to /api/support/tickets with a payload containing subject, module, type, priority,
+ * a hard-coded category/subCategory ("General"/"Other"), the description as `text`, and a `requester` object
+ * with name, email, and optional phone. While the request is in progress the submit button is disabled.
+ * On success the form is reset and a success alert is shown; on failure an error alert is shown.
+ *
+ * @returns The support ticket page as a React element.
+ */
 export default function SupportTicketPage() {
   const [formData, setFormData] = useState({
     subject: '',
@@ -15,14 +26,37 @@ export default function SupportTicketPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      alert('🎯 Support Ticket Created Successfully!\n\nYour ticket has been submitted and our support team will get back to you within 24 hours.');
-      setIsSubmitting(false);
+    try {
+      setToast(null);
+      const res = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: formData.subject,
+          module: formData.module,
+          type: formData.type,
+          priority: formData.priority,
+          category: 'General',
+          subCategory: 'Other',
+          text: formData.description,
+          requester: {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || undefined
+          }
+        })
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        const apiMsg = (payload && (payload.error || payload.message)) || `Request failed (${res.status})`;
+        throw new Error(apiMsg);
+      }
+      setToast({ type: 'success', message: 'Support Ticket Created Successfully! Our team will respond within 24 hours.' });
       setFormData({
         subject: '',
         module: 'FM',
@@ -33,7 +67,12 @@ export default function SupportTicketPage() {
         email: '',
         phone: ''
       });
-    }, 2000);
+    } catch (err: any) {
+      const msg = err?.message || 'There was an error submitting your ticket. Please try again.';
+      setToast({ type: 'error', message: msg });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -46,6 +85,11 @@ export default function SupportTicketPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto p-4">
+        {toast && (
+          <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {toast.message}
+          </div>
+        )}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Support Ticket</h1>

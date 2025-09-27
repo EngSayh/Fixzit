@@ -1,69 +1,59 @@
-// Conditional import to avoid Edge Runtime issues
-let mongoose: any;
-try {
-  mongoose = require("mongoose");
-} catch {
-  // Mongoose not available in Edge Runtime - will use mock
-  mongoose = null;
-}
+import mongoose from "mongoose";
 
-const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit";
+const uri = process.env.MONGODB_URI || "";
+const dbName = process.env.MONGODB_DB || "fixzit";
+const USE_MOCK_DB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
+export const isMockDB = USE_MOCK_DB || !uri;
 
-// Mock database for development when MongoDB is not available
 class MockDB {
-  private connected: boolean = false;
-
-  async connect() {
-    if (this.connected) return this;
-    console.log("🔄 Using mock database (MongoDB not available)");
-    this.connected = true;
-    return this;
-  }
-
-  get readyState() {
-    return 1; // Connected
-  }
-
-  // Mock methods for Edge Runtime compatibility
-  async collection(name: string) {
+  private connected = false;
+  async connect() { this.connected = true; return this; }
+  get readyState() { return 1; }
+  collection(_name: string) {
+    const cursor = {
+      sort: (_: any) => cursor,
+      limit: (_: number) => cursor,
+      toArray: async () => [] as any[],
+    };
     return {
-      insertOne: async (doc: any) => ({ insertedId: 'mock-id' }),
-      find: () => ({
-        toArray: async () => [],
-        sort: () => this,
-        limit: () => this
-      }),
-      findOne: async () => null,
-      updateOne: async () => ({ modifiedCount: 1 }),
-      deleteOne: async () => ({ deletedCount: 1 }),
+      insertOne: async (_doc: any) => ({ insertedId: 'mock-id' }),
+      find: (_?: any) => cursor,
+      findOne: async (_?: any) => null,
+      updateOne: async (_filter?: any, _update?: any, _opts?: any) => ({ modifiedCount: 1 }),
+      deleteOne: async (_filter?: any) => ({ deletedCount: 1 }),
+      createIndex: async (_spec?: any, _opts?: any) => ({ ok: 1 })
     };
   }
-
-  async listCollections() {
-    return {
-      toArray: async () => []
-    };
-  }
+  listCollections() { return { toArray: async () => [] as any[] }; }
 }
 
 let conn = (global as any)._mongoose;
 if (!conn) {
-  // Check if we should use mock database
-  if (process.env.NODE_ENV === 'development' && uri.includes('localhost')) {
-    console.log("📦 Starting in development mode with mock database");
-    conn = (global as any)._mongoose = new MockDB();
-  } else if (mongoose) {
+  if (isMockDB) {
+    console.warn("⚠️ Mock DB mode — using in-memory stub. Not for production.");
+    conn = (global as any)._mongoose = new MockDB().connect();
+  } else if (uri) {
     conn = (global as any)._mongoose = mongoose.connect(uri, {
+      dbName,
       autoIndex: true,
       maxPoolSize: 10,
     });
   } else {
-    // Fallback to MockDB in Edge Runtime
-    console.log("📦 Using mock database (Edge Runtime detected)");
-    conn = (global as any)._mongoose = new MockDB();
+    console.warn("⚠️ Falling back to MockDB (no MONGODB_URI set).");
+    conn = (global as any)._mongoose = new MockDB().connect();
   }
 }
+
 export const db = conn;
 
-// Export isMockDB for use in models
-export const isMockDB = process.env.NODE_ENV === 'development' && uri.includes('localhost');
+export async function getNativeDb(): Promise<any> {
+  if (isMockDB) {
+    return await (db as any);
+  }
+  const m: any = await db;
+  const connection = m?.connection || mongoose.connection;
+  if (!connection || !connection.db) {
+    throw new Error('Mongoose connection not ready');
+  }
+  return connection.db;
+}

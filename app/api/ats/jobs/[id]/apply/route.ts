@@ -3,51 +3,8 @@ import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
-// Optional settings/models may not exist in this MVP; provide light fallbacks
-const AtsSettings = {
-  async findOrCreateForOrg(orgId: string) {
-    return { scoringWeights: {}, shouldAutoReject: (_: any) => ({ reject: false }) };
-  }
-} as any;
-
-/**
- * Extracts up to 20 distinct skill-like tokens from freeform text.
- *
- * Splits the input on commas and whitespace, removes tokens shorter than 3 characters,
- * deduplicates while preserving the first occurrence's casing, and returns at most 20 items.
- *
- * @param text - Freeform text (e.g., resume or cover letter) to parse for skills
- * @returns An array of unique skill tokens (strings), up to 20 entries
- */
-function extractSkillsFromText(text: string) {
-  return Array.from(new Set(text.split(/[,\s]+/).filter(s => s.length > 2))).slice(0, 20);
-}
-/**
- * Estimate years of professional experience from freeform text.
- *
- * This is a placeholder implementation that always returns 0. Replace with a real parser
- * that extracts and normalizes years of experience from resumes, cover letters, or other
- * freeform text.
- *
- * @param _text - Freeform text (resume, cover letter, etc.) to analyze for experience.
- * @returns Estimated years of experience as a number. (Currently always 0.)
- */
-function calculateExperienceFromText(_text: string) { return 0; }
-/**
- * Computes a simple numeric score for an application based on skills count and years of experience.
- *
- * The score is calculated as (5 points per skill) + (2 points per year of experience) and is capped at 100.
- * The optional `_weights` parameter is accepted for API compatibility but is not used by this implementation.
- *
- * @param input - Object containing application attributes. Expected properties:
- *   - `skills` (array) — list of detected or provided skills.
- *   - `experience` (number) — years of experience.
- * @returns A score between 0 and 100 (inclusive).
- */
-function scoreApplication(input: any, _weights: any) {
-  const base = (input.skills?.length || 0) * 5 + (input.experience || 0) * 2;
-  return Math.min(100, base);
-}
+import { AtsSettings } from '@/src/server/models/AtsSettings';
+import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } from '@/src/lib/ats/scoring';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -63,14 +20,14 @@ export async function POST(
     // Extract form fields
     let firstName = formData.get('firstName') as string | null;
     let lastName = formData.get('lastName') as string | null;
-    const fullName = (formData.get('fullName') as string) || null;
-    const email = (formData.get('email') as string) || '';
-    const phone = (formData.get('phone') as string) || '';
-    const location = (formData.get('location') as string) || '';
-    const coverLetter = (formData.get('coverLetter') as string) || '';
-    const skills = (formData.get('skills') as string) || '';
-    const experience = (formData.get('experience') as string) || '';
-    const linkedin = (formData.get('linkedin') as string) || '';
+    const fullName = formData.get('fullName') as string | null;
+    const email = formData.get('email') as string;
+    const phone = formData.get('phone') as string;
+    const location = formData.get('location') as string;
+    const coverLetter = formData.get('coverLetter') as string;
+    const skills = formData.get('skills') as string;
+    const experience = formData.get('experience') as string;
+    const linkedin = formData.get('linkedin') as string;
     const resumeFile = formData.get('resume') as File;
     
     // Derive first/last from fullName if not provided
@@ -107,30 +64,66 @@ export async function POST(
       );
     }
     
-    // Process resume file (save to public/uploads/resumes)
+    // Process resume file (secure private storage with validation)
     let resumeUrl = '';
     let resumeText = '';
     
     if (resumeFile) {
       try {
-        // Enforce max size (e.g., 5MB) and configurable upload dir
-        const MAX_BYTES = 5 * 1024 * 1024;
-        if (typeof resumeFile.size === 'number' && resumeFile.size > MAX_BYTES) {
-          return NextResponse.json({ success: false, error: 'Resume file too large' }, { status: 413 });
+        // Validate file type and size BEFORE processing
+        const allowedTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        const maxSize = 5 * 1024 * 1024; // 5MB limit
+        
+        if (!allowedTypes.includes(resumeFile.type)) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Invalid file type. Only PDF and Word documents are allowed.' 
+          }, { status: 400 });
         }
-        const uploadDir = process.env.UPLOAD_DIR
-          || path.join(process.cwd(), 'uploads', 'resumes'); // avoid public/ for serverless
+        
+        if (resumeFile.size > maxSize) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'File too large. Maximum size is 5MB.' 
+          }, { status: 400 });
+        }
         
         const bytes = await resumeFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
+        
+        // Magic byte validation for additional security
+        const isValidPDF = buffer.slice(0, 4).toString() === '%PDF';
+        const isValidDOC = buffer.slice(0, 4).equals(Buffer.from([0xD0, 0xCF, 0x11, 0xE0]));
+        const isValidDOCX = buffer.slice(0, 4).equals(Buffer.from([0x50, 0x4B, 0x03, 0x04]));
+        
+        if (resumeFile.type === 'application/pdf' && !isValidPDF) {
+          return NextResponse.json({ success: false, error: 'Invalid PDF file' }, { status: 400 });
+        }
+        
+        // Use PRIVATE storage directory with tenant isolation using job's orgId
+        const uploadDir = path.join(process.cwd(), 'private', 'uploads', 'resumes', job.orgId || 'default');
         await fs.mkdir(uploadDir, { recursive: true });
-        const safeName = resumeFile.name.replace(/[^\w.\-]+/g, '_');
-        const fileName = `${Date.now()}-${safeName}`;
+        
+        // Use cryptographically secure filename
+        const fileExt = resumeFile.name.split('.').pop()?.toLowerCase() || 'pdf';
+        const safeExt = fileExt.replace(/[^a-z0-9]/g, '');
+        const fileName = `${crypto.randomUUID()}.${safeExt}`;
         const filePath = path.join(uploadDir, fileName);
+        
         await fs.writeFile(filePath, buffer);
-        resumeUrl = `/uploads/resumes/${fileName}`;
+        
+        // Generate signed URL for private file access
+        resumeUrl = `/api/files/resumes/${fileName}?tenant=${job.orgId || 'default'}`;
       } catch (err) {
         console.error('Resume save failed:', err);
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Failed to process resume file' 
+        }, { status: 500 });
       }
       
       // Basic text surrogate for scoring/search
@@ -176,7 +169,7 @@ export async function POST(
       });
     } else {
       // Update existing candidate info
-      candidate.skills = [...new Set([...candidate.skills, ...candidateSkills])];
+      candidate.skills = [...new Set([...(candidate.skills || []), ...candidateSkills])];
       if (resumeUrl) candidate.resumeUrl = resumeUrl;
       if (resumeText) candidate.resumeText = resumeText;
       if (linkedin) candidate.linkedin = linkedin;
@@ -207,7 +200,7 @@ export async function POST(
       requiredSkills: job.skills,
       experience: yearsOfExperience,
       minExperience: job.screeningRules?.minYears
-    }, atsSettings.scoringWeights);
+    }, atsSettings?.scoringWeights || undefined);
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({
