@@ -34,10 +34,15 @@ const {
   };
 };
 
-const MockDatabase = (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__
-  ? ((globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ as { getInstance: () => MockDbInstance })
-  : resolveMockDatabase();
+function getMockDatabase(): { getInstance: () => MockDbInstance } {
+  const globalMock = (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__;
+  if (globalMock) {
+    return globalMock as { getInstance: () => MockDbInstance };
+  }
+  return resolveMockDatabase();
+}
 
+const MockDatabase = getMockDatabase();
 // Idempotent seed for demo-tenant marketplace data when using MockDB
 const db = MockDatabase.getInstance();
 
