@@ -11,7 +11,11 @@ export async function POST(req:NextRequest, {params}:{params:{id:string}}){
   if (user instanceof NextResponse) return user as any;
   await db;
   const m = upsertSchema.parse(await req.json());
-  const wo:any = await (WorkOrder as any).findById(params.id);
+  // Validate MongoDB ObjectId format
+  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+  const wo:any = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return NextResponse.json({error:"Not found"},{status:404});
   wo.materials.push(m);
   const materials = wo.materials.reduce((s:any,c:any)=>s+(c.qty*c.unitPrice),0);
