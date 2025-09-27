@@ -1,9 +1,48 @@
+const fs = require('node:fs');
+const Module = require('module');
+const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { createRequire } = require('node:module');
 
 const { MARKETPLACE_COLLECTIONS } = require('../src/models/utils/collectionNames.js');
 
 const localRequire = createRequire(__filename);
+const compiledTsCache = new Map();
+
+function loadTypeScriptModule(tsPath) {
+  const absolutePath = path.resolve(tsPath);
+
+  if (compiledTsCache.has(absolutePath)) {
+    return compiledTsCache.get(absolutePath);
+  }
+
+  let typescript;
+  try {
+    typescript = localRequire('typescript');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to load TypeScript compiler. Install dependencies first. Original error: ${message}`);
+  }
+
+  const source = fs.readFileSync(absolutePath, 'utf8');
+  const { outputText } = typescript.transpileModule(source, {
+    compilerOptions: {
+      module: typescript.ModuleKind.CommonJS,
+      target: typescript.ScriptTarget.ES2019,
+      esModuleInterop: true,
+    },
+    fileName: absolutePath,
+    reportDiagnostics: false,
+  });
+
+  const moduleInstance = new Module(absolutePath, module);
+  moduleInstance.filename = absolutePath;
+  moduleInstance.paths = Module._nodeModulePaths(path.dirname(absolutePath));
+  moduleInstance._compile(outputText, absolutePath);
+
+  compiledTsCache.set(absolutePath, moduleInstance.exports);
+  return moduleInstance.exports;
+}
 
 const DEFAULT_TENANT_FALLBACK = 'demo-tenant';
 
@@ -88,8 +127,28 @@ function resolveMockDatabase() {
         return moduleExport;
       }
     } catch (error) {
+      const absolutePath = path.resolve(__dirname, candidate);
       const message = error instanceof Error ? error.message : String(error);
-      errors.push(`${candidate}: ${message}`);
+
+      if (candidate.endsWith('.ts')) {
+        try {
+          const tsModule = loadTypeScriptModule(absolutePath);
+          if (tsModule && tsModule.MockDatabase) {
+            return tsModule.MockDatabase;
+          }
+          if (tsModule && typeof tsModule.getInstance === 'function') {
+            return tsModule;
+          }
+          errors.push(`${absolutePath}: module did not expose MockDatabase`);
+          continue;
+        } catch (tsError) {
+          const tsMessage = tsError instanceof Error ? tsError.message : String(tsError);
+          errors.push(`${absolutePath}: ${tsMessage}`);
+          continue;
+        }
+      }
+
+      errors.push(`${absolutePath}: ${message}`);
     }
   }
 

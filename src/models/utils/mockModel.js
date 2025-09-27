@@ -1,4 +1,41 @@
+const fs = require('node:fs');
+const Module = require('module');
 const path = require('path');
+
+const compiledTsCache = new Map();
+
+function loadTypeScriptModule(absolutePath) {
+  if (compiledTsCache.has(absolutePath)) {
+    return compiledTsCache.get(absolutePath);
+  }
+
+  let typescript;
+  try {
+    typescript = require('typescript');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to load TypeScript compiler. Install dependencies first. Original error: ${message}`);
+  }
+
+  const source = fs.readFileSync(absolutePath, 'utf8');
+  const { outputText } = typescript.transpileModule(source, {
+    compilerOptions: {
+      module: typescript.ModuleKind.CommonJS,
+      target: typescript.ScriptTarget.ES2019,
+      esModuleInterop: true,
+    },
+    fileName: absolutePath,
+    reportDiagnostics: false,
+  });
+
+  const moduleInstance = new Module(absolutePath, module);
+  moduleInstance.filename = absolutePath;
+  moduleInstance.paths = Module._nodeModulePaths(path.dirname(absolutePath));
+  moduleInstance._compile(outputText, absolutePath);
+
+  compiledTsCache.set(absolutePath, moduleInstance.exports);
+  return moduleInstance.exports;
+}
 
 function shouldUseMarketplaceMockModel() {
   const env = process.env.NODE_ENV ?? 'development';
@@ -46,6 +83,17 @@ function resolveMockDbModule() {
       return require(candidate);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+
+      if (candidate.endsWith('.ts')) {
+        try {
+          return loadTypeScriptModule(candidate);
+        } catch (tsError) {
+          const tsMessage = tsError instanceof Error ? tsError.message : String(tsError);
+          errors.push(`${candidate}: ${tsMessage}`);
+          continue;
+        }
+      }
+
       errors.push(`${candidate}: ${message}`);
     }
   }
