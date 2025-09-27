@@ -5,6 +5,7 @@
 /out/
 /build/
 /coverage/
+/\.cache/
 /playwright-report/
 /playwright/.cache/
 /cypress/videos/

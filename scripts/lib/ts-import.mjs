@@ -23,12 +23,8 @@ export async function importTs(tsPath, opts = {}) {
   }
 
   const moduleResolution =
-    compilerOptions.moduleResolution ?? (esm ? ts.ModuleResolutionKind.NodeNext : ts.ModuleResolutionKind.Node10);
-  let moduleKind = compilerOptions.module ?? (esm ? ts.ModuleKind.ESNext : ts.ModuleKind.CommonJS);
-
-  if (moduleResolution === ts.ModuleResolutionKind.NodeNext && moduleKind !== ts.ModuleKind.NodeNext) {
-    moduleKind = ts.ModuleKind.NodeNext;
-  }
+    compilerOptions.moduleResolution ?? (esm ? ts.ModuleResolutionKind.Bundler : ts.ModuleResolutionKind.Node10);
+  const moduleKind = compilerOptions.module ?? (esm ? ts.ModuleKind.ESNext : ts.ModuleKind.CommonJS);
 
   const baseCompilerOptions = {
     module: moduleKind,
@@ -39,11 +35,13 @@ export async function importTs(tsPath, opts = {}) {
     sourceMap: false
   };
 
+  const resolvedCompilerOptions = {
+    ...baseCompilerOptions,
+    ...compilerOptions
+  };
+
   const result = ts.transpileModule(src, {
-    compilerOptions: {
-      ...baseCompilerOptions,
-      ...compilerOptions
-    },
+    compilerOptions: resolvedCompilerOptions,
     fileName: path.basename(abs),
     reportDiagnostics: true
   });
@@ -55,7 +53,12 @@ export async function importTs(tsPath, opts = {}) {
     throw new Error(`TypeScript transpile diagnostics for ${tsPath}:\n${msg}`);
   }
 
-  const hash = crypto.createHash('sha1').update(src).digest('hex');
+  const hashInput = JSON.stringify({
+    src,
+    options: resolvedCompilerOptions,
+    esm
+  });
+  const hash = crypto.createHash('sha1').update(hashInput).digest('hex');
   const outDir = path.join(process.cwd(), '.cache', 'ts-import');
   await fs.mkdir(outDir, { recursive: true });
   const rel = path.relative(process.cwd(), abs) || path.basename(abs);
