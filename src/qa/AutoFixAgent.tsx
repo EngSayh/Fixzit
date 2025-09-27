@@ -112,11 +112,6 @@ export function AutoFixAgent() {
 
   // ---- NETWORK ---- (Fixed: Prevent fetch interceptor detaching)
   useEffect(() => {
-    // Check if fetch is already intercepted by this instance
-    if (originalFetchRef.current && originalFetchRef.current !== window.fetch) {
-      return;
-    }
-
     // Store original fetch only if not already stored
     if (!originalFetchRef.current) {
       originalFetchRef.current = window.fetch.bind(window);
