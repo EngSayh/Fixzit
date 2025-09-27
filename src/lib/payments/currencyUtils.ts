@@ -48,10 +48,10 @@ export const CURRENCY_CONFIGS: Record<SupportedCurrency, CurrencyConfig> = {
     code: 'EUR',
     symbol: '€',
     symbolPosition: 'after',
-    locale: 'en-EU',
+    locale: 'de-DE',
     decimalDigits: 2,
-    thousandSeparator: ',',
-    decimalSeparator: '.'
+    thousandSeparator: '.',
+    decimalSeparator: ','
   },
   GBP: {
     code: 'GBP',
