@@ -53,6 +53,7 @@ const DEFAULT_TENANT_ID = (() => {
   }
 
   const trimmed = envValue.trim();
+  // Tenant ID must be 3-50 characters long and contain only letters (A-Z, a-z), digits (0-9), underscores (_), or hyphens (-).
   const isValid = /^[A-Za-z0-9_-]{3,50}$/.test(trimmed);
 
   if (!isValid) {
