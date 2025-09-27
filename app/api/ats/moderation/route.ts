@@ -1,21 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
-import { Job } from '@/src/server/models/Job';
 import { getUserFromToken } from '@/src/lib/auth';
+import { z } from 'zod';
 
 export async function PUT(req: NextRequest) {
   try {
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS moderation endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
     await db;
-    const body = await req.json();
+    const JobMod = await import('@/src/server/models/Job').catch(() => null);
+    const Job = JobMod && (JobMod as any).Job;
+    if (!Job) {
+      return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
+    }
+    
+    const moderationSchema = z.object({
+      jobId: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid job ID'),
+      action: z.enum(['approve', 'reject', 'flag', 'unflag']),
+      reason: z.string().max(500).optional(),
+      notes: z.string().max(1000).optional()
+    });
+    
+    const body = moderationSchema.parse(await req.json());
     const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
+    if (!user?.tenantId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR','ATS_ADMIN']);
+    if (!allowedRoles.has((user as any).role || '')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     const { jobId, action } = body;
     if (!jobId || !['approve', 'reject'].includes(action)) return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 });
 
-    const job = await Job.findById(jobId);
+    const job = await (Job as any).findById(jobId);
     if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+    if (String(job.orgId) !== String((user as any).tenantId)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     if (action === 'approve') {
       job.status = 'published' as any;
