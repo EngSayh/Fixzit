@@ -2,6 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { Types } from 'mongoose';
+import { randomUUID } from 'node:crypto';
 import { objectIdFrom } from './objectIds';
 
 export interface MarketplaceRequestContext {
@@ -9,6 +10,7 @@ export interface MarketplaceRequestContext {
   orgId: Types.ObjectId;
   userId?: Types.ObjectId;
   role?: string;
+  correlationId?: string;
 }
 
 async function decodeToken(token?: string | null) {
@@ -21,7 +23,10 @@ async function decodeToken(token?: string | null) {
     const { payload } = await jwtVerify(token, secret);
     return payload;
   } catch (error) {
-    console.warn('Failed to decode marketplace JWT payload', error);
+    const correlationId = randomUUID();
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.warn('Failed to decode marketplace JWT payload', { correlationId, message });
     return undefined;
   }
 }
@@ -32,8 +37,16 @@ function readHeaderValue(req: NextRequest | Request | null | undefined, key: str
     if (value) return value;
   }
 
-  const serverHeaders = headers();
-  return serverHeaders.get(key) ?? undefined;
+  try {
+    const serverHeaders = headers();
+    return serverHeaders.get(key) ?? undefined;
+  } catch (error) {
+    const correlationId = randomUUID();
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.debug('Marketplace context header fallback failed', { key, correlationId, message });
+    return undefined;
+  }
 }
 
 function readCookieValue(req: NextRequest | null | undefined, key: string) {
@@ -44,7 +57,11 @@ function readCookieValue(req: NextRequest | null | undefined, key: string) {
 
   try {
     return cookies().get(key)?.value;
-  } catch (_) {
+  } catch (error) {
+    const correlationId = randomUUID();
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.debug('Marketplace context cookie fallback failed', { key, correlationId, message });
     return undefined;
   }
 }
@@ -66,6 +83,7 @@ export async function resolveMarketplaceContext(req?: NextRequest | Request | nu
     tenantKey,
     orgId,
     userId,
-    role
+    role,
+    correlationId: randomUUID(),
   };
 }

@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { randomUUID } from 'node:crypto';
 
 function getEnvBaseUrl() {
   const envUrl =
@@ -14,7 +15,19 @@ function getEnvBaseUrl() {
 }
 
 function getHeaderBaseUrl() {
-  const headerList = headers();
+  let headerList: ReturnType<typeof headers> | undefined;
+  try {
+    headerList = headers();
+  } catch (error) {
+    const correlationId = randomUUID();
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.debug('[MarketplaceFetch] headers() unavailable', { correlationId, message });
+    headerList = undefined;
+  }
+  if (!headerList) {
+    return undefined;
+  }
   const host = headerList.get('x-forwarded-host') ?? headerList.get('host');
   if (!host) {
     return undefined;
@@ -32,12 +45,26 @@ export function getMarketplaceBaseUrl() {
 export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   const baseUrl = getMarketplaceBaseUrl();
   const url = new URL(path, baseUrl).toString();
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('fixzit_auth');
+  let authCookieValue: string | undefined;
+  let cookieCorrelationId: string | undefined;
+  try {
+    const cookieStore = cookies();
+    authCookieValue = cookieStore.get('fixzit_auth')?.value;
+  } catch (error) {
+    cookieCorrelationId = randomUUID();
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.debug('[MarketplaceFetch] cookies() unavailable', { correlationId: cookieCorrelationId, message });
+    authCookieValue = undefined;
+  }
   const headersInit = new Headers(init?.headers ?? {});
 
-  if (authCookie && !headersInit.has('Cookie')) {
-    headersInit.set('Cookie', `fixzit_auth=${authCookie.value}`);
+  if (authCookieValue) {
+    const existing = headersInit.get('Cookie');
+    const nextCookieValue = existing
+      ? `${existing}; fixzit_auth=${authCookieValue}`
+      : `fixzit_auth=${authCookieValue}`;
+    headersInit.set('Cookie', nextCookieValue);
   }
 
   const response = await fetch(url, {
@@ -47,7 +74,17 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const correlationId = cookieCorrelationId ?? randomUUID();
+    const errorPayload = {
+      name: 'MarketplaceFetchError',
+      code: 'HTTP_ERROR',
+      userMessage: 'Unable to reach marketplace services. Please try again shortly.',
+      devMessage: `Request failed: ${response.status} ${response.statusText} for ${url}`,
+      correlationId,
+    };
+    // eslint-disable-next-line no-console
+    console.error('[MarketplaceFetch] request failed', errorPayload);
+    throw new Error(JSON.stringify(errorPayload));
   }
 
   return response;
