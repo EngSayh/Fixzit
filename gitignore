@@ -6,6 +6,7 @@ backups/
 attached_assets/
 build/
 dist/
+.index/
 .next/
 .turbo/
 .cache/
