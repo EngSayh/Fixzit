@@ -1268,7 +1268,7 @@ const translations: Record<Language, Record<string, string>> = {
     'i18n.filterLanguages': 'भाषाएँ फ़िल्टर करें',
     'i18n.filterCurrencies': 'मुद्राएँ फ़िल्टर करें',
     'i18n.selectCurrencyLabel': 'मुद्रा चुनें',
-    'a11y.currencySelectorHelp': 'نےویگیٹ کرنے کے لیے تیر، منتخب کرنے کے لیے انٹر، بند کرنے کے لیے ایسک',
+    'a11y.currencySelectorHelp': 'नेविगेट करने के लिए एरो कुंजियाँ, चयन के लिए Enter, बंद करने के लिए Esc',
     'common.login': 'लॉग इन',
     'common.logout': 'लॉग आउट',
     'common.save': 'सहेजें',
