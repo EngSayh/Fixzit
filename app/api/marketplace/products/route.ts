@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
+import { db } from '@/src/lib/mongo';
+import Product from '@/src/models/marketplace/Product';
 import { serializeProduct } from '@/src/lib/marketplace/serializers';
 import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
 
@@ -47,6 +49,7 @@ export async function GET(request: NextRequest) {
     const context = await resolveMarketplaceContext(request);
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
+    await db;
 
     const skip = (query.page - 1) * query.limit;
     const [items, total] = await Promise.all([
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
     }
     const body = await request.json();
     const payload = ProductSchema.parse(body);
+    await db;
 
     const product = await (Product as any).create({
       ...payload,

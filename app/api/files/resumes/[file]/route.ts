@@ -21,17 +21,18 @@ export async function GET(req: NextRequest, { params }: { params: { file: string
     const exp = Number(expParam);
     if (!token || !Number.isFinite(exp)) return NextResponse.json({ error: 'Missing token' }, { status: 400 });
     if (Date.now() > exp) return NextResponse.json({ error: 'Token expired' }, { status: 403 });
-    const expected = generateToken(params.file, exp);
+    const safeName = path.basename(params.file);
+    const tenant = String((user as any).tenantId || 'global');
+    const expected = generateToken(`${tenant}:${safeName}`, exp, String((user as any).id || ''), tenant);
     if (!timingSafeEqual(expected, token)) return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
 
     // Prefer S3 if configured; else local fallback
     if (process.env.AWS_S3_BUCKET) {
-      const key = buildResumeKey((user as any).tenantId, params.file);
+      const key = buildResumeKey((user as any).tenantId, safeName);
       const urlSigned = await getPresignedGetUrl(key, 300);
       return NextResponse.redirect(urlSigned, { status: 302 });
     }
-    const safeName = path.basename(params.file);
-    const filePath = path.join(BASE_DIR, safeName);
+    const filePath = path.join(BASE_DIR, tenant, safeName);
     const data = await fs.readFile(filePath).catch(() => null);
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const contentType = contentTypeFromName(safeName);
@@ -50,19 +51,30 @@ export async function POST(req: NextRequest, { params }: { params: { file: strin
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
     if (!allowed.has((user as any).role || '')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
-    const token = generateToken(params.file, expires);
-    return NextResponse.json({ url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(params.file)}?token=${encodeURIComponent(token)}&exp=${expires}` });
+    const safeName = path.basename(params.file);
+    const tenant = String((user as any).tenantId || 'global');
+    const token = generateToken(`${tenant}:${safeName}`, expires, String((user as any).id || ''), tenant);
+    return NextResponse.json({ url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(safeName)}?token=${encodeURIComponent(token)}&exp=${expires}` });
   } catch {
     return NextResponse.json({ error: 'Failed to sign URL' }, { status: 500 });
   }
 }
 
-function generateToken(name: string, exp?: number) {
-  const secret = process.env.FILE_SIGNING_SECRET || 'dev-secret-change-me';
-  if (process.env.NODE_ENV === 'production' && secret === 'dev-secret-change-me') {
-    throw new Error('FILE_SIGNING_SECRET must be set in production');
+function generateToken(name: string, exp: number | undefined, userId: string, tenantId: string) {
+  const raw = process.env.FILE_SIGNING_SECRET;
+  let secret = typeof raw === 'string' ? raw.trim() : '';
+  const WEAK = new Set(['', 'dev-secret-change-me', 'changeme', 'secret', 'password']);
+  if (process.env.NODE_ENV === 'production' && WEAK.has(secret)) {
+    throw new Error('FILE_SIGNING_SECRET must be set to a strong, non-default value in production');
   }
-  const payload = `${name}:${exp || ''}`;
+  // In non-production, generate an ephemeral in-memory secret if unset/weak to avoid predictable tokens
+  if (process.env.NODE_ENV !== 'production' && WEAK.has(secret)) {
+    if (!(globalThis as any).__DEV_FILE_SIGN_SECRET__) {
+      (globalThis as any).__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString('hex');
+    }
+    secret = (globalThis as any).__DEV_FILE_SIGN_SECRET__;
+  }
+  const payload = `${tenantId}:${userId}:${name}:${exp || ''}`;
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 

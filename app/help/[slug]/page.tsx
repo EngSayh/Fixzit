@@ -27,10 +27,11 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
 
   const db = await getDatabase();
   const coll = db.collection<Article>('helparticles');
-  const tenantScope = payload?.tenantId
+  type TenantScope = { $or: Array<{ tenantId: string } | { tenantId: { $exists: boolean } } | { tenantId: null }> };
+  const tenantScope: TenantScope = payload?.tenantId
     ? { $or: [ { tenantId: payload.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] }
-    : { $or: [ { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
-  const a = await coll.findOne({ slug: params.slug, status: 'PUBLISHED', ...tenantScope } as any);
+    : { $or: [ { tenantId: { $exists: false } }, { tenantId: null } ] };
+  const a = await coll.findOne({ slug: params.slug, status: 'PUBLISHED', ...tenantScope });
   if (!a){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }
