@@ -6,12 +6,9 @@ import SupportPopup from "@/src/components/SupportPopup";
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
-import { useCurrency } from '@/src/contexts/CurrencyContext';
 
 export default function Footer() {
   const [open, setOpen] = useState(false);
-  const { currency, options } = useCurrency();
-  const currentCurrency = options.find(option => option.code === currency) ?? options[0];
 
   // Safe translation with fallback
   let t: (key: string, fallback?: string) => string;

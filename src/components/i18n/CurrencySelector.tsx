@@ -46,7 +46,6 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
       if (!containerRef.current) return;
       if (!containerRef.current.contains(event.target as Node)) {
         setOpen(false);
-        queueMicrotask(() => buttonRef.current?.focus());
       }
     };
 
