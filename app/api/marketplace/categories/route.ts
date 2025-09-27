@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Category from '@/src/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
-    await dbConnect();
+    await db;
     const categories = await Category.find({ orgId: context.orgId }).sort({ createdAt: 1 }).lean();
     const serialized = categories.map(category => serializeCategory(category));
 

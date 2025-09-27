@@ -129,7 +129,7 @@ describe('MarketplaceProduct Schema', () => {
     const schema = MarketplaceProduct.schema;
     const indexes = schema.indexes ? schema.indexes() : [];
     // Convert to comparable strings to avoid deep diffs on options
-    const normalized = indexes.map(([spec, opts]: [Record<string, any>, Record<string, any>]) => ({
+    const normalized: Array<{ spec: Record<string, any>; unique: boolean; text: boolean }> = indexes.map(([spec, opts]: [Record<string, any>, Record<string, any>]) => ({
       spec,
       unique: Boolean(opts && (opts as Record<string, any>).unique),
       text: Object.values(spec).some((v: any) => v === 'text'),
