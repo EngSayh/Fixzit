@@ -53,10 +53,11 @@ export async function importTs(tsPath, opts = {}) {
     throw new Error(`TypeScript transpile diagnostics for ${tsPath}:\n${msg}`);
   }
 
-  const hashInput = JSON.stringify({
+  const hashInput = stableStringify({
     src,
     options: resolvedCompilerOptions,
-    esm
+    esm,
+    typescriptVersion: ts.version
   });
   const hash = crypto.createHash('sha1').update(hashInput).digest('hex');
   const outDir = path.join(process.cwd(), '.cache', 'ts-import');
@@ -74,4 +75,19 @@ export async function importTs(tsPath, opts = {}) {
 
   const mod = await import(pathToFileURL(outFile).href);
   return mod.default ?? mod;
+}
+
+function stableStringify(value) {
+  return JSON.stringify(value, (_key, val) => {
+    if (!val || typeof val !== 'object' || Array.isArray(val)) {
+      return val;
+    }
+
+    return Object.keys(val)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = val[key];
+        return acc;
+      }, {});
+  });
 }
