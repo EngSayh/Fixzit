@@ -64,6 +64,10 @@ const PRIORITY_OPTIONS: WorkOrderPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICA
 const STATUS_OPTIONS = Object.keys(statusLabels);
 const PAGE_SIZE = 10;
 
+function isWorkOrderPriority(value: string): value is WorkOrderPriority {
+  return (PRIORITY_OPTIONS as string[]).includes(value);
+}
+
 type WorkOrderRecord = {
   _id: string;
   code: string;
@@ -421,7 +425,11 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               <label className="mb-1 block text-sm font-medium text-gray-700">Priority</label>
               <Select
                 value={form.priority}
-                onValueChange={(value: WorkOrderPriority) => setForm((prev) => ({ ...prev, priority: value }))}
+                onValueChange={(value) => {
+                  if (isWorkOrderPriority(value)) {
+                    setForm(prev => ({ ...prev, priority: value }));
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />

@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 interface AutoRejectOptions {
   experience?: number;
@@ -37,7 +38,12 @@ export interface AtsSettingsModel extends Model<AtsSettingsDoc> {
 }
 
 AtsSettingsSchema.methods.shouldAutoReject = function(this: AtsSettingsDoc, input: AutoRejectOptions): AutoRejectDecision {
-  const rules = this.knockoutRules || {};
+  const rules = (this.knockoutRules || {}) as {
+    minYears?: number;
+    requiredSkills?: string[];
+    autoRejectMissingExperience?: boolean;
+    autoRejectMissingSkills?: boolean;
+  };
   const experience = input.experience ?? 0;
   const skills = (input.skills || []).map(skill => skill.toLowerCase());
 
@@ -69,8 +75,6 @@ AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
   return doc;
 };
 
-const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
 class AtsSettingsMockModel extends MockModel {
   constructor() {
     super('atssettings');
@@ -79,7 +83,12 @@ class AtsSettingsMockModel extends MockModel {
   private attach(doc: any) {
     if (!doc) return doc;
     doc.shouldAutoReject = (input: AutoRejectOptions): AutoRejectDecision => {
-      const rules = doc.knockoutRules || {};
+      const rules = (doc.knockoutRules || {}) as {
+        minYears?: number;
+        requiredSkills?: string[];
+        autoRejectMissingExperience?: boolean;
+        autoRejectMissingSkills?: boolean;
+      };
       const experience = input.experience ?? 0;
       const skills = (input.skills || []).map((skill: string) => skill.toLowerCase());
       if (rules.minYears && experience < rules.minYears) {
@@ -123,8 +132,9 @@ class AtsSettingsMockModel extends MockModel {
   }
 }
 
+const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
 export const AtsSettings: AtsSettingsModel = isMockDB
-  ? new AtsSettingsMockModel() as unknown as AtsSettingsModel
-  : (models.AtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
+  ? (new AtsSettingsMockModel() as unknown as AtsSettingsModel)
+  : (existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
 
 export type { AutoRejectOptions, AutoRejectDecision };
