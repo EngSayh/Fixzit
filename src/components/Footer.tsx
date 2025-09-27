@@ -13,18 +13,8 @@ export default function Footer() {
   const { currency } = useCurrency();
   const currentCurrency = CURRENCY_OPTIONS.find(option => option.code === currency) ?? CURRENCY_OPTIONS[0];
 
-  // Safe translation with fallback
-  let t: (key: string, fallback?: string) => string;
-  let translationIsRTL: boolean = false;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-    translationIsRTL = translationContext.isRTL;
-  } catch {
-    // Fallback translation function
-    t = (key: string, fallback?: string) => fallback || key;
-    translationIsRTL = false;
-  }
+  // Use the translation context directly - it has its own fallback
+  const { t, isRTL: translationIsRTL } = useTranslation();
 
   return (
     <footer className="mt-16 border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
