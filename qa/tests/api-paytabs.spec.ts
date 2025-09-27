@@ -31,7 +31,7 @@ jest.mock('next/server', () => {
 
 let POST: (req: NextRequest) => Promise<Response>
 beforeAll(async () => {
-  const mod = await import('app/api/payments/paytabs/route')
+  const mod = await import('../../app/api/payments/paytabs/route')
   POST = (mod as any).POST
 })
 
