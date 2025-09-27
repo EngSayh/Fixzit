@@ -97,4 +97,7 @@ if (require.main === module) {
 
 module.exports = {
   main,
+  OUT_DIR,
+  OUT_FILE,
+  buildDocumentContent,
 };
