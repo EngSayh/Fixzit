@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Order from '@/src/models/marketplace/Order';
 import { serializeOrder } from '@/src/lib/marketplace/serializers';
+import { createSecureResponse } from '@/src/server/security/headers';
 
 const QuerySchema = z.object({
   status: z.string().optional()
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
-    await dbConnect();
+    await db;
 
     const filter: any = { orgId: context.orgId, status: { $ne: 'CART' } };
 
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(50);
 
-    return NextResponse.json({
+    return createSecureResponse({
       ok: true,
       data: orders.map(order => serializeOrder(order))
     });
