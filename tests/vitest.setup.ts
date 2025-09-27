@@ -1,5 +1,19 @@
-import "tsconfig-paths/register";
+import { createRequire } from "module";
 import { vi, expect } from "vitest";
+
+const require = createRequire(import.meta.url);
+
+try {
+  require("tsconfig-paths/register");
+} catch (error) {
+  const ciValue = process.env.CI;
+  const isCI = typeof ciValue === "string" && ciValue.toLowerCase() !== "false" && ciValue !== "0";
+  if (!isCI) {
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.warn("tsconfig-paths/register not loaded; falling back to Vitest aliases", message);
+  }
+}
 
 type JestLike = typeof vi & {
   mock: typeof vi.mock;
