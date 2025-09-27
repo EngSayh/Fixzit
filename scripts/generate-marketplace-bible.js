@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { randomUUID } = require('node:crypto');
 
 const OUT_DIR = path.join(process.cwd(), '_artifacts');
 const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.md');
@@ -35,6 +36,7 @@ function main(options = {}) {
   const {
     fsModule = fs,
     forceFailure = false,
+    correlationId = randomUUID(),
   } = options;
 
   const shouldForceFailure =
@@ -44,21 +46,26 @@ function main(options = {}) {
   const content = buildDocumentContent();
 
   if (shouldForceFailure) {
-    throw new Error('Forced write failure for tests');
+    const error = new Error('Forced write failure for tests');
+    // eslint-disable-next-line no-console
+    console.error(`[${correlationId}] Forced write failure:`, error.message);
+    throw error;
   }
 
   fsModule.writeFileSync(OUT_FILE, content, 'utf8');
   // eslint-disable-next-line no-console
-  console.log('✔ Marketplace Bible generated at', OUT_FILE);
+  console.log(`[${correlationId}] ✔ Marketplace Bible generated at`, OUT_FILE);
   return OUT_FILE;
 }
 
 if (require.main === module) {
+  const correlationId = randomUUID();
   try {
-    main();
+    main({ correlationId });
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Failed to generate marketplace bible', error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[${correlationId}] Failed to generate marketplace bible:`, message);
     process.exitCode = 1;
   }
 }

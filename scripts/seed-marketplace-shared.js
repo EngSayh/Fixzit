@@ -66,7 +66,10 @@ function getSeedData(tenantId = DEFAULT_TENANT_ID) {
         tenantId,
         sku: 'CEM-001-50',
         slug: 'portland-cement-type-1-2-50kg',
-        title: 'Portland Cement Type I/II — 50kg',
+        title: {
+          en: 'Portland Cement Type I/II — 50kg',
+          ar: 'أسمنت بورتلاند نوع I/II — 50 كجم',
+        },
         brand: 'Fixzit Materials',
         attributes: [
           { key: 'Standard', value: 'ASTM C150' },
@@ -76,7 +79,11 @@ function getSeedData(tenantId = DEFAULT_TENANT_ID) {
         prices: [{ currency: 'SAR', listPrice: 16.5 }],
         inventories: [{ onHand: 200, leadDays: 2 }],
         rating: { avg: 4.6, count: 123 },
-        searchable: 'Portland Cement ASTM C150 50kg Type I/II',
+        searchable: {
+          en: 'Portland Cement ASTM C150 50kg Type I/II',
+          ar: 'أسمنت بورتلاند ASTM C150 وزن 50 كجم نوع I/II',
+        },
+        rtl: true,
       },
     ],
   };

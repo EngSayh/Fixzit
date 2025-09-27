@@ -1,7 +1,5 @@
 const path = require('path');
 
-const LOCAL_URI_PATTERNS = [/localhost/i, /127\.0\.0\.1/, /0\.0\.0\.0/];
-
 function shouldUseMarketplaceMockModel() {
   const env = process.env.NODE_ENV ?? 'development';
 
@@ -18,10 +16,6 @@ function shouldUseMarketplaceMockModel() {
     return false;
   }
 
-  if (process.env.USE_MOCK_DB === '1') {
-    return true;
-  }
-
   if (env === 'production') {
     return false;
   }
@@ -30,12 +24,7 @@ function shouldUseMarketplaceMockModel() {
     return true;
   }
 
-  const uri = process.env.MONGODB_URI ?? '';
-  if (!uri) {
-    return true;
-  }
-
-  if (LOCAL_URI_PATTERNS.some(pattern => pattern.test(uri))) {
+  if (process.env.USE_MOCK_DB === '1') {
     return true;
   }
 
