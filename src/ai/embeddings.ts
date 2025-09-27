@@ -30,6 +30,10 @@ export async function embedText(
     throw new Error(`Embedding error: ${res.status} ${errText}`);
   }
   const json = await res.json();
-  return json.data?.[0]?.embedding as number[];
+  const embed: any = json?.data && Array.isArray(json.data) ? json.data[0]?.embedding : null;
+  if (!Array.isArray(embed)) {
+    throw new Error('Embedding response missing embedding array');
+  }
+  return embed as number[];
 }
 

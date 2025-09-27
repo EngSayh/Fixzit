@@ -6,15 +6,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS public post endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
     const JobMod = await import('@/src/server/models/Job').catch(() => null);
     const Job = JobMod && (JobMod as any).Job;
     if (!Job) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
     const body = await req.json();
+    // Basic validation
+    const rawTitle = (body?.title ?? '').toString();
+    const title = rawTitle.trim();
+    if (!title) {
+      return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 });
+    }
+    if (title.length > 140) {
+      return NextResponse.json({ success: false, error: 'Title too long' }, { status: 400 });
+    }
+    // TODO: verify CAPTCHA token (Turnstile/hCaptcha) here and reject on failure.
+    // TODO: enforce rate limiting per IP/org before proceeding.
+
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    let baseSlug = (body.title || 'job').toString().toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    let baseSlug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    if (!baseSlug) baseSlug = 'job';
     let job: any = null;
     for (let attempt = 0; attempt < 6; attempt++) {
       const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt}`;
@@ -24,7 +37,7 @@ export async function POST(req: NextRequest) {
           title: body.title,
           department: body.department || 'General',
           jobType: body.jobType || 'full-time',
-          location: body.location || { city: body.city || '', country: body.country || '', mode: body.mode || 'onsite' },
+          location: body.location || { city: body.city || '', country: body.country || '', mode: 'onsite' },
           salaryRange: body.salaryRange || { min: 0, max: 0, currency: 'SAR' },
           description: body.description || '',
           requirements: body.requirements || [],

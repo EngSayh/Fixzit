@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS jobs endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
     const JobMod = await import('@/src/server/models/Job').catch(() => null);
     const Job = JobMod && (JobMod as any).Job;
     if (!Job) {
@@ -16,15 +16,24 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
     const statusParam = searchParams.get('status') || 'published';
-    const requestedOrgId = searchParams.get('orgId') || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const { getUserFromToken } = await import('@/src/lib/auth');
+    
+    // Only capture the raw override; defaults and tenant-scoping come next
+    const requestedOrgId = searchParams.get('orgId');
+    const defaultOrgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+
+    const authHeader = req.headers.get('authorization') ?? '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
     const isPrivileged = !!user && allowedRoles.has((user as any).role || '');
-    // Always restrict to caller's tenant; ignore arbitrary orgId for privileged users
-    const orgId = (user && (user as any).tenantId) ? (user as any).tenantId : requestedOrgId;
+    const tenantOrgId = (user as any)?.tenantId || null;
+    
+    // Only platform-level admins can override orgId; otherwise pin to caller's tenant/default
+    const mayOverrideOrg = (user as any)?.role === 'SUPER_ADMIN' || (user as any)?.role === 'CORPORATE_ADMIN';
+    const orgId = mayOverrideOrg
+      ? (requestedOrgId || tenantOrgId || defaultOrgId)
+      : (tenantOrgId || defaultOrgId);
+
     const status = isPrivileged ? statusParam : 'published';
     const department = searchParams.get('department');
     const location = searchParams.get('location');
@@ -33,14 +42,16 @@ export async function GET(req: NextRequest) {
     const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
     const limitRaw = Number.parseInt(searchParams.get('limit') ?? '', 10);
     const limit = Math.max(1, Math.min(Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 20, 100));
-    const filter: any = { orgId };
-    if (status !== 'all') filter.status = status;
+    
+    const filter: any = { orgId, status };
     if (department) filter.department = department;
     if (location) filter['location.city'] = location;
     if (jobType) filter.jobType = jobType;
     if (q) filter.$text = { $search: q };
+    
+    const projection = !isPrivileged ? { internalNotes: 0, postedBy: 0, contactEmail: 0, applicants: 0 } : {};
     const jobs = await (Job as any)
-      .find(filter, q ? { score: { $meta: 'textScore' } } : {})
+      .find(filter, projection)
       .sort(q ? { score: { $meta: 'textScore' } } : { publishedAt: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -66,15 +77,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS jobs endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
     const JobMod = await import('@/src/server/models/Job').catch(() => null);
     const Job = JobMod && (JobMod as any).Job;
     if (!Job) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
     const body = await req.json();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const authHeader = req.headers.get('authorization') ?? '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     const user = token ? await getUserFromToken(token) : null;
     if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const allowedRoles = new Set(['SUPER_ADMIN','CORPORATE_ADMIN','ADMIN','HR']);
@@ -85,18 +96,24 @@ export async function POST(req: NextRequest) {
     const orgId = (user as any).tenantId;
     let slugBase = (body.title || '').toString().toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
     if (!slugBase) slugBase = 'job';
-    let slug = slugBase;
-    let counter = 1;
-    while (await (Job as any).findOne({ orgId, slug })) {
-      slug = `${slugBase}-${counter++}`;
+    let job;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const slug = attempt === 0 ? slugBase : `${slugBase}-${attempt}`;
+      try {
+        job = await (Job as any).create({
+          ...body,
+          orgId,
+          slug,
+          postedBy: userId,
+          status: body.status || 'draft'
+        });
+        break;
+      } catch (e: any) {
+        if (e?.code === 11000) continue; // duplicate slug; retry
+        throw e;
+      }
     }
-    const job = await (Job as any).create({
-      ...body,
-      orgId,
-      slug,
-      postedBy: userId,
-      status: body.status || 'draft'
-    });
+    if (!job) throw new Error('Failed to create job with unique slug');
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     console.error('Job creation error:', error);
