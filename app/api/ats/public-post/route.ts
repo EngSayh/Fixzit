@@ -13,15 +13,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS dependencies are not available in this deployment' }, { status: 501 });
     }
     const body = await req.json();
-    // TODO: validate `body` via a schema (title required, max lengths, enums).
+    // Basic validation
+    const rawTitle = (body?.title ?? '').toString();
+    const title = rawTitle.trim();
+    if (!title) {
+      return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 });
+    }
+    if (title.length > 140) {
+      return NextResponse.json({ success: false, error: 'Title too long' }, { status: 400 });
+    }
     // TODO: verify CAPTCHA token (Turnstile/hCaptcha) here and reject on failure.
     // TODO: enforce rate limiting per IP/org before proceeding.
 
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    let titleStr = typeof body.title === 'string' ? body.title : '';
-    titleStr = titleStr.trim();
-    if (!titleStr) titleStr = 'job';
-    let baseSlug = titleStr.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    let baseSlug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
     if (!baseSlug) baseSlug = 'job';
     let job: any = null;
     for (let attempt = 0; attempt < 6; attempt++) {

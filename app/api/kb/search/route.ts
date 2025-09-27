@@ -100,6 +100,10 @@ function rateLimitAssert(req: NextRequest) {
   if (now - rec.ts > 60_000) { rec.count = 0; rec.ts = now; }
   rec.count += 1;
   rateMap.set(key, rec);
-  if (rec.count > 60) throw new Error('Rate limited');
+  const MAX_RATE_PER_MIN_ENV = Number(process.env.KB_SEARCH_MAX_RATE_PER_MIN);
+  const MAX_RATE_PER_MIN = Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
+    ? Math.floor(MAX_RATE_PER_MIN_ENV)
+    : 60;
+  if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
 
