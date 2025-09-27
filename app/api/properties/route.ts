@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     const property = await Property.create({
       tenantId: user.tenantId,
-      code: `PROP-${Date.now()}`,
+      code: `PROP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
