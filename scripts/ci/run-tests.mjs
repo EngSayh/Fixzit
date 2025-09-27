@@ -44,9 +44,13 @@ for (const command of commands) {
 
   console.log(`[tests] Running ${command.id}…`);
   const result = spawnSync(command.bin, command.args, { stdio: "inherit" });
-  if (result.status && result.status !== 0) {
-    exitCode = result.status;
-    console.error(`[tests] ${command.id} failed with exit code ${result.status}.`);
+  if ((result.status && result.status !== 0) || result.signal) {
+    exitCode = result.status || 1;
+    if (result.signal) {
+      console.error(`[tests] ${command.id} failed with signal ${result.signal}.`);
+    } else {
+      console.error(`[tests] ${command.id} failed with exit code ${result.status}.`);
+    }
   }
 
   const junitSource = command.junitCandidates.find((candidate) => fs.existsSync(candidate));

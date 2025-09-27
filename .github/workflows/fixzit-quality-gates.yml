@@ -16,27 +16,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Enable Corepack & Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - run: corepack enable
-
       - name: Detect package manager
         id: pm
         shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
             echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+            echo "cache=pnpm" >> "$GITHUB_OUTPUT"
           elif [ -f package-lock.json ]; then
             echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "cache=npm" >> "$GITHUB_OUTPUT"
           elif [ -f yarn.lock ]; then
             echo "manager=yarn" >> "$GITHUB_OUTPUT"
+            echo "cache=yarn" >> "$GITHUB_OUTPUT"
           else
             echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "cache=npm" >> "$GITHUB_OUTPUT"
             echo "::warning::No lock file found. Defaulting to npm install."
           fi
+
+      - name: Enable Corepack & Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ${{ steps.pm.outputs.cache }}
+      - run: corepack enable
 
       - name: Install
         shell: bash
@@ -90,16 +94,20 @@ jobs:
             cd apps/web
             case "${{ steps.pm.outputs.manager }}" in
               pnpm)
-                pnpm build || true
-                pnpm run export --if-present || pnpm exec next export || true
+                pnpm build
+                pnpm run --if-present export || pnpm exec next export
                 ;;
               yarn)
-                yarn build || true
-                yarn run export || yarn next export || true
+                yarn build
+                if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.export?0:1)"; then
+                  yarn run export
+                else
+                  npx --yes next export
+                fi
                 ;;
               *)
-                npm run build || true
-                npm run export --if-present || npx --yes next export || true
+                npm run build
+                npm run export --if-present || npx --yes next export
                 ;;
             esac
             cd ../..
@@ -107,16 +115,20 @@ jobs:
             echo "apps/web not found; running root Next.js build."
             case "${{ steps.pm.outputs.manager }}" in
               pnpm)
-                pnpm build || true
-                pnpm run export --if-present || pnpm exec next export || true
+                pnpm build
+                pnpm run --if-present export || pnpm exec next export
                 ;;
               yarn)
-                yarn build || true
-                yarn run export || yarn next export || true
+                yarn build
+                if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.export?0:1)"; then
+                  yarn run export
+                else
+                  npx --yes next export
+                fi
                 ;;
               *)
-                npm run build || true
-                npm run export --if-present || npx --yes next export || true
+                npm run build
+                npm run export --if-present || npx --yes next export
                 ;;
             esac
           else
@@ -127,9 +139,9 @@ jobs:
       - name: Build/Validate OpenAPI
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm run openapi:build || true ;;
-            yarn) yarn openapi:build || true ;;
-            *) npm run openapi:build || true ;;
+            pnpm) pnpm run openapi:build ;;
+            yarn) yarn openapi:build ;;
+            *) npm run openapi:build ;;
           esac
           mkdir -p .artifacts
           [ -f openapi.yaml ] && cp -f openapi.yaml .artifacts/openapi.yaml || true
@@ -140,9 +152,9 @@ jobs:
       - name: Export Postman Collection
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm run postman:export || true ;;
-            yarn) yarn postman:export || true ;;
-            *) npm run postman:export || true ;;
+            pnpm) pnpm run postman:export ;;
+            yarn) yarn postman:export ;;
+            *) npm run postman:export ;;
           esac
           [ -f postman_collection.json ] && cp -f postman_collection.json .artifacts/postman_collection.json || true
 
@@ -150,9 +162,9 @@ jobs:
       - name: Generate RBAC CSV
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm run rbac:export || true ;;
-            yarn) yarn rbac:export || true ;;
-            *) npm run rbac:export || true ;;
+            pnpm) pnpm run rbac:export ;;
+            yarn) yarn rbac:export ;;
+            *) npm run rbac:export ;;
           esac
           [ -f rbac-matrix.csv ] && cp -f rbac-matrix.csv .artifacts/rbac-matrix.csv || true
 
@@ -160,14 +172,15 @@ jobs:
       - name: Lighthouse CI (static)
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm dlx @lhci/cli autorun || true ;;
-            yarn) yarn dlx @lhci/cli autorun || true ;;
-            *) npx --yes @lhci/cli autorun || true ;;
+            pnpm) pnpm dlx @lhci/cli autorun ;;
+            yarn) npx --yes @lhci/cli autorun ;;
+            *) npx --yes @lhci/cli autorun ;;
           esac
 
       # ---------- Dependency Audit ----------
       - name: Dependency Audit
         run: |
+          mkdir -p .artifacts
           case "${{ steps.pm.outputs.manager }}" in
             pnpm) pnpm audit --json > .artifacts/dep-audit.json || true ;;
             yarn) yarn audit --json > .artifacts/dep-audit.json || true ;;

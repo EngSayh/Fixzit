@@ -10,7 +10,9 @@ const candidates = [
 const existing = candidates.find((p) => fs.existsSync(p));
 if (existing) {
   console.log(`[openapi] found ${existing}, copying to ./openapi.yaml`);
-  fs.copyFileSync(existing, "openapi.yaml");
+  if (existing !== "openapi.yaml") {
+    fs.copyFileSync(existing, "openapi.yaml");
+  }
   process.exit(0);
 }
 

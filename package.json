@@ -35,7 +35,7 @@
     "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
     "clean:root": "tsx scripts/janitor.ts --apply",
-    "seed:marketplace": "tsx scripts/seed-marketplace.ts",
+    "seed:marketplace": "node scripts/seed-marketplace.mjs",
     "docs:marketplace-bible": "tsx scripts/generate-marketplace-bible.ts",
     "openapi:build": "node scripts/openapi/build.mjs",
     "postman:export": "npx openapi-to-postmanv2 -s openapi.yaml -o postman_collection.json --pretty",
@@ -88,10 +88,11 @@
     "swr": "^2.3.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.0.0",
+    "typescript": "^5.6.0",
     "zod": "^4.1.11",
     "webpack": "^5.101.3",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

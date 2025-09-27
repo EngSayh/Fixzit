@@ -1,51 +1,64 @@
-import { MockDatabase } from '../src/lib/mockDb.js';
+import 'dotenv/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { importTs } from './lib/ts-import.mjs';
 
-// Idempotent seed for demo-tenant marketplace data when using MockDB
-const db = MockDatabase.getInstance();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-function upsert(collection, predicate, doc) {
-  const data = db.getCollection(collection);
-  const idx = data.findIndex(predicate);
-  if (idx >= 0) {
-    data[idx] = { ...data[idx], ...doc, updatedAt: new Date() };
-    db.setCollection(collection, data);
-    return data[idx];
-  } else {
-    const created = { ...doc, _id: Math.random().toString(36).slice(2), createdAt: new Date(), updatedAt: new Date() };
-    data.push(created);
-    db.setCollection(collection, data);
-    return created;
+async function loadSeed() {
+  const preferMongo =
+    (process.env.MARKETPLACE_SEED_DRIVER || '').toLowerCase() === 'mongodb' ||
+    Boolean(process.env.MONGODB_URI);
+  const jsPath = path.resolve(__dirname, './seed-marketplace.js');
+
+  if (preferMongo) {
+    try {
+      const mod = await import(jsPath);
+      const seed = mod.seedMarketplace ?? mod.default ?? mod;
+      if (typeof seed === 'function') {
+        return { seed, mode: 'mongodb' };
+      }
+    } catch (error) {
+      if (error.code && error.code !== 'ERR_MODULE_NOT_FOUND') {
+        throw error;
+      }
+      if (!error.code && !/Cannot find module/.test(error.message)) {
+        throw error;
+      }
+    }
   }
+
+  const tsPath = path.resolve(__dirname, './seed-marketplace.ts');
+  const mod = await importTs(tsPath);
+  const seed = mod.seedMarketplace ?? mod.default ?? mod;
+
+  const mockDbPath = path.resolve(__dirname, '../src/lib/mockDb.ts');
+  const mockDbMod = await importTs(mockDbPath);
+  const mockDb = mockDbMod.MockDatabase?.getInstance?.() ?? new mockDbMod.MockDatabase();
+
+  return { seed, mode: 'mock', mockDb };
 }
 
-function main(){
-  const tenantId = 'demo-tenant';
+const { seed, mode, mockDb } = await loadSeed();
 
-  // Seed synonyms
-  upsert('searchsynonyms', x=>x.locale==='en' && x.term==='ac filter', {
-    locale:'en', term:'ac filter', synonyms:['hvac filter','air filter','فلتر مكيف']
-  });
-  upsert('searchsynonyms', x=>x.locale==='ar' && x.term==='دهان', {
-    locale:'ar', term:'دهان', synonyms:['طلاء','paint','painter']
-  });
-
-  // Seed one demo product
-  upsert('marketplaceproducts', x=>x.tenantId===tenantId && x.slug==='portland-cement-type-1-2-50kg', {
-    tenantId,
-    sku:'CEM-001-50',
-    slug:'portland-cement-type-1-2-50kg',
-    title:'Portland Cement Type I/II — 50kg',
-    brand:'Fixzit Materials',
-    attributes:[{ key:'Standard', value:'ASTM C150' },{ key:'Type', value:'I/II' }],
-    images:[],
-    prices:[{ currency:'SAR', listPrice: 16.5 }],
-    inventories:[{ onHand: 200, leadDays: 2 }],
-    rating:{ avg:4.6, count:123 },
-    searchable:'Portland Cement ASTM C150 50kg Type I/II'
-  });
-
-  console.log('✔ Marketplace seed complete (MockDB)');
+if (typeof seed !== 'function') {
+  throw new Error('Seed module did not export a function named seedMarketplace or default export.');
 }
 
-main();
+const options = {
+  env: process.env.NODE_ENV ?? 'development',
+  databaseUrl: process.env.DATABASE_URL
+};
 
+if (mode === 'mongodb' && process.env.MONGODB_URI) {
+  options.mongodbUri = process.env.MONGODB_URI;
+}
+
+if (mode === 'mock') {
+  options.database = mockDb;
+}
+
+await seed(options);
+
+console.log('✅ Marketplace seed completed');
