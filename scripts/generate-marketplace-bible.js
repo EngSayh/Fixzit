@@ -1,12 +1,26 @@
 const fs = require('fs');
 const path = require('path');
+const { randomUUID } = require('node:crypto');
+
+// Import ESM helper for better path resolution and utilities
+const { createRequire } = require('node:module');
+const require2 = createRequire(__filename);
+
+let marketplaceHelper;
+try {
+  // Try to import ESM helper if available
+  marketplaceHelper = require2('./_shared/marketplace.js');
+} catch {
+  // Fallback to basic functionality if helper not available
+  marketplaceHelper = null;
+}
 
 const OUT_DIR = path.join(process.cwd(), '_artifacts');
-const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.txt');
+const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.md');
 
-function ensureArtifactsDir(dirPath) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
+function ensureArtifactsDir(dirPath, fsModule) {
+  if (!fsModule.existsSync(dirPath)) {
+    fsModule.mkdirSync(dirPath, { recursive: true });
   }
 }
 
@@ -31,26 +45,59 @@ function buildDocumentContent() {
   ].join('\n');
 }
 
-function main() {
-  ensureArtifactsDir(OUT_DIR);
+function main(options = {}) {
+  const {
+    fsModule = fs,
+    forceFailure = false,
+    correlationId = randomUUID(),
+  } = options;
+
+  const envWantsFailure = process.env.FIXZIT_BIBLE_FORCE_WRITE_ERROR === '1';
+  const isTestEnv = (process.env.NODE_ENV ?? '').toLowerCase() === 'test';
+  let shouldForceFailure = forceFailure;
+
+  if (!shouldForceFailure && envWantsFailure) {
+    if (isTestEnv) {
+      shouldForceFailure = true;
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[${correlationId}] Ignoring FIXZIT_BIBLE_FORCE_WRITE_ERROR because NODE_ENV is '${process.env.NODE_ENV ?? ''}'`
+      );
+    }
+  }
+
+  ensureArtifactsDir(OUT_DIR, fsModule);
   const content = buildDocumentContent();
-  fs.writeFileSync(OUT_FILE, content, 'utf8');
+
+  if (shouldForceFailure) {
+    const error = new Error('Forced write failure for tests');
+    // eslint-disable-next-line no-console
+    console.error(`[${correlationId}] Forced write failure:`, error.message);
+    throw error;
+  }
+
+  fsModule.writeFileSync(OUT_FILE, content, 'utf8');
   // eslint-disable-next-line no-console
-  console.log('✔ Marketplace Bible generated at', OUT_FILE);
+  console.log(`[${correlationId}] ✔ Marketplace Bible generated at`, OUT_FILE);
   return OUT_FILE;
 }
 
 if (require.main === module) {
+  const correlationId = randomUUID();
   try {
-    main();
-    process.exit(0);
+    main({ correlationId });
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Failed to generate marketplace bible', error);
-    process.exit(1);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[${correlationId}] Failed to generate marketplace bible:`, message);
+    process.exitCode = 1;
   }
 }
 
 module.exports = {
   main,
+  OUT_DIR,
+  OUT_FILE,
+  buildDocumentContent,
 };

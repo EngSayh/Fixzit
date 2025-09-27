@@ -91,7 +91,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       invoice.payments.push({
         ...data.payment,
         status: "COMPLETED",
-        transactionId: `TXN-${Date.now()}`
+        transactionId: `TXN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`
       });
 
       // Update invoice status if fully paid
