@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import { findProductBySlug } from '@/src/lib/marketplace/search';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Category from '@/src/models/marketplace/Category';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
 
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const context = await resolveMarketplaceContext(request);
     const slug = decodeURIComponent(params.slug);
-    await dbConnect();
+    const client = await db;
     const product = await findProductBySlug(context.orgId, slug);
 
     if (!product) {

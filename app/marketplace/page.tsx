@@ -27,6 +27,7 @@ async function loadHomepageData() {
 export default async function MarketplaceHome() {
   const { categories, featured, carousels } = await loadHomepageData();
   const departments = categories.map(category => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
+  const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
@@ -66,7 +67,7 @@ export default async function MarketplaceHome() {
 
         <section className="mt-12 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-[#0F1111]">Featured for your organisation</h2>
+            <h2 className="text-2xl font-bold" style={{ color: FIXZIT_COLORS.primary }}>Featured for your organisation</h2>
             <a href="/marketplace/search" className="text-sm font-semibold text-[#0061A8] hover:underline">
               View all
             </a>
@@ -84,7 +85,8 @@ export default async function MarketplaceHome() {
               <h3 className="text-xl font-semibold text-[#0F1111]">{carousel.category.name?.en ?? carousel.category.slug}</h3>
               <a
                 href={`/marketplace/search?cat=${carousel.category.slug}`}
-                className="text-sm font-semibold text-[#0061A8] hover:underline"
+                className="text-sm font-semibold hover:underline"
+                style={{ color: FIXZIT_COLORS.primary }}
               >
                 Explore all
               </a>
