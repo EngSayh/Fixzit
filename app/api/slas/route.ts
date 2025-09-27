@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     const sla = await (SLA as any).create({
       tenantId: user.tenantId,
-      code: `SLA-${Date.now()}`,
+      code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
       createdBy: user.id
