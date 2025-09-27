@@ -10,9 +10,25 @@ const patchSchema = z.object({
   priority: z.enum(["Low","Medium","High","Urgent"]).optional()
 });
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }){
+export async function GET(req: NextRequest, { params }: { params: { id: string } }){
   await db;
-  const t = await (SupportTicket as any).findById(params.id);
+  const user = await getSessionUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Validate MongoDB ObjectId format
+  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+  const t = await (SupportTicket as any).findOne({ 
+    _id: params.id, 
+    $or: [
+      { tenantId: user.tenantId },
+      { createdByUserId: user.id },
+      // Allow admins to view any ticket
+      ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
+    ]
+  });
   if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(t);
 }
@@ -24,7 +40,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const data = patchSchema.parse(await req.json());
-  const t = await (SupportTicket as any).findById(params.id);
+  // Validate MongoDB ObjectId format
+  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+  const t = await (SupportTicket as any).findOne({ 
+    _id: params.id, 
+    $or: [
+      { tenantId: user.tenantId },
+      // Allow admins to modify any ticket
+      ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
+    ]
+  });
   if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (data.status && t.status==="New" && !t.firstResponseAt) t.firstResponseAt = new Date();
   Object.assign(t, data);

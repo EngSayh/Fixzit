@@ -1,7 +1,7 @@
 import { WoCreate, WoUpdate } from "./wo.schema";
 import * as repo from "./wo.repo";
 import { audit } from "@/server/utils/audit";
-import { withIdempotency } from "@/server/security/idempotency";
+import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   NEW: ["ASSIGNED","CANCELLED"],
@@ -14,7 +14,8 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 
 export async function create(input: unknown, actorId?: string, ip?: string) {
   const data = WoCreate.parse(input);
-  const wo = await withIdempotency(`wo:create:${data.tenantId}:${data.title}`, () => repo.woCreate(data));
+  const key = createIdempotencyKey("wo:create", { tenantId: data.tenantId, payload: data });
+  const wo = await withIdempotency(key, () => repo.woCreate(data));
   await audit(data.tenantId, actorId, "wo.create", `workOrder:${wo.code}`, { wo }, ip);
   return wo;
 }

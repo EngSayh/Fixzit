@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isMockDB } from '@/src/lib/mongo';
+import { db, isMockDB, getNativeDb } from '@/src/lib/mongo';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
 
       // Test database query only if not mock
       try {
-        const collections = await (db as any).listCollections().toArray();
+        const native = await getNativeDb();
+        const collections = await native.listCollections().toArray();
         healthStatus.database = `connected (${collections.length} collections)`;
       } catch {
         healthStatus.database = 'connected (query failed)';
