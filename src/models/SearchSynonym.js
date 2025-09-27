@@ -1,23 +1,11 @@
 const { Schema, model, models } = require('mongoose');
+const {
+  getMarketplaceMockModelFactory,
+  shouldUseMarketplaceMockModel,
+} = require('./utils/mockModel');
+const { MARKETPLACE_COLLECTIONS } = require('./utils/collectionNames');
 
-const LOCAL_URI_PATTERNS = [/localhost/i, /127\.0\.0\.1/];
-
-function shouldUseMockModel() {
-  const env = process.env.NODE_ENV ?? 'development';
-  if (process.env.USE_REAL_DB === '1') {
-    return false;
-  }
-  if (env === 'production') {
-    return false;
-  }
-
-  const uri = process.env.MONGODB_URI ?? '';
-  if (!uri) {
-    return true;
-  }
-
-  return LOCAL_URI_PATTERNS.some(pattern => pattern.test(uri));
-}
+const COLLECTION_NAME = MARKETPLACE_COLLECTIONS.SYNONYMS;
 
 const SearchSynonymSchema = new Schema(
   {
@@ -30,20 +18,31 @@ const SearchSynonymSchema = new Schema(
 
 SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 
-function loadMockModel() {
-  const mod = require('../lib/mockDb');
-  if (mod && typeof mod.MockModel === 'function') {
-    return mod.MockModel;
+let cachedMockSearchSynonym;
+
+const useMockModel = shouldUseMarketplaceMockModel();
+
+if (useMockModel && !cachedMockSearchSynonym) {
+  cachedMockSearchSynonym = new (getMarketplaceMockModelFactory())(COLLECTION_NAME);
+  if (models && typeof models === 'object') {
+    models.SearchSynonym = cachedMockSearchSynonym;
   }
-  if (typeof mod === 'function') {
-    return mod;
-  }
-  throw new Error('MockModel implementation not found');
 }
 
-const SearchSynonymModel = shouldUseMockModel()
-  ? new (loadMockModel())('searchsynonyms')
-  : (models.SearchSynonym || model('SearchSynonym', SearchSynonymSchema));
+let SearchSynonymModel;
+
+if (useMockModel) {
+  SearchSynonymModel = cachedMockSearchSynonym;
+} else {
+  const existingModel = models.SearchSynonym;
+  const isMongooseModel = Boolean(existingModel?.schema instanceof Schema);
+
+  if (!isMongooseModel && existingModel) {
+    delete models.SearchSynonym;
+  }
+
+  SearchSynonymModel = models.SearchSynonym || model('SearchSynonym', SearchSynonymSchema);
+}
 
 module.exports = SearchSynonymModel;
 module.exports.SearchSynonym = SearchSynonymModel;
