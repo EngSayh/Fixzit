@@ -1,40 +1,40 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import { Send, Bot, User, X } from &apos;lucide-react&apos;;
+import { useState } from 'react';
+import { Send, Bot, User, X } from 'lucide-react';
 
 export default function AIChatPage() {
   const [messages, setMessages] = useState([
     {
-      id: &apos;1',
-      type: &apos;bot&apos;,
-      content: &apos;Hello! I\&apos;m Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?&apos;,
+      id: '1',
+      type: 'bot',
+      content: 'Hello! I\'m Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?',
       timestamp: new Date()
     }
   ]);
-  const [input, setInput] = useState(&apos;');
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = {
-      id: Date.now().toString(),
-      type: 'user&apos; as const,
+      id: crypto.randomUUID(),
+      type: 'user' as const,
       content: input.trim(),
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInput(&apos;');
+    setInput('');
     setIsLoading(true);
 
     // Simulate AI response
     setTimeout(() => {
       const botMessage = {
-        id: (Date.now() + 1).toString(),
-        type: &apos;bot&apos; as const,
-        content: `I understand you&apos;re asking about "${input.trim()}". This is a simulated response from the AI assistant. In a real implementation, this would connect to an AI service to provide intelligent answers about Fixzit features, help articles, and support guidance.`,
+        id: crypto.randomUUID(),
+        type: 'bot' as const,
+        content: "I'm here to help! However, please note that this is a demo response. In a real implementation, this would connect to an AI service to provide actual assistance with your Fixzit questions.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
@@ -43,7 +43,7 @@ export default function AIChatPage() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === &apos;Enter&apos; && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -77,25 +77,25 @@ export default function AIChatPage() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex items-start gap-3 ${message.type === &apos;user&apos; ? &apos;flex-row-reverse&apos; : &apos;'}`}
+                className={`flex items-start gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'user&apos; ? &apos;bg-green-600&apos; : &apos;bg-blue-600&apos;
+                  message.type === 'user' ? 'bg-green-600' : 'bg-blue-600'
                 }`}>
-                  {message.type === &apos;user&apos; ? (
+                  {message.type === 'user' ? (
                     <User className="w-4 h-4 text-white" />
                   ) : (
                     <Bot className="w-4 h-4 text-white" />
                   )}
                 </div>
                 <div className={`max-w-[80%] p-4 rounded-lg ${
-                  message.type === 'user&apos;
-                    ? &apos;bg-green-600 text-white&apos;
-                    : &apos;bg-gray-100 text-gray-900&apos;
+                  message.type === 'user'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-900'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   <p className="text-xs mt-2 opacity-70">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit&apos;, minute: &apos;2-digit&apos; })}
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>
