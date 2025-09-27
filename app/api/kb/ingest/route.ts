@@ -38,7 +38,7 @@ export async function DELETE(req: NextRequest) {
     const url = new URL(req.url);
     const articleId = url.searchParams.get('articleId');
     if (!articleId) return NextResponse.json({ error: 'Missing articleId' }, { status: 400 });
-    await deleteArticleEmbeddings(articleId);
+    await deleteArticleEmbeddings(articleId, (user as any).tenantId || null);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });

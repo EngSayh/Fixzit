@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     const asset = await (Asset as any).create({
       tenantId: user.tenantId,
-      code: `AST-${Date.now()}`,
+      code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
@@ -85,13 +85,10 @@ export async function GET(req: NextRequest) {
     if (!Asset) {
       return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
     }
-    // For testing purposes, allow access without authentication
-    let user = null;
-    try {
-      user = await getSessionUser(req);
-    } catch {
-      // Use mock user for testing
-      user = { id: '1', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' };
+    // Require authentication - no bypass allowed
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);

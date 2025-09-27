@@ -31,7 +31,13 @@ export async function POST(req: NextRequest) {
 
     const scope: any = {
       $and: [
-        { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] },
+        {
+          $or: [
+            ...(user?.tenantId ? [ { tenantId: user.tenantId } ] : []),
+            { tenantId: { $exists: false } },
+            { tenantId: null }
+          ]
+        },
       ]
     };
     if (lang) scope.$and.push({ lang });
@@ -53,12 +59,16 @@ export async function POST(req: NextRequest) {
         },
         {
           $project: {
+            _id: 0,
             articleId: 1,
             chunkId: 1,
             text: 1,
             lang: 1,
             route: 1,
             roleScopes: 1,
+            slug: 1,
+            title: 1,
+            updatedAt: 1,
             score: { $meta: 'vectorSearchScore' }
           }
         }
@@ -90,6 +100,10 @@ function rateLimitAssert(req: NextRequest) {
   if (now - rec.ts > 60_000) { rec.count = 0; rec.ts = now; }
   rec.count += 1;
   rateMap.set(key, rec);
-  if (rec.count > 60) throw new Error('Rate limited');
+  const MAX_RATE_PER_MIN_ENV = Number(process.env.KB_SEARCH_MAX_RATE_PER_MIN);
+  const MAX_RATE_PER_MIN = Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
+    ? Math.floor(MAX_RATE_PER_MIN_ENV)
+    : 60;
+  if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
 

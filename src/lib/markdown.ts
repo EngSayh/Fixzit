@@ -12,12 +12,12 @@ export async function renderMarkdownSanitized(markdown: string): Promise<string>
       a: [ ...(defaultSchema.attributes?.a || []), ['target', 'rel'] ],
       code: [ ...(defaultSchema.attributes?.code || []), ['className'] ]
     }
-  } as any;
+  };
 
   const file = await unified()
     .use(remarkParse)
     .use(remarkRehype)
-    .use(rehypeSanitize, schema)
+    .use(rehypeSanitize, schema as any)
     .use(rehypeStringify)
     .process(markdown || '');
   return String(file);

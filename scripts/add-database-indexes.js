@@ -138,7 +138,12 @@ async function addDatabaseIndexes() {
 
     // KB Embeddings indexes
     console.log('🧠 Adding KB embeddings indexes...');
-    await db.collection('kb_embeddings').createIndex({ articleId: 1, chunkId: 1 }, { unique: true });
+    try {
+      // Prefer tenant-scoped uniqueness to allow same articleId/chunkId across tenants
+      await db.collection('kb_embeddings').createIndex({ tenantId: 1, articleId: 1, chunkId: 1 }, { unique: true, name: 'tenant_article_chunk_unique' });
+    } catch (e) {
+      console.warn('Index create warning (tenant_article_chunk_unique):', e?.message || e);
+    }
     await db.collection('kb_embeddings').createIndex({ route: 1, lang: 1 });
     await db.collection('kb_embeddings').createIndex({ roleScopes: 1 });
     console.log('✅ KB embeddings indexes created');
