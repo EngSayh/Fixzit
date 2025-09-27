@@ -48,12 +48,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'الإشعارات',
     'nav.profile': 'الملف الشخصي',
     'nav.settings': 'الإعدادات',
+    'nav.preferences': 'التفضيلات',
 
     // Common
     'common.search': 'بحث',
     'common.search.placeholder': 'البحث في أوامر العمل، العقارات، المستأجرين...',
     'i18n.filterLanguages': 'ابحث عن اللغات',
     'i18n.filterCurrencies': 'ابحث عن العملات',
+    'i18n.selectLanguageLabel': 'اختر اللغة',
     'i18n.selectCurrencyLabel': 'اختر العملة',
     'a11y.currencySelectorHelp': 'استخدم مفاتيح الأسهم للتنقل، إدخال للتحديد، Esc للإغلاق',
     'common.login': 'تسجيل الدخول',
@@ -243,6 +245,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
     'i18n.filterLanguages': 'Type to filter languages',
     'i18n.filterCurrencies': 'Type to filter currencies',
+    'i18n.selectLanguageLabel': 'Select language',
     'i18n.selectCurrencyLabel': 'Select currency',
     'a11y.currencySelectorHelp': 'Use arrow keys to navigate, Enter to select, Esc to close',
     'common.login': 'Login',
@@ -461,12 +464,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notifications',
     'nav.profile': 'Profil',
     'nav.settings': 'Paramètres',
+    'nav.preferences': 'Préférences',
 
     // Common
     'common.search': 'Rechercher',
     'common.search.placeholder': 'Rechercher des ordres de travail, des propriétés, des locataires...',
     'i18n.filterLanguages': 'Rechercher des langues',
     'i18n.filterCurrencies': 'Rechercher des devises',
+    'i18n.selectLanguageLabel': 'Sélectionner la langue',
     'i18n.selectCurrencyLabel': 'Sélectionner la devise',
     'a11y.currencySelectorHelp': 'Utilisez les flèches pour naviguer, Entrée pour sélectionner, Échap pour fermer',
     'common.login': 'Connexion',
@@ -621,12 +626,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notificações',
     'nav.profile': 'Perfil',
     'nav.settings': 'Configurações',
+    'nav.preferences': 'Preferências',
 
     // Common
     'common.search': 'Pesquisar',
     'common.search.placeholder': 'Pesquisar ordens de trabalho, propriedades, inquilinos...',
     'i18n.filterLanguages': 'Pesquisar idiomas',
     'i18n.filterCurrencies': 'Pesquisar moedas',
+    'i18n.selectLanguageLabel': 'Selecionar idioma',
     'i18n.selectCurrencyLabel': 'Selecionar moeda',
     'a11y.currencySelectorHelp': 'Use as setas para navegar, Enter para selecionar, Esc para fechar',
     'common.login': 'Entrar',
@@ -781,12 +788,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Уведомления',
     'nav.profile': 'Профиль',
     'nav.settings': 'Настройки',
+    'nav.preferences': 'Предпочтения',
 
     // Common
     'common.search': 'Поиск',
     'common.search.placeholder': 'Поиск рабочих заказов, свойств, арендаторов...',
     'i18n.filterLanguages': 'Фильтр языков',
     'i18n.filterCurrencies': 'Фильтр валют',
+    'i18n.selectLanguageLabel': 'Выбрать язык',
     'i18n.selectCurrencyLabel': 'Выбрать валюту',
     'a11y.currencySelectorHelp': 'Используйте стрелки для навигации, Enter для выбора, Esc для закрытия',
     'common.login': 'Вход',
@@ -941,12 +950,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notificaciones',
     'nav.profile': 'Perfil',
     'nav.settings': 'Configuraciones',
+    'nav.preferences': 'Preferencias',
 
     // Common
     'common.search': 'Buscar',
     'common.search.placeholder': 'Buscar órdenes de trabajo, propiedades, inquilinos...',
     'i18n.filterLanguages': 'Filtrar idiomas',
     'i18n.filterCurrencies': 'Filtrar monedas',
+    'i18n.selectLanguageLabel': 'Seleccionar idioma',
     'i18n.selectCurrencyLabel': 'Seleccionar moneda',
     'a11y.currencySelectorHelp': 'Use las flechas para navegar, Enter para seleccionar, Esc para cerrar',
     'common.login': 'Iniciar sesión',
@@ -1077,9 +1088,6 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Cerrado',
   }, // Spanish
   ur: {
-    // TopBar search placeholders
-    'souq.search.placeholder': 'کیٹلاگ، سپلائرز، RFQs، آرڈرز میں تلاش کریں…',
-    'aqar.search.placeholder': 'لسٹنگز، پروجیکٹس، ایجنٹس میں تلاش کریں…',
     // Navigation
     'nav.dashboard': 'ڈیش بورڈ',
     'nav.work-orders': 'کام کے آرڈرز',
@@ -1101,12 +1109,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'نوٹیفیکیشنز',
     'nav.profile': 'پروفائل',
     'nav.settings': 'سیٹنگز',
+    'nav.preferences': 'ترجیحات',
 
     // Common
     'common.search': 'تلاش',
     'common.search.placeholder': 'کام کے آرڈرز، پراپرٹیز، کرایہ داروں میں تلاش کریں...',
     'i18n.filterLanguages': 'زبانیں فلٹر کریں',
     'i18n.filterCurrencies': 'کرنسیاں فلٹر کریں',
+    'i18n.selectLanguageLabel': 'زبان منتخب کریں',
     'i18n.selectCurrencyLabel': 'کرنسی منتخب کریں',
     'a11y.currencySelectorHelp': 'نیویگیٹ کرنے کے لیے تیر کیز، منتخب کرنے کے لیے انٹر، بند کرنے کے لیے ایسک',
     'common.login': 'لاگ ان',
@@ -1237,9 +1247,6 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'بند',
   }, // Urdu
   hi: {
-    // TopBar search placeholders
-    'souq.search.placeholder': 'कैटलॉग, विक्रेता, RFQ, ऑर्डर खोजें…',
-    'aqar.search.placeholder': 'लिस्टिंग, प्रोजेक्ट, एजेंट खोजें…',
     // Navigation
     'nav.dashboard': 'डैशबोर्ड',
     'nav.work-orders': 'कार्य आदेश',
@@ -1261,12 +1268,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'सूचनाएं',
     'nav.profile': 'प्रोफ़ाइल',
     'nav.settings': 'सेटिंग्स',
+    'nav.preferences': 'वरीयताएँ',
 
     // Common
     'common.search': 'खोज',
     'common.search.placeholder': 'कार्य आदेश, संपत्तियां, किरायेदार खोजें...',
     'i18n.filterLanguages': 'भाषाएँ फ़िल्टर करें',
     'i18n.filterCurrencies': 'मुद्राएँ फ़िल्टर करें',
+    'i18n.selectLanguageLabel': 'भाषा चुनें',
     'i18n.selectCurrencyLabel': 'मुद्रा चुनें',
     'a11y.currencySelectorHelp': 'नेविगेट करने के लिए एरो कुंजियाँ, चयन के लिए Enter, बंद करने के लिए Esc',
     'common.login': 'लॉग इन',
@@ -1397,9 +1406,6 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'बंद',
   }, // Hindi
   zh: {
-    // TopBar search placeholders
-    'souq.search.placeholder': '搜索目录、供应商、RFQ、订单…',
-    'aqar.search.placeholder': '搜索房源、项目、经纪人…',
     // Navigation
     'nav.dashboard': '仪表板',
     'nav.work-orders': '工作订单',
@@ -1421,12 +1427,14 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': '通知',
     'nav.profile': '个人资料',
     'nav.settings': '设置',
+    'nav.preferences': '偏好设置',
 
     // Common
     'common.search': '搜索',
     'common.search.placeholder': '搜索工作订单、属性、租户...',
     'i18n.filterLanguages': '筛选语言',
     'i18n.filterCurrencies': '筛选货币',
+    'i18n.selectLanguageLabel': '选择语言',
     'i18n.selectCurrencyLabel': '选择货币',
     'a11y.currencySelectorHelp': '使用方向键导航，回车选择，Esc 关闭',
     'common.login': '登录',
