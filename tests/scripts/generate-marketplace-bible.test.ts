@@ -89,8 +89,8 @@ function runScriptAndCapture(options?: { env?: NodeJS.ProcessEnv }): { status: n
 
 function cleanArtifacts() {
   try {
-    if (fs.existsSync(OUT_FILE)) {
-      fs.unlinkSync(OUT_FILE);
+    if (fs.existsSync(ARTIFACTS_DIR)) {
+      fs.rmSync(ARTIFACTS_DIR, { recursive: true, force: true });
     }
     ensureCoverageSupport();
   } catch {
