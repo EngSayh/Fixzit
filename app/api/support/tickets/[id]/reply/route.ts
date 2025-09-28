@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const t = await (SupportTicket as any).findOne({ 
     _id: params.id, 
     $or: [
-      { tenantId: user?.tenantId },
+      { orgId: user?.orgId },
       { createdByUserId: user?.id },
       // Allow admins to reply to any ticket
       ...(user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])

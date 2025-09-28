@@ -29,10 +29,7 @@ if (!conn) {
   conn = cached.promise;
 }
 
-export async function connectMongo(): Promise<typeof mongoose | null> {
-  if (process.env.USE_MOCK_DB === 'true') {
-    return null;
-  }
+export async function connectMongo(): Promise<typeof mongoose> {
   if (cached.conn) {
     return cached.conn;
   }
@@ -44,14 +41,9 @@ export async function connectMongo(): Promise<typeof mongoose | null> {
 }
 
 // Legacy compatibility for existing code
-
 export const db = conn;
-export const isMockDB = process.env.USE_MOCK_DB === 'true' || !uri;
 
 export async function getNativeDb(): Promise<any> {
-  if (isMockDB) {
-    return await db;
-  }
   const m: any = await db;
   const connection = m?.connection || mongoose.connection;
   if (!connection || !connection.db) {

@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { isMockDB } from './mongo';
+// Removed isMockDB import - using MongoDB only
 
 export interface SystemCheck {
   id: string;

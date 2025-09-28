@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const TenantType = ["INDIVIDUAL", "COMPANY", "GOVERNMENT"] as const;
 const LeaseStatus = ["ACTIVE", "EXPIRED", "TERMINATED", "RENEWAL_PENDING", "UNDER_NEGOTIATION"] as const;

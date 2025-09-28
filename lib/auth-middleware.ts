@@ -6,7 +6,7 @@ export interface AuthenticatedUser {
   email: string;
   name?: string;
   role: string;
-  tenantId: string;
+  orgId: string;
 }
 
 export async function getSessionUser(req: NextRequest): Promise<AuthenticatedUser> {
@@ -34,7 +34,7 @@ export async function getSessionUser(req: NextRequest): Promise<AuthenticatedUse
     email: payload.email,
   // name: payload.name || 'User', // Removed, not present in AuthToken
     role: payload.role,
-    tenantId: payload.tenantId
+    orgId: payload.orgId
   };
 }
 

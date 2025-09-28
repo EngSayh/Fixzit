@@ -1,5 +1,5 @@
 import { InvoiceCreate, InvoicePost } from "./invoice.schema";
-import { connectMongo, isMockDB } from "@/src/lib/mongo";
+import { connectMongo } from "@/src/lib/mongo";
 import { Invoice } from "@/src/server/models/Invoice";
 
 // Mock implementation retained for optional mock mode

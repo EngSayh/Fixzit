@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const CmsPageSchema = new Schema({
   tenantId: { type: String }, // null/undefined => global

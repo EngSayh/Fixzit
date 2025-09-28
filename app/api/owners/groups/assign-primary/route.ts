@@ -33,12 +33,12 @@ export async function POST(req: NextRequest) {
     
     // Tenant isolation - ensure group belongs to user's org
     const g = await OwnerGroup.findOneAndUpdate(
-      { buildingId: body.buildingId, orgId: user.tenantId }, 
+      { buildingId: body.buildingId, orgId: user.orgId }, 
       { 
         buildingId: body.buildingId, 
         ownerIds: body.ownerIds, 
         primaryContactUserId: body.primaryContactUserId,
-        orgId: user.tenantId,
+        orgId: user.orgId,
         updatedBy: user.id,
         updatedAt: new Date()
       }, 

@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const SLAType = ["RESPONSE_TIME", "RESOLUTION_TIME", "UPTIME", "AVAILABILITY", "MAINTENANCE"] as const;
 const SLAPriority = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;

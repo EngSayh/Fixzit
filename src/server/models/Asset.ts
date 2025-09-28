@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 // Asset types for equipment registry
 const AssetType = ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"] as const;

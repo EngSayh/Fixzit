@@ -91,7 +91,7 @@ const protectedMarketplaceActions = [
  *   - For protected marketplace actions, requires `fixzit_auth` cookie; on success attaches `x-user` and continues; on failure redirects to /login.
  * - For non-API protected routes:
  *   - If no `fixzit_auth` cookie: redirects unauthenticated requests under /fm/ to /login; otherwise allows public access.
- *   - If a token is present: decodes JWT payload (id, email, role, tenantId), enforces admin RBAC for /admin/* (only SUPER_ADMIN, ADMIN, CORPORATE_ADMIN allowed), and:
+ *   - If a token is present: decodes JWT payload (id, email, role, orgId), enforces admin RBAC for /admin/* (only SUPER_ADMIN, ADMIN, CORPORATE_ADMIN allowed), and:
  *     - Redirects root or /login to role-specific destinations (fm dashboard, properties, marketplace).
  *     - Attaches `x-user` header for FM routes and continues.
  *   - Invalid JWTs redirect /fm/, /aqar/, and /souq/ requests to /login; other paths continue.
@@ -150,7 +150,7 @@ export async function middleware(request: NextRequest) {
           id: payload.id,
           email: payload.email,
           role: payload.role,
-          tenantId: payload.tenantId
+          orgId: payload.orgId
         };
 
         // Add user info to request headers for API routes
@@ -187,7 +187,7 @@ export async function middleware(request: NextRequest) {
         id: payload.id,
         email: payload.email,
         role: payload.role,
-        tenantId: payload.tenantId
+        orgId: payload.orgId
       };
 
       // Protect admin UI with RBAC
