@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { HelpArticle } from "@/src/server/models/HelpArticle";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -13,7 +13,7 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
-  await db;
+  await connectDb();
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN"].includes(user.role)){
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

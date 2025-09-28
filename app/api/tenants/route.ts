@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Tenant } from "@/src/server/models/Tenant";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -68,7 +68,7 @@ const createTenantSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const data = createTenantSchema.parse(await req.json());
 
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
       // Use mock user for testing
       user = { id: '1', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' };
     }
-    await db;
+    await connectDb();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);

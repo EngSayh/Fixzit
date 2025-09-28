@@ -36,7 +36,7 @@ type PaymentRequestInput = {
     zip: string;
   };
   description: string;
-  invoiceId?: string;
+  invoiceId: string;
   returnUrl: string;
   callbackUrl: string;
 };
@@ -54,7 +54,7 @@ export async function createPaymentPage(request: PaymentRequestInput): Promise<P
       profile_id: PAYTABS_CONFIG.profileId,
       tran_type: 'sale',
       tran_class: 'ecom',
-      cart_id: request.invoiceId || `CART-${Date.now()}`,
+      cart_id: request.invoiceId,
       cart_currency: request.currency,
       cart_amount: request.amount.toFixed(2),
       cart_description: request.description,

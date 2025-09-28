@@ -1,11 +1,11 @@
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { HelpArticle } from "@/src/server/models/HelpArticle";
 import Link from "next/link";
 
 export const revalidate = 60;
 
 export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
-  await db;
+  await connectDb();
   const a = await (HelpArticle as any).findOne({ slug: params.slug });
   if (!a || a.status!=="PUBLISHED"){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;

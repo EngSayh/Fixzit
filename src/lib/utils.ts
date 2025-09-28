@@ -1,10 +1,20 @@
 export function generateSlug(input: string): string {
-  return (input || "")
+  const src = (input || "");
+  const leftTrimmed = src.replace(/^\s+/, "");
+  const rightTrimmed = src.replace(/\s+$/, "");
+  const hadLeadingHyphen = leftTrimmed.startsWith("-");
+  const hadTrailingHyphen = rightTrimmed.endsWith("-");
+
+  let slug = src
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 100);
+
+  if (!hadLeadingHyphen) slug = slug.replace(/^-+/, "");
+  if (!hadTrailingHyphen) slug = slug.replace(/-+$/, "");
+  return slug;
 }
 
