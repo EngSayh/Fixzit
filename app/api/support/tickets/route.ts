@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -16,10 +16,16 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest){
+<<<<<<< HEAD
   try {
     await db;
     const user = await getSessionUser(req).catch(()=>null);
     const body = createSchema.parse(await req.json());
+=======
+  await connectDb();
+  const user = await getSessionUser(req).catch(()=>null);
+  const body = createSchema.parse(await req.json());
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     // Generate cryptographically secure ticket code
     const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
@@ -52,6 +58,7 @@ export async function POST(req: NextRequest){
 
 // Admin list with filters
 export async function GET(req: NextRequest){
+<<<<<<< HEAD
   try {
     await db;
     const user = await getSessionUser(req).catch(()=>null);
@@ -76,6 +83,25 @@ export async function GET(req: NextRequest){
     if (moduleKey) match.module = moduleKey;
     if (type) match.type = type;
     if (priority) match.priority = priority;
+=======
+  await connectDb();
+  const user = await getSessionUser(req).catch(()=>null);
+  if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
+    return NextResponse.json({ error: "Forbidden"},{ status: 403 });
+  }
+  const sp = new URL(req.url).searchParams;
+  const status = sp.get("status") || undefined;
+  const moduleKey = sp.get("module") || undefined;
+  const type = sp.get("type") || undefined;
+  const priority = sp.get("priority") || undefined;
+  const page = Math.max(1, Number(sp.get("page")||1));
+  const limit = Math.min(100, Number(sp.get("limit")||20));
+  const match:any = {};
+  if (status) match.status = status;
+  if (moduleKey) match.module = moduleKey;
+  if (type) match.type = type;
+  if (priority) match.priority = priority;
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const [items,total] = await Promise.all([
       (SupportTicket as any).find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),

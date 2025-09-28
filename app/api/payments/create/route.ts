@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentPage } from '@/src/lib/paytabs';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
+<<<<<<< HEAD
 import { db } from '@/src/lib/mongo';
 import { z } from 'zod';
 import { createSecureResponse } from '@/src/server/security/headers';
@@ -12,6 +13,9 @@ import {
   internalServerError,
   handleApiError 
 } from '@/src/server/utils/errorResponses';
+=======
+import { connectDb } from '@/src/lib/mongo';
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +31,15 @@ export async function POST(req: NextRequest) {
     const body = paymentSchema.parse(await req.json());
     const { invoiceId } = body;
 
+<<<<<<< HEAD
     await db;
+=======
+    if (!invoiceId) {
+      return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
+    }
+
+    await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
     const invoice = await (Invoice as any).findOne({ 
       _id: invoiceId, 
       tenantId: user.tenantId 
