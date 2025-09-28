@@ -7,28 +7,22 @@ const BRAND_COLORS = Object.freeze({
   accent: '#FFB400',
 });
 
-// Pre-compute brand color set for O(1) lookup performance
-const BRAND_COLOR_SET = new Set(Object.values(BRAND_COLORS).map(color => color.toLowerCase()));
-
-// Compute build metadata once at module load for consistency
-const BUILD_TIMESTAMP = new Date().toISOString();
-const BUILD_FINGERPRINT = createHash('sha256')
-  .update(`${pkg.name}@${pkg.version}:${BUILD_TIMESTAMP}`)
-  .digest('hex');
-
-const BUILD_METADATA = Object.freeze({
-  name: pkg.name,
-  version: pkg.version,
-  timestamp: BUILD_TIMESTAMP,
-  fingerprint: BUILD_FINGERPRINT,
-});
-
 function getBuildMetadata() {
-  return BUILD_METADATA;
+  const timestamp = new Date().toISOString();
+  const fingerprint = createHash('sha256')
+    .update(`${pkg.name}@${pkg.version}:${timestamp}`)
+    .digest('hex');
+
+  return Object.freeze({
+    name: pkg.name,
+    version: pkg.version,
+    timestamp,
+    fingerprint,
+  });
 }
 
 function getBrandPalette() {
-  return BRAND_COLORS;
+  return { ...BRAND_COLORS };
 }
 
 function verifyBrandColor(hex) {
@@ -36,8 +30,8 @@ function verifyBrandColor(hex) {
     return false;
   }
 
-  const normalized = hex.trim().toLowerCase();
-  return BRAND_COLOR_SET.has(normalized);
+  const normalized = hex.trim().toUpperCase();
+  return Object.values(BRAND_COLORS).some(color => color === normalized);
 }
 
 module.exports = {
