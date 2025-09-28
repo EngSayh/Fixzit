@@ -6,12 +6,12 @@ import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import HelpWidget from './HelpWidget';
+import PreferenceBroadcast from './PreferenceBroadcast';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
 import dynamic from 'next/dynamic';
 const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
-import PreferenceBroadcast from './PreferenceBroadcast';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { TopBarProvider } from '@/src/contexts/TopBarContext';
@@ -93,7 +93,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading...</p>
+                  <p className="text-gray-600">{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
                 </div>
               </div>
             </div>
