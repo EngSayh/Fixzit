@@ -26,17 +26,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Update invoice based on payment result
-    if (payment_result.response_status === 'A' && verification.payment_result.response_status === 'A') {
+    if (payment_result?.response_status === 'A' && verification?.payment_result?.response_status === 'A') {
       // Payment successful
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
         amount: parseFloat(body.cart_amount),
-        method: body.payment_info.payment_method,
+        method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
         transactionId: tran_ref,
-        notes: `Payment via ${body.payment_info.card_scheme || body.payment_info.payment_method}`
+        notes: `Payment via ${body.payment_info?.card_scheme || body.payment_info?.payment_method || 'PayTabs'}`
       });
 
       invoice.history.push({
