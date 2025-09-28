@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/src/lib/mongo";
-import { Asset } from "@/src/server/models/Asset";
+
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -48,12 +48,22 @@ const createAssetSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.ASSET_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
+    const Asset = AssetMod && (AssetMod as any).Asset;
+    if (!Asset) {
+      return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
+    }
     const user = await getSessionUser(req);
     await connectDb();
 
     const data = createAssetSchema.parse(await req.json());
 
-    const asset = await Asset.create({
+    const asset = await (Asset as any).create({
       tenantId: (user as any)?.orgId,
       code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
@@ -68,6 +78,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    if (process.env.ASSET_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
+    const Asset = AssetMod && (AssetMod as any).Asset;
+    if (!Asset) {
+      return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
+    }
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
     if (!user) {
@@ -112,3 +132,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
