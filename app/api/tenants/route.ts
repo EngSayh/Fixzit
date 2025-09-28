@@ -67,8 +67,8 @@ const createTenantSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
     await connectDb();
+    const user = await getSessionUser(req);
 
     const data = createTenantSchema.parse(await req.json());
 
@@ -87,15 +87,13 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // For testing purposes, allow access without authentication
-    let user = null;
+    await connectDb();
+    let user;
     try {
       user = await getSessionUser(req);
-    } catch {
-      // Use mock user for testing
-      user = { id: '1', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' };
+    } catch (error: any) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    await connectDb();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
