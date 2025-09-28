@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { RFQ } from "@/src/server/models/RFQ";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const rfq = await (RFQ as any).findOne({
       _id: params.id,

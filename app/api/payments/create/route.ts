@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentPage } from '@/src/lib/paytabs';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
     }
 
-    await db;
+    await connectDb();
     const invoice = await (Invoice as any).findOne({ 
       _id: invoiceId, 
       tenantId: user.tenantId 

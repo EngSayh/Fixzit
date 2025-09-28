@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { RFQ } from "@/src/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -72,7 +72,7 @@ const createRFQSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const data = createRFQSchema.parse(await req.json());
 
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);

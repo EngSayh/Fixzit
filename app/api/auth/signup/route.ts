@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { User } from "@/src/server/models/User";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -26,7 +26,7 @@ const signupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await db;
+    await connectDb();
 
     const body = signupSchema.parse(await req.json());
 
