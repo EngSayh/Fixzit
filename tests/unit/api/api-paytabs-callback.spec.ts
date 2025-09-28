@@ -55,6 +55,10 @@ async function resolvePOST(): Promise<void> {
 // We will mock modules consumed by the route.
 // The route imports: generateZATCAQR from '@/lib/zatca', validateCallbackRaw from '@/src/lib/paytabs', and NextResponse from 'next/server'.
 // We mock generateZATCAQR and validateCallbackRaw to isolate logic.
+ */
+
+import { describe, test, it, expect, jest, beforeEach, beforeAll, afterEach } from '@jest/globals';
+
 // We partially mock next/server to intercept NextResponse.json calls.
 
 const mockGenerateZATCAQR = jest.fn(async () => ({ base64: 'mock-qr-base64' }));
