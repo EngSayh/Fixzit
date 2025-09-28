@@ -24,18 +24,22 @@ const ready = Number(process.env.READY_STATE ?? '0');
 try {
   // Ensure connection object and readyState are mutable
   if (!mongoose.connection) {
-    mongoose.connection = {} as any;
+    Object.defineProperty(mongoose, 'connection', {
+      value: {},
+      writable: true,
+      configurable: true
+    });
   }
   Object.defineProperty(mongoose.connection, 'readyState', { value: ready, writable: true, configurable: true });
 } catch {
   // fallback assignment
-  mongoose.connection.readyState = ready;
+  Object.defineProperty(mongoose.connection, 'readyState', { value: ready, writable: true, configurable: true });
 }
 
 // Patch set(strictQuery, true)
 const originalSet = mongoose.set;
-mongoose.set = (key: string, value: any) => {
-  setCalls.push([key, value]);
+mongoose.set = function (...args: any[]): typeof mongoose {
+  setCalls.push(args as [string, any]);
   return mongoose as any;
 };
 
@@ -45,10 +49,10 @@ const rejectMessage = process.env.MOCK_CONNECT_REJECT;
 const deferConnect = process.env.DEFER_CONNECT === '1';
 let deferResolve: ((v: any) => void) | undefined;
 
-mongoose.connect = (uri: string, opts: AnyRec) => {
+mongoose.connect = function (uri: string, options?: any): Promise<typeof mongoose> {
   connectCalls++;
   capturedUri = uri;
-  capturedOptions = opts;
+  capturedOptions = options;
   if (rejectMessage) {
     return Promise.reject(new Error(rejectMessage));
   }
@@ -57,7 +61,7 @@ mongoose.connect = (uri: string, opts: AnyRec) => {
       deferResolve = resolve;
     });
   }
-  return Promise.resolve(resultToken);
+  return Promise.resolve(resultToken as any);
 };
 
 async function run() {

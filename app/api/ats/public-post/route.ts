@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
+import { rateLimit } from '@/src/server/security/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,15 +13,11 @@ export async function POST(req: NextRequest) {
 
     await connectMongo();
     const body = await req.json();
-<<<<<<< HEAD
-    const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-=======
     // Basic rate limiting for public endpoint
     const rl = await rateLimit(`ats:public:${req.ip ?? '0'}`, 10, 60_000);
     if (!rl.allowed) return NextResponse.json({ success:false, error:'Rate limit' }, { status: 429 });
     const platformOrg = process.env.PLATFORM_ORG_ID || 'fixzit-platform';
     // TODO: validate with zod before use
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
     const baseSlug = generateSlug(body.title || 'job');
     let slug = baseSlug;
     let counter = 1;

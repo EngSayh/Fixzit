@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken } from '@/src/lib/auth';
 
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  name: string;
+  name?: string;
   role: string;
   tenantId: string;
 }
@@ -32,7 +32,7 @@ export async function getSessionUser(req: NextRequest): Promise<AuthenticatedUse
   return {
     id: payload.id,
     email: payload.email,
-    name: payload.name || 'User',
+  // name: payload.name || 'User', // Removed, not present in AuthToken
     role: payload.role,
     tenantId: payload.tenantId
   };

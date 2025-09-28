@@ -6,24 +6,9 @@ import { requireAbility } from "@/src/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
 import { WOPriority } from "@/src/server/work-orders/wo.schema";
 
-<<<<<<< HEAD
-export async function GET(req: NextRequest, { params }: { params: { id: string }}) {
-  await db;
-  const user = await requireAbility("VIEW")(req);
-  if (user instanceof NextResponse) return user as any;
-  if (!user?.tenantId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  // Validate MongoDB ObjectId format
-  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
-  }
-  const wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
-=======
 export async function GET(_req: NextRequest, { params }: { params: { id: string }}) {
   await connectDb();
   const wo = await (WorkOrder as any).findById(params.id);
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
   if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(wo);
 }
