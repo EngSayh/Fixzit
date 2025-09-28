@@ -29,7 +29,7 @@ export async function create(input: z.infer<typeof InvoiceCreate>) {
   });
 }
 
-export async function list(tenantId: string, q?:string, status?:string) {
+export async function list(tenantId: string, q?:string, status?:string, _type?:string) {
   return prisma.invoice.findMany({
     where: {
       tenantId,
@@ -44,8 +44,10 @@ export async function list(tenantId: string, q?:string, status?:string) {
 }
 
 export async function setStatus(id: string, tenantId: string, status: "POSTED"|"VOID") {
-  const res = await prisma.invoice.updateMany({ where: { id, tenantId }, data: { status }});
-  if (res.count === 0) throw new Error("Not found or not authorized");
+  const invoice = await prisma.invoice.findUnique({ where: { id } });
+  if (!invoice) throw new Error("Invoice not found");
+  if (invoice.tenantId !== tenantId) throw new Error("Not authorized");
+  await prisma.invoice.update({ where: { id }, data: { status } });
   return prisma.invoice.findFirstOrThrow({ where: { id, tenantId }, include: { lines: true } });
 }
 

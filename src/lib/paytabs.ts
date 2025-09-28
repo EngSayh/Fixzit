@@ -141,9 +141,13 @@ export function validateCallback(payload: any, signature: string): boolean {
   }
   try {
     const calculatedSignature = generateSignature(payload);
-    if (calculatedSignature.length !== signature.length) return false;
-    const calculatedBuffer = Buffer.from(calculatedSignature, 'hex');
-    const signatureBuffer = Buffer.from(signature, 'hex');
+    let calculatedBuffer = Buffer.from(calculatedSignature, 'hex');
+    let signatureBuffer = Buffer.from(signature, 'hex');
+    // If lengths differ, compare against a dummy buffer to avoid timing signals
+    if (calculatedBuffer.length !== signatureBuffer.length) {
+      const dummy = Buffer.alloc(32, 0);
+      return timingSafeEqual(dummy, dummy) && false;
+    }
     return timingSafeEqual(calculatedBuffer, signatureBuffer);
   } catch (error) {
     console.error('Signature validation error:', error);
