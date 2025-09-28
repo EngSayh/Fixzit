@@ -32,9 +32,8 @@ CandidateSchema.statics.findByEmail = async function(orgId: string, email: strin
   return await this.findOne({ orgId, email });
 };
 
-const CandidateModel = models.Candidate || model("Candidate", CandidateSchema);
-
 // One candidate per email within an org
 CandidateSchema.index({ orgId: 1, email: 1 }, { unique: true });
 
+const CandidateModel = models.Candidate || model("Candidate", CandidateSchema);
 export const Candidate = CandidateModel;
