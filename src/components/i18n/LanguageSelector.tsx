@@ -26,8 +26,8 @@ interface LanguageSelectorProps {
  *
  * Renders a button that opens a searchable list of predefined languages. Allows choosing a language which calls the translation context's setter (when available), updates document `dir` and `lang` immediately to reflect RTL/LTR changes, and falls back to persisting the choice in localStorage + page reload if the translation context is absent or an error occurs.
  *
- * @param variant - UI density variant; `'default'` shows native name and code badge, `'compact'` shows a minimal code-only display.
- * @returns A React element containing the language selector trigger and dropdown.
+ * @param {'default' | 'compact'} [variant='default'] - UI density variant; `'default'` shows native name and code badge, `'compact'` shows a minimal code-only display.
+ * @returns {JSX.Element} A React element containing the language selector trigger and dropdown.
  */
 export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
   const [open, setOpen] = useState(false);
