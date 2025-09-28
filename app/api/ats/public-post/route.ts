@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
+import { rateLimit } from '@/src/server/security/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
     await db;
     const body = await req.json();
-    // TODO: add rate limiting + CAPTCHA
+    // Basic rate limiting for public endpoint
+    const rl = rateLimit(`ats:public:${req.ip ?? '0'}`, 10, 60_000);
+    if (!rl.allowed) return NextResponse.json({ success:false, error:'Rate limit' }, { status: 429 });
     const platformOrg = process.env.PLATFORM_ORG_ID || 'fixzit-platform';
     // TODO: validate with zod before use
     const baseSlug = generateSlug(body.title || 'job');
