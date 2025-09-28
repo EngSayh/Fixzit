@@ -56,7 +56,6 @@ const mockService = new MockInvoiceService();
 export async function create(input: unknown, actorId?: string, ip?: string) {
   const data = InvoiceCreate.parse(input);
 
-  if (isMockDB) {
     return mockService.create(data);
   }
 
@@ -97,7 +96,6 @@ export async function create(input: unknown, actorId?: string, ip?: string) {
 }
 
 export async function list(tenantId: string, q?: string, status?: string) {
-  if (isMockDB) {
     return mockService.list(tenantId, q, status);
   }
 
@@ -129,7 +127,6 @@ export async function list(tenantId: string, q?: string, status?: string) {
 export async function post(tenantId: string, id: string, input: unknown, actorId?: string, ip?: string) {
   const data = InvoicePost.parse(input);
 
-  if (isMockDB) {
     return mockService.setStatus(id, data.action === 'POST' ? 'SENT' : 'CANCELLED');
   }
 
@@ -201,5 +198,3 @@ function computeTotals(lines: Array<{ qty: number; unitPrice: number; vatRate: n
 
 function round(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-

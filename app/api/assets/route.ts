@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const data = createAssetSchema.parse(await req.json());
 
     const asset = await Asset.create({
-      tenantId: user.orgId,
+      tenantId: (user as any)?.orgId,
       code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     const propertyId = searchParams.get("propertyId");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: any = { tenantId: (user as any)?.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;

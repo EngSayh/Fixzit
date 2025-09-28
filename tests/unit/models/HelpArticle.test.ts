@@ -3,11 +3,9 @@
  * Framework: Playwright Test (@playwright/test)
  *
  * Focus: Validate behavior introduced/modified in the HelpArticle model.
- * - Branching: exports MockModel when isMockDB=true, Mongoose model otherwise.
  * - Schema: required fields, defaults, enums, indexes, timestamps.
  *
  * Notes:
- * - isMockDB = (String(process.env.USE_MOCK_DB).toLowerCase() === 'true') || !process.env.MONGODB_URI
  * - We control branches by spawning isolated Node processes with tsx loader.
  */
  
@@ -28,7 +26,6 @@ const modelPath = path.resolve(projectRoot, "src/server/models/HelpArticle.ts");
  */
 async function runIsolatedImport(env: Record<string, string | undefined>) {
   const code = `
-    // Environment controls for isMockDB in src/lib/mongo.ts
     ${Object.entries(env)
       .map(([k, v]) => (v === undefined ? `delete process.env["${k}"];` : `process.env["${k}"] = ${JSON.stringify(v)};`))
       .join("\n")}
@@ -93,7 +90,6 @@ async function runIsolatedImport(env: Record<string, string | undefined>) {
 }
  
 test.describe("HelpArticle model - branch selection", () => {
-  test("defaults to mock branch when MONGODB_URI is unset (isMockDB=true)", async () => {
     const result = await runIsolatedImport({
       MONGODB_URI: undefined,
       USE_MOCK_DB: undefined,
@@ -103,7 +99,6 @@ test.describe("HelpArticle model - branch selection", () => {
     expect(result.hasFindOne).toBeTruthy();
   });
  
-  test("uses mongoose branch when MONGODB_URI is set (isMockDB=false)", async () => {
     const result = await runIsolatedImport({
       MONGODB_URI: "mongodb://localhost:27017/fake",
       USE_MOCK_DB: undefined,
@@ -164,9 +159,7 @@ test.describe("HelpArticle model - schema shape (mongoose branch)", () => {
 });
  
 test.describe("HelpArticle source integrity checks", () => {
-  test("uses 'helparticles' collection in MockModel", async () => {
     const src = await fs.readFile(modelPath, "utf8");
-    expect(src).toContain(`new MockModel('helparticles')`);
   });
  
   test("schema contains the expected fields", async () => {

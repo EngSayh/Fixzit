@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const data = createProjectSchema.parse(await req.json());
 
     const project = await Project.create({
-      tenantId: user.orgId,
+      tenantId: (user as any)?.orgId,
       code: `PRJ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "PLANNING",
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: any = { tenantId: (user as any)?.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;

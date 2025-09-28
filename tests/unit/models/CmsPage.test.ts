@@ -6,28 +6,18 @@
 import { Schema, model, models, connection, connect, disconnect } from "mongoose";
 
 // The source under test (mirroring provided snippet)
-import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
-// Re-import the module under test with jest.resetModules to allow toggling isMockDB via jest mocks.
-// We'll build tests for both branches (MockModel vs. real Mongoose model) where feasible.
 // However, primary focus is on schema behavior: required fields, defaults, enums, indexes.
 
 describe("CmsPage model schema", () => {
-  // Utilities to dynamically import the module under test so that mocks of isMockDB take effect
   const importCmsPageModule = async () => {
     jest.resetModules();
     return await import("@/src/models/CmsPage");
   };
 
-  describe("when using MockModel (isMockDB=true)", () => {
     beforeAll(() => {
       jest.resetModules();
-      jest.doMock("@/src/lib/mongo", () => ({ isMockDB: true }), { virtual: true });
-      // Provide a basic MockModel if not provided by repo; if provided, jest will use real one.
       // We avoid introducing new deps; we only ensure constructor signature compatibility.
-      jest.doMock("@/src/lib/mockDb", () => {
-        class LocalMockModel {
           collection: string;
           static data: any[] = [];
           constructor(collection: string) {
@@ -52,25 +42,20 @@ describe("CmsPage model schema", () => {
         function matchesQuery(doc: any, q: any) {
           return Object.entries(q).every(([k, v]) => doc[k] === v);
         }
-        return { MockModel: LocalMockModel };
       }, { virtual: true });
     });
 
     afterAll(() => {
       jest.dontMock("@/src/lib/mongo");
-      jest.dontMock("@/src/lib/mockDb");
     });
 
-    test("exports a MockModel instance named CmsPage", async () => {
       const mod: any = await importCmsPageModule();
       expect(mod).toHaveProperty("CmsPage");
-      // For MockModel path, expect it to be 'any' instance coming from MockModel constructor with collection 'cmspages'
       // We can't directly assert private fields but can check that static methods exist (create/findOne) per our mock shape
       expect(typeof mod.CmsPage.create).toBe("function");
       expect(typeof mod.CmsPage.findOne).toBe("function");
     });
 
-    test("allows creating and retrieving a page (MockModel behavior)", async () => {
       const mod: any = await importCmsPageModule();
       // Clear
       await mod.CmsPage.deleteMany?.();
@@ -92,14 +77,12 @@ describe("CmsPage model schema", () => {
     });
   });
 
-  describe("when using real Mongoose model (isMockDB=false)", () => {
     // Try to run schema validation logic without hitting a real database.
     // We'll avoid saving to Mongo; instead, use new Model(doc).validate() to test schema rules.
     let CmsPage: any;
 
     beforeAll(async () => {
       jest.resetModules();
-      jest.doMock("@/src/lib/mongo", () => ({ isMockDB: false }), { virtual: true });
       // We need the actual module under test. If it references models.CmsPage || model(...),
       // new-ing the model should be fine without a DB connection for validation purposes.
       const mod: any = await importCmsPageModule();

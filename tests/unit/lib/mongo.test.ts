@@ -8,7 +8,6 @@
  * - They use common APIs (describe/test/expect) and runtime-detect jest/vi for mocks and resetModules.
  *
  * Focus: validate environment gating, singleton connection caching, native DB accessor behavior,
- * and MockDB API surface. External dependencies (mongoose) are mocked.
  */
 
 const path = require('path');
@@ -66,14 +65,12 @@ describe('lib/mongo connection management', () => {
     cleanupEnv();
   });
 
-  test('isMockDB is true when USE_MOCK_DB=true regardless of MONGODB_URI', async () => {
     setEnv({ USE_MOCK_DB: 'true', MONGODB_URI: 'mongodb://real-host/db' });
     await api.resetModules();
 
     mockMongoose(() => ({}));
 
     const mod = await importUnderTest();
-    expect(mod.isMockDB).toBe(true);
 
     const conn = await mod.ensureConnection();
     expect(conn).toBeTruthy();
@@ -83,26 +80,22 @@ describe('lib/mongo connection management', () => {
     expect(awaitedDb).toBe(conn);
   });
 
-  test('USE_MOCK_DB case-insensitivity (TRUE => isMockDB true)', async () => {
     setEnv({ USE_MOCK_DB: 'TRUE', MONGODB_URI: 'mongodb://real-host/db' });
     await api.resetModules();
 
     mockMongoose(() => ({}));
 
     const mod = await importUnderTest();
-    expect(mod.isMockDB).toBe(true);
     const conn = await mod.ensureConnection();
     expect(conn.readyState).toBe(1);
   });
 
-  test('isMockDB is true when MONGODB_URI is empty and USE_MOCK_DB not set', async () => {
     setEnv({ USE_MOCK_DB: '', MONGODB_URI: '' });
     await api.resetModules();
 
     mockMongoose(() => ({}));
 
     const mod = await importUnderTest();
-    expect(mod.isMockDB).toBe(true);
 
     const conn = await mod.ensureConnection();
     expect(conn).toBeTruthy();
@@ -133,7 +126,6 @@ describe('lib/mongo connection management', () => {
     mockMongoose(() => fakeMongoose);
 
     const mod = await importUnderTest();
-    expect(mod.isMockDB).toBe(false);
 
     const c1 = await mod.ensureConnection();
     if (connectMock.mock) {
@@ -160,7 +152,6 @@ describe('lib/mongo connection management', () => {
     mockMongoose(() => undefined);
 
     const mod = await importUnderTest();
-    expect(mod.isMockDB).toBe(false);
     await expect(mod.ensureConnection()).rejects.toThrow('Mongoose is not available in this runtime');
   });
 
@@ -201,7 +192,6 @@ describe('lib/mongo connection management', () => {
     await expect(mod.getNativeDb()).rejects.toThrow('Mongoose connected but native db is unavailable');
   });
 
-  test('MockDB.collection provides CRUD-like methods with expected shapes', async () => {
     setEnv({ USE_MOCK_DB: 'true' });
     await api.resetModules();
     mockMongoose(() => ({}));

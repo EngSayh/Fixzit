@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
 
 const InvoiceStatus = ["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"] as const;
 const InvoiceType = ["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"] as const;
@@ -188,6 +187,4 @@ InvoiceSchema.index({ tenantId: 1, 'zatca.status': 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 
-export const Invoice = isMockDB
-  ? new MockModel('invoices') as any
-  : (models.Invoice || model("Invoice", InvoiceSchema));
+export const Invoice = models.Invoice || model("Invoice", InvoiceSchema);

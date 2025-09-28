@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
 
 const VendorStatus = ["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"] as const;
 const VendorType = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"] as const;
@@ -207,6 +206,4 @@ VendorSchema.index({ tenantId: 1, 'business.specializations': 1 });
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
 
 // Check if we're using mock database
-export const Vendor = isMockDB
-  ? new MockModel('vendors') as any
-  : (models.Vendor || model("Vendor", VendorSchema));
+export const Vendor = models.Vendor || model("Vendor", VendorSchema);
