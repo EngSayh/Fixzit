@@ -11,4 +11,8 @@ if (!conn) {
 }
 export const db = conn;
 
+export async function connectDb() {
+  return conn;
+}
+
 export const isMockDB = false;
