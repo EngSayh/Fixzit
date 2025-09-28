@@ -15,7 +15,15 @@ class MockCollection {
       async toArray() { return [...self.store]; }
     } as any;
   }
-  async findOne(_filter: any) { return this.store[0] ?? null; }
+  async findOne(filter: any) { 
+    if (!filter || Object.keys(filter).length === 0) {
+      return this.store[0] ?? null;
+    }
+    // Basic filter implementation, only handles top-level equality.
+    return this.store.find(item => {
+      return Object.keys(filter).every(key => item[key] === filter[key]);
+    }) ?? null;
+  }
   async countDocuments(_filter: any = {}) { return this.store.length; }
   async updateOne(_filter: any, _update: any) { return { modifiedCount: 1 }; }
 }
