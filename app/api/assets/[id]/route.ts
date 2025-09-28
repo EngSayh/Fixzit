@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Asset } from "@/src/server/models/Asset";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -39,7 +39,7 @@ const updateAssetSchema = z.object({
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const asset = await Asset.findOne({
       _id: params.id,
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const data = updateAssetSchema.parse(await req.json());
 
@@ -82,7 +82,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const asset = await Asset.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { APPS, AppKey } from '@/src/config/topbar-modules';
 
 export async function GET(req: NextRequest) {
   try {
-    await db; // Ensure database connection
+  await connectDb(); // Ensure database connection
     const { searchParams } = new URL(req.url);
     const app = (searchParams.get('app') || 'fm') as AppKey;
     const q = (searchParams.get('q') || '').trim();

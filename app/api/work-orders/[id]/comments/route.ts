@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -7,13 +7,13 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 const schema = z.object({ text:z.string().min(1) });
 
 export async function GET(_req:NextRequest, {params}:{params:{id:string}}){
-  await db;
+  await connectDb();
   const wo = await (WorkOrder as any).findById(params.id);
   return NextResponse.json(wo?.comments ?? []);
 }
 
 export async function POST(req:NextRequest, {params}:{params:{id:string}}){
-  const user = await getSessionUser(req); await db;
+  const user = await getSessionUser(req); await connectDb();
   const { text } = schema.parse(await req.json());
   const wo:any = await (WorkOrder as any).findById(params.id);
   if (!wo) return NextResponse.json({error:"Not found"},{status:404});

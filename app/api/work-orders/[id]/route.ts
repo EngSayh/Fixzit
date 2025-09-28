@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string }}) {
-  await db;
+  await connectDb();
   const wo = await (WorkOrder as any).findById(params.id);
   if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(wo);
@@ -23,7 +23,7 @@ const patchSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: { id: string }}) {
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as any;
-  await db;
+  await connectDb();
   const updates = patchSchema.parse(await req.json());
   const wo = await (WorkOrder as any).findOneAndUpdate(
     { _id: params.id, tenantId: user.tenantId },

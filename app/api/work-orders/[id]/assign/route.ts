@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/src/server/middleware/withAuthRbac";
@@ -12,7 +12,7 @@ const schema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { id: string }}) {
   const user = await requireAbility("ASSIGN")(req);
   if (user instanceof NextResponse) return user as any;
-  await db;
+  await connectDb();
 
   const body = schema.parse(await req.json());
 

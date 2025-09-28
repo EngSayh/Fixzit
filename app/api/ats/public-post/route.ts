@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     await connectDb();
     const body = await req.json();
     // Basic rate limiting for public endpoint
-    const rl = rateLimit(`ats:public:${req.ip ?? '0'}`, 10, 60_000);
+    const rl = await rateLimit(`ats:public:${req.ip ?? '0'}`, 10, 60_000);
     if (!rl.allowed) return NextResponse.json({ success:false, error:'Rate limit' }, { status: 429 });
     const platformOrg = process.env.PLATFORM_ORG_ID || 'fixzit-platform';
     // TODO: validate with zod before use

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
 export async function GET() {
-  await db;
+  await connectDb();
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })
     .lean();
