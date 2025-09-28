@@ -60,7 +60,15 @@ export default function Footer() {
             <div className="font-semibold mb-2">{t('footer.support', 'Support')}</div>
             <ul className="space-y-1 opacity-80">
               <li><Link href="/help" className="hover:underline">{t('footer.help', 'Help Center')}</Link></li>
-              <li><button className="hover:underline text-left" onClick={() => setOpen(true)}>{t('footer.ticket', 'Open a ticket')}</button></li>
+              <li>
+                <button
+                  type="button"
+                  className={`hover:underline ${translationIsRTL ? 'text-right' : 'text-left'}`}
+                  onClick={() => setOpen(true)}
+                >
+                  {t('footer.ticket', 'Open a ticket')}
+                </button>
+              </li>
             </ul>
           </div>
         </div>

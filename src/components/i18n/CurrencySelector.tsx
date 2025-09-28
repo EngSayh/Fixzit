@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useId } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from 'react';
 import { CircleDollarSign, Search } from 'lucide-react';
 import { useCurrency, type CurrencyOption } from '@/src/contexts/CurrencyContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -38,19 +38,9 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
     });
   }, [query, options]);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handleClick = (event: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!open) return;
       if (event.key === 'Escape') {
         setOpen(false);
         queueMicrotask(() => buttonRef.current?.focus());
@@ -75,7 +65,20 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
           setQuery('');
           queueMicrotask(() => buttonRef.current?.focus());
         }
-        return;
+      }
+    },
+    [open, filtered, activeIndex, setCurrency]
+  );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
       }
     };
 
@@ -88,7 +91,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open]);
+  }, [open, handleKeyDown]);
 
   // Initialize the active option when opening or when the filter changes
   useEffect(() => {

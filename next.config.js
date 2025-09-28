@@ -58,7 +58,7 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
 
   // Webpack customization for module resolution and OneDrive compatibility
