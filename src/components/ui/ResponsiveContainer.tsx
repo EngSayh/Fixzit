@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export function ResponsiveContainer({
   padding = 'medium',
   centered = true
 }: ResponsiveContainerProps) {
-  const { screenInfo, responsiveClasses } = useResponsive();
+  const { screenInfo, responsiveClasses } = useResponsiveLayout();
 
   const getContainerClass = () => {
     if (size !== 'auto') {
@@ -72,7 +72,7 @@ export function ResponsiveGrid({
   gap = 'medium',
   className = ''
 }: ResponsiveGridProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getGridCols = () => {
     if (screenInfo.isMobile || screenInfo.width < 640) {
@@ -117,7 +117,7 @@ export function ResponsiveText({
   weight = 'normal',
   className = ''
 }: ResponsiveTextProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getSizeClass = () => {
     const baseSizes = {
@@ -171,7 +171,7 @@ export function ResponsiveSpacing({
   direction = 'vertical',
   className = ''
 }: ResponsiveSpacingProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getSpacingClass = () => {
     const baseSpacing = {

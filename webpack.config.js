@@ -15,7 +15,7 @@ module.exports = {
     clean: true,
   },
   resolve: {
-    extensions: ['.ts', '.js', '.json'],
+    extensions: ['.js', '.json'],
   },
   stats: 'errors-warnings',
   infrastructureLogging: {

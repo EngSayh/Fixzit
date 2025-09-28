@@ -2,9 +2,9 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
   ShoppingBag, Headphones, Shield, BarChart3, Cog, FileText, CheckCircle, Bell
@@ -93,26 +93,23 @@ interface SidebarProps {
   tenantId?: string;
 }
 
-/**
- * Sidebar navigation component showing modules, account links, preferences, and help.
- *
- * Renders a role- and subscription-aware, RTL-capable sidebar for the Fixzit Enterprise UI.
- * Modules available to the current user are computed from role and subscription maps and
- * grouped by category. Each item is highlighted when its path matches the current pathname.
- * Includes account links, compact language and currency selectors, and a Help Center link.
- *
- * @param {string} [role='guest'] - User role identifier (defaults to `'guest'`). Controls which modules are shown.
- * @param {'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'} [subscription='BASIC'] - Subscription plan identifier (defaults to `'BASIC'`). Further filters allowed modules.
- * @param {string} [tenantId] - Optional tenant context id used for routing or contextual behavior.
- * @returns {JSX.Element} A React element representing the sidebar.
- */
 export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { responsiveClasses, screenInfo } = useResponsive();
+  const { responsiveClasses, screenInfo } = useResponsiveLayout();
 
-  // Use the translation context directly - it has its own fallback
-  const { t, isRTL: translationIsRTL } = useTranslation();
+  // Safe translation with fallback
+  let t: (key: string, fallback?: string) => string;
+  let translationIsRTL: boolean = false;
+  try {
+    const translationContext = useTranslation();
+    t = translationContext.t;
+    translationIsRTL = translationContext.isRTL;
+  } catch {
+    // Fallback translation function
+    t = (key: string, fallback?: string) => fallback || key;
+    translationIsRTL = false;
+  }
 
   const active = useMemo(() => pathname, [pathname]);
 
@@ -224,10 +221,9 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
           </nav>
         </div>
 
-        {/* Preferences */}
         <div className="border-t border-white/20 pt-4 mt-4">
           <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
-            {t('nav.preferences', 'Preferences')}
+            Preferences
           </div>
           <div className={`flex gap-2 px-3 ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
             <LanguageSelector variant="compact" />
