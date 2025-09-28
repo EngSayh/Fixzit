@@ -8,10 +8,28 @@ import Footer from './Footer';
 import HelpWidget from './HelpWidget';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
+import PreferenceBroadcast from './PreferenceBroadcast';
 import ResponsiveLayout from './ResponsiveLayout';
+import dynamic from 'next/dynamic';
+const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
+import { TopBarProvider } from '@/src/contexts/TopBarContext';
 
+/**
+ * Root client-side layout that initializes app-level UI and user context, and renders page content.
+ *
+ * This component:
+ * - Determines whether the current route is a public "landing" page and adjusts layout accordingly.
+ * - Reads translation context (with safe fallback) and updates document `lang` and `dir`.
+ * - Retrieves the current user's role from localStorage or from `/api/auth/me` (credentials included),
+ *   caches the result in localStorage under `fixzit-role`, and shows a loading screen while fetching.
+ * - Renders the top bar, responsive layout (with optional sidebar), and auxiliary widgets (HelpWidget,
+ *   PreferenceBroadcast, ErrorTest) once loading completes.
+ *
+ * @param {React.ReactNode} children - Page content to render inside the layout.
+ * @returns {JSX.Element} The composed client layout JSX.
+ */
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState('guest');
   const [loading, setLoading] = useState(true);
@@ -89,7 +107,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading...</p>
+                  <p className="text-gray-600">{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
                 </div>
               </div>
             </div>
@@ -100,18 +118,23 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     );
   }
 
-      return (
-        <div className="min-h-screen bg-[#F9FAFB]">
-          <AutoFixInitializer />
-          <ResponsiveLayout
-            header={<TopBar role={role} />}
-            sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
-            showSidebarToggle={!isLandingPage}
-          >
-            {children}
-          </ResponsiveLayout>
-          <HelpWidget />
-          <ErrorTest />
-        </div>
-      );
+  return (
+    <div className="min-h-screen bg-[#F9FAFB]">
+      <AutoFixInitializer />
+      <TopBarProvider>
+        <ResponsiveLayout
+          header={<TopBar role={role} />}
+          sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+          showSidebarToggle={!isLandingPage}
+          footer={<Footer />}
+        >
+          {children}
+        </ResponsiveLayout>
+        <PreferenceBroadcast />
+      </TopBarProvider>
+      <HelpWidget />
+      <ErrorTest />
+      <AutoIncidentReporter />
+    </div>
+  );
 }

@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayment, validateCallback } from '@/src/lib/paytabs';
+import { parseCartAmount } from '@/src/lib/payments/parseCartAmount';
 import { Invoice } from '@/src/server/models/Invoice';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const raw = await req.text();
     const signature = req.headers.get('signature') || '';
-
-    // Validate callback signature
-    if (!validateCallback(body, signature)) {
+    if (!validateCallback(raw, signature)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
+    const body = JSON.parse(raw);
 
     const { tran_ref, cart_id, payment_result } = body;
 
     // Verify payment with PayTabs
     const verification = await verifyPayment(tran_ref);
 
-    await db;
+    await connectDb();
     const invoice = await (Invoice as any).findById(cart_id);
 
     if (!invoice) {
@@ -26,18 +26,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
+    // Validate amount once
+    const amount = parseCartAmount(body.cart_amount, Number.NaN);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
+    }
     // Update invoice based on payment result
-    if (payment_result.response_status === 'A' && verification.payment_result.response_status === 'A') {
+    if (payment_result?.response_status === 'A' && verification?.payment_result?.response_status === 'A') {
       // Payment successful
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
-        method: body.payment_info.payment_method,
+<<<<<<< HEAD
+        amount,
+  method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
         transactionId: tran_ref,
-        notes: `Payment via ${body.payment_info.card_scheme || body.payment_info.payment_method}`
+        notes: `Payment via ${body.payment_info?.card_scheme || body.payment_info?.payment_method || 'UNKNOWN'}`
+=======
+        amount: parseFloat(body.cart_amount),
+        method: body.payment_info?.payment_method ?? 'UNKNOWN',
+        reference: tran_ref,
+        status: 'COMPLETED',
+        transactionId: tran_ref,
+        notes: `Payment via ${body.payment_info?.card_scheme || body.payment_info?.payment_method || 'PayTabs'}`
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
       });
 
       invoice.history.push({
@@ -50,7 +64,7 @@ export async function POST(req: NextRequest) {
       // Payment failed
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
+        amount,
         method: body.payment_info?.payment_method || 'UNKNOWN',
         reference: tran_ref,
         status: 'FAILED',

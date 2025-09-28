@@ -7,14 +7,23 @@
 import { db as connect } from '@/src/lib/mongo';
 import { Property } from '@/src/server/models/Property';
 import { WorkOrder } from '@/src/server/models/WorkOrder';
-import { computeDueAt, computeSlaMinutes } from '@/src/lib/sla';
+// Inline simple SLA helpers to avoid external dependency
+function computeSlaMinutes(priority: 'LOW'|'MEDIUM'|'HIGH'|'URGENT') {
+  switch (priority) {
+    case 'URGENT': return 4 * 60;
+    case 'HIGH': return 24 * 60;
+    case 'MEDIUM': return 72 * 60;
+    default: return 120 * 60;
+  }
+}
+function computeDueAt(from: Date, minutes: number) { return new Date(from.getTime() + minutes * 60 * 1000); }
 import { Invoice } from '@/src/server/models/Invoice';
 import { Asset } from '@/src/server/models/Asset';
 
 async function main() {
   const tenantId = 'demo-tenant';
   const actorId = 'seed-realdb';
-  await connect();
+  await connect;
 
   // 1) Properties
   const props = [
@@ -60,7 +69,7 @@ async function main() {
 
   // 3) Work Orders (varied priorities/status, with SLA dueAt)
   const woSeeds = [
-    { title: 'AC not cooling – Lvl 12', priority: 'URGENT', status: 'SUBMITTED', prop: 0 },
+    { title: 'AC not cooling – Lvl 12', priority: 'CRITICAL', status: 'SUBMITTED', prop: 0 },
     { title: 'Water leak – Lobby', priority: 'HIGH', status: 'DISPATCHED', prop: 0 },
     { title: 'Lighting replacement – Car Park', priority: 'MEDIUM', status: 'IN_PROGRESS', prop: 0 },
     { title: 'Gate sensor calibration', priority: 'LOW', status: 'COMPLETED', prop: 2 },
