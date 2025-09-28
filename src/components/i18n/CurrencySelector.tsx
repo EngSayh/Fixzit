@@ -16,8 +16,8 @@ interface CurrencySelectorProps {
  * Selecting an option updates the active currency via CurrencyContext, closes the dropdown, and clears the search.
  * The dropdown also closes when clicking outside the component.
  *
- * @param variant - Visual variant of the control. `'default'` uses larger padding and width; `'compact'` reduces padding and width.
- * @returns A React element for the currency selector.
+ * @param {'default' | 'compact'} [variant='default'] - Visual variant of the control. `'default'` uses larger padding and width; `'compact'` reduces padding and width.
+ * @returns {JSX.Element} A React element for the currency selector.
  */
 export default function CurrencySelector({ variant = 'default' }: CurrencySelectorProps) {
   const { currency, setCurrency } = useCurrency();
