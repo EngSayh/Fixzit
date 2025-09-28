@@ -11,24 +11,33 @@ export type CurrencyOption = {
   flag: string;
 };
 
-export const CURRENCY_OPTIONS: CurrencyOption[] = [
+export const CURRENCY_OPTIONS = [
   { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', flag: '🇸🇦' },
   { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
   { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
   { code: 'GBP', name: 'Pound Sterling', symbol: '£', flag: '🇬🇧' },
   { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪' }
-];
+] as const satisfies readonly CurrencyOption[];
 
 const DEFAULT_CURRENCY: CurrencyCode = 'SAR';
 
 interface CurrencyContextType {
   currency: CurrencyCode;
   setCurrency: (currency: CurrencyCode) => void;
-  options: CurrencyOption[];
+  options: readonly CurrencyOption[];
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
+/**
+ * Provides application-wide currency state and persistence to descendants.
+ *
+ * The provider supplies a memoized context value with the current `currency`, a `setCurrency` setter, and the list of supported `options`.
+ * On mount (client-side only) it attempts to initialize the currency from localStorage key `fixzit-currency` if the stored code matches a supported option.
+ * Whenever the currency changes (client-side only) it persists the choice to localStorage (`fixzit-currency`), updates the document `data-currency` attribute, sets a `fxz.currency` cookie, and dispatches a `CustomEvent` named `fixzit:currency-change` with `{ currency }` in `detail`.
+ *
+ * The exposed `setCurrency` validates the provided code against the known options and falls back to the default currency when the code is not recognized.
+ */
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const hydratedRef = useRef(false);
@@ -86,8 +95,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem('fixzit-currency', currency);
       document.documentElement.setAttribute('data-currency', currency);
-      const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
-      document.cookie = `fxz.currency=${currency}; Path=/; SameSite=Strict; Max-Age=31536000${secureAttr}`;
+      const secureAttr = (typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.protocol === 'https:') ? '; Secure' : '';
+      const maxAge = 31536000; // 1 year
+      const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+      document.cookie = `fxz.currency=${encodeURIComponent(currency)}; Path=/; SameSite=Strict; Max-Age=${maxAge}; Expires=${expires}${secureAttr}`;
       window.dispatchEvent(
         new CustomEvent('fixzit:currency-change', {
           detail: { currency }
@@ -99,8 +110,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, [currency]);
 
   const setCurrency = (next: CurrencyCode) => {
-    const option = CURRENCY_OPTIONS.find(item => item.code === next);
-    setCurrencyState(option ? option.code : DEFAULT_CURRENCY);
+    if (!CURRENCY_OPTIONS.some(item => item.code === next)) return;
+    setCurrencyState(next);
   };
 
   const value = useMemo(
@@ -115,6 +126,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }
 
+/**
+ * Hook to access the current currency context.
+ *
+ * Returns the context value provided by CurrencyProvider: an object with
+ * `currency` (current CurrencyCode), `setCurrency` (updater), and `options`
+ * (available CurrencyOption[]). If called outside a provider, returns a safe
+ * fallback using DEFAULT_CURRENCY, a no-op `setCurrency`, and CURRENCY_OPTIONS.
+ *
+ * @returns The currency context or a fallback object when no provider is present.
+ */
 export function useCurrency() {
   const context = useContext(CurrencyContext);
   if (!context) {
