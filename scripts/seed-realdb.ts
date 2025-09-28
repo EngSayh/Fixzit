@@ -7,23 +7,14 @@
 import { db } from '@/src/lib/mongo';
 import { Property } from '@/src/server/models/Property';
 import { WorkOrder } from '@/src/server/models/WorkOrder';
-// Inline simple SLA helpers to avoid external dependency
-function computeSlaMinutes(priority: 'LOW'|'MEDIUM'|'HIGH'|'URGENT') {
-  switch (priority) {
-    case 'URGENT': return 4 * 60;
-    case 'HIGH': return 24 * 60;
-    case 'MEDIUM': return 72 * 60;
-    default: return 120 * 60;
-  }
-}
-function computeDueAt(from: Date, minutes: number) { return new Date(from.getTime() + minutes * 60 * 1000); }
+import { computeDueAt, computeSlaMinutes } from '@/src/lib/sla';
 import { Invoice } from '@/src/server/models/Invoice';
 import { Asset } from '@/src/server/models/Asset';
 
 async function main() {
   const tenantId = 'demo-tenant';
   const actorId = 'seed-realdb';
-  await connect;
+  await db;
 
   // 1) Properties
   const props = [
@@ -135,4 +126,3 @@ main().then(() => process.exit(0)).catch((err) => {
   console.error('❌ Real DB seed failed:', err);
   process.exit(1);
 });
-
