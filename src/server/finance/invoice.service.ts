@@ -10,8 +10,8 @@ export async function create(input: unknown, actorId?: string, ip?: string) {
   return inv;
 }
 
-export async function list(tenantId: string, q?:string, status?:string) {
-  return repo.list(tenantId, q, status);
+export async function list(tenantId: string, q?:string, status?:string, type?:string) {
+  return repo.list(tenantId, q, status, type);
 }
 
 export async function post(tenantId:string, id: string, input: unknown, actorId?:string, ip?:string) {

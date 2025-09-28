@@ -42,5 +42,5 @@ JobSchema.methods.publish = async function() {
 
 export type JobDoc = InferSchemaType<typeof JobSchema> & { publish: () => Promise<JobDoc> };
 
-export const Job = (models.Job || model('Job', JobSchema)) as any;
+export const Job = (models.Job || (require('mongoose') as any).model('Job', JobSchema, 'jobs')) as any;
 
