@@ -7,26 +7,28 @@ import { useTranslation } from '@/src/contexts/TranslationContext';
 import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 
+/**
+ * Responsive site footer component with company, legal, and support links.
+ *
+ * Renders branding, a "Back to Home" link, language and currency selectors (compact variants),
+ * a current currency display, and a multi-column link grid (Company, Legal, Support).
+ * The "Open a ticket" button toggles an internal `open` state to show the SupportPopup.
+ * Translation is sourced from the translation context with a safe fallback (`t(key, fallback)`),
+ * and layout alignment supports RTL via the translation context's `isRTL` flag.
+ *
+ * @returns {JSX.Element} The footer JSX element.
+ */
 export default function Footer() {
   const [open, setOpen] = useState(false);
 
-  // Safe translation with fallback
-  let t: (key: string, fallback?: string) => string;
-  let translationIsRTL: boolean = false;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-    translationIsRTL = translationContext.isRTL;
-  } catch {
-    // Fallback translation function
-    t = (key: string, fallback?: string) => fallback || key;
-    translationIsRTL = false;
-  }
+  // Use the translation context directly - it has its own fallback
+  const { t, isRTL: translationIsRTL } = useTranslation();
 
   return (
     <footer className="mt-16 border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
         <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right' : ''}`}>
+          <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
           <Link href="/" className="inline-flex items-center gap-2 text-[#0061A8] hover:text-[#004f86]">
             <Home className="h-4 w-4" />
             <span>{t('footer.backHome', 'Back to Home')}</span>
@@ -36,12 +38,7 @@ export default function Footer() {
             <CurrencySelector variant="compact" />
           </div>
         </div>
-
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 text-sm">
-          <div>
-            <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
-            <p className="opacity-70">{t('footer.description', 'Facility management + marketplaces in one platform.')}</p>
-          </div>
           <div>
             <div className="font-semibold mb-2">{t('footer.company', 'Company')}</div>
             <ul className="space-y-1 opacity-80">
@@ -72,7 +69,6 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-
         <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
@@ -82,7 +78,7 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      {open && <SupportPopup onClose={() => setOpen(false)} />}
+      {open && <SupportPopup onClose={()=>setOpen(false)} />}
     </footer>
   );
 }

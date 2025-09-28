@@ -240,6 +240,7 @@ ProjectSchema.index({ tenantId: 1, 'progress.overall': -1 });
 
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
 
+// Check if we're using mock database
 export const Project = isMockDB
   ? new MockModel('projects') as any
   : (models.Project || model("Project", ProjectSchema));
