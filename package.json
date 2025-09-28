@@ -24,7 +24,7 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "test:ui": "playwright test --ui",
+    "test:ui": "vitest --ui",
     "test:install": "playwright install",
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
@@ -117,7 +117,7 @@
     "ts-jest": "^29.4.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
+    "vitest": "^0.34.0",
     "wait-on": "^7.2.0"
   },
   "overrides": {
