@@ -830,7 +830,7 @@ export class MockModel {
     const data = this.db.getCollection(this.collectionName);
     const newDoc = { 
       ...doc, 
-      _id: Math.random().toString(36).substr(2, 9),
+      _id: Math.random().toString(36).substring(2, 11),
       createdAt: new Date(),
       updatedAt: new Date()
     };
