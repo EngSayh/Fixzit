@@ -101,10 +101,10 @@ interface SidebarProps {
  * grouped by category. Each item is highlighted when its path matches the current pathname.
  * Includes account links, compact language and currency selectors, and a Help Center link.
  *
- * @param role - User role identifier (defaults to `'guest'`). Controls which modules are shown.
- * @param subscription - Subscription plan identifier (defaults to `'BASIC'`). Further filters allowed modules.
- * @param tenantId - Optional tenant context id used for routing or contextual behavior.
- * @returns A React element representing the sidebar.
+ * @param {string} [role='guest'] - User role identifier (defaults to `'guest'`). Controls which modules are shown.
+ * @param {'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'} [subscription='BASIC'] - Subscription plan identifier (defaults to `'BASIC'`). Further filters allowed modules.
+ * @param {string} [tenantId] - Optional tenant context id used for routing or contextual behavior.
+ * @returns {JSX.Element} A React element representing the sidebar.
  */
 export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
   const pathname = usePathname();
