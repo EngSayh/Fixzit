@@ -51,7 +51,7 @@ export default function GoogleMap({
     if (map) {
       map.setCenter(center);
     }
-  }, [center, map]);
+  }, [center, map?.setCenter]);
 
   useEffect(() => {
     if (map) {
@@ -130,3 +130,4 @@ export default function GoogleMap({
     </div>
   );
 }
+
