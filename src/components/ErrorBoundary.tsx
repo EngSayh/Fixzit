@@ -282,7 +282,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
   // Enhanced error indexing and reporting
   private generateErrorReport = (error: Error, errorInfo: React.ErrorInfo) => {
-    const errorId = `ERR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const errorId = `ERR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
     const errorReport = {
       errorId,
