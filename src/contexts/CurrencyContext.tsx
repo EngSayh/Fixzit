@@ -32,21 +32,25 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const hydratedRef = useRef(false);
+  const skipNextPersistRef = useRef(false);
 
   // Hydrate from DOM attribute -> localStorage -> cookie once on mount
   useEffect(() => {
     try {
       const fromAttr = document.documentElement.getAttribute('data-currency') as CurrencyCode | null;
       if (fromAttr && CURRENCY_OPTIONS.some(o => o.code === fromAttr)) {
+        skipNextPersistRef.current = true;
         setCurrencyState(prev => (prev !== fromAttr ? fromAttr : prev));
       } else {
         const fromLS = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
         if (fromLS && CURRENCY_OPTIONS.some(o => o.code === fromLS)) {
+          skipNextPersistRef.current = true;
           setCurrencyState(prev => (prev !== fromLS ? fromLS : prev));
         } else {
           const match = document.cookie.match(/(?:^|;\s*)fxz\.currency=([^;]+)/);
           const fromCookie = (match && match[1]) as CurrencyCode | undefined;
           if (fromCookie && CURRENCY_OPTIONS.some(o => o.code === fromCookie)) {
+            skipNextPersistRef.current = true;
             setCurrencyState(prev => (prev !== fromCookie ? fromCookie : prev));
           }
         }
@@ -75,6 +79,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // Persist only after hydration
   useEffect(() => {
     if (!hydratedRef.current) return;
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
     try {
       window.localStorage.setItem('fixzit-currency', currency);
       document.documentElement.setAttribute('data-currency', currency);
