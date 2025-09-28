@@ -34,7 +34,7 @@ export function formatDateTime(date: Date | string): string {
 
 export function generateId(prefix: string = ''): string {
   const timestamp = Date.now().toString(36)
-  const random = Math.random().toString(36).substr(2, 5)
+  const random = Math.random().toString(36).substring(2, 7)
   return prefix ? `${prefix}-${timestamp}-${random}` : `${timestamp}-${random}`
 }
 
