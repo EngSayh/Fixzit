@@ -86,7 +86,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem('fixzit-currency', currency);
       document.documentElement.setAttribute('data-currency', currency);
-      const secureAttr = (typeof window !== 'undefined' && (window as any).isSecureContext) ? '; Secure' : '';
+      const secureAttr = (typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.protocol === 'https:') ? '; Secure' : '';
       const maxAge = 31536000; // 1 year
       const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
       document.cookie = `fxz.currency=${encodeURIComponent(currency)}; Path=/; SameSite=Strict; Max-Age=${maxAge}; Expires=${expires}${secureAttr}`;
