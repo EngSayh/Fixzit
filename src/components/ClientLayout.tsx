@@ -9,6 +9,7 @@ import HelpWidget from './HelpWidget';
 import PreferenceBroadcast from './PreferenceBroadcast';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
+import PreferenceBroadcast from './PreferenceBroadcast';
 import ResponsiveLayout from './ResponsiveLayout';
 import dynamic from 'next/dynamic';
 const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
