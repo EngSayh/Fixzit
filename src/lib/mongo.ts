@@ -10,11 +10,16 @@ const uri = uriFromEnv ?? "mongodb://localhost:27017/fixzit";
 let conn = (global as any)._mongoose as Promise<typeof mongoose> | undefined;
 if (!conn) {
   const dbName = process.env.MONGODB_DB;
-  conn = (global as any)._mongoose = mongoose.connect(uri, {
-    autoIndex: true,
-    maxPoolSize: 10,
-    ...(dbName ? { dbName } : {}),
-  });
+  conn = (global as any)._mongoose = mongoose
+    .connect(uri, {
+      autoIndex: true,
+      maxPoolSize: 10,
+      ...(dbName ? { dbName } : {}),
+    })
+    .catch((err) => {
+      (global as any)._mongoose = undefined;
+      throw err;
+    });
 }
 export const db = conn;
 

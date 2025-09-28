@@ -64,8 +64,8 @@ const createInvoiceSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
     await connectDb();
+    const user = await getSessionUser(req);
 
     const data = createInvoiceSchema.parse(await req.json());
 
@@ -98,10 +98,14 @@ export async function POST(req: NextRequest) {
 
     const total = subtotal + totalTax;
 
-    // Generate invoice number
+    // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
-    const count = await Invoice.countDocuments({ tenantId: user.tenantId }) + 1;
-    const number = `INV-${year}-${String(count).padStart(5, '0')}`;
+    const { value } = await (Invoice as any).db.collection("invoice_counters").findOneAndUpdate(
+      { tenantId: user.tenantId, year },
+      { $inc: { sequence: 1 } },
+      { upsert: true, returnDocument: "after" }
+    );
+    const number = `INV-${year}-${String((value?.sequence ?? 1)).padStart(5, '0')}`;
 
     // Generate ZATCA QR code
     const qrCode = await generateZATCAQR({
@@ -143,8 +147,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
     await connectDb();
+    const user = await getSessionUser(req);
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);

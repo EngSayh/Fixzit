@@ -4,7 +4,7 @@ import { APPS, AppKey } from '@/src/config/topbar-modules';
 
 export async function GET(req: NextRequest) {
   try {
-  await connectDb(); // Ensure database connection
+  const mongoose = await connectDb(); // Ensure database connection
     const { searchParams } = new URL(req.url);
     const app = (searchParams.get('app') || 'fm') as AppKey;
     const q = (searchParams.get('q') || '').trim();
@@ -29,8 +29,7 @@ export async function GET(req: NextRequest) {
         let searchQuery: any = { $text: { $search: q } };
         let projection: any = { score: { $meta: 'textScore' } };
 
-        const mg = (await (await import('mongoose')).default);
-        const mdb = mg?.connection?.db;
+        const mdb = (mongoose as any).connection?.db;
         if (!mdb) continue;
         switch (entity) {
           case 'work_orders':
