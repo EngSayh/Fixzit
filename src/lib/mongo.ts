@@ -1,9 +1,20 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const uri = process.env.MONGODB_URI || "";
+const uri = process.env.MONGODB_URI?.trim();
 const dbName = process.env.MONGODB_DB || "fixzit";
-const USE_MOCK_DB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-export const isMockDB = USE_MOCK_DB || !uri;
+const shouldUseMock = process.env.USE_MOCK_DB === 'true';
+
+type MongooseCache = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __mongooseCache: MongooseCache | undefined;
+}
+
+const cached = globalThis.__mongooseCache ?? (globalThis.__mongooseCache = { conn: null, promise: null });
 
 class MockDB {
   private connected = false;
@@ -27,24 +38,56 @@ class MockDB {
   listCollections() { return { toArray: async () => [] as any[] }; }
 }
 
+async function createConnection() {
+  if (!uri) {
+    throw new Error('MONGODB_URI is required to establish a MongoDB connection.');
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
+  }
+
+  mongoose.set('strictQuery', true);
+
+  return mongoose.connect(uri, {
+    dbName,
+    autoIndex: true,
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5_000,
+    socketTimeoutMS: 45_000,
+  });
+}
+
+export async function connectMongo(): Promise<typeof mongoose | null> {
+  if (shouldUseMock) {
+    return null;
+  }
+
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    cached.promise = createConnection();
+  }
+
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+// Legacy compatibility for existing code
 let conn = (global as any)._mongoose;
 if (!conn) {
-  if (isMockDB) {
+  if (shouldUseMock || !uri) {
     console.warn("⚠️ Mock DB mode — using in-memory stub. Not for production.");
     conn = (global as any)._mongoose = new MockDB().connect();
-  } else if (uri) {
-    conn = (global as any)._mongoose = mongoose.connect(uri, {
-      dbName,
-      autoIndex: true,
-      maxPoolSize: 10,
-    });
   } else {
-    console.warn("⚠️ Falling back to MockDB (no MONGODB_URI set).");
-    conn = (global as any)._mongoose = new MockDB().connect();
+    conn = (global as any)._mongoose = connectMongo();
   }
 }
 
 export const db = conn;
+export const isMockDB = shouldUseMock || !uri;
 
 export async function getNativeDb(): Promise<any> {
   if (isMockDB) {

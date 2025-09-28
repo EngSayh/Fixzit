@@ -185,6 +185,7 @@ TenantSchema.index({ tenantId: 1, 'properties.occupancy.status': 1 });
 
 export type TenantDoc = InferSchemaType<typeof TenantSchema>;
 
+// Check if we're using mock database
 export const Tenant = isMockDB
   ? new MockModel('tenants') as any
   : (models.Tenant || model("Tenant", TenantSchema));
