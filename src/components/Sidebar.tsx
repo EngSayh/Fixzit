@@ -93,6 +93,19 @@ interface SidebarProps {
   tenantId?: string;
 }
 
+/**
+ * Sidebar navigation component showing modules, account links, preferences, and help.
+ *
+ * Renders a role- and subscription-aware, RTL-capable sidebar for the Fixzit Enterprise UI.
+ * Modules available to the current user are computed from role and subscription maps and
+ * grouped by category. Each item is highlighted when its path matches the current pathname.
+ * Includes account links, compact language and currency selectors, and a Help Center link.
+ *
+ * @param {string} [role='guest'] - User role identifier (defaults to `'guest'`). Controls which modules are shown.
+ * @param {'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'} [subscription='BASIC'] - Subscription plan identifier (defaults to `'BASIC'`). Further filters allowed modules.
+ * @param {string} [tenantId] - Optional tenant context id used for routing or contextual behavior.
+ * @returns {JSX.Element} A React element representing the sidebar.
+ */
 export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();

@@ -42,6 +42,22 @@ interface Notification {
   type: string;
 }
 
+/**
+ * Top navigation bar for the application, including brand, search, quick actions,
+ * language/currency selectors, notifications, and user menu.
+ *
+ * Renders responsive, RTL-aware UI with:
+ * - Brand and app switcher
+ * - Global search (hidden on mobile) and a mobile search button
+ * - Quick actions, compact language and currency selectors
+ * - Notification bell with dropdown (loads notifications on open, shows loading/empty states,
+ *   marks unread items with a dot, navigates to /notifications)
+ * - User menu with Profile, Settings, and Sign out (clears client storage and redirects to /login)
+ *
+ * @param {string} [role='guest'] - Optional user role string (defaults to `'guest'`). Provided role may be used
+ *               by downstream logic or hooks that consume this component's props.
+ * @returns {JSX.Element} The TopBar React element.
+ */
 export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);

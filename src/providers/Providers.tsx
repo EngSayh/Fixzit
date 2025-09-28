@@ -6,6 +6,15 @@ import { CurrencyProvider } from '@/src/contexts/CurrencyContext';
 import { ResponsiveProvider } from '@/src/contexts/ResponsiveContext';
 import ErrorBoundary from '@/src/components/ErrorBoundary';
 
+/**
+ * Wraps application content with global providers and prevents server-side rendering of children until running on the client.
+ *
+ * Renders a centered loading UI until the component mounts on the client. Once mounted it sets an immediate `isClient` flag and, after a short (100ms) delay, marks hydration as complete. When client rendering is active, children are rendered inside the provider tree:
+ * ResponsiveProvider → TranslationProvider → CurrencyProvider → ThemeProvider → ErrorBoundary.
+ *
+ * @param {React.ReactNode} children - The React node(s) to render inside the provider tree; these are not mounted during SSR and will only be rendered client-side after the component sets the client flag.
+ * @returns {JSX.Element} The provider tree wrapper or a loading indicator.
+ */
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [isClient, setIsClient] = useState(false);
 

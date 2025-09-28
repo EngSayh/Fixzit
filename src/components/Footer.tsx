@@ -8,6 +8,17 @@ import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 import { useCurrency, CURRENCY_OPTIONS } from '@/src/contexts/CurrencyContext';
 
+/**
+ * Responsive site footer component with company, legal, and support links.
+ *
+ * Renders branding, a "Back to Home" link, language and currency selectors (compact variants),
+ * a current currency display, and a multi-column link grid (Company, Legal, Support).
+ * The "Open a ticket" button toggles an internal `open` state to show the SupportPopup.
+ * Translation is sourced from the translation context with a safe fallback (`t(key, fallback)`),
+ * and layout alignment supports RTL via the translation context's `isRTL` flag.
+ *
+ * @returns {JSX.Element} The footer JSX element.
+ */
 export default function Footer() {
   const [open, setOpen] = useState(false);
   const { currency } = useCurrency();
