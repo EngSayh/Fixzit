@@ -107,7 +107,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading...</p>
+                  <p className="text-gray-600">{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
                 </div>
               </div>
             </div>

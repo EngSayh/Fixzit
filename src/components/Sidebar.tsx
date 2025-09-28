@@ -2,9 +2,9 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
+import LanguageSelector from '@/src/components/i18n/LanguageSelector';
+import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
-import LanguageSelector from './i18n/LanguageSelector';
-import CurrencySelector from './i18n/CurrencySelector';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
   ShoppingBag, Headphones, Shield, BarChart3, Cog, FileText, CheckCircle, Bell
