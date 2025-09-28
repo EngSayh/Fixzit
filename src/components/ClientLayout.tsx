@@ -25,8 +25,8 @@ import { TopBarProvider } from '@/src/contexts/TopBarContext';
  * - Renders the top bar, responsive layout (with optional sidebar), and auxiliary widgets (HelpWidget,
  *   PreferenceBroadcast, ErrorTest) once loading completes.
  *
- * @param children - Page content to render inside the layout.
- * @returns The composed client layout JSX.
+ * @param {React.ReactNode} children - Page content to render inside the layout.
+ * @returns {JSX.Element} The composed client layout JSX.
  */
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState('guest');
