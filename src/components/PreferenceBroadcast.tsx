@@ -4,6 +4,16 @@ import { useEffect } from 'react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useCurrency } from '@/src/contexts/CurrencyContext';
 
+/**
+ * Broadcasts user locale/currency preferences to the page and mirrors them into DOM nodes.
+ *
+ * Runs only in the browser: reads language, locale, and isRTL from the translation context and currency from the currency context, then dispatches a global `CustomEvent` named `fixzit:preferences` with a detail object `{ language, locale, currency, dir }`. After dispatching, it updates matching DOM nodes:
+ * - elements with `data-lang-text` get their `textContent` set to `locale`
+ * - elements with `data-currency-text` get their `textContent` set to `currency`
+ * - elements with `data-preference-mirror="language"` or `"currency"` are set to `locale` or `currency` respectively
+ *
+ * The component performs no rendering (returns `null`) and is a no-op on the server (`window` is undefined).
+ */
 export default function PreferenceBroadcast() {
   const { language, isRTL } = useTranslation();
   const { currency } = useCurrency();
