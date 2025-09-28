@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+<<<<<<< HEAD
+=======
+import { connectDb } from "@/src/lib/mongo";
+import { HelpArticle } from "@/src/server/models/HelpArticle";
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb";
@@ -27,10 +32,24 @@ const patchSchema = z.object({
  * @param params.id - Article identifier; either a MongoDB ObjectId string or a slug.
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
+<<<<<<< HEAD
   try {
     const user = await getSessionUser(req);
     if (!["SUPER_ADMIN"].includes(user.role)){
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+=======
+  await connectDb();
+  const user = await getSessionUser(req);
+  if (!["SUPER_ADMIN"].includes(user.role)){
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const data = patchSchema.parse(await req.json());
+  const article = await (HelpArticle as any).findByIdAndUpdate(params.id, {
+    $set: {
+      ...data,
+      updatedBy: user.id,
+      updatedAt: new Date()
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
     }
     const body = await req.json().catch(() => ({}));
     const data = patchSchema.parse(body);

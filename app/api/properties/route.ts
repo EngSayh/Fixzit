@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Property } from "@/src/server/models/Property";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -65,7 +65,7 @@ const createPropertySchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const data = createPropertySchema.parse(await req.json());
 
@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    await db;
+    await connectDb();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);

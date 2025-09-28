@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -10,6 +10,7 @@ const patchSchema = z.object({
   priority: z.enum(["Low","Medium","High","Urgent"]).optional()
 });
 
+<<<<<<< HEAD
 export async function GET(req: NextRequest, { params }: { params: { id: string } }){
   await db;
   const user = await getSessionUser(req);
@@ -29,12 +30,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
     ]
   });
+=======
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }){
+  await connectDb();
+  const t = await (SupportTicket as any).findById(params.id);
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
   if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(t);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
-  await db;
+  await connectDb();
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+<<<<<<< HEAD
 const uri = process.env.MONGODB_URI?.trim();
 const dbName = process.env.MONGODB_DB || "fixzit";
 const shouldUseMock = process.env.USE_MOCK_DB === 'true';
@@ -56,6 +57,28 @@ async function createConnection() {
     serverSelectionTimeoutMS: 5_000,
     socketTimeoutMS: 45_000,
   });
+=======
+const isProd = process.env.NODE_ENV === "production";
+const uriFromEnv = process.env.MONGODB_URI;
+if (!uriFromEnv && isProd) {
+  throw new Error("MONGODB_URI must be set in production");
+}
+const uri = uriFromEnv ?? "mongodb://localhost:27017/fixzit";
+
+let conn = (global as any)._mongoose as Promise<typeof mongoose> | undefined;
+if (!conn) {
+  const dbName = process.env.MONGODB_DB;
+  conn = (global as any)._mongoose = mongoose
+    .connect(uri, {
+      autoIndex: true,
+      maxPoolSize: 10,
+      ...(dbName ? { dbName } : {}),
+    })
+    .catch((err) => {
+      (global as any)._mongoose = undefined;
+      throw err;
+    });
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 }
 
 export async function connectMongo(): Promise<typeof mongoose | null> {

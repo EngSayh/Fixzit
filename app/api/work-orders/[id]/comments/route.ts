@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -7,6 +7,7 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 const schema = z.object({ text:z.string().min(1) });
 
 export async function GET(req:NextRequest, {params}:{params:{id:string}}){
+<<<<<<< HEAD
   await db;
   const user = await getSessionUser(req);
   if (!user?.tenantId) {
@@ -18,10 +19,16 @@ export async function GET(req:NextRequest, {params}:{params:{id:string}}){
   }
   const wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
+=======
+  const user = await getSessionUser(req);
+  await connectDb();
+  const wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
   return NextResponse.json(wo?.comments ?? []);
 }
 
 export async function POST(req:NextRequest, {params}:{params:{id:string}}){
+<<<<<<< HEAD
   const user = await getSessionUser(req); await db;
   if (!user?.tenantId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -30,6 +37,9 @@ export async function POST(req:NextRequest, {params}:{params:{id:string}}){
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
+=======
+  const user = await getSessionUser(req); await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
   const { text } = schema.parse(await req.json());
   const wo:any = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return NextResponse.json({error:"Not found"},{status:404});

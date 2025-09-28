@@ -28,7 +28,7 @@ const protectedApiRoutes = [
   '/api/projects',
   '/api/rfqs',
   '/api/slas',
-  '/api/invoices',
+  '/api/finance/invoices',
   '/api/users',
   '/api/work-orders',
   '/api/finance',
