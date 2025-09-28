@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isMockDB } from '@/src/lib/mongo';
+import { db, isMockDB, getNativeDb } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Log the alert to database for real database
-    await (db as any).collection('qa_alerts').insertOne({
+    const native = await getNativeDb();
+    await native.collection('qa_alerts').insertOne({
       event,
       data,
       timestamp: new Date(),
@@ -37,7 +38,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ alerts: [], mock: true });
     }
 
-    const alerts = await (db as any).collection('qa_alerts')
+    const native = await getNativeDb();
+    const alerts = await native.collection('qa_alerts')
       .find({})
       .sort({ timestamp: -1 })
       .limit(50)
