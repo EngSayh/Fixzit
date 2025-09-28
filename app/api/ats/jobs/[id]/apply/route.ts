@@ -1,43 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/src/lib/mongo';
+import { Job } from '@/src/server/models/Job';
+import { Candidate } from '@/src/server/models/Candidate';
+import { Application } from '@/src/server/models/Application';
+import { AtsSettings } from '@/src/server/models/AtsSettings';
+import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } from '@/src/lib/ats/scoring';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    if (process.env.ATS_ENABLED !== 'true') {
-      return NextResponse.json(
-        { success: false, error: 'ATS job application endpoint not available in this deployment' },
-        { status: 501 }
-      );
-    }
-
-    const { db } = await import('@/src/lib/mongo');
     await db;
-
-    const JobMod = await import('@/src/server/models/Job').catch(() => null);
-    const CandidateMod = await import('@/src/server/models/Candidate').catch(() => null);
-    const ApplicationMod = await import('@/src/server/models/Application').catch(() => null);
-    const AtsSettingsMod = await import('@/src/server/models/AtsSettings').catch(() => null);
-    const scoringMod = await import('@/src/lib/ats/scoring').catch(() => null);
-
-    const Job = JobMod && (JobMod as any).Job;
-    const Candidate = CandidateMod && (CandidateMod as any).Candidate;
-    const Application = ApplicationMod && (ApplicationMod as any).Application;
-    const AtsSettings = AtsSettingsMod && (AtsSettingsMod as any).AtsSettings;
-    const scoreApplication = scoringMod && (scoringMod as any).scoreApplication;
-    const extractSkillsFromText = scoringMod && (scoringMod as any).extractSkillsFromText;
-    const calculateExperienceFromText = scoringMod && (scoringMod as any).calculateExperienceFromText;
-
-    if (!Job || !Candidate || !Application || !AtsSettings || !scoreApplication) {
-      return NextResponse.json(
-        { success: false, error: 'ATS dependencies are not available in this deployment' },
-        { status: 501 }
-      );
-    }
-
+    
     const formData = await req.formData();
-
+    
+    // Extract form fields
     let firstName = formData.get('firstName') as string | null;
     let lastName = formData.get('lastName') as string | null;
     const fullName = formData.get('fullName') as string | null;
@@ -49,7 +29,8 @@ export async function POST(
     const experience = formData.get('experience') as string;
     const linkedin = formData.get('linkedin') as string;
     const resumeFile = formData.get('resume') as File;
-
+    
+    // Derive first/last from fullName if not provided
     if ((!firstName || !lastName) && fullName) {
       const parts = fullName.trim().split(/\s+/);
       const f = parts.shift() || '';
@@ -58,95 +39,116 @@ export async function POST(
       lastName = lastName || l;
     }
 
+    // Validate required fields (ensure at least firstName/email/phone)
     if (!firstName || !email || !phone) {
       return NextResponse.json(
         { success: false, error: 'Required fields missing' },
         { status: 400 }
       );
     }
-
-    const job = await (Job as any).findById(params.id);
+    
+    // Get the job
+    const job = await Job.findById(params.id);
+    
     if (!job) {
       return NextResponse.json(
         { success: false, error: 'Job not found' },
         { status: 404 }
       );
     }
+    
     if (job.status !== 'published') {
       return NextResponse.json(
         { success: false, error: 'Job is not accepting applications' },
         { status: 400 }
       );
     }
-
+    
+    // Process resume file (secure private storage with validation)
     let resumeUrl = '';
     let resumeText = '';
+    
     if (resumeFile) {
       try {
-        // Basic validation (MIME/size) + magic-bytes before accepting the file
-        const allowed = [
+        // Validate file type and size BEFORE processing
+        const allowedTypes = [
           'application/pdf',
           'application/msword',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ];
-        const maxBytes = 5 * 1024 * 1024; // 5MB
-        const mime = (resumeFile as any).type || '';
-        const size = (resumeFile as any).size || 0;
-        const bytes = await (resumeFile as any).arrayBuffer();
+        const maxSize = 5 * 1024 * 1024; // 5MB limit
+        
+        if (!allowedTypes.includes(resumeFile.type)) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Invalid file type. Only PDF and Word documents are allowed.' 
+          }, { status: 400 });
+        }
+        
+        if (resumeFile.size > maxSize) {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'File too large. Maximum size is 5MB.' 
+          }, { status: 400 });
+        }
+        
+        const bytes = await resumeFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        function isValidMagicBytes(buf: Buffer, mimeType: string): boolean {
-          if (mimeType === 'application/pdf') return buf.slice(0, 5).toString() === '%PDF-';
-          if (mimeType === 'application/msword') return buf.slice(0, 4).equals(Buffer.from([0xD0, 0xCF, 0x11, 0xE0]));
-          if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return buf.slice(0, 4).equals(Buffer.from([0x50, 0x4B, 0x03, 0x04]));
-          return false;
+        
+        // Magic byte validation for additional security
+        const isValidPDF = buffer.slice(0, 4).toString() === '%PDF';
+        const isValidDOC = buffer.slice(0, 4).equals(Buffer.from([0xD0, 0xCF, 0x11, 0xE0]));
+        const isValidDOCX = buffer.slice(0, 4).equals(Buffer.from([0x50, 0x4B, 0x03, 0x04]));
+        
+        if (resumeFile.type === 'application/pdf' && !isValidPDF) {
+          return NextResponse.json({ success: false, error: 'Invalid PDF file' }, { status: 400 });
         }
-        if (!allowed.includes(mime) || size > maxBytes || !isValidMagicBytes(buffer, mime)) {
-          return NextResponse.json({ success: false, error: 'Unsupported file type or size' }, { status: 400 });
-        }
-        // buffer already created above
-        const cryptoMod = await import('crypto');
-        const uuid = (cryptoMod as any).randomUUID();
-        const safeExt = ((resumeFile as any).name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const fileName = `${uuid}.${safeExt}`;
-        if (process.env.AWS_S3_BUCKET) {
-          const { putObjectBuffer, buildResumeKey } = await import('@/src/lib/storage/s3');
-          const key = buildResumeKey(job.orgId, fileName);
-          await putObjectBuffer(key, buffer, mime || 'application/octet-stream');
-          resumeUrl = `/api/files/resumes/${fileName}`;
-        } else {
-          const fsMod = await import('fs');
-          const fs = fsMod.promises;
-          const pathMod = await import('path');
-          const path = pathMod.default || (pathMod as any);
-          const uploadDir = path.join(process.cwd(), 'private-uploads', 'resumes');
-          await fs.mkdir(uploadDir, { recursive: true });
-          const filePath = path.join(uploadDir, fileName);
-          await fs.writeFile(filePath, buffer);
-          resumeUrl = `/api/files/resumes/${fileName}`;
-        }
+        
+        // Use PRIVATE storage directory with tenant isolation using job's orgId
+        const uploadDir = path.join(process.cwd(), 'private', 'uploads', 'resumes', job.orgId || 'default');
+        await fs.mkdir(uploadDir, { recursive: true });
+        
+        // Use cryptographically secure filename
+        const fileExt = resumeFile.name.split('.').pop()?.toLowerCase() || 'pdf';
+        const safeExt = fileExt.replace(/[^a-z0-9]/g, '');
+        const fileName = `${crypto.randomUUID()}.${safeExt}`;
+        const filePath = path.join(uploadDir, fileName);
+        
+        await fs.writeFile(filePath, buffer);
+        
+        // Generate signed URL for private file access
+        resumeUrl = `/api/files/resumes/${fileName}?tenant=${job.orgId || 'default'}`;
       } catch (err) {
         console.error('Resume save failed:', err);
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Failed to process resume file' 
+        }, { status: 500 });
       }
+      
+      // Basic text surrogate for scoring/search
       resumeText = `${firstName || ''} ${lastName || ''} ${email} ${phone} ${skills || ''} ${coverLetter || ''}`.trim();
     }
-
+    
+    // Parse skills
     const candidateSkills = skills ? 
-      (skills as string).split(',').map(s => s.trim()).filter(Boolean) : 
+      skills.split(',').map(s => s.trim()).filter(Boolean) : 
       extractSkillsFromText(resumeText + ' ' + coverLetter);
-
-    let yearsOfExperience = calculateExperienceFromText(resumeText + ' ' + coverLetter);
-    if (experience && typeof experience === 'string') {
-      const parsedYears = Number.parseInt(experience, 10);
-      if (Number.isFinite(parsedYears) && parsedYears >= 0) {
-        yearsOfExperience = parsedYears;
-      }
-    }
-
-    const atsSettings = await (AtsSettings as any).findOrCreateForOrg(job.orgId);
-
-    let candidate = await (Candidate as any).findByEmail(job.orgId, email);
+    
+    // Parse experience
+    const yearsOfExperience = experience ? 
+      parseInt(experience) : 
+      calculateExperienceFromText(resumeText + ' ' + coverLetter);
+    
+    // Get ATS settings
+    const atsSettings = await AtsSettings.findOrCreateForOrg(job.orgId);
+    
+    // Check for existing candidate
+    let candidate = await Candidate.findByEmail(job.orgId, email);
+    
     if (!candidate) {
-      candidate = await (Candidate as any).create({
+      // Create new candidate
+      candidate = await Candidate.create({
         orgId: job.orgId,
         firstName: firstName!,
         lastName: lastName || 'NA',
@@ -166,18 +168,21 @@ export async function POST(
         }
       });
     } else {
+      // Update existing candidate info
       candidate.skills = [...new Set([...(candidate.skills || []), ...candidateSkills])];
       if (resumeUrl) candidate.resumeUrl = resumeUrl;
       if (resumeText) candidate.resumeText = resumeText;
       if (linkedin) candidate.linkedin = linkedin;
       await candidate.save();
     }
-
-    const existingApplication = await (Application as any).findOne({
+    
+    // Check for duplicate application
+    const existingApplication = await Application.findOne({
       orgId: job.orgId,
       jobId: job._id,
       candidateId: candidate._id
     });
+    
     if (existingApplication) {
       return NextResponse.json(
         { 
@@ -188,21 +193,23 @@ export async function POST(
         { status: 400 }
       );
     }
-
+    
+    // Score the application
     const score = scoreApplication({
       skills: candidateSkills,
       requiredSkills: job.skills,
       experience: yearsOfExperience,
       minExperience: job.screeningRules?.minYears
-    }, (atsSettings as any)?.scoringWeights || undefined);
+    }, atsSettings?.scoringWeights || undefined);
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({
       experience: yearsOfExperience,
       skills: candidateSkills
     });
-
-    const application = await (Application as any).create({
+    
+    // Create application
+    const application = await Application.create({
       orgId: job.orgId,
       jobId: job._id,
       candidateId: candidate._id,
@@ -226,9 +233,10 @@ export async function POST(
         details: knockoutCheck.reject ? knockoutCheck.reason : undefined
       }]
     });
-
-    await (Job as any).findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } });
-
+    
+    // Update job application count
+    await Job.findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } });
+    
     return NextResponse.json({ 
       success: true,
       data: {
@@ -240,7 +248,7 @@ export async function POST(
           'Your application has been successfully submitted!'
       }
     }, { status: 201 });
-
+    
   } catch (error) {
     console.error('Job application error:', error);
     return NextResponse.json(

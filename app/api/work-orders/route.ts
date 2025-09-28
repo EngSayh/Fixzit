@@ -93,8 +93,9 @@ export async function POST(req: NextRequest) {
   const data = createSchema.parse(body);
 
   const createdAt = new Date();
-  const seq = Math.floor((Date.now() / 1000) % 100000);
-  const code = `WO-${new Date().getFullYear()}-${seq}`;
+  // Generate cryptographically secure work order code
+  const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const code = `WO-${new Date().getFullYear()}-${uuid}`;
   const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
   const wo = await (WorkOrder as any).create({
