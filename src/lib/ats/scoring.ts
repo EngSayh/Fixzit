@@ -1,7 +1,7 @@
 export function extractSkillsFromText(text: string): string[] {
   const base = (text || '').toLowerCase();
   const known = ['react','next.js','typescript','node','mongodb','sql','python','aws','docker'];
-  return Array.from(new Set(known.filter(k => base.includes(k.split('.')[0]))));
+  return Array.from(new Set(known.filter(k => new RegExp(`\b${k.split('.')[0]}\b`, 'i').test(base))));
 }
 
 export function calculateExperienceFromText(text: string): number {
