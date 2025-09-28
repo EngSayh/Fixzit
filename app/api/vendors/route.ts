@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const vendor = await Vendor.create({
       tenantId: user.tenantId,
-      code: `VEN-${Date.now()}`,
+      code: `VEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
