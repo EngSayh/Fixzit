@@ -2,35 +2,61 @@
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: 'jsdom',
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-    '^(.*)\\.js$': '$1'
-  },
-  transform: {
-    '^.+\\.(ts|tsx|js|jsx)$': ['ts-jest', { tsconfig: 'tsconfig.json', useESM: true }],
-  },
-  transformIgnorePatterns: [
-    'node_modules/(?!(bson|mongodb)/)'
-  ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'json', 'node'],
-  extensionsToTreatAsEsm: ['.ts', '.tsx', '.jsx'],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testMatch: [
-    '<rootDir>/tests/unit/**/*.(test|spec).(ts|tsx|js)',
-    '<rootDir>/src/**/__tests__/**/*.(test|spec).(ts|tsx|js)'
+    '**/tests/**/*.test.ts',
+    '**/tests/**/*.test.tsx',
+    '**/src/**/__tests__/**/*.test.ts',
+    '**/src/**/__tests__/**/*.test.tsx'
   ],
   testPathIgnorePatterns: [
     '<rootDir>/qa/',
-    '<rootDir>/tests/marketplace.smoke.spec.ts',
-    'node_modules',
-    '<rootDir>/tests/e2e/',
-    '<rootDir>/tests/.*\.spec\.(ts|js)'
+    '<rootDir>/.next/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/playwright-report/',
+    '<rootDir>/test-results/'
   ],
-  globals: {
-    'ts-jest': {
-      useESM: true,
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+    '^(.*)\\.js$': '$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub'
+  },
+  transform: {
+    '^.+\\.(t|j)sx?$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
+      useESM: false,
+      isolatedModules: true
+    }]
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    'app/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/*.stories.{ts,tsx}',
+    '!src/**/index.ts',
+    '!**/*.config.{ts,js}',
+    '!**/node_modules/**'
+  ],
+  coverageDirectory: '<rootDir>/coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70
     }
   },
-  resolver: 'jest-ts-webcompat-resolver',
+  globals: {
+    'ts-jest': {
+      useESM: false,
+      isolatedModules: true
+    }
+  },
+  clearMocks: true,
+  restoreMocks: true,
+  verbose: true,
+  maxWorkers: '50%'
 };
