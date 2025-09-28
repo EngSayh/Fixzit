@@ -101,12 +101,12 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
           }`}
         >
           <div className="relative mb-2">
-            <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-gray-400" />
+            <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-gray-400 ${isRTL ? 'right-2' : 'left-2'}`} aria-hidden="true" focusable="false" />
             <input
               type="text"
               value={query}
               onChange={event => setQuery(event.target.value)}
-              className="w-full rounded border border-gray-300 bg-white pl-7 pr-2 py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30"
+              className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2 text-right' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30`}
               placeholder={t('i18n.filterLanguages', 'Type to filter languages')}
               aria-label={t('i18n.filterLanguages', 'Type to filter languages')}
             />
