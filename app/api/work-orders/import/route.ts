@@ -10,7 +10,7 @@ export async function POST(req:NextRequest){
   const rows = (await req.json())?.rows as any[]; // expects parsed CSV rows from UI
   let created = 0;
   for (const r of rows ?? []){
-    const code = `WO-${new Date().getFullYear()}-${Math.floor(Math.random()*100000)}`;
+    const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
     await (WorkOrder as any).create({ tenantId:user.tenantId, code, title:r.title, description:r.description, priority:r.priority||"MEDIUM", createdBy:user.id, status:"SUBMITTED", statusHistory:[{from:"DRAFT",to:"SUBMITTED",byUserId:user.id,at:new Date()}] });
     created++;
   }

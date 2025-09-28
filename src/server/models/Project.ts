@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
+import { isMockDB } from "@/src/lib/mongo";
 
 const ProjectStatus = ["PLANNING", "APPROVED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED", "CLOSED"] as const;
 const ProjectType = ["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"] as const;
@@ -240,8 +241,6 @@ ProjectSchema.index({ tenantId: 1, 'progress.overall': -1 });
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
 
 // Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
-
 export const Project = isMockDB
   ? new MockModel('projects') as any
   : (models.Project || model("Project", ProjectSchema));

@@ -1,12 +1,21 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  LANGUAGE_OPTIONS,
+  findLanguageByCode,
+  findLanguageByLocale,
+  type LanguageCode,
+  type LanguageOption
+} from '@/src/data/language-options';
 
-type Language = 'ar' | 'en' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+export type Language = LanguageCode;
 
 interface TranslationContextType {
   language: Language;
+  locale: string;
   setLanguage: (lang: Language) => void;
+  setLocale: (locale: string) => void;
   t: (key: string, fallback?: string) => string;
   isRTL: boolean;
 }
@@ -39,10 +48,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'الإشعارات',
     'nav.profile': 'الملف الشخصي',
     'nav.settings': 'الإعدادات',
+    'nav.preferences': 'التفضيلات',
 
     // Common
     'common.search': 'بحث',
     'common.search.placeholder': 'البحث في أوامر العمل، العقارات، المستأجرين...',
+    'i18n.filterLanguages': 'ابحث عن اللغات',
+    'i18n.filterCurrencies': 'ابحث عن العملات',
+    'i18n.selectLanguageLabel': 'اختر اللغة',
+    'i18n.selectCurrencyLabel': 'اختر العملة',
+    'a11y.currencySelectorHelp': 'استخدم مفاتيح الأسهم للتنقل، إدخال للتحديد، Esc للإغلاق',
     'common.login': 'تسجيل الدخول',
     'common.logout': 'تسجيل الخروج',
     'common.save': 'حفظ',
@@ -196,6 +211,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'الدعم',
     'footer.help': 'مركز المساعدة',
     'footer.ticket': 'فتح تذكرة',
+    'footer.backHome': 'العودة إلى الصفحة الرئيسية',
     'footer.copyright': 'فيكزيت. جميع الحقوق محفوظة.',
   },
   en: {
@@ -221,11 +237,17 @@ const translations: Record<Language, Record<string, string>> = {
       'nav.orders': 'Orders',
       'nav.notifications': 'Notifications',
       'nav.profile': 'Profile',
-      'nav.settings': 'Settings',
+    'nav.settings': 'Settings',
+    'nav.preferences': 'Preferences',
 
     // Common
     'common.search': 'Search',
     'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
+    'i18n.filterLanguages': 'Type to filter languages',
+    'i18n.filterCurrencies': 'Type to filter currencies',
+    'i18n.selectLanguageLabel': 'Select language',
+    'i18n.selectCurrencyLabel': 'Select currency',
+    'a11y.currencySelectorHelp': 'Use arrow keys to navigate, Enter to select, Esc to close',
     'common.login': 'Login',
     'common.logout': 'Logout',
     'common.save': 'Save',
@@ -234,6 +256,9 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'No new notifications',
     'common.allCaughtUp': "You're all caught up!",
     'common.viewAll': 'View all notifications',
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Search catalog, vendors, RFQs, orders…',
+    'aqar.search.placeholder': 'Search listings, projects, agents…',
     'common.cancel': 'Cancel',
     'common.edit': 'Edit',
     'common.delete': 'Delete',
@@ -379,6 +404,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Support',
     'footer.help': 'Help Center',
     'footer.ticket': 'Open a ticket',
+    'footer.backHome': 'Back to Home',
     'footer.copyright': 'Fixzit. All rights reserved.',
 
     // Careers
@@ -414,6 +440,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Closed',
   },
   fr: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Rechercher catalogue, fournisseurs, DP, commandes…',
+    'aqar.search.placeholder': 'Rechercher annonces, projets, agents…',
     // Navigation
     'nav.dashboard': 'Tableau de bord',
     'nav.work-orders': 'Ordres de travail',
@@ -435,10 +464,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notifications',
     'nav.profile': 'Profil',
     'nav.settings': 'Paramètres',
+    'nav.preferences': 'Préférences',
 
     // Common
     'common.search': 'Rechercher',
     'common.search.placeholder': 'Rechercher des ordres de travail, des propriétés, des locataires...',
+    'i18n.filterLanguages': 'Rechercher des langues',
+    'i18n.filterCurrencies': 'Rechercher des devises',
+    'i18n.selectLanguageLabel': 'Sélectionner la langue',
+    'i18n.selectCurrencyLabel': 'Sélectionner la devise',
+    'a11y.currencySelectorHelp': 'Utilisez les flèches pour naviguer, Entrée pour sélectionner, Échap pour fermer',
     'common.login': 'Connexion',
     'common.logout': 'Déconnexion',
     'common.save': 'Enregistrer',
@@ -531,6 +566,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Support',
     'footer.help': 'Centre d\'aide',
     'footer.ticket': 'Ouvrir un ticket',
+    'footer.backHome': "Retour à l'accueil",
     'footer.copyright': 'Fixzit. Tous droits réservés.',
 
     // Careers
@@ -566,6 +602,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Fermé',
   }, // French
   pt: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Pesquisar catálogo, fornecedores, RFQs, pedidos…',
+    'aqar.search.placeholder': 'Pesquisar anúncios, projetos, agentes…',
     // Navigation
     'nav.dashboard': 'Painel',
     'nav.work-orders': 'Ordens de Trabalho',
@@ -587,10 +626,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notificações',
     'nav.profile': 'Perfil',
     'nav.settings': 'Configurações',
+    'nav.preferences': 'Preferências',
 
     // Common
     'common.search': 'Pesquisar',
     'common.search.placeholder': 'Pesquisar ordens de trabalho, propriedades, inquilinos...',
+    'i18n.filterLanguages': 'Pesquisar idiomas',
+    'i18n.filterCurrencies': 'Pesquisar moedas',
+    'i18n.selectLanguageLabel': 'Selecionar idioma',
+    'i18n.selectCurrencyLabel': 'Selecionar moeda',
+    'a11y.currencySelectorHelp': 'Use as setas para navegar, Enter para selecionar, Esc para fechar',
     'common.login': 'Entrar',
     'common.logout': 'Sair',
     'common.save': 'Salvar',
@@ -683,6 +728,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Suporte',
     'footer.help': 'Central de Ajuda',
     'footer.ticket': 'Abrir um ticket',
+    'footer.backHome': 'Voltar para o início',
     'footer.copyright': 'Fixzit. Todos os direitos reservados.',
 
     // Careers
@@ -718,6 +764,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Fechado',
   }, // Portuguese
   ru: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Поиск: каталог, поставщики, RFQ, заказы…',
+    'aqar.search.placeholder': 'Поиск объявлений, проектов, агентов…',
     // Navigation
     'nav.dashboard': 'Панель управления',
     'nav.work-orders': 'Рабочие заказы',
@@ -739,10 +788,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Уведомления',
     'nav.profile': 'Профиль',
     'nav.settings': 'Настройки',
+    'nav.preferences': 'Предпочтения',
 
     // Common
     'common.search': 'Поиск',
     'common.search.placeholder': 'Поиск рабочих заказов, свойств, арендаторов...',
+    'i18n.filterLanguages': 'Фильтр языков',
+    'i18n.filterCurrencies': 'Фильтр валют',
+    'i18n.selectLanguageLabel': 'Выбрать язык',
+    'i18n.selectCurrencyLabel': 'Выбрать валюту',
+    'a11y.currencySelectorHelp': 'Используйте стрелки для навигации, Enter для выбора, Esc для закрытия',
     'common.login': 'Вход',
     'common.logout': 'Выход',
     'common.save': 'Сохранить',
@@ -835,6 +890,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Поддержка',
     'footer.help': 'Центр помощи',
     'footer.ticket': 'Открыть заявку',
+    'footer.backHome': 'На главную',
     'footer.copyright': 'Fixzit. Все права защищены.',
 
     // Careers
@@ -870,6 +926,9 @@ const translations: Record<Language, Record<string, string>> = {
     'careers.closed': 'Закрыто',
   }, // Russian
   es: {
+    // TopBar search placeholders
+    'souq.search.placeholder': 'Buscar catálogo, proveedores, RFQs, pedidos…',
+    'aqar.search.placeholder': 'Buscar anuncios, proyectos, agentes…',
     // Navigation
     'nav.dashboard': 'Panel de control',
     'nav.work-orders': 'Órdenes de trabajo',
@@ -891,10 +950,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'Notificaciones',
     'nav.profile': 'Perfil',
     'nav.settings': 'Configuraciones',
+    'nav.preferences': 'Preferencias',
 
     // Common
     'common.search': 'Buscar',
     'common.search.placeholder': 'Buscar órdenes de trabajo, propiedades, inquilinos...',
+    'i18n.filterLanguages': 'Filtrar idiomas',
+    'i18n.filterCurrencies': 'Filtrar monedas',
+    'i18n.selectLanguageLabel': 'Seleccionar idioma',
+    'i18n.selectCurrencyLabel': 'Seleccionar moneda',
+    'a11y.currencySelectorHelp': 'Use las flechas para navegar, Enter para seleccionar, Esc para cerrar',
     'common.login': 'Iniciar sesión',
     'common.logout': 'Cerrar sesión',
     'common.save': 'Guardar',
@@ -987,6 +1052,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'Soporte',
     'footer.help': 'Centro de Ayuda',
     'footer.ticket': 'Abrir un ticket',
+    'footer.backHome': 'Volver al inicio',
     'footer.copyright': 'Fixzit. Todos los derechos reservados.',
 
     // Careers
@@ -1043,10 +1109,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'نوٹیفیکیشنز',
     'nav.profile': 'پروفائل',
     'nav.settings': 'سیٹنگز',
+    'nav.preferences': 'ترجیحات',
 
     // Common
     'common.search': 'تلاش',
     'common.search.placeholder': 'کام کے آرڈرز، پراپرٹیز، کرایہ داروں میں تلاش کریں...',
+    'i18n.filterLanguages': 'زبانیں فلٹر کریں',
+    'i18n.filterCurrencies': 'کرنسیاں فلٹر کریں',
+    'i18n.selectLanguageLabel': 'زبان منتخب کریں',
+    'i18n.selectCurrencyLabel': 'کرنسی منتخب کریں',
+    'a11y.currencySelectorHelp': 'نیویگیٹ کرنے کے لیے تیر کیز، منتخب کرنے کے لیے انٹر، بند کرنے کے لیے ایسک',
     'common.login': 'لاگ ان',
     'common.logout': 'لاگ آؤٹ',
     'common.save': 'محفوظ کریں',
@@ -1139,6 +1211,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'سپورٹ',
     'footer.help': 'مدد کا مرکز',
     'footer.ticket': 'ٹکٹ کھولیں',
+    'footer.backHome': 'ہوم پر واپس جائیں',
     'footer.copyright': 'فکزٹ۔ تمام حقوق محفوظ ہیں۔',
 
     // Careers
@@ -1195,10 +1268,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': 'सूचनाएं',
     'nav.profile': 'प्रोफ़ाइल',
     'nav.settings': 'सेटिंग्स',
+    'nav.preferences': 'वरीयताएँ',
 
     // Common
     'common.search': 'खोज',
     'common.search.placeholder': 'कार्य आदेश, संपत्तियां, किरायेदार खोजें...',
+    'i18n.filterLanguages': 'भाषाएँ फ़िल्टर करें',
+    'i18n.filterCurrencies': 'मुद्राएँ फ़िल्टर करें',
+    'i18n.selectLanguageLabel': 'भाषा चुनें',
+    'i18n.selectCurrencyLabel': 'मुद्रा चुनें',
+    'a11y.currencySelectorHelp': 'नेविगेट करने के लिए एरो कुंजियाँ, चयन के लिए Enter, बंद करने के लिए Esc',
     'common.login': 'लॉग इन',
     'common.logout': 'लॉग आउट',
     'common.save': 'सहेजें',
@@ -1291,6 +1370,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': 'सहायता',
     'footer.help': 'सहायता केंद्र',
     'footer.ticket': 'टिकट खोलें',
+    'footer.backHome': 'होम पर वापस जाएं',
     'footer.copyright': 'फिक्जिट। सभी अधिकार सुरक्षित।',
 
     // Careers
@@ -1347,10 +1427,16 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.notifications': '通知',
     'nav.profile': '个人资料',
     'nav.settings': '设置',
+    'nav.preferences': '偏好设置',
 
     // Common
     'common.search': '搜索',
     'common.search.placeholder': '搜索工作订单、属性、租户...',
+    'i18n.filterLanguages': '筛选语言',
+    'i18n.filterCurrencies': '筛选货币',
+    'i18n.selectLanguageLabel': '选择语言',
+    'i18n.selectCurrencyLabel': '选择货币',
+    'a11y.currencySelectorHelp': '使用方向键导航，回车选择，Esc 关闭',
     'common.login': '登录',
     'common.logout': '登出',
     'common.save': '保存',
@@ -1443,6 +1529,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.support': '支持',
     'footer.help': '帮助中心',
     'footer.ticket': '打开工单',
+    'footer.backHome': '返回首页',
     'footer.copyright': 'Fixzit。保留所有权利。',
 
     // Careers
@@ -1479,64 +1566,77 @@ const translations: Record<Language, Record<string, string>> = {
   }, // Chinese
 };
 
+const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS[0];
+
 export function TranslationProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('ar'); // Default to Arabic
+  const [currentOption, setCurrentOption] = useState<LanguageOption>(DEFAULT_LANGUAGE_OPTION);
   const [isClient, setIsClient] = useState(false);
 
-  // Initialize with a safe default
   useEffect(() => {
-    // Set client flag immediately for SSR compatibility
     setIsClient(true);
 
-    // Load saved language from localStorage (client-side only)
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
-      if (typeof window !== 'undefined') {
-        const savedLang = localStorage.getItem('fxz.lang') as Language;
-        if (savedLang && translations[savedLang]) {
-          setLanguageState(savedLang);
-          // Apply RTL immediately
-          document.documentElement.lang = savedLang;
-          document.documentElement.dir = translations[savedLang]?.['dir'] === 'rtl' ? 'rtl' : 'ltr';
-        } else {
-          setLanguageState('ar'); // Default to Arabic as per config
-          document.documentElement.lang = 'ar';
-          document.documentElement.dir = 'rtl';
-        }
-      }
+      const storedLocale = window.localStorage.getItem('fxz.locale');
+      const storedLanguage = window.localStorage.getItem('fxz.lang') as Language | null;
+      const nextOption =
+        (storedLocale && findLanguageByLocale(storedLocale)) ||
+        (storedLanguage && findLanguageByCode(storedLanguage)) ||
+        DEFAULT_LANGUAGE_OPTION;
+
+      setCurrentOption(nextOption);
     } catch (error) {
-      // Fallback if localStorage is not available
       console.warn('Could not access localStorage for language preference:', error);
-      setLanguageState('ar');
-      document.documentElement.lang = 'ar';
-      document.documentElement.dir = 'rtl';
+      setCurrentOption(DEFAULT_LANGUAGE_OPTION);
     }
   }, []);
 
-  // Ensure client-side rendering for initial state
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    if (!isClient || typeof window === 'undefined') {
+      return;
+    }
 
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-
-    // Only access localStorage and DOM on client side
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('fxz.lang', lang);
-        document.documentElement.lang = lang;
-
-        // Immediately apply RTL direction
-        const isRTLLang = translations[lang]?.['dir'] === 'rtl';
-        document.documentElement.dir = isRTLLang ? 'rtl' : 'ltr';
-
-        // Force re-render by triggering a DOM update
-        document.body.style.direction = isRTLLang ? 'rtl' : 'ltr';
+      window.localStorage.setItem('fxz.locale', currentOption.locale);
+      window.localStorage.setItem('fxz.lang', currentOption.language);
+      document.cookie = `fxz.lang=${currentOption.language}; path=/; SameSite=Lax`;
+      document.cookie = `fxz.locale=${currentOption.locale}; path=/; SameSite=Lax`;
+      document.documentElement.lang = currentOption.locale.toLowerCase();
+      document.documentElement.dir = currentOption.dir;
+      document.documentElement.setAttribute('data-locale', currentOption.locale);
+      if (document.body) {
+        document.body.style.direction = currentOption.dir;
       }
+      window.dispatchEvent(
+        new CustomEvent('fixzit:language-change', {
+          detail: {
+            locale: currentOption.locale,
+            language: currentOption.language,
+            dir: currentOption.dir
+          }
+        })
+      );
     } catch (error) {
       console.warn('Could not update language settings:', error);
     }
+  }, [currentOption, isClient]);
+
+  const setLanguage = (lang: Language) => {
+    const nextOption = findLanguageByCode(lang);
+    setCurrentOption(nextOption);
   };
+
+  const setLocale = (locale: string) => {
+    const nextOption = findLanguageByLocale(locale) ?? findLanguageByCode(currentOption.language);
+    setCurrentOption(nextOption);
+  };
+
+  const language = currentOption.language;
+  const locale = currentOption.locale;
+  const isRTL = currentOption.dir === 'rtl';
 
   const t = (key: string, fallback: string = key): string => {
     try {
@@ -1549,17 +1649,8 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const isRTL = (() => {
-    try {
-      return translations[language]?.['dir'] === 'rtl';
-    } catch (error) {
-      console.warn('RTL detection error:', error);
-      return false;
-    }
-  })();
-
   return (
-    <TranslationContext.Provider value={{ language, setLanguage, t, isRTL }}>
+    <TranslationContext.Provider value={{ language, locale, setLanguage, setLocale, t, isRTL }}>
       {children}
     </TranslationContext.Provider>
   );
@@ -1572,8 +1663,9 @@ export function useTranslation() {
     // If context is not available, provide a safe fallback
     if (!context) {
       // Create a fallback context object for SSR
-      const fallbackContext = {
-        language: 'ar' as Language, // Default to Arabic
+      const fallbackContext: TranslationContextType = {
+        language: 'ar',
+        locale: 'ar-SA',
         setLanguage: (lang: Language) => {
           try {
             if (typeof window !== 'undefined') {
@@ -1584,10 +1676,20 @@ export function useTranslation() {
             console.warn('Could not save language preference:', error);
           }
         },
+        setLocale: (locale: string) => {
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('fxz.locale', locale);
+              console.warn('Locale preference saved. Please refresh the page for changes to take effect.');
+            }
+          } catch (error) {
+            console.warn('Could not save locale preference:', error);
+          }
+        },
         t: (key: string, fallback: string = key): string => {
           return fallback;
         },
-        isRTL: false
+        isRTL: true
       };
       return fallbackContext;
     }
@@ -1598,9 +1700,11 @@ export function useTranslation() {
     console.warn('useTranslation error:', error);
     return {
       language: 'ar' as Language,
+      locale: 'ar-SA',
       setLanguage: (lang: Language) => {},
+      setLocale: () => {},
       t: (key: string, fallback: string = key): string => fallback,
-      isRTL: false
+      isRTL: true
     };
   }
 }

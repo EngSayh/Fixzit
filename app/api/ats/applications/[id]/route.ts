@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectMongo } from '@/src/lib/mongo';
 import { Application } from '@/src/server/models/Application';
 import { getUserFromToken } from '@/src/lib/auth';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-  await db;
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS applications endpoint not available in this deployment' }, { status: 501 });
+    }
+
+    await connectMongo();
     const application = await Application
       .findById(params.id)
       .populate('jobId')
@@ -27,7 +29,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-  await db;
+    await connectMongo();
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
@@ -47,9 +49,8 @@ export async function PATCH(
       application.score = body.score;
       application.history.push({ action: 'score_updated', by: userId, at: new Date(), details: `Score changed from ${oldScore} to ${body.score}` });
     }
-    // Optional note handling if schema supports it
-    if ((application as any).notes && body.note) {
-      (application as any).notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
+    if (body.note) {
+      application.notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
     }
     if (Array.isArray(body.flags)) (application as any).flags = body.flags;
     if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers;
