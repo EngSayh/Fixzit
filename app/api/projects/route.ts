@@ -29,9 +29,26 @@ const createProjectSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * Create a new project for the authenticated tenant.
+ *
+ * Parses and validates the request JSON against `createProjectSchema`, ensures the caller is authenticated, connects to the database, and inserts a new Project document. The created project includes `tenantId` from the session, a generated `code` prefixed with `PRJ-` and the current timestamp, `status` set to `"PLANNING"`, an initialized `progress` object (overall, schedule, quality, cost = 0, `lastUpdated` set to now), and `createdBy` set to the authenticated user's id.
+ *
+ * Returns a 201 response with the created project on success. Possible responses:
+ * - 401 Unauthorized when session retrieval fails.
+ * - 422 Unprocessable Entity when request body fails schema validation (returns Zod flattened errors).
+ * - 500 Internal Server Error for other failures.
+ *
+ * @returns A NextResponse containing the created project (201) or an error object with an appropriate status code.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const data = createProjectSchema.parse(await req.json());
@@ -53,13 +70,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(project, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const { searchParams } = new URL(req.url);

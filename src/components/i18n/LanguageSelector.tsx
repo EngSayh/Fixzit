@@ -10,14 +10,14 @@ interface LanguageSelectorProps {
 }
 
 export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
-  const { locale, setLocale, isRTL, t } = useTranslation();
+  const { language, setLanguage, isRTL, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const current = useMemo<LanguageOption>(() => {
-    return LANGUAGE_OPTIONS.find(option => option.locale === locale) ?? LANGUAGE_OPTIONS[0];
-  }, [locale]);
+    return LANGUAGE_OPTIONS.find(option => option.language === language) ?? LANGUAGE_OPTIONS[0];
+  }, [language]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -57,7 +57,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
   const toggle = () => setOpen(prev => !prev);
 
   const handleSelect = (option: LanguageOption) => {
-    setLocale(option.locale);
+    setLanguage(option.language);
     setOpen(false);
     setQuery('');
   };
