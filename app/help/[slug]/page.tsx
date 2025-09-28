@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 import { getDatabase } from "@/lib/mongodb";
 import { cookies, headers } from 'next/headers';
 import { verifyToken } from '@/src/lib/auth';
+=======
+import { connectDb } from "@/src/lib/mongo";
+import { HelpArticle } from "@/src/server/models/HelpArticle";
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/src/lib/markdown';
 
@@ -17,6 +22,7 @@ type Article = { slug: string; title: string; content: string; category?: string
  * @returns JSX for the help article page or a fallback message when the article is unavailable.
  */
 export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
+<<<<<<< HEAD
   // Extract auth token from cookies or headers to determine tenantId
   const cookieStore = cookies();
   const cookieToken = cookieStore.get('fixzit_auth')?.value;
@@ -33,6 +39,11 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
     : { $or: [ { tenantId: { $exists: false } }, { tenantId: null } ] };
   const a = await coll.findOne({ slug: params.slug, status: 'PUBLISHED', ...tenantScope });
   if (!a){
+=======
+  await connectDb();
+  const a = await (HelpArticle as any).findOne({ slug: params.slug });
+  if (!a || a.status!=="PUBLISHED"){
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }
   // Derive dir from Accept-Language (simple heuristic); ClientLayout will enforce on client

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
@@ -13,6 +14,13 @@ export default async function JobDetailPage({ params }: { params: { slug: string
   }
 
   await connectMongo();
+=======
+import { connectDb } from '@/src/lib/mongo';
+import { Job } from '@/src/server/models/Job';
+
+export default async function JobDetailPage({ params }: { params: { slug: string } }) {
+  await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
   const orgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
   const job = await Job.findOne({ orgId, slug: params.slug, status: 'published' }).lean();
   if (!job) {

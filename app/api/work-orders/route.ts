@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
@@ -39,7 +39,7 @@ const createSchema = z.object({
  * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
  */
 export async function GET(req: NextRequest) {
-  await db; // This will work with mock DB too
+  await connectDb();
   const user = await getSessionUser(req);
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await requireAbility("CREATE")(req);
   if (user instanceof NextResponse) return user as any;
-  await db;
+  await connectDb();
 
   const body = await req.json();
   const data = createSchema.parse(body);
