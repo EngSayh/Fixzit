@@ -11,13 +11,13 @@ export type CurrencyOption = {
   flag: string;
 };
 
-export const CURRENCY_OPTIONS: CurrencyOption[] = [
+export const CURRENCY_OPTIONS = [
   { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', flag: '🇸🇦' },
   { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
   { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
   { code: 'GBP', name: 'Pound Sterling', symbol: '£', flag: '🇬🇧' },
   { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪' }
-];
+] as const satisfies readonly CurrencyOption[];
 
 const DEFAULT_CURRENCY: CurrencyCode = 'SAR';
 
@@ -86,8 +86,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem('fixzit-currency', currency);
       document.documentElement.setAttribute('data-currency', currency);
-      const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
-      document.cookie = `fxz.currency=${currency}; Path=/; SameSite=Strict; Max-Age=31536000${secureAttr}`;
+      const secureAttr = (typeof window !== 'undefined' && (window as any).isSecureContext) ? '; Secure' : '';
+      const maxAge = 31536000; // 1 year
+      const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+      document.cookie = `fxz.currency=${encodeURIComponent(currency)}; Path=/; SameSite=Strict; Max-Age=${maxAge}; Expires=${expires}${secureAttr}`;
       window.dispatchEvent(
         new CustomEvent('fixzit:currency-change', {
           detail: { currency }
@@ -99,8 +101,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, [currency]);
 
   const setCurrency = (next: CurrencyCode) => {
-    const option = CURRENCY_OPTIONS.find(item => item.code === next);
-    setCurrencyState(option ? option.code : DEFAULT_CURRENCY);
+    if (!CURRENCY_OPTIONS.some(item => item.code === next)) return;
+    setCurrencyState(next);
   };
 
   const value = useMemo(
