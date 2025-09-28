@@ -8,9 +8,13 @@ import Footer from './Footer';
 import HelpWidget from './HelpWidget';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
+import PreferenceBroadcast from './PreferenceBroadcast';
 import ResponsiveLayout from './ResponsiveLayout';
+import dynamic from 'next/dynamic';
+const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
 import { useResponsive } from '@/src/contexts/ResponsiveContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
+import { TopBarProvider } from '@/src/contexts/TopBarContext';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState('guest');
@@ -100,18 +104,23 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     );
   }
 
-      return (
-        <div className="min-h-screen bg-[#F9FAFB]">
-          <AutoFixInitializer />
-          <ResponsiveLayout
-            header={<TopBar role={role} />}
-            sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
-            showSidebarToggle={!isLandingPage}
-          >
-            {children}
-          </ResponsiveLayout>
-          <HelpWidget />
-          <ErrorTest />
-        </div>
-      );
+  return (
+    <div className="min-h-screen bg-[#F9FAFB]">
+      <AutoFixInitializer />
+      <TopBarProvider>
+        <ResponsiveLayout
+          header={<TopBar role={role} />}
+          sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+          showSidebarToggle={!isLandingPage}
+          footer={<Footer />}
+        >
+          {children}
+        </ResponsiveLayout>
+        <PreferenceBroadcast />
+      </TopBarProvider>
+      <HelpWidget />
+      <ErrorTest />
+      <AutoIncidentReporter />
+    </div>
+  );
 }

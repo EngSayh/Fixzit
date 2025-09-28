@@ -3,11 +3,13 @@ import { connectMongo } from '@/src/lib/mongo';
 import { Application } from '@/src/server/models/Application';
 import { getUserFromToken } from '@/src/lib/auth';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS applications endpoint not available in this deployment' }, { status: 501 });
+    }
+
     await connectMongo();
     const application = await Application
       .findById(params.id)

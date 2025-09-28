@@ -6,6 +6,11 @@ import { getUserFromToken } from '@/src/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS jobs endpoint not available in this deployment' }, { status: 501 });
+    }
+
     await connectMongo();
     
     const { searchParams } = new URL(req.url);
@@ -50,6 +55,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS jobs endpoint not available in this deployment' }, { status: 501 });
+    }
+
     await connectMongo();
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';

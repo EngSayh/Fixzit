@@ -6,6 +6,11 @@ import { Application } from '@/src/server/models/Application';
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if LinkedIn integration is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'LinkedIn integration not available in this deployment' }, { status: 501 });
+    }
+
     await connectMongo();
     const { jobSlug, profile, answers } = await req.json();
     if (!jobSlug || !profile?.email) return NextResponse.json({ success: false, error: 'Missing fields' }, { status: 400 });
