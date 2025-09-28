@@ -10,7 +10,8 @@ test.describe('Landing & Branding (@smoke)', () => {
     page.on('response', r => { if (r.status() >= 400) failed.push({url:r.url(),status:r.status()}); });
 
     await page.goto('/');
-    await expect(page.getByRole('button', { name: /العربية/i })).toBeVisible();
+    // Language selector in TopBar shows ISO code (AR) in compact variant
+    await expect(page.getByRole('button', { name: /AR|العربية/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Souq/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Access|Sign in|Login/i })).toBeVisible(); // tolerate wording
 
