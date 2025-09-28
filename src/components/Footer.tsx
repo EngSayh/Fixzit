@@ -6,7 +6,6 @@ import SupportPopup from "@/src/components/SupportPopup";
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
-import { useCurrency, CURRENCY_OPTIONS } from '@/src/contexts/CurrencyContext';
 
 /**
  * Responsive site footer component with company, legal, and support links.
@@ -21,8 +20,6 @@ import { useCurrency, CURRENCY_OPTIONS } from '@/src/contexts/CurrencyContext';
  */
 export default function Footer() {
   const [open, setOpen] = useState(false);
-  const { currency } = useCurrency();
-  const currentCurrency = CURRENCY_OPTIONS.find(option => option.code === currency) ?? CURRENCY_OPTIONS[0];
 
   // Use the translation context directly - it has its own fallback
   const { t, isRTL: translationIsRTL } = useTranslation();
@@ -39,11 +36,6 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <LanguageSelector variant="compact" />
             <CurrencySelector variant="compact" />
-            <span className="flex items-center gap-1 text-xs text-gray-600">
-              <span aria-hidden>{currentCurrency.flag}</span>
-              <span>{currentCurrency.code}</span>
-              <span className="text-gray-400">({currentCurrency.symbol})</span>
-            </span>
           </div>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 text-sm">
@@ -65,15 +57,23 @@ export default function Footer() {
             <div className="font-semibold mb-2">{t('footer.support', 'Support')}</div>
             <ul className="space-y-1 opacity-80">
               <li><Link href="/help" className="hover:underline">{t('footer.help', 'Help Center')}</Link></li>
-              <li><button className="hover:underline text-left" onClick={()=>setOpen(true)}>{t('footer.ticket', 'Open a ticket')}</button></li>
+              <li>
+                <button
+                  type="button"
+                  className={`hover:underline ${translationIsRTL ? 'text-right' : 'text-left'}`}
+                  onClick={() => setOpen(true)}
+                >
+                  {t('footer.ticket', 'Open a ticket')}
+                </button>
+              </li>
             </ul>
           </div>
         </div>
         <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
-            <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
-            <Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
+            <Link href="/cms/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
+            <Link href="/cms/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
             <Link href="/support" className="hover:underline">{t('footer.support', 'Support')}</Link>
           </div>
         </div>
