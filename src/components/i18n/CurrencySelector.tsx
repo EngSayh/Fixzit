@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useId } from 'react';
+import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { CircleDollarSign, Search } from 'lucide-react';
 import { useCurrency, type CurrencyOption } from '@/src/contexts/CurrencyContext';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -9,6 +9,17 @@ interface CurrencySelectorProps {
   variant?: 'default' | 'compact';
 }
 
+/**
+ * A currency picker UI that displays the current currency and lets the user search and select another.
+ *
+ * Renders a button showing the current currency (flag and code) and a dropdown list of available currencies.
+ * Typing in the dropdown's search input filters options by currency code or name (case-insensitive).
+ * Selecting an option updates the active currency via CurrencyContext, closes the dropdown, and clears the search.
+ * The dropdown also closes when clicking outside the component.
+ *
+ * @param {'default' | 'compact'} [variant='default'] - Visual variant of the control. `'default'` uses larger padding and width; `'compact'` reduces padding and width.
+ * @returns {JSX.Element} A React element for the currency selector.
+ */
 export default function CurrencySelector({ variant = 'default' }: CurrencySelectorProps) {
   const { currency, setCurrency, options } = useCurrency();
   const { t, isRTL } = useTranslation();
@@ -38,37 +49,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
     });
   }, [query, options]);
 
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if (!open) return;
-      if (event.key === 'Escape') {
-        setOpen(false);
-        queueMicrotask(() => buttonRef.current?.focus());
-        return;
-      }
-      if (filtered.length === 0) return;
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setActiveIndex(prev => (prev + 1) % filtered.length);
-        return;
-      }
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setActiveIndex(prev => (prev - 1 + filtered.length) % filtered.length);
-        return;
-      }
-      if (event.key === 'Enter') {
-        const target = filtered[activeIndex];
-        if (target) {
-          setCurrency(target.code);
-          setOpen(false);
-          setQuery('');
-          queueMicrotask(() => buttonRef.current?.focus());
-        }
-      }
-    },
-    [open, filtered, activeIndex, setCurrency]
-  );
+  // keyboard handled on the input onKeyDown
 
   useEffect(() => {
     if (!open) {
@@ -86,12 +67,19 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
     queueMicrotask(() => inputRef.current?.focus());
 
     document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open, handleKeyDown]);
+  }, [open]);
+
+  // Refocus trigger only when transitioning from open -> closed
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (wasOpenRef.current && !open) {
+      queueMicrotask(() => buttonRef.current?.focus());
+    }
+    wasOpenRef.current = open;
+  }, [open]);
 
   // Initialize the active option when opening or when the filter changes
   useEffect(() => {
@@ -152,9 +140,35 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
               aria-describedby={hintId}
               aria-controls={listboxId}
               aria-activedescendant={open && filtered[activeIndex] ? `${listboxId}-option-${filtered[activeIndex].code}` : undefined}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setOpen(false);
+                  queueMicrotask(() => buttonRef.current?.focus());
+                } else if (e.key === 'ArrowDown' && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex(i => (i + 1) % filtered.length);
+                } else if (e.key === 'ArrowUp' && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex(i => (i - 1 + filtered.length) % filtered.length);
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const target = filtered[activeIndex];
+                  if (target) {
+                    setCurrency(target.code);
+                    setOpen(false);
+                    setQuery('');
+                    queueMicrotask(() => buttonRef.current?.focus());
+                  }
+                }
+              }}
               className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30`}
               placeholder={t('i18n.filterCurrencies', 'Type to filter currencies')}
               aria-label={t('i18n.filterCurrencies', 'Type to filter currencies')}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="done"
             />
             <p id={hintId} className="sr-only">
               {t('a11y.currencySelectorHelp', 'Use arrow keys to navigate, Enter to select, Esc to close')}
@@ -163,15 +177,15 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
           <ul className="max-h-64 overflow-auto" role="listbox" id={listboxId}>
             {filtered.map((option, idx) => (
               <li key={option.code}>
-                <button
-                  type="button"
+                <div
                   id={`${listboxId}-option-${option.code}`}
                   className={`flex w-full items-center gap-3 rounded-md px-2 py-2 hover:bg-gray-100 ${
                     option.code === current.code ? 'bg-[#0061A8]/10 text-[#0061A8]' : ''
                   } ${idx === activeIndex ? 'ring-1 ring-[#0061A8]/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
-                  onClick={() => handleSelect(option)}
                   role="option"
                   aria-selected={option.code === current.code}
+                  tabIndex={-1}
+                  onMouseDown={(e) => { e.preventDefault(); handleSelect(option); }}
                 >
                   <span className="text-lg" aria-hidden>
                     {option.flag}
@@ -183,7 +197,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                   <span className="text-sm font-semibold" aria-hidden>
                     {option.symbol}
                   </span>
-                </button>
+                </div>
               </li>
             ))}
           </ul>

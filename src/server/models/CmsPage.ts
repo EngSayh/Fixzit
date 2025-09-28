@@ -14,6 +14,7 @@ const CmsPageSchema = new Schema({
 
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
 
-export const CmsPage = isMockDB 
+// Check if we're using mock database
+export const CmsPage = isMockDB
   ? new MockModel('cmspages') as any
   : (models.CmsPage || model("CmsPage", CmsPageSchema));

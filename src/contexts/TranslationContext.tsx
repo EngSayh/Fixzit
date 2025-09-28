@@ -1680,7 +1680,7 @@ export function useTranslation() {
           try {
             if (typeof window !== 'undefined') {
               localStorage.setItem('fxz.locale', locale);
-              window.location.reload();
+              console.warn('Locale preference saved. Please refresh the page for changes to take effect.');
             }
           } catch (error) {
             console.warn('Could not save locale preference:', error);
