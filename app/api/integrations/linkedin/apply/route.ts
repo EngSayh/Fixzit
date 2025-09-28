@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
 
 export async function POST(req: NextRequest) {
   try {
-  await connectDb();
+    // Check if LinkedIn integration is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'LinkedIn integration not available in this deployment' }, { status: 501 });
+    }
+
+    await connectMongo();
     const { jobSlug, profile, answers } = await req.json();
     if (!jobSlug || !profile?.email) return NextResponse.json({ success: false, error: 'Missing fields' }, { status: 400 });
 
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
     if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
 
-    let candidate = await (Candidate as any).findOne({ orgId: job.orgId, email: profile.email.toLowerCase().trim() });
+    let candidate = await Candidate.findByEmail(job.orgId, profile.email);
     if (!candidate) {
       candidate = await Candidate.create({
         orgId: job.orgId,

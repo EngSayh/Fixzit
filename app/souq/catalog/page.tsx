@@ -41,7 +41,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     originalPrice: 'SAR 220',
     rating: 4.2,
     reviews: 89,
-    image: '/img/avatar.png',
+    image: '/img/logo.jpg',
     vendor: 'LightTech Solutions',
     inStock: true,
     discount: 16,
@@ -55,7 +55,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     originalPrice: 'SAR 520',
     rating: 4.8,
     reviews: 234,
-    image: '/grid.svg',
+    image: '/img/logo.jpg',
     vendor: 'SafetyFirst Inc',
     inStock: true,
     discount: 13
@@ -79,7 +79,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     originalPrice: 'SAR 3,800',
     rating: 4.3,
     reviews: 156,
-    image: '/img/avatar.png',
+    image: '/img/logo.jpg',
     vendor: 'Workspace Solutions',
     inStock: false,
     discount: 16
@@ -91,7 +91,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 'SAR 1,250',
     rating: 4.7,
     reviews: 203,
-    image: '/grid.svg',
+    image: '/img/logo.jpg',
     vendor: 'SecureGuard Systems',
     inStock: true
   }

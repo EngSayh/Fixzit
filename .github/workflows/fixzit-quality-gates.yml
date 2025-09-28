@@ -1,0 +1,265 @@
+name: Fixzit Quality Gates
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect package manager
+        id: pm
+        shell: bash
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+            echo "cache=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f package-lock.json ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "cache=npm" >> "$GITHUB_OUTPUT"
+          elif [ -f yarn.lock ]; then
+            echo "manager=yarn" >> "$GITHUB_OUTPUT"
+            echo "cache=yarn" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "cache=npm" >> "$GITHUB_OUTPUT"
+            echo "::warning::No lock file found. Defaulting to npm install."
+          fi
+
+      - name: Enable Corepack & Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ${{ steps.pm.outputs.cache }}
+      - run: corepack enable
+
+      - name: Install
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm)
+              pnpm install --frozen-lockfile
+              ;;
+            yarn)
+              yarn install --frozen-lockfile
+              ;;
+            *)
+              npm ci
+              ;;
+          esac
+
+      # ---------- Lint & Types ----------
+      - name: Lint
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm lint ;;
+            yarn) yarn lint ;;
+            *) npm run lint ;;
+          esac
+      - name: Typecheck
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm typecheck ;;
+            yarn) yarn typecheck ;;
+            *) npm run typecheck ;;
+          esac
+
+      # ---------- Unit Tests -------------
+      - name: Unit Tests
+        shell: bash
+        run: |
+          mkdir -p .artifacts
+          status=0
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm test || status=$? ;;
+            yarn) yarn test || status=$? ;;
+            *) npm test || status=$? ;;
+          esac
+          exit ${status:-0}
+
+      # ---------- Build Web (Next.js) ----------
+      - name: Build Web (Next.js)
+        shell: bash
+        run: |
+          build_dir=""
+          if [ -f apps/web/package.json ]; then
+            cd apps/web
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm)
+                pnpm build
+                pnpm run --if-present export || pnpm exec next export
+                ;;
+              yarn)
+                yarn build
+                if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.export?0:1)"; then
+                  yarn run export
+                else
+                  npx --yes next export
+                fi
+                ;;
+              *)
+                npm run build
+                npm run export --if-present || npx --yes next export
+                ;;
+            esac
+            cd ../..
+          elif [ -f package.json ]; then
+            build_dir="."
+          fi
+
+          if [ -z "$build_dir" ]; then
+            echo "No Next.js project detected; skipping build."
+            exit 0
+          fi
+
+          pushd "$build_dir" >/dev/null
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm)
+              pnpm build
+              ;;
+            yarn)
+              yarn build
+              ;;
+            *)
+              npm run build
+              ;;
+          esac
+
+          # Attempt a static export only when scripts exist
+          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.export?0:1)"; then
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm) pnpm run export ;;
+              yarn) yarn run export ;;
+              *) npm run export ;;
+            esac
+          else
+            echo "No export script found. Configure 'output: \"export\"' in next.config.js and add an export script to package.json to enable static exports."
+          fi
+          popd >/dev/null
+
+      # ---------- OpenAPI (generate or validate) ----------
+      - name: Build/Validate OpenAPI
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run openapi:build ;;
+            yarn) yarn openapi:build ;;
+            *) npm run openapi:build ;;
+          esac
+          mkdir -p .artifacts
+          for candidate in openapi.yaml openapi.yml apps/api/openapi.yaml apps/api/openapi.yml; do
+            if [ -f "$candidate" ]; then
+              cp -f "$candidate" .artifacts/openapi.yaml
+              break
+            fi
+          done
+
+      # ---------- Postman Collection (from OpenAPI) ----------
+      - name: Export Postman Collection
+        shell: bash
+        run: |
+          mkdir -p .artifacts
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run postman:export ;;
+            yarn) yarn postman:export ;;
+            *) npm run postman:export ;;
+          esac
+          if [ -f _artifacts/postman/collection.json ]; then
+            cp -f _artifacts/postman/collection.json .artifacts/postman_collection.json
+          elif [ -f postman_collection.json ]; then
+            cp -f postman_collection.json .artifacts/postman_collection.json
+          fi
+
+      # ---------- RBAC Matrix (CSV) ----------
+      - name: Generate RBAC CSV
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run rbac:export ;;
+            yarn) yarn rbac:export ;;
+            *) npm run rbac:export ;;
+          esac
+          [ -f rbac-matrix.csv ] && cp -f rbac-matrix.csv .artifacts/rbac-matrix.csv || true
+
+      # ---------- Lighthouse CI (static export if available) ----------
+      - name: Lighthouse CI (static)
+        shell: bash
+        run: |
+          mkdir -p lhci_reports
+          if [ -d apps/web/out ]; then
+            export_dir="apps/web/out"
+          elif [ -d out ]; then
+            export_dir="out"
+          else
+            echo "No static export directory found; skipping Lighthouse."
+            exit 0
+          fi
+
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm dlx @lhci/cli autorun ;;
+            yarn) npx --yes @lhci/cli autorun ;;
+            *) npx --yes @lhci/cli autorun ;;
+          esac
+
+      # ---------- Dependency Audit ----------
+      - name: Dependency Audit
+        shell: bash
+        run: |
+          mkdir -p .artifacts
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm)
+              pnpm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              ;;
+            yarn)
+              yarn audit --json > .artifacts/dep-audit.json || audit_status=$?
+              ;;
+            *)
+              npm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              ;;
+          esac
+          if [ "${audit_status}" -ne 0 ]; then
+            echo "Dependency audit detected issues. See .artifacts/dep-audit.json for details."
+            exit "$audit_status"
+          fi
+
+      # ---------- k6 Smoke (package only) ----------
+      - name: Prepare k6 Scripts
+        shell: bash
+        run: |
+          mkdir -p .artifacts
+          [ -f scripts/load/smoke.js ] && cp -f scripts/load/smoke.js .artifacts/smoke.js || true
+
+      # ---------- Scorecard scaffold ----------
+      - name: Scorecard scaffold
+        shell: bash
+        run: |
+          mkdir -p .artifacts
+          cat > .artifacts/fixzit_scorecard.json <<'JSON'
+          {"version":"1.0","total_score":0,"sections":[],"must_pass":[],"actions":[],"final_self_score":0}
+          JSON
+
+      # ---------- Upload artifacts ----------
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixzit-artifacts
+          path: |
+            .artifacts/**
+            lhci_reports/**
+
+      # ---------- Summary ----------
+      - name: Summary
+        run: |
+          echo "✅ Quality-gate artifacts uploaded as 'fixzit-artifacts'." >> $GITHUB_STEP_SUMMARY
+          echo "- OpenAPI (if present), Postman (if generated), RBAC CSV, dep audit, JUnit/LHCI, scorecard scaffold" >> $GITHUB_STEP_SUMMARY

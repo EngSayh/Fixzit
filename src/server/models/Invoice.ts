@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
+import { isMockDB } from "@/src/lib/mongo";
 
 const InvoiceStatus = ["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"] as const;
 const InvoiceType = ["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"] as const;
@@ -187,9 +188,6 @@ InvoiceSchema.index({ tenantId: 1, dueDate: 1 });
 InvoiceSchema.index({ tenantId: 1, 'zatca.status': 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
-
-// Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
 
 export const Invoice = isMockDB
   ? new MockModel('invoices') as any
