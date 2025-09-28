@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/database";
-import { connectMongoDB } from "@/lib/database";
+import { connectDb } from "@/src/lib/mongo";
+import { User } from "@/src/server/models/User";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
@@ -26,6 +26,8 @@ const signupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    await connectDb();
+
     const body = signupSchema.parse(await req.json());
 
     // Determine role based on user type
@@ -44,72 +46,37 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(body.password, 12);
 
-    let user;
-
-    try {
-      // Check if user already exists in PostgreSQL
-      const existingUser = await prisma.user.findUnique({
-        where: { email: body.email }
-      });
-      
-      if (existingUser) {
-        return NextResponse.json(
-          { error: "An account with this email already exists" },
-          { status: 400 }
-        );
-      }
-
-      // Create user in PostgreSQL
-      user = await prisma.user.create({
-        data: {
-          email: body.email,
-          name: body.fullName,
-          role: role as any,
-          tenantId: 'demo-tenant', // Default tenant for now
-          password: hashedPassword
-        }
-      });
-    } catch (error) {
-      console.log('PostgreSQL not available, trying MongoDB...');
-      // Fallback to MongoDB
-      const mongoDb = await connectMongoDB();
-      const usersCollection = mongoDb.collection('users');
-      
-      // Check if user already exists in MongoDB
-      const existingUser = await usersCollection.findOne({ email: body.email });
-      if (existingUser) {
-        return NextResponse.json(
-          { error: "An account with this email already exists" },
-          { status: 400 }
-        );
-      }
-
-      // Create user in MongoDB
-      const now = new Date();
-      const result = await usersCollection.insertOne({
-        email: body.email,
-        name: body.fullName,
-        role,
-        tenantId: 'demo-tenant',
-        password: hashedPassword,
-        createdAt: now,
-        updatedAt: now
-      });
-      
-      // Normalize created user for response (omit password)
-      user = {
-        _id: result.insertedId,
-        email: body.email,
-        name: body.fullName,
-        role,
-        tenantId: 'demo-tenant',
-        createdAt: now,
-        updatedAt: now
-      };
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: body.email });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "An account with this email already exists" },
+        { status: 400 }
+      );
     }
 
+    // Create user in MongoDB
+    const user = await User.create({
+      email: body.email,
+      name: body.fullName,
+      role,
+      tenantId: 'demo-tenant', // Default tenant for now
+      password: hashedPassword,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      phone: body.phone,
+      companyName: body.companyName,
+      userType: body.userType,
+      newsletter: body.newsletter || false,
+      preferredLanguage: body.preferredLanguage || 'en',
+      preferredCurrency: body.preferredCurrency || 'SAR',
+      termsAccepted: body.termsAccepted,
+      isActive: true,
+      emailVerified: false,
+    });
+
     // Remove password from response
-    const { password: _pw, ...userWithoutPassword } = (user || {}) as any;
+    const { password: _pw, ...userWithoutPassword } = user.toObject();
 
     return NextResponse.json({
       ok: true,

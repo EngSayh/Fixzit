@@ -1,34 +1,41 @@
-export function computeDueAt(createdAt: Date, priority: string, category: string): Date {
-  const baseMinutes = getBaseMinutes(priority, category);
-  const dueAt = new Date(createdAt.getTime() + baseMinutes * 60 * 1000);
-  return dueAt;
+import { addMinutes } from 'date-fns';
+
+export type WorkOrderPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+const SLA_MINUTES_MAP: Record<WorkOrderPriority, number> = {
+  LOW: 72 * 60, // 3 days
+  MEDIUM: 36 * 60, // 1.5 days
+  HIGH: 12 * 60, // 12 hours
+  CRITICAL: 4 * 60, // 4 hours
+};
+
+/**
+ * Returns the SLA resolution window in minutes for a work order priority.
+ * This function is used server side when persisting records and in
+ * verification scripts that seed the real Mongo database.
+ */
+export function computeSlaMinutes(priority: WorkOrderPriority): number {
+  return SLA_MINUTES_MAP[priority] ?? SLA_MINUTES_MAP.MEDIUM;
 }
 
-export function computeSlaMinutes(priority: string, category: string): number {
-  return getBaseMinutes(priority, category);
+/**
+ * Calculates the due date for a work order by adding the SLA window to
+ * the provided start time. A new Date instance is always returned.
+ */
+export function computeDueAt(start: Date, slaMinutes: number): Date {
+  return addMinutes(start, slaMinutes);
 }
 
-function getBaseMinutes(priority: string, category: string): number {
-  // Base SLA times in minutes
-  const priorityMultipliers: Record<string, number> = {
-    'CRITICAL': 0.5,    // 30 minutes
-    'HIGH': 1,          // 1 hour
-    'MEDIUM': 4,        // 4 hours
-    'LOW': 24,          // 24 hours
-    'URGENT': 0.25      // 15 minutes
+/**
+ * Convenience helper that returns both the SLA window (minutes) and the
+ * computed due date for a work order priority. This keeps controller logic
+ * concise and guarantees consistent calculations across the app and QA
+ * tooling.
+ */
+export function resolveSlaTarget(priority: WorkOrderPriority, start: Date = new Date()) {
+  const slaMinutes = computeSlaMinutes(priority);
+  return {
+    slaMinutes,
+    dueAt: computeDueAt(start, slaMinutes),
   };
-
-  const categoryMultipliers: Record<string, number> = {
-    'ELECTRICAL': 1.2,
-    'PLUMBING': 1.1,
-    'HVAC': 1.3,
-    'SECURITY': 0.8,
-    'ELEVATOR': 1.5,
-    'GENERAL': 1.0
-  };
-
-  const baseMinutes = priorityMultipliers[priority] || 4; // Default to MEDIUM
-  const categoryMultiplier = categoryMultipliers[category] || 1.0;
-  
-  return Math.round(baseMinutes * categoryMultiplier * 60); // Convert to minutes
 }

@@ -1,62 +1,29 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { ObjectId } from 'mongodb';
-import { prisma } from '@/lib/database';
-import { connectMongoDB } from '@/lib/database';
+import { randomBytes } from 'crypto';
+import { connectMongo } from '@/src/lib/mongo';
+import { User } from '@/src/server/models/User';
 
-// Check if we should use mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
-
-// Mock users for development
-const mockUsers = [
-  {
-    id: '1',
-    email: 'superadmin@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
-    name: 'System Administrator',
-    role: 'SUPER_ADMIN',
-    tenantId: 'demo-tenant'
-  },
-  {
-    id: '2',
-    email: 'admin@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
-    name: 'Admin User',
-    role: 'ADMIN',
-    tenantId: 'demo-tenant'
-  },
-  {
-    id: '3',
-    email: 'manager@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
-    name: 'Property Manager',
-    role: 'FM_MANAGER',
-    tenantId: 'demo-tenant'
-  },
-  {
-    id: '4',
-    email: 'tenant@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
-    name: 'Ahmed Al-Rashid',
-    role: 'TENANT',
-    tenantId: 'demo-tenant'
-  },
-  {
-    id: '5',
-    email: 'vendor@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
-    name: 'Mohammed Al-Harbi',
-    role: 'VENDOR',
-    tenantId: 'demo-tenant'
+const JWT_SECRET = (() => {
+  const envSecret = process.env.JWT_SECRET?.trim();
+  if (envSecret) {
+    return envSecret;
   }
-];
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fixzit-enterprise-secret-2024';
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable must be configured in production environments.');
+  }
+
+  const fallbackSecret = randomBytes(32).toString('hex');
+  console.warn(
+    'JWT_SECRET is not set. Using an ephemeral secret for this process. Sessions will be invalidated on restart.'
+  );
+  return fallbackSecret;
+})();
 
 export interface AuthToken {
   id: string;
   email: string;
-  name?: string;
   role: string;
   tenantId: string;
 }
@@ -82,86 +49,19 @@ export function verifyToken(token: string): AuthToken | null {
 }
 
 export async function authenticateUser(emailOrEmployeeNumber: string, password: string, loginType: 'personal' | 'corporate' = 'personal') {
-  let user;
+  // Ensure we have a live database connection when not using the mock layer
+  await connectMongo();
 
-  if (isMockDB) {
-    // Use mock data for development
-    user = mockUsers.find(u => u.email === emailOrEmployeeNumber);
+  let user;
+  if (loginType === 'personal') {
+    user = await User.findOne({ email: emailOrEmployeeNumber });
   } else {
-    // Use real database
-    try {
-      // Try PostgreSQL first
-      if (loginType === 'corporate') {
-        // For corporate login, search by employee number (username field)
-        user = await prisma.user.findFirst({
-          where: { 
-            OR: [
-              { username: emailOrEmployeeNumber },
-              { employeeId: emailOrEmployeeNumber }
-            ]
-          }
-        });
-      } else {
-        // For personal login, search by email
-        user = await prisma.user.findUnique({
-          where: { email: emailOrEmployeeNumber }
-        });
-      }
-    } catch (error: any) {
-      const msg = String(error?.message || '');
-      const code = error?.code;
-      const isConnErr = 
-        msg.includes('connect') ||
-        msg.includes('ECONNREFUSED') ||
-        msg.includes('ETIMEDOUT') ||
-        msg.includes('ENOTFOUND') ||
-        msg.includes('authentication failed') ||
-        code === 'P1000' || // Prisma auth error
-        code === 'P1001';   // Prisma connection error
-        
-      if (isConnErr) {
-        console.warn('PostgreSQL connection failed, falling back to MongoDB:', msg);
-        // Fallback to MongoDB
-        const mongoDb = await connectMongoDB();
-        const usersCollection = mongoDb.collection('users');
-        
-        if (loginType === 'corporate') {
-          user = await usersCollection.findOne({ 
-            $or: [
-              { username: emailOrEmployeeNumber },
-              { employeeId: emailOrEmployeeNumber }
-            ]
-          });
-        } else {
-          user = await usersCollection.findOne({ email: emailOrEmployeeNumber });
-        }
-      } else {
-        throw error;
-      }
-    }
+    // For corporate login, search by employee number (username field)
+    user = await User.findOne({ username: emailOrEmployeeNumber });
   }
 
   if (!user) {
     throw new Error('Invalid credentials');
-  }
-
-  // Guard against missing password hash
-  if (!user.password) {
-    throw new Error('Invalid credentials');
-  }
-
-  // Check user status - only allow active users to login
-  if (user.status && user.status !== 'ACTIVE') {
-    switch (user.status) {
-      case 'PENDING':
-        throw new Error('Account is pending activation. Please check your email for activation instructions.');
-      case 'SUSPENDED':
-        throw new Error('Account has been suspended. Please contact administrator.');
-      case 'INACTIVE':
-        throw new Error('Account is inactive. Please contact administrator.');
-      default:
-        throw new Error('Account access is restricted.');
-    }
   }
 
   const isValid = await verifyPassword(password, user.password);
@@ -170,20 +70,24 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     throw new Error('Invalid credentials');
   }
 
+  if (user.status !== 'ACTIVE') {
+    throw new Error('Account is not active');
+  }
+
   const token = generateToken({
-    id: (user as any).id || (user as any)._id?.toString(),
+    id: user._id.toString(),
     email: user.email,
-    role: user.role,
+    role: user.professional.role,
     tenantId: user.tenantId
   });
 
   return {
     token,
     user: {
-      id: (user as any).id || (user as any)._id?.toString(),
+      id: user._id.toString(),
       email: user.email,
-      name: (user as any).name || `${(user as any).personal?.firstName || ''} ${(user as any).personal?.lastName || ''}`.trim(),
-      role: user.role,
+      name: `${user.personal.firstName} ${user.personal.lastName}`,
+      role: user.professional.role,
       tenantId: user.tenantId
     }
   };
@@ -196,58 +100,18 @@ export async function getUserFromToken(token: string) {
     return null;
   }
 
-  let user;
+  await connectMongo();
+  const user = await User.findById(payload.id);
 
-  if (isMockDB) {
-    // Use mock data for development
-    user = mockUsers.find(u => u.id === payload.id);
-  } else {
-    // Use real database
-    try {
-      // Try PostgreSQL first
-      user = await prisma.user.findUnique({
-        where: { id: payload.id }
-      });
-    } catch (error: any) {
-      const msg = String(error?.message || '');
-      const code = error?.code;
-      const isConnErr =
-        msg.includes('connect') ||
-        msg.includes('ECONNREFUSED') ||
-        msg.includes('ETIMEDOUT') ||
-        msg.includes('ENOTFOUND') ||
-        msg.includes('authentication failed') ||
-        code === 'P1000' ||
-        code === 'P1001';
-      if (isConnErr) {
-        console.warn('PostgreSQL connection failed, falling back to MongoDB:', msg);
-        const mongoDb = await connectMongoDB();
-        const usersCollection = mongoDb.collection('users');
-        let found = null as any;
-        if (ObjectId.isValid(payload.id)) {
-          found = await usersCollection.findOne({ _id: new ObjectId(payload.id) });
-        }
-        if (!found) {
-          found = await usersCollection.findOne({
-            $or: [{ id: payload.id }, { email: payload.email }]
-          });
-        }
-        user = found;
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  if (!user) {
+  if (!user || user.status !== 'ACTIVE') {
     return null;
   }
 
   return {
-    id: (user as any).id || (user as any)._id?.toString(),
+    id: user._id.toString(),
     email: user.email,
-    name: (user as any).name || `${(user as any).personal?.firstName || ''} ${(user as any).personal?.lastName || ''}`.trim(),
-    role: user.role,
+    name: `${user.personal.firstName} ${user.personal.lastName}`,
+    role: user.professional.role,
     tenantId: user.tenantId
   };
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Property } from "@/src/server/models/Property";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -65,13 +65,13 @@ const createPropertySchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const data = createPropertySchema.parse(await req.json());
 
     const property = await Property.create({
       tenantId: user.tenantId,
-      code: `PROP-${Date.now()}`,
+      code: `PROP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
@@ -84,15 +84,12 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // For testing purposes, allow access without authentication
-    let user = null;
-    try {
-      user = await getSessionUser(req);
-    } catch {
-      // Use mock user for testing
-      user = { id: '1', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' };
+    // Require authentication - no bypass allowed
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    await db;
+    await connectDb();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
