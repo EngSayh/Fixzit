@@ -6,7 +6,6 @@ import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import HelpWidget from './HelpWidget';
-import PreferenceBroadcast from './PreferenceBroadcast';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import PreferenceBroadcast from './PreferenceBroadcast';
