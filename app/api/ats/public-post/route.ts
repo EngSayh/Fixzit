@@ -5,6 +5,11 @@ import { generateSlug } from '@/src/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS public-post endpoint not available in this deployment' }, { status: 501 });
+    }
+
     await connectMongo();
     const body = await req.json();
     const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';

@@ -8,11 +8,13 @@ import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } 
 import { promises as fs } from 'fs';
 import path from 'path';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS job application endpoint not available in this deployment' }, { status: 501 });
+    }
+
     await connectMongo();
     
     const formData = await req.formData();

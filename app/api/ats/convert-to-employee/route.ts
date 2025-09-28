@@ -8,6 +8,11 @@ import { getUserFromToken } from '@/src/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS convert-to-employee endpoint not available in this deployment' }, { status: 501 });
+    }
+
     await connectMongo();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
