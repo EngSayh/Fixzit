@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/src/lib/mongo";
-import { WorkOrder } from "@/src/server/models/WorkOrder";
+
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
@@ -39,6 +39,17 @@ const createSchema = z.object({
  * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
  */
 export async function GET(req: NextRequest) {
+  try {
+    if (process.env.WO_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const WOMod = await import('@/src/server/models/WorkOrder').catch(() => null);
+    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    if (!WorkOrder) {
+      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+    }
   await connectDb();
   const user = await getSessionUser(req);
   const { searchParams } = new URL(req.url);
@@ -82,9 +93,26 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ items, page, limit, total });
+  } catch (error: any) {
+    console.error('Work Orders GET error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch work orders' 
+    }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
+  try {
+    if (process.env.WO_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const WOMod = await import('@/src/server/models/WorkOrder').catch(() => null);
+    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    if (!WorkOrder) {
+      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+    }
   const user = await requireAbility("CREATE")(req);
   if (user instanceof NextResponse) return user as any;
   await connectDb();
@@ -117,4 +145,11 @@ export async function POST(req: NextRequest) {
     createdAt
   });
   return NextResponse.json(wo, { status: 201 });
+  } catch (error: any) {
+    console.error('Work Orders POST error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to create work order' 
+    }, { status: 500 });
+  }
 }
+
