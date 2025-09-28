@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-<<<<<<< HEAD
-import { connectMongo } from '@/src/lib/mongo';
-=======
 import { connectDb } from '@/src/lib/mongo';
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
@@ -14,16 +10,7 @@ import path from 'path';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-<<<<<<< HEAD
-    // Check if ATS module is enabled
-    if (process.env.ATS_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'ATS job application endpoint not available in this deployment' }, { status: 501 });
-    }
-
-    await connectMongo();
-=======
     await connectDb();
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
     
     const formData = await req.formData();
     
@@ -167,7 +154,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       requiredSkills: job.skills,
       experience: yearsOfExperience,
       minExperience: job.screeningRules?.minYears
-    }, atsSettings.scoringWeights);
+    }, atsSettings.scoringWeights || undefined);
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({

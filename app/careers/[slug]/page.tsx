@@ -1,26 +1,8 @@
-<<<<<<< HEAD
-import { connectMongo } from '@/src/lib/mongo';
-import { Job } from '@/src/server/models/Job';
-
-export default async function JobDetailPage({ params }: { params: { slug: string } }) {
-  // Check if ATS module is enabled
-  if (process.env.ATS_ENABLED !== 'true') {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-bold">Careers not available</h1>
-        <p className="text-gray-600 mt-2">The careers system is not available in this deployment.</p>
-      </div>
-    );
-  }
-
-  await connectMongo();
-=======
 import { connectDb } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
 export default async function JobDetailPage({ params }: { params: { slug: string } }) {
   await connectDb();
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
   const orgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
   const job = await Job.findOne({ orgId, slug: params.slug, status: 'published' }).lean();
   if (!job) {

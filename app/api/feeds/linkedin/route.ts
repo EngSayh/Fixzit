@@ -9,7 +9,6 @@ export async function GET() {
   if (process.env.ATS_ENABLED !== 'true') {
     return NextResponse.json({ success: false, error: 'ATS feeds not available in this deployment' }, { status: 501 });
   }
-
   await connectDb();
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })

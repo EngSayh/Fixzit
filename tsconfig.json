@@ -20,7 +20,7 @@
         "name": "next"
       }
     ],
-    "types": ["node", "react", "react-dom", "next", "google.maps"],
+    "types": ["node", "react", "react-dom", "next", "google.maps", "jest"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],

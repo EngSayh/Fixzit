@@ -50,18 +50,8 @@ const updateAssetSchema = z.object({
  */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-<<<<<<< HEAD
-    let user;
-    try {
-      user = await getSessionUser(req);
-    } catch {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    await db;
-=======
     const user = await getSessionUser(req);
     await connectDb();
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const asset = await Asset.findOne({
       _id: params.id,
@@ -100,23 +90,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-<<<<<<< HEAD
-    let user;
-    try {
-      user = await getSessionUser(req);
-    } catch {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    // RBAC: restrict updates to privileged roles/permissions
-    const writeRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'ASSET_MANAGER']);
-    if (!writeRoles.has(user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    await db;
-=======
     const user = await getSessionUser(req);
     await connectDb();
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const data = updateAssetSchema.parse(await req.json());
 
@@ -157,23 +132,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
  */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-<<<<<<< HEAD
-    let user;
-    try {
-      user = await getSessionUser(req);
-    } catch {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    // RBAC: restrict delete (soft-decommission) to privileged roles/permissions
-    const deleteRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'ASSET_MANAGER']);
-    if (!deleteRoles.has(user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    await db;
-=======
     const user = await getSessionUser(req);
     await connectDb();
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const asset = await Asset.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },

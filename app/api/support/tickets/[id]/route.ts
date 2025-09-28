@@ -10,31 +10,9 @@ const patchSchema = z.object({
   priority: z.enum(["Low","Medium","High","Urgent"]).optional()
 });
 
-<<<<<<< HEAD
-export async function GET(req: NextRequest, { params }: { params: { id: string } }){
-  await db;
-  const user = await getSessionUser(req);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  // Validate MongoDB ObjectId format
-  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
-  }
-  const t = await (SupportTicket as any).findOne({ 
-    _id: params.id, 
-    $or: [
-      { tenantId: user.tenantId },
-      { createdByUserId: user.id },
-      // Allow admins to view any ticket
-      ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
-    ]
-  });
-=======
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }){
   await connectDb();
   const t = await (SupportTicket as any).findById(params.id);
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
   if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(t);
 }

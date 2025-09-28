@@ -87,19 +87,12 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-<<<<<<< HEAD
-    // Require authentication - no bypass allowed
-    const user = await getSessionUser(req);
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-=======
     await connectDb();
     let user;
     try {
       user = await getSessionUser(req);
     } catch (error: any) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
     }
 
     const { searchParams } = new URL(req.url);
