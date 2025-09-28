@@ -171,6 +171,7 @@ SLASchema.index({ tenantId: 1, priority: 1 });
 
 export type SLADoc = InferSchemaType<typeof SLASchema>;
 
+// Check if we're using mock database
 export const SLA = isMockDB
   ? new MockModel('slas') as any
   : (models.SLA || model("SLA", SLASchema));
