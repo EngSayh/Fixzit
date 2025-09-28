@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     const data = createSLASchema.parse(await req.json());
 
     const sla = await (SLA as any).create({
-      tenantId: user.orgId,
+      tenantId: (user as any)?.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: any = { tenantId: (user as any)?.orgId };
 
     if (type) match.type = type;
     if (priority) match.priority = priority;

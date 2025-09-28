@@ -13,7 +13,6 @@ type RouteModule = {
 };
 
 type MockOptions = {
-  isMockDB: boolean;
   dbReject?: Error;
   queryFail?: boolean;
   collectionsCount?: number;
@@ -57,7 +56,6 @@ function makeMongoMock(opts: MockOptions) {
   return {
     __esModule: true,
     db,
-    isMockDB: opts.isMockDB,
     getNativeDb
   };
 }
@@ -99,7 +97,6 @@ describe('api/qa/health route - GET', () => {
     delete (process as any).env.npm_package_version;
   });
 
-  it('returns healthy status and mock db details when isMockDB is true', async () => {
     const version = '9.9.9-test';
     (process as any).env.npm_package_version = version;
 
@@ -109,7 +106,6 @@ describe('api/qa/health route - GET', () => {
       // other fields are not used by the code under test
     } as unknown as NodeJS.MemoryUsage);
 
-    const { GET } = await loadRouteWithMocks({ isMockDB: true });
     const res = await GET({} as any);
 
     expect(res.status).toBe(200);
@@ -128,7 +124,6 @@ describe('api/qa/health route - GET', () => {
   });
 
   it('returns healthy and includes collection count when real DB query succeeds', async () => {
-    const { GET } = await loadRouteWithMocks({ isMockDB: false, collectionsCount: 2 });
     const res = await GET({} as any);
 
     expect(res.status).toBe(200);
@@ -142,7 +137,6 @@ describe('api/qa/health route - GET', () => {
   });
 
   it('returns healthy and marks query failure when listing collections throws', async () => {
-    const { GET } = await loadRouteWithMocks({ isMockDB: false, queryFail: true });
     const res = await GET({} as any);
 
     expect(res.status).toBe(200);
@@ -156,7 +150,6 @@ describe('api/qa/health route - GET', () => {
     const err = new Error('DB down');
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { GET } = await loadRouteWithMocks({ isMockDB: false, dbReject: err });
     const res = await GET({} as any);
 
     expect(errorSpy).toHaveBeenCalled(); // ensure error path logged
@@ -173,7 +166,6 @@ describe('api/qa/health route - GET', () => {
       throw new Error('memory unavailable');
     });
 
-    const { GET } = await loadRouteWithMocks({ isMockDB: true });
     const res = await GET({} as any);
     const body = await res.json();
 
@@ -190,8 +182,6 @@ describe('api/qa/health route - POST', () => {
     jest.resetModules();
   });
 
-  it('returns success for mock DB refresh when isMockDB is true', async () => {
-    const { POST } = await loadRouteWithMocks({ isMockDB: true });
     const res = await POST({} as any);
 
     expect(res.status).toBe(200);
@@ -201,8 +191,6 @@ describe('api/qa/health route - POST', () => {
     expect(typeof body.timestamp).toBe('string');
   });
 
-  it('returns success for real DB reconnection when isMockDB is false', async () => {
-    const { POST } = await loadRouteWithMocks({ isMockDB: false });
     const res = await POST({} as any);
 
     expect(res.status).toBe(200);
@@ -212,7 +200,6 @@ describe('api/qa/health route - POST', () => {
   });
 
   it('returns failure (500) when real DB reconnection fails', async () => {
-    const { POST } = await loadRouteWithMocks({ isMockDB: false, dbReject: new Error('reconnect failed') });
     const res = await POST({} as any);
 
     expect(res.status).toBe(500);

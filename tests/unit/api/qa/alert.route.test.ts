@@ -14,7 +14,6 @@ import { POST, GET } from "@/app/api/qa/alert/route";
 
 jest.mock('@/src/lib/mongo', () => {
   return {
-    isMockDB: false,
     getNativeDb: jest.fn(),
     db: {}, // not used directly by the route, but exported by the module
   };
@@ -52,7 +51,6 @@ describe('QA Alert Route', () => {
   // Pull mocked exports for type-safe updates inside tests
 
   const mongoMod = () => require('@/src/lib/mongo') as {
-    isMockDB: boolean;
     getNativeDb: ReturnType<typeof jest.fn>;
     db: any;
   };
@@ -65,9 +63,7 @@ describe('QA Alert Route', () => {
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Default: real DB mode (isMockDB = false)
     const mod = mongoMod();
-    (mod as any).isMockDB = false;
     mod.getNativeDb.mockReset();
   });
 
@@ -79,7 +75,6 @@ describe('QA Alert Route', () => {
   describe('POST /api/qa/alert', () => {
     it('returns success with mock flag and logs when using mock DB', async () => {
       const mod = mongoMod();
-      (mod as any).isMockDB = true;
 
       const event = 'button_click';
       const data = { id: 123, label: 'Save' };
@@ -224,7 +219,6 @@ describe('QA Alert Route', () => {
   describe('GET /api/qa/alert', () => {
     it('returns empty list with mock flag when using mock DB', async () => {
       const mod = mongoMod();
-      (mod as any).isMockDB = true;
 
       const req = asNextRequest({
         json: async () => ({}),

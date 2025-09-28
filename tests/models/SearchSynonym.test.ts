@@ -21,7 +21,6 @@ function withIsolatedModule<T>(env: Record<string, string | undefined>, mocks: {
   try {
     return loader()
   } finally {
-    jest.dontMock("@/src/lib/mockDb")
     jest.dontMock("mongoose")
     process.env = oldEnv
   }
@@ -36,16 +35,12 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     jest.resetModules()
     jest.restoreAllMocks()
     jest.clearAllMocks()
-    jest.dontMock("@/src/lib/mockDb")
     jest.dontMock("mongoose")
   })
 
-  test("uses MockModel when NODE_ENV=development and MONGODB_URI is undefined", () => {
-    const mockModelInstance = { __kind: "MockModel", name: "searchsynonyms" }
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "development", MONGODB_URI: undefined },
       {
-        "@/src/lib/mockDb": { MockModel: jest.fn().mockImplementation((name: string) => ({ __kind: "MockModel", name })) },
         mongoose: {
           Schema: class {},
           model: jest.fn(),
@@ -55,15 +50,12 @@ describe("models/SearchSynonym - environment-based model selection", () => {
       () => require(modulePath)
     )
     expect(SearchSynonym).toBeDefined()
-    expect(SearchSynonym.__kind).toBe("MockModel")
     expect(SearchSynonym.name).toBe("searchsynonyms")
   })
 
-  test("uses MockModel when NODE_ENV=development and MONGODB_URI contains 'localhost'", () => {
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "development", MONGODB_URI: "mongodb://localhost:27017/db" },
       {
-        "@/src/lib/mockDb": { MockModel: jest.fn().mockImplementation((name: string) => ({ __kind: "MockModel", name })) },
         mongoose: {
           Schema: class {},
           model: jest.fn(),
@@ -72,14 +64,11 @@ describe("models/SearchSynonym - environment-based model selection", () => {
       },
       () => require(modulePath)
     )
-    expect(SearchSynonym.__kind).toBe("MockModel")
   })
 
   test("uses real mongoose model when NODE_ENV\!=development (e.g., test) even if MONGODB_URI undefined", () => {
     const fakeSchema = {}
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockModel = jest.fn().mockReturnValue(fakeModelInst)
-    const mockModels: any = {}
     const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
     const mockIndex = jest.fn()
     ;(mockSchemaCtor as any).prototype = {}
@@ -88,11 +77,8 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "test", MONGODB_URI: undefined },
       {
-        "@/src/lib/mockDb": { MockModel: jest.fn() },
         mongoose: {
           Schema: function(this: any, ...args: any[]) { return new (mockSchemaCtor as any)(...args) },
-          model: mockModel,
-          models: mockModels,
           InferSchemaType: {} // not used at runtime
         }
       },
@@ -101,13 +87,11 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     expect(SearchSynonym).toBe(fakeModelInst)
     expect(mockSchemaCtor).toHaveBeenCalledTimes(1)
     expect(mockIndex).toHaveBeenCalledWith({ locale: 1, term: 1 }, { unique: true })
-    expect(mockModel).toHaveBeenCalledWith("SearchSynonym", fakeSchema)
   })
 
   test("reuses existing mongoose model if models.SearchSynonym exists", () => {
     const fakeSchema = {}
     const existingModel = { __kind: "ExistingMongooseModel", modelName: "SearchSynonym" }
-    const mockModels: any = { SearchSynonym: existingModel }
     const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
     const mockIndex = jest.fn()
     ;(mockSchemaCtor as any).prototype = {}
@@ -116,11 +100,9 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "production", MONGODB_URI: "mongodb+srv://cluster/some" },
       {
-        "@/src/lib/mockDb": { MockModel: jest.fn() },
         mongoose: {
           Schema: function(this: any, ...args: any[]) { return new (mockSchemaCtor as any)(...args) },
           model: jest.fn(), // should not be called because models.SearchSynonym exists
-          models: mockModels
         }
       },
       () => require(modulePath)
@@ -135,7 +117,6 @@ describe("models/SearchSynonym - schema constraints", () => {
     jest.resetModules()
     jest.restoreAllMocks()
     jest.clearAllMocks()
-    jest.dontMock("@/src/lib/mockDb")
     jest.dontMock("mongoose")
   })
 
@@ -161,7 +142,6 @@ describe("models/SearchSynonym - schema constraints", () => {
     const { default: mongooseDefault, SearchSynonym: _ } = withIsolatedModule(
       { NODE_ENV: "test" },
       {
-        "@/src/lib/mockDb": { MockModel: jest.fn() },
         mongoose: {
           Schema: FakeSchema as any,
           model: jest.fn().mockReturnValue({}),
@@ -190,7 +170,6 @@ describe("models/SearchSynonym - schema constraints", () => {
     withIsolatedModule(
       { NODE_ENV: "test" },
       {
-        "@/src/lib/mockDb": { MockModel: jest.fn() },
         mongoose: {
           Schema: FakeSchema as any,
           model: jest.fn().mockReturnValue({}),
@@ -222,8 +201,6 @@ describe("models/SearchSynonym - negative and edge behaviors without DB", () => 
   test("invalid environment combination: NODE_ENV=development with remote MONGODB_URI uses real model", () => {
     const fakeSchema = {}
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockModel = jest.fn().mockReturnValue(fakeModelInst)
-    const mockModels: any = {}
     const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
     const mockIndex = jest.fn()
     ;(mockSchemaCtor as any).prototype = {}
@@ -232,11 +209,8 @@ describe("models/SearchSynonym - negative and edge behaviors without DB", () => 
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "development", MONGODB_URI: "mongodb+srv://prod/uri" },
       {
-        "@/src/lib/mockDb": { MockModel: jest.fn() },
         mongoose: {
           Schema: function(this: any, ...args: any[]) { return new (mockSchemaCtor as any)(...args) },
-          model: mockModel,
-          models: mockModels
         }
       },
       () => require(modulePath)

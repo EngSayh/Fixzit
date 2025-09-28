@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
 
 const HelpArticleSchema = new Schema({
   slug: { type:String, required:true, unique:true },
@@ -18,6 +17,4 @@ HelpArticleSchema.index({ title:"text", content:"text", tags:"text" });
 export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
 
 // Check if we're using mock database
-export const HelpArticle = isMockDB
-  ? new MockModel('helparticles') as any
-  : (models.HelpArticle || model("HelpArticle", HelpArticleSchema));
+export const HelpArticle = models.HelpArticle || model("HelpArticle", HelpArticleSchema);

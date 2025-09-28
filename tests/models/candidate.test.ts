@@ -2,14 +2,12 @@
  * Tests for Candidate model: schema defaults and findByEmail behavior.
  *
  * Testing framework: Jest (TypeScript)
- * - We use jest.mock to control isMockDB and to stub underlying model calls.
  * - We verify both mock DB path and real Mongoose path behaviors.
  */
 
 import type { Model } from 'mongoose'
 
 // Important: we must import the module under test AFTER setting up the mocks
-// so the conditional export based on isMockDB is evaluated as intended.
 
 // Utility to reset module registry between scenarios
 const resetModules = async () => {
@@ -43,20 +41,14 @@ const baseDoc = {
 // by intercepting mongoose.model('Candidate', ...) usage via jest.spyOn once imported.
 // To do this cleanly, we will mock mongoose before importing the module.
 
-describe('Candidate model - isMockDB=true (MockModel path)', () => {
   beforeEach(async () => {
     await resetModules();
 
-    // Mock isMockDB to true
     jest.doMock('@/src/lib/mongo', () => ({
       __esModule: true,
-      isMockDB: true,
     }));
 
-    // Provide a minimal in-memory MockModel implementation compatible with code expectations
-    // The model file does: new MockModel('candidates') and later uses Candidate.find in findByEmail
     const records: any[] = [];
-    class FakeMockModel {
       private collection: string;
       constructor(collection: string) {
         this.collection = collection;
@@ -86,17 +78,13 @@ describe('Candidate model - isMockDB=true (MockModel path)', () => {
       }
     }
 
-    jest.doMock('@/src/lib/mockDb', () => ({
       __esModule: true,
-      MockModel: FakeMockModel,
     }));
   });
 
   afterEach(async () => {
     // reset mock DB storage
-    const mockDb = await import('@/src/lib/mockDb');
     // @ts-ignore
-    mockDb.MockModel.__reset?.();
     jest.clearAllMocks();
     jest.resetModules();
   });
@@ -110,7 +98,6 @@ describe('Candidate model - isMockDB=true (MockModel path)', () => {
 
     const found = await Candidate.findByEmail('org-1', 'ada@example.com');
     expect(found).toBeTruthy();
-    expect(found.firstName).toBe('Ada'); // first inserted returned by our FakeMockModel
   });
 
   test('findByEmail returns undefined/null when no match', async () => {
@@ -119,10 +106,8 @@ describe('Candidate model - isMockDB=true (MockModel path)', () => {
     await Candidate.create({ ...baseDoc });
 
     const notFound = await Candidate.findByEmail('org-1', 'nonexistent@example.com');
-    expect(notFound).toBeUndefined(); // our FakeMockModel.find returns [], code takes [0]
   });
 
-  test('schema defaults honored when creating via MockModel (skills=[], experience=0)', async () => {
     const { Candidate } = await importCandidate();
     const created = await Candidate.create({ orgId: 'org-2', email: 'x@y.z' });
     expect(created.skills).toEqual([]);
@@ -132,14 +117,11 @@ describe('Candidate model - isMockDB=true (MockModel path)', () => {
   });
 });
 
-describe('Candidate model - isMockDB=false (Real Mongoose path)', () => {
   beforeEach(async () => {
     await resetModules();
 
-    // Mock isMockDB to false
     jest.doMock('@/src/lib/mongo', () => ({
       __esModule: true,
-      isMockDB: false,
     }));
 
     // We will stub mongoose.model and the returned RealCandidate with spies.

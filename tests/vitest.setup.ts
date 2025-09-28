@@ -56,12 +56,8 @@ const viSetSystemTime = vi.setSystemTime.bind(vi);
 const viAdvanceTimersByTime = vi.advanceTimersByTime.bind(vi);
 
 const MOCK_DB_MODULE_IDS = new Set([
-  "@/src/lib/mockDb",
-  "../src/lib/mockDb",
-  "../src/lib/mockDb.js",
 ]);
 
-interface MockDbModuleLike {
   MockDatabase?: {
     getCollection: (name: string) => unknown[];
     setCollection: (name: string, data: unknown[]) => void;
@@ -69,7 +65,6 @@ interface MockDbModuleLike {
 }
 
 type GlobalWithMarketplaceMock = typeof globalThis & {
-  __FIXZIT_MARKETPLACE_DB_MOCK__?: MockDbModuleLike['MockDatabase'];
 };
 
 const globalMarketplaceEnv = globalThis as GlobalWithMarketplaceMock;
@@ -78,7 +73,6 @@ const cacheMockDatabase = (moduleId: string, result: unknown) => {
   if (!MOCK_DB_MODULE_IDS.has(moduleId)) {
     return;
   }
-  const maybeDb = (result as MockDbModuleLike | undefined)?.MockDatabase;
   if (maybeDb) {
     globalMarketplaceEnv.__FIXZIT_MARKETPLACE_DB_MOCK__ = maybeDb;
   }

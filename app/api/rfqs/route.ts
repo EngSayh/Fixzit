@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     const data = createRFQSchema.parse(await req.json());
 
     const rfq = await RFQ.create({
-      tenantId: user.orgId,
+      tenantId: (user as any)?.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: any = { tenantId: (user as any)?.orgId };
 
     if (status) match.status = status;
     if (category) match.category = category;
