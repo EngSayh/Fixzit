@@ -54,9 +54,9 @@ interface Notification {
  *   marks unread items with a dot, navigates to /notifications)
  * - User menu with Profile, Settings, and Sign out (clears client storage and redirects to /login)
  *
- * @param role - Optional user role string (defaults to `'guest'`). Provided role may be used
+ * @param {string} [role='guest'] - Optional user role string (defaults to `'guest'`). Provided role may be used
  *               by downstream logic or hooks that consume this component's props.
- * @returns The TopBar React element.
+ * @returns {JSX.Element} The TopBar React element.
  */
 export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
