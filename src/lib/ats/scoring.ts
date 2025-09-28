@@ -1,150 +1,139 @@
-export interface ScoringCriteria {
-  experience: number;
-  skills: number;
-  education: number;
-  keywords: number;
-  location: number;
-}
-
-export interface CandidateData {
-  experience: number;
+export interface ScoreApplicationInput {
   skills: string[];
-  education: string[];
-  keywords: string[];
-  location: string;
+  requiredSkills?: string[];
+  experience?: number;
+  minExperience?: number;
 }
 
-export interface JobRequirements {
-  requiredExperience: number;
-  requiredSkills: string[];
-  preferredEducation: string[];
-  keywords: string[];
-  location: string;
+export interface ScoringWeights {
+  skills?: number;
+  experience?: number;
+  culture?: number;
+  education?: number;
 }
 
-export function calculateScore(
-  candidate: CandidateData,
-  job: JobRequirements,
-  criteria: ScoringCriteria
+const DEFAULT_WEIGHTS: Required<ScoringWeights> = {
+  skills: 0.6,
+  experience: 0.3,
+  culture: 0.05,
+  education: 0.05
+};
+
+const KNOWN_SKILLS = [
+  'javascript', 'typescript', 'react', 'next.js', 'node', 'mongo',
+  'mongodb', 'sql', 'leadership', 'communication', 'project management',
+  'customer service', 'sales', 'marketing', 'design', 'finance',
+  'hr', 'facilities', 'hvac', 'maintenance', 'procurement', 'vendor management'
+];
+
+export function scoreApplication(
+  input: ScoreApplicationInput,
+  weights: ScoringWeights = {}
 ): number {
-  let totalScore = 0;
+  const normalizedWeights = normaliseWeights({ ...DEFAULT_WEIGHTS, ...weights });
+  const requiredSkills = (input.requiredSkills || []).map(normalizeToken);
+  const candidateSkills = (input.skills || []).map(normalizeToken).filter(Boolean);
 
-  // Experience scoring (0-100)
-  const requiredExp = job.requiredExperience || 1; // Default to 1 to avoid division by zero
-  const experienceScore = Math.min((candidate.experience / requiredExp) * 100, 100);
-  totalScore += (experienceScore * criteria.experience) / 100;
+  const skillScore = computeSkillScore(candidateSkills, requiredSkills);
+  const experienceScore = computeExperienceScore(input.experience, input.minExperience);
 
-  // Skills scoring (0-100)
-  const requiredSkills = job.requiredSkills || [];
-  if (requiredSkills.length > 0) {
-    const matchingSkills = candidate.skills.filter(skill => 
-      requiredSkills.some(reqSkill => 
-        skill.toLowerCase().includes(reqSkill.toLowerCase()) ||
-        reqSkill.toLowerCase().includes(skill.toLowerCase())
-      )
-    ).length;
-    const skillsScore = (matchingSkills / requiredSkills.length) * 100;
-    totalScore += (skillsScore * criteria.skills) / 100;
-  }
+  // Culture and education are placeholders for now but allow weighting flexibility.
+  const cultureScore = 0.5; // neutral baseline while no explicit signals exist
+  const educationScore = 0.5;
 
-  // Education scoring (0-100)
-  const preferredEducation = job.preferredEducation || [];
-  if (preferredEducation.length > 0) {
-    const educationScore = candidate.education.some(edu => 
-      preferredEducation.some(prefEdu => 
-        edu.toLowerCase().includes(prefEdu.toLowerCase())
-      )
-    ) ? 100 : 0;
-    totalScore += (educationScore * criteria.education) / 100;
-  }
+  const weighted =
+    skillScore * normalizedWeights.skills +
+    experienceScore * normalizedWeights.experience +
+    cultureScore * normalizedWeights.culture +
+    educationScore * normalizedWeights.education;
 
-  // Keywords scoring (0-100)
-  const jobKeywords = job.keywords || [];
-  if (jobKeywords.length > 0) {
-    const matchingKeywords = candidate.keywords.filter(keyword => 
-      jobKeywords.some(jobKeyword => 
-        keyword.toLowerCase().includes(jobKeyword.toLowerCase())
-      )
-    ).length;
-    const keywordsScore = (matchingKeywords / jobKeywords.length) * 100;
-    totalScore += (keywordsScore * criteria.keywords) / 100;
-  }
-
-  // Location scoring (0-100)
-  const locationScore = candidate.location.toLowerCase() === job.location.toLowerCase() ? 100 : 0;
-  totalScore += (locationScore * criteria.location) / 100;
-
-  return Math.round(totalScore);
+  return Math.round(Math.max(0, Math.min(1, weighted)) * 100);
 }
 
-export function getScoreGrade(score: number): string {
-  if (score >= 90) return 'A+';
-  if (score >= 80) return 'A';
-  if (score >= 70) return 'B+';
-  if (score >= 60) return 'B';
-  if (score >= 50) return 'C+';
-  if (score >= 40) return 'C';
-  return 'D';
+function normaliseWeights(weights: Required<ScoringWeights>): Required<ScoringWeights> {
+  const total = Object.values(weights).reduce((sum, value) => sum + value, 0) || 1;
+  return {
+    skills: weights.skills / total,
+    experience: weights.experience / total,
+    culture: weights.culture / total,
+    education: weights.education / total
+  };
 }
 
-export function getScoreColor(score: number): string {
-  if (score >= 80) return 'text-green-600';
-  if (score >= 60) return 'text-yellow-600';
-  return 'text-red-600';
+function computeSkillScore(candidateSkills: string[], requiredSkills: string[]): number {
+  if (!requiredSkills.length) {
+    // When job does not define explicit required skills we assume neutral but
+    // still reward known skills that appear.
+    const matchCount = candidateSkills.filter(skill => KNOWN_SKILLS.includes(skill)).length;
+    return clamp(matchCount / Math.max(candidateSkills.length, 1));
+  }
+
+  if (!candidateSkills.length) return 0;
+
+  const matches = requiredSkills.filter(req => candidateSkills.includes(req));
+  const coverage = matches.length / requiredSkills.length;
+  return clamp(coverage);
+}
+
+function computeExperienceScore(experience?: number, minExperience?: number): number {
+  const expYears = typeof experience === 'number' && !Number.isNaN(experience) ? Math.max(experience, 0) : 0;
+  const required = typeof minExperience === 'number' && !Number.isNaN(minExperience) ? Math.max(minExperience, 0) : 0;
+
+  if (required === 0) {
+    return clamp(expYears / (expYears + 5)); // diminishing returns curve
+  }
+
+  if (expYears >= required) {
+    // Reward additional years but cap to avoid dominance
+    return clamp(1 - Math.exp(-(expYears - required + 1)));
+  }
+
+  return clamp(expYears / required);
+}
+
+function normalizeToken(value: string): string {
+  return (value || '').toLowerCase().trim();
+}
+
+function clamp(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
 }
 
 export function extractSkillsFromText(text: string): string[] {
-  const commonSkills = [
-    'JavaScript', 'TypeScript', 'React', 'Vue', 'Angular', 'Node.js', 'Python',
-    'Java', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'SQL', 'MongoDB', 'PostgreSQL',
-    'AWS', 'Azure', 'Docker', 'Kubernetes', 'Git', 'Linux', 'Windows',
-    'Project Management', 'Agile', 'Scrum', 'Leadership', 'Communication',
-    'Problem Solving', 'Analytical', 'Creative', 'Teamwork', 'Time Management'
-  ];
-  
-  const foundSkills: string[] = [];
-  const lowerText = text.toLowerCase();
-  
-  commonSkills.forEach(skill => {
-    if (lowerText.includes(skill.toLowerCase())) {
-      foundSkills.push(skill);
+  if (!text) return [];
+  const tokens = text
+    .toLowerCase()
+    .replace(/[^a-z0-9+\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const skills = new Set<string>();
+  for (const token of tokens) {
+    if (KNOWN_SKILLS.includes(token)) {
+      skills.add(token);
     }
-  });
-  
-  return foundSkills;
+  }
+  return Array.from(skills);
 }
 
 export function calculateExperienceFromText(text: string): number {
-  const experienceRegex = /(\d+)\+?\s*(?:years?|yrs?)\s*(?:of\s*)?experience/gi;
-  const matches = text.match(experienceRegex);
-  
-  if (matches) {
-    const years = matches.map(match => {
-      const num = match.match(/\d+/);
-      return num ? parseInt(num[0], 10) : 0;
-    });
-    return Math.max(...years);
-  }
-  
-  return 0;
-}
+  if (!text) return 0;
+  const patterns = [
+    /(\d{1,2})\s*\+?\s*(?:years|yrs|y)\s+of\s+experience/gi,
+    /(\d{1,2})\s*\+?\s*(?:years|yrs|y)/gi,
+    /experience\s*[:\-]?\s*(\d{1,2})/gi
+  ];
 
-export function scoreApplication(application: any, job: any, criteria: ScoringCriteria): number {
-  const candidate = {
-    experience: calculateExperienceFromText(application.resume || ''),
-    skills: extractSkillsFromText(application.resume || ''),
-    education: extractSkillsFromText(application.coverLetter || ''),
-    keywords: extractSkillsFromText(application.coverLetter || ''),
-    location: application.location || ''
-  };
-  
-  const jobRequirements = {
-    requiredExperience: job.requiredExperience || 0,
-    requiredSkills: job.requiredSkills || [],
-    preferredEducation: job.preferredEducation || [],
-    keywords: job.keywords || [],
-    location: job.location || ''
-  };
-  
-  return calculateScore(candidate, jobRequirements, criteria);
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match && match[1]) {
+      const parsed = parseInt(match[1], 10);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return 0;
 }

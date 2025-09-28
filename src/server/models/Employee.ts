@@ -1,39 +1,35 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
+import { MockModel } from '@/src/lib/mockDb';
+import { isMockDB } from '@/src/lib/mongo';
 
 const EmployeeSchema = new Schema({
   orgId: { type: String, required: true, index: true },
   personal: {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
-    email: { type: String, required: true, index: true },
-    phone: String,
-    dateOfBirth: Date,
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      zipCode: String,
-      country: { type: String, default: 'SA' }
-    }
+    email: { type: String, required: true },
+    phone: { type: String }
   },
   professional: {
-    role: { type: String, required: true },
-    department: String,
-    title: String,
-    manager: String, // Employee ID
-    startDate: { type: Date, default: Date.now },
-    endDate: Date,
-    salary: Number
+    role: { type: String, default: 'EMPLOYEE' },
+    department: { type: String },
+    title: { type: String },
+    startDate: { type: Date }
   },
-  employmentStatus: { 
-    type: String, 
-    enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'TERMINATED'], 
-    default: 'ACTIVE' 
-  },
-  metadata: Schema.Types.Mixed
-}, {
-  timestamps: true
-});
+  status: { type: String, enum: ['ACTIVE', 'INACTIVE', 'ONBOARDING'], default: 'ACTIVE' },
+  metadata: { type: Schema.Types.Mixed, default: {} }
+}, { timestamps: true });
 
-export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema>;
-export const Employee = models.Employee || model("Employee", EmployeeSchema);
+EmployeeSchema.index({ orgId: 1, 'personal.email': 1 }, { unique: true });
+
+export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
+
+class EmployeeMockModel extends MockModel {
+  constructor() {
+    super('employees');
+  }
+}
+
+export const Employee = isMockDB
+  ? new EmployeeMockModel() as any
+  : (models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema));
