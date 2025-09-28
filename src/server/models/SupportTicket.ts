@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
 
 const Message = new Schema({
   byUserId: { type: String }, // null when guest
@@ -33,6 +32,4 @@ SupportTicketSchema.index({ createdByUserId:1 });
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 
 // Check if we're using mock database
-export const SupportTicket = isMockDB
-  ? new MockModel('supporttickets') as any
-  : (models.SupportTicket || model("SupportTicket", SupportTicketSchema));
+export const SupportTicket = models.SupportTicket || model("SupportTicket", SupportTicketSchema);

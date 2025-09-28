@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
 
 const CmsPageSchema = new Schema({
   tenantId: { type: String }, // null/undefined => global
@@ -14,6 +13,4 @@ const CmsPageSchema = new Schema({
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
 
 // Check if we're using mock database
-export const CmsPage = isMockDB
-  ? new MockModel('cmspages') as any
-  : (models.CmsPage || model("CmsPage", CmsPageSchema));
+export const CmsPage = models.CmsPage || model("CmsPage", CmsPageSchema);

@@ -5,7 +5,6 @@
  */
 
 // Force real Mongoose model path by disabling mock DB branch in the module under test.
-jest.mock('@/src/lib/mongo', () => ({ isMockDB: false }));
 
 import { Asset } from '../../../src/models/Asset';
 import type { AssetDoc } from '../../../src/models/Asset';

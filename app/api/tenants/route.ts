@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     const data = createTenantSchema.parse(await req.json());
 
     const tenant = await Tenant.create({
-      tenantId: user.orgId,
+      tenantId: (user as any)?.orgId,
       code: `TEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: any = { tenantId: (user as any)?.orgId };
 
     if (type) match.type = type;
     if (search) {
