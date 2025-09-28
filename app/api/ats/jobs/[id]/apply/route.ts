@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
@@ -8,12 +8,14 @@ import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } 
 import { promises as fs } from 'fs';
 import path from 'path';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await db;
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS job application endpoint not available in this deployment' }, { status: 501 });
+    }
+
+    await connectMongo();
     
     const formData = await req.formData();
     
@@ -64,66 +66,23 @@ export async function POST(
       );
     }
     
-    // Process resume file (secure private storage with validation)
+    // Process resume file (save to public/uploads/resumes)
     let resumeUrl = '';
     let resumeText = '';
     
     if (resumeFile) {
       try {
-        // Validate file type and size BEFORE processing
-        const allowedTypes = [
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        ];
-        const maxSize = 5 * 1024 * 1024; // 5MB limit
-        
-        if (!allowedTypes.includes(resumeFile.type)) {
-          return NextResponse.json({ 
-            success: false, 
-            error: 'Invalid file type. Only PDF and Word documents are allowed.' 
-          }, { status: 400 });
-        }
-        
-        if (resumeFile.size > maxSize) {
-          return NextResponse.json({ 
-            success: false, 
-            error: 'File too large. Maximum size is 5MB.' 
-          }, { status: 400 });
-        }
-        
         const bytes = await resumeFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        
-        // Magic byte validation for additional security
-        const isValidPDF = buffer.slice(0, 4).toString() === '%PDF';
-        const isValidDOC = buffer.slice(0, 4).equals(Buffer.from([0xD0, 0xCF, 0x11, 0xE0]));
-        const isValidDOCX = buffer.slice(0, 4).equals(Buffer.from([0x50, 0x4B, 0x03, 0x04]));
-        
-        if (resumeFile.type === 'application/pdf' && !isValidPDF) {
-          return NextResponse.json({ success: false, error: 'Invalid PDF file' }, { status: 400 });
-        }
-        
-        // Use PRIVATE storage directory with tenant isolation using job's orgId
-        const uploadDir = path.join(process.cwd(), 'private', 'uploads', 'resumes', job.orgId || 'default');
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');
         await fs.mkdir(uploadDir, { recursive: true });
-        
-        // Use cryptographically secure filename
-        const fileExt = resumeFile.name.split('.').pop()?.toLowerCase() || 'pdf';
-        const safeExt = fileExt.replace(/[^a-z0-9]/g, '');
-        const fileName = `${crypto.randomUUID()}.${safeExt}`;
+        const safeName = resumeFile.name.replace(/[^\w.\-]+/g, '_');
+        const fileName = `${Date.now()}-${safeName}`;
         const filePath = path.join(uploadDir, fileName);
-        
         await fs.writeFile(filePath, buffer);
-        
-        // Generate signed URL for private file access
-        resumeUrl = `/api/files/resumes/${fileName}?tenant=${job.orgId || 'default'}`;
+        resumeUrl = `/uploads/resumes/${fileName}`;
       } catch (err) {
         console.error('Resume save failed:', err);
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Failed to process resume file' 
-        }, { status: 500 });
       }
       
       // Basic text surrogate for scoring/search
@@ -169,7 +128,7 @@ export async function POST(
       });
     } else {
       // Update existing candidate info
-      candidate.skills = [...new Set([...(candidate.skills || []), ...candidateSkills])];
+      candidate.skills = [...new Set([...candidate.skills, ...candidateSkills])];
       if (resumeUrl) candidate.resumeUrl = resumeUrl;
       if (resumeText) candidate.resumeText = resumeText;
       if (linkedin) candidate.linkedin = linkedin;
@@ -200,7 +159,7 @@ export async function POST(
       requiredSkills: job.skills,
       experience: yearsOfExperience,
       minExperience: job.screeningRules?.minYears
-    }, atsSettings?.scoringWeights || undefined);
+    }, atsSettings.scoringWeights);
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({

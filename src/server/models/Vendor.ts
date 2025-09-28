@@ -207,6 +207,7 @@ VendorSchema.index({ tenantId: 1, 'business.specializations': 1 });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
 
+// Check if we're using mock database
 export const Vendor = isMockDB
   ? new MockModel('vendors') as any
   : (models.Vendor || model("Vendor", VendorSchema));
