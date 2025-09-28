@@ -4,7 +4,7 @@
  * If your repository uses Jest instead, replace @jest/globals imports with @jest/globals and adapt vi to jest.fn/jest.spyOn.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 // Import route handlers
 // Adjust the path if your route file lives elsewhere (e.g., src/app/api/qa/alert/route.ts).
