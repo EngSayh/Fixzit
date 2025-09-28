@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -7,7 +7,7 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 const schema = z.object({ text: z.string().min(1) });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }){
-  await db;
+  await connectDb();
   const user = await getSessionUser(req).catch(()=>null);
   const body = schema.parse(await req.json());
   // Validate MongoDB ObjectId format
