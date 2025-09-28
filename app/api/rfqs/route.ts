@@ -69,22 +69,37 @@ const createRFQSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * Create a new RFQ (Request for Quotation) from the incoming JSON payload.
+ *
+ * Validates the request body against the `createRFQSchema`, ensures a database
+ * connection and a signed-in user session, and inserts a new RFQ document.
+ * The created RFQ is assigned the tenant ID from the session, a generated
+ * `code` (`RFQ-<timestamp>`), `status` set to `"DRAFT"`, `timeline` taken
+ * directly from the validated input, and `workflow.createdBy` and
+ * `createdBy` set to the session user's ID.
+ *
+ * @returns A NextResponse containing the created RFQ with status 201 on success,
+ * or a JSON error message with status 400 if validation or creation fails.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const data = createRFQSchema.parse(await req.json());
 
     const rfq = await RFQ.create({
       tenantId: user.tenantId,
-      code: `RFQ-${Date.now()}`,
+      code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
-      timeline: {
-        ...data.timeline,
-        publishDate: new Date()
-      },
+      timeline: data.timeline,
       workflow: {
         createdBy: user.id
       },
@@ -93,13 +108,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(rfq, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await db;
 
     const { searchParams } = new URL(req.url);

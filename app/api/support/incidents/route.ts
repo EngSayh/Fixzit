@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   }
   const now = new Date();
 
-  const incidentId: string = safe.incidentId || `INC-${now.getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const incidentId: string = safe.incidentId || `INC-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
   const incidentKey: string | undefined = safe.incidentKey || incidentId;
   const code: string = safe.code || 'UI-UI-UNKNOWN-000';
   const category: string = safe.category || 'Support';
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
 
   // Auto-create a Support Ticket (same model used by /api/support/tickets)
   let ticket: any | null = null;
-  const genCode = () => `SUP-${now.getFullYear()}-${Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0')}`;
+  const genCode = () => `SUP-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`;
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
