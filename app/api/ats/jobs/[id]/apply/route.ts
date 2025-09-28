@@ -93,9 +93,9 @@ export async function POST(
       extractSkillsFromText(resumeText + ' ' + coverLetter);
     
     // Parse experience
-    const yearsOfExperience = experience ? 
-      parseInt(experience, 10) : 
-      calculateExperienceFromText(resumeText + ' ' + coverLetter);
+    const yearsOfExperience = experience 
+      ? (Number.isFinite(parseInt(experience, 10)) ? parseInt(experience, 10) : 0)
+      : calculateExperienceFromText(resumeText + ' ' + coverLetter);
     
     // Get ATS settings
     const atsSettings = await (AtsSettings as any).findOrCreateForOrg(job.orgId);
@@ -160,7 +160,7 @@ export async function POST(
         location: location || ''
       },
       {
-        requiredExperience: job.screeningRules?.minYears ?? 0,
+        requiredExperience: job.screeningRules?.minExperience ?? 0,
         requiredSkills: Array.isArray(job.skills) ? job.skills : [],
         preferredEducation: Array.isArray((job as any).education) ? (job as any).education : [],
         keywords: Array.isArray((job as any).keywords) ? (job as any).keywords : (Array.isArray(job.skills) ? job.skills : []),

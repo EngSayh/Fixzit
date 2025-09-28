@@ -7,7 +7,7 @@ import { z } from "zod";
 const createSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
-  priority: z.enum(["LOW","MEDIUM","HIGH","URGENT"]).default("MEDIUM"),
+  priority: z.enum(["LOW","MEDIUM","HIGH","CRITICAL"]).default("MEDIUM"),
   category: z.string().optional(),
   subcategory: z.string().optional(),
   propertyId: z.string().optional(),
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireAbility("CREATE")(req);
-    if (user instanceof NextResponse) return user as any;
+    if (user instanceof NextResponse) return user;
 
     const body = await req.json();
     const data = createSchema.parse(body);
@@ -130,10 +130,10 @@ export async function POST(req: NextRequest) {
           code,
           title: data.title,
           description: data.description || '',
-          priority: data.priority as any,
+          priority: data.priority,
           propertyId: data.propertyId,
           requesterId: user.id,
-          status: 'NEW' as any,
+          status: 'NEW',
           slaHours: 72
         }
       });
