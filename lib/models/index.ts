@@ -1,4 +1,5 @@
 // MongoDB Models with TypeScript interfaces
+import type { ObjectId } from 'mongodb';
 
 export interface Tenant {
   _id?: string;
@@ -278,4 +279,17 @@ export interface Review {
   verified: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface NotificationDoc {
+  _id?: ObjectId | string;
+  tenantId: string;
+  type: 'work-order' | 'vendor' | 'payment' | 'maintenance' | 'system' | string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  priority: 'low' | 'medium' | 'high';
+  category: 'maintenance' | 'vendor' | 'finance' | 'system' | string;
+  archived?: boolean;
 }

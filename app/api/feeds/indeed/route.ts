@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
 export async function GET() {
-  await db;
+  // Check if ATS feeds are enabled
+  if (process.env.ATS_ENABLED !== 'true') {
+    return NextResponse.json({ success: false, error: 'ATS feeds not available in this deployment' }, { status: 501 });
+  }
+
+  await connectMongo();
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })
     .lean();

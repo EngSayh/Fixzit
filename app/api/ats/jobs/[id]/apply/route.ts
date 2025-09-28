@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
@@ -8,12 +8,14 @@ import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } 
 import { promises as fs } from 'fs';
 import path from 'path';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await db;
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS job application endpoint not available in this deployment' }, { status: 501 });
+    }
+
+    await connectMongo();
     
     const formData = await req.formData();
     
@@ -98,10 +100,10 @@ export async function POST(
       calculateExperienceFromText(resumeText + ' ' + coverLetter);
     
     // Get ATS settings
-    const atsSettings = await (AtsSettings as any).findOrCreateForOrg(job.orgId);
+    const atsSettings = await AtsSettings.findOrCreateForOrg(job.orgId);
     
     // Check for existing candidate
-    let candidate = await (Candidate as any).findOne({ orgId: job.orgId, email: email.toLowerCase().trim() });
+    let candidate = await Candidate.findByEmail(job.orgId, email);
     
     if (!candidate) {
       // Create new candidate
