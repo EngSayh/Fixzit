@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb, isMockDB } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -12,26 +12,21 @@ export async function GET(req: NextRequest) {
     memory: 'unknown',
     uptime: process.uptime(),
     version: process.env.npm_package_version || 'unknown',
-    mockDatabase: isMockDB
+    mockDatabase: false
   };
 
   // Check database connectivity
   try {
-    if (isMockDB) {
-      healthStatus.database = 'mock-connected';
-      healthStatus.status = 'healthy';
-    } else {
-      await connectDb();
-      healthStatus.database = 'connected';
+    await connectDb();
+    healthStatus.database = 'connected';
 
-      // Test database query only if not mock
-      try {
-        const mongoose = await connectDb();
-        const collections = await (mongoose as any).connection.db.listCollections().toArray();
-        healthStatus.database = `connected (${collections.length} collections)`;
-      } catch {
-        healthStatus.database = 'connected (query failed)';
-      }
+    // Test database query
+    try {
+      const mongoose = await connectDb();
+      const collections = await (mongoose as any).connection.db.listCollections().toArray();
+      healthStatus.database = `connected (${collections.length} collections)`;
+    } catch {
+      healthStatus.database = 'connected (query failed)';
     }
   } catch (error) {
     healthStatus.status = 'degraded';
@@ -65,20 +60,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   // Force database reconnection
   try {
-    if (isMockDB) {
-      return NextResponse.json({
-        success: true,
-        message: 'Mock database refreshed',
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      await connectDb();
-      return NextResponse.json({
-        success: true,
-        message: 'Database reconnected',
-        timestamp: new Date().toISOString()
-      });
-    }
+    await connectDb();
+    return NextResponse.json({
+      success: true,
+      message: 'Database reconnected',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     return NextResponse.json({
       success: false,

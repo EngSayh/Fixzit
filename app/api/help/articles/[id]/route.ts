@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
     })();
     // Scope updates to caller's tenant or global articles
-    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] } as any;
     const filter = { ...baseFilter, ...tenantScope } as any;
 
     const update = {
@@ -57,8 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/src/kb/ingest')
       .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
-        orgId: (article as any)?.orgId ?? (user as any)?.tenantId ?? null,
-        tenantId: (article as any)?.tenantId ?? (user as any)?.tenantId ?? null,
+        orgId: (article as any)?.orgId ?? (user as any)?.orgId ?? null,
         articleId: article.slug,
         lang: 'en',
         route: `/help/${article.slug}`,

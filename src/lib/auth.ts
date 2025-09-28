@@ -25,7 +25,7 @@ export interface AuthToken {
   id: string;
   email: string;
   role: string;
-  tenantId: string;
+  orgId: string;
   name?: string;
 }
 
@@ -78,8 +78,8 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
   const token = generateToken({
     id: user._id.toString(),
     email: user.email,
-    role: user.professional.role,
-    tenantId: user.tenantId
+    role: user.professionalInfo?.role || user.role,
+    orgId: user.orgId
   });
 
   return {
@@ -87,9 +87,9 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     user: {
       id: user._id.toString(),
       email: user.email,
-      name: `${user.personal.firstName} ${user.personal.lastName}`,
-      role: user.professional.role,
-      tenantId: user.tenantId
+      name: `${user.personalInfo?.firstName} ${user.personalInfo?.lastName}`,
+      role: user.professionalInfo?.role || user.role,
+      orgId: user.orgId
     }
   };
 }
@@ -111,8 +111,8 @@ export async function getUserFromToken(token: string) {
   return {
     id: user._id.toString(),
     email: user.email,
-    name: `${user.personal.firstName} ${user.personal.lastName}`,
-    role: user.professional.role,
-    tenantId: user.tenantId
+    name: `${user.personalInfo?.firstName} ${user.personalInfo?.lastName}`,
+    role: user.professionalInfo?.role || user.role,
+    orgId: user.orgId
   };
 }

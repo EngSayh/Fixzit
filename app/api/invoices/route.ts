@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
     const { value } = await (Invoice as any).db.collection("invoice_counters").findOneAndUpdate(
-      { tenantId: user.tenantId, year },
+      { tenantId: user.orgId, year },
       { $inc: { sequence: 1 } },
       { upsert: true, returnDocument: "after" }
     );
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     });
 
     const invoice = await Invoice.create({
-      tenantId: user.tenantId,
+      tenantId: user.orgId,
       number,
       ...data,
       subtotal,
@@ -157,7 +157,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.tenantId };
+    const match: any = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (type) match.type = type;

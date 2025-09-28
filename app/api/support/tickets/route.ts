@@ -27,7 +27,7 @@ export async function POST(req: NextRequest){
     const code = `SUP-${new Date().getFullYear()}-${uuid}`;
     
     const ticket = await SupportTicket.create({
-      tenantId: user?.tenantId,
+      orgId: user?.orgId,
       code,
       subject: body.subject,
       module: body.module,

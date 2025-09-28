@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const RFQStatus = ["DRAFT", "PUBLISHED", "BIDDING", "CLOSED", "AWARDED", "CANCELLED"] as const;
 const BidStatus = ["SUBMITTED", "UNDER_REVIEW", "ACCEPTED", "REJECTED", "WITHDRAWN"] as const;

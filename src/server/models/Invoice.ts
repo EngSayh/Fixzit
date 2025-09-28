@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const InvoiceStatus = ["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"] as const;
 const InvoiceType = ["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"] as const;
