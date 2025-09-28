@@ -135,31 +135,31 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-export function validateCallback(payload: any, signature: string): boolean {
+export function validateCallback(rawBody: string | Buffer, signature: string): boolean {
   if (!signature || !PAYTABS_CONFIG.serverKey) {
     return false;
   }
   try {
-    const calculatedSignature = generateSignature(payload);
-    let calculatedBuffer = Buffer.from(calculatedSignature, 'hex');
-    let signatureBuffer = Buffer.from(signature, 'hex');
-    // If lengths differ, compare against a dummy buffer to avoid timing signals
-    if (calculatedBuffer.length !== signatureBuffer.length) {
-      const dummy = Buffer.alloc(32, 0);
-      return timingSafeEqual(dummy, dummy) && false;
-    }
-    return timingSafeEqual(calculatedBuffer, signatureBuffer);
+    const calc = generateSignature(rawBody);
+    const a = Buffer.from(calc, 'hex');
+    const b = /^[0-9a-fA-F]+$/.test(signature)
+      ? Buffer.from(signature, 'hex')
+      : Buffer.from(signature, 'base64');
+    const len = Math.max(a.length, b.length);
+    const aa = Buffer.concat([a, Buffer.alloc(len - a.length)]);
+    const bb = Buffer.concat([b, Buffer.alloc(len - b.length)]);
+    return timingSafeEqual(aa, bb) && a.length === b.length;
   } catch (error) {
     console.error('Signature validation error:', error);
     return false;
   }
 }
 
-function generateSignature(payload: any): string {
+function generateSignature(raw: any): string {
   if (!PAYTABS_CONFIG.serverKey) {
     throw new Error('PayTabs server key not configured');
   }
-  const payloadString = JSON.stringify(payload);
+  const payloadString = Buffer.isBuffer(raw) ? raw : String(raw);
   const h = createHmac('sha256', PAYTABS_CONFIG.serverKey);
   h.update(payloadString);
   return h.digest('hex');

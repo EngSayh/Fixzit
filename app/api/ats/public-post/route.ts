@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
 import { rateLimit } from '@/src/server/security/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
-    await db;
+    await connectDb();
     const body = await req.json();
     // Basic rate limiting for public endpoint
     const rl = rateLimit(`ats:public:${req.ip ?? '0'}`, 10, 60_000);

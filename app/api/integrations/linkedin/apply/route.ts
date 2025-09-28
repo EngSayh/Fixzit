@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
 
 export async function POST(req: NextRequest) {
   try {
-  await db;
+  await connectDb();
     const { jobSlug, profile, answers } = await req.json();
     if (!jobSlug || !profile?.email) return NextResponse.json({ success: false, error: 'Missing fields' }, { status: 400 });
 

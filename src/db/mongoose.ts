@@ -1,17 +1,18 @@
-import mongoose from 'mongoose';
+import mongoose, { type Connection } from 'mongoose';
 import { db as globalConn } from '@/src/lib/mongo';
 
-let connection: typeof mongoose | null = null;
+let connection: Connection | null = null;
 
 export async function dbConnect() {
   if (connection) return connection;
   // Respect configured db name when URI does not include a path
   const conn = await globalConn;
   const dbName = process.env.MONGODB_DB;
-  if (dbName && conn.connection) {
-    conn.connection.useDb(dbName);
+  if (dbName && (conn as any).connection) {
+    connection = (conn as any).connection.useDb(dbName, { useCache: true });
+  } else {
+    connection = (conn as any).connection;
   }
-  connection = conn;
   return connection;
 }
 
