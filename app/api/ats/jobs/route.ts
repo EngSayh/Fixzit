@@ -5,7 +5,7 @@ import { connectMongo } from '@/src/lib/mongo';
 import { connectDb } from '@/src/lib/mongo';
 >>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 import { Job } from '@/src/server/models/Job';
-import { slugify } from '@/src/lib/utils';
+import { generateSlug } from '@/src/lib/utils';
 import { getUserFromToken } from '@/src/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     const userId = user?.id || 'system';
     const orgId = user?.tenantId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
-    const baseSlug = slugify(body.title);
+    const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
     let counter = 1;
     while (await Job.findOne({ orgId, slug })) {

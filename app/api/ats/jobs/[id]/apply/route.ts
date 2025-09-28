@@ -103,15 +103,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       extractSkillsFromText(resumeText + ' ' + coverLetter);
     
     // Parse experience
-    const yearsOfExperience = experience 
-      ? (Number.isFinite(parseInt(experience, 10)) ? parseInt(experience, 10) : 0)
-      : calculateExperienceFromText(resumeText + ' ' + coverLetter);
+    const yearsOfExperience = experience ? 
+      parseInt(experience) : 
+      calculateExperienceFromText(resumeText + ' ' + coverLetter);
     
     // Get ATS settings
-    const atsSettings = await (AtsSettings as any).findOrCreateForOrg(job.orgId);
+    const atsSettings = await AtsSettings.findOrCreateForOrg(job.orgId);
     
     // Check for existing candidate
-    let candidate = await (Candidate as any).findByEmail(job.orgId, email);
+    let candidate = await Candidate.findByEmail(job.orgId, email);
     
     if (!candidate) {
       // Create new candidate
@@ -162,28 +162,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
     
     // Score the application
-    const scoringCriteria = atsSettings?.scoringCriteria || { experience: 30, skills: 40, education: 10, keywords: 10, location: 10 };
-    const score = scoreApplication(
-      {
-        resume: resumeText,
-        coverLetter: coverLetter || '',
-        location: location || ''
-      },
-      {
-        requiredExperience: job.screeningRules?.minExperience ?? 0,
-        requiredSkills: Array.isArray(job.skills) ? job.skills : [],
-        preferredEducation: Array.isArray((job as any).education) ? (job as any).education : [],
-        keywords: Array.isArray((job as any).keywords) ? (job as any).keywords : (Array.isArray(job.skills) ? job.skills : []),
-        location: job.location || ''
-      },
-      scoringCriteria
-    );
+    const score = scoreApplication({
+      skills: candidateSkills,
+      requiredSkills: job.skills,
+      experience: yearsOfExperience,
+      minExperience: job.screeningRules?.minYears
+    }, atsSettings.scoringWeights);
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({
       experience: yearsOfExperience,
-      skills: candidateSkills,
-      score: score
+      skills: candidateSkills
     });
     
     // Create application
@@ -191,7 +180,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       orgId: job.orgId,
       jobId: job._id,
       candidateId: candidate._id,
-      stage: knockoutCheck.shouldReject ? 'rejected' : 'applied',
+      stage: knockoutCheck.reject ? 'rejected' : 'applied',
       score,
       source: 'careers',
       candidateSnapshot: {
@@ -208,7 +197,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         action: 'applied',
         by: 'candidate',
         at: new Date(),
-        details: knockoutCheck.shouldReject ? knockoutCheck.reason : undefined
+        details: knockoutCheck.reject ? knockoutCheck.reason : undefined
       }]
     });
     
@@ -221,7 +210,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         applicationId: application._id,
         status: application.stage,
         score,
-        message: knockoutCheck.shouldReject ? 
+        message: knockoutCheck.reject ? 
           'Your application has been received but does not meet the minimum requirements.' :
           'Your application has been successfully submitted!'
       }
