@@ -1,12 +1,13 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 const PropertyType = ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "LAND"] as const;
 const PropertyStatus = ["ACTIVE", "UNDER_MAINTENANCE", "VACANT", "OCCUPIED", "SOLD", "RENTED"] as const;
 
 const PropertySchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  // Multi-tenancy - will be added by plugin
+  // orgId: { type: String, required: true, index: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true },
@@ -188,6 +189,8 @@ PropertySchema.index({ 'address.coordinates': '2dsphere' });
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 
 // Check if we're using mock database
-export const Property = isMockDB
-  ? new MockModel('properties') as any
-  : (models.Property || model("Property", PropertySchema));
+// Apply plugins
+PropertySchema.plugin(tenantIsolationPlugin);
+PropertySchema.plugin(auditPlugin);
+
+export const Property = models.Property || model("Property", PropertySchema);

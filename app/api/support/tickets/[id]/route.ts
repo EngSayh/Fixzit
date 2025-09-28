@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const t = await (SupportTicket as any).findOne({ 
     _id: params.id, 
     $or: [
-      { tenantId: user.tenantId },
+      { orgId: user.orgId },
       // Allow admins to modify any ticket
       ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
     ]
