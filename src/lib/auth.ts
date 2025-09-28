@@ -20,7 +20,7 @@ const mockUsers = [
   {
     id: '2',
     email: 'admin@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
+    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
     name: 'Admin User',
     role: 'ADMIN',
     tenantId: 'demo-tenant'
@@ -28,7 +28,7 @@ const mockUsers = [
   {
     id: '3',
     email: 'manager@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
+    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
     name: 'Property Manager',
     role: 'FM_MANAGER',
     tenantId: 'demo-tenant'
@@ -36,7 +36,7 @@ const mockUsers = [
   {
     id: '4',
     email: 'tenant@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
+    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
     name: 'Ahmed Al-Rashid',
     role: 'TENANT',
     tenantId: 'demo-tenant'
@@ -44,7 +44,7 @@ const mockUsers = [
   {
     id: '5',
     email: 'vendor@fixzit.co',
-    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
+    password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
     name: 'Mohammed Al-Harbi',
     role: 'VENDOR',
     tenantId: 'demo-tenant'
@@ -223,7 +223,16 @@ export async function getUserFromToken(token: string) {
         console.warn('PostgreSQL connection failed, falling back to MongoDB:', msg);
         const mongoDb = await connectMongoDB();
         const usersCollection = mongoDb.collection('users');
-        user = await usersCollection.findOne({ _id: new ObjectId(payload.id) });
+        let found = null as any;
+        if (ObjectId.isValid(payload.id)) {
+          found = await usersCollection.findOne({ _id: new ObjectId(payload.id) });
+        }
+        if (!found) {
+          found = await usersCollection.findOne({
+            $or: [{ id: payload.id }, { email: payload.email }]
+          });
+        }
+        user = found;
       } else {
         throw error;
       }
