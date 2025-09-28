@@ -29,7 +29,7 @@ module.exports = {
 
     /* JavaScript */
     'no-var': 'off',
-    'no-undef': 'off',
+    // 'no-undef': 'off', // Consider enabling this after fixing undefined variable issues
     'no-empty': 'off',
     'no-extra-semi': 'off',
     'no-useless-escape': 'off',
