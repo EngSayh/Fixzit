@@ -26,6 +26,7 @@ export interface AuthToken {
   email: string;
   role: string;
   tenantId: string;
+  name?: string;
 }
 
 export async function hashPassword(password: string): Promise<string> {

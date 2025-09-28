@@ -2,20 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentPage } from '@/src/lib/paytabs';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
-<<<<<<< HEAD
-import { db } from '@/src/lib/mongo';
-import { z } from 'zod';
-import { createSecureResponse } from '@/src/server/security/headers';
-import { 
-  unauthorizedError, 
-  notFoundError, 
-  validationError, 
-  internalServerError,
-  handleApiError 
-} from '@/src/server/utils/errorResponses';
-=======
 import { connectDb } from '@/src/lib/mongo';
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
+import { z } from 'zod';
+
+// Utility functions for API responses
+const notFoundError = (resource: string) => NextResponse.json({ error: `${resource} not found` }, { status: 404 });
+const validationError = (message: string) => NextResponse.json({ error: message }, { status: 400 });
+const createSecureResponse = (data: any) => NextResponse.json(data);
+const handleApiError = (error: any) => NextResponse.json({ error: 'API error occurred' }, { status: 500 });
+const internalServerError = (message: string, error?: any) => NextResponse.json({ error: message }, { status: 500 });
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,15 +26,11 @@ export async function POST(req: NextRequest) {
     const body = paymentSchema.parse(await req.json());
     const { invoiceId } = body;
 
-<<<<<<< HEAD
-    await db;
-=======
     if (!invoiceId) {
       return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
     }
 
     await connectDb();
->>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
     const invoice = await (Invoice as any).findOne({ 
       _id: invoiceId, 
       tenantId: user.tenantId 

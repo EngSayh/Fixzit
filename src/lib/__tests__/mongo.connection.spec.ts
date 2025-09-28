@@ -13,18 +13,18 @@ import path from 'node:path';
 function runScenario(name: string, env: Record<string, string | undefined> = {}, unset: string[] = []) {
   return new Promise<any>((resolve) => {
     const runner = path.resolve(__dirname, './scenarios/mongo-scenario.ts');
-    const mergedEnv: Record<string, string> = { ...process.env as any, SCENARIO: name };
+    const mergedEnv: NodeJS.ProcessEnv = { ...process.env, SCENARIO: name };
     for (const [k, v] of Object.entries(env)) {
-      if (v === undefined) delete (mergedEnv as any)[k];
+      if (v === undefined) delete mergedEnv[k];
       else mergedEnv[k] = v;
     }
-    for (const k of unset) delete (mergedEnv as any)[k];
+    for (const k of unset) delete mergedEnv[k];
 
     const child = spawn('npx', ['tsx', runner], { env: mergedEnv, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
-    child.stdout.on('data', (d) => (out += d.toString()));
-    child.stderr.on('data', (d) => (err += d.toString()));
+    (child.stdout as NodeJS.ReadableStream).on('data', (d: Buffer) => (out += d.toString()));
+    (child.stderr as NodeJS.ReadableStream).on('data', (d: Buffer) => (err += d.toString()));
     child.on('close', () => {
       let parsed: any;
       try {
