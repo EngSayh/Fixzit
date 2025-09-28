@@ -4,7 +4,7 @@
     $env:MONGODB_URI="mongodb://localhost:27017/fixzit"; npm run seed:realdb
 */
 
-import { db as connect } from '@/src/lib/mongo';
+import { db } from '@/src/lib/mongo';
 import { Property } from '@/src/server/models/Property';
 import { WorkOrder } from '@/src/server/models/WorkOrder';
 // Inline simple SLA helpers to avoid external dependency
@@ -135,3 +135,4 @@ main().then(() => process.exit(0)).catch((err) => {
   console.error('❌ Real DB seed failed:', err);
   process.exit(1);
 });
+
