@@ -15,26 +15,15 @@ interface PayTabsHelpers {
   [key: string]: unknown;
 }
 let lib: PayTabsHelpers;
+// Define the exact path to the PayTabs helpers module here.
+const PAYTABS_HELPERS_MODULE_PATH = '../../lib-paytabs'; // <-- Update this path as needed
 function loadModule() {
-  const candidates = [
-    './lib-paytabs',                 // same folder (unlikely)
-    '../lib-paytabs',                // sibling under qa/
-    '../../lib-paytabs',             // project root
-    'src/lib/paytabs',               // common src path
-    'src/lib-paytabs',               // alternative naming
-    'lib/paytabs',                   // lib path
-    'paytabs',                       // package-style
-  ];
-  for (const c of candidates) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const m = require((c.startsWith('.') ? c : `./../../${c}`));
-      return m;
-    } catch (_e) {
-      // try next
-    }
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  try {
+    return require(PAYTABS_HELPERS_MODULE_PATH);
+  } catch (e) {
+    throw new Error(`Could not resolve module for PayTabs helpers at "${PAYTABS_HELPERS_MODULE_PATH}". Please adjust PAYTABS_HELPERS_MODULE_PATH in qa/tests/lib-paytabs.spec.ts`);
   }
-  throw new Error('Could not resolve module for PayTabs helpers. Please adjust import path in qa/tests/lib-paytabs.spec.ts');
 }
 
 // Lazy-load once for all tests
