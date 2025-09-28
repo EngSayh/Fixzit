@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
   if (!tenantId) return NextResponse.json({ error:"Missing tenant" },{ status: 400 });
   const q = searchParams.get("q") || undefined;
   const status = searchParams.get("status") || undefined;
-  const data = await svc.list(tenantId, q, status);
+  const type = searchParams.get("type") || undefined;
+  const data = await svc.list(tenantId, q, status, type);
   return NextResponse.json({ data });
 }
 
