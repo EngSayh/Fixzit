@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
+    await db;
     const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
     const Asset = AssetMod && (AssetMod as any).Asset;
     if (!Asset) {
