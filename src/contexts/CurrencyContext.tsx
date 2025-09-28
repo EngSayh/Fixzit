@@ -24,7 +24,7 @@ const DEFAULT_CURRENCY: CurrencyCode = 'SAR';
 interface CurrencyContextType {
   currency: CurrencyCode;
   setCurrency: (currency: CurrencyCode) => void;
-  options: CurrencyOption[];
+  options: readonly CurrencyOption[];
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
