@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/database";
-import { connectMongoDB } from "@/lib/database";
-import { getSessionUser, requireAbility } from "@/lib/auth-middleware";
+import { connectDb } from "@/src/lib/mongo";
+import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
+import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
+import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
+import { WOPriority } from "@/src/server/work-orders/wo.schema";
 
 const createSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
-  priority: z.enum(["LOW","MEDIUM","HIGH","CRITICAL"]).default("MEDIUM"),
+  priority: WOPriority.default("MEDIUM"),
   category: z.string().optional(),
   subcategory: z.string().optional(),
   propertyId: z.string().optional(),
@@ -21,171 +23,98 @@ const createSchema = z.object({
   }).optional()
 });
 
+/**
+ * Fetches a paginated list of work orders for the authenticated user's tenant.
+ *
+ * The handler reads query parameters `q` (text search), `status`, `priority`, `page` (default 1),
+ * and `limit` (default 20, capped at 100). Results are always scoped to the session user's
+ * tenantId and exclude soft-deleted records (deletedAt exists). Database access is initialized
+ * before querying.
+ *
+ * Behavior differs based on the environment flag USE_MOCK_DB="true" (case-insensitive):
+ * - When true, results are retrieved from the mock store, sorted by createdAt (desc) in-memory,
+ *   and then paginated.
+ * - Otherwise, results are queried from the real database with server-side sort/skip/limit.
+ *
+ * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
+ */
 export async function GET(req: NextRequest) {
-  try {
-    const user = await getSessionUser(req);
-    const { searchParams } = new URL(req.url);
-    const q = searchParams.get("q") || "";
-    const status = searchParams.get("status") || undefined;
-    const priority = searchParams.get("priority") || undefined;
-    const page = Number(searchParams.get("page") || 1);
-    const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
+  await connectDb();
+  const user = await getSessionUser(req);
+  const { searchParams } = new URL(req.url);
+  const q = searchParams.get("q") || "";
+  const status = searchParams.get("status") || undefined;
+  const priority = searchParams.get("priority") || undefined;
+  const page = Number(searchParams.get("page") || 1);
+  const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
-    let items: any[] = [];
-    let total = 0;
+  const match: any = { tenantId: user.tenantId, deletedAt: { $exists: false } };
+  if (status) match.status = status;
+  if (priority) match.priority = priority;
+  if (q) match.$text = { $search: q };
 
-    try {
-      // Try PostgreSQL first
-      const where: any = { tenantId: user.tenantId };
-      if (status) where.status = status;
-      if (priority) where.priority = priority;
-      if (q) {
-        where.OR = [
-          { title: { contains: q } },
-          { description: { contains: q } }
-        ];
-      }
+  // Handle both mock and real database
+  let items: any[];
+  let total: number;
 
-      items = await prisma.workOrder.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' }
-      });
+  // Respect explicit mock flag only
+  const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
-      total = await prisma.workOrder.count({ where });
-    } catch (error: any) {
-      // Only fallback for connection errors
-      const msg = String(error?.message || '');
-      const code = error?.code;
-      const isConnectionError = 
-        msg.includes('connect') ||
-        msg.includes('ECONNREFUSED') ||
-        msg.includes('ETIMEDOUT') ||
-        msg.includes('ENOTFOUND') ||
-        msg.includes('authentication failed') ||
-        code === 'P1001' || // Connection error
-        code === 'P1008' || // Operations timed out
-        code === 'P1017';   // Server has closed the connection
-      
-      if (!isConnectionError) {
-        throw error; // Re-throw non-connection errors
-      }
-      
-      console.log('PostgreSQL connection issue, trying MongoDB fallback...');
-      // Fallback to MongoDB
-      const mongoDb = await connectMongoDB();
-      const workOrdersCollection = mongoDb.collection('workOrders');
-      
-      const match: any = { tenantId: user.tenantId };
-      if (status) match.status = status;
-      if (priority) match.priority = priority;
-      // Use regex if text index not available
-      if (q) {
-        match.$or = [
-          { title: { $regex: q, $options: 'i' } },
-          { description: { $regex: q, $options: 'i' } }
-        ];
-      }
-
-      items = await workOrdersCollection
-        .find(match)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .toArray();
-
-      total = await workOrdersCollection.countDocuments(match);
+  if (isMockDB) {
+    // Use mock database logic
+    items = await (WorkOrder as any).find(match);
+    if (items && Array.isArray(items)) {
+      // Sort manually
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Apply pagination
+      items = items.slice((page - 1) * limit, page * limit);
+    } else {
+      items = [];
     }
-
-    return NextResponse.json({ items, page, limit, total });
-  } catch (error) {
-    console.error('Error fetching work orders:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch work orders' },
-      { status: 500 }
-    );
+    total = await (WorkOrder as any).countDocuments(match);
+  } else {
+    // Use real Mongoose
+    items = await (WorkOrder as any).find(match)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    total = await (WorkOrder as any).countDocuments(match);
   }
+
+  return NextResponse.json({ items, page, limit, total });
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const user = await requireAbility("CREATE")(req);
-    if (user instanceof NextResponse) return user;
+  const user = await requireAbility("CREATE")(req);
+  if (user instanceof NextResponse) return user as any;
+  await connectDb();
 
-    const body = await req.json();
-    const data = createSchema.parse(body);
+  const body = await req.json();
+  const data = createSchema.parse(body);
 
-    // Generate code per-tenant sequence (simplified)
-    const seq = Math.floor((Date.now() / 1000) % 100000);
-    const code = `WO-${new Date().getFullYear()}-${seq}`;
+  const createdAt = new Date();
+  // Generate cryptographically secure work order code
+  const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const code = `WO-${new Date().getFullYear()}-${uuid}`;
+  const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
-    let workOrder;
-
-    try {
-      // Try PostgreSQL first
-      workOrder = await prisma.workOrder.create({
-        data: {
-          tenantId: user.tenantId,
-          code,
-          title: data.title,
-          description: data.description || '',
-          priority: data.priority,
-          propertyId: data.propertyId,
-          requesterId: user.id,
-          status: 'NEW',
-          slaHours: 72
-        }
-      });
-    } catch (error: any) {
-      // Only fallback for connection errors
-      const msg = String(error?.message || '');
-      const code = error?.code;
-      const isConnectionError = 
-        msg.includes('connect') ||
-        msg.includes('ECONNREFUSED') ||
-        msg.includes('ETIMEDOUT') ||
-        msg.includes('ENOTFOUND') ||
-        msg.includes('authentication failed') ||
-        code === 'P1001' || // Connection error
-        code === 'P1008' || // Operations timed out
-        code === 'P1017';   // Server has closed the connection
-      
-      if (!isConnectionError) {
-        throw error; // Re-throw non-connection errors
-      }
-      
-      console.log('PostgreSQL connection issue, trying MongoDB fallback...');
-      // Fallback to MongoDB
-      const mongoDb = await connectMongoDB();
-      const workOrdersCollection = mongoDb.collection('workOrders');
-      
-      const insertData = {
-        tenantId: user.tenantId,
-        code,
-        title: data.title,
-        description: data.description || '',
-        priority: data.priority,
-        propertyId: data.propertyId,
-        requesterId: user.id,
-        status: 'NEW',
-        slaHours: 72,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      const insertResult = await workOrdersCollection.insertOne(insertData);
-
-      // Query the inserted document to maintain consistent response format
-      workOrder = await workOrdersCollection.findOne({ _id: insertResult.insertedId });
-    }
-
-    return NextResponse.json(workOrder, { status: 201 });
-  } catch (error) {
-    console.error('Error creating work order:', error);
-    return NextResponse.json(
-      { error: 'Failed to create work order' },
-      { status: 500 }
-    );
-  }
+  const wo = await (WorkOrder as any).create({
+    tenantId: user.tenantId,
+    code,
+    title: data.title,
+    description: data.description,
+    priority: data.priority,
+    category: data.category,
+    subcategory: data.subcategory,
+    propertyId: data.propertyId,
+    unitId: data.unitId,
+    requester: data.requester,
+    status: "SUBMITTED",
+    statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
+    slaMinutes,
+    dueAt,
+    createdBy: user.id,
+    createdAt
+  });
+  return NextResponse.json(wo, { status: 201 });
 }

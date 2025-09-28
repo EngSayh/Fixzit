@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isMockDB } from '@/src/lib/mongo';
+<<<<<<< HEAD
+import { connectMongo, isMockDB } from '@/src/lib/mongo';
+=======
+import { connectDb, isMockDB } from '@/src/lib/mongo';
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -21,13 +25,23 @@ export async function GET(req: NextRequest) {
       healthStatus.database = 'mock-connected';
       healthStatus.status = 'healthy';
     } else {
-      await db;
+<<<<<<< HEAD
+      const connection = await connectMongo();
+=======
+      await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
       healthStatus.database = 'connected';
 
       // Test database query only if not mock
       try {
-        const collections = await (db as any).listCollections().toArray();
+<<<<<<< HEAD
+        const collections = await connection?.connection.db.listCollections().toArray();
+        healthStatus.database = `connected (${collections?.length ?? 0} collections)`;
+=======
+        const mongoose = await connectDb();
+        const collections = await (mongoose as any).connection.db.listCollections().toArray();
         healthStatus.database = `connected (${collections.length} collections)`;
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
       } catch {
         healthStatus.database = 'connected (query failed)';
       }
@@ -71,7 +85,11 @@ export async function POST(req: NextRequest) {
         timestamp: new Date().toISOString()
       });
     } else {
-      await db;
+<<<<<<< HEAD
+      await connectMongo();
+=======
+      await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
       return NextResponse.json({
         success: true,
         message: 'Database reconnected',

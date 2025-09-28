@@ -28,7 +28,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     originalPrice: 'SAR 2,650',
     rating: 4.5,
     reviews: 128,
-    image: '/api/placeholder/300/200',
+    image: '/img/logo.jpg',
     vendor: 'SteelCorp Ltd',
     inStock: true,
     discount: 8
@@ -41,7 +41,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     originalPrice: 'SAR 220',
     rating: 4.2,
     reviews: 89,
-    image: '/api/placeholder/300/200',
+    image: '/img/logo.jpg',
     vendor: 'LightTech Solutions',
     inStock: true,
     discount: 16,
@@ -55,7 +55,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     originalPrice: 'SAR 520',
     rating: 4.8,
     reviews: 234,
-    image: '/api/placeholder/300/200',
+    image: '/img/logo.jpg',
     vendor: 'SafetyFirst Inc',
     inStock: true,
     discount: 13
@@ -67,7 +67,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 'SAR 8,900',
     rating: 4.6,
     reviews: 67,
-    image: '/api/placeholder/300/200',
+    image: '/img/logo.jpg',
     vendor: 'ClimateTech Pro',
     inStock: true
   },
@@ -79,7 +79,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     originalPrice: 'SAR 3,800',
     rating: 4.3,
     reviews: 156,
-    image: '/api/placeholder/300/200',
+    image: '/img/logo.jpg',
     vendor: 'Workspace Solutions',
     inStock: false,
     discount: 16
@@ -91,7 +91,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 'SAR 1,250',
     rating: 4.7,
     reviews: 203,
-    image: '/api/placeholder/300/200',
+    image: '/img/logo.jpg',
     vendor: 'SecureGuard Systems',
     inStock: true
   }

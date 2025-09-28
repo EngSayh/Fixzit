@@ -1,5 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { MockModel } from "@/src/lib/mockDb";
+import { isMockDB } from "@/src/lib/mongo";
 
 const UserRole = ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN", "TEAM_LEAD", "TECHNICIAN", "PROPERTY_MANAGER", "TENANT", "VENDOR", "OWNER", "SUPPORT", "PROCUREMENT", "AUDITOR"] as const;
 const UserStatus = ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"] as const;
@@ -199,9 +200,6 @@ UserSchema.index({ tenantId: 1, 'workload.available': 1 });
 UserSchema.index({ tenantId: 1, 'performance.rating': -1 });
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
-
-// Check if we're using mock database
-const isMockDB = process.env.NODE_ENV === 'development' && (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost'));
 
 export const User = isMockDB
   ? new MockModel('users') as any

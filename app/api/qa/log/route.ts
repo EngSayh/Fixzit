@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isMockDB } from '@/src/lib/mongo';
+import { db, isMockDB, getNativeDb } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Log the event to database for real database
-    await (db as any).collection('qa_logs').insertOne({
+    const native = await getNativeDb();
+    await native.collection('qa_logs').insertOne({
       event,
       data,
       timestamp: new Date(),
@@ -34,7 +35,8 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
+    const parsed = Number(searchParams.get('limit'));
+    const limit = Math.min(Number.isFinite(parsed) && parsed > 0 ? parsed : 100, 1000);
     const eventType = searchParams.get('event');
 
     // Return empty array for mock database
@@ -42,12 +44,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ logs: [], mock: true });
     }
 
-    let query = {};
+    let query = {} as any;
     if (eventType) {
       query = { event: eventType };
     }
 
-    const logs = await (db as any).collection('qa_logs')
+    const native = await getNativeDb();
+    const logs = await native.collection('qa_logs')
       .find(query)
       .sort({ timestamp: -1 })
       .limit(limit)

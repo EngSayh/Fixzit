@@ -12,7 +12,11 @@ const publicRoutes = [
   '/cms/about',
   '/careers',
   '/test',
-  '/test-simple'
+  '/test-simple',
+  // Public marketplaces (guest browse)
+  '/aqar',
+  '/souq',
+  '/marketplace'
 ];
 
 // Define API routes that require authentication
@@ -24,7 +28,7 @@ const protectedApiRoutes = [
   '/api/projects',
   '/api/rfqs',
   '/api/slas',
-  '/api/invoices',
+  '/api/finance/invoices',
   '/api/users',
   '/api/work-orders',
   '/api/finance',
@@ -56,17 +60,10 @@ const publicMarketplaceRoutes = [
   '/souq',
   '/souq/catalog',
   '/souq/vendors',
-  '/souq/rfqs',
-  '/souq/orders',
-  '/souq/shipping',
-  '/souq/reviews',
   '/aqar',
   '/aqar/map',
   '/aqar/search',
-  '/aqar/properties',
-  '/aqar/filters',
-  '/aqar/trends',
-  '/aqar/premium'
+  '/aqar/properties'
 ];
 
 // Define protected marketplace actions (require login)
@@ -82,6 +79,30 @@ const protectedMarketplaceActions = [
   '/aqar/bookings'
 ];
 
+/**
+ * Middleware that enforces route-level access rules for public, protected, API, marketplace, FM, and admin routes.
+ *
+ * Applies these behaviors:
+ * - Skips middleware for Next.js internals, static files, and obvious public assets.
+ * - Allows listed public routes and public marketplace browsing routes without authentication.
+ * - For /api/*:
+ *   - Allows public API paths (auth, cms, help, assistant).
+ *   - For protected API routes, requires `fixzit_auth` cookie; on success attaches a JSON `x-user` header and continues; on failure responds 401.
+ *   - For protected marketplace actions, requires `fixzit_auth` cookie; on success attaches `x-user` and continues; on failure redirects to /login.
+ * - For non-API protected routes:
+ *   - If no `fixzit_auth` cookie: redirects unauthenticated requests under /fm/ to /login; otherwise allows public access.
+ *   - If a token is present: decodes JWT payload (id, email, role, tenantId), enforces admin RBAC for /admin/* (only SUPER_ADMIN, ADMIN, CORPORATE_ADMIN allowed), and:
+ *     - Redirects root or /login to role-specific destinations (fm dashboard, properties, marketplace).
+ *     - Attaches `x-user` header for FM routes and continues.
+ *   - Invalid JWTs redirect /fm/, /aqar/, and /souq/ requests to /login; other paths continue.
+ *
+ * Side effects:
+ * - May return NextResponse.next(), NextResponse.redirect(...) or NextResponse.json(...).
+ * - Sets an `x-user` response header with the decoded user object for authenticated API/FM/marketplace requests.
+ *
+ * @param request - The incoming NextRequest to evaluate.
+ * @returns A NextResponse that allows, redirects, or denies the request based on route rules and authentication.
+ */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -133,36 +154,11 @@ export async function middleware(request: NextRequest) {
         };
 
         // Add user info to request headers for API routes
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return response;
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
       } catch (error) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    }
-
-    // Check for authentication on protected marketplace actions
-    if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-      try {
-        const authToken = request.cookies.get('fixzit_auth')?.value;
-        if (!authToken) {
-          return NextResponse.redirect(new URL('/login', request.url));
-        }
-
-        const payload = JSON.parse(atob(authToken.split('.')[1]));
-        const user = {
-          id: payload.id,
-          email: payload.email,
-          role: payload.role,
-          tenantId: payload.tenantId
-        };
-
-        // Add user context to protected marketplace actions
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return response;
-      } catch (error) {
-        return NextResponse.redirect(new URL('/login', request.url));
       }
     }
 
@@ -175,7 +171,10 @@ export async function middleware(request: NextRequest) {
     const authToken = request.cookies.get('fixzit_auth')?.value;
     if (!authToken) {
       // Redirect to login for unauthenticated users on protected routes
-      if (pathname.startsWith('/fm/')) {
+      if (
+        pathname.startsWith('/fm/') ||
+        protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))
+      ) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
       return NextResponse.next();
@@ -190,6 +189,14 @@ export async function middleware(request: NextRequest) {
         role: payload.role,
         tenantId: payload.tenantId
       };
+
+      // Protect admin UI with RBAC
+      if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+        const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+        if (!adminRoles.has(user.role)) {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }
+      }
 
       // Redirect based on user role
       if (pathname === '/' || pathname === '/login') {
@@ -207,10 +214,16 @@ export async function middleware(request: NextRequest) {
 
       // FM routes - check role-based access
       if (fmRoutes.some(route => pathname.startsWith(route))) {
-        // Add user context to FM routes
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return response;
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
+      }
+
+      // Protected marketplace actions - require auth and attach user
+      if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
       }
 
       return NextResponse.next();
