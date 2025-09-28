@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     const data = createAssetSchema.parse(await req.json());
 
-    const asset = await (Asset as any).create({
+    const asset = await Asset.create({
       tenantId: user.tenantId,
       code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
