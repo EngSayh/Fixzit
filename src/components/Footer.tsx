@@ -13,23 +13,14 @@ export default function Footer() {
   const { currency } = useCurrency();
   const currentCurrency = CURRENCY_OPTIONS.find(option => option.code === currency) ?? CURRENCY_OPTIONS[0];
 
-  // Safe translation with fallback
-  let t: (key: string, fallback?: string) => string;
-  let translationIsRTL: boolean = false;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-    translationIsRTL = translationContext.isRTL;
-  } catch {
-    // Fallback translation function
-    t = (key: string, fallback?: string) => fallback || key;
-    translationIsRTL = false;
-  }
+  // Use the translation context directly - it has its own fallback
+  const { t, isRTL: translationIsRTL } = useTranslation();
 
   return (
     <footer className="mt-16 border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
         <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right' : ''}`}>
+          <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
           <Link href="/" className="inline-flex items-center gap-2 text-[#0061A8] hover:text-[#004f86]">
             <Home className="h-4 w-4" />
             <span>{t('footer.backHome', 'Back to Home')}</span>
@@ -44,12 +35,7 @@ export default function Footer() {
             </span>
           </div>
         </div>
-
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 text-sm">
-          <div>
-            <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
-            <p className="opacity-70">{t('footer.description', 'Facility management + marketplaces in one platform.')}</p>
-          </div>
           <div>
             <div className="font-semibold mb-2">{t('footer.company', 'Company')}</div>
             <ul className="space-y-1 opacity-80">
@@ -72,17 +58,16 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-
         <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
-            <Link href="/privacy" className="hover:underline">Privacy</Link>
-            <Link href="/terms" className="hover:underline">Terms</Link>
-            <Link href="/support" className="hover:underline">Support</Link>
+            <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
+            <Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
+            <Link href="/support" className="hover:underline">{t('footer.support', 'Support')}</Link>
           </div>
         </div>
       </div>
-      {open && <SupportPopup onClose={() => setOpen(false)} />}
+      {open && <SupportPopup onClose={()=>setOpen(false)} />}
     </footer>
   );
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateZATCAQR } from '@/lib/zatca';
-import { validateCallbackRaw } from '@/src/lib/paytabs';
+import { validateCallback } from '@/src/lib/paytabs';
 
 /**
  * HTTP POST handler for PayTabs payment callbacks.
@@ -22,12 +22,11 @@ export async function POST(req: NextRequest) {
   try {
     // Read raw body for signature validation
     const raw = await req.text();
-    const isValid = await validateCallbackRaw(raw, req.headers.get('signature'));
+    const body = JSON.parse(raw);
+    const isValid = validateCallback(body, req.headers.get('signature') || '');
     if (!isValid) {
       return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 401 });
     }
-
-    const body = JSON.parse(raw);
     const { tran_ref, cart_id, resp_status, resp_message, amount } = body;
     
     // Update order status based on payment result
