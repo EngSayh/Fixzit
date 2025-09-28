@@ -17,7 +17,7 @@ import { useCurrency, CURRENCY_OPTIONS } from '@/src/contexts/CurrencyContext';
  * Translation is sourced from the translation context with a safe fallback (`t(key, fallback)`),
  * and layout alignment supports RTL via the translation context's `isRTL` flag.
  *
- * @returns The footer JSX element.
+ * @returns {JSX.Element} The footer JSX element.
  */
 export default function Footer() {
   const [open, setOpen] = useState(false);
