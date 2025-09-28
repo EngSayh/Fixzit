@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "status": "interrupted",
   "failedTests": [
     "d1f7af33feacfc6c21e3-efd7cb4bc48868d27d19"
   ]
+=======
+  "status": "passed",
+  "failedTests": []
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 }

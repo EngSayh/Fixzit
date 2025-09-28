@@ -77,7 +77,28 @@ export async function createHppRequest(region: string, payload: unknown) {
   return response.json();
 }
 
+<<<<<<< HEAD
 // removed duplicate local types; using exported interfaces above
+=======
+type PaymentRequestInput = {
+  amount: number;
+  currency: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zip: string;
+  };
+  description: string;
+  invoiceId: string;
+  returnUrl: string;
+  callbackUrl: string;
+};
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
 export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
   try {
@@ -87,7 +108,7 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
       profile_id: PAYTABS_CONFIG.profileId,
       tran_type: 'sale',
       tran_class: 'ecom',
-      cart_id: request.invoiceId || `CART-${Date.now()}`,
+      cart_id: request.invoiceId,
       cart_currency: request.currency,
       cart_amount: request.amount.toFixed(2),
       cart_description: request.description,

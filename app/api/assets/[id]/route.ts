@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Asset } from "@/src/server/models/Asset";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -50,6 +50,7 @@ const updateAssetSchema = z.object({
  */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+<<<<<<< HEAD
     let user;
     try {
       user = await getSessionUser(req);
@@ -57,6 +58,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     await db;
+=======
+    const user = await getSessionUser(req);
+    await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const asset = await Asset.findOne({
       _id: params.id,
@@ -95,6 +100,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+<<<<<<< HEAD
     let user;
     try {
       user = await getSessionUser(req);
@@ -107,6 +113,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     await db;
+=======
+    const user = await getSessionUser(req);
+    await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const data = updateAssetSchema.parse(await req.json());
 
@@ -147,6 +157,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
  */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+<<<<<<< HEAD
     let user;
     try {
       user = await getSessionUser(req);
@@ -159,6 +170,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     await db;
+=======
+    const user = await getSessionUser(req);
+    await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const asset = await Asset.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },

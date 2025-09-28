@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Project } from "@/src/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -43,6 +43,7 @@ const createProjectSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
+<<<<<<< HEAD
     let user;
     try {
       user = await getSessionUser(req);
@@ -50,6 +51,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     await db;
+=======
+    const user = await getSessionUser(req);
+    await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const data = createProjectSchema.parse(await req.json());
 
@@ -79,6 +84,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+<<<<<<< HEAD
     let user;
     try {
       user = await getSessionUser(req);
@@ -86,6 +92,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     await db;
+=======
+    const user = await getSessionUser(req);
+    await connectDb();
+>>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
