@@ -4,6 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell, Search, User, ChevronDown } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import LanguageSelector from './i18n/LanguageSelector';
+import CurrencySelector from './i18n/CurrencySelector';
+import AppSwitcher from './topbar/AppSwitcher';
+import GlobalSearch from './topbar/GlobalSearch';
+import QuickActions from './topbar/QuickActions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/src/contexts/TranslationContext';
@@ -369,7 +373,11 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
       )}
       
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <LanguageSelector />
+        <QuickActions />
+        <div className="flex items-center gap-2">
+          <LanguageSelector />
+          <CurrencySelector variant="compact" />
+        </div>
         <div className="notification-container relative">
           <button
             onClick={() => setNotifOpen(!notifOpen)}
