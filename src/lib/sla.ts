@@ -1,15 +1,41 @@
-export function computeSlaMinutes(priority: string): number {
-  switch ((priority || '').toUpperCase()) {
-    case 'URGENT': return 240; // 4h
-    case 'HIGH': return 24 * 60; // 1 day
-    case 'MEDIUM': return 3 * 24 * 60; // 3 days
-    case 'LOW': return 7 * 24 * 60; // 7 days
-    default: return 3 * 24 * 60;
-  }
+import { addMinutes } from 'date-fns';
+
+export type WorkOrderPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+const SLA_MINUTES_MAP: Record<WorkOrderPriority, number> = {
+  LOW: 72 * 60, // 3 days
+  MEDIUM: 36 * 60, // 1.5 days
+  HIGH: 12 * 60, // 12 hours
+  CRITICAL: 4 * 60, // 4 hours
+};
+
+/**
+ * Returns the SLA resolution window in minutes for a work order priority.
+ * This function is used server side when persisting records and in
+ * verification scripts that seed the real Mongo database.
+ */
+export function computeSlaMinutes(priority: WorkOrderPriority): number {
+  return SLA_MINUTES_MAP[priority] ?? SLA_MINUTES_MAP.MEDIUM;
 }
 
-export function computeDueAt(createdAt: Date | string | number, slaMinutes: number): Date {
-  const base = new Date(createdAt || Date.now());
-  return new Date(base.getTime() + Math.max(0, slaMinutes) * 60 * 1000);
+/**
+ * Calculates the due date for a work order by adding the SLA window to
+ * the provided start time. A new Date instance is always returned.
+ */
+export function computeDueAt(start: Date, slaMinutes: number): Date {
+  return addMinutes(start, slaMinutes);
 }
 
+/**
+ * Convenience helper that returns both the SLA window (minutes) and the
+ * computed due date for a work order priority. This keeps controller logic
+ * concise and guarantees consistent calculations across the app and QA
+ * tooling.
+ */
+export function resolveSlaTarget(priority: WorkOrderPriority, start: Date = new Date()) {
+  const slaMinutes = computeSlaMinutes(priority);
+  return {
+    slaMinutes,
+    dueAt: computeDueAt(start, slaMinutes),
+  };
+}

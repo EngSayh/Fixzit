@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
 
 export async function POST(req:NextRequest){
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as any;
-  await db;
+  await connectDb();
   const rows = (await req.json())?.rows as any[]; // expects parsed CSV rows from UI
   let created = 0;
   for (const r of rows ?? []){
-    const code = `WO-${new Date().getFullYear()}-${Math.floor(Math.random()*100000)}`;
+    const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
     await (WorkOrder as any).create({ tenantId:user.tenantId, code, title:r.title, description:r.description, priority:r.priority||"MEDIUM", createdBy:user.id, status:"SUBMITTED", statusHistory:[{from:"DRAFT",to:"SUBMITTED",byUserId:user.id,at:new Date()}] });
     created++;
   }

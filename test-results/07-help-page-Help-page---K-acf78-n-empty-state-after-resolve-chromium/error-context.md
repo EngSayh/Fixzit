@@ -1,0 +1,99 @@
+# Page snapshot
+
+```yaml
+- generic [active]:
+  - alert [ref=e1]
+  - dialog [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Build Error" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Failed to compile
+        - generic [ref=e9]:
+          - generic "An outdated version detected (latest is 15.5.4), upgrade is highly recommended!" [ref=e11]: Next.js (14.2.32) is outdated
+          - link "(learn more)" [ref=e12] [cursor=pointer]:
+            - /url: https://nextjs.org/docs/messages/version-staleness
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - link "./src/lib/mongo.ts" [ref=e15] [cursor=pointer]:
+            - text: ./src/lib/mongo.ts
+            - img [ref=e16] [cursor=pointer]
+          - generic [ref=e20]:
+            - generic [ref=e21]: "Error:"
+            - generic [ref=e22]: x
+            - generic [ref=e23]: Merge conflict marker encountered. ,-[
+            - generic [ref=e24]: /workspaces/Fixzit/src/lib/mongo.ts
+            - generic [ref=e25]: :1:1]
+            - generic [ref=e26]: "1"
+            - generic [ref=e27]: "| import mongoose from 'mongoose';"
+            - generic [ref=e28]: "2"
+            - generic [ref=e29]: "|"
+            - generic [ref=e30]: "3"
+            - generic [ref=e31]: "| <<<<<<< HEAD :"
+            - generic [ref=e32]: ^^^^^^^
+            - generic [ref=e34]: "4"
+            - generic [ref=e35]: "| const uri = process.env.MONGODB_URI?.trim();"
+            - generic [ref=e36]: "5"
+            - generic [ref=e37]: "| const dbName = process.env.MONGODB_DB || \"fixzit\";"
+            - generic [ref=e38]: "6"
+            - generic [ref=e39]: "| const shouldUseMock = process.env.USE_MOCK_DB === 'true'; `----"
+            - generic [ref=e40]: x
+            - generic [ref=e41]: Merge conflict marker encountered. ,-[
+            - generic [ref=e42]: /workspaces/Fixzit/src/lib/mongo.ts
+            - generic [ref=e43]: :57:1]
+            - generic [ref=e44]: "57"
+            - generic [ref=e45]: "| serverSelectionTimeoutMS: 5_000,"
+            - generic [ref=e46]: "58"
+            - generic [ref=e47]: "| socketTimeoutMS: 45_000,"
+            - generic [ref=e48]: "59"
+            - generic [ref=e49]: "| });"
+            - generic [ref=e50]: "60"
+            - generic [ref=e51]: "| ======= :"
+            - generic [ref=e52]: ^^^^^^^
+            - generic [ref=e54]: "61"
+            - generic [ref=e55]: "| const isProd = process.env.NODE_ENV === \"production\";"
+            - generic [ref=e56]: "62"
+            - generic [ref=e57]: "| const uriFromEnv = process.env.MONGODB_URI;"
+            - generic [ref=e58]: "63"
+            - generic [ref=e59]: "| if (!uriFromEnv && isProd) { `----"
+            - generic [ref=e60]: x
+            - generic [ref=e61]: Merge conflict marker encountered. ,-[
+            - generic [ref=e62]: /workspaces/Fixzit/src/lib/mongo.ts
+            - generic [ref=e63]: :78:1]
+            - generic [ref=e64]: "78"
+            - generic [ref=e65]: "| (global as any)._mongoose = undefined;"
+            - generic [ref=e66]: "79"
+            - generic [ref=e67]: "| throw err;"
+            - generic [ref=e68]: "80"
+            - generic [ref=e69]: "| });"
+            - generic [ref=e70]: "81"
+            - generic [ref=e71]: "| >>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b :"
+            - generic [ref=e72]: ^^^^^^^
+            - generic [ref=e74]: "82"
+            - generic [ref=e75]: "| }"
+            - generic [ref=e76]: "83"
+            - generic [ref=e77]: "|"
+            - generic [ref=e78]: "84"
+            - generic [ref=e79]: "| export async function connectMongo(): Promise<typeof mongoose | null> { `----"
+            - generic [ref=e80]: x
+            - generic [ref=e81]: "'import', and 'export' cannot be used outside of module code ,-["
+            - generic [ref=e82]: /workspaces/Fixzit/src/lib/mongo.ts
+            - generic [ref=e83]: :81:1]
+            - generic [ref=e84]: "81"
+            - generic [ref=e85]: "| >>>>>>> acecb620d9e960f6cc5af0795616effb28211e7b"
+            - generic [ref=e86]: "82"
+            - generic [ref=e87]: "| }"
+            - generic [ref=e88]: "83"
+            - generic [ref=e89]: "|"
+            - generic [ref=e90]: "84"
+            - generic [ref=e91]: "| export async function connectMongo(): Promise<typeof mongoose | null> { :"
+            - generic [ref=e92]: ^^^^^^
+            - generic [ref=e94]: "85"
+            - generic [ref=e95]: "| if (shouldUseMock) {"
+            - generic [ref=e96]: "86"
+            - generic [ref=e97]: "| return null;"
+            - generic [ref=e98]: "87"
+            - generic [ref=e99]: "| } `---- Caused by: Syntax Error"
+        - contentinfo [ref=e100]:
+          - paragraph [ref=e101]:
+            - generic [ref=e102]: This error occurred during the build process and can only be dismissed by fixing the error.
+```

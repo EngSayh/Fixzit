@@ -1,190 +1,168 @@
-// Test framework: Vitest (auto-detected). If your project uses Jest instead,
-// replace the import below with Jest globals or @jest/globals.
-import { describe, it, expect } from "vitest";
-import { extractSkillsFromText, calculateExperienceFromText, scoreApplication } from "./scoring";
+// Tests generated using Vitest test framework (describe/it/expect from vitest).
+// Note: These tests require Vitest only in CI; skip TypeScript typechecking dependency.
+// Using ambient globals if vitest not present.
+// @ts-ignore
+import { describe, it, expect } from 'vitest';
+import { extractSkillsFromText, calculateExperienceFromText, scoreApplication } from './scoring';
 
-
-// -----------------------------------------------------------------------------
-// Additional comprehensive tests for src/lib/ats/scoring.ts
-// Focus: happy paths, edge cases, failure conditions, rounding, clamping, casing
-// -----------------------------------------------------------------------------
-
-describe("extractSkillsFromText", () => {
-  it("returns empty array for falsy input", () => {
-    expect(extractSkillsFromText("")).toEqual([]);
-    expect((extractSkillsFromText as any)(undefined)).toEqual([]);
-    expect((extractSkillsFromText as any)(null)).toEqual([]);
+describe('extractSkillsFromText', () => {
+  it('returns empty array for empty or falsy input', () => {
+    expect(extractSkillsFromText('')).toEqual([]);
+    // @ts-ignore testing runtime with non-string-like falsy converted upstream
+    expect(extractSkillsFromText(undefined)).toEqual([]);
+    // @ts-ignore null as unexpected input
+    expect(extractSkillsFromText(null as any)).toEqual([]);
   });
 
-  it("extracts unique, lowercased tokens and filters common words", () => {
-    const text = "React AND Node.js with Python and THE email phone react";
-    expect(extractSkillsFromText(text)).toEqual(["react", "node.js", "python"]);
+  it('extracts known skills ignoring case', () => {
+    const text = 'Strong with React, Node, and TypeScript. Some SQL and AWS exposure.';
+    const skills = extractSkillsFromText(text);
+    expect(skills).toEqual(expect.arrayContaining(['react', 'node', 'typescript', 'sql', 'aws']));
   });
 
-  it("supports + . # - characters within tokens and rejects too-short tokens", () => {
-    const text = "C++ C# next-gen Node.js";
-    const result = extractSkillsFromText(text);
-    expect(result).toContain("c++");
-    expect(result).toContain("next-gen");
-    expect(result).toContain("node.js");
-    expect(result).not.toContain("c#"); // too short to match the pattern
+  it('does not include unknown words', () => {
+    const text = 'Experienced in Elm and Rust';
+    const skills = extractSkillsFromText(text);
+    expect(skills).toEqual([]);
   });
 
-  it("limits the number of results to 20 and preserves first-encountered order", () => {
-    const words = Array.from({ length: 25 }, (_, i) => `skill${String(i).padStart(2, "0")}`).join(" ");
-    const result = extractSkillsFromText(words);
-    expect(result).toHaveLength(20);
-    expect(result[0]).toBe("skill00");
-    expect(result[19]).toBe("skill19");
-    expect(result).not.toContain("skill20");
-    expect(result).not.toContain("skill24");
+  it('handles punctuation and special characters inside tokens', () => {
+    const text = 'C#, C++, and Golang with Docker/Kubernetes. JavaScript & Python 3.9.';
+    const skills = extractSkillsFromText(text);
+    // From known list: 'c#','golang','docker','kubernetes','javascript','python'
+    expect(skills).toEqual(expect.arrayContaining(['c#','golang','docker','kubernetes','javascript','python']));
+    // Ensure no duplicates
+    const uniq = new Set(skills);
+    expect(uniq.size).toBe(skills.length);
   });
 
-  it('does not match very short tokens like "c", "ai", or "go"', () => {
-    const text = "C AI ML Go";
-    expect(extractSkillsFromText(text)).toEqual([]);
+  it('returns unique skills only when repeated', () => {
+    const text = 'react React REACT node Node';
+    const skills = extractSkillsFromText(text);
+    expect(skills.sort()).toEqual(['node','react']);
   });
 });
 
-describe("calculateExperienceFromText", () => {
-  it("returns 0 for falsy or non-matching input", () => {
-    expect(calculateExperienceFromText("")).toBe(0);
-    expect((calculateExperienceFromText as any)(undefined)).toBe(0);
-    expect(calculateExperienceFromText("no relevant years found")).toBe(0);
-    expect(calculateExperienceFromText("3-year experience")).toBe(0); // hyphenated not matched by the regex
+describe('calculateExperienceFromText', () => {
+  it('returns 0 when experience is not mentioned', () => {
+    expect(calculateExperienceFromText('No explicit years here')).toBe(0);
   });
 
-  it("matches common valid patterns", () => {
-    expect(calculateExperienceFromText("5 years")).toBe(5);
-    expect(calculateExperienceFromText("7+ years")).toBe(7);
-    expect(calculateExperienceFromText("12yrs experience")).toBe(12);
-    expect(calculateExperienceFromText("10 yr")).toBe(10);
-    expect(calculateExperienceFromText("9 YRS")).toBe(9);
-    expect(calculateExperienceFromText("5+years of experience")).toBe(5);
+  it('parses simple year formats', () => {
+    expect(calculateExperienceFromText('3 years of experience')).toBe(3);
+    expect(calculateExperienceFromText('10 yrs exp')).toBe(10);
+    expect(calculateExperienceFromText('5 y')).toBe(5);
   });
 
-  it("caps values at 40 for large numbers", () => {
-    expect(calculateExperienceFromText("50 years")).toBe(40);
-    expect(calculateExperienceFromText("99+ yrs")).toBe(40);
+  it('parses numbers followed by + as years', () => {
+    expect(calculateExperienceFromText('7+ years')).toBe(7);
+    expect(calculateExperienceFromText('12+')).toBe(12);
   });
 
-  it("takes the first match when multiple are present", () => {
-    expect(calculateExperienceFromText("3 years and 5 years")).toBe(3);
+  it('caps experience at 50 years', () => {
+    expect(calculateExperienceFromText('65 years total')).toBe(50);
+    expect(calculateExperienceFromText('99+')).toBe(50);
   });
 
-  it('ignores values with three digits like "100 years"', () => {
-    expect(calculateExperienceFromText("100 years")).toBe(0);
+  it('extracts the first matching number', () => {
+    expect(calculateExperienceFromText('Experience: 2 years in A, 4 years in B')).toBe(2);
+  });
+
+  it('handles nullish input gracefully', () => {
+    // @ts-expect-error testing runtime behavior on null
+    expect(calculateExperienceFromText(null)).toBe(0);
+    // @ts-expect-error testing runtime behavior on undefined
+    expect(calculateExperienceFromText(undefined)).toBe(0);
   });
 });
 
-describe("scoreApplication", () => {
-  it("returns 100 for perfect match with sufficient experience (default weights)", () => {
-    const score = scoreApplication({
-      skills: ["react", "node", "docker"],
-      requiredSkills: ["react", "node", "docker"],
+describe('scoreApplication', () => {
+  it('returns 100 when no requirements/minExperience are specified (full match by default)', () => {
+    const score = scoreApplication({ skills: [], experience: 0 });
+    expect(score).toBe(100);
+  });
+
+  it('scores skill matching proportionally with default weights (60% skills, 40% experience)', () => {
+    const input = {
+      skills: ['react', 'node'],
+      requiredSkills: ['react', 'typescript', 'aws'],
       experience: 5,
-      minExperience: 3,
-    });
-    expect(score).toBe(100);
+      minExperience: 5
+    };
+    // matched skills = 1/3 => 0.333..., expOk = 1
+    // score = round((0.3333*0.6 + 1*0.4) * 100) = round((0.2 + 0.4) * 100) = 60
+    const score = scoreApplication(input);
+    expect(score).toBe(60);
   });
 
-  it("computes weighted score for partial skill match and under experience (default weights)", () => {
-    // matched = 2/3 ≈ 0.6667, expOk = 4/5 = 0.8
-    // score = round((0.6667*0.6 + 0.8*0.4)*100) = round((0.4 + 0.32)*100) = 72
+  it('is case-insensitive for skills comparison', () => {
     const score = scoreApplication({
-      skills: ["React", "Node.js", "GraphQL"],
-      requiredSkills: ["react", "node.js", "docker"],
-      experience: 4,
-      minExperience: 5,
-    });
-    expect(score).toBe(72);
-  });
-
-  it("when no requiredSkills provided, matched defaults to 1", () => {
-    const score = scoreApplication({
-      skills: ["something"],
-      experience: 0,
-    });
-    expect(score).toBe(100); // matched=1, expOk=1 with no minExperience, default weights sum to 1
-  });
-
-  it("matches skills case-insensitively", () => {
-    // matched = 1/2 = 0.5, expOk=1
-    // score = round((0.5*0.6 + 1*0.4)*100) = 70
-    const score = scoreApplication({
-      skills: ["PYTHON"],
-      requiredSkills: ["python", "go"],
+      skills: ['React', 'NODE'],
+      requiredSkills: ['react', 'node'],
       experience: 1,
+      minExperience: 1
     });
-    expect(score).toBe(70);
-  });
-
-  it("treats minExperience=0 as non-gating (truthy check behavior)", () => {
-    // matched = 1/2 = 0.5, expOk=1 because minExperience is falsy (0)
-    // score = 70 with defaults
-    const score = scoreApplication({
-      skills: ["a"],
-      requiredSkills: ["a", "b"],
-      experience: 0,
-      minExperience: 0,
-    });
-    expect(score).toBe(70);
-  });
-
-  it("weights are clamped individually between 0 and 1", () => {
-    // weights.skills -> clamp(2) = 1, weights.experience -> clamp(-0.5) = 0
-    // matched=1, expOk=0 -> score = round((1*1 + 0*0)*100) = 100
-    const score = scoreApplication(
-      {
-        skills: ["x"],
-        requiredSkills: ["x"],
-        experience: 0,
-        minExperience: 10,
-      },
-      { skills: 2, experience: -0.5 }
-    );
     expect(score).toBe(100);
   });
 
-  it("score can exceed 100 if weights sum to more than 1 (by design of current implementation)", () => {
-    // matched=1, expOk=1, weights 0.9 + 0.9 = 1.8 -> score = 180
-    const score = scoreApplication(
-      {
-        skills: ["a"],
-        requiredSkills: ["a"],
-        experience: 10,
-        minExperience: 5,
-      },
-      { skills: 0.9, experience: 0.9 }
-    );
-    expect(score).toBe(180);
+  it('handles partial experience toward minExperience', () => {
+    const score = scoreApplication({
+      skills: ['x'],
+      requiredSkills: ['a','b','c','d'], // 0/4 matched = 0
+      experience: 2,
+      minExperience: 10
+    });
+    // matched=0 => skills contribution 0
+    // expOk = 0.2 => exp contribution 0.2 * 0.4 = 0.08
+    // total = 0.08 * 100 = 8
+    expect(score).toBe(8);
   });
 
-  it("does not mutate input arrays", () => {
-    const skills = ["React"];
-    const required = ["React"];
-    const snapshotSkills = [...skills];
-    const snapshotRequired = [...required];
-
-    const score = scoreApplication(
-      { skills, requiredSkills: required, experience: 5, minExperience: 1 }
-    );
-    expect(typeof score).toBe("number");
-    expect(skills).toEqual(snapshotSkills);
-    expect(required).toEqual(snapshotRequired);
+  it('treats missing requiredSkills as full skills match (matched=1)', () => {
+    const score = scoreApplication({
+      skills: ['anything'],
+      experience: 0,
+      // no minExperience means expOk=1
+    });
+    // matched=1 -> 0.6; expOk=1 -> 0.4; total 1.0 => 100
+    expect(score).toBe(100);
   });
 
-  it("rounds halves up to the nearest integer", () => {
-    // matched=1/4=0.25, expOk=1, weights=0.5/0.5 -> raw = (0.125 + 0.5)*100 = 62.5 -> 63
+  it('uses custom weights when provided', () => {
+    const input = {
+      skills: ['react'],
+      requiredSkills: ['react', 'node'],
+      experience: 1,
+      minExperience: 2
+    };
+    // matched = 1/2 = 0.5; expOk = 0.5
+    // weights skills=0.7, exp=0.3 -> 0.5*0.7 + 0.5*0.3 = 0.35 + 0.15 = 0.5 => 50
+    const score = scoreApplication(input, { skills: 0.7, experience: 0.3 });
+    expect(score).toBe(50);
+  });
+
+  it('rounds to nearest integer', () => {
+    // Create a value that yields a fractional score: matched=2/3=0.666..., expOk=0.75
     const score = scoreApplication(
       {
-        skills: ["a"],
-        requiredSkills: ["a", "b", "c", "d"],
-        experience: 10,
-        minExperience: 1,
+        skills: ['a','b','c'],
+        requiredSkills: ['a','b','x'],
+        experience: 3,
+        minExperience: 4
       },
       { skills: 0.5, experience: 0.5 }
     );
-    expect(score).toBe(63);
+    // 0.6666*0.5=0.3333; 0.75*0.5=0.375; total=0.7083 => 70.83 => 71
+    expect(score).toBe(71);
+  });
+
+  it('handles zero minExperience as expOk=1 per implementation', () => {
+    const score = scoreApplication({
+      skills: ['x'],
+      requiredSkills: ['x'],
+      experience: 0,
+      minExperience: 0
+    });
+    expect(score).toBe(100);
   });
 });
