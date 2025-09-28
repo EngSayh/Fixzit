@@ -6,10 +6,8 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
-// Try common import paths. Uncomment the correct one if your project uses path aliases.
-// import SupportPopup from "@/components/SupportPopup";
-// import SupportPopup from "components/SupportPopup";
-import SupportPopup from "../../../components/SupportPopup"; // Fallback guess; adjust as needed
+// Using path mapping for cleaner imports
+import SupportPopup from "@/src/components/SupportPopup";
 
 // Utilities for jsdom environment
 const origAlert = window.alert;
