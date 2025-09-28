@@ -11,8 +11,8 @@ async function tryRealMongo() {
     console.log(pc.gray(`DB name: ${stats.db} | Collections: ${stats.collections} | Objects: ${stats.objects}`));
     const col = db.collection('qa_verification_artifacts');
     const token = { kind:'fixzit-qa', ts: new Date(), key:'db-reachable', v:1 };
-    await col.insertOne(token);
-    const got = await col.findOne({ key:'db-reachable' });
+    await col.updateOne({ key: token.key }, { $set: token }, { upsert: true });
+    const got = await col.findOne({ key: token.key });
     if(!got) throw new Error('DB write/read failed');
     console.log(pc.green('✔ Real MongoDB reachable; write/read OK.'));
     await db.collection('work_orders').createIndex({ org_id: 1 });

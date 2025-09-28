@@ -61,11 +61,13 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
     };
   }, [open]);
 
-  // Refocus trigger when menu closes by any path
+  // Refocus trigger only when transitioning from open -> closed
+  const wasOpenRef = useRef(open);
   useEffect(() => {
-    if (!open) {
+    if (wasOpenRef.current && !open) {
       queueMicrotask(() => buttonRef.current?.focus());
     }
+    wasOpenRef.current = open;
   }, [open]);
 
   // Initialize the active option when opening or when the filter changes
