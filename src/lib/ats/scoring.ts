@@ -122,7 +122,7 @@ export function calculateExperienceFromText(text: string): number {
   const patterns = [
     /(\d{1,2})\s*\+?\s*(?:years|yrs|y)\s+of\s+experience/gi,
     /(\d{1,2})\s*\+?\s*(?:years|yrs|y)/gi,
-    /experience\s*[:\-]?\s*(\d{1,2})/gi
+    /experience\s*[:-]?\s*(\d{1,2})/gi
   ];
 
   for (const pattern of patterns) {
@@ -137,3 +137,5 @@ export function calculateExperienceFromText(text: string): number {
 
   return 0;
 }
+
+

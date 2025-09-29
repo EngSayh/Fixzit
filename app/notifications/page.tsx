@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Bell, Check, CheckCheck, Trash2, Filter, Search, MoreVertical } from 'lucide-react';
 import useSWR from 'swr';
 
@@ -23,7 +23,11 @@ export default function NotificationsPage() {
 
   // Fetch notifications from API
   const { data, mutate, isLoading } = useSWR('/api/notifications', fetcher);
-  const notifications = data?.items || [];
+  const notificationItems = data?.items;
+
+  const notifications = useMemo(() => {
+    return Array.isArray(notificationItems) ? notificationItems : [];
+  }, [notificationItems]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -55,32 +59,34 @@ export default function NotificationsPage() {
     }
   };
 
-  const filteredNotifications = notifications.filter((notif: any) => {
-    const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
-                         notif.message.toLowerCase().includes(search.toLowerCase());
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notif: any) => {
+      const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
+                           notif.message.toLowerCase().includes(search.toLowerCase());
 
-    // Apply tab filtering
-    let matchesTab = true;
-    switch (selectedTab) {
-      case 'unread':
-        matchesTab = !notif.read;
-        break;
-      case 'urgent':
-        matchesTab = notif.priority === 'high';
-        break;
-      case 'all':
-      default:
-        matchesTab = true;
-        break;
-    }
+      // Apply tab filtering
+      let matchesTab = true;
+      switch (selectedTab) {
+        case 'unread':
+          matchesTab = !notif.read;
+          break;
+        case 'urgent':
+          matchesTab = notif.priority === 'high';
+          break;
+        case 'all':
+        default:
+          matchesTab = true;
+          break;
+      }
 
-    // Apply category/priority filtering
-    const matchesFilter = filter === 'all' || notif.category === filter ||
-                         (filter === 'unread' && !notif.read) ||
-                         (filter === 'high' && notif.priority === 'high');
+      // Apply category/priority filtering
+      const matchesFilter = filter === 'all' || notif.category === filter ||
+                           (filter === 'unread' && !notif.read) ||
+                           (filter === 'high' && notif.priority === 'high');
 
-    return matchesSearch && matchesTab && matchesFilter;
-  });
+      return matchesSearch && matchesTab && matchesFilter;
+    });
+  }, [notifications, search, selectedTab, filter]);
 
   // Handle select all toggle
   const handleSelectAll = () => {
@@ -104,8 +110,11 @@ export default function NotificationsPage() {
     setSelectAll(newSelected.size === filteredNotifications.length);
   };
 
-  const unreadCount = notifications.filter((n: any) => !n.read).length;
-  const urgentCount = notifications.filter((n: any) => n.priority === 'high').length;
+  const unreadCount = useMemo(() => notifications.filter((n: any) => !n.read).length, [notifications]);
+  const urgentCount = useMemo(
+    () => notifications.filter((n: any) => n.priority === 'high').length,
+    [notifications]
+  );
 
   // Calculate tab counts considering current filter
   const tabCounts = useMemo(() => {
@@ -460,7 +469,7 @@ export default function NotificationsPage() {
             <div className="text-center py-8">
               <div className="text-gray-400 mb-2">📭</div>
               <p className="text-gray-600">No notifications found</p>
-              <p className="text-sm text-gray-500">You're all caught up!</p>
+              <p className="text-sm text-gray-500">You&apos;re all caught up!</p>
             </div>
           ) : (
             filteredNotifications.map((notif: any) => (

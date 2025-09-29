@@ -1,6 +1,6 @@
-'use client';
+'use client&apos;;
 
-import SystemVerifier from '@/src/components/SystemVerifier';
+import SystemVerifier from &apos;@/src/components/SystemVerifier&apos;;
 
 export default function SystemPage() {
   return (
