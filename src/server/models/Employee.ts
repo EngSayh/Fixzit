@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
-import { MockModel } from '@/src/lib/mockDb';
 
 const EmployeeSchema = new Schema({
   orgId: { type: String, required: true, index: true },
@@ -23,12 +22,4 @@ EmployeeSchema.index({ orgId: 1, 'personal.email': 1 }, { unique: true });
 
 export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
 
-class EmployeeMockModel extends MockModel {
-  constructor() {
-    super('employees');
-  }
-}
-
-export const Employee = isMockDB
-  ? new EmployeeMockModel() as any
-  : (models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema));
+export const Employee = models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema);
