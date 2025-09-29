@@ -204,7 +204,14 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     // Also auto-report an incident so Support gets a ticket without user action
     try {
       const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('x-user') : null;
-      const user = userStr ? JSON.parse(userStr) : null;
+      let user = null;
+      if (userStr) {
+        try {
+          user = JSON.parse(userStr);
+        } catch (e) {
+          user = null;
+        }
+      }
       const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
       const safeUser = user ? { userId: user.id, tenant: user.tenantId } : undefined;
       const payload = {
