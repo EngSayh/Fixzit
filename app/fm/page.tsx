@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useMemo, useEffect } from &apos;react&apos;;
-import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
-import { useUnsavedChanges, UnsavedChangesWarning, SaveConfirmation } from &apos;@/src/hooks/useUnsavedChanges&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/src/components/ui/tabs&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
+import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useUnsavedChanges, UnsavedChangesWarning, SaveConfirmation } from '@/src/hooks/useUnsavedChanges';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Input } from '@/src/components/ui/input';
+import { Button } from '@/src/components/ui/button';
+import { Badge } from '@/src/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 import {
   Search, Plus, Filter, Download, Eye, Edit, Trash2,
   Star, Phone, Mail, MapPin, Calendar, DollarSign
-} from &apos;lucide-react&apos;;
+} from 'lucide-react';
 
 
 interface Vendor {
@@ -20,7 +20,7 @@ interface Vendor {
   name: string;
   category: string;
   rating: string;
-  status: &apos;Active&apos; | &apos;Pending&apos; | &apos;Inactive&apos;;
+  status: 'Active' | 'Pending' | 'Inactive';
   contact: string;
   email: string;
   location: string;
@@ -33,7 +33,7 @@ interface RFQ {
   title: string;
   category: string;
   dueDate: string;
-  status: &apos;Open&apos; | &apos;Draft&apos; | &apos;Closed&apos; | &apos;Awarded&apos;;
+  status: 'Open' | 'Draft' | 'Closed' | 'Awarded';
   budget: string;
   description: string;
   bids: number;
@@ -44,15 +44,108 @@ interface PurchaseOrder {
   vendor: string;
   total: string;
   date: string;
-  status: &apos;Issued&apos; | &apos;Received&apos; | &apos;Cancelled&apos; | &apos;Pending&apos;;
+  status: 'Issued' | 'Received' | 'Cancelled' | 'Pending';
   items: string[];
   deliveryDate: string;
 }
 
+const VENDORS: Vendor[] = [
+  {
+    id: 'V001',
+    name: 'CoolAir Co.',
+    category: 'AC Repair',
+    rating: '4.7',
+    status: 'Active',
+    contact: '+966 50 123 4567',
+    email: 'info@coolair.com',
+    location: 'Riyadh',
+    services: ['AC Installation', 'AC Maintenance', 'AC Repair'],
+    responseTime: '< 2 hours'
+  },
+  {
+    id: 'V002',
+    name: 'Spark Electric',
+    category: 'Electrical',
+    rating: '4.4',
+    status: 'Active',
+    contact: '+966 50 987 6543',
+    email: 'contact@sparkelectric.com',
+    location: 'Jeddah',
+    services: ['Electrical Installation', 'Maintenance', 'Emergency Repairs'],
+    responseTime: '< 4 hours'
+  },
+  {
+    id: 'V003',
+    name: 'AquaFlow',
+    category: 'Plumbing',
+    rating: '4.1',
+    status: 'Pending',
+    contact: '+966 50 555 0123',
+    email: 'service@aquaflow.com',
+    location: 'Dammam',
+    services: ['Plumbing Installation', 'Pipe Repair', 'Drainage'],
+    responseTime: '< 6 hours'
+  }
+];
+
+const RFQS: RFQ[] = [
+  {
+    id: 'RFQ-1024',
+    title: 'Annual AC Maintenance Contract',
+    category: 'AC Repair',
+    dueDate: '2025-10-01',
+    status: 'Open',
+    budget: 'SAR 50,000',
+    description: 'Annual maintenance contract for 50 AC units across 3 buildings',
+    bids: 3
+  },
+  {
+    id: 'RFQ-1025',
+    title: 'Mall Cleaning Services',
+    category: 'Cleaning',
+    dueDate: '2025-10-10',
+    status: 'Draft',
+    budget: 'SAR 120,000',
+    description: 'Daily cleaning services for shopping mall including common areas',
+    bids: 0
+  },
+  {
+    id: 'RFQ-1026',
+    title: 'Office Renovation',
+    category: 'Construction',
+    dueDate: '2025-09-30',
+    status: 'Open',
+    budget: 'SAR 200,000',
+    description: 'Complete office renovation including electrical and plumbing work',
+    bids: 5
+  }
+];
+
+const PURCHASE_ORDERS: PurchaseOrder[] = [
+  {
+    id: 'PO-8812',
+    vendor: 'CoolAir Co.',
+    total: '24,000',
+    date: '2025-09-12',
+    status: 'Issued',
+    items: ['AC Maintenance - Tower A', 'Filter Replacement x 10'],
+    deliveryDate: '2025-09-20'
+  },
+  {
+    id: 'PO-8813',
+    vendor: 'Spark Electric',
+    total: '15,500',
+    date: '2025-09-10',
+    status: 'Received',
+    items: ['Electrical Inspection', 'Outlet Installation x 5'],
+    deliveryDate: '2025-09-15'
+  }
+];
+
 export default function FMPage() {
   const { t } = useTranslation();
-  const [searchTerm, setSearchTerm] = useState(&apos;');
-  const [statusFilter, setStatusFilter] = useState(&apos;all&apos;);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // Unsaved changes management
   const {
@@ -66,9 +159,9 @@ export default function FMPage() {
     handleDiscard,
     handleStay
   } = useUnsavedChanges({
-    message: t(&apos;unsaved.message&apos;, &apos;You have unsaved changes. Are you sure you want to leave without saving?&apos;),
-    saveMessage: t(&apos;unsaved.saved&apos;, &apos;Your changes have been saved successfully.&apos;),
-    cancelMessage: t(&apos;unsaved.cancelled&apos;, &apos;Changes were not saved.&apos;),
+    message: t('unsaved.message', 'You have unsaved changes. Are you sure you want to leave without saving?'),
+    saveMessage: t('unsaved.saved', 'Your changes have been saved successfully.'),
+    cancelMessage: t('unsaved.cancelled', 'Changes were not saved.'),
     onSave: async () => {
       // Simulate save operation
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -78,7 +171,7 @@ export default function FMPage() {
   // Track initial values for unsaved changes detection
   useEffect(() => {
     markClean(); // Initialize as clean
-  }, []); // Only run once on mount
+  }, [markClean]);
 
   // Handle search term changes
   const handleSearchChange = (value: string) => {
@@ -92,98 +185,9 @@ export default function FMPage() {
     markDirty(); // Mark as dirty when filter changes
   };
 
-  const vendors: Vendor[] = [
-    {
-      id: &apos;V001&apos;,
-      name: &apos;CoolAir Co.&apos;,
-      category: &apos;AC Repair&apos;,
-      rating: &apos;4.7&apos;,
-      status: &apos;Active&apos;,
-      contact: &apos;+966 50 123 4567&apos;,
-      email: &apos;info@coolair.com&apos;,
-      location: &apos;Riyadh&apos;,
-      services: [&apos;AC Installation&apos;, &apos;AC Maintenance&apos;, &apos;AC Repair&apos;],
-      responseTime: &apos;< 2 hours&apos;
-    },
-    {
-      id: &apos;V002&apos;,
-      name: &apos;Spark Electric&apos;,
-      category: &apos;Electrical&apos;,
-      rating: &apos;4.4&apos;,
-      status: &apos;Active&apos;,
-      contact: &apos;+966 50 987 6543&apos;,
-      email: &apos;contact@sparkelectric.com&apos;,
-      location: &apos;Jeddah&apos;,
-      services: [&apos;Electrical Installation&apos;, &apos;Maintenance&apos;, &apos;Emergency Repairs&apos;],
-      responseTime: &apos;< 4 hours&apos;
-    },
-    {
-      id: &apos;V003&apos;,
-      name: &apos;AquaFlow&apos;,
-      category: &apos;Plumbing&apos;,
-      rating: &apos;4.1&apos;,
-      status: &apos;Pending&apos;,
-      contact: &apos;+966 50 555 0123&apos;,
-      email: 'service@aquaflow.com&apos;,
-      location: &apos;Dammam&apos;,
-      services: [&apos;Plumbing Installation&apos;, &apos;Pipe Repair&apos;, &apos;Drainage&apos;],
-      responseTime: &apos;< 6 hours&apos;
-    }
-  ];
-
-  const rfqs: RFQ[] = [
-    {
-      id: &apos;RFQ-1024&apos;,
-      title: &apos;Annual AC Maintenance Contract&apos;,
-      category: &apos;AC Repair&apos;,
-      dueDate: &apos;2025-10-01&apos;,
-      status: &apos;Open&apos;,
-      budget: &apos;SAR 50,000&apos;,
-      description: &apos;Annual maintenance contract for 50 AC units across 3 buildings&apos;,
-      bids: 3
-    },
-    {
-      id: &apos;RFQ-1025&apos;,
-      title: &apos;Mall Cleaning Services&apos;,
-      category: &apos;Cleaning&apos;,
-      dueDate: &apos;2025-10-10&apos;,
-      status: &apos;Draft&apos;,
-      budget: &apos;SAR 120,000&apos;,
-      description: &apos;Daily cleaning services for shopping mall including common areas&apos;,
-      bids: 0
-    },
-    {
-      id: &apos;RFQ-1026&apos;,
-      title: &apos;Office Renovation&apos;,
-      category: &apos;Construction&apos;,
-      dueDate: &apos;2025-09-30&apos;,
-      status: &apos;Open&apos;,
-      budget: &apos;SAR 200,000&apos;,
-      description: &apos;Complete office renovation including electrical and plumbing work&apos;,
-      bids: 5
-    }
-  ];
-
-  const orders: PurchaseOrder[] = [
-    {
-      id: &apos;PO-8812&apos;,
-      vendor: &apos;CoolAir Co.&apos;,
-      total: &apos;24,000&apos;,
-      date: &apos;2025-09-12&apos;,
-      status: &apos;Issued&apos;,
-      items: [&apos;AC Maintenance - Tower A&apos;, &apos;Filter Replacement x 10&apos;],
-      deliveryDate: &apos;2025-09-20&apos;
-    },
-    {
-      id: &apos;PO-8813&apos;,
-      vendor: &apos;Spark Electric&apos;,
-      total: &apos;15,500&apos;,
-      date: &apos;2025-09-10&apos;,
-      status: &apos;Received&apos;,
-      items: [&apos;Electrical Inspection&apos;, &apos;Outlet Installation x 5&apos;],
-      deliveryDate: &apos;2025-09-15&apos;
-    }
-  ];
+  const vendors = VENDORS;
+  const rfqs = RFQS;
+  const orders = PURCHASE_ORDERS;
 
   // Filter data based on search and status
   const filteredVendors = useMemo(() => {
@@ -191,7 +195,7 @@ export default function FMPage() {
       const matchesSearch = vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            vendor.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            vendor.location.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === &apos;all&apos; || vendor.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus = statusFilter === 'all' || vendor.status.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [vendors, searchTerm, statusFilter]);
@@ -200,7 +204,7 @@ export default function FMPage() {
     return rfqs.filter(rfq => {
       const matchesSearch = rfq.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            rfq.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === &apos;all&apos; || rfq.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus = statusFilter === 'all' || rfq.status.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [rfqs, searchTerm, statusFilter]);
@@ -209,24 +213,24 @@ export default function FMPage() {
     return orders.filter(order => {
       const matchesSearch = order.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            order.id.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === &apos;all&apos; || order.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus = statusFilter === 'all' || order.status.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchTerm, statusFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case &apos;active&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;pending&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      case &apos;inactive&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
-      case &apos;open&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
-      case &apos;draft&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
-      case &apos;closed&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;awarded&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;issued&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
-      case &apos;received&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;cancelled&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'open': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'closed': return 'bg-red-100 text-red-800 border-red-200';
+      case 'awarded': return 'bg-green-100 text-green-800 border-green-200';
+      case 'issued': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'received': return 'bg-green-100 text-green-800 border-green-200';
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -234,8 +238,8 @@ export default function FMPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.fm&apos;, &apos;Facility Management&apos;)}</h1>
-        <p className="text-gray-600">{t('fm.description&apos;, &apos;Manage your facility operations, vendors, and procurement&apos;)}</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.fm', 'Facility Management')}</h1>
+        <p className="text-gray-600">{t('fm.description', 'Manage your facility operations, vendors, and procurement')}</p>
       </div>
 
       {/* Search and Filters */}
@@ -244,7 +248,7 @@ export default function FMPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder={t('common.search&apos;, &apos;Search...&apos;)}
+                  placeholder={t('common.search', 'Search...')}
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
@@ -257,11 +261,11 @@ export default function FMPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('common.all&apos;, &apos;All Status&apos;)}</SelectItem>
-              <SelectItem value="active">{t('status.active&apos;, &apos;Active&apos;)}</SelectItem>
-              <SelectItem value="pending">{t('status.pending&apos;, &apos;Pending&apos;)}</SelectItem>
-              <SelectItem value="open">{t('status.open&apos;, &apos;Open&apos;)}</SelectItem>
-              <SelectItem value="draft">{t('status.draft&apos;, &apos;Draft&apos;)}</SelectItem>
+              <SelectItem value="all">{t('common.all', 'All Status')}</SelectItem>
+              <SelectItem value="active">{t('status.active', 'Active')}</SelectItem>
+              <SelectItem value="pending">{t('status.pending', 'Pending')}</SelectItem>
+              <SelectItem value="open">{t('status.open', 'Open')}</SelectItem>
+              <SelectItem value="draft">{t('status.draft', 'Draft')}</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -271,11 +275,11 @@ export default function FMPage() {
             disabled={!hasUnsavedChanges}
             className="bg-green-600 text-white hover:bg-green-700"
           >
-            {t('common.save&apos;, &apos;Save&apos;)}
+            {t('common.save', 'Save')}
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
-            {t('common.export&apos;, &apos;Export&apos;)}
+            {t('common.export', 'Export')}
           </Button>
         </div>
       </div>
@@ -284,16 +288,16 @@ export default function FMPage() {
       <Tabs defaultValue="catalog">
         <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="catalog" className="flex items-center gap-2">
-            📋 {t('fm.tabs.catalog&apos;, &apos;Catalog&apos;)}
+            📋 {t('fm.tabs.catalog', 'Catalog')}
           </TabsTrigger>
           <TabsTrigger value="vendors" className="flex items-center gap-2">
-            👥 {t('fm.tabs.vendors&apos;, &apos;Vendors&apos;)}
+            👥 {t('fm.tabs.vendors', 'Vendors')}
           </TabsTrigger>
           <TabsTrigger value="rfqs" className="flex items-center gap-2">
-            📄 {t('fm.tabs.rfqs&apos;, &apos;RFQs & Bids&apos;)}
+            📄 {t('fm.tabs.rfqs', 'RFQs & Bids')}
           </TabsTrigger>
           <TabsTrigger value="orders" className="flex items-center gap-2">
-            📦 {t('fm.tabs.orders&apos;, &apos;Orders & POs&apos;)}
+            📦 {t('fm.tabs.orders', 'Orders & POs')}
           </TabsTrigger>
         </TabsList>
 
@@ -301,12 +305,12 @@ export default function FMPage() {
         <TabsContent value="catalog" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { name: &apos;AC Repair&apos;, icon: &apos;❄️&apos;, count: 12, color: &apos;bg-blue-500&apos;, key: &apos;ac&apos; },
-              { name: &apos;Plumbing&apos;, icon: &apos;🔧&apos;, count: 8, color: &apos;bg-green-500&apos;, key: &apos;plumbing&apos; },
-              { name: &apos;Cleaning&apos;, icon: &apos;🧹&apos;, count: 15, color: &apos;bg-yellow-500&apos;, key: &apos;cleaning&apos; },
-              { name: &apos;Electrical&apos;, icon: &apos;⚡', count: 10, color: &apos;bg-purple-500&apos;, key: &apos;electrical&apos; },
-              { name: &apos;Painting&apos;, icon: &apos;🎨&apos;, count: 6, color: &apos;bg-pink-500&apos;, key: &apos;painting&apos; },
-              { name: &apos;Elevators&apos;, icon: &apos;🛗&apos;, count: 4, color: &apos;bg-indigo-500&apos;, key: &apos;elevators&apos; },
+              { name: 'AC Repair', icon: '❄️', count: 12, color: 'bg-blue-500', key: 'ac' },
+              { name: 'Plumbing', icon: '🔧', count: 8, color: 'bg-green-500', key: 'plumbing' },
+              { name: 'Cleaning', icon: '🧹', count: 15, color: 'bg-yellow-500', key: 'cleaning' },
+              { name: 'Electrical', icon: '⚡', count: 10, color: 'bg-purple-500', key: 'electrical' },
+              { name: 'Painting', icon: '🎨', count: 6, color: 'bg-pink-500', key: 'painting' },
+              { name: 'Elevators', icon: '🛗', count: 4, color: 'bg-indigo-500', key: 'elevators' },
             ].map((service) => (
               <Card key={service.key} className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardContent className="p-6 text-center">
@@ -314,9 +318,9 @@ export default function FMPage() {
                     {service.icon}
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{service.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4">{service.count} {t('common.vendors&apos;, &apos;vendors available&apos;)}</p>
+                  <p className="text-gray-600 text-sm mb-4">{service.count} {t('common.vendors', 'vendors available')}</p>
                   <Button variant="outline" size="sm" className="w-full">
-                    {t('common.view&apos;, &apos;View Vendors&apos;)}
+                    {t('common.view', 'View Vendors')}
                   </Button>
                 </CardContent>
               </Card>
@@ -345,7 +349,7 @@ export default function FMPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('vendor.category&apos;, &apos;Category&apos;)}:</span>
+                          <span className="font-medium">{t('vendor.category', 'Category')}:</span>
                           {vendor.category}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -363,7 +367,7 @@ export default function FMPage() {
                       </div>
 
                       <div className="mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">{t('vendor.services&apos;, &apos;Services&apos;)}:</h4>
+                        <h4 className="font-medium text-gray-900 mb-2">{t('vendor.services', 'Services')}:</h4>
                         <div className="flex flex-wrap gap-2">
                           {vendor.services.map((service) => (
                             <Badge key={service} variant="outline">
@@ -375,21 +379,21 @@ export default function FMPage() {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('vendor.responseTime&apos;, &apos;Response Time&apos;)}:</span>
+                          <span className="font-medium">{t('vendor.responseTime', 'Response Time')}:</span>
                           {vendor.responseTime}
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4 mr-2" />
-                            {t('common.view&apos;, &apos;View&apos;)}
+                            {t('common.view', 'View')}
                           </Button>
                           <Button variant="outline" size="sm">
                             <Edit className="h-4 w-4 mr-2" />
-                            {t('common.edit&apos;, &apos;Edit&apos;)}
+                            {t('common.edit', 'Edit')}
                           </Button>
                           <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {t('common.delete&apos;, &apos;Delete&apos;)}
+                            {t('common.delete', 'Delete')}
                           </Button>
                         </div>
                       </div>
@@ -414,21 +418,21 @@ export default function FMPage() {
                         <Badge className={getStatusColor(rfq.status)}>
                           {rfq.status}
                         </Badge>
-                        <Badge variant="outline">{rfq.bids} {t('rfq.bids&apos;, &apos;bids&apos;)}</Badge>
+                        <Badge variant="outline">{rfq.bids} {t('rfq.bids', 'bids')}</Badge>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('rfq.category&apos;, &apos;Category&apos;)}:</span>
+                          <span className="font-medium">{t('rfq.category', 'Category')}:</span>
                           {rfq.category}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Calendar className="h-4 w-4" />
-                          {t('rfq.due&apos;, &apos;Due&apos;)}: {new Date(rfq.dueDate).toLocaleDateString()}
+                          {t('rfq.due', 'Due')}: {new Date(rfq.dueDate).toLocaleDateString()}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <DollarSign className="h-4 w-4" />
-                          {t('rfq.budget&apos;, &apos;Budget&apos;)}: {rfq.budget}
+                          {t('rfq.budget', 'Budget')}: {rfq.budget}
                         </div>
                       </div>
 
@@ -436,20 +440,20 @@ export default function FMPage() {
 
                       <div className="flex items-center justify-between">
                         <div className="text-sm text-gray-500">
-                          {t('rfq.id&apos;, &apos;RFQ ID&apos;)}: {rfq.id}
+                          {t('rfq.id', 'RFQ ID')}: {rfq.id}
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4 mr-2" />
-                            {t('common.view&apos;, &apos;View&apos;)}
+                            {t('common.view', 'View')}
                           </Button>
                           <Button variant="outline" size="sm">
                             <Edit className="h-4 w-4 mr-2" />
-                            {t('common.edit&apos;, &apos;Edit&apos;)}
+                            {t('common.edit', 'Edit')}
                           </Button>
                           <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {t('common.delete&apos;, &apos;Delete&apos;)}
+                            {t('common.delete', 'Delete')}
                           </Button>
                         </div>
                       </div>
@@ -470,7 +474,7 @@ export default function FMPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">{t('order.po&apos;, &apos;PO&apos;)} {order.id}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{t('order.po', 'PO')} {order.id}</h3>
                         <Badge className={getStatusColor(order.status)}>
                           {order.status}
                         </Badge>
@@ -478,21 +482,21 @@ export default function FMPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('order.vendor&apos;, &apos;Vendor&apos;)}:</span>
+                          <span className="font-medium">{t('order.vendor', 'Vendor')}:</span>
                           {order.vendor}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Calendar className="h-4 w-4" />
-                          {t('order.date&apos;, &apos;Order Date&apos;)}: {new Date(order.date).toLocaleDateString()}
+                          {t('order.date', 'Order Date')}: {new Date(order.date).toLocaleDateString()}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <DollarSign className="h-4 w-4" />
-                          {t('order.total&apos;, &apos;Total&apos;)}: SAR {order.total}
+                          {t('order.total', 'Total')}: SAR {order.total}
                         </div>
                       </div>
 
                       <div className="mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">{t('order.items&apos;, &apos;Items&apos;)}:</h4>
+                        <h4 className="font-medium text-gray-900 mb-2">{t('order.items', 'Items')}:</h4>
                         <div className="flex flex-wrap gap-2">
                           {order.items.map((item) => (
                             <Badge key={item} variant="outline">
@@ -505,20 +509,20 @@ export default function FMPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Calendar className="h-4 w-4" />
-                          {t('order.delivery&apos;, &apos;Delivery&apos;)}: {new Date(order.deliveryDate).toLocaleDateString()}
+                          {t('order.delivery', 'Delivery')}: {new Date(order.deliveryDate).toLocaleDateString()}
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4 mr-2" />
-                            {t('common.view&apos;, &apos;View&apos;)}
+                            {t('common.view', 'View')}
                           </Button>
                           <Button variant="outline" size="sm">
                             <Edit className="h-4 w-4 mr-2" />
-                            {t('common.edit&apos;, &apos;Edit&apos;)}
+                            {t('common.edit', 'Edit')}
                           </Button>
                           <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {t(&apos;common.delete&apos;, &apos;Delete&apos;)}
+                            {t('common.delete', 'Delete')}
                           </Button>
                         </div>
                       </div>
@@ -537,11 +541,11 @@ export default function FMPage() {
         onSave={handleSave}
         onDiscard={handleDiscard}
         onStay={handleStay}
-        title={t(&apos;unsaved.warningTitle&apos;, &apos;Unsaved Changes&apos;)}
-        message={t(&apos;unsaved.warningMessage&apos;, &apos;You have unsaved changes. Would you like to save them before leaving?&apos;)}
-        saveText={t(&apos;unsaved.saveChanges&apos;, &apos;Save Changes&apos;)}
-        discardText={t(&apos;unsaved.discardChanges&apos;, &apos;Discard Changes&apos;)}
-        stayText={t(&apos;unsaved.stayHere&apos;, &apos;Stay Here&apos;)}
+        title={t('unsaved.warningTitle', 'Unsaved Changes')}
+        message={t('unsaved.warningMessage', 'You have unsaved changes. Would you like to save them before leaving?')}
+        saveText={t('unsaved.saveChanges', 'Save Changes')}
+        discardText={t('unsaved.discardChanges', 'Discard Changes')}
+        stayText={t('unsaved.stayHere', 'Stay Here')}
       />
 
       {/* Save Confirmation Dialog */}
@@ -549,10 +553,10 @@ export default function FMPage() {
         isOpen={showSaveConfirm}
         onConfirm={handleSave}
         onCancel={handleStay}
-        title={t(&apos;unsaved.saveTitle&apos;, &apos;Save Changes&apos;)}
-        message={t(&apos;unsaved.saveMessage&apos;, &apos;Are you sure you want to save these changes?&apos;)}
-        confirmText={t(&apos;unsaved.save&apos;, &apos;Save&apos;)}
-        cancelText={t(&apos;unsaved.cancel&apos;, &apos;Cancel&apos;)}
+        title={t('unsaved.saveTitle', 'Save Changes')}
+        message={t('unsaved.saveMessage', 'Are you sure you want to save these changes?')}
+        confirmText={t('unsaved.save', 'Save')}
+        cancelText={t('unsaved.cancel', 'Cancel')}
       />
     </div>
   );

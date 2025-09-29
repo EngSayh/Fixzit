@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from &apos;react&apos;;
-import { Bell, Check, CheckCheck, Trash2, Filter, Search, MoreVertical } from &apos;lucide-react&apos;;
-import useSWR from 'swr&apos;;
+import React, { useMemo, useState } from 'react';
+import { Bell, Check, CheckCheck, Trash2, Filter, Search, MoreVertical } from 'lucide-react';
+import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url, {
   headers: {
@@ -15,72 +15,78 @@ const fetcher = (url: string) => fetch(url, {
 }).then(r => r.json());
 
 export default function NotificationsPage() {
-  const [selectedTab, setSelectedTab] = useState(&apos;all&apos;);
-  const [search, setSearch] = useState(&apos;');
-  const [filter, setFilter] = useState('all&apos;);
+  const [selectedTab, setSelectedTab] = useState('all');
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
   const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
 
   // Fetch notifications from API
-  const { data, mutate, isLoading } = useSWR(&apos;/api/notifications&apos;, fetcher);
-  const notifications = data?.items || [];
+  const { data, mutate, isLoading } = useSWR('/api/notifications', fetcher);
+  const notificationItems = data?.items;
+
+  const notifications = useMemo(() => {
+    return Array.isArray(notificationItems) ? notificationItems : [];
+  }, [notificationItems]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case &apos;high&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;medium&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      case &apos;low&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'high': return 'bg-red-100 text-red-800 border-red-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case &apos;work-order&apos;: return &apos;🔧&apos;;
-      case &apos;vendor&apos;: return &apos;👥&apos;;
-      case &apos;payment&apos;: return &apos;💰&apos;;
-      case &apos;maintenance&apos;: return &apos;🛠️&apos;;
-      case 'system&apos;: return &apos;⚙️&apos;;
-      default: return &apos;📢&apos;;
+      case 'work-order': return '🔧';
+      case 'vendor': return '👥';
+      case 'payment': return '💰';
+      case 'maintenance': return '🛠️';
+      case 'system': return '⚙️';
+      default: return '📢';
     }
   };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case &apos;maintenance&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
-      case &apos;vendor&apos;: return &apos;bg-purple-100 text-purple-800 border-purple-200&apos;;
-      case &apos;finance&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case 'system&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'maintenance': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'vendor': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'finance': return 'bg-green-100 text-green-800 border-green-200';
+      case 'system': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const filteredNotifications = notifications.filter((notif: any) => {
-    const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
-                         notif.message.toLowerCase().includes(search.toLowerCase());
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notif: any) => {
+      const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
+                           notif.message.toLowerCase().includes(search.toLowerCase());
 
-    // Apply tab filtering
-    let matchesTab = true;
-    switch (selectedTab) {
-      case &apos;unread&apos;:
-        matchesTab = !notif.read;
-        break;
-      case &apos;urgent&apos;:
-        matchesTab = notif.priority === &apos;high&apos;;
-        break;
-      case &apos;all&apos;:
-      default:
-        matchesTab = true;
-        break;
-    }
+      // Apply tab filtering
+      let matchesTab = true;
+      switch (selectedTab) {
+        case 'unread':
+          matchesTab = !notif.read;
+          break;
+        case 'urgent':
+          matchesTab = notif.priority === 'high';
+          break;
+        case 'all':
+        default:
+          matchesTab = true;
+          break;
+      }
 
-    // Apply category/priority filtering
-    const matchesFilter = filter === &apos;all&apos; || notif.category === filter ||
-                         (filter === &apos;unread&apos; && !notif.read) ||
-                         (filter === &apos;high&apos; && notif.priority === &apos;high&apos;);
+      // Apply category/priority filtering
+      const matchesFilter = filter === 'all' || notif.category === filter ||
+                           (filter === 'unread' && !notif.read) ||
+                           (filter === 'high' && notif.priority === 'high');
 
-    return matchesSearch && matchesTab && matchesFilter;
-  });
+      return matchesSearch && matchesTab && matchesFilter;
+    });
+  }, [notifications, search, selectedTab, filter]);
 
   // Handle select all toggle
   const handleSelectAll = () => {
@@ -104,17 +110,20 @@ export default function NotificationsPage() {
     setSelectAll(newSelected.size === filteredNotifications.length);
   };
 
-  const unreadCount = notifications.filter((n: any) => !n.read).length;
-  const urgentCount = notifications.filter((n: any) => n.priority === &apos;high&apos;).length;
+  const unreadCount = useMemo(() => notifications.filter((n: any) => !n.read).length, [notifications]);
+  const urgentCount = useMemo(
+    () => notifications.filter((n: any) => n.priority === 'high').length,
+    [notifications]
+  );
 
   // Calculate tab counts considering current filter
   const tabCounts = useMemo(() => {
     const allFiltered = notifications.filter((notif: any) => {
       const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
                            notif.message.toLowerCase().includes(search.toLowerCase());
-      const matchesFilter = filter === &apos;all&apos; || notif.category === filter ||
-                           (filter === &apos;unread&apos; && !notif.read) ||
-                           (filter === &apos;high&apos; && notif.priority === &apos;high&apos;);
+      const matchesFilter = filter === 'all' || notif.category === filter ||
+                           (filter === 'unread' && !notif.read) ||
+                           (filter === 'high' && notif.priority === 'high');
       return matchesSearch && matchesFilter;
     });
 
@@ -128,10 +137,10 @@ export default function NotificationsPage() {
   // Mark notification as read
   const markAsRead = async (id: string) => {
     await fetch(`/api/notifications/${id}`, {
-      method: &apos;PATCH&apos;,
+      method: 'PATCH',
       headers: {
-        &apos;Content-Type&apos;: &apos;application/json&apos;,
-        &apos;x-user&apos;: JSON.stringify({
+        'Content-Type': 'application/json',
+        'x-user': JSON.stringify({
           id: "u-admin-1",
           role: "FM_MANAGER",
           tenantId: "t-001"
@@ -146,18 +155,18 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     const unreadIds = notifications.filter((n: any) => !n.read).map((n: any) => n.id);
     if (unreadIds.length > 0) {
-      await fetch('/api/notifications/bulk&apos;, {
-        method: &apos;POST&apos;,
+      await fetch('/api/notifications/bulk', {
+        method: 'POST',
         headers: {
-          &apos;Content-Type&apos;: &apos;application/json&apos;,
-          &apos;x-user&apos;: JSON.stringify({
+          'Content-Type': 'application/json',
+          'x-user': JSON.stringify({
             id: "u-admin-1",
             role: "FM_MANAGER",
             tenantId: "t-001"
           })
         },
         body: JSON.stringify({
-          action: 'mark-read&apos;,
+          action: 'mark-read',
           notificationIds: unreadIds
         })
       });
@@ -169,18 +178,18 @@ export default function NotificationsPage() {
   const bulkMarkAsRead = async () => {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
-      await fetch(&apos;/api/notifications/bulk&apos;, {
-        method: &apos;POST&apos;,
+      await fetch('/api/notifications/bulk', {
+        method: 'POST',
         headers: {
-          &apos;Content-Type&apos;: &apos;application/json&apos;,
-          &apos;x-user&apos;: JSON.stringify({
+          'Content-Type': 'application/json',
+          'x-user': JSON.stringify({
             id: "u-admin-1",
             role: "FM_MANAGER",
             tenantId: "t-001"
           })
         },
         body: JSON.stringify({
-          action: &apos;mark-read&apos;,
+          action: 'mark-read',
           notificationIds: selectedIds
         })
       });
@@ -230,11 +239,11 @@ export default function NotificationsPage() {
           timestamp: notif.timestamp
         }));
 
-      const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: &apos;application/json&apos; });
+      const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement(&apos;a');
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `notifications-export-${new Date().toISOString().split(&apos;T')[0]}.json`;
+      a.download = `notifications-export-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -257,19 +266,19 @@ export default function NotificationsPage() {
 
   // Quick action handlers
   const handleEmailSettings = () => {
-    window.open('/settings?tab=notifications&apos;, &apos;_blank&apos;);
+    window.open('/settings?tab=notifications', '_blank');
   };
 
   const handlePushNotifications = () => {
-    window.open(&apos;/settings?tab=preferences&apos;, &apos;_blank&apos;);
+    window.open('/settings?tab=preferences', '_blank');
   };
 
   const handleMuteCategories = () => {
     // Toggle mute for current filter category
-    if (filter !== &apos;all&apos; && filter !== &apos;unread&apos; && filter !== &apos;high&apos;) {
+    if (filter !== 'all' && filter !== 'unread' && filter !== 'high') {
       alert(`Muted notifications for category: ${filter}`);
     } else {
-      alert(&apos;Please select a specific category first to mute it&apos;);
+      alert('Please select a specific category first to mute it');
     }
   };
 
@@ -280,19 +289,19 @@ export default function NotificationsPage() {
       unread: unreadCount,
       urgent: urgentCount,
       byCategory: {
-        maintenance: notifications.filter((n: any) => n.category === &apos;maintenance&apos;).length,
-        vendor: notifications.filter((n: any) => n.category === &apos;vendor&apos;).length,
-        finance: notifications.filter((n: any) => n.category === &apos;finance&apos;).length,
+        maintenance: notifications.filter((n: any) => n.category === 'maintenance').length,
+        vendor: notifications.filter((n: any) => n.category === 'vendor').length,
+        finance: notifications.filter((n: any) => n.category === 'finance').length,
         system: notifications.filter((n: any) => n.category === 'system').length
       },
       generatedAt: new Date().toISOString()
     };
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: &apos;application/json&apos; });
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement(&apos;a');
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `notification-report-${new Date().toISOString().split(&apos;T')[0]}.json`;
+    a.download = `notification-report-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -300,13 +309,13 @@ export default function NotificationsPage() {
   };
 
   const handleSettings = () => {
-    window.open(&apos;/settings&apos;, &apos;_blank&apos;);
+    window.open('/settings', '_blank');
   };
 
   const handleClearAll = () => {
-    if (confirm(&apos;Are you sure you want to clear all notifications?&apos;)) {
+    if (confirm('Are you sure you want to clear all notifications?')) {
       // In a real implementation, this would call a clear API
-      alert(&apos;All notifications cleared&apos;);
+      alert('All notifications cleared');
     }
   };
 
@@ -359,7 +368,7 @@ export default function NotificationsPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">High Priority</p>
               <p className="text-2xl font-bold text-orange-600">
-                {notifications.filter((n: any) => n.priority === 'high&apos;).length}
+                {notifications.filter((n: any) => n.priority === 'high').length}
               </p>
             </div>
             <div className="text-orange-400">⚠️</div>
@@ -413,31 +422,31 @@ export default function NotificationsPage() {
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mt-4">
           <button
-            onClick={() => setSelectedTab(&apos;all&apos;)}
+            onClick={() => setSelectedTab('all')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              selectedTab === 'all&apos;
-                ? &apos;border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]&apos;
-                : &apos;border-transparent text-gray-500 hover:text-gray-700&apos;
+              selectedTab === 'all'
+                ? 'border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             All ({tabCounts.all})
           </button>
           <button
-            onClick={() => setSelectedTab(&apos;unread&apos;)}
+            onClick={() => setSelectedTab('unread')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              selectedTab === 'unread&apos;
-                ? &apos;border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]&apos;
-                : &apos;border-transparent text-gray-500 hover:text-gray-700&apos;
+              selectedTab === 'unread'
+                ? 'border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             Unread ({tabCounts.unread})
           </button>
           <button
-            onClick={() => setSelectedTab(&apos;urgent&apos;)}
+            onClick={() => setSelectedTab('urgent')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors relative ${
-              selectedTab === 'urgent&apos;
-                ? &apos;border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]&apos;
-                : &apos;border-transparent text-gray-500 hover:text-gray-700&apos;
+              selectedTab === 'urgent'
+                ? 'border-[var(--fixzit-blue)] text-[var(--fixzit-blue)]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             Urgent ({tabCounts.urgent})
@@ -467,7 +476,7 @@ export default function NotificationsPage() {
               <div
                 key={notif.id}
                 className={`p-4 rounded-lg border transition-all hover:shadow-md ${
-                  notif.read ? 'bg-white border-gray-200&apos; : &apos;bg-blue-50 border-blue-200&apos;
+                  notif.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -481,7 +490,7 @@ export default function NotificationsPage() {
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`font-medium ${notif.read ? 'text-gray-900&apos; : &apos;text-blue-900&apos;}`}>
+                        <h3 className={`font-medium ${notif.read ? 'text-gray-900' : 'text-blue-900'}`}>
                           {notif.title}
                         </h3>
                         {!notif.read && (
@@ -494,13 +503,13 @@ export default function NotificationsPage() {
                           {notif.category}
                         </span>
                       </div>
-                      <p className={`text-sm ${notif.read ? 'text-gray-600&apos; : &apos;text-blue-700&apos;}`}>
+                      <p className={`text-sm ${notif.read ? 'text-gray-600' : 'text-blue-700'}`}>
                         {notif.message}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                         <span>{new Date(notif.timestamp).toLocaleString()}</span>
                         <span>•</span>
-                        <span>{notif.read ? 'Read&apos; : &apos;Unread&apos;}</span>
+                        <span>{notif.read ? 'Read' : 'Unread'}</span>
                       </div>
                     </div>
                   </div>
@@ -533,7 +542,7 @@ export default function NotificationsPage() {
               <span className="text-sm text-gray-600">
                 {selectedNotifications.size > 0
                   ? `${selectedNotifications.size} of ${filteredNotifications.length} selected`
-                  : `${filteredNotifications.length} notification${filteredNotifications.length !== 1 ? 's' : &apos;'}`
+                  : `${filteredNotifications.length} notification${filteredNotifications.length !== 1 ? 's' : ''}`
                 }
               </span>
               {selectedNotifications.size === 0 && (

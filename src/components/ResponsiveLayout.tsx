@@ -1,8 +1,8 @@
-'use client&apos;;
+'use client';
 
-import React, { useState, useEffect } from &apos;react&apos;;
-import { useResponsive } from &apos;@/src/contexts/ResponsiveContext&apos;;
-import { Menu, X } from &apos;lucide-react&apos;;
+import React, { useState, useEffect } from 'react';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import { Menu, X } from 'lucide-react';
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
@@ -19,9 +19,9 @@ export default function ResponsiveLayout({
   showSidebarToggle = true,
   header,
   footer,
-  className = &apos;'
+  className = ''
 }: ResponsiveLayoutProps) {
-  const { screenInfo, responsiveClasses } = useResponsive();
+  const { screenInfo, responsiveClasses } = useResponsiveLayout();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar on mobile when screen size changes to desktop
@@ -56,8 +56,8 @@ export default function ResponsiveLayout({
         {/* Sidebar */}
         {sidebar && (
           <div className={`
-            ${showSidebar ? &apos;translate-x-0&apos; : &apos;-translate-x-full&apos;}
-            ${screenInfo.isMobile || screenInfo.isTablet ? &apos;fixed inset-y-0 left-0 z-40&apos; : &apos;relative&apos;}
+            ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
+            ${screenInfo.isMobile || screenInfo.isTablet ? 'fixed inset-y-0 left-0 z-40' : 'relative'}
             transition-transform duration-300 ease-in-out
           `}>
             {sidebar}
@@ -75,8 +75,8 @@ export default function ResponsiveLayout({
         {/* Main content */}
         <main className={`
           flex-1 transition-all duration-300
-          ${sidebar && (screenInfo.isMobile || screenInfo.isTablet) && sidebarOpen ? &apos;ml-0&apos; : &apos;'}
-          ${sidebar && screenInfo.isDesktop ? &apos;ml-0&apos; : &apos;'}
+          ${sidebar && (screenInfo.isMobile || screenInfo.isTablet) && sidebarOpen ? 'ml-0' : ''}
+          ${sidebar && screenInfo.isDesktop ? 'ml-0' : ''}
         `}>
           <div className={`${responsiveClasses.container} py-6`}>
             {children}
@@ -98,25 +98,25 @@ export default function ResponsiveLayout({
 interface ResponsiveCardProps {
   children: React.ReactNode;
   className?: string;
-  padding?: &apos;none&apos; | 'small&apos; | &apos;medium&apos; | &apos;large&apos;;
+  padding?: 'none' | 'small' | 'medium' | 'large';
   hover?: boolean;
 }
 
 export function ResponsiveCard({
   children,
-  className = &apos;',
-  padding = &apos;medium&apos;,
+  className = '',
+  padding = 'medium',
   hover = true
 }: ResponsiveCardProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getPaddingClass = () => {
     switch (padding) {
-      case &apos;none&apos;: return &apos;';
-      case 'small&apos;: return screenInfo.isMobile ? &apos;p-3&apos; : &apos;p-4&apos;;
-      case &apos;medium&apos;: return screenInfo.isMobile ? &apos;p-4&apos; : &apos;p-6&apos;;
-      case &apos;large&apos;: return screenInfo.isMobile ? &apos;p-5&apos; : &apos;p-8&apos;;
-      default: return screenInfo.isMobile ? &apos;p-4&apos; : &apos;p-6&apos;;
+      case 'none': return '';
+      case 'small': return screenInfo.isMobile ? 'p-3' : 'p-4';
+      case 'medium': return screenInfo.isMobile ? 'p-4' : 'p-6';
+      case 'large': return screenInfo.isMobile ? 'p-5' : 'p-8';
+      default: return screenInfo.isMobile ? 'p-4' : 'p-6';
     }
   };
 
@@ -124,7 +124,7 @@ export function ResponsiveCard({
     <div className={`
       bg-white rounded-lg shadow-md border border-gray-200
       ${getPaddingClass()}
-      ${hover ? &apos;hover:shadow-lg transition-shadow duration-200&apos; : &apos;'}
+      ${hover ? 'hover:shadow-lg transition-shadow duration-200' : ''}
       ${className}
     `}>
       {children}
@@ -136,8 +136,8 @@ export function ResponsiveCard({
 interface ResponsiveButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: &apos;primary&apos; | 'secondary&apos; | &apos;outline&apos; | &apos;ghost&apos;;
-  size?: 'small&apos; | &apos;medium&apos; | &apos;large&apos;;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   className?: string;
 }
@@ -145,38 +145,38 @@ interface ResponsiveButtonProps {
 export function ResponsiveButton({
   children,
   onClick,
-  variant = &apos;primary&apos;,
-  size = &apos;medium&apos;,
+  variant = 'primary',
+  size = 'medium',
   disabled = false,
-  className = &apos;'
+  className = ''
 }: ResponsiveButtonProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getVariantClass = () => {
     switch (variant) {
-      case &apos;primary&apos;:
-        return &apos;bg-[#0061A8] hover:bg-[#005a9e] text-white&apos;;
-      case 'secondary&apos;:
-        return &apos;bg-[#00A859] hover:bg-[#009147] text-white&apos;;
-      case &apos;outline&apos;:
-        return &apos;border-2 border-[#0061A8] text-[#0061A8] hover:bg-[#0061A8] hover:text-white&apos;;
-      case &apos;ghost&apos;:
-        return &apos;text-[#0061A8] hover:bg-[#0061A8] hover:text-white&apos;;
+      case 'primary':
+        return 'bg-[#0061A8] hover:bg-[#005a9e] text-white';
+      case 'secondary':
+        return 'bg-[#00A859] hover:bg-[#009147] text-white';
+      case 'outline':
+        return 'border-2 border-[#0061A8] text-[#0061A8] hover:bg-[#0061A8] hover:text-white';
+      case 'ghost':
+        return 'text-[#0061A8] hover:bg-[#0061A8] hover:text-white';
       default:
-        return &apos;bg-[#0061A8] hover:bg-[#005a9e] text-white&apos;;
+        return 'bg-[#0061A8] hover:bg-[#005a9e] text-white';
     }
   };
 
   const getSizeClass = () => {
     switch (size) {
-      case 'small&apos;:
-        return screenInfo.isMobile ? &apos;px-3 py-1.5 text-sm&apos; : &apos;px-4 py-2 text-sm&apos;;
-      case &apos;medium&apos;:
-        return screenInfo.isMobile ? &apos;px-4 py-2 text-sm&apos; : &apos;px-6 py-3 text-base&apos;;
-      case &apos;large&apos;:
-        return screenInfo.isMobile ? &apos;px-5 py-3 text-base&apos; : &apos;px-8 py-4 text-lg&apos;;
+      case 'small':
+        return screenInfo.isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2 text-sm';
+      case 'medium':
+        return screenInfo.isMobile ? 'px-4 py-2 text-sm' : 'px-6 py-3 text-base';
+      case 'large':
+        return screenInfo.isMobile ? 'px-5 py-3 text-base' : 'px-8 py-4 text-lg';
       default:
-        return screenInfo.isMobile ? &apos;px-4 py-2 text-sm&apos; : &apos;px-6 py-3 text-base&apos;;
+        return screenInfo.isMobile ? 'px-4 py-2 text-sm' : 'px-6 py-3 text-base';
     }
   };
 
@@ -188,7 +188,7 @@ export function ResponsiveButton({
         rounded-md font-medium transition-all duration-200
         ${getVariantClass()}
         ${getSizeClass()}
-        ${disabled ? &apos;opacity-50 cursor-not-allowed&apos; : &apos;cursor-pointer&apos;}
+        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         ${className}
       `}
     >
