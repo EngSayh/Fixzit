@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
@@ -8,12 +8,9 @@ import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } 
 import { promises as fs } from 'fs';
 import path from 'path';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await db;
+    await connectDb();
     
     const formData = await req.formData();
     
@@ -157,7 +154,7 @@ export async function POST(
       requiredSkills: job.skills,
       experience: yearsOfExperience,
       minExperience: job.screeningRules?.minYears
-    }, atsSettings?.scoringWeights || undefined);
+    }, atsSettings.scoringWeights || undefined);
     
     // Check knockout rules
     const knockoutCheck = atsSettings.shouldAutoReject({

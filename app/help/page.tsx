@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText, Headphones } from 'lucide-react';
-import HelpWidget from '@/src/components/HelpWidget';
 
 interface Tutorial {
   id: string;
@@ -24,6 +24,8 @@ interface HelpArticle {
   readTime: string;
   lastUpdated: string;
 }
+
+const AIChat = dynamic(() => import('@/src/components/AIChat'), { ssr: false });
 
 export default function HelpHome() {
   const [showAIChat, setShowAIChat] = useState(false);
@@ -347,40 +349,7 @@ export default function HelpHome() {
       </section>
 
       {/* AI Chat Modal */}
-      {showAIChat && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold">Fixzit AI Assistant</h3>
-                    <p className="text-sm text-gray-500">Ask me anything about Fixzit!</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAIChat(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 p-6">
-              <div className="text-center py-12">
-                <Bot className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                <h4 className="text-xl font-semibold mb-2">AI Assistant Coming Soon!</h4>
-                <p className="text-gray-600">
-                  Our intelligent assistant will help you with questions about Fixzit features and provide personalized guidance.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
 
       {/* Support Ticket Modal */}
       {showSupportTicket && (
@@ -458,7 +427,7 @@ export default function HelpHome() {
           </div>
         </div>
       )}
-      <HelpWidget />
+      
     </div>
   );
 }

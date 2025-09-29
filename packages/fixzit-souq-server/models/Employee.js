@@ -10,5 +10,5 @@ const EmployeeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.models.Employee || mongoose.model('Employee', EmployeeSchema);
+module.exports = mongoose.models.LegacyEmployee || mongoose.model('LegacyEmployee', EmployeeSchema);
 

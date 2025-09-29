@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectMongo } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
+import { rateLimit } from '@/src/server/security/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
-    await db;
+    // Check if ATS module is enabled
+    if (process.env.ATS_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'ATS public-post endpoint not available in this deployment' }, { status: 501 });
+    }
+
+    await connectMongo();
     const body = await req.json();
-    const platformOrg = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    // Basic rate limiting for public endpoint
+    const rl = await rateLimit(`ats:public:${req.ip ?? '0'}`, 10, 60_000);
+    if (!rl.allowed) return NextResponse.json({ success:false, error:'Rate limit' }, { status: 429 });
+    const platformOrg = process.env.PLATFORM_ORG_ID || 'fixzit-platform';
+    // TODO: validate with zod before use
     const baseSlug = generateSlug(body.title || 'job');
     let slug = baseSlug;
     let counter = 1;

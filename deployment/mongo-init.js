@@ -2,7 +2,8 @@
 // Uses environment variables provided by docker-compose
 
 // This script runs in the Mongo container context
-const adminDb = db.getSiblingDB('admin');
+// eslint-disable-next-line no-undef
+/* global db */
 
 // Create application database and user if provided
 const appDbName = 'fixzit';
