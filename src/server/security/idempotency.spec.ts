@@ -9,7 +9,7 @@ import { createHash } from 'crypto';
 // If the implementation actually resides at src/server/security/idempotency.ts, adjust the path accordingly.
 // The diff shows code under idempotency.test.ts, which appears to be implementation; to avoid conflict, we
 // import from the same file path here. If your build forbids importing .test.ts in tests, move the impl to a non-test file.
-import * as Impl from './idempotency.test';
+import * as Impl from './idempotency';
 
 const { withIdempotency, createIdempotencyKey } = Impl as unknown as {
   withIdempotency<T>(key: string, exec: () => Promise<T>, ttlMs?: number): Promise<T>;
@@ -151,7 +151,7 @@ describe('createIdempotencyKey', () => {
 
     const digest = k1.split(':')[1];
     const expected = createHash('sha256')
-      .update(Impl['stableStringify'] ? Impl['stableStringify'](payload1) : JSON.stringify({a:1,b:2})) // fallback if not exported
+      .update(JSON.stringify({a:1,b:2})) // Test canonical form expectation
       .digest('hex');
 
     // We cannot rely on private function export; just ensure digest length looks correct.

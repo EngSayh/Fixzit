@@ -67,6 +67,11 @@ export function applySecurityHeaders(
     const { origin, methods, allowedHeaders, credentials } = config.cors;
     
     if (origin === true) {
+      if (credentials) {
+        throw new Error(
+          'Invalid CORS configuration: credentials=true cannot be combined with a wildcard origin. Provide an explicit origin string or array.'
+        );
+      }
       headers.set('Access-Control-Allow-Origin', '*');
     } else if (typeof origin === 'string') {
       headers.set('Access-Control-Allow-Origin', origin);
@@ -81,6 +86,23 @@ export function applySecurityHeaders(
 
     if (allowedHeaders?.length) {
       headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
+    }
+
+    if (credentials && !(typeof origin === 'string' || Array.isArray(origin))) {
+      throw new Error(
+        'Invalid CORS configuration: credentials=true requires an explicit origin string or array.'
+      );
+    }
+
+    if (credentials) {
+      headers.set('Access-Control-Allow-Credentials', 'true');
+    }
+    }
+
+    if (credentials && !(typeof origin === 'string' || Array.isArray(origin))) {
+      throw new Error(
+        'Invalid CORS configuration: credentials=true requires an explicit origin string or array.'
+      );
     }
 
     if (credentials) {

@@ -110,14 +110,24 @@ export function AutoFixAgent() {
     return () => { undo(); window.removeEventListener('error', onError); window.removeEventListener('unhandledrejection', onRejection); };
   }, []);
 
-  // ---- NETWORK ----
+  // ---- NETWORK ---- (Fixed: Prevent fetch interceptor detaching)
   useEffect(() => {
-    if (originalFetchRef.current) return;
-    originalFetchRef.current = window.fetch.bind(window);
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    // Store original fetch only if not already stored
+    if (!originalFetchRef.current) {
+      originalFetchRef.current = window.fetch.bind(window);
+    }
+
+    // Set up interceptor with reliability checks
+    const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       try {
-        const res = await originalFetchRef.current(input, init);
-        // Only intercept if agent is active
+        // Use the stored original fetch to avoid recursion
+        const originalFetch = originalFetchRef.current;
+        if (!originalFetch) {
+          throw new Error('Original fetch reference lost');
+        }
+
+        const res = await originalFetch(input, init);
+        // Only intercept if agent is active and response is not ok
         if (active && !res.ok) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
           const url = typeof input === 'string' ? input : (input as any).url;
@@ -136,8 +146,16 @@ export function AutoFixAgent() {
         throw err;
       }
     };
-    return () => { if (originalFetchRef.current) window.fetch = originalFetchRef.current; };
-  }, [active]); // Add active dependency
+
+    window.fetch = interceptedFetch;
+
+    return () => { 
+      // Only restore if we're the current interceptor
+      if (window.fetch === interceptedFetch && originalFetchRef.current) {
+        window.fetch = originalFetchRef.current;
+      }
+    };
+  }, [active]); // Depend on active state to ensure reliability
 
   // ---- HALT–FIX–VERIFY ----
   const haltAndHeal = async (type: QaEvent['type'], msg: string) => {

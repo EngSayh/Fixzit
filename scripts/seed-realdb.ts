@@ -4,7 +4,7 @@
     $env:MONGODB_URI="mongodb://localhost:27017/fixzit"; npm run seed:realdb
 */
 
-import { db as connect } from '@/src/lib/mongo';
+import { db } from '@/src/lib/mongo';
 import { Property } from '@/src/server/models/Property';
 import { WorkOrder } from '@/src/server/models/WorkOrder';
 import { computeDueAt, computeSlaMinutes } from '@/src/lib/sla';
@@ -14,7 +14,7 @@ import { Asset } from '@/src/server/models/Asset';
 async function main() {
   const tenantId = 'demo-tenant';
   const actorId = 'seed-realdb';
-  await connect();
+  await db;
 
   // 1) Properties
   const props = [
