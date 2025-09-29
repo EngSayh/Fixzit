@@ -1,4 +1,4 @@
-'use client';
+&apos;use client&apos;;
 
 import { useState } from &apos;react&apos;;
 import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
@@ -47,7 +47,7 @@ export default function CareersPage() {
       salary: &apos;SAR 15,000 - 25,000&apos;,
       description: &apos;We are looking for an experienced Facility Manager to oversee our commercial properties across Riyadh. The ideal candidate will have 5+ years of experience in facility management and will be responsible for ensuring optimal building operations, tenant satisfaction, and regulatory compliance.&apos;,
       requirements: [
-        &apos;Bachelor\'s degree in Engineering, Business Administration, or related field',
+        &apos;Bachelor\&apos;s degree in Engineering, Business Administration, or related field&apos;,
         &apos;5+ years of experience in facility management&apos;,
         &apos;Strong knowledge of building systems and maintenance&apos;,
         &apos;Excellent leadership and communication skills&apos;,
@@ -82,7 +82,7 @@ export default function CareersPage() {
         &apos;Technical diploma or certification in electrical/mechanical systems&apos;,
         &apos;3+ years of experience in building maintenance&apos;,
         &apos;Knowledge of HVAC, electrical, and plumbing systems&apos;,
-        &apos;Valid driver\'s license',
+        &apos;Valid driver\&apos;s license&apos;,
         &apos;Basic computer skills&apos;,
         &apos;Ability to work flexible hours&apos;,
         &apos;Safety certification preferred&apos;
@@ -109,7 +109,7 @@ export default function CareersPage() {
       salary: &apos;SAR 10,000 - 15,000&apos;,
       description: &apos;We are seeking a customer-focused professional to manage tenant relationships and ensure excellent service delivery across our property portfolio. You will be the primary point of contact for tenant inquiries and will work to maintain high satisfaction levels.&apos;,
       requirements: [
-        &apos;Bachelor\'s degree in Business, Communication, or related field',
+        &apos;Bachelor\&apos;s degree in Business, Communication, or related field&apos;,
         &apos;3+ years of experience in customer service&apos;,
         &apos;Excellent communication and interpersonal skills&apos;,
         &apos;Proficiency in English and Arabic&apos;,
@@ -139,7 +139,7 @@ export default function CareersPage() {
       salary: &apos;SAR 12,000 - 18,000&apos;,
       description: &apos;Support our growing technology infrastructure by providing technical assistance to employees and maintaining our IT systems. You will troubleshoot hardware and software issues, manage network operations, and ensure system security.&apos;,
       requirements: [
-        &apos;Bachelor\'s degree in Computer Science or related field',
+        &apos;Bachelor\&apos;s degree in Computer Science or related field&apos;,
         &apos;2+ years of experience in IT support&apos;,
         &apos;Knowledge of Windows, macOS, and Linux systems&apos;,
         &apos;Experience with network administration&apos;,
@@ -169,7 +169,7 @@ export default function CareersPage() {
       salary: &apos;SAR 14,000 - 20,000&apos;,
       description: &apos;Manage financial operations for our property portfolio including rent collection, expense tracking, financial reporting, and budget preparation. You will work closely with property managers to ensure accurate financial records.&apos;,
       requirements: [
-        &apos;Bachelor\'s degree in Accounting or Finance',
+        &apos;Bachelor\&apos;s degree in Accounting or Finance&apos;,
         &apos;3+ years of experience in property accounting&apos;,
         &apos;Proficiency in accounting software&apos;,
         &apos;Knowledge of real estate financial principles&apos;,
@@ -199,7 +199,7 @@ export default function CareersPage() {
       salary: &apos;SAR 11,000 - 16,000&apos;,
       description: &apos;Support our marketing efforts by coordinating campaigns, managing social media presence, creating marketing materials, and analyzing market trends. You will help promote our properties and services to potential tenants and clients.&apos;,
       requirements: [
-        &apos;Bachelor\'s degree in Marketing, Communications, or related field',
+        &apos;Bachelor\&apos;s degree in Marketing, Communications, or related field&apos;,
         &apos;2+ years of experience in marketing&apos;,
         &apos;Proficiency in digital marketing tools&apos;,
         &apos;Strong creative and writing skills&apos;,
@@ -253,14 +253,14 @@ export default function CareersPage() {
     },
     {
       id: &apos;8',
-      title: 'Procurement Officer&apos;,
+      title: &apos;Procurement Officer&apos;,
       department: &apos;Procurement&apos;,
       location: &apos;Riyadh, Saudi Arabia&apos;,
       type: &apos;Full-time&apos;,
       salary: &apos;SAR 13,000 - 19,000&apos;,
       description: &apos;Manage procurement activities for our properties including vendor selection, contract negotiation, and supplier relationship management. You will ensure cost-effective procurement of goods and services while maintaining quality standards.&apos;,
       requirements: [
-        &apos;Bachelor\'s degree in Business, Supply Chain, or related field&apos;,
+        &apos;Bachelor\&apos;s degree in Business, Supply Chain, or related field&apos;,
         &apos;3+ years of experience in procurement&apos;,
         &apos;Strong negotiation skills&apos;,
         &apos;Knowledge of procurement processes&apos;,
@@ -319,7 +319,7 @@ Position: ${selectedJob?.title}
 Department: ${selectedJob?.department}
 
 Next Steps:
-${result.nextSteps.map((step: string, index: number) => `${index + 1}. ${step}`).join('\n&apos;)}
+${result.nextSteps.map((step: string, index: number) => `${index + 1}. ${step}`).join(&apos;\n&apos;)}
 
 You will receive a confirmation email shortly.
 Thank you for your interest in joining Fixzit Enterprise!
@@ -504,7 +504,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                       <DialogTrigger asChild>
                         <Button
                           onClick={() => setSelectedJob(job)}
-                          disabled={job.status === 'Closed&apos;}
+                          disabled={job.status === &apos;Closed&apos;}
                           className="bg-[#0061A8] hover:bg-[#0061A8]/90"
                         >
                           <FileText className="w-4 h-4 mr-2" />
@@ -592,9 +592,9 @@ Thank you for your interest in joining Fixzit Enterprise!
                           <div>
                             <Label className="text-lg font-semibold mb-3 block">Hiring Stages</Label>
                             <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                              {[&apos;Applied&apos;,'Screening','Interview&apos;,'Offer','Hired&apos;].map((stage, idx) => (
+                              {[&apos;Applied&apos;,'Screening&apos;,'Interview&apos;,'Offer&apos;,'Hired&apos;].map((stage, idx) => (
                                 <li key={stage} className="flex items-center gap-3 p-3 rounded border border-gray-200 bg-white">
-                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-[#00A859] text-white&apos; : &apos;bg-gray-200 text-gray-600&apos;}`}>{idx+1}</span>
+                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? &apos;bg-[#00A859] text-white&apos; : &apos;bg-gray-200 text-gray-600&apos;}`}>{idx+1}</span>
                                   <span className="text-sm text-gray-800">{stage}</span>
                                 </li>
                               ))}
@@ -613,7 +613,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                                   <strong>Application Deadline:</strong> Applications are reviewed on a rolling basis
                                 </p>
                                 <p className="text-sm text-gray-600 mt-1">
-                                  <strong>Status:</strong> <span className={job.status === 'Open&apos; ? &apos;text-green-600&apos; : &apos;text-red-600&apos;}>{job.status}</span>
+                                  <strong>Status:</strong> <span className={job.status === &apos;Open&apos; ? &apos;text-green-600&apos; : &apos;text-red-600&apos;}>{job.status}</span>
                                 </p>
                               </div>
                               <Button
@@ -700,7 +700,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                   name="coverLetter"
                   rows={4}
                   required
-                  placeholder="Tell us why you're interested in this position and what makes you a great fit..."
+                  placeholder="Tell us why you&apos;re interested in this position and what makes you a great fit..."
                 />
               </div>
 

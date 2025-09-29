@@ -1,32 +1,32 @@
-'use client&apos;;
+'use client';
 
-import React from &apos;react&apos;;
-import { useResponsive } from &apos;@/src/contexts/ResponsiveContext&apos;;
+import React from 'react';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;
   className?: string;
-  size?: &apos;mobile&apos; | &apos;tablet&apos; | &apos;desktop&apos; | &apos;large&apos; | &apos;auto&apos;;
-  padding?: &apos;none&apos; | 'small&apos; | &apos;medium&apos; | &apos;large&apos;;
+  size?: 'mobile' | 'tablet' | 'desktop' | 'large' | 'auto';
+  padding?: 'none' | 'small' | 'medium' | 'large';
   centered?: boolean;
 }
 
 export function ResponsiveContainer({
   children,
-  className = &apos;',
-  size = &apos;auto&apos;,
-  padding = &apos;medium&apos;,
+  className = '',
+  size = 'auto',
+  padding = 'medium',
   centered = true
 }: ResponsiveContainerProps) {
-  const { screenInfo, responsiveClasses } = useResponsive();
+  const { screenInfo, responsiveClasses } = useResponsiveLayout();
 
   const getContainerClass = () => {
-    if (size !== &apos;auto&apos;) {
+    if (size !== 'auto') {
       switch (size) {
-        case &apos;mobile&apos;: return &apos;max-w-sm mx-auto px-4&apos;;
-        case &apos;tablet&apos;: return &apos;max-w-2xl mx-auto px-6&apos;;
-        case &apos;desktop&apos;: return &apos;max-w-6xl mx-auto px-8&apos;;
-        case &apos;large&apos;: return &apos;max-w-7xl mx-auto px-8&apos;;
+        case 'mobile': return 'max-w-sm mx-auto px-4';
+        case 'tablet': return 'max-w-2xl mx-auto px-6';
+        case 'desktop': return 'max-w-6xl mx-auto px-8';
+        case 'large': return 'max-w-7xl mx-auto px-8';
         default: return responsiveClasses.container;
       }
     }
@@ -35,11 +35,11 @@ export function ResponsiveContainer({
 
   const getPaddingClass = () => {
     switch (padding) {
-      case &apos;none&apos;: return &apos;';
-      case 'small&apos;: return &apos;p-2 sm:p-3&apos;;
-      case &apos;medium&apos;: return &apos;p-4 sm:p-6&apos;;
-      case &apos;large&apos;: return &apos;p-6 sm:p-8&apos;;
-      default: return &apos;p-4 sm:p-6&apos;;
+      case 'none': return '';
+      case 'small': return 'p-2 sm:p-3';
+      case 'medium': return 'p-4 sm:p-6';
+      case 'large': return 'p-6 sm:p-8';
+      default: return 'p-4 sm:p-6';
     }
   };
 
@@ -47,7 +47,7 @@ export function ResponsiveContainer({
   const paddingClass = getPaddingClass();
 
   return (
-    <div className={`${containerClass} ${paddingClass} ${centered ? &apos;mx-auto&apos; : &apos;'} ${className}`}>
+    <div className={`${containerClass} ${paddingClass} ${centered ? 'mx-auto' : ''} ${className}`}>
       {children}
     </div>
   );
@@ -62,17 +62,17 @@ interface ResponsiveGridProps {
     desktop?: number;
     large?: number;
   };
-  gap?: 'small&apos; | &apos;medium&apos; | &apos;large&apos;;
+  gap?: 'small' | 'medium' | 'large';
   className?: string;
 }
 
 export function ResponsiveGrid({
   children,
   cols = { mobile: 1, tablet: 2, desktop: 3, large: 4 },
-  gap = &apos;medium&apos;,
-  className = &apos;'
+  gap = 'medium',
+  className = ''
 }: ResponsiveGridProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getGridCols = () => {
     if (screenInfo.isMobile || screenInfo.width < 640) {
@@ -89,10 +89,10 @@ export function ResponsiveGrid({
 
   const getGapClass = () => {
     switch (gap) {
-      case 'small&apos;: return &apos;gap-2&apos;;
-      case &apos;medium&apos;: return &apos;gap-4&apos;;
-      case &apos;large&apos;: return &apos;gap-6&apos;;
-      default: return &apos;gap-4&apos;;
+      case 'small': return 'gap-2';
+      case 'medium': return 'gap-4';
+      case 'large': return 'gap-6';
+      default: return 'gap-4';
     }
   };
 
@@ -106,33 +106,33 @@ export function ResponsiveGrid({
 // Responsive text component
 interface ResponsiveTextProps {
   children: React.ReactNode;
-  size?: 'small&apos; | &apos;medium&apos; | &apos;large&apos; | &apos;xlarge&apos;;
-  weight?: &apos;normal&apos; | &apos;medium&apos; | 'semibold&apos; | &apos;bold&apos;;
+  size?: 'small' | 'medium' | 'large' | 'xlarge';
+  weight?: 'normal' | 'medium' | 'semibold' | 'bold';
   className?: string;
 }
 
 export function ResponsiveText({
   children,
-  size = &apos;medium&apos;,
-  weight = &apos;normal&apos;,
-  className = &apos;'
+  size = 'medium',
+  weight = 'normal',
+  className = ''
 }: ResponsiveTextProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getSizeClass = () => {
     const baseSizes = {
-      small: &apos;text-sm&apos;,
-      medium: &apos;text-base&apos;,
-      large: &apos;text-lg&apos;,
-      xlarge: &apos;text-xl&apos;
+      small: 'text-sm',
+      medium: 'text-base',
+      large: 'text-lg',
+      xlarge: 'text-xl'
     };
 
     if (screenInfo.isMobile) {
       const sizeMap = {
-        small: &apos;text-xs&apos;,
-        medium: &apos;text-sm&apos;,
-        large: &apos;text-base&apos;,
-        xlarge: &apos;text-lg&apos;
+        small: 'text-xs',
+        medium: 'text-sm',
+        large: 'text-base',
+        xlarge: 'text-lg'
       };
       return sizeMap[size];
     }
@@ -142,10 +142,10 @@ export function ResponsiveText({
 
   const getWeightClass = () => {
     const weightMap = {
-      normal: &apos;font-normal&apos;,
-      medium: &apos;font-medium&apos;,
-      semibold: &apos;font-semibold&apos;,
-      bold: &apos;font-bold&apos;
+      normal: 'font-normal',
+      medium: 'font-medium',
+      semibold: 'font-semibold',
+      bold: 'font-bold'
     };
     return weightMap[weight];
   };
@@ -160,31 +160,31 @@ export function ResponsiveText({
 // Responsive spacing component
 interface ResponsiveSpacingProps {
   children: React.ReactNode;
-  spacing?: 'small&apos; | &apos;medium&apos; | &apos;large&apos;;
-  direction?: &apos;vertical&apos; | &apos;horizontal&apos;;
+  spacing?: 'small' | 'medium' | 'large';
+  direction?: 'vertical' | 'horizontal';
   className?: string;
 }
 
 export function ResponsiveSpacing({
   children,
-  spacing = &apos;medium&apos;,
-  direction = &apos;vertical&apos;,
-  className = &apos;'
+  spacing = 'medium',
+  direction = 'vertical',
+  className = ''
 }: ResponsiveSpacingProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getSpacingClass = () => {
     const baseSpacing = {
-      small: direction === &apos;vertical&apos; ? 'space-y-2&apos; : 'space-x-2&apos;,
-      medium: direction === &apos;vertical&apos; ? 'space-y-4&apos; : 'space-x-4&apos;,
-      large: direction === &apos;vertical&apos; ? 'space-y-6&apos; : 'space-x-6&apos;
+      small: direction === 'vertical' ? 'space-y-2' : 'space-x-2',
+      medium: direction === 'vertical' ? 'space-y-4' : 'space-x-4',
+      large: direction === 'vertical' ? 'space-y-6' : 'space-x-6'
     };
 
     if (screenInfo.isMobile) {
       const mobileSpacing = {
-        small: direction === &apos;vertical&apos; ? 'space-y-1&apos; : 'space-x-1&apos;,
-        medium: direction === &apos;vertical&apos; ? 'space-y-2&apos; : 'space-x-2&apos;,
-        large: direction === &apos;vertical&apos; ? 'space-y-3&apos; : 'space-x-3&apos;
+        small: direction === 'vertical' ? 'space-y-1' : 'space-x-1',
+        medium: direction === 'vertical' ? 'space-y-2' : 'space-x-2',
+        large: direction === 'vertical' ? 'space-y-3' : 'space-x-3'
       };
       return mobileSpacing[spacing];
     }

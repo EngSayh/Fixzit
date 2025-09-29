@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
-import { isMockDB } from '@/src/lib/mongo';
 
 const EmployeeSchema = new Schema({
   orgId: { type: String, required: true, index: true },

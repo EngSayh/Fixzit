@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from &apos;react&apos;;
-import { MapPin, Home, Users, Wrench } from &apos;lucide-react&apos;;
-import { useParams } from &apos;next/navigation&apos;;
+import { useCallback, useEffect, useState } from 'react';
+import { MapPin, Home, Users, Wrench } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 // Google Maps type declaration
 declare global {
@@ -17,32 +17,19 @@ export default function PropertyDetailPage() {
   
   const [property, setProperty] = useState({
     id: propertyId,
-    name: &apos;Al Faisaliah Tower&apos;,
-    address: &apos;King Fahd Road, Riyadh 12211, Saudi Arabia&apos;,
+    name: 'Al Faisaliah Tower',
+    address: 'King Fahd Road, Riyadh 12211, Saudi Arabia',
     lat: 24.6892,
     lng: 46.6857,
-    type: &apos;Commercial&apos;,
+    type: 'Commercial',
     units: 45,
     occupancy: 89,
     openWorkOrders: 7
   });
   
-  useEffect(() => {
-    // Load Google Maps
-    if (!window.google) {
-      const script = document.createElement('script&apos;);
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&callback=initMap`;
-      script.async = true;
-      window.initMap = initializeMap;
-      document.head.appendChild(script);
-    } else {
-      initializeMap();
-    }
-  }, []);
-  
-  const initializeMap = () => {
-    if (typeof window !== &apos;undefined&apos; && window.google && window.google.maps) {
-      const map = new window.google.maps.Map(document.getElementById(&apos;property-map&apos;), {
+  const initializeMap = useCallback(() => {
+    if (typeof window !== 'undefined' && window.google && window.google.maps) {
+      const map = new window.google.maps.Map(document.getElementById('property-map'), {
         center: { lat: property.lat, lng: property.lng },
         zoom: 16,
         mapTypeControl: false,
@@ -55,7 +42,20 @@ export default function PropertyDetailPage() {
         title: property.name
       });
     }
-  };
+  }, [property.lat, property.lng, property.name]);
+
+  useEffect(() => {
+    // Load Google Maps
+    if (!window.google) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&callback=initMap`;
+      script.async = true;
+      window.initMap = initializeMap;
+      document.head.appendChild(script);
+    } else {
+      initializeMap();
+    }
+  }, [initializeMap]);
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -119,7 +119,7 @@ export default function PropertyDetailPage() {
             <div 
               id="property-map" 
               className="w-full h-96 rounded-lg border"
-              style={{ minHeight: '400px&apos; }}
+              style={{ minHeight: '400px' }}
             />
           </div>
           

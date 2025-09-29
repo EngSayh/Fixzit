@@ -1,30 +1,30 @@
-'use client&apos;;
+'use client';
 
-import { ReactNode, useEffect, useState } from &apos;react&apos;;
-import { usePathname } from &apos;next/navigation&apos;;
-import TopBar from &apos;./TopBar&apos;;
-import Sidebar from &apos;./Sidebar&apos;;
-import Footer from &apos;./Footer&apos;;
-import HelpWidget from &apos;./HelpWidget&apos;;
-import AutoFixInitializer from &apos;./AutoFixInitializer&apos;;
-import ErrorTest from &apos;./ErrorTest&apos;;
-import ResponsiveLayout from &apos;./ResponsiveLayout&apos;;
-import dynamic from &apos;next/dynamic&apos;;
-const AutoIncidentReporter = dynamic(() => import(&apos;@/src/components/AutoIncidentReporter&apos;), { ssr: false });
-import PreferenceBroadcast from &apos;./PreferenceBroadcast&apos;;
-import { useResponsive } from &apos;@/src/contexts/ResponsiveContext&apos;;
-import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
-import { TopBarProvider } from &apos;@/src/contexts/TopBarContext&apos;;
+import { ReactNode, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import TopBar from './TopBar';
+import Sidebar from './Sidebar';
+import Footer from './Footer';
+import HelpWidget from './HelpWidget';
+import AutoFixInitializer from './AutoFixInitializer';
+import ErrorTest from './ErrorTest';
+import ResponsiveLayout from './ResponsiveLayout';
+import dynamic from 'next/dynamic';
+const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
+import PreferenceBroadcast from './PreferenceBroadcast';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { TopBarProvider } from '@/src/contexts/TopBarContext';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState(&apos;guest&apos;);
+  const [role, setRole] = useState('guest');
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const publicRoutes = new Set<string>([&apos;/',&apos;/about&apos;,'/privacy&apos;,'/terms&apos;]);
+  const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
   const isLandingPage = publicRoutes.has(pathname);
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
   // Safe translation access with fallback
-  let language = &apos;ar&apos;;
+  let language = 'ar';
   let isRTL = false;
 
   try {
@@ -32,29 +32,29 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     language = translationContext.language;
     isRTL = translationContext.isRTL;
   } catch (error) {
-    console.warn(&apos;Translation context not available in ClientLayout:&apos;, error);
+    console.warn('Translation context not available in ClientLayout:', error);
   }
 
   // Update document attributes when language changes
   useEffect(() => {
     document.documentElement.lang = language;
-    document.documentElement.dir = isRTL ? &apos;rtl&apos; : &apos;ltr&apos;;
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
   }, [language, isRTL]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
         // First check localStorage for cached role
-        const cachedRole = localStorage.getItem(&apos;fixzit-role&apos;);
-        if (cachedRole && cachedRole !== &apos;guest&apos;) {
+        const cachedRole = localStorage.getItem('fixzit-role');
+        if (cachedRole && cachedRole !== 'guest') {
           setRole(cachedRole);
           setLoading(false);
           return;
         }
 
         // Fetch current user from API
-        const response = await fetch(&apos;/api/auth/me&apos;, {
-          credentials: &apos;include&apos; // Include cookies
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include' // Include cookies
         });
 
         if (response.ok) {
@@ -63,17 +63,17 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             const userRole = data.user.role;
             setRole(userRole);
             // Cache the role in localStorage
-            localStorage.setItem(&apos;fixzit-role&apos;, userRole);
+            localStorage.setItem('fixzit-role', userRole);
           }
         } else {
           // If no valid session, ensure role is guest
-          setRole(&apos;guest&apos;);
-          localStorage.setItem(&apos;fixzit-role&apos;, &apos;guest&apos;);
+          setRole('guest');
+          localStorage.setItem('fixzit-role', 'guest');
         }
       } catch (error) {
-        console.error(&apos;Failed to fetch user role:&apos;, error);
-        setRole(&apos;guest&apos;);
-        localStorage.setItem(&apos;fixzit-role&apos;, &apos;guest&apos;);
+        console.error('Failed to fetch user role:', error);
+        setRole('guest');
+        localStorage.setItem('fixzit-role', 'guest');
       } finally {
         setLoading(false);
       }
@@ -88,7 +88,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
         <TopBar role={role} />
         <div className="flex flex-1">
-          <main className={`flex-1 flex flex-col overflow-hidden ${isLandingPage ? &apos;w-full&apos; : &apos;'}`}>
+          <main className={`flex-1 flex flex-col overflow-hidden ${isLandingPage ? 'w-full' : ''}`}>
             <div className="flex-1 overflow-auto">
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
