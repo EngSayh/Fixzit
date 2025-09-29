@@ -1,18 +1,4 @@
-import type {
-  WorkOrder as BackendWorkOrder,
-  WorkOrderStatusHistory,
-  MaterialUsed,
-  PartRequired,
-  WorkOrderTemplate,
-  WorkOrderChecklistItem,
-  WorkOrderSchedule,
-  ScheduleConflict,
-  WorkOrderBatch,
-  PreventiveMaintenance,
-  WorkOrderReport,
-  WorkOrderSLA,
-  EscalationLevel,
-} from '@/lib/types/work-orders';
+// Core work order types - removed dependency on missing lib file
 
 export type WorkOrderStatus =
   | 'draft'
@@ -90,10 +76,10 @@ export interface WorkOrderTimeline {
   metadata?: Record<string, unknown>;
 }
 
-type BaseProperty = NonNullable<BackendWorkOrder['property']>;
-type BaseUnit = NonNullable<BackendWorkOrder['unit']>;
-
-export interface WorkOrderProperty extends BaseProperty {
+export interface WorkOrderProperty {
+  _id: string;
+  name: string;
+  address: string;
   city?: string;
   state?: string;
   country?: string;
@@ -101,14 +87,22 @@ export interface WorkOrderProperty extends BaseProperty {
   longitude?: number;
 }
 
-export interface WorkOrderUnit extends BaseUnit {
+export interface WorkOrderUnit {
+  _id: string;
   unitNumber?: string;
   floor?: string | number;
+  property?: string;
 }
 
-export type WorkOrder = Omit<BackendWorkOrder, 'property' | 'unit' | 'workOrderNumber'> & {
+export interface WorkOrder {
+  _id: string;
   workOrderNumber?: string;
   woNumber?: string;
+  title: string;
+  description: string;
+  status: WorkOrderStatus;
+  priority: WorkOrderPriority;
+  category: WorkOrderCategory;
   property?: WorkOrderProperty | null;
   unit?: WorkOrderUnit | null;
   creator?: WorkOrderUser | null;
@@ -359,17 +353,4 @@ export type SortOption = (typeof SORT_OPTIONS)[number]['value'];
 export const VIEW_MODES = ['grid', 'table', 'kanban'] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
-export type {
-  WorkOrderStatusHistory,
-  MaterialUsed,
-  PartRequired,
-  WorkOrderTemplate,
-  WorkOrderChecklistItem,
-  WorkOrderSchedule,
-  ScheduleConflict,
-  WorkOrderBatch,
-  PreventiveMaintenance,
-  WorkOrderReport,
-  WorkOrderSLA,
-  EscalationLevel,
-};
+// Additional types can be added here as needed

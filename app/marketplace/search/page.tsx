@@ -1,4 +1,7 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import TopBarAmazon from '@/src/  const rawQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
+  const queryLabel = rawQuery && rawQuery.trim().length > 0 ? rawQuery : 'All products';
+  const totalResults = typeof pagination.total === 'number' ? pagination.total : items.length;
+  const heading = `${totalResults} result(s) for '${queryLabel}'`;ts/marketplace/TopBarAmazon';
 import ProductCard from '@/src/components/marketplace/ProductCard';
 import SearchFiltersPanel from '@/src/components/marketplace/SearchFiltersPanel';
 import Link from 'next/link';
@@ -19,6 +22,8 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
 
   const [categoriesResponse, searchResponse] = await Promise.all([
     serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+  const [categoriesResponse, searchResponse] = await Promise.all([
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`)
   ]);
 
@@ -28,22 +33,6 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
     facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
     pagination?: { total?: number };
   };
-
-  const items = Array.isArray(searchData.items) ? searchData.items : [];
-  const facetsData = searchData.facets ?? {};
-  const pagination = searchData.pagination ?? { total: items.length };
-
-  const facets = {
-    categories: Array.isArray(facetsData.categories) ? facetsData.categories : [],
-    brands: Array.isArray(facetsData.brands) ? facetsData.brands : [],
-    standards: Array.isArray(facetsData.standards) ? facetsData.standards : []
-  };
-
-  const departments = categories.map((category: any) => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
-
   const rawQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
   const queryLabel = rawQuery && rawQuery.trim().length > 0 ? rawQuery : 'All products';
   const totalResults = typeof pagination.total === 'number' ? pagination.total : items.length;
