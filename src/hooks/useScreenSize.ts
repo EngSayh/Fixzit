@@ -141,6 +141,13 @@ export function useResponsiveLegacy() {
       'Please migrate to useResponsive from ResponsiveContext.'
     );
   }
+  // Console warning in development mode to encourage migration
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[DEPRECATED] useResponsiveLegacy is deprecated and will be removed in a future release. ' +
+      'Please migrate to useResponsive from ResponsiveContext.'
+    );
+  }
   const { screenInfo } = useScreenSize();
 
   return {
