@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+process.env.USE_MOCK_DB = process.env.USE_MOCK_DB || 'true';
 export default defineConfig({
   testDir: './qa/tests',
   testMatch: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.e2e.ts'],
