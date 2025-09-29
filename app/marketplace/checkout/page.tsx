@@ -1,12 +1,12 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import CheckoutForm from '@/src/components/marketplace/CheckoutForm';
-import Link from 'next/link';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import CheckoutForm from &apos;@/src/components/marketplace/CheckoutForm&apos;;
+import Link from &apos;next/link&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 export default async function CheckoutPage() {
   const [categoriesResponse, cartResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/cart')
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/cart&apos;)
   ]);
 
   const departments = (categoriesResponse.data as any[]).map(category => ({

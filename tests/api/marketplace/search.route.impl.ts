@@ -70,7 +70,7 @@ export async function GET(req: { url: string }) {
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get('q') || '').trim();
     const locale = (searchParams.get('locale') || 'en').toLowerCase();
-    const tenantId = searchParams.get('tenantId') || 'demo-tenant';
+    const orgId = searchParams.get('orgId') || 'demo-org';
 
     if (!q) return NextResponse.json({ items: [] });
 
@@ -90,7 +90,7 @@ export async function GET(req: { url: string }) {
     ];
 
     const docs = await (MarketplaceProduct as any)
-      .find({ tenantId, $or: or })
+      .find({ orgId, $or: or })
       .sort({ updatedAt: -1 })
       .limit(24)
       .lean();

@@ -1,56 +1,56 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 export default function WorkOrdersBoardPage() {
   const workOrders = [
     {
-      id: 'WO-1001',
-      title: 'AC not cooling',
-      property: 'Tower A / 1204',
-      priority: 'P2',
-      status: 'in-progress',
-      assignee: 'Ahmed Al-Rashid',
-      dueDate: '2025-01-25',
+      id: &apos;WO-1001&apos;,
+      title: &apos;AC not cooling&apos;,
+      property: &apos;Tower A / 1204&apos;,
+      priority: &apos;P2&apos;,
+      status: &apos;in-progress&apos;,
+      assignee: &apos;Ahmed Al-Rashid&apos;,
+      dueDate: &apos;2025-01-25&apos;,
       daysOpen: 3
     },
     {
-      id: 'WO-1002',
-      title: 'Leak in ceiling',
-      property: 'Villa 9',
-      priority: 'P1',
-      status: 'pending',
-      assignee: 'Mohammed Al-Saud',
-      dueDate: '2025-01-24',
+      id: &apos;WO-1002&apos;,
+      title: &apos;Leak in ceiling&apos;,
+      property: &apos;Villa 9&apos;,
+      priority: &apos;P1&apos;,
+      status: &apos;pending&apos;,
+      assignee: &apos;Mohammed Al-Saud&apos;,
+      dueDate: &apos;2025-01-24&apos;,
       daysOpen: 1
     },
     {
-      id: 'WO-1003',
-      title: 'Elevator maintenance',
-      property: 'Tower B / Lobby',
-      priority: 'P3',
+      id: &apos;WO-1003&apos;,
+      title: &apos;Elevator maintenance&apos;,
+      property: &apos;Tower B / Lobby&apos;,
+      priority: &apos;P3&apos;,
       status: 'scheduled',
-      assignee: 'Omar Al-Fahad',
-      dueDate: '2025-01-26',
+      assignee: &apos;Omar Al-Fahad&apos;,
+      dueDate: &apos;2025-01-26&apos;,
       daysOpen: 7
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'scheduled': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case &apos;pending&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
+      case &apos;in-progress&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
+      case 'scheduled&apos;: return &apos;bg-purple-100 text-purple-800 border-purple-200&apos;;
+      case &apos;completed&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
+      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return 'bg-red-500 text-white';
-      case 'P2': return 'bg-orange-500 text-white';
-      case 'P3': return 'bg-yellow-500 text-black';
-      case 'P4': return 'bg-green-500 text-white';
-      default: return 'bg-gray-500 text-white';
+      case &apos;P1&apos;: return &apos;bg-red-500 text-white&apos;;
+      case &apos;P2&apos;: return &apos;bg-orange-500 text-white&apos;;
+      case &apos;P3&apos;: return &apos;bg-yellow-500 text-black&apos;;
+      case &apos;P4&apos;: return &apos;bg-green-500 text-white&apos;;
+      default: return &apos;bg-gray-500 text-white&apos;;
     }
   };
 
@@ -77,7 +77,7 @@ export default function WorkOrdersBoardPage() {
             <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">2</span>
           </div>
           <div className="space-y-3">
-            {workOrders.filter(wo => wo.status === 'pending').map(wo => (
+            {workOrders.filter(wo => wo.status === 'pending&apos;).map(wo => (
               <div key={wo.id} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
@@ -103,7 +103,7 @@ export default function WorkOrdersBoardPage() {
             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">1</span>
           </div>
           <div className="space-y-3">
-            {workOrders.filter(wo => wo.status === 'in-progress').map(wo => (
+            {workOrders.filter(wo => wo.status === 'in-progress&apos;).map(wo => (
               <div key={wo.id} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
@@ -129,7 +129,7 @@ export default function WorkOrdersBoardPage() {
             <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">1</span>
           </div>
           <div className="space-y-3">
-            {workOrders.filter(wo => wo.status === 'scheduled').map(wo => (
+            {workOrders.filter(wo => wo.status === 'scheduled&apos;).map(wo => (
               <div key={wo.id} className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
