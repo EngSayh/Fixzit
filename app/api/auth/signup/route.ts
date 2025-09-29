@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { User } from "@/src/server/models/User";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -26,9 +26,25 @@ const signupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await db;
+    await connectDb();
 
     const body = signupSchema.parse(await req.json());
+
+    // Determine role based on user type
+    let role = "TENANT";
+    switch (body.userType) {
+      case "corporate":
+        role = "CORPORATE_ADMIN";
+        break;
+      case "vendor":
+        role = "VENDOR";
+        break;
+      default:
+        role = "TENANT";
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(body.password, 12);
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: body.email });
@@ -39,49 +55,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine role based on user type
-    let role = "CUSTOMER";
-    switch (body.userType) {
-      case "corporate":
-        role = "CORPORATE_ADMIN";
-        break;
-      case "vendor":
-        role = "VENDOR";
-        break;
-      default:
-        role = "CUSTOMER";
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(body.password, 12);
-
-    // Create user
-    const userId = nanoid();
+    // Create user in MongoDB
     const user = await User.create({
-      id: userId,
+      email: body.email,
+      name: body.fullName,
+      role,
+      tenantId: 'demo-tenant', // Default tenant for now
+      password: hashedPassword,
       firstName: body.firstName,
       lastName: body.lastName,
-      fullName: body.fullName,
-      email: body.email,
       phone: body.phone,
-      companyName: body.companyName || null,
+      companyName: body.companyName,
       userType: body.userType,
-      role: role,
-      password: hashedPassword,
+      newsletter: body.newsletter || false,
+      preferredLanguage: body.preferredLanguage || 'en',
+      preferredCurrency: body.preferredCurrency || 'SAR',
+      termsAccepted: body.termsAccepted,
       isActive: true,
-      isEmailVerified: false,
-      preferences: {
-        language: body.preferredLanguage,
-        currency: body.preferredCurrency,
-        newsletter: body.newsletter || false,
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      emailVerified: false,
     });
 
     // Remove password from response
-    const userWithoutPassword = { ...user.toObject() };
-    delete userWithoutPassword.password;
+    const { password: _pw, ...userWithoutPassword } = user.toObject();
 
     return NextResponse.json({
       ok: true,

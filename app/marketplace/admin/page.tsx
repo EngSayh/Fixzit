@@ -1,12 +1,12 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 export default async function MarketplaceAdminPage() {
   const [categoriesResponse, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=50'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/orders'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/rfq')
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/products?limit=50&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/orders&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/rfq&apos;)
   ]);
 
   const departments = (categoriesResponse.data as any[]).map((category: any) => ({
@@ -34,15 +34,15 @@ export default async function MarketplaceAdminPage() {
           </div>
           <div className="rounded-3xl bg-white p-6 shadow">
             <p className="text-xs uppercase tracking-wide text-[#0061A8]">Pending approvals</p>
-            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{orders.filter(order => order.status === 'APPROVAL').length}</p>
+            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{orders.filter(order => order.status === 'APPROVAL&apos;).length}</p>
           </div>
           <div className="rounded-3xl bg-white p-6 shadow">
             <p className="text-xs uppercase tracking-wide text-[#0061A8]">Delivered orders</p>
-            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{orders.filter(order => order.status === 'DELIVERED').length}</p>
+            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{orders.filter(order => order.status === 'DELIVERED&apos;).length}</p>
           </div>
           <div className="rounded-3xl bg-white p-6 shadow">
             <p className="text-xs uppercase tracking-wide text-[#0061A8]">Open RFQs</p>
-            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{rfqs.filter(rfq => rfq.status === 'OPEN').length}</p>
+            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{rfqs.filter(rfq => rfq.status === 'OPEN&apos;).length}</p>
           </div>
         </section>
 
@@ -56,7 +56,7 @@ export default async function MarketplaceAdminPage() {
                 <p className="text-xs text-gray-600">
                   {product.buy.price} {product.buy.currency} / {product.buy.uom}
                 </p>
-                <p className="mt-2 text-xs text-gray-500">Standards: {product.standards?.join(', ') || 'N/A'}</p>
+                <p className="mt-2 text-xs text-gray-500">Standards: {product.standards?.join(', &apos;) || &apos;N/A&apos;}</p>
               </div>
             ))}
           </div>
@@ -75,7 +75,7 @@ export default async function MarketplaceAdminPage() {
             </thead>
             <tbody>
               {orders
-                .filter(order => order.status === 'APPROVAL')
+                .filter(order => order.status === 'APPROVAL&apos;)
                 .map(order => (
                   <tr key={order._id} className="border-t border-gray-100">
                     <td className="py-2">{order._id.slice(-6).toUpperCase()}</td>

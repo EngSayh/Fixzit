@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Filter, ShoppingCart, Heart, Star, User, LogIn } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from &apos;react&apos;;
+import { Search, Filter, ShoppingCart, Heart, Star, User, LogIn } from &apos;lucide-react&apos;;
+import Link from &apos;next/link&apos;;
 
 interface Product {
   id: string;
@@ -21,99 +21,99 @@ interface Product {
 
 const SAMPLE_PRODUCTS: Product[] = [
   {
-    id: '1',
-    name: 'Steel Rebar 12mm',
-    category: 'Construction Materials',
-    price: 'SAR 2,450',
-    originalPrice: 'SAR 2,650',
+    id: &apos;1',
+    name: &apos;Steel Rebar 12mm&apos;,
+    category: &apos;Construction Materials&apos;,
+    price: &apos;SAR 2,450&apos;,
+    originalPrice: &apos;SAR 2,650&apos;,
     rating: 4.5,
     reviews: 128,
-    image: '/img/logo.jpg',
-    vendor: 'SteelCorp Ltd',
+    image: &apos;/img/logo.jpg&apos;,
+    vendor: &apos;SteelCorp Ltd&apos;,
     inStock: true,
     discount: 8
   },
   {
-    id: '2',
-    name: 'LED Light Fixtures 60W',
-    category: 'Electrical',
-    price: 'SAR 185',
-    originalPrice: 'SAR 220',
+    id: &apos;2',
+    name: 'LED Light Fixtures 60W&apos;,
+    category: &apos;Electrical&apos;,
+    price: &apos;SAR 185&apos;,
+    originalPrice: &apos;SAR 220&apos;,
     rating: 4.2,
     reviews: 89,
-    image: '/img/logo.jpg',
-    vendor: 'LightTech Solutions',
+    image: &apos;/img/logo.jpg&apos;,
+    vendor: &apos;LightTech Solutions&apos;,
     inStock: true,
     discount: 16,
     isNew: true
   },
   {
-    id: '3',
-    name: 'Safety Equipment Set',
-    category: 'Safety & PPE',
-    price: 'SAR 450',
-    originalPrice: 'SAR 520',
+    id: &apos;3',
+    name: &apos;Safety Equipment Set&apos;,
+    category: &apos;Safety & PPE&apos;,
+    price: &apos;SAR 450&apos;,
+    originalPrice: &apos;SAR 520&apos;,
     rating: 4.8,
     reviews: 234,
-    image: '/img/logo.jpg',
-    vendor: 'SafetyFirst Inc',
+    image: &apos;/img/logo.jpg&apos;,
+    vendor: &apos;SafetyFirst Inc&apos;,
     inStock: true,
     discount: 13
   },
   {
-    id: '4',
-    name: 'HVAC System Complete',
-    category: 'Mechanical',
-    price: 'SAR 8,900',
+    id: &apos;4',
+    name: 'HVAC System Complete&apos;,
+    category: &apos;Mechanical&apos;,
+    price: &apos;SAR 8,900&apos;,
     rating: 4.6,
     reviews: 67,
-    image: '/img/logo.jpg',
-    vendor: 'ClimateTech Pro',
+    image: &apos;/img/logo.jpg&apos;,
+    vendor: &apos;ClimateTech Pro&apos;,
     inStock: true
   },
   {
-    id: '5',
-    name: 'Office Furniture Bundle',
-    category: 'Furniture',
-    price: 'SAR 3,200',
-    originalPrice: 'SAR 3,800',
+    id: &apos;5',
+    name: &apos;Office Furniture Bundle&apos;,
+    category: &apos;Furniture&apos;,
+    price: &apos;SAR 3,200&apos;,
+    originalPrice: &apos;SAR 3,800&apos;,
     rating: 4.3,
     reviews: 156,
-    image: '/img/logo.jpg',
-    vendor: 'Workspace Solutions',
+    image: &apos;/img/logo.jpg&apos;,
+    vendor: &apos;Workspace Solutions&apos;,
     inStock: false,
     discount: 16
   },
   {
-    id: '6',
-    name: 'Security Camera System',
-    category: 'Security',
-    price: 'SAR 1,250',
+    id: &apos;6',
+    name: 'Security Camera System&apos;,
+    category: &apos;Security&apos;,
+    price: &apos;SAR 1,250&apos;,
     rating: 4.7,
     reviews: 203,
-    image: '/img/logo.jpg',
-    vendor: 'SecureGuard Systems',
+    image: &apos;/img/logo.jpg&apos;,
+    vendor: &apos;SecureGuard Systems&apos;,
     inStock: true
   }
 ];
 
 export default function CatalogPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('relevance');
+  const [searchTerm, setSearchTerm] = useState(&apos;');
+  const [selectedCategory, setSelectedCategory] = useState(&apos;all&apos;);
+  const [sortBy, setSortBy] = useState(&apos;relevance&apos;);
 
   const filteredProducts = SAMPLE_PRODUCTS.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === &apos;all&apos; || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['all', ...Array.from(new Set(SAMPLE_PRODUCTS.map(p => p.category)))];
+  const categories = [&apos;all&apos;, ...Array.from(new Set(SAMPLE_PRODUCTS.map(p => p.category)))];
 
   const handleAddToCart = (productId: string) => {
     // Redirect to login if not authenticated
-    window.location.href = '/login?redirect=/souq/catalog&action=add-to-cart';
+    window.location.href = &apos;/login?redirect=/souq/catalog&action=add-to-cart&apos;;
   };
 
   const handleViewDetails = (productId: string) => {
@@ -176,7 +176,7 @@ export default function CatalogPage() {
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
+                    {category === 'all&apos; ? &apos;All Categories&apos; : category}
                   </option>
                 ))}
               </select>
@@ -253,10 +253,10 @@ export default function CatalogPage() {
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     product.inStock
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-green-100 text-green-800&apos;
+                      : &apos;bg-red-100 text-red-800&apos;
                   }`}>
-                    {product.inStock ? 'In Stock' : 'Out of Stock'}
+                    {product.inStock ? &apos;In Stock&apos; : &apos;Out of Stock&apos;}
                   </span>
                 </div>
 
@@ -272,8 +272,8 @@ export default function CatalogPage() {
                     disabled={!product.inStock}
                     className={`flex-1 px-3 py-2 rounded-md transition-colors text-sm ${
                       product.inStock
-                        ? 'bg-[#00A859] text-white hover:bg-[#00A859]/90'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        ? 'bg-[#00A859] text-white hover:bg-[#00A859]/90&apos;
+                        : &apos;bg-gray-300 text-gray-500 cursor-not-allowed&apos;
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4 inline mr-1" />
