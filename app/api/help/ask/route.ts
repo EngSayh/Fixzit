@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from 'crypto';
 import { getDatabase } from "@/lib/mongodb";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import Redis from 'ioredis';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,9 +101,8 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // Simple in-memory rate limit per IP (best-effort)
-    rateLimitAssert(req);
+    // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)
+    await rateLimitAssert(req);
     const body = await req.json().catch(() => ({} as AskRequest));
     const question = typeof body?.question === 'string' ? body.question : '';
     const rawLimit = Number((body as any)?.limit);
@@ -121,9 +121,9 @@ export async function POST(req: NextRequest) {
 
     // Text index is created by scripts/add-database-indexes.js
 
-    // Enforce tenant isolation; allow global articles with no tenantId
-    const orClauses: any[] = [ { tenantId: { $exists: false } }, { tenantId: null } ];
-    if ((user as any)?.tenantId) orClauses.unshift({ tenantId: (user as any).tenantId });
+    // Enforce tenant isolation; allow global articles with no orgId
+    const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    if ((user as any)?.orgId) orClauses.unshift({ orgId: (user as any).orgId });
     const tenantScope = { $or: orClauses } as any;
     const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       const { embedText } = await import('@/src/ai/embeddings');
       const { performKbSearch } = await import('@/src/kb/search');
       const qVec = await embedText(question);
-      const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
+      const chunks = await performKbSearch({ orgId: (user as any)?.orgId, query: qVec, q: question, lang, role, route, limit });
       docs = (chunks || []).map((c: any) => ({
         slug: c.slug || c.articleId || '',
         title: c.title || '',
@@ -197,18 +197,59 @@ export async function POST(req: NextRequest) {
       devMessage: String(err?.message ?? err),
       correlationId
     }, { status: 500 });
+    }, { status: 500 });
   }
 }
-// Very small in-memory rate limiter (per process) to reduce abuse
-const rateMap = new Map<string, { count: number; ts: number }>();
+
+// Distributed rate limiter using Redis for multi-instance deployments
+// Falls back to in-memory implementation if Redis is not available
 const MAX_RATE_PER_MIN_ENV = Number(process.env.HELP_ASK_MAX_RATE_PER_MIN);
 const MAX_RATE_PER_MIN =
   Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
     ? Math.floor(MAX_RATE_PER_MIN_ENV)
     : 30;
-function rateLimitAssert(req: NextRequest) {
+
+// Initialize Redis client if connection URL is provided
+let redis: Redis | null = null;
+if (process.env.REDIS_URL) {
+  try {
+    redis = new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times) => Math.min(times * 50, 2000),
+      connectTimeout: 5000,
+      commandTimeout: 5000,
+    });
+  } catch (err) {
+    console.error('Failed to initialize Redis client:', err);
+  }
+}
+
+// Fallback in-memory store for development/testing
+const rateMap = new Map<string, { count: number; ts: number }>();
+
+async function rateLimitAssert(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   const key = `help:ask:${ip}`;
+  
+  // Try Redis first if available
+  if (redis) {
+    try {
+      const multi = redis.multi();
+      multi.incr(key);
+      multi.expire(key, 60);
+      const results = await multi.exec();
+      
+      if (results && results[0] && results[0][1] > MAX_RATE_PER_MIN) {
+        throw new Error('Rate limited');
+      }
+      return;
+    } catch (err: any) {
+      if (err.message === 'Rate limited') throw err;
+      console.error('Redis rate limit check failed, falling back to in-memory:', err);
+    }
+  }
+  
+  // Fallback to in-memory implementation
   const now = Date.now();
   const rec = rateMap.get(key) || { count: 0, ts: now };
   if (now - rec.ts > 60_000) { rec.count = 0; rec.ts = now; }
@@ -218,4 +259,3 @@ function rateLimitAssert(req: NextRequest) {
 }
 
 // Note: Do not export any non-standard route fields; Next.js restricts exports to HTTP methods only.
-

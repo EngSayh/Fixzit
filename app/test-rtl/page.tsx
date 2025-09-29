@@ -1,12 +1,12 @@
 'use client';
 
 import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 import { ResponsiveContainer, ResponsiveText } from '@/src/components/ui/ResponsiveContainer';
 
 export default function RTLTestPage() {
   const { t, language, setLanguage, isRTL } = useTranslation();
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const testTranslations = [
     'nav.dashboard',

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 export default function NewBudgetPage() {
   return (
