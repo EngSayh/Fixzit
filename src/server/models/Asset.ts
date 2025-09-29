@@ -1,6 +1,4 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 // Asset types for equipment registry
 const AssetType = ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"] as const;
@@ -162,6 +160,4 @@ AssetSchema.index({ tenantId: 1, 'condition.score': 1 });
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 
-export const Asset = isMockDB
-  ? new MockModel('assets') as any
-  : (models.Asset || model("Asset", AssetSchema));
+export const Asset = models.Asset || model("Asset", AssetSchema);
