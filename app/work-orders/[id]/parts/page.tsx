@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Search, Plus, ShoppingCart } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
@@ -25,11 +25,7 @@ export default function WorkOrderPartsPage() {
   }>>([]);
   const [loading, setLoading] = useState(false);
   
-  useEffect(() => {
-    searchParts();
-  }, [search]);
-  
-  const searchParts = async () => {
+  const searchParts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/marketplace/products?q=${search}&limit=10`);
@@ -42,7 +38,11 @@ export default function WorkOrderPartsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    searchParts();
+  }, [searchParts]);
   
   const addPart = (part: any) => {
     const existing = selectedParts.find(p => p._id === part._id);

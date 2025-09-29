@@ -1,11 +1,11 @@
-'use client';
+'use client&apos;;
 
-import { useState, useEffect } from 'react';
-import { autoFixManager, FixResult } from '@/src/lib/AutoFixManager';
-import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Network, Shield, Zap } from 'lucide-react';
+import { useState, useEffect } from &apos;react&apos;;
+import { autoFixManager, FixResult } from &apos;@/src/lib/AutoFixManager&apos;;
+import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Network, Shield, Zap } from &apos;lucide-react&apos;;
 
 interface SystemStatus {
-  overall: 'healthy' | 'degraded' | 'critical';
+  overall: &apos;healthy&apos; | &apos;degraded&apos; | &apos;critical&apos;;
   issues: string[];
   fixes: string[];
   lastCheck: string;
@@ -25,10 +25,10 @@ export default function SystemVerifier() {
         lastCheck: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Verification failed:', error);
+      console.error(&apos;Verification failed:&apos;, error);
       setStatus({
-        overall: 'critical',
-        issues: ['Verification process failed'],
+        overall: &apos;critical&apos;,
+        issues: [&apos;Verification process failed&apos;],
         fixes: [],
         lastCheck: new Date().toISOString()
       });
@@ -49,18 +49,18 @@ export default function SystemVerifier() {
 
   const getStatusColor = (overall: string) => {
     switch (overall) {
-      case 'healthy': return 'text-green-600 bg-green-100';
-      case 'degraded': return 'text-yellow-600 bg-yellow-100';
-      case 'critical': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case &apos;healthy&apos;: return &apos;text-green-600 bg-green-100&apos;;
+      case &apos;degraded&apos;: return &apos;text-yellow-600 bg-yellow-100&apos;;
+      case &apos;critical&apos;: return &apos;text-red-600 bg-red-100&apos;;
+      default: return &apos;text-gray-600 bg-gray-100&apos;;
     }
   };
 
   const getStatusIcon = (overall: string) => {
     switch (overall) {
-      case 'healthy': return <CheckCircle className="w-5 h-5" />;
-      case 'degraded': return <AlertTriangle className="w-5 h-5" />;
-      case 'critical': return <XCircle className="w-5 h-5" />;
+      case &apos;healthy&apos;: return <CheckCircle className="w-5 h-5" />;
+      case &apos;degraded&apos;: return <AlertTriangle className="w-5 h-5" />;
+      case &apos;critical&apos;: return <XCircle className="w-5 h-5" />;
       default: return <Activity className="w-5 h-5" />;
     }
   };
@@ -83,7 +83,7 @@ export default function SystemVerifier() {
             disabled={isMonitoring}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {isMonitoring ? 'Monitoring...' : 'Start Monitoring'}
+            {isMonitoring ? &apos;Monitoring...&apos; : &apos;Start Monitoring&apos;}
           </button>
           <button
             onClick={stopMonitoring}
@@ -97,8 +97,8 @@ export default function SystemVerifier() {
             disabled={isLoading}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Checking...' : 'Verify Now'}
+            <RefreshCw className={`w-4 h-4 ${isLoading ? &apos;animate-spin&apos; : &apos;'}`} />
+            {isLoading ? &apos;Checking...&apos; : &apos;Verify Now&apos;}
           </button>
         </div>
       </div>
@@ -266,9 +266,9 @@ export default function SystemVerifier() {
               <div className="text-sm text-green-700">Continuous system health checks</div>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-              <span className={`text-sm ${isMonitoring ? 'text-green-700' : 'text-gray-600'}`}>
-                {isMonitoring ? 'Running' : 'Stopped'}
+              <div className={`w-3 h-3 rounded-full ${isMonitoring ? &apos;bg-green-500&apos; : &apos;bg-gray-400&apos;}`}></div>
+              <span className={`text-sm ${isMonitoring ? &apos;text-green-700&apos; : &apos;text-gray-600&apos;}`}>
+                {isMonitoring ? &apos;Running&apos; : &apos;Stopped&apos;}
               </span>
             </div>
           </div>
@@ -310,7 +310,7 @@ export default function SystemVerifier() {
           </button>
 
           <button
-            onClick={() => window.open('/help', '_blank')}
+            onClick={() => window.open(&apos;/help&apos;, &apos;_blank&apos;)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             📚 Get Help
