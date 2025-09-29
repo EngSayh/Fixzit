@@ -1,292 +1,481 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { isMockDB } from "@/src/lib/mongo";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
-const Status = ["DRAFT","SUBMITTED","DISPATCHED","IN_PROGRESS","ON_HOLD","COMPLETED","VERIFIED","CLOSED","CANCELLED"] as const;
-const Priority = ["LOW","MEDIUM","HIGH","CRITICAL"] as const;
+// Work Order Status - State Machine as per specification
+const WorkOrderStatus = [
+  "DRAFT",
+  "SUBMITTED", 
+  "ASSIGNED",
+  "IN_PROGRESS",
+  "ON_HOLD",
+  "PENDING_APPROVAL",
+  "COMPLETED",
+  "VERIFIED",
+  "CLOSED",
+  "CANCELLED",
+  "REJECTED"
+] as const;
 
-// Mock data store for development - singleton to persist data
-class MockWorkOrderStore {
-  private workOrders: any[] = [];
-  private nextId = 1;
-  private static instance: MockWorkOrderStore;
+const Priority = ["LOW", "MEDIUM", "HIGH", "URGENT", "CRITICAL"] as const;
+const WorkOrderType = ["MAINTENANCE", "REPAIR", "INSPECTION", "INSTALLATION", "EMERGENCY", "PREVENTIVE", "CORRECTIVE"] as const;
+const SLAStatus = ["ON_TIME", "AT_RISK", "OVERDUE", "BREACHED"] as const;
 
-  constructor() {
-    if (MockWorkOrderStore.instance) {
-      return MockWorkOrderStore.instance;
-    }
-    MockWorkOrderStore.instance = this;
-
-    // Initialize with some sample data only once
-    if (this.workOrders.length === 0) {
-      this.workOrders = [
-        {
-          _id: "1",
-          tenantId: "t-001",
-          code: "WO-2025-001",
-          title: "AC not cooling in Tower A",
-          description: "Air conditioning system in Tower A unit 1204 is not working properly",
-          priority: "HIGH",
-          status: "SUBMITTED",
-          slaMinutes: 720,
-          dueAt: new Date(Date.now() + 720 * 60 * 1000),
-          statusHistory: [],
-          createdBy: "u-admin-1",
-          createdAt: new Date("2025-01-20T10:00:00Z"),
-          updatedAt: new Date("2025-01-20T10:00:00Z")
-        },
-        {
-          _id: "2",
-          tenantId: "t-001",
-          code: "WO-2025-002",
-          title: "Water leak in ceiling",
-          description: "Water leak from ceiling in Villa 9 main bathroom",
-          priority: "CRITICAL",
-          status: "DISPATCHED",
-          slaMinutes: 240,
-          dueAt: new Date(Date.now() + 240 * 60 * 1000),
-          statusHistory: [{ from: "SUBMITTED", to: "DISPATCHED", byUserId: "u-admin-1", at: new Date("2025-01-19T14:30:00Z") }],
-          createdBy: "u-admin-1",
-          assigneeUserId: "tech-007",
-          createdAt: new Date("2025-01-19T14:30:00Z"),
-          updatedAt: new Date("2025-01-19T14:30:00Z")
-        }
-      ];
-      this.nextId = 3;
-    }
-  }
-
-  async countDocuments(filter?: any) {
-    let results = [...this.workOrders];
-
-    if (filter?.tenantId) {
-      results = results.filter(wo => wo.tenantId === filter.tenantId);
-    }
-    if (filter?.status) {
-      results = results.filter(wo => wo.status === filter.status);
-    }
-    if (filter?.$text) {
-      const search = filter.$text.$search.toLowerCase();
-      results = results.filter(wo =>
-        wo.title.toLowerCase().includes(search) ||
-        wo.description?.toLowerCase().includes(search)
-      );
-    }
-
-    return results.length;
-  }
-
-
-  async findOne(filter: any) {
-    return this.workOrders.find(wo =>
-      Object.entries(filter).every(([key, value]) => wo[key] === value)
-    ) || null;
-  }
-
-  async update(filter: any, update: any) {
-    const index = this.workOrders.findIndex(wo => wo._id === filter._id && wo.tenantId === filter.tenantId);
-    if (index === -1) return { acknowledged: false, modifiedCount: 0 };
-
-    // Handle direct property assignment
-    if (update.assigneeUserId !== undefined) {
-      this.workOrders[index].assigneeUserId = update.assigneeUserId;
-    }
-    if (update.assigneeVendorId !== undefined) {
-      this.workOrders[index].assigneeVendorId = update.assigneeVendorId;
-    }
-    if (update.status) {
-      if (this.workOrders[index].status === "SUBMITTED" && update.status === "DISPATCHED") {
-        this.workOrders[index].statusHistory.push({
-          from: this.workOrders[index].status,
-          to: "DISPATCHED",
-          byUserId: "u-admin-1", // This would come from the user context
-          at: new Date()
-        });
-      }
-      this.workOrders[index].status = update.status;
-    }
-
-    this.workOrders[index].updatedAt = new Date();
-    return { acknowledged: true, modifiedCount: 1 };
-  }
-
-  private findOneAndUpdateSync(filter: any, update: any, options: any = {}) {
-    const index = this.workOrders.findIndex(wo => wo._id === filter._id && wo.tenantId === filter.tenantId);
-    if (index === -1) return null;
-
-    const updated = { ...this.workOrders[index], ...update.$set, updatedAt: new Date() };
-    this.workOrders[index] = updated;
-
-    return options.new ? updated : this.workOrders[index];
-  }
-
-  updateOne(filter: any, update: any) {
-    const index = this.workOrders.findIndex(wo => wo._id === filter._id && wo.tenantId === filter.tenantId);
-    if (index === -1) return { acknowledged: false, modifiedCount: 0 };
-
-    this.workOrders[index] = { ...this.workOrders[index], ...update.$set, updatedAt: new Date() };
-    return { acknowledged: true, modifiedCount: 1 };
-  }
+// Work Order Mongoose Schema - Direct MongoDB Implementation
 
 
 
 
 
-  async find(filter?: any) {
-    let results = [...this.workOrders];
 
-    if (filter?._id) {
-      results = results.filter(wo => wo._id === filter._id);
-    }
-    if (filter?.tenantId) {
-      results = results.filter(wo => wo.tenantId === filter.tenantId);
-    }
-    if (filter?.status) {
-      results = results.filter(wo => wo.status === filter.status);
-    }
-    if (filter?.priority) {
-      results = results.filter(wo => wo.priority === filter.priority);
-    }
-    if (filter?.$text) {
-      const search = filter.$text.$search.toLowerCase();
-      results = results.filter(wo =>
-        wo.title.toLowerCase().includes(search) ||
-        wo.description?.toLowerCase().includes(search)
-      );
-    }
-
-    return Promise.resolve(results);
-  }
-
-
-  async findOneAndUpdate(filter: any, update: any, options: any = {}) {
-    const index = this.workOrders.findIndex(wo => wo._id === filter._id && wo.tenantId === filter.tenantId);
-    if (index === -1) return null;
-
-    const updated = { ...this.workOrders[index], ...update.$set, updatedAt: new Date() };
-    this.workOrders[index] = updated;
-
-    return options.new ? updated : this.workOrders[index];
-  }
-
-  async create(data: any) {
-    const newWo = {
-      _id: this.nextId.toString(),
-      statusHistory: [],
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.workOrders.push(newWo);
-    this.nextId++;
-    return Promise.resolve(newWo);
-  }
-
-
-}
-
-const StatusHistory = new Schema({
-  from: { type: String },
-  to: { type: String, enum: Status },
-  byUserId: { type: String, required: true },
-  at: { type: Date, default: Date.now },
-  note: { type: String }
-}, {_id:false});
-
-
-const ChecklistItem = new Schema({
-  label: { type: String, required: true },
-  done: { type: Boolean, default: false }
-}, {_id:false});
-
-const Checklist = new Schema({
-  title: { type: String, required: true },
-  items: { type: [ChecklistItem], default: [] }
-}, {_id:false});
-
-const Comment = new Schema({
-  byUserId: { type: String, required: true },
-  text: { type: String, required: true },
-  at: { type: Date, default: Date.now }
-}, {_id:false});
-
-const Material = new Schema({
-  sku: String,
-  name: String,
-  qty: { type: Number, default: 1 },
-  unitPrice: { type: Number, default: 0 },
-  currency: { type: String, default: "SAR" }
-}, {_id:false});
-
-const Finance = new Schema({
-  labor: { type: Number, default: 0 },
-  materials: { type: Number, default: 0 },
-  other: { type: Number, default: 0 },
-  total: { type: Number, default: 0 },
-  currency: { type: String, default: "SAR" },
-  invoiceId: String,
-  poId: String,
-}, {_id:false});
 
 const WorkOrderSchema = new Schema({
-  tenantId: { type: String, index: true, required: true },
-  code: { type: String, required: true },
+  // Multi-tenancy - will be added by plugin
+  // orgId: { type: String, required: true, index: true },
+  
+  // Basic Information
+  workOrderNumber: { type: String, required: true, unique: true },
   title: { type: String, required: true, trim: true },
-  description: String,
-  category: String,
+  description: { type: String, required: true },
+  type: { type: String, enum: WorkOrderType, required: true },
+  category: { type: String, required: true },
   subcategory: String,
-  priority: { type: String, enum: Priority, default: "MEDIUM", index: true },
-  slaMinutes: { type: Number, default: 0 },
-  dueAt: { type: Date },
+  
+  // Priority and SLA
+  priority: { type: String, enum: Priority, required: true, default: "MEDIUM", index: true },
+  urgency: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"], default: "MEDIUM" },
+  impact: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"], default: "MEDIUM" },
+  
+  // SLA Management
+  sla: {
+    responseTimeMinutes: { type: Number, required: true },
+    resolutionTimeMinutes: { type: Number, required: true },
+    responseDeadline: Date,
+    resolutionDeadline: Date,
+    status: { type: String, enum: SLAStatus, default: "ON_TIME" },
+    breachReasons: [String],
+    escalationLevel: { type: Number, default: 0 }
+  },
 
-  propertyId: { type: String, index: true },
-  unitId: { type: String },
+  // Location Information
+  location: {
+    propertyId: { type: String, required: true, index: true },
+    unitNumber: String,
+    floor: String,
+    building: String,
+    area: String,
+    room: String,
+    coordinates: {
+      latitude: Number,
+      longitude: Number
+    },
+    accessInstructions: String
+  },
 
+  // Requester Information
   requester: {
-    type: { type: String, enum: ["TENANT","OWNER","STAFF"], default: "TENANT" },
-    id: String,
-    name: String,
-    phone: String,
-    email: String
+    userId: String,
+    type: { type: String, enum: ["TENANT", "OWNER", "STAFF", "EXTERNAL"], required: true },
+    name: { type: String, required: true },
+    contactInfo: {
+      phone: String,
+      mobile: String,
+      email: String,
+      preferredContact: { type: String, enum: ["PHONE", "MOBILE", "EMAIL", "APP"] }
+    },
+    isAnonymous: { type: Boolean, default: false },
+    availabilityWindow: {
+      from: Date,
+      to: Date,
+      notes: String
+    }
   },
 
-  assigneeUserId: { type: String, index: true },
-  assigneeVendorId: { type: String, index: true },
-
-  status: { type: String, enum: Status, default: "SUBMITTED", index: true },
-  statusHistory: { type: [StatusHistory], default: [] },
-
-  checklists: { type: [Checklist], default: [] },
-  materials: { type: [Material], default: [] },
-  comments: { type: [Comment], default: [] },
-
-  attachments: { type: [ { url:String, name:String, type:String, size:Number } ], default: [] },
-
-  billable: { type: Boolean, default: false },
-  costSummary: { type: Finance, default: () => ({}) },
-  financeRefs: {
-    invoiceId: String,
-    poId: String
+  // Assignment and Team
+  assignment: {
+    assignedTo: {
+      userId: String,
+      teamId: String,
+      vendorId: String,
+      name: String,
+      contactInfo: {
+        phone: String,
+        email: String
+      }
+    },
+    assignedBy: String,
+    assignedAt: Date,
+    reassignmentHistory: [{
+      fromUserId: String,
+      toUserId: String,
+      reason: String,
+      assignedBy: String,
+      assignedAt: Date
+    }],
+    estimatedStartTime: Date,
+    estimatedCompletionTime: Date,
+    scheduledDate: Date,
+    scheduledTimeSlot: {
+      start: String, // HH:MM
+      end: String    // HH:MM
+    }
   },
 
-  ratings: {
-    score: { type: Number, min: 1, max: 5 },
-    note: String,
-    byUserId: String,
-    at: Date
+  // Status and Workflow
+  status: { type: String, enum: WorkOrderStatus, required: true, default: "DRAFT", index: true },
+  workflow: {
+    requiresApproval: { type: Boolean, default: false },
+    approver: String,
+    approvedAt: Date,
+    approvalNotes: String,
+    rejectionReason: String,
+    currentStep: String,
+    nextStep: String,
+    completionPercentage: { type: Number, default: 0, min: 0, max: 100 }
   },
 
-  createdBy: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-  deletedAt: { type: Date }
-}, { timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } });
+  // Status History with State Machine
+  statusHistory: [{
+    fromStatus: String,
+    toStatus: String,
+    changedBy: String,
+    changedAt: { type: Date, default: Date.now },
+    reason: String,
+    notes: String,
+    automaticTransition: { type: Boolean, default: false }
+  }],
 
-WorkOrderSchema.index({ tenantId: 1, code: 1 }, { unique: true });
-WorkOrderSchema.index({ title: "text", description: "text" });
+  // Work Details
+  work: {
+    actualStartTime: Date,
+    actualEndTime: Date,
+    totalTimeSpent: Number, // in minutes
+    breakdowns: [{
+      taskDescription: String,
+      startTime: Date,
+      endTime: Date,
+      timeSpent: Number, // in minutes
+      performedBy: String
+    }],
+    rootCause: String,
+    solutionDescription: String,
+    preventiveMeasures: String,
+    followUpRequired: { type: Boolean, default: false },
+    followUpDate: Date,
+    workPerformed: String,
+    testsPerformed: [String],
+    qualityChecks: [{
+      checkName: String,
+      passed: Boolean,
+      notes: String,
+      checkedBy: String,
+      checkedAt: Date
+    }]
+  },
+
+  // Materials and Resources
+  resources: {
+    materials: [{
+      itemId: String,
+      name: String,
+      quantity: Number,
+      unit: String,
+      unitCost: Number,
+      totalCost: Number,
+      supplierName: String,
+      requestedBy: String,
+      approvedBy: String,
+      deliveredAt: Date,
+      notes: String
+    }],
+    tools: [{
+      toolId: String,
+      name: String,
+      checkedOutAt: Date,
+      checkedInAt: Date,
+      condition: String,
+      notes: String
+    }],
+    labor: [{
+      userId: String,
+      name: String,
+      role: String,
+      hours: Number,
+      hourlyRate: Number,
+      totalCost: Number,
+      overtime: Boolean
+    }]
+  },
+
+  // Financial Information
+  financial: {
+    isBillable: { type: Boolean, default: false },
+    estimatedCost: Number,
+    actualCost: Number,
+    currency: { type: String, default: "SAR" },
+    costBreakdown: {
+      labor: Number,
+      materials: Number,
+      equipment: Number,
+      overhead: Number,
+      markup: Number,
+      tax: Number,
+      total: Number
+    },
+    budgetCode: String,
+    costCenter: String,
+    purchaseOrderNumber: String,
+    invoiceNumber: String,
+    paymentStatus: { type: String, enum: ["PENDING", "PAID", "OVERDUE", "CANCELLED"] },
+    paymentDate: Date
+  },
+
+  // Communication and Updates
+  communication: {
+    comments: [{
+      commentId: { type: String, default: () => new Date().getTime().toString() },
+      userId: String,
+      userName: String,
+      comment: String,
+      timestamp: { type: Date, default: Date.now },
+      isInternal: { type: Boolean, default: false },
+      attachments: [{
+        name: String,
+        url: String,
+        type: String,
+        size: Number
+      }],
+      mentions: [String] // userIds mentioned in comment
+    }],
+    notifications: [{
+      type: String, // STATUS_CHANGE, ASSIGNMENT, COMMENT, etc.
+      sentTo: [String], // userIds
+      sentAt: Date,
+      channel: String, // EMAIL, SMS, PUSH, IN_APP
+      status: String // SENT, DELIVERED, READ
+    }],
+    updates: [{
+      updateType: String,
+      description: String,
+      updatedBy: String,
+      updatedAt: Date,
+      isAutomated: { type: Boolean, default: false }
+    }]
+  },
+
+  // Attachments and Documentation
+  attachments: [{
+    fileName: String,
+    originalName: String,
+    fileUrl: String,
+    fileType: String,
+    fileSize: Number,
+    uploadedBy: String,
+    uploadedAt: { type: Date, default: Date.now },
+    category: String, // BEFORE, AFTER, INVOICE, RECEIPT, etc.
+    description: String,
+    isPublic: { type: Boolean, default: false }
+  }],
+
+  // Quality and Rating
+  quality: {
+    customerRating: {
+      score: { type: Number, min: 1, max: 5 },
+      feedback: String,
+      ratedBy: String,
+      ratedAt: Date,
+      categories: {
+        timeliness: Number,
+        quality: Number,
+        communication: Number,
+        professionalism: Number
+      }
+    },
+    internalRating: {
+      score: { type: Number, min: 1, max: 5 },
+      notes: String,
+      ratedBy: String,
+      ratedAt: Date
+    },
+    qualityMetrics: {
+      firstTimeFixRate: Boolean,
+      customerSatisfactionScore: Number,
+      completionTime: Number,
+      reopenCount: { type: Number, default: 0 }
+    }
+  },
+
+  // Compliance and Safety
+  compliance: {
+    safetyChecklist: [{
+      item: String,
+      checked: Boolean,
+      checkedBy: String,
+      checkedAt: Date,
+      notes: String
+    }],
+    permits: [{
+      permitType: String,
+      permitNumber: String,
+      issuedBy: String,
+      validFrom: Date,
+      validTo: Date,
+      status: String
+    }],
+    regulations: [String], // Applicable regulations/standards
+    riskAssessment: {
+      riskLevel: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+      identifiedRisks: [String],
+      mitigationMeasures: [String],
+      assessedBy: String,
+      assessedAt: Date
+    }
+  },
+
+  // Recurring Work Orders
+  recurrence: {
+    isRecurring: { type: Boolean, default: false },
+    frequency: String, // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+    interval: Number, // Every N periods
+    endDate: Date,
+    maxOccurrences: Number,
+    parentWorkOrderId: String, // Reference to original recurring WO
+    nextScheduledDate: Date,
+    lastGeneratedDate: Date
+  },
+
+  // Integration and External References
+  integrations: {
+    externalSystemId: String,
+    externalWorkOrderNumber: String,
+    syncStatus: String,
+    lastSyncAt: Date,
+    syncErrors: [String],
+    connectedSystems: [{
+      systemName: String,
+      systemId: String,
+      lastSync: Date
+    }]
+  },
+
+  // Analytics and KPIs
+  metrics: {
+    responseTime: Number, // minutes from creation to first response
+    resolutionTime: Number, // minutes from creation to completion
+    firstTimeFixRate: Boolean,
+    escalationCount: { type: Number, default: 0 },
+    reopenCount: { type: Number, default: 0 },
+    customerTouchpoints: Number,
+    technicianChangeCount: { type: Number, default: 0 }
+  },
+
+  // Custom Fields and Metadata
+  customFields: Schema.Types.Mixed,
+  tags: [String],
+  references: [{
+    type: String, // RELATED_WO, PARENT_WO, CHILD_WO, etc.
+    workOrderId: String,
+    description: String
+  }],
+  
+  // Soft Delete
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: Date,
+  deletedBy: String,
+  deletionReason: String
+}, { 
+  timestamps: true,
+  // Add version key for optimistic locking
+  versionKey: 'version'
+});
+
+// Apply plugins
+WorkOrderSchema.plugin(tenantIsolationPlugin);
+WorkOrderSchema.plugin(auditPlugin);
+
+// Indexes for performance and querying
+WorkOrderSchema.index({ orgId: 1, workOrderNumber: 1 }, { unique: true });
+WorkOrderSchema.index({ orgId: 1, status: 1 });
+WorkOrderSchema.index({ orgId: 1, priority: 1 });
+WorkOrderSchema.index({ orgId: 1, 'location.propertyId': 1 });
+WorkOrderSchema.index({ orgId: 1, 'assignment.assignedTo.userId': 1 });
+WorkOrderSchema.index({ orgId: 1, 'sla.resolutionDeadline': 1 });
+WorkOrderSchema.index({ orgId: 1, 'recurrence.nextScheduledDate': 1 });
+WorkOrderSchema.index({ title: "text", description: "text", 'work.solutionDescription': "text" });
+
+// State machine validation
+WorkOrderSchema.pre('save', function(next) {
+  // Validate status transitions
+  const validTransitions: Record<string, string[]> = {
+    DRAFT: ['SUBMITTED', 'CANCELLED'],
+    SUBMITTED: ['ASSIGNED', 'REJECTED', 'CANCELLED'],
+    ASSIGNED: ['IN_PROGRESS', 'ON_HOLD', 'CANCELLED'],
+    IN_PROGRESS: ['ON_HOLD', 'PENDING_APPROVAL', 'COMPLETED', 'CANCELLED'],
+    ON_HOLD: ['IN_PROGRESS', 'CANCELLED'],
+    PENDING_APPROVAL: ['COMPLETED', 'REJECTED', 'IN_PROGRESS'],
+    COMPLETED: ['VERIFIED', 'REJECTED'],
+    VERIFIED: ['CLOSED'],
+    CLOSED: [], // Terminal state
+    CANCELLED: [], // Terminal state
+    REJECTED: ['DRAFT', 'SUBMITTED']
+  };
+
+  if (this.isModified('status') && !this.isNew) {
+    const currentStatus = this.status;
+    const previousStatus = (this as any).$__.originalDoc?.status;
+    
+    if (previousStatus && !validTransitions[previousStatus]?.includes(currentStatus)) {
+      return next(new Error(`Invalid status transition from ${previousStatus} to ${currentStatus}`));
+    }
+  }
+
+  // Auto-generate work order number if not provided
+  if (this.isNew && !this.workOrderNumber) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const timestamp = now.getTime().toString().slice(-6);
+    this.workOrderNumber = `WO-${year}${month}-${timestamp}`;
+  }
+
+  next();
+});
+
+// Virtual for due date calculation
+WorkOrderSchema.virtual('isDue').get(function() {
+  return this.sla?.resolutionDeadline && new Date() > this.sla.resolutionDeadline;
+});
+
+// Virtual for overdue calculation
+WorkOrderSchema.virtual('isOverdue').get(function() {
+  return this.sla?.resolutionDeadline && new Date() > this.sla.resolutionDeadline;
+});
+
+// Method to calculate SLA status
+WorkOrderSchema.methods.updateSLAStatus = function() {
+  const now = new Date();
+  const resolutionDeadline = this.sla.resolutionDeadline;
+  
+  if (!resolutionDeadline) {
+    this.sla.status = 'ON_TIME';
+    return;
+  }
+
+  const timeUntilDeadline = resolutionDeadline.getTime() - now.getTime();
+  const totalSLATime = this.sla.resolutionTimeMinutes * 60 * 1000; // Convert to milliseconds
+  const timeRemaining = timeUntilDeadline / totalSLATime;
+
+  if (timeUntilDeadline < 0) {
+    this.sla.status = 'BREACHED';
+  } else if (timeRemaining < 0.1) { // Less than 10% time remaining
+    this.sla.status = 'OVERDUE';
+  } else if (timeRemaining < 0.25) { // Less than 25% time remaining
+    this.sla.status = 'AT_RISK';
+  } else {
+    this.sla.status = 'ON_TIME';
+  }
+};
 
 export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
 
-// Use mock store in development when MongoDB is not available
-export const WorkOrder = isMockDB
-  ? new MockWorkOrderStore()
-  : (models.WorkOrder || model("WorkOrder", WorkOrderSchema));
+export const WorkOrder = models.WorkOrder || model("WorkOrder", WorkOrderSchema);

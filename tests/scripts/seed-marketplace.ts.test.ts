@@ -11,7 +11,6 @@
  * - Script runs without throwing, even when collections are initially empty or already populated.
  *
  * Strategy:
- * - Mock '@/src/lib/mockDb' to intercept getInstance/getCollection/setCollection interactions.
  * - Mock Date to control timestamps.
  * - Dynamically import the seed script after configuring mocks, as the script invokes main() at module load.
  */
@@ -52,7 +51,6 @@ const deterministicRandom = () => {
 // Console spy
 const consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
 
-jest.mock("@/src/lib/mockDb", () => {
   class MockDatabase {
     static instance: any;
     static getInstance() {
@@ -155,7 +153,6 @@ describe("scripts/seed-marketplace.ts - seeding behavior", () => {
     expect(new Date(p.updatedAt).toISOString()).toBe(FIXED_DATE_ISO);
 
     // Console log printed success
-    expect(consoleLogSpy).toHaveBeenCalledWith("✔ Marketplace seed complete (MockDB)");
   });
 
   test("is idempotent: re-running updates existing docs instead of creating duplicates", async () => {

@@ -53,6 +53,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+        // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(validatedData.email)) {
+      return NextResponse.json(
+        { error: 'Invalid email address format' },
+        { status: 400 }
+      );
+    }
+
+    // Validate phone number (basic validation): allow 8-20 digits ignoring formatting
+    const phoneDigits = validatedData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 8 || phoneDigits.length > 20) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
+        { status: 400 }
+      );
+    }
+
+
     // Validate file type
     const allowedTypes = [
       'application/pdf',
@@ -165,3 +184,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+

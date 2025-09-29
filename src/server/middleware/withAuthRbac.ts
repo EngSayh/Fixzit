@@ -5,7 +5,7 @@ import { verifyToken } from "@/src/lib/auth";
 export type SessionUser = {
   id: string;
   role: Role;
-  tenantId: string;
+  orgId: string;
 };
 
 export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
@@ -33,7 +33,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   return {
     id: payload.id,
     role: payload.role as Role,
-    tenantId: payload.tenantId
+    orgId: payload.orgId
   };
 }
 
