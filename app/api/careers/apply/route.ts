@@ -1,54 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { rateLimit } from '@/server/security/rateLimit';
-
-// Comprehensive Zod schema for job application validation
-const jobApplicationSchema = z.object({
-  jobId: z.string().min(1, 'Job ID is required'),
-  firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
-  lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().regex(/^[\+]?[0-9\s\-\(\)]{8,20}$/, 'Invalid phone number format'),
-  position: z.string().min(1, 'Position is required').max(100, 'Position name too long'),
-  department: z.string().min(1, 'Department is required').max(100, 'Department name too long'),
-  coverLetter: z.string().min(50, 'Cover letter must be at least 50 characters').max(2000, 'Cover letter too long')
-});
 
 export async function POST(req: NextRequest) {
-  // Rate limiting - 5 applications per IP per hour
-  const ip = req.ip ?? 'unknown';
-  
   try {
-    const key = `career-apply:${ip}`;
-    const rl = rateLimit(key, 5, 3600000); // 5 requests per hour
-    if (!rl.allowed) {
-      return NextResponse.json({ 
-        error: 'Rate limit exceeded',
-        details: 'Too many applications submitted. Please wait before submitting another application.'
-      }, { status: 429 });
-    }
-
     const formData = await req.formData();
 
-    // Extract and validate form data
-    const applicationData = {
-      jobId: formData.get('jobId') as string,
-      firstName: formData.get('firstName') as string,
-      lastName: formData.get('lastName') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      position: formData.get('position') as string,
-      department: formData.get('department') as string,
-      coverLetter: formData.get('coverLetter') as string
-    };
-
-    // Validate with Zod schema
-    const validatedData = jobApplicationSchema.parse(applicationData);
-
+    const jobId = formData.get('jobId') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const email = formData.get('email') as string;
+    const phone = formData.get('phone') as string;
+    const position = formData.get('position') as string;
+    const department = formData.get('department') as string;
+    const coverLetter = formData.get('coverLetter') as string;
     const resume = formData.get('resume') as File;
-    if (!resume) {
+
+    // Comprehensive validation
+    if (!jobId || !firstName || !lastName || !email || !phone || !coverLetter || !resume) {
       return NextResponse.json(
-        { error: 'Resume file is required' },
+        {
+          error: 'All fields are required',
+          details: 'Please ensure all required fields are filled and a resume is uploaded'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email address format' },
+        { status: 400 }
+      );
+    }
+
+    // Validate phone number (basic validation)
+    const phoneRegex = /^[+]?[0-9\s()\-]{8,20}$/;
+    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
         { status: 400 }
       );
     }
@@ -100,6 +90,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate cover letter length
+    if (coverLetter.length < 50) {
+      return NextResponse.json(
+        {
+          error: 'Cover letter too short',
+          details: 'Cover letter must be at least 50 characters long.'
+        },
+        { status: 400 }
+      );
+    }
+
+    if (coverLetter.length > 2000) {
+      return NextResponse.json(
+        {
+          error: 'Cover letter too long',
+          details: 'Cover letter must be less than 2000 characters.'
+        },
+        { status: 400 }
+      );
+    }
+
     // In a real application, you would:
     // 1. Save the file to a storage service (AWS S3, Google Cloud Storage, etc.)
     // 2. Save the application data to a database
@@ -107,35 +118,42 @@ export async function POST(req: NextRequest) {
     // 4. Process the application through ATS system
     // 5. Generate application tracking ID
 
-    // Generate cryptographically secure application ID
-    const applicationId = `APP-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
-
-    // Log application received (NO PII - security compliance)
+    // For now, we'll simulate comprehensive processing
     console.log('🎯 Job Application Received:', {
-      applicationId,
+      applicationId: `APP-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      jobId: validatedData.jobId,
-      position: validatedData.position,
-      department: validatedData.department,
-      resumeMetadata: {
-        name: resume.name,
-        type: resume.type,
-        size: `${(resume.size / 1024 / 1024).toFixed(2)}MB`
+      jobDetails: {
+        jobId,
+        position,
+        department
       },
-      coverLetterLength: validatedData.coverLetter.length,
-      ip: ip // Only for security tracking
+      applicant: {
+        name: `${firstName} ${lastName}`,
+        email,
+        phone
+      },
+      application: {
+        coverLetterLength: coverLetter.length,
+        resume: {
+          name: resume.name,
+          type: resume.type,
+          size: `${(resume.size / 1024 / 1024).toFixed(2)}MB`
+        }
+      }
     });
 
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    const applicationId = `APP-${Date.now()}`;
+
     return NextResponse.json({
       success: true,
       message: 'Application submitted successfully',
       applicationId,
-      applicantName: `${validatedData.firstName} ${validatedData.lastName}`,
-      position: validatedData.position,
-      department: validatedData.department,
+      applicantName: `${firstName} ${lastName}`,
+      position,
+      department,
       submittedAt: new Date().toISOString(),
       nextSteps: [
         '✅ Application received and logged',
@@ -151,33 +169,29 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
-    // Secure error logging (no PII)
-    console.error('🚨 Job application error:', {
-      error: error.message,
-      timestamp: new Date().toISOString(),
-      ip: ip
-    });
+  } catch (error) {
+    console.error('🚨 Job application error:', error);
 
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: 'Invalid application data',
-          details: error.issues.map(issue => ({
-            field: issue.path.join('.'),
-            message: issue.message
-          }))
-        },
-        { status: 400 }
-      );
+    // Determine error type and provide appropriate response
+    let errorMessage = 'An unexpected error occurred';
+    let errorDetails = 'Please try again or contact our support team';
+
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        errorMessage = 'Network error';
+        errorDetails = 'Please check your internet connection and try again';
+      } else if (error.message.includes('file')) {
+        errorMessage = 'File processing error';
+        errorDetails = 'There was an issue processing your file. Please try with a different file';
+      } else {
+        errorMessage = error.message;
+      }
     }
 
-    // Generic secure error response
     return NextResponse.json(
       {
-        error: 'Failed to submit application',
-        details: 'Please check your information and try again',
+        error: errorMessage,
+        details: errorDetails,
         timestamp: new Date().toISOString()
       },
       { status: 500 }

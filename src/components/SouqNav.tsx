@@ -5,18 +5,18 @@ import { usePathname } from "next/navigation";
 import {
   ShoppingBag, Package, Users, FileText, ClipboardList,
   Truck, Star, Filter, Search, Settings
-} from 'lucide-react';
+} from &apos;lucide-react&apos;;
 
 const SOUQ_MODULES = [
-  { icon: Package, label: 'Catalog', route: '/souq/catalog' },
-  { icon: Users, label: 'Vendors', route: '/souq/vendors' },
-  { icon: FileText, label: 'RFQs & Bids', route: '/souq/rfqs' },
-  { icon: ClipboardList, label: 'Orders & POs', route: '/souq/orders' },
-  { icon: Truck, label: 'Shipping', route: '/souq/shipping' },
-  { icon: Star, label: 'Reviews', route: '/souq/reviews' },
-  { icon: Filter, label: 'Categories', route: '/souq/categories' },
-  { icon: Search, label: 'Advanced Search', route: '/souq/search' },
-  { icon: Settings, label: 'Vendor Portal', route: '/souq/vendor' },
+  { icon: Package, label: &apos;Catalog&apos;, route: &apos;/souq/catalog&apos; },
+  { icon: Users, label: &apos;Vendors&apos;, route: &apos;/souq/vendors&apos; },
+  { icon: FileText, label: &apos;RFQs & Bids&apos;, route: &apos;/souq/rfqs&apos; },
+  { icon: ClipboardList, label: &apos;Orders & POs&apos;, route: &apos;/souq/orders&apos; },
+  { icon: Truck, label: &apos;Shipping&apos;, route: &apos;/souq/shipping&apos; },
+  { icon: Star, label: &apos;Reviews&apos;, route: &apos;/souq/reviews&apos; },
+  { icon: Filter, label: &apos;Categories&apos;, route: &apos;/souq/categories&apos; },
+  { icon: Search, label: &apos;Advanced Search&apos;, route: &apos;/souq/search&apos; },
+  { icon: Settings, label: &apos;Vendor Portal&apos;, route: &apos;/souq/vendor&apos; },
 ];
 
 export default function SouqNav() {
@@ -33,8 +33,8 @@ export default function SouqNav() {
           href={route}
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             pathname === route
-              ? 'bg-[#00A859] text-white'
-              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              ? &apos;bg-[#00A859] text-white&apos;
+              : &apos;text-gray-700 hover:bg-gray-100 hover:text-gray-900&apos;
           }`}
         >
           <Icon className="h-5 w-5" />

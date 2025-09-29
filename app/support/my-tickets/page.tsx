@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
+import { useState, useEffect } from &apos;react&apos;;
+import useSWR from 'swr&apos;;
 
 const fetcher = (url: string) => fetch(url, {
   headers: {
@@ -11,27 +11,27 @@ const fetcher = (url: string) => fetch(url, {
 
 export default function MyTicketsPage() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
-  const [replyText, setReplyText] = useState('');
-  const { data, mutate } = useSWR('/api/support/tickets/my', fetcher);
+  const [replyText, setReplyText] = useState(&apos;');
+  const { data, mutate } = useSWR(&apos;/api/support/tickets/my&apos;, fetcher);
 
   const sendReply = async () => {
     if (!selectedTicket || !replyText.trim()) return;
     
     const res = await fetch(`/api/support/tickets/${selectedTicket._id}/reply`, {
-      method: 'POST',
+      method: &apos;POST&apos;,
       headers: {
-        'content-type': 'application/json',
-        'x-user': localStorage.getItem("x-user") || ""
+        &apos;content-type&apos;: &apos;application/json&apos;,
+        &apos;x-user&apos;: localStorage.getItem("x-user") || ""
       },
       body: JSON.stringify({ text: replyText })
     });
     
     if (res.ok) {
-      setReplyText('');
+      setReplyText(&apos;');
       mutate();
       // Refresh selected ticket
       const ticketRes = await fetch(`/api/support/tickets/${selectedTicket._id}`, {
-        headers: { 'x-user': localStorage.getItem("x-user") || "" }
+        headers: { &apos;x-user&apos;: localStorage.getItem("x-user") || "" }
       });
       if (ticketRes.ok) {
         setSelectedTicket(await ticketRes.json());
@@ -48,8 +48,8 @@ export default function MyTicketsPage() {
         </div>
         <button 
           onClick={() => {
-            const footer = document.querySelector('footer');
-            const supportBtn = footer?.querySelector('button');
+            const footer = document.querySelector('footer&apos;);
+            const supportBtn = footer?.querySelector(&apos;button&apos;);
             supportBtn?.click();
           }}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -74,17 +74,17 @@ export default function MyTicketsPage() {
                     key={ticket._id}
                     onClick={() => setSelectedTicket(ticket)}
                     className={`p-4 cursor-pointer hover:bg-gray-50 ${
-                      selectedTicket?._id === ticket._id ? 'bg-blue-50' : ''
+                      selectedTicket?._id === ticket._id ? &apos;bg-blue-50&apos; : &apos;'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <p className="font-medium text-gray-900 text-sm">{ticket.code}</p>
                       <span className={`text-xs px-2 py-1 rounded-full ${
-                        ticket.status === 'New' ? 'bg-blue-100 text-blue-800' :
-                        ticket.status === 'Open' ? 'bg-yellow-100 text-yellow-800' :
-                        ticket.status === 'Waiting' ? 'bg-purple-100 text-purple-800' :
-                        ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
+                        ticket.status === 'New&apos; ? &apos;bg-blue-100 text-blue-800&apos; :
+                        ticket.status === &apos;Open&apos; ? &apos;bg-yellow-100 text-yellow-800&apos; :
+                        ticket.status === &apos;Waiting&apos; ? &apos;bg-purple-100 text-purple-800&apos; :
+                        ticket.status === &apos;Resolved&apos; ? &apos;bg-green-100 text-green-800&apos; :
+                        &apos;bg-gray-100 text-gray-800&apos;
                       }`}>
                         {ticket.status}
                       </span>
@@ -113,10 +113,10 @@ export default function MyTicketsPage() {
                     </p>
                   </div>
                   <span className={`text-xs px-3 py-1 rounded-full ${
-                    selectedTicket.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
-                    selectedTicket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                    selectedTicket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
+                    selectedTicket.priority === 'Urgent&apos; ? &apos;bg-red-100 text-red-800&apos; :
+                    selectedTicket.priority === &apos;High&apos; ? &apos;bg-orange-100 text-orange-800&apos; :
+                    selectedTicket.priority === &apos;Medium&apos; ? &apos;bg-yellow-100 text-yellow-800&apos; :
+                    &apos;bg-gray-100 text-gray-800&apos;
                   }`}>
                     {selectedTicket.priority} Priority
                   </span>
@@ -127,16 +127,16 @@ export default function MyTicketsPage() {
               <div className="p-4 max-h-96 overflow-y-auto">
                 {selectedTicket.messages?.map((msg: any, index: number) => (
                   <div key={index} className={`mb-4 ${
-                    msg.byRole === 'ADMIN' ? 'ml-8' : ''
+                    msg.byRole === &apos;ADMIN&apos; ? &apos;ml-8&apos; : &apos;'
                   }`}>
                     <div className={`p-3 rounded-lg ${
-                      msg.byRole === 'ADMIN' 
-                        ? 'bg-blue-50 border border-blue-200' 
-                        : 'bg-gray-50 border border-gray-200'
+                      msg.byRole === 'ADMIN&apos; 
+                        ? &apos;bg-blue-50 border border-blue-200&apos; 
+                        : &apos;bg-gray-50 border border-gray-200&apos;
                     }`}>
                       <div className="flex justify-between items-start mb-1">
                         <p className="text-xs font-medium text-gray-600">
-                          {msg.byRole === 'ADMIN' ? 'Support Team' : 'You'}
+                          {msg.byRole === 'ADMIN&apos; ? &apos;Support Team&apos; : &apos;You&apos;}
                         </p>
                         <p className="text-xs text-gray-500">
                           {new Date(msg.at).toLocaleString()}
@@ -149,7 +149,7 @@ export default function MyTicketsPage() {
               </div>
 
               {/* Reply */}
-              {selectedTicket.status !== 'Closed' && (
+              {selectedTicket.status !== 'Closed&apos; && (
                 <div className="p-4 border-t border-gray-200">
                   <textarea
                     value={replyText}
