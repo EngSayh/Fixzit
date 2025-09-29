@@ -7,6 +7,10 @@
         "ms-dotnettools.vscode-dotnet-runtime",
         "ms-dotnettools.csharp",
         "ms-dotnettools.csdevkit",
-        "github.copilot"
+        "github.copilot",
+        "coderabbit.coderabbit-vscode",
+        "github.vscode-github-actions",
+        "christian-kohler.npm-intellisense",
+        "ms-azuretools.vscode-containers"
     ]
 }
