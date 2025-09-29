@@ -145,10 +145,9 @@ describe('seed-marketplace script', () => {
       expect(updated.term).toBe('ac filter') // unchanged
       expect(updated.locale).toBe('en')
     } finally {
-      ;(Date.now as any).mockRestore?.()
+      (Date.now as any).mockRestore?.()
       // ensure Date.now restored in all environments
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
+      // @ts-expect-error - Restoring original Date.now implementation
       Date.now = originalNow
     }
   })

@@ -208,14 +208,14 @@ ${colors.reset}`);
     
     const securityPatterns = [
       // Authentication Issues
-      { pattern: /jwt\.sign\([^,]+,\s*['"][^'"]+['"]\s*,\s*\{[^}]*\}\)/gi, issue: 'JWT without expiration', severity: Severity.CRITICAL },
-      { pattern: /localStorage\.setItem\(['"][^'"]*token/gi, issue: 'Token stored in localStorage', severity: Severity.HIGH },
-      { pattern: /eval\s*\(/g, issue: 'eval() usage detected', severity: Severity.CRITICAL },
+      { pattern: /jwt\.sign([^,]+,\s*['"][^'"]+['"]\s*,\s*\{[^}]*\})/gi, issue: 'JWT without expiration', severity: Severity.CRITICAL },
+      { pattern: /localStorage\.setItem(['"][^'"]*token/gi, issue: 'Token stored in localStorage', severity: Severity.HIGH },
+      { pattern: /eval\s*(/g, issue: 'eval() usage detected', severity: Severity.CRITICAL },
       { pattern: /innerHTML\s*=/g, issue: 'innerHTML usage (XSS risk)', severity: Severity.HIGH },
       
       // SQL Injection
-      { pattern: /query\s*\(\s*['"`].*\$\{.*\}.*['"`]/g, issue: 'SQL injection vulnerability', severity: Severity.CRITICAL },
-      { pattern: /query\s*\(\s*['"`].*\+.*['"`]/g, issue: 'SQL concatenation detected', severity: Severity.CRITICAL },
+      { pattern: /query\s*(\s*['"`].*\$\{.*\}.*['"`]/g, issue: 'SQL injection vulnerability', severity: Severity.CRITICAL },
+      { pattern: /query\s*(\s*['"`].*+.*['"`]/g, issue: 'SQL concatenation detected', severity: Severity.CRITICAL },
       
       // API Keys & Secrets
       { pattern: /api[_-]?key\s*[:=]\s*['"][^'"]+['"]/gi, issue: 'API key in code', severity: Severity.CRITICAL },
@@ -223,7 +223,7 @@ ${colors.reset}`);
       
       // CORS Issues
       { pattern: /Access-Control-Allow-Origin.*\*/g, issue: 'CORS wildcard origin', severity: Severity.HIGH },
-      { pattern: /cors\(\s*\)/g, issue: 'CORS without configuration', severity: Severity.HIGH },
+      { pattern: /cors(\s*)/g, issue: 'CORS without configuration', severity: Severity.HIGH },
       
       // Console statements
       { pattern: /console\.(log|error|warn|info)/g, issue: 'Console statement in code', severity: Severity.LOW },
@@ -255,7 +255,7 @@ ${colors.reset}`);
     
     const routePatterns = [
       // Missing authentication
-      { pattern: /router\.(get|post|put|delete|patch)\s*\([^,]*,\s*(?!.*auth)/g, issue: 'Route without authentication', severity: Severity.CRITICAL },
+      { pattern: /router\.(get|post|put|delete|patch)\s*([^,]*,\s*(?!.*auth)/g, issue: 'Route without authentication', severity: Severity.CRITICAL },
       
       // Missing rate limiting
       { pattern: /\/api\/(?!.*rateLimit).*$/gm, issue: 'API route without rate limiting', severity: Severity.HIGH },
@@ -264,8 +264,8 @@ ${colors.reset}`);
       { pattern: /\/(debug|test|temp|admin\/debug)/g, issue: 'Debug route exposed', severity: Severity.CRITICAL },
       
       // Error handling
-      { pattern: /catch\s*\([^)]*\)\s*\{\s*\}/g, issue: 'Empty catch block', severity: Severity.MEDIUM },
-      { pattern: /throw\s+new\s+Error\([^)]*\)(?!\s*;?\s*})/g, issue: 'Unhandled error throw', severity: Severity.MEDIUM },
+      { pattern: /catch\s*([^)]*)\s*\{\s*\}/g, issue: 'Empty catch block', severity: Severity.MEDIUM },
+      { pattern: /throw\s+new\s+Error([^)]*)(?!\s*;?\s*})/g, issue: 'Unhandled error throw', severity: Severity.MEDIUM },
     ];
     
     // Scan route files
@@ -295,7 +295,7 @@ ${colors.reset}`);
     
     const dbPatterns = [
       // N+1 Queries
-      { pattern: /\.map\s*\([^)]*await\s+[^)]*\.(find|query|select)/g, issue: 'N+1 query pattern detected', severity: Severity.HIGH },
+      { pattern: /\.map\s*([^)]*await\s+[^)]*\.(find|query|select)/g, issue: 'N+1 query pattern detected', severity: Severity.HIGH },
       
       // Missing indexes
       { pattern: /where\s+[^.]+\.(?!id|_id|uuid)/gi, issue: 'Query on non-indexed field', severity: Severity.MEDIUM },
@@ -304,7 +304,7 @@ ${colors.reset}`);
       { pattern: /BEGIN|START\s+TRANSACTION(?![\s\S]*COMMIT|ROLLBACK)/gi, issue: 'Transaction without commit/rollback', severity: Severity.HIGH },
       
       // Connection leaks
-      { pattern: /createConnection|connect\((?![\s\S]*\.close\(\)|\.end\(\))/g, issue: 'Database connection not closed', severity: Severity.HIGH },
+      { pattern: /createConnection|connect((?![\s\S]*\.close()|\.end())/g, issue: 'Database connection not closed', severity: Severity.HIGH },
       
       // Injection vulnerabilities
       { pattern: /\$\{[^}]*\}.*(?:WHERE|AND|OR)/gi, issue: 'Template literal in SQL query', severity: Severity.CRITICAL },
@@ -332,11 +332,11 @@ ${colors.reset}`);
     
     const apiPatterns = [
       // Missing error handling
-      { pattern: /fetch\([^)]+\)(?!\.then\(|\.catch\(|await)/g, issue: 'Fetch without error handling', severity: Severity.HIGH },
-      { pattern: /axios\.[a-z]+\([^)]+\)(?!\.then\(|\.catch\(|await)/g, issue: 'Axios without error handling', severity: Severity.HIGH },
+      { pattern: /fetch([^)]+)(?!\.then(|\.catch(|await)/g, issue: 'Fetch without error handling', severity: Severity.HIGH },
+      { pattern: /axios\.[a-z]+([^)]+)(?!\.then(|\.catch(|await)/g, issue: 'Axios without error handling', severity: Severity.HIGH },
       
       // Missing timeout
-      { pattern: /fetch\([^)]+\)(?![^}]*timeout)/g, issue: 'Fetch without timeout', severity: Severity.MEDIUM },
+      { pattern: /fetch([^)]+)(?![^}]*timeout)/g, issue: 'Fetch without timeout', severity: Severity.MEDIUM },
       
       // API versioning
       { pattern: /\/api\/(?!v\d+)/g, issue: 'API without versioning', severity: Severity.LOW },
@@ -370,18 +370,18 @@ ${colors.reset}`);
     
     const performancePatterns = [
       // React performance
-      { pattern: /useEffect\([^,]+\)/g, issue: 'useEffect without dependencies', severity: Severity.MEDIUM },
+      { pattern: /useEffect([^,]+)/g, issue: 'useEffect without dependencies', severity: Severity.MEDIUM },
       
       // Bundle size
       { pattern: /import\s+\*\s+as/g, issue: 'Full library import', severity: Severity.MEDIUM },
-      { pattern: /require\(['"][^'"]+['"]\)/g, issue: 'Dynamic require (affects bundling)', severity: Severity.MEDIUM },
+      { pattern: /require(['"][^'"]+['"])/g, issue: 'Dynamic require (affects bundling)', severity: Severity.MEDIUM },
       
       // Memory leaks
       { pattern: /addEventListener(?![\s\S]*removeEventListener)/g, issue: 'Event listener not removed', severity: Severity.HIGH },
       { pattern: /setInterval(?![\s\S]*clearInterval)/g, issue: 'Interval not cleared', severity: Severity.HIGH },
       
       // Inefficient operations
-      { pattern: /JSON\.parse\(JSON\.stringify/g, issue: 'Inefficient deep clone', severity: Severity.MEDIUM },
+      { pattern: /JSON\.parse(JSON\.stringify/g, issue: 'Inefficient deep clone', severity: Severity.MEDIUM },
     ];
     
     for (const [filePath, content] of this.fileCache) {
@@ -406,7 +406,7 @@ ${colors.reset}`);
     
     const tsPatterns = [
       // Type errors
-      { pattern: /any(?:\[\])?(?:\s*[,;]|\s*\))/g, issue: 'Using "any" type', severity: Severity.LOW },
+      { pattern: /any(?:\[\])?(?:\s*[,;]|\s*))/g, issue: 'Using "any" type', severity: Severity.LOW },
       { pattern: /@ts-ignore|@ts-nocheck/g, issue: 'TypeScript checks disabled', severity: Severity.MEDIUM },
       { pattern: /\!\./g, issue: 'Non-null assertion operator', severity: Severity.LOW },
       
@@ -414,8 +414,8 @@ ${colors.reset}`);
       { pattern: /TODO|FIXME|HACK|XXX/g, issue: 'Unresolved TODO/FIXME', severity: Severity.LOW },
       
       // Async issues
-      { pattern: /async\s+\([^)]*\)\s*=>\s*(?!.*await)/g, issue: 'Async function without await', severity: Severity.LOW },
-      { pattern: /new\s+Promise\([^)]+\)(?!.*(?:resolve|reject))/g, issue: 'Promise without resolve/reject', severity: Severity.HIGH },
+      { pattern: /async\s+([^)]*)\s*=>\s*(?!.*await)/g, issue: 'Async function without await', severity: Severity.LOW },
+      { pattern: /new\s+Promise([^)]+)(?!.*(?:resolve|reject))/g, issue: 'Promise without resolve/reject', severity: Severity.HIGH },
     ];
     
     for (const [filePath, content] of this.fileCache) {
@@ -489,7 +489,7 @@ ${colors.reset}`);
       { pattern: /JOIN(?!.*ON.*tenant)/gi, issue: 'JOIN without tenant constraint', severity: Severity.HIGH },
       
       // Global operations
-      { pattern: /cache\.(get|set)\([^,)]+\)(?!.*tenant)/g, issue: 'Cache without tenant namespace', severity: Severity.HIGH },
+      { pattern: /cache\.(get|set)([^,)]+)(?!.*tenant)/g, issue: 'Cache without tenant namespace', severity: Severity.HIGH },
     ];
     
     for (const [filePath, content] of this.fileCache) {
@@ -523,7 +523,7 @@ ${colors.reset}`);
       { pattern: /float:\s*(?:left|right)/g, issue: 'Float direction (RTL issue)', severity: Severity.MEDIUM },
       
       // Date/Number formatting
-      { pattern: /new\s+Date\(\)\.to(?:Date|Time|Locale)String\(\)/g, issue: 'Date formatting without locale', severity: Severity.MEDIUM },
+      { pattern: /new\s+Date()\.to(?:Date|Time|Locale)String()/g, issue: 'Date formatting without locale', severity: Severity.MEDIUM },
     ];
     
     for (const [filePath, content] of this.fileCache) {
