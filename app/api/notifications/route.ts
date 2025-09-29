@@ -9,7 +9,7 @@ const notificationSchema = z.object({
   type: z.enum(["work-order", "vendor", "payment", "maintenance", "system"]),
   priority: z.enum(["low", "medium", "high"]),
   category: z.enum(["maintenance", "vendor", "finance", "system"]),
-  tenantId: z.string().optional()
+  orgId: z.string().optional()
 });
 
 // All operations now backed by Mongo collection (tenant-scoped)
@@ -27,16 +27,16 @@ export async function GET(req: NextRequest) {
   const rawLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
 
-  let tenantId: string;
+  let orgId: string;
   try {
     const user = await getSessionUser(req);
-    tenantId = user.tenantId;
+    orgId = (user as any)?.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { notifications } = await getCollections();
-  const filter: any = { tenantId };
+  const filter: any = { orgId };
   if (q) {
     const safe = escapeRegex(q);
     filter.$or = [
@@ -65,10 +65,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  let tenantId: string;
+  let orgId: string;
   try {
     const user = await getSessionUser(req);
-    tenantId = user.tenantId;
+    orgId = (user as any)?.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   const data = notificationSchema.parse(body);
   const { notifications } = await getCollections();
   const doc = {
-    tenantId,
+    orgId,
     type: data.type,
     title: data.title,
     message: data.message,

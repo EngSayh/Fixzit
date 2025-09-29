@@ -1,6 +1,5 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 import { MockModel } from '@/src/lib/mockDb';
-import { isMockDB } from '@/src/lib/mongo';
 
 const ApplicationStages = [
   'applied',

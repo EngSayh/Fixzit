@@ -1,0 +1,12 @@
+.next
+node_modules
+_artifacts
+public
+packages/fixzit-souq-server
+scripts
+database
+deployment
+qa
+tests
+coverage
+playwright-report

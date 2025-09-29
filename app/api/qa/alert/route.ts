@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isMockDB, getNativeDb } from '@/src/lib/mongo';
+import { db, getNativeDb } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { event, data } = body;
 
-    // Log the alert to console for mock database
-    if (isMockDB) {
-      console.warn(`🚨 QA Alert (Mock): ${event}`, data);
-      return NextResponse.json({ success: true, mock: true });
-    }
-
-    // Log the alert to database for real database
+    // Log the alert to database
     const native = await getNativeDb();
     await native.collection('qa_alerts').insertOne({
       event,
@@ -33,11 +27,6 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Return empty array for mock database
-    if (isMockDB) {
-      return NextResponse.json({ alerts: [], mock: true });
-    }
-
     const native = await getNativeDb();
     const alerts = await native.collection('qa_alerts')
       .find({})
