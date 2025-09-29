@@ -1,4 +1,4 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 interface DialogProps {
   open?: boolean;
@@ -24,7 +24,7 @@ export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) 
   );
 };
 
-export const DialogContent: React.FC<DialogContentProps> = ({ className = '', ...props }) => {
+export const DialogContent: React.FC<DialogContentProps> = ({ className = &apos;', ...props }) => {
   return (
     <div
       className={`relative w-full max-w-lg bg-white rounded-lg shadow-lg ${className}`}
@@ -33,7 +33,7 @@ export const DialogContent: React.FC<DialogContentProps> = ({ className = '', ..
   );
 };
 
-export const DialogHeader: React.FC<DialogHeaderProps> = ({ className = '', ...props }) => {
+export const DialogHeader: React.FC<DialogHeaderProps> = ({ className = &apos;', ...props }) => {
   return (
     <div
       className={`p-6 pb-0 ${className}`}
@@ -42,7 +42,7 @@ export const DialogHeader: React.FC<DialogHeaderProps> = ({ className = '', ...p
   );
 };
 
-export const DialogTitle: React.FC<DialogTitleProps> = ({ className = '', ...props }) => {
+export const DialogTitle: React.FC<DialogTitleProps> = ({ className = &apos;', ...props }) => {
   return (
     <h2
       className={`text-lg font-semibold leading-none tracking-tight ${className}`}

@@ -1,0 +1,1 @@
+../src/server/models/MarketplaceProduct.ts

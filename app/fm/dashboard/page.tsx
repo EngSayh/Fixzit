@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const { data: workOrders } = useSWR('/api/work-orders?limit=5', fetcher);
   const { data: properties } = useSWR('/api/properties?limit=5', fetcher);
   const { data: assets } = useSWR('/api/assets?status=MAINTENANCE&limit=5', fetcher);
-  const { data: invoices } = useSWR('/api/invoices?status=OVERDUE&limit=5', fetcher);
+  const { data: invoices } = useSWR('/api/finance/invoices?status=OVERDUE&limit=5', fetcher);
 
   const stats = {
     workOrders: {
