@@ -1,31 +1,21 @@
+import { parseCartAmount as parsePaymentCartAmount } from '@/src/lib/payments/parseCartAmount';
+
+// Delegate cart amount parsing to the shared payments helper so PayTabs-specific
+// callbacks and admin flows stay in sync on acceptable formats.
+
+export const parseCartAmount = parsePaymentCartAmount;
+
 export function normalizePaytabsString(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null;
   }
-
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-export function parseCartAmount(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return null;
 }
 
 export function normalizePaytabsStatus(value: unknown): string {
   if (typeof value !== 'string') {
     return '';
   }
-
   return value.trim().toUpperCase();
 }

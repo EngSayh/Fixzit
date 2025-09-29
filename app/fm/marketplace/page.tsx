@@ -1,15 +1,15 @@
-'use client';
+'use client&apos;;
 
-import { useState } from 'react';
+import { useState } from &apos;react&apos;;
 
 export default function MarketplacePage() {
-  const [activeTab, setActiveTab] = useState('catalog');
+  const [activeTab, setActiveTab] = useState(&apos;catalog&apos;);
 
   const tabs = [
-    { id: 'catalog', label: 'Catalog', description: 'Browse products and services' },
-    { id: 'vendors', label: 'Vendors', description: 'Manage approved suppliers' },
-    { id: 'rfqs', label: 'RFQs & Bids', description: 'Request for quotations' },
-    { id: 'orders', label: 'Orders & POs', description: 'Purchase orders & tracking' },
+    { id: &apos;catalog&apos;, label: &apos;Catalog&apos;, description: &apos;Browse products and services&apos; },
+    { id: &apos;vendors&apos;, label: &apos;Vendors&apos;, description: &apos;Manage approved suppliers&apos; },
+    { id: &apos;rfqs&apos;, label: &apos;RFQs & Bids&apos;, description: &apos;Request for quotations&apos; },
+    { id: &apos;orders&apos;, label: &apos;Orders & POs&apos;, description: &apos;Purchase orders & tracking&apos; },
   ];
 
   return (
@@ -30,8 +30,8 @@ export default function MarketplacePage() {
               onClick={() => setActiveTab(tab.id)}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-500 text-blue-600&apos;
+                  : &apos;border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300&apos;
               }`}
             >
               {tab.label}

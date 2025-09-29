@@ -6,7 +6,7 @@ import { Input } from '../../src/components/ui/input';
 import {
   Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Globe,
   ChevronDown, User, Shield, Building2, Users,
-  ArrowRight, Github, Chrome, Apple
+  ArrowRight, Chrome, Apple
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

@@ -1,7 +1,7 @@
-'use client';
+'use client&apos;;
 
-import { useState, useEffect } from 'react';
-import { Package, TrendingUp, Clock, Star } from 'lucide-react';
+import { useState, useEffect } from &apos;react&apos;;
+import { Package, TrendingUp, Clock, Star } from &apos;lucide-react&apos;;
 
 export default function VendorDashboard() {
   const [stats, setStats] = useState({
@@ -40,13 +40,13 @@ export default function VendorDashboard() {
     });
     
     setProducts([
-      { id: 1, title: 'AC Filter 24x24', stock: 150, price: 89.99, sold: 45 },
-      { id: 2, title: 'PVC Pipe 2 inch', stock: 500, price: 45.50, sold: 120 }
+      { id: 1, title: &apos;AC Filter 24x24&apos;, stock: 150, price: 89.99, sold: 45 },
+      { id: 2, title: &apos;PVC Pipe 2 inch&apos;, stock: 500, price: 45.50, sold: 120 }
     ]);
     
     setOrders([
-      { id: 'ORD-001', customer: 'Acme Corp', total: 1250.00, status: 'Processing' },
-      { id: 'ORD-002', customer: 'Tech Solutions', total: 3400.00, status: 'Shipped' }
+      { id: &apos;ORD-001&apos;, customer: &apos;Acme Corp&apos;, total: 1250.00, status: &apos;Processing&apos; },
+      { id: &apos;ORD-002&apos;, customer: &apos;Tech Solutions&apos;, total: 3400.00, status: &apos;Shipped&apos; }
     ]);
   };
   
@@ -154,7 +154,7 @@ export default function VendorDashboard() {
                     <td className="px-6 py-4">SAR {order.total.toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        order.status === 'Shipped' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        order.status === 'Shipped&apos; ? &apos;bg-green-100 text-green-800&apos; : &apos;bg-yellow-100 text-yellow-800&apos;
                       }`}>
                         {order.status}
                       </span>

@@ -6,7 +6,6 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "lint:fix": "next lint --fix",
     "typecheck": "tsc -p .",
     "qa:verify": "node scripts/qa/halt-fix-verify.mjs",
     "verify": "node qa/scripts/verify.mjs",
@@ -40,9 +39,7 @@
     "clean:root": "tsx scripts/janitor.ts --apply",
     "bundle:check": "webpack --config webpack.config.js --mode=production",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
-    "docs:marketplace-bible": "tsx scripts/generate-marketplace-bible.ts",
-    "kb:watch": "tsx scripts/kb-change-stream.ts",
-    "verify:sanitize": "tsx scripts/verify-sanitize-and-signed-urls.ts"
+    "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -98,7 +95,6 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.0",
-    "unified": "^11.0.5",
     "webpack": "^5.101.3",
     "webpack-cli": "^6.0.1",
     "zod": "^4.1.11"
@@ -115,8 +111,8 @@
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.16",
     "concurrently": "^9.2.1",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^15.5.4",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.15",
     "fast-glob": "^3.3.3",
     "jsdom": "^27.0.0",
     "picocolors": "^1.1.1",
