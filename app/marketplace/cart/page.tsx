@@ -2,7 +2,6 @@ import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
 import Link from 'next/link';
 import Image from 'next/image';
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
-import Image from 'next/image';
 
 export default async function CartPage() {
   const [categoriesResponse, cartResponse] = await Promise.all([

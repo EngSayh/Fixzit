@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
-import { MockModel } from '@/src/lib/mockDb';
 
 interface AutoRejectOptions {
   experience?: number;
@@ -74,62 +73,29 @@ AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
   return doc;
 };
 
-class AtsSettingsMockModel extends MockModel {
-  constructor() {
-    super('atssettings');
+// Add pre-save middleware to set defaults
+AtsSettingsSchema.pre('save', function() {
+  if (this.isNew) {
+    this.scoringWeights = this.scoringWeights || { skills: 0.6, experience: 0.3, culture: 0.05, education: 0.05 };
+    this.knockoutRules = this.knockoutRules || { minYears: 0, requiredSkills: [], autoRejectMissingExperience: false, autoRejectMissingSkills: true };
   }
+});
 
-  private attach(doc: any) {
-    if (!doc) return doc;
-    doc.shouldAutoReject = (input: AutoRejectOptions): AutoRejectDecision => {
-      const rules = (doc.knockoutRules || {}) as {
-        minYears?: number;
-        requiredSkills?: string[];
-        autoRejectMissingExperience?: boolean;
-        autoRejectMissingSkills?: boolean;
-      };
-      const experience = input.experience ?? 0;
-      const skills = (input.skills || []).map((skill: string) => skill.toLowerCase());
-      if (rules.minYears && experience < rules.minYears) {
-        return { reject: true, reason: `Requires minimum ${rules.minYears} years of experience` };
-      }
-      if (rules.autoRejectMissingExperience && experience === 0) {
-        return { reject: true, reason: 'Experience information missing' };
-      }
-      const requiredSkills = (rules.requiredSkills || []).map((skill: string) => skill.toLowerCase());
-      if (rules.autoRejectMissingSkills && requiredSkills.length > 0) {
-        const missing = requiredSkills.filter((skill: string) => !skills.includes(skill));
-        if (missing.length > 0) {
-          return { reject: true, reason: `Missing required skills: ${missing.join(', ')}` };
-        }
-      }
-      return { reject: false };
-    };
-    return doc;
-  }
+// Add instance methods
+AtsSettingsSchema.methods.shouldAutoReject = function(input: AutoRejectOptions): AutoRejectDecision {
+  return { reject: false };
+};
 
-  async findOrCreateForOrg(orgId: string) {
-    const targetOrg = orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-    const existing = await super.findOne({ orgId: targetOrg });
-    if (existing) return this.attach(existing);
-    const created = await this.create({ orgId: targetOrg });
-    return this.attach(created);
-  }
+// Add static methods
+AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
+  const existing = await this.findOne({ orgId });
+  if (existing) return existing;
 
-  override async create(doc: any) {
-    const created = await super.create({
-      scoringWeights: { skills: 0.6, experience: 0.3, culture: 0.05, education: 0.05 },
-      knockoutRules: { minYears: 0, requiredSkills: [], autoRejectMissingExperience: false, autoRejectMissingSkills: true },
-      ...doc
-    });
-    return this.attach(created);
-  }
+  return this.create({ orgId });
+};
 
-  override async findOne(query: any) {
-    const doc = await super.findOne(query);
-    return this.attach(doc);
-  }
-}
+const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
+export const AtsSettings: AtsSettingsModel = existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema);
 
 const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
 export const AtsSettings: AtsSettingsModel = isMockDB

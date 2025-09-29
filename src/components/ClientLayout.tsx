@@ -9,7 +9,6 @@ import dynamic from 'next/dynamic';
 import AutoFixInitializer from './AutoFixInitializer';
 import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
-import dynamic from 'next/dynamic';
 const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
 import PreferenceBroadcast from './PreferenceBroadcast';
 import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
