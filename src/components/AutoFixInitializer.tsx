@@ -1,12 +1,12 @@
-'use client';
+'use client&apos;;
 
-import { useEffect } from 'react';
-import { autoFixManager } from '@/src/lib/AutoFixManager';
+import { useEffect } from &apos;react&apos;;
+import { autoFixManager } from &apos;@/src/lib/AutoFixManager&apos;;
 
 // This component initializes the auto-fix system when the app starts
 export default function AutoFixInitializer() {
   useEffect(() => {
-    console.log('🚀 Initializing Auto-Fix System...');
+    console.log(&apos;🚀 Initializing Auto-Fix System...&apos;);
 
     // Start auto-monitoring with 5-minute intervals
     autoFixManager.startAutoMonitoring(5);
@@ -17,10 +17,10 @@ export default function AutoFixInitializer() {
       if (failedChecks.length > 0) {
         console.warn(`⚠️ ${failedChecks.length} health checks failed on startup`);
       } else {
-        console.log('✅ System health check passed on startup');
+        console.log(&apos;✅ System health check passed on startup&apos;);
       }
     }).catch(error => {
-      console.error('❌ Failed to run initial health check:', error);
+      console.error(&apos;❌ Failed to run initial health check:&apos;, error);
     });
 
     // Cleanup on unmount
@@ -29,6 +29,6 @@ export default function AutoFixInitializer() {
     };
   }, []);
 
-  // This component doesn't render anything
+  // This component doesn&apos;t render anything
   return null;
 }

@@ -1,6 +1,6 @@
-'use client';
+'use client&apos;;
 
-import { useState } from 'react';
+import { useState } from &apos;react&apos;;
 
 interface VendorProduct {
   _id: string;
@@ -18,11 +18,11 @@ interface VendorCatalogueManagerProps {
 export default function VendorCatalogueManager({ categories, initialProducts }: VendorCatalogueManagerProps) {
   const [products, setProducts] = useState(initialProducts);
   const [form, setForm] = useState({
-    title: '',
-    sku: '',
-    categoryId: '',
-    price: '',
-    uom: 'ea'
+    title: &apos;',
+    sku: &apos;',
+    categoryId: &apos;',
+    price: &apos;',
+    uom: &apos;ea&apos;
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,28 +30,28 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
   const addProduct = async () => {
     setLoading(true);
     setError(null);
-    const response = await fetch('/api/marketplace/vendor/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch(&apos;/api/marketplace/vendor/products&apos;, {
+      method: &apos;POST&apos;,
+      headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
       body: JSON.stringify({
         title: { en: form.title },
         sku: form.sku,
-        slug: form.sku.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: form.sku.toLowerCase().replace(/[^a-z0-9]+/g, &apos;-'),
         categoryId: form.categoryId,
-        buy: { price: Number(form.price), currency: 'SAR', uom: form.uom }
+        buy: { price: Number(form.price), currency: &apos;SAR&apos;, uom: form.uom }
       })
     });
     setLoading(false);
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      setError(payload.error ?? 'Unable to add product');
+      setError(payload.error ?? &apos;Unable to add product&apos;);
       return;
     }
 
     const payload = await response.json();
     setProducts([payload.data, ...products]);
-    setForm({ title: '', sku: '', categoryId: '', price: '', uom: 'ea' });
+    setForm({ title: &apos;', sku: &apos;', categoryId: &apos;', price: &apos;', uom: &apos;ea&apos; });
   };
 
   return (
@@ -118,7 +118,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
           disabled={loading}
           className="mt-4 rounded-full bg-[#FFB400] px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
         >
-          {loading ? 'Saving…' : 'Publish product'}
+          {loading ? &apos;Saving…&apos; : &apos;Publish product&apos;}
         </button>
       </div>
 
