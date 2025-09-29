@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate email format
+        // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(validatedData.email)) {
       return NextResponse.json(
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
 
     // Validate file type
     const allowedTypes = [
@@ -183,3 +184,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+

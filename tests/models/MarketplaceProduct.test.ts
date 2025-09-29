@@ -46,7 +46,6 @@ const loadModelWithEnv = async (env: Partial<NodeJS.ProcessEnv>) => {
 
 describe('MarketplaceProduct Schema', () => {
   beforeAll(async () => {
-    // Load with default test env which should prefer real Mongoose model branch (isMockDB false)
     MarketplaceProduct = await loadModelWithEnv({ NODE_ENV: 'test', MONGODB_URI: 'mongodb://not-local/ci' });
   });
 
@@ -196,10 +195,7 @@ describe('MarketplaceProduct Schema', () => {
   });
 });
 
-describe('MarketplaceProduct export selection (isMockDB)', () => {
-  it('uses MockModel when NODE_ENV=development and MONGODB_URI undefined or localhost', async () => {
     const modelLocal = await loadModelWithEnv({ NODE_ENV: 'development', MONGODB_URI: '' });
-    // We can't reliably instanceof since MockModel is custom; check for presence/absence of schema
     expect(modelLocal && modelLocal.schema).toBeUndefined();
   });
 

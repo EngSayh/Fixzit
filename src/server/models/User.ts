@@ -1,12 +1,31 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
-const UserRole = ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN", "TEAM_LEAD", "TECHNICIAN", "PROPERTY_MANAGER", "TENANT", "VENDOR", "OWNER", "SUPPORT", "PROCUREMENT", "AUDITOR"] as const;
+// User roles enum - comprehensive RBAC matrix
+export const UserRole = {
+  SUPER_ADMIN: "SUPER_ADMIN",
+  CORPORATE_ADMIN: "CORPORATE_ADMIN", 
+  ADMIN: "ADMIN",
+  FM_MANAGER: "FM_MANAGER",
+  PROPERTY_MANAGER: "PROPERTY_MANAGER",
+  FINANCE: "FINANCE",
+  HR: "HR",
+  PROCUREMENT: "PROCUREMENT",
+  TECHNICIAN: "TECHNICIAN",
+  EMPLOYEE: "EMPLOYEE",
+  OWNER: "OWNER",
+  TENANT: "TENANT",
+  VENDOR: "VENDOR",
+  CUSTOMER: "CUSTOMER",
+  AUDITOR: "AUDITOR",
+  VIEWER: "VIEWER"
+} as const;
 const UserStatus = ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"] as const;
 
 const UserSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  // Multi-tenancy key - will be added by tenantIsolationPlugin
+  // orgId: { type: String, required: true, index: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true },
@@ -192,15 +211,17 @@ const UserSchema = new Schema({
   timestamps: true
 });
 
+// Apply plugins
+UserSchema.plugin(tenantIsolationPlugin);
+UserSchema.plugin(auditPlugin);
+
 // Indexes for performance
-UserSchema.index({ tenantId: 1, 'professional.role': 1 });
-UserSchema.index({ tenantId: 1, email: 1 }, { unique: true });
-UserSchema.index({ tenantId: 1, 'professional.skills.category': 1 });
-UserSchema.index({ tenantId: 1, 'workload.available': 1 });
-UserSchema.index({ tenantId: 1, 'performance.rating': -1 });
+UserSchema.index({ orgId: 1, 'professional.role': 1 });
+UserSchema.index({ orgId: 1, email: 1 }, { unique: true });
+UserSchema.index({ orgId: 1, 'professional.skills.category': 1 });
+UserSchema.index({ orgId: 1, 'workload.available': 1 });
+UserSchema.index({ orgId: 1, 'performance.rating': -1 });
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
-export const User = isMockDB
-  ? new MockModel('users') as any
-  : (models.User || model("User", UserSchema));
+export const User = models.User || model("User", UserSchema);

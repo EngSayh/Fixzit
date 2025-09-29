@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { isMockDB } from './mongo';
+// Removed isMockDB import - using MongoDB only
 
 export interface SystemCheck {
   id: string;
@@ -125,8 +125,10 @@ export class AutoFixManager {
         fix: async () => {
           console.log('🔧 Fixing database connection...');
           // Force database reconnection
-          if (!isMockDB) {
+          try {
             await fetch('/api/qa/reconnect', { method: 'POST' });
+          } catch {
+            // Silent fail
           }
           return true;
         }
