@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Home } from "lucide-react";
 import SupportPopup from "@/src/components/SupportPopup";
 import { useTranslation } from '@/src/contexts/TranslationContext';
-import LanguageSelector from '@/src/components/i18n/LanguageSelector';
+import LanguageSelector from '@/src/components/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 
 /**
