@@ -1,0 +1,50 @@
+# Dependencies & builds
+/node_modules/
+/.next/
+/dist/
+/out/
+/build/
+/coverage/
+/playwright-report/
+/playwright/.cache/
+/cypress/videos/
+/cypress/screenshots/
+
+# Local env & secrets
+.env
+.env.*
+!.env.example
+.env.local.bak
+*.pem
+*.key
+*.crt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+
+# Archives & reports & backups
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bak
+*.tmp
+*.log
+
+# Local artifacts we'll keep but not commit
+/_archive/
+/_artifacts/
+/reports/
+/exports/
+/screenshots/
+
+# Hosting/platform
+.vercel
+.netlify
+node_modules
+
+# Ignore Next build outputs
+.next/

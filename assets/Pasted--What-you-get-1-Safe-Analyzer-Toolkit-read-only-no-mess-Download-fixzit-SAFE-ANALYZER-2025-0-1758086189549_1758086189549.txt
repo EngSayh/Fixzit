@@ -1,0 +1,100 @@
+✅ What you get
+1) Safe Analyzer Toolkit (read‑only, no mess)
+
+Download — fixzit_SAFE_ANALYZER_2025-09-17.zip
+
+Runs in place on your repo.
+
+Does not create any new project folders (frontend/backend/etc.).
+
+Writes reports only to a single output dir you choose (defaults to hidden .fixzit-reports).
+
+What it outputs
+
+file_inventory.csv — every file with path, size_bytes, sha256, ext, category.
+
+duplicates_by_hash.csv — one row per content-identical group (hash, count, total_bytes, keep).
+
+duplicates_detail.csv — each duplicate instance with a recommended_keep path.
+
+duplicates_by_name.csv — same-name collisions with different content.
+
+large_files.csv — Top 500 largest files.
+
+large_dirs_depth{1,2,3}.csv — directory sizes aggregated by depth.
+
+extensions.csv — size per extension (helps spot e.g., huge .map, videos).
+
+assets_images.csv — largest images/videos (png/jpg/webp/avif/mp4/mov…).
+
+delete_candidates.sh — DRY‑RUN shell script that only echoes safe deletes (you review; remove echo to actually delete).
+
+HEAVY_GIT.md — safe steps to identify giant git history blobs without touching working files.
+
+▶️ How to run (in your repo — non‑destructive)
+# 1) Unzip the toolkit at the repo root
+unzip fixzit_SAFE_ANALYZER_2025-09-17.zip -d .
+
+# 2) Run analyzer (writes to hidden .fixzit-reports)
+python3 tools/analyze.py --root . 
+
+# Optional: custom output dir
+python3 tools/analyze.py --root . --out ./_once_reports
+
+# Windows PowerShell
+pwsh ./tools/analyze.ps1 -Root . -OutDir ./.fixzit-reports
+
+
+Default excludes (to avoid noise & risk):
+.git/ node_modules/ .next/ dist/ build/ out/ .turbo/ .vercel/ coverage/ .cache/
+Add more with repeated --exclude flags if needed.
+
+🧭 What to look at first (quick wins)
+
+Biggest space hogs
+
+Open .fixzit-reports/large_dirs_depth1.csv and large_dirs_depth2.csv.
+
+These show the top folders by size (e.g., legacy backups, assets, .map files).
+
+True duplicates
+
+Open .fixzit-reports/duplicates_by_hash.csv.
+
+Sort by total_bytes to see the largest duplicate groups.
+
+Cross‑check instances in duplicates_detail.csv — we pre‑selected a recommended_keep (prefers src/apps/packages over dist/build/node_modules).
+
+Same-name collisions
+
+Check .fixzit-reports/duplicates_by_name.csv to catch different files with identical names lingering in multiple places.
+
+Large binaries / assets
+
+Open .fixzit-reports/assets_images.csv and extensions.csv to find heavy images/videos or .map files.
+
+Git bloat (history)
+
+Read .fixzit-reports/HEAVY_GIT.md; it shows safe commands to surface huge blobs in history before you run BFG or similar.
+
+🔒 Guarantees (addressing your concerns)
+
+No code changes.
+
+No new app folders get created.
+
+Writes a single reports directory only (hidden by default).
+
+No deletions — even delete_candidates.sh is dry‑run (prints commands only).
+
+Next step (when you approve)
+
+Review duplicates_detail.csv and the dry‑run delete_candidates.sh.
+
+After approval, remove echo in lines you want to execute to actually delete only confirmed duplicates.
+
+Use the size reports to archive or compress large, unused assets and attach them outside the main repo if needed.
+
+For .git bloat, follow HEAVY_GIT.md steps (history‑only operations, safe).
+
+Delivery complete: a single, clean analyzer to identify duplicates and space usage without damaging your code or scattering folders.

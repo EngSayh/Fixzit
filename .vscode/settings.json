@@ -1,0 +1,27 @@
+{
+  "files.exclude": {
+    "**/_archive": true,
+    "**/_artifacts": true,
+    "**/coverage": true,
+    "**/playwright-report": true,
+    "**/*.zip": true,
+    "**/*.tar.gz": true,
+    "**/*.log": true,
+    "**/*.bak": true
+  },
+  "search.exclude": {
+    "**/_archive/**": true,
+    "**/_artifacts/**": true,
+    "**/node_modules/**": true,
+    "**/.next/**": true
+  },
+  "task.quickOpen.history": 30,
+  "problems.showCurrentInStatus": true,
+  "terminal.integrated.profiles.linux": {
+    "pwsh": {
+      "path": "pwsh",
+      "icon": "terminal-powershell"
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "pwsh"
+}

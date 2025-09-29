@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0061A8" />
+      <stop offset="1" stop-color="#00A859" />
+    </linearGradient>
+    <linearGradient id="mesh" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f2f6fb" />
+      <stop offset="1" stop-color="#c8d7e8" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)" />
+  <g transform="translate(200 112)">
+    <rect x="0" y="0" width="800" height="450" rx="32" fill="#ffffff" opacity="0.92" />
+    <rect x="40" y="40" width="720" height="370" fill="#1c2d3d" opacity="0.14" />
+    <g transform="translate(60 60)">
+      <rect width="680" height="330" fill="#dfe9f2" stroke="#8ea6bd" stroke-width="4" />
+      <g fill="none" stroke="url(#mesh)" stroke-width="18" stroke-linecap="round">
+        <path d="M0 36 L680 36" />
+        <path d="M0 108 L680 108" />
+        <path d="M0 180 L680 180" />
+        <path d="M0 252 L680 252" />
+        <path d="M0 324 L680 324" />
+      </g>
+      <g fill="none" stroke="#8ea6bd" stroke-width="6" opacity="0.8">
+        <path d="M68 -2 L-18 338" />
+        <path d="M144 -2 L58 338" />
+        <path d="M220 -2 L134 338" />
+        <path d="M296 -2 L210 338" />
+        <path d="M372 -2 L286 338" />
+        <path d="M448 -2 L362 338" />
+        <path d="M524 -2 L438 338" />
+        <path d="M600 -2 L514 338" />
+        <path d="M676 -2 L590 338" />
+      </g>
+    </g>
+  </g>
+  <g transform="translate(120 540)" fill="#ffffff">
+    <text font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="40" font-weight="600">
+      Fixzit Souq · FiltrationPro MERV 13 Air Filter
+    </text>
+    <text y="48" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="24" opacity="0.85">
+      ASHRAE 52.2 compliant · Rapid dispatch within 2 days
+    </text>
+  </g>
+</svg>

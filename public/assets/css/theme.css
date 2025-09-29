@@ -1,0 +1,47 @@
+/* tokens */
+:root{
+  --fixzit-blue:#0061A8;
+  --fixzit-dark:#023047;
+  --fixzit-orange:#F6851F;
+  --fixzit-green:#00A859;
+  --fixzit-yellow:#FFB400;
+}
+
+/* buttons */
+.btn-primary{@apply inline-flex items-center justify-center px-4 h-10 rounded-xl bg-fixzit-blue text-white font-semibold shadow-glass hover:opacity-90 transition;}
+.btn-ghost{@apply inline-flex items-center justify-center px-3 h-10 rounded-xl border border-slate-300/70 hover:bg-slate-100 transition;}
+
+/* nav links */
+.nav-link{@apply text-slate-700 hover:text-fixzit-blue transition;}
+.nav-link.active{@apply text-fixzit-blue;}
+
+/* sidebar */
+.side-link{@apply flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100;}
+.side-link.active{@apply bg-slate-100 text-fixzit-blue font-medium;}
+
+/* tabs */
+.tab{@apply inline-flex px-3 py-1.5 rounded-xl border border-slate-300/70 text-sm bg-white hover:bg-slate-50;}
+.tab.active{@apply border-fixzit-blue text-fixzit-blue bg-white}
+
+/* pills */
+.pill{@apply inline-flex items-center justify-center h-10 rounded-xl border border-slate-300 bg-white px-4 hover:bg-slate-50;}
+
+/* tables */
+.table-wrap{@apply bg-white border border-slate-200 rounded-xl overflow-hidden;}
+.fxz-table{@apply w-full border-collapse;}
+.fxz-table thead th{@apply bg-slate-50 text-left text-sm font-semibold text-slate-700 border-b border-slate-200 px-4 py-3;}
+.fxz-table tbody td{@apply text-sm text-slate-700 px-4 py-3 border-b border-slate-100;}
+.badge{@apply inline-flex items-center rounded-full px-2.5 h-7 text-xs font-medium border;}
+.badge.green{@apply border-emerald-300 text-emerald-700 bg-emerald-50;}
+.badge.gray{@apply border-slate-300 text-slate-700 bg-slate-50;}
+.badge.amber{@apply border-amber-300 text-amber-700 bg-amber-50;}
+.table-empty{@apply p-8 text-center text-slate-500;}
+.table-pager{@apply flex items-center justify-end gap-2 p-3;}
+.pager-btn{@apply btn-ghost h-9}
+.pager-page{@apply text-sm text-slate-600}
+
+/* menu dropdown */
+.menu-item{@apply block px-4 py-2 hover:bg-slate-50;}
+/* rtl font */
+html[dir="rtl"] body{font-family:"Noto Sans Arabic",system-ui,sans-serif;}
+

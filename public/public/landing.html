@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixzit Souq - Enterprise Facility Management Platform</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Kufi+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Fixzit Brand Colors */
+            --primary-blue: #0078D4;
+            --secondary-blue: #00BCF2;
+            --aqar-yellow: #FFB400;
+            --fixzit-green: #00A859;
+            --dark: #1A1A1A;
+            --white: #FFFFFF;
+            --gray-light: #F4F4F4;
+            --gray-medium: #8E8E8E;
+            --text-dark: #023047;
+            --border: #E0E0E0;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #F8F9FA;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+        }
+
+        /* RTL Support */
+        body[dir="rtl"] {
+            font-family: 'Noto Kufi Arabic', 'Inter', sans-serif;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            padding: 15px 0;
+            box-shadow: var(--shadow);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Logo Section */
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: var(--white);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--primary-blue);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-text {
+            color: var(--white);
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* Center Navigation Buttons */
+        .center-nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .action-button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-aqar {
+            background: var(--aqar-yellow);
+            color: var(--text-dark);
+        }
+
+        .btn-fixzit-souq {
+            background: var(--white);
+            color: var(--text-dark);
+        }
+
+        .btn-access-fixzit {
+            background: var(--fixzit-green);
+            color: var(--white);
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-button.active::after {
+            content: '▼';
+            margin-left: 5px;
+            font-size: 12px;
+        }
+
+        /* Right Navigation */
+        .right-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Global Search */
+        .search-box {
+            position: relative;
+        }
+
+        .search-input {
+            padding: 8px 35px 8px 15px;
+            border: none;
+            border-radius: 20px;
+            width: 250px;
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--white);
+            placeholder-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--white);
+        }
+
+        /* Icon Buttons */
+        .icon-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: var(--white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .icon-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: #FF4444;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Language Toggle */
+        .language-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .language-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .flag-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .lang-text {
+            color: var(--white);
+            font-weight: 500;
+        }
+
+        /* User Avatar */
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-blue);
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .user-dropdown.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray-light);
+        }
+
+        /* Flip Dropdown Container */
+        .flip-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 10px;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 20px;
+            min-width: 280px;
+            opacity: 0;
+            visibility: hidden;
+            transform-origin: top center;
+            transform: translateX(-50%) rotateX(-90deg);
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 100;
+        }
+
+        .flip-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) rotateX(0deg);
+        }
+
+        .dropdown-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            cursor: pointer;
+            animation: slideIn 0.3s ease forwards;
+            opacity: 0;
+            animation-delay: calc(var(--delay) * 0.1s);
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .feature-item:hover {
+            background: var(--gray-light);
+            transform: translateX(5px);
+        }
+
+        .checkmark {
+            color: var(--fixzit-green);
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 90px;
+            padding: 40px 20px;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin-bottom: 50px;
+            color: white;
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .feature-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .feature-description {
+            color: var(--gray-medium);
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark);
+            color: var(--white);
+            padding: 40px 20px 20px;
+            margin-top: 80px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+
+        .footer-section h4 {
+            margin-bottom: 20px;
+            color: var(--secondary-blue);
+        }
+
+        .footer-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .footer-links a {
+            color: var(--white);
+            text-decoration: none;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary-blue);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--gray-medium);
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: var(--primary-blue);
+            color: var(--white);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        /* RTL Styles */
+        body[dir="rtl"] .nav-container {
+            direction: rtl;
+        }
+
+        body[dir="rtl"] .center-nav {
+            direction: rtl;
+        }
+
+        body[dir="rtl"] .feature-item:hover {
+            transform: translateX(-5px);
+        }
+
+        body[dir="rtl"] .search-icon {
+            left: 12px;
+            right: auto;
+        }
+
+        body[dir="rtl"] .notification-badge {
+            left: -2px;
+            right: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .search-input {
+                width: 180px;
+            }
+
+            .center-nav {
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .center-nav {
+                order: 3;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .hero-title {
+                font-size: 32px;
+            }
+
+            .search-box {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <div class="logo" onclick="location.reload()">
+                    <i class="fas fa-home"></i>
+                </div>
+                <span class="logo-text">Fixzit</span>
+            </div>
+
+            <!-- Center Navigation Buttons -->
+            <div class="center-nav">
+                <!-- Aqar Souq Button -->
+                <div style="position: relative;">
+                    <button class="action-button btn-aqar" onclick="toggleDropdown(event, 'aqar')" data-en="Aqar Souq" data-ar="السوق العقاري">
+                        <i class="fas fa-building"></i>
+                        <span class="btn-text">Aqar Souq</span>
+                    </button>
+                    <div id="aqar-dropdown" class="flip-dropdown">
+                        <div class="dropdown-header">Real Estate Features</div>
+                        <div class="feature-list">
+                            <div class="feature-item" style="--delay: 1">
+                                <span class="checkmark">✓</span>
+                                <span>Browse Properties</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 2">
+                                <span class="checkmark">✓</span>
+                                <span>List Your Property</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 3">
+                                <span class="checkmark">✓</span>
+                                <span>Virtual Tours</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 4">
+                                <span class="checkmark">✓</span>
+                                <span>Property Valuation</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 5">
+                                <span class="checkmark">✓</span>
+                                <span>Legal Services</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 6">
+                                <span class="checkmark">✓</span>
+                                <span>Market Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fixzit Souq Button -->
+                <div style="position: relative;">
+                    <button class="action-button btn-fixzit-souq" onclick="toggleDropdown(event, 'fixzit')" data-en="Fixzit Souq" data-ar="سوق فيكسيت">
+                        <i class="fas fa-store"></i>
+                        <span class="btn-text">Fixzit Souq</span>
+                    </button>
+                    <div id="fixzit-dropdown" class="flip-dropdown">
+                        <div class="dropdown-header">Service Marketplace</div>
+                        <div class="feature-list">
+                            <div class="feature-item" style="--delay: 1">
+                                <span class="checkmark">✓</span>
+                                <span>Find Service Providers</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 2">
+                                <span class="checkmark">✓</span>
+                                <span>Request Quotations</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 3">
+                                <span class="checkmark">✓</span>
+                                <span>Compare Bids</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 4">
+                                <span class="checkmark">✓</span>
+                                <span>Vendor Ratings</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 5">
+                                <span class="checkmark">✓</span>
+                                <span>Secure Payments</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 6">
+                                <span class="checkmark">✓</span>
+                                <span>Service Tracking</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Access Fixzit Button -->
+                <div style="position: relative;">
+                    <button class="action-button btn-access-fixzit" onclick="toggleDropdown(event, 'access')" data-en="Access Fixzit" data-ar="الدخول لفيكسيت">
+                        <i class="fas fa-cog"></i>
+                        <span class="btn-text">Access Fixzit</span>
+                    </button>
+                    <div id="access-dropdown" class="flip-dropdown">
+                        <div class="dropdown-header">Enterprise Features</div>
+                        <div class="feature-list">
+                            <div class="feature-item" style="--delay: 1">
+                                <span class="checkmark">✓</span>
+                                <span>Property Management</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 2">
+                                <span class="checkmark">✓</span>
+                                <span>Work Order System</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 3">
+                                <span class="checkmark">✓</span>
+                                <span>Financial Tracking</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 4">
+                                <span class="checkmark">✓</span>
+                                <span>Tenant Portal</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 5">
+                                <span class="checkmark">✓</span>
+                                <span>Asset Management</span>
+                            </div>
+                            <div class="feature-item" style="--delay: 6">
+                                <span class="checkmark">✓</span>
+                                <span>Reports & Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Navigation -->
+            <div class="right-nav">
+                <!-- Global Search -->
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="Search...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+
+                <!-- Quick Create -->
+                <button class="icon-button" title="Quick Create">
+                    <i class="fas fa-plus"></i>
+                </button>
+
+                <!-- Notifications -->
+                <button class="icon-button" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+
+                <!-- Help -->
+                <button class="icon-button" title="Help & Support">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+
+                <!-- Language Toggle -->
+                <div class="language-toggle" onclick="toggleLanguage()">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Crect width='60' height='30' fill='%23012169'/%3E%3Cpath d='M0,0 L60,30 M60,0 L0,30' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M0,0 L60,30 M60,0 L0,30' stroke='%23C8102E' stroke-width='4'/%3E%3Cpath d='M30,0 v30 M0,15 h60' stroke='%23fff' stroke-width='10'/%3E%3Cpath d='M30,0 v30 M0,15 h60' stroke='%23C8102E' stroke-width='6'/%3E%3C/svg%3E" 
+                         alt="UK" class="flag-icon" id="flag-icon">
+                    <span class="lang-text" id="lang-text">EN</span>
+                </div>
+
+                <!-- User Avatar -->
+                <div class="user-avatar" onclick="toggleUserMenu()">
+                    <span>JD</span>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <i class="fas fa-building"></i>
+                            <span>Switch Organization</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <i class="fas fa-moon"></i>
+                            <span>Dark Mode</span>
+                        </div>
+                        <div class="dropdown-item">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Help & Support</span>
+                        </div>
+                        <div class="dropdown-item" style="border-top: 1px solid var(--border);">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h1 class="hero-title">Enterprise Facility Management Platform</h1>
+            <p class="hero-subtitle">Comprehensive solution for property management, maintenance, and marketplace services</p>
+            <div style="display: flex; gap: 20px; justify-content: center; margin-top: 30px;">
+                <button class="action-button" style="background: white; color: var(--primary-blue);">
+                    <i class="fas fa-play-circle"></i>
+                    Watch Demo
+                </button>
+                <button class="action-button" style="background: var(--fixzit-green); color: white;">
+                    <i class="fas fa-rocket"></i>
+                    Get Started
+                </button>
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="features-grid">
+            <div class="feature-card" onclick="navigateToModule('properties')">
+                <div class="feature-icon">🏢</div>
+                <h3 class="feature-title">Property Management</h3>
+                <p class="feature-description">Comprehensive property and unit management with lease tracking</p>
+            </div>
+
+            <div class="feature-card" onclick="navigateToModule('work-orders')">
+                <div class="feature-icon">🔧</div>
+                <h3 class="feature-title">Work Order System</h3>
+                <p class="feature-description">Efficient maintenance workflow with SLA tracking</p>
+            </div>
+
+            <div class="feature-card" onclick="navigateToModule('finance')">
+                <div class="feature-icon">💰</div>
+                <h3 class="feature-title">Financial Tracking</h3>
+                <p class="feature-description">Automated expense tracking and ZATCA-compliant invoicing</p>
+            </div>
+
+            <div class="feature-card" onclick="navigateToModule('tenant-portal')">
+                <div class="feature-icon">👥</div>
+                <h3 class="feature-title">Tenant Portal</h3>
+                <p class="feature-description">Self-service portal for tenants to submit requests</p>
+            </div>
+
+            <div class="feature-card" onclick="navigateToModule('assets')">
+                <div class="feature-icon">📦</div>
+                <h3 class="feature-title">Asset Management</h3>
+                <p class="feature-description">Track and maintain all property assets</p>
+            </div>
+
+            <div class="feature-card" onclick="navigateToModule('reports')">
+                <div class="feature-icon">📊</div>
+                <h3 class="feature-title">Reports & Analytics</h3>
+                <p class="feature-description">Comprehensive reporting dashboard with real-time KPIs</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Platform</h4>
+                <ul class="footer-links">
+                    <li><a onclick="navigateToModule('dashboard')">Dashboard</a></li>
+                    <li><a onclick="navigateToModule('properties')">Properties</a></li>
+                    <li><a onclick="navigateToModule('work-orders')">Work Orders</a></li>
+                    <li><a onclick="navigateToModule('finance')">Finance</a></li>
+                    <li><a onclick="navigateToModule('marketplace')">Marketplace</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Resources</h4>
+                <ul class="footer-links">
+                    <li><a onclick="navigateToPage('documentation')">Documentation</a></li>
+                    <li><a onclick="navigateToPage('api')">API Reference</a></li>
+                    <li><a onclick="navigateToPage('tutorials')">Tutorials</a></li>
+                    <li><a onclick="navigateToPage('support')">Support Center</a></li>
+                    <li><a onclick="navigateToPage('community')">Community</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul class="footer-links">
+                    <li><a onclick="navigateToPage('about')">About Us</a></li>
+                    <li><a onclick="navigateToPage('careers')">Careers</a></li>
+                    <li><a onclick="navigateToPage('partners')">Partners</a></li>
+                    <li><a onclick="navigateToPage('contact')">Contact</a></li>
+                    <li><a onclick="navigateToPage('blog')">Blog</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul class="footer-links">
+                    <li><a onclick="navigateToPage('privacy')">Privacy Policy</a></li>
+                    <li><a onclick="navigateToPage('terms')">Terms of Service</a></li>
+                    <li><a onclick="navigateToPage('sla')">SLA</a></li>
+                    <li><a onclick="navigateToPage('security')">Security</a></li>
+                    <li><a onclick="navigateToPage('compliance')">Compliance</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>© 2025 Fixzit Souq. All rights reserved. 
+                <span class="version-badge">v2.0.26</span>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Language Toggle
+        let currentLang = 'en';
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            const body = document.body;
+            const langText = document.getElementById('lang-text');
+            const flagIcon = document.getElementById('flag-icon');
+            
+            if (currentLang === 'ar') {
+                body.setAttribute('dir', 'rtl');
+                langText.textContent = 'عربي';
+                // Saudi Arabia flag
+                flagIcon.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 600'%3E%3Crect width='900' height='600' fill='%23006C35'/%3E%3Cg transform='translate(160,230)'%3E%3Cpath d='M0,0 c0,40 40,40 40,40 s40,0 40,-40 c0,60 50,60 50,60 s50,0 50,-60' fill='none' stroke='%23fff' stroke-width='25'/%3E%3C/g%3E%3C/svg%3E";
+                
+                // Update button texts
+                document.querySelectorAll('.action-button').forEach(btn => {
+                    const arText = btn.getAttribute('data-ar');
+                    if (arText) {
+                        btn.querySelector('.btn-text').textContent = arText;
+                    }
+                });
+                
+                // Update dropdown headers
+                document.querySelectorAll('.dropdown-header').forEach(header => {
+                    if (header.textContent === 'Real Estate Features') {
+                        header.textContent = 'ميزات العقارات';
+                    } else if (header.textContent === 'Service Marketplace') {
+                        header.textContent = 'سوق الخدمات';
+                    } else if (header.textContent === 'Enterprise Features') {
+                        header.textContent = 'ميزات المؤسسة';
+                    }
+                });
+            } else {
+                body.setAttribute('dir', 'ltr');
+                langText.textContent = 'EN';
+                // UK flag
+                flagIcon.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Crect width='60' height='30' fill='%23012169'/%3E%3Cpath d='M0,0 L60,30 M60,0 L0,30' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M0,0 L60,30 M60,0 L0,30' stroke='%23C8102E' stroke-width='4'/%3E%3Cpath d='M30,0 v30 M0,15 h60' stroke='%23fff' stroke-width='10'/%3E%3Cpath d='M30,0 v30 M0,15 h60' stroke='%23C8102E' stroke-width='6'/%3E%3C/svg%3E";
+                
+                // Update button texts
+                document.querySelectorAll('.action-button').forEach(btn => {
+                    const enText = btn.getAttribute('data-en');
+                    if (enText) {
+                        btn.querySelector('.btn-text').textContent = enText;
+                    }
+                });
+                
+                // Update dropdown headers
+                document.querySelectorAll('.dropdown-header').forEach(header => {
+                    if (header.textContent === 'ميزات العقارات') {
+                        header.textContent = 'Real Estate Features';
+                    } else if (header.textContent === 'سوق الخدمات') {
+                        header.textContent = 'Service Marketplace';
+                    } else if (header.textContent === 'ميزات المؤسسة') {
+                        header.textContent = 'Enterprise Features';
+                    }
+                });
+            }
+        }
+
+        // Dropdown Toggle with Flip Animation
+        function toggleDropdown(event, type) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const dropdown = document.getElementById(type + '-dropdown');
+            const button = event.currentTarget;
+            const allDropdowns = document.querySelectorAll('.flip-dropdown');
+            const allButtons = document.querySelectorAll('.action-button');
+            
+            // Close all other dropdowns
+            allDropdowns.forEach(d => {
+                if (d !== dropdown) {
+                    d.classList.remove('active');
+                }
+            });
+            
+            // Remove active class from all buttons
+            allButtons.forEach(b => {
+                if (b !== button) {
+                    b.classList.remove('active');
+                }
+            });
+            
+            // Toggle current dropdown
+            dropdown.classList.toggle('active');
+            button.classList.toggle('active');
+        }
+
+        // User Menu Toggle
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('user-dropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdowns = document.querySelectorAll('.flip-dropdown, .user-dropdown');
+            const buttons = document.querySelectorAll('.action-button');
+            
+            dropdowns.forEach(dropdown => {
+                if (!dropdown.contains(event.target) && !event.target.closest('.action-button') && !event.target.closest('.user-avatar')) {
+                    dropdown.classList.remove('active');
+                }
+            });
+            
+            buttons.forEach(button => {
+                if (!button.contains(event.target)) {
+                    button.classList.remove('active');
+                }
+            });
+        });
+
+        // Navigation Functions
+        function navigateToModule(module) {
+            console.log('Navigating to module:', module);
+            // In production, this would route to the actual module
+            alert(`Loading ${module} module...`);
+        }
+
+        function navigateToPage(page) {
+            console.log('Navigating to page:', page);
+            // In production, this would route to the actual page
+            alert(`Loading ${page} page...`);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Fixzit Souq Platform v2.0.26 - Ready');
+        });
+    </script>
+</body>
+</html>
