@@ -1,7 +1,7 @@
-'use client';
+'use client&apos;;
 
-import { useState } from 'react';
-import { Calendar, DollarSign, Package } from 'lucide-react';
+import { useState } from &apos;react&apos;;
+import { Calendar, DollarSign, Package } from &apos;lucide-react&apos;;
 
 interface RFQCategory {
   slug: string;
@@ -29,12 +29,12 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
   const [rfqs, setRfqs] = useState(initialRfqs);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    categoryId: '',
-    quantity: '',
-    budget: '',
-    deadline: ''
+    title: &apos;',
+    description: &apos;',
+    categoryId: &apos;',
+    quantity: &apos;',
+    budget: &apos;',
+    deadline: &apos;'
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,9 +42,9 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
   const createRFQ = async () => {
     setSubmitting(true);
     setError(null);
-    const response = await fetch('/api/marketplace/rfq', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch(&apos;/api/marketplace/rfq&apos;, {
+      method: &apos;POST&apos;,
+      headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
       body: JSON.stringify({
         title: form.title,
         description: form.description,
@@ -58,13 +58,13 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      setError(payload.error ?? 'Failed to create RFQ');
+      setError(payload.error ?? &apos;Failed to create RFQ&apos;);
       return;
     }
 
     const payload = await response.json();
     setRfqs([payload.data, ...rfqs]);
-    setForm({ title: '', description: '', categoryId: '', quantity: '', budget: '', deadline: '' });
+    setForm({ title: &apos;', description: &apos;', categoryId: &apos;', quantity: &apos;', budget: &apos;', deadline: &apos;' });
     setShowForm(false);
   };
 
@@ -79,7 +79,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
           onClick={() => setShowForm(!showForm)}
           className="rounded-full bg-[#0061A8] px-5 py-2 text-sm font-semibold text-white hover:bg-[#00558F]"
         >
-          {showForm ? 'Close form' : 'Create RFQ'}
+          {showForm ? &apos;Close form&apos; : &apos;Create RFQ&apos;}
         </button>
       </div>
 
@@ -155,7 +155,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               disabled={submitting}
               className="rounded-full bg-[#FFB400] px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
             >
-              {submitting ? 'Submitting…' : 'Submit RFQ'}
+              {submitting ? &apos;Submitting…&apos; : &apos;Submit RFQ&apos;}
             </button>
             <button
               onClick={() => setShowForm(false)}
