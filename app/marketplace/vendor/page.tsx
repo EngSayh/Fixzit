@@ -1,11 +1,11 @@
-import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
-import VendorCatalogueManager from &apos;@/src/components/marketplace/VendorCatalogueManager&apos;;
-import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
+import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import VendorCatalogueManager from '@/src/components/marketplace/VendorCatalogueManager';
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 export default async function VendorPortalPage() {
   const [categoriesResponse, productsResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
-    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/vendor/products&apos;)
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<any>('/api/marketplace/vendor/products')
   ]);
 
   const departments = (categoriesResponse.data as any[]).map((category: any) => ({

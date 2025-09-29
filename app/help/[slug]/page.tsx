@@ -33,7 +33,7 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
           <div className="flex items-center gap-2 text-sm mb-2 opacity-90">
             <Link href="/help" className="hover:underline">Help Center</Link>
             <span>/</span>
-            <span>{a.category || 'General&apos;}</span>
+            <span>{a.category || 'General'}</span>
           </div>
           <h1 className="text-3xl font-bold">{a.title}</h1>
         </div>

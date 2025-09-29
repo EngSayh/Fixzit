@@ -49,7 +49,7 @@ const fixes = [
   {
     name: 'Fix React unescaped entities (apostrophes)',
     pattern: /'/g,
-    replacement: '&apos;',
+    replacement: ''',
     fileTypes: ['.tsx', '.jsx'],
     condition: (content) => content.includes('export default') && content.includes('return (')
   },

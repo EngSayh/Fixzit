@@ -1,9 +1,9 @@
-'use client&apos;;
+'use client';
 
-import { useTopBar } from &apos;@/src/contexts/TopBarContext&apos;;
-import { useState } from &apos;react&apos;;
-import { Plus, ChevronDown } from &apos;lucide-react&apos;;
-import Link from &apos;next/link&apos;;
+import { useTopBar } from '@/src/contexts/TopBarContext';
+import { useState } from 'react';
+import { Plus, ChevronDown } from 'lucide-react';
+import Link from 'next/link';
 
 export default function QuickActions() {
   const { quickActions } = useTopBar();

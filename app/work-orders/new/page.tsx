@@ -1,4 +1,4 @@
-import React from &apos;react&apos;;
+import React from 'react';
 
 export default function NewWorkOrderPage() {
   return (

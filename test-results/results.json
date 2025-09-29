@@ -192,29 +192,13 @@
   "suites": [],
   "errors": [
     {
-      "message": "ReferenceError: jest is not defined",
-      "stack": "ReferenceError: jest is not defined\n    at Object.<anonymous> (/workspaces/Fixzit/qa/tests/api-paytabs-callback.spec.ts:60:29)",
-      "location": {
-        "file": "/workspaces/Fixzit/qa/tests/api-paytabs-callback.spec.ts",
-        "column": 29,
-        "line": 60
-      },
-      "snippet": "\u001b[90m   at \u001b[39mapi-paytabs-callback.spec.ts:60\n\n\u001b[0m \u001b[90m 58 |\u001b[39m \u001b[90m// We partially mock next/server to intercept NextResponse.json calls.\u001b[39m\n \u001b[90m 59 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 60 |\u001b[39m \u001b[36mconst\u001b[39m mockGenerateZATCAQR \u001b[33m=\u001b[39m jest\u001b[33m.\u001b[39mfn(\u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m ({ base64\u001b[33m:\u001b[39m \u001b[32m'mock-qr-base64'\u001b[39m }))\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 61 |\u001b[39m \u001b[36mconst\u001b[39m mockValidateCallbackRaw \u001b[33m=\u001b[39m jest\u001b[33m.\u001b[39mfn(() \u001b[33m=>\u001b[39m \u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 62 |\u001b[39m\n \u001b[90m 63 |\u001b[39m \u001b[90m// Partial mock for NextResponse.json to capture body and options\u001b[39m\u001b[0m"
-    },
-    {
-      "message": "ReferenceError: beforeAll is not defined",
-      "stack": "ReferenceError: beforeAll is not defined\n    at Object.<anonymous> (/workspaces/Fixzit/qa/tests/lib-paytabs.spec.ts:30:1)",
-      "location": {
-        "file": "/workspaces/Fixzit/qa/tests/lib-paytabs.spec.ts",
-        "column": 1,
-        "line": 30
-      },
-      "snippet": "\u001b[90m   at \u001b[39mlib-paytabs.spec.ts:30\n\n\u001b[0m \u001b[90m 28 |\u001b[39m\n \u001b[90m 29 |\u001b[39m \u001b[90m// Lazy-load once for all tests\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 30 |\u001b[39m beforeAll(() \u001b[33m=>\u001b[39m {\n \u001b[90m    |\u001b[39m \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 31 |\u001b[39m   lib \u001b[33m=\u001b[39m loadModule()\u001b[33m;\u001b[39m\n \u001b[90m 32 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 33 |\u001b[39m\u001b[0m"
+      "message": "Error: Process from config.webServer exited early.",
+      "stack": "Error: Process from config.webServer exited early."
     }
   ],
   "stats": {
-    "startTime": "2025-09-29T00:19:45.887Z",
-    "duration": 19733.518,
+    "startTime": "2025-09-29T05:59:31.817Z",
+    "duration": 6009.432,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,
