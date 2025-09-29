@@ -1,4 +1,5 @@
 import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import Image from 'next/image';
 import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
 import ProductCard from '@/src/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
@@ -48,21 +49,26 @@ export default async function ProductDetail({ params }: ProductPageProps) {
             <div className="rounded-3xl bg-white p-6 shadow-lg">
               <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                 <div className="space-y-4">
-                  <div className="overflow-hidden rounded-2xl bg-gray-100">
-                    <img
+                  <div className="relative overflow-hidden rounded-2xl bg-gray-100 h-96">
+                    <Image
                       src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg'}
                       alt={product.title.en}
-                      className="h-96 w-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
                     />
                   </div>
                   <div className="flex gap-3 overflow-x-auto">
                     {gallery.map((image: any) => (
-                      <img
-                        key={image.url}
-                        src={image.url}
-                        alt={product.title.en}
-                        className="h-16 w-16 rounded-xl border border-gray-200 object-cover"
-                      />
+                      <div key={image.url} className="relative h-16 w-16 rounded-xl border border-gray-200 overflow-hidden">
+                        <Image
+                          src={image.url}
+                          alt={product.title.en}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>

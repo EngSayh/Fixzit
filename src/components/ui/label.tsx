@@ -1,8 +1,8 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {}
 
-export const Label: React.FC<LabelProps> = ({ className = '', ...props }) => {
+export const Label: React.FC<LabelProps> = ({ className = &apos;', ...props }) => {
   return (
     <label
       className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}

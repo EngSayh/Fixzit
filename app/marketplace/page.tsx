@@ -1,11 +1,11 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import ProductCard from '@/src/components/marketplace/ProductCard';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import ProductCard from &apos;@/src/components/marketplace/ProductCard&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 async function loadHomepageData() {
   const [categoriesResponse, featuredResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8')
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/products?limit=8&apos;)
   ]);
 
   const categories = categoriesResponse.data as any[];
@@ -27,7 +27,7 @@ async function loadHomepageData() {
 export default async function MarketplaceHome() {
   const { categories, featured, carousels } = await loadHomepageData();
   const departments = categories.map(category => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
-  const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
+  const FIXZIT_COLORS = { primary: &apos;#0061A8&apos;, success: &apos;#00A859&apos;, warning: &apos;#FFB400&apos; } as const;
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
