@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate limiting for contract operations
-    const key = `contracts:${user.tenantId}:${user.id}`;
+    const key = `contracts:${(user as any)?.orgId}:${user.id}`;
     const rl = rateLimit(key, 10, 60_000); // 10 contracts per minute
     if (!rl.allowed) {
       return createErrorResponse('Contract creation rate limit exceeded', 429, req);
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     // Tenant isolation - ensure contract belongs to user's org
     const contractData = {
       ...body,
-      orgId: user.tenantId,
+      orgId: (user as any)?.orgId,
       createdBy: user.id,
       createdAt: new Date()
     };

@@ -131,8 +131,23 @@ export function getResponsiveClasses(screenInfo: ScreenInfo) {
   };
 }
 
-// Utility function for conditional rendering based on screen size
-export function useResponsive() {
+// DEPRECATED: Use useResponsive from ResponsiveContext instead
+// This is kept for backward compatibility only
+export function useResponsiveLegacy() {
+  // Console warning in development mode to encourage migration
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[DEPRECATED] useResponsiveLegacy is deprecated and will be removed in a future release. ' +
+      'Please migrate to useResponsive from ResponsiveContext.'
+    );
+  }
+  // Console warning in development mode to encourage migration
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[DEPRECATED] useResponsiveLegacy is deprecated and will be removed in a future release. ' +
+      'Please migrate to useResponsive from ResponsiveContext.'
+    );
+  }
   const { screenInfo } = useScreenSize();
 
   return {
@@ -147,3 +162,6 @@ export function useResponsive() {
     screenInfo
   };
 }
+
+// Alias for backward compatibility - prefer importing from ResponsiveContext
+export const useResponsive = useResponsiveLegacy;

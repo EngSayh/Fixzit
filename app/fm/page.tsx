@@ -49,6 +49,99 @@ interface PurchaseOrder {
   deliveryDate: string;
 }
 
+const VENDORS: Vendor[] = [
+  {
+    id: 'V001',
+    name: 'CoolAir Co.',
+    category: 'AC Repair',
+    rating: '4.7',
+    status: 'Active',
+    contact: '+966 50 123 4567',
+    email: 'info@coolair.com',
+    location: 'Riyadh',
+    services: ['AC Installation', 'AC Maintenance', 'AC Repair'],
+    responseTime: '< 2 hours'
+  },
+  {
+    id: 'V002',
+    name: 'Spark Electric',
+    category: 'Electrical',
+    rating: '4.4',
+    status: 'Active',
+    contact: '+966 50 987 6543',
+    email: 'contact@sparkelectric.com',
+    location: 'Jeddah',
+    services: ['Electrical Installation', 'Maintenance', 'Emergency Repairs'],
+    responseTime: '< 4 hours'
+  },
+  {
+    id: 'V003',
+    name: 'AquaFlow',
+    category: 'Plumbing',
+    rating: '4.1',
+    status: 'Pending',
+    contact: '+966 50 555 0123',
+    email: 'service@aquaflow.com',
+    location: 'Dammam',
+    services: ['Plumbing Installation', 'Pipe Repair', 'Drainage'],
+    responseTime: '< 6 hours'
+  }
+];
+
+const RFQS: RFQ[] = [
+  {
+    id: 'RFQ-1024',
+    title: 'Annual AC Maintenance Contract',
+    category: 'AC Repair',
+    dueDate: '2025-10-01',
+    status: 'Open',
+    budget: 'SAR 50,000',
+    description: 'Annual maintenance contract for 50 AC units across 3 buildings',
+    bids: 3
+  },
+  {
+    id: 'RFQ-1025',
+    title: 'Mall Cleaning Services',
+    category: 'Cleaning',
+    dueDate: '2025-10-10',
+    status: 'Draft',
+    budget: 'SAR 120,000',
+    description: 'Daily cleaning services for shopping mall including common areas',
+    bids: 0
+  },
+  {
+    id: 'RFQ-1026',
+    title: 'Office Renovation',
+    category: 'Construction',
+    dueDate: '2025-09-30',
+    status: 'Open',
+    budget: 'SAR 200,000',
+    description: 'Complete office renovation including electrical and plumbing work',
+    bids: 5
+  }
+];
+
+const PURCHASE_ORDERS: PurchaseOrder[] = [
+  {
+    id: 'PO-8812',
+    vendor: 'CoolAir Co.',
+    total: '24,000',
+    date: '2025-09-12',
+    status: 'Issued',
+    items: ['AC Maintenance - Tower A', 'Filter Replacement x 10'],
+    deliveryDate: '2025-09-20'
+  },
+  {
+    id: 'PO-8813',
+    vendor: 'Spark Electric',
+    total: '15,500',
+    date: '2025-09-10',
+    status: 'Received',
+    items: ['Electrical Inspection', 'Outlet Installation x 5'],
+    deliveryDate: '2025-09-15'
+  }
+];
+
 export default function FMPage() {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,7 +171,7 @@ export default function FMPage() {
   // Track initial values for unsaved changes detection
   useEffect(() => {
     markClean(); // Initialize as clean
-  }, []); // Only run once on mount
+  }, [markClean]);
 
   // Handle search term changes
   const handleSearchChange = (value: string) => {
@@ -92,98 +185,7 @@ export default function FMPage() {
     markDirty(); // Mark as dirty when filter changes
   };
 
-  const vendors: Vendor[] = [
-    {
-      id: 'V001',
-      name: 'CoolAir Co.',
-      category: 'AC Repair',
-      rating: '4.7',
-      status: 'Active',
-      contact: '+966 50 123 4567',
-      email: 'info@coolair.com',
-      location: 'Riyadh',
-      services: ['AC Installation', 'AC Maintenance', 'AC Repair'],
-      responseTime: '< 2 hours'
-    },
-    {
-      id: 'V002',
-      name: 'Spark Electric',
-      category: 'Electrical',
-      rating: '4.4',
-      status: 'Active',
-      contact: '+966 50 987 6543',
-      email: 'contact@sparkelectric.com',
-      location: 'Jeddah',
-      services: ['Electrical Installation', 'Maintenance', 'Emergency Repairs'],
-      responseTime: '< 4 hours'
-    },
-    {
-      id: 'V003',
-      name: 'AquaFlow',
-      category: 'Plumbing',
-      rating: '4.1',
-      status: 'Pending',
-      contact: '+966 50 555 0123',
-      email: 'service@aquaflow.com',
-      location: 'Dammam',
-      services: ['Plumbing Installation', 'Pipe Repair', 'Drainage'],
-      responseTime: '< 6 hours'
-    }
-  ];
-
-  const rfqs: RFQ[] = [
-    {
-      id: 'RFQ-1024',
-      title: 'Annual AC Maintenance Contract',
-      category: 'AC Repair',
-      dueDate: '2025-10-01',
-      status: 'Open',
-      budget: 'SAR 50,000',
-      description: 'Annual maintenance contract for 50 AC units across 3 buildings',
-      bids: 3
-    },
-    {
-      id: 'RFQ-1025',
-      title: 'Mall Cleaning Services',
-      category: 'Cleaning',
-      dueDate: '2025-10-10',
-      status: 'Draft',
-      budget: 'SAR 120,000',
-      description: 'Daily cleaning services for shopping mall including common areas',
-      bids: 0
-    },
-    {
-      id: 'RFQ-1026',
-      title: 'Office Renovation',
-      category: 'Construction',
-      dueDate: '2025-09-30',
-      status: 'Open',
-      budget: 'SAR 200,000',
-      description: 'Complete office renovation including electrical and plumbing work',
-      bids: 5
-    }
-  ];
-
-  const orders: PurchaseOrder[] = [
-    {
-      id: 'PO-8812',
-      vendor: 'CoolAir Co.',
-      total: '24,000',
-      date: '2025-09-12',
-      status: 'Issued',
-      items: ['AC Maintenance - Tower A', 'Filter Replacement x 10'],
-      deliveryDate: '2025-09-20'
-    },
-    {
-      id: 'PO-8813',
-      vendor: 'Spark Electric',
-      total: '15,500',
-      date: '2025-09-10',
-      status: 'Received',
-      items: ['Electrical Inspection', 'Outlet Installation x 5'],
-      deliveryDate: '2025-09-15'
-    }
-  ];
+  // Removed intermediate variables - using constants directly
 
   // Filter data based on search and status
   const filteredVendors = useMemo(() => {

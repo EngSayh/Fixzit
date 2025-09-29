@@ -1,6 +1,19 @@
+import { createRequire } from "module";
 import { vi, expect } from "vitest";
-import Module from "module";
-import path from "path";
+
+const require = createRequire(import.meta.url);
+
+try {
+  require("tsconfig-paths/register");
+} catch (error) {
+  const ciValue = process.env.CI;
+  const isCI = typeof ciValue === "string" && ciValue.toLowerCase() !== "false" && ciValue !== "0";
+  if (!isCI) {
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.warn("tsconfig-paths/register not loaded; falling back to Vitest aliases", message);
+  }
+}
 
 type JestLike = typeof vi & {
   mock: typeof vi.mock;
@@ -42,40 +55,65 @@ const viUseRealTimers = vi.useRealTimers.bind(vi);
 const viSetSystemTime = vi.setSystemTime.bind(vi);
 const viAdvanceTimersByTime = vi.advanceTimersByTime.bind(vi);
 
+const MOCK_DB_MODULE_IDS = new Set([
+]);
+
+  MockDatabase?: {
+    getCollection: (name: string) => unknown[];
+    setCollection: (name: string, data: unknown[]) => void;
+  };
+}
+
+type GlobalWithMarketplaceMock = typeof globalThis & {
+};
+
+const globalMarketplaceEnv = globalThis as GlobalWithMarketplaceMock;
+
+const cacheMockDatabase = (moduleId: string, result: unknown) => {
+  if (!MOCK_DB_MODULE_IDS.has(moduleId)) {
+    return;
+  }
+  if (maybeDb) {
+    globalMarketplaceEnv.__FIXZIT_MARKETPLACE_DB_MOCK__ = maybeDb;
+  }
+};
+
 const jestCompat: JestLike = Object.assign(vi, {
-  mock(moduleId: any, factory?: any, options?: any) {
-    if (typeof moduleId === "string" && typeof factory === "function") {
+  mock(moduleId: string, factory?: () => unknown, options?: { virtual?: boolean }) {
+    if (typeof factory === "function") {
       const wrappedFactory = () => {
         try {
           const result = factory();
           moduleFactories.set(moduleId, result);
+          cacheMockDatabase(moduleId, result);
           return result;
         } catch (error) {
           moduleFactories.delete(moduleId);
           throw error;
         }
       };
-      return viMock(moduleId, wrappedFactory as any, options as any);
+      return viMock(moduleId, wrappedFactory, options);
     }
     moduleFactories.delete(moduleId);
-    return viMock(moduleId as any, factory as any, options as any);
+    return viMock(moduleId, undefined, options);
   },
-  doMock(moduleId: any, factory?: any, options?: any) {
-    if (typeof moduleId === "string" && typeof factory === "function") {
+  doMock(moduleId: string, factory?: () => unknown, options?: { virtual?: boolean }) {
+    if (typeof factory === "function") {
       const wrappedFactory = () => {
         try {
           const result = factory();
           moduleFactories.set(moduleId, result);
+          cacheMockDatabase(moduleId, result);
           return result;
         } catch (error) {
           moduleFactories.delete(moduleId);
           throw error;
         }
       };
-      return viDoMock(moduleId, wrappedFactory as any, options as any);
+      return viDoMock(moduleId, wrappedFactory, options);
     }
     moduleFactories.delete(moduleId);
-    return viDoMock(moduleId as any, factory as any, options as any);
+    return viDoMock(moduleId, undefined, options);
   },
   fn: viFn,
   spyOn: viSpyOn,
@@ -84,6 +122,7 @@ const jestCompat: JestLike = Object.assign(vi, {
   restoreAllMocks: viRestoreAllMocks,
   resetModules: ((...args: Parameters<typeof vi.resetModules>) => {
     moduleFactories.clear();
+    delete globalMarketplaceEnv.__FIXZIT_MARKETPLACE_DB_MOCK__;
     return viResetModules(...args);
   }) as JestLike["resetModules"],
   useFakeTimers: ((...args: Parameters<typeof vi.useFakeTimers>) => fakeTimersWrapper(...args)) as JestLike["useFakeTimers"],
@@ -117,34 +156,6 @@ Object.defineProperty(globalThis, "expect", {
   writable: false,
 });
 
-const originalResolveFilename = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, isMain, options) {
-  if (typeof request === "string" && request.startsWith("@/")) {
-    if (request === "@/src/lib/mockDb" || request.startsWith("@/src/lib/mockDb")) {
-      return originalResolveFilename.call(this, request, parent, isMain, options);
-    }
-    const relativePath = request.slice(2);
-    const basePath = path.resolve(process.cwd(), relativePath);
-    const candidates = [
-      basePath,
-      `${basePath}.ts`,
-      `${basePath}.tsx`,
-      `${basePath}.js`,
-      `${basePath}.mjs`,
-      `${basePath}.cjs`,
-      path.join(basePath, "index.ts"),
-      path.join(basePath, "index.tsx"),
-      path.join(basePath, "index.js"),
-    ];
-
-    for (const candidate of candidates) {
-      try {
-        return originalResolveFilename.call(this, candidate, parent, isMain, options);
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  return originalResolveFilename.call(this, request, parent, isMain, options);
-};
+// Module path aliases are handled via tsconfig-paths/register to avoid
+// monkey-patching Node.js internals. This keeps resolution logic aligned with
+// the TypeScript configuration and Vitest's own alias support.

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/src/hooks/useScreenSize';
+import { useTranslation } from '@/src/contexts/TranslationContext';
 
 interface ResponsiveContextType {
   screenInfo: ScreenInfo;
@@ -81,7 +82,21 @@ export function useResponsiveLayout() {
     };
   }
 
-  return context;
+  // Try to get isRTL from TranslationContext
+  let isRTL = context.isRTL;
+  try {
+    // Use proper ESM import instead of require() to avoid webpack_require.n errors
+    const translationContext = useTranslation();
+    isRTL = translationContext.isRTL;
+  } catch {
+    // Fallback if translation context is not available
+    isRTL = false;
+  }
+
+  return {
+    ...context,
+    isRTL
+  };
 }
 
 // Backward compatibility alias

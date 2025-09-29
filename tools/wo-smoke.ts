@@ -4,7 +4,7 @@ const BASE = "http://localhost:3000";
 const user = {
   id: "u-admin-1",
   role: "FM_MANAGER",
-  tenantId: "t-001"
+  orgId: "org-001"
 };
 
 async function call(path: string, init: any = {}) {

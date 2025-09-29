@@ -69,11 +69,14 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
   const pathname = usePathname();
 
   // Derive module scope from path
-  const scope: 'fm'|'souq'|'aqar' = (pathname?.startsWith('/souq') || pathname?.startsWith('/marketplace'))
-    ? 'souq'
-    : pathname?.startsWith('/aqar')
-      ? 'aqar'
-      : 'fm';
+  let scope: 'fm'|'souq'|'aqar';
+  if (pathname?.startsWith('/souq') || pathname?.startsWith('/marketplace')) {
+    scope = 'souq';
+  } else if (pathname?.startsWith('/aqar')) {
+    scope = 'aqar';
+  } else {
+    scope = 'fm';
+  }
 
   const placeholder = scope === 'fm'
     ? t('common.search.placeholder', 'Search Work Orders, Properties, Tenants...')
