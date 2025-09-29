@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Tenant } from "@/src/server/models/Tenant";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -67,13 +67,13 @@ const createTenantSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    await connectDb();
     const user = await getSessionUser(req);
-    await db;
 
     const data = createTenantSchema.parse(await req.json());
 
     const tenant = await Tenant.create({
-      tenantId: user.tenantId,
+      tenantId: (user as any)?.orgId,
       code: `TEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -87,12 +87,13 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Require authentication - no bypass allowed
-    const user = await getSessionUser(req);
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    await connectDb();
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error: any) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    await db;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.tenantId };
+    const match: any = { tenantId: (user as any)?.orgId };
 
     if (type) match.type = type;
     if (search) {

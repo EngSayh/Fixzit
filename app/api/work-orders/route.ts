@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
-import { WorkOrder } from "@/src/server/models/WorkOrder";
+import { connectDb } from "@/src/lib/mongo";
+
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
@@ -39,7 +39,18 @@ const createSchema = z.object({
  * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
  */
 export async function GET(req: NextRequest) {
-  await db; // This will work with mock DB too
+  try {
+    if (process.env.WO_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const WOMod = await import('@/src/server/models/WorkOrder').catch(() => null);
+    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    if (!WorkOrder) {
+      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+    }
+  await connectDb();
   const user = await getSessionUser(req);
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
@@ -48,7 +59,7 @@ export async function GET(req: NextRequest) {
   const page = Number(searchParams.get("page") || 1);
   const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
-  const match: any = { tenantId: user.tenantId, deletedAt: { $exists: false } };
+  const match: any = { tenantId: (user as any)?.orgId, deletedAt: { $exists: false } };
   if (status) match.status = status;
   if (priority) match.priority = priority;
   if (q) match.$text = { $search: q };
@@ -82,12 +93,29 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ items, page, limit, total });
+  } catch (error: any) {
+    console.error('Work Orders GET error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch work orders' 
+    }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
+  try {
+    if (process.env.WO_ENABLED !== 'true') {
+      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const WOMod = await import('@/src/server/models/WorkOrder').catch(() => null);
+    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    if (!WorkOrder) {
+      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+    }
   const user = await requireAbility("CREATE")(req);
   if (user instanceof NextResponse) return user as any;
-  await db;
+  await connectDb();
 
   const body = await req.json();
   const data = createSchema.parse(body);
@@ -99,7 +127,7 @@ export async function POST(req: NextRequest) {
   const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
   const wo = await (WorkOrder as any).create({
-    tenantId: user.tenantId,
+    tenantId: (user as any)?.orgId,
     code,
     title: data.title,
     description: data.description,
@@ -117,4 +145,11 @@ export async function POST(req: NextRequest) {
     createdAt
   });
   return NextResponse.json(wo, { status: 201 });
+  } catch (error: any) {
+    console.error('Work Orders POST error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to create work order' 
+    }, { status: 500 });
+  }
 }
+

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+
 /**
  * Marketplace Request Correlation Utilities
  * 
@@ -57,7 +58,6 @@ export function logWithCorrelation(
     message,
     ...additional,
   };
-
   // eslint-disable-next-line no-console
   console[level](`[MarketplaceCorrelation] ${message}`, logData);
 }
@@ -76,7 +76,6 @@ export function getErrorCorrelationId(error?: unknown): string {
       // Not a JSON error, continue to generate new ID
     }
   }
-  
   return randomUUID();
 }
 
@@ -102,8 +101,6 @@ export function createCorrelatedError(
     devMessage: errorDetails.devMessage || message,
     ...context,
   };
-
   logWithCorrelation('error', message, context, errorDetails);
-  
   return new Error(JSON.stringify(errorPayload));
 }
