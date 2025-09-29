@@ -51,6 +51,23 @@ export const dict: Record<Lang, Record<string, string>> = {
     'footer.platform': 'Platform',
     'footer.marketplaces': 'Marketplaces',
     'footer.company': 'Company',
+
+    // Marketplace Error Messages
+    'errors.marketplace.network': 'Network error occurred while fetching marketplace data',
+    'errors.marketplace.timeout': 'Request timed out. Please try again',
+    'errors.marketplace.unauthorized': 'You are not authorized to access this resource',
+    'errors.marketplace.forbidden': 'Access to this resource is forbidden',
+    'errors.marketplace.notFound': 'The requested resource was not found',
+    'errors.marketplace.validation': 'Invalid data provided. Please check your input',
+    'errors.marketplace.server': 'Internal server error. Please try again later',
+    'errors.marketplace.database': 'Database connection error. Please try again',
+    'errors.marketplace.tenant': 'Tenant information is missing or invalid',
+    'errors.marketplace.correlation': 'Request tracking failed. Please contact support',
+    'errors.marketplace.products.notFound': 'Product not found or unavailable',
+    'errors.marketplace.vendors.notFound': 'Vendor not found or inactive',
+    'errors.marketplace.categories.notFound': 'Category not found or deleted',
+    'errors.marketplace.search.failed': 'Search request failed. Please try again',
+    'errors.marketplace.filter.invalid': 'Invalid search filters provided',
   },
   ar: {
     'buttons.lang': 'English',
@@ -102,6 +119,23 @@ export const dict: Record<Lang, Record<string, string>> = {
     'footer.platform': 'المنصة',
     'footer.marketplaces': 'الأسواق',
     'footer.company': 'الشركة',
+
+    // Marketplace Error Messages (Arabic)
+    'errors.marketplace.network': 'حدث خطأ في الشبكة أثناء جلب بيانات السوق',
+    'errors.marketplace.timeout': 'انتهت مهلة الطلب. يرجى المحاولة مرة أخرى',
+    'errors.marketplace.unauthorized': 'غير مُصرح لك بالوصول إلى هذا المورد',
+    'errors.marketplace.forbidden': 'الوصول إلى هذا المورد محظور',
+    'errors.marketplace.notFound': 'المورد المطلوب غير موجود',
+    'errors.marketplace.validation': 'البيانات المُدخلة غير صالحة. يرجى مراجعة المدخلات',
+    'errors.marketplace.server': 'خطأ في الخادم الداخلي. يرجى المحاولة لاحقاً',
+    'errors.marketplace.database': 'خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى',
+    'errors.marketplace.tenant': 'معلومات المستأجر مفقودة أو غير صالحة',
+    'errors.marketplace.correlation': 'فشل في تتبع الطلب. يرجى الاتصال بالدعم',
+    'errors.marketplace.products.notFound': 'المنتج غير موجود أو غير متاح',
+    'errors.marketplace.vendors.notFound': 'المورد غير موجود أو غير نشط',
+    'errors.marketplace.categories.notFound': 'الفئة غير موجودة أو محذوفة',
+    'errors.marketplace.search.failed': 'فشل طلب البحث. يرجى المحاولة مرة أخرى',
+    'errors.marketplace.filter.invalid': 'مرشحات البحث المُدخلة غير صالحة',
   },
 };
 
@@ -110,4 +144,30 @@ export function applyHtmlLang(lang: Lang) {
   const html = document.documentElement;
   html.lang = lang;
   html.dir = lang === 'ar' ? 'rtl' : 'ltr';
+}
+
+/**
+ * Get translated text for a key with fallback
+ */
+export function t(key: string, lang: Lang = 'en'): string {
+  return dict[lang]?.[key] || dict.en[key] || key;
+}
+
+/**
+ * Get marketplace error message with proper i18n support
+ */
+export function getMarketplaceErrorMessage(
+  errorType: string, 
+  lang: Lang = 'en',
+  fallback?: string
+): string {
+  const key = `errors.marketplace.${errorType}`;
+  const message = t(key, lang);
+  
+  // If translation not found and we have a fallback, use it
+  if (message === key && fallback) {
+    return fallback;
+  }
+  
+  return message;
 }

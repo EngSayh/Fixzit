@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   }
   const now = new Date();
 
-  const incidentId: string = safe.incidentId || `INC-${now.getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const incidentId: string = safe.incidentId || `INC-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
   const incidentKey: string | undefined = safe.incidentKey || incidentId;
   const code: string = safe.code || 'UI-UI-UNKNOWN-000';
   const category: string = safe.category || 'Support';
@@ -50,10 +50,10 @@ export async function POST(req: NextRequest) {
   const details: string | undefined = (safe.details || safe.stack);
 
   // Derive authenticated user/tenant if available; ignore spoofed body.userContext
-  let sessionUser: { id: string; role: string; tenantId: string } | null = null;
+  let sessionUser: { id: string; role: string; orgId: string } | null = null;
   try {
     const user = await getSessionUser(req);
-    sessionUser = { id: user.id, role: user.role, tenantId: user.tenantId } as any;
+    sessionUser = { id: user.id, role: user.role, orgId: (user as any)?.orgId } as any;
   } catch {
     sessionUser = null;
   }
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Determine tenant scope and dedupe within that scope only
-  const tenantScope = sessionUser?.tenantId || req.headers.get('x-tenant-id') || req.headers.get('x-tenant') || null;
+  const tenantScope = sessionUser?.orgId || req.headers.get('x-org-id') || req.headers.get('x-org') || null;
   const existing = incidentKey
     ? await native.collection('error_events').findOne({ incidentKey, tenantScope })
     : null;
@@ -95,18 +95,18 @@ export async function POST(req: NextRequest) {
     details,
     sessionUser: sessionUser || null,
     clientContext: body?.clientContext || null,
-    tenantScope: sessionUser?.tenantId || null,
+    tenantScope: sessionUser?.orgId || null,
     createdAt: now
   });
 
   // Auto-create a Support Ticket (same model used by /api/support/tickets)
   let ticket: any | null = null;
-  const genCode = () => `SUP-${now.getFullYear()}-${Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0')}`;
+  const genCode = () => `SUP-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`;
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
       ticket = await SupportTicket.create({
-    tenantId: sessionUser?.tenantId || undefined,
+    orgId: sessionUser?.orgId || undefined,
         code: ticketCode,
     subject: `[${code}] ${message}`.slice(0, 140),
     module: 'Other',

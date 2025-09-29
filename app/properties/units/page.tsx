@@ -1,69 +1,69 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 export default function PropertiesUnitsPage() {
   const units = [
     {
-      id: 'U-001',
-      unitNumber: '1204',
-      property: 'Tower A',
-      type: '2BR Apartment',
-      size: '120 sqm',
-      tenant: 'John Smith',
-      leaseStatus: 'Active',
-      monthlyRent: 'SAR 8,500',
-      occupancy: 'occupied'
+      id: &apos;U-001&apos;,
+      unitNumber: &apos;1204&apos;,
+      property: &apos;Tower A&apos;,
+      type: &apos;2BR Apartment&apos;,
+      size: &apos;120 sqm&apos;,
+      tenant: &apos;John Smith&apos;,
+      leaseStatus: &apos;Active&apos;,
+      monthlyRent: &apos;SAR 8,500&apos;,
+      occupancy: &apos;occupied&apos;
     },
     {
-      id: 'U-002',
-      unitNumber: '1205',
-      property: 'Tower A',
-      type: '3BR Apartment',
-      size: '150 sqm',
-      tenant: 'Sarah Johnson',
-      leaseStatus: 'Active',
-      monthlyRent: 'SAR 12,000',
-      occupancy: 'occupied'
+      id: &apos;U-002&apos;,
+      unitNumber: &apos;1205&apos;,
+      property: &apos;Tower A&apos;,
+      type: &apos;3BR Apartment&apos;,
+      size: &apos;150 sqm&apos;,
+      tenant: &apos;Sarah Johnson&apos;,
+      leaseStatus: &apos;Active&apos;,
+      monthlyRent: &apos;SAR 12,000&apos;,
+      occupancy: &apos;occupied&apos;
     },
     {
-      id: 'U-003',
-      unitNumber: '901',
-      property: 'Tower B',
-      type: 'Studio',
-      size: '45 sqm',
-      tenant: 'Available',
-      leaseStatus: 'Vacant',
-      monthlyRent: 'SAR 4,500',
-      occupancy: 'vacant'
+      id: &apos;U-003&apos;,
+      unitNumber: &apos;901&apos;,
+      property: &apos;Tower B&apos;,
+      type: &apos;Studio&apos;,
+      size: &apos;45 sqm&apos;,
+      tenant: &apos;Available&apos;,
+      leaseStatus: &apos;Vacant&apos;,
+      monthlyRent: &apos;SAR 4,500&apos;,
+      occupancy: &apos;vacant&apos;
     },
     {
-      id: 'U-004',
-      unitNumber: 'V-009',
-      property: 'Villa Complex',
-      type: '4BR Villa',
-      size: '300 sqm',
-      tenant: 'Ahmed Al-Rashid',
-      leaseStatus: 'Active',
-      monthlyRent: 'SAR 25,000',
-      occupancy: 'occupied'
+      id: &apos;U-004&apos;,
+      unitNumber: &apos;V-009&apos;,
+      property: &apos;Villa Complex&apos;,
+      type: &apos;4BR Villa&apos;,
+      size: &apos;300 sqm&apos;,
+      tenant: &apos;Ahmed Al-Rashid&apos;,
+      leaseStatus: &apos;Active&apos;,
+      monthlyRent: &apos;SAR 25,000&apos;,
+      occupancy: &apos;occupied&apos;
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Expiring': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Vacant': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case &apos;Active&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
+      case &apos;Expiring&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
+      case &apos;Expired&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
+      case &apos;Vacant&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
     }
   };
 
   const getOccupancyColor = (occupancy: string) => {
     switch (occupancy) {
-      case 'occupied': return 'bg-green-100 text-green-800 border-green-200';
-      case 'vacant': return 'bg-red-100 text-red-800 border-red-200';
-      case 'maintenance': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case &apos;occupied&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
+      case &apos;vacant&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
+      case &apos;maintenance&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
+      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
     }
   };
 

@@ -27,7 +27,7 @@ export const heuristics: Heuristic[] = [
       // Lazy re-import dynamic modules by nudging Next router without losing state
       // and ensuring ESM default interop gets normalized.
       // We simply refresh the current route shallowly.
-      // @ts-ignore
+      // @ts-expect-error
       if (window.next?.router?.replace) {
         //@ts-ignore
         await window.next.router.replace(window.location.pathname, { scroll: false });
@@ -39,7 +39,7 @@ export const heuristics: Heuristic[] = [
   },
   {
     id: 'call-undefined',
-    test: ({ message }) => !!message && /Cannot read properties of undefined \(reading 'call'\)/i.test(message),
+    test: ({ message }) => !!message && /Cannot read properties of undefined (reading 'call')/i.test(message),
     apply: async () => {
       // Recreate provider ordering without reload by toggling a micro key on body.
       document.body.setAttribute('data-fixzit-key', `${Date.now()}`);

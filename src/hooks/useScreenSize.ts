@@ -131,8 +131,9 @@ export function getResponsiveClasses(screenInfo: ScreenInfo) {
   };
 }
 
-// Utility function for conditional rendering based on screen size
-export function useResponsive() {
+// DEPRECATED: Use useResponsive from ResponsiveContext instead
+// This is kept for backward compatibility only
+export function useResponsiveLegacy() {
   const { screenInfo } = useScreenSize();
 
   return {
@@ -147,3 +148,6 @@ export function useResponsive() {
     screenInfo
   };
 }
+
+// Alias for backward compatibility - prefer importing from ResponsiveContext
+export const useResponsive = useResponsiveLegacy;

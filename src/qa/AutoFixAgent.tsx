@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { nanoid } from 'nanoid';
 import { getDomPath } from './domPath';
@@ -31,49 +31,23 @@ export function AutoFixAgent() {
   });
 
   // Get from context or localStorage
-  const role = typeof window !== 'undefined'
+  const role = typeof window !== 'undefined' 
     ? (localStorage.getItem('fixzit-role') || 'Guest')
     : 'Guest';
   const orgId = typeof window !== 'undefined'
     ? (localStorage.getItem('fixzit-org') || 'unknown')
     : 'unknown';
-  const roleRef = useRef(role);
-  const orgIdRef = useRef(orgId);
   const hudRef = useRef<HTMLDivElement>(null);
   const eventBuffer = useRef<QaEvent[]>([]);
   const originalFetchRef = useRef<any>(null);
-  const sendingRef = useRef(false);
-  const activeRef = useRef(active);
-  const haltedRef = useRef(halted);
 
-  const errorsRef = useRef(errors);
-  errorsRef.current = errors;
-
-  useEffect(() => {
-    roleRef.current = role;
-    orgIdRef.current = orgId;
-  }, [role, orgId]);
-
-  useEffect(() => { activeRef.current = active; }, [active]);
-  useEffect(() => { haltedRef.current = halted; }, [halted]);
-
-  const sendBatch = useCallback(async () => {
-    if (sendingRef.current) return;
+  const sendBatch = async () => {
     if (!eventBuffer.current.length) return;
-    sendingRef.current = true;
-    const payload = [...eventBuffer.current];
+    const payload = eventBuffer.current.splice(0, eventBuffer.current.length);
     try {
       await fetch('/api/qa/log', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ batch: payload }) });
-      eventBuffer.current.splice(0, payload.length);
-    } catch {
-      /* logging should never crash the app; events remain for retry */
-    } finally {
-      sendingRef.current = false;
-      if (eventBuffer.current.length) {
-        setTimeout(() => { void sendBatch(); }, 0);
-      }
-    }
-  }, []);
+    } catch { /* logging should never crash the app */ }
+  };
 
   // ---- CLICK TRACER (capture phase) ----
   useEffect(() => {
@@ -88,8 +62,7 @@ export function AutoFixAgent() {
         id: nanoid(),
         type: 'click',
         route: window.location.pathname,
-        role: roleRef.current,
-        orgId: orgIdRef.current,
+        role, orgId,
         ts: Date.now(),
         meta: {
           tag,
@@ -98,95 +71,13 @@ export function AutoFixAgent() {
         },
       };
       eventBuffer.current.push(evt);
-      if (!haltedRef.current) {
-        setTimeout(() => { void sendBatch(); }, 0);
-      }
+      if (!halted) sendBatch();
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
-  }, [sendBatch]);
+  }, [halted, role, orgId]);
 
   // ---- CONSOLE & RUNTIME ----
-  const bufferConsole = useCallback((rec: ConsoleRecord) => {
-    eventBuffer.current.push({ id: nanoid(), type: 'console', route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: rec });
-  }, []);
-
-  const bufferRuntime = useCallback((type: QaEvent['type'], message: string, stack?: string) => {
-    eventBuffer.current.push({ id: nanoid(), type, route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: { message, stack } });
-  }, []);
-
-  const bufferNetwork = useCallback((url: string, status: number) => {
-    eventBuffer.current.push({ id: nanoid(), type: 'network-error', route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: { url, status } });
-  }, []);
-
-  const bufferGate = useCallback((clean: boolean) => {
-    eventBuffer.current.push({ id: nanoid(), type: 'gate', route: window.location.pathname, role: roleRef.current, orgId: orgIdRef.current, ts: Date.now(), meta: { clean, errors: errorsRef.current } });
-  }, []);
-
-  const capture = useCallback(async (phase:'before'|'after') => {
-    try {
-      const canvas = await html2canvas(document.body, { backgroundColor: null, scale: 0.6 });
-      const data = canvas.toDataURL('image/jpeg', 0.6);
-      eventBuffer.current.push({
-        id: nanoid(),
-        type: 'gate',
-        route: window.location.pathname,
-        role: roleRef.current,
-        orgId: orgIdRef.current,
-        ts: Date.now(),
-        meta: { phase, errors: errorsRef.current },
-        screenshot: data
-      });
-    } catch {}
-  }, []);
-
-  const tryHeuristics = useCallback(async (message:string) => {
-    if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== '1') return { note: 'Auto-heal disabled' };
-    for (const h of heuristics) {
-      if (h.test({ message })) {
-        try { return await h.apply(); } catch { /* ignore */ }
-      }
-    }
-    return { note: 'No heuristic matched; logged for follow-up.' };
-  }, []);
-
-  const haltAndHeal = useCallback(async (_type: QaEvent['type'], msg: string) => {
-    if (!activeRef.current || haltedRef.current) return;
-    setHalted(true);
-    haltedRef.current = true;
-    await capture('before');
-    if (!activeRef.current) {
-      haltedRef.current = false;
-      setHalted(false);
-      return;
-    }
-    const { note } = await tryHeuristics(msg);
-    setLastNote(note);
-    if (!activeRef.current) {
-      haltedRef.current = false;
-      setHalted(false);
-      return;
-    }
-    await wait(10000);
-    if (!activeRef.current) {
-      haltedRef.current = false;
-      setHalted(false);
-      return;
-    }
-    await capture('after');
-    const currentErrors = errorsRef.current;
-    const strictInput = {
-      consoleErrors: currentErrors.console,
-      networkFailures: currentErrors.network,
-      hydrationErrors: currentErrors.hydration,
-    };
-    const clean = passesStrict(strictInput);
-    bufferGate(clean);
-    await sendBatch();
-    haltedRef.current = false;
-    setHalted(false);
-  }, [bufferGate, capture, sendBatch, tryHeuristics]);
-
   useEffect(() => {
     const undo = hijackConsole((rec: ConsoleRecord) => {
       if (rec.level === 'error') {
@@ -217,44 +108,107 @@ export function AutoFixAgent() {
     });
 
     return () => { undo(); window.removeEventListener('error', onError); window.removeEventListener('unhandledrejection', onRejection); };
-  }, [bufferConsole, bufferRuntime, haltAndHeal]);
+  }, []);
 
-  // ---- NETWORK ----
-  const haltAndHealRef = useRef(haltAndHeal);
-  const bufferNetworkRef = useRef(bufferNetwork);
-
-  useEffect(() => { haltAndHealRef.current = haltAndHeal; }, [haltAndHeal]);
-  useEffect(() => { bufferNetworkRef.current = bufferNetwork; }, [bufferNetwork]);
-
+  // ---- NETWORK ---- (Fixed: Prevent fetch interceptor detaching)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (originalFetchRef.current) return;
-    const originalFetch = window.fetch.bind(window);
-    originalFetchRef.current = originalFetch;
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : (input as any).url;
+    // Store original fetch only if not already stored
+    if (!originalFetchRef.current) {
+      originalFetchRef.current = window.fetch.bind(window);
+    }
+
+    // Set up interceptor with reliability checks
+    const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       try {
+        // Use the stored original fetch to avoid recursion
+        const originalFetch = originalFetchRef.current;
+        if (!originalFetch) {
+          throw new Error('Original fetch reference lost');
+        }
+
         const res = await originalFetch(input, init);
-        if (!res.ok) {
+        // Only intercept if agent is active and response is not ok
+        if (active && !res.ok) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
-          bufferNetworkRef.current?.(url, res.status);
-          haltAndHealRef.current?.('network-error', `HTTP ${res.status} on ${url}`);
+          const url = typeof input === 'string' ? input : (input as any).url;
+          bufferNetwork(url, res.status);
+          haltAndHeal('network-error', `HTTP ${res.status} on ${url}`);
         }
         return res;
       } catch (err:any) {
-        setErrors(s => ({ ...s, network: s.network + 1 }));
-        bufferNetworkRef.current?.(url, -1);
-        haltAndHealRef.current?.('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
+        // Only intercept if agent is active
+        if (active) {
+          setErrors(s => ({ ...s, network: s.network + 1 }));
+          const url = typeof input === 'string' ? input : (input as any).url;
+          bufferNetwork(url, -1);
+          haltAndHeal('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
+        }
         throw err;
       }
     };
-    return () => {
-      if (originalFetchRef.current) {
+
+    window.fetch = interceptedFetch;
+
+    return () => { 
+      // Only restore if we're the current interceptor
+      if (window.fetch === interceptedFetch && originalFetchRef.current) {
         window.fetch = originalFetchRef.current;
-        originalFetchRef.current = null;
       }
     };
-  }, []);
+  }, [active]); // Depend on active state to ensure reliability
+
+  // ---- HALT–FIX–VERIFY ----
+  const haltAndHeal = async (type: QaEvent['type'], msg: string) => {
+    if (!active || halted) return;
+    setHalted(true);
+    await capture('before');
+    const { note } = await tryHeuristics(msg);
+    setLastNote(note);
+    // wait 10s (per STRICT) then capture again
+    await wait(10000);
+    await capture('after');
+    // Check gates and only then un-halt
+    const clean = passesStrict({ consoleErrors: errors.console, networkFailures: errors.network, hydrationErrors: errors.hydration });
+    bufferGate(clean);
+    await sendBatch();
+    setHalted(false);
+  };
+
+  const tryHeuristics = async (message:string) => {
+    if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== '1') return { note: 'Auto-heal disabled' };
+    for (const h of heuristics) {
+      if (h.test({ message })) {
+        try { return await h.apply(); } catch { /* ignore */ }
+      }
+    }
+    return { note: 'No heuristic matched; logged for follow-up.' };
+  };
+
+  const capture = async (phase:'before'|'after') => {
+    try {
+      const canvas = await html2canvas(document.body, { backgroundColor: null, scale: 0.6 });
+      const data = canvas.toDataURL('image/jpeg', 0.6);
+      eventBuffer.current.push({
+        id: nanoid(),
+        type: 'gate',
+        route: window.location.pathname, role, orgId, ts: Date.now(),
+        meta: { phase, errors }, screenshot: data
+      });
+    } catch {}
+  };
+
+  const bufferConsole = (rec: ConsoleRecord) => {
+    eventBuffer.current.push({ id: nanoid(), type: 'console', route: window.location.pathname, role, orgId, ts: Date.now(), meta: rec });
+  };
+  const bufferRuntime = (type: QaEvent['type'], message: string, stack?: string) => {
+    eventBuffer.current.push({ id: nanoid(), type, route: window.location.pathname, role, orgId, ts: Date.now(), meta: { message, stack } });
+  };
+  const bufferNetwork = (url: string, status: number) => {
+    eventBuffer.current.push({ id: nanoid(), type: 'network-error', route: window.location.pathname, role, orgId, ts: Date.now(), meta: { url, status } });
+  };
+  const bufferGate = (clean: boolean) => {
+    eventBuffer.current.push({ id: nanoid(), type: 'gate', route: window.location.pathname, role, orgId, ts: Date.now(), meta: { clean, errors } });
+  };
 
   // ---- HUD (draggable, non-invasive) ----
   useEffect(() => {
