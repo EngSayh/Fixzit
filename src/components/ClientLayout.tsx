@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import TopBar from './TopBar';
 import Sidebar from './Sidebar';
@@ -11,9 +11,8 @@ import ErrorTest from './ErrorTest';
 import ResponsiveLayout from './ResponsiveLayout';
 const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
 import PreferenceBroadcast from './PreferenceBroadcast';
-import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+// ResponsiveContext available if needed
 import { useTranslation } from '@/src/contexts/TranslationContext';
-import { TopBarProvider } from '@/src/contexts/TopBarContext';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState('guest');
@@ -102,22 +101,20 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  const CopilotWidget = useMemo(() => dynamic(() => import('./CopilotWidget'), { ssr: false }), []);
+  const CopilotWidget = dynamic(() => import('./CopilotWidget'), { ssr: false });
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <AutoFixInitializer />
-      <TopBarProvider>
-        <ResponsiveLayout
-          header={<TopBar role={role} />}
-          sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
-          showSidebarToggle={!isLandingPage}
-          footer={<Footer />}
-        >
-          {children}
-        </ResponsiveLayout>
-        <PreferenceBroadcast />
-      </TopBarProvider>
+      <ResponsiveLayout
+        header={<TopBar role={role} />}
+        sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+        showSidebarToggle={!isLandingPage}
+        footer={<Footer />}
+      >
+        {children}
+      </ResponsiveLayout>
+      <PreferenceBroadcast />
       <CopilotWidget />
       <ErrorTest />
       <AutoIncidentReporter />

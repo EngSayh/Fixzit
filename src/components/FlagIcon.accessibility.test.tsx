@@ -7,25 +7,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 
 /**
- * We try a resilient import: prefer the component module if available.
- * Adjust this path if your component lives elsewhere.
+ * Import the FlagIcon component directly
  */
-let FlagIcon: React.FC<{ code: 'gb' | 'sa'; className?: string; title?: string }>;
-try {
-  // Typical path
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  FlagIcon = require('./FlagIcon').FlagIcon;
-} catch {
-  try {
-    // Index re-export pattern
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    FlagIcon = require('.').FlagIcon;
-  } catch {
-    // Fallback to same-file-name (if component is misnamed as .test.tsx in repo)
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    FlagIcon = require('./FlagIcon.test').FlagIcon;
-  }
-}
+import { FlagIcon } from './FlagIcon';
 
 describe('FlagIcon', () => {
   describe('common SVG attributes', () => {

@@ -95,13 +95,12 @@ describe('auth lib - JWT generation and verification', () => {
     const auth = await loadAuthModule();
 
     const payload: AuthToken = {
-      id: 'user-1',
-      email: 'u@example.com',
-      role: 'ADMIN',
-      tenantId: 'tenant-1',
-    };
-
-    const token = auth.generateToken(payload);
+      id: '1',
+      email: 'test@test.com',
+      role: 'user',
+      orgId: 'org1',
+      tenantId: 't',
+    };    const token = auth.generateToken(payload);
     expect(typeof token).toBe('string');
     expect(signSpy).toHaveBeenCalledTimes(1);
     expect(signSpy.mock.calls[0][0]).toEqual(payload);
@@ -284,6 +283,7 @@ describe('auth lib - getUserFromToken', () => {
       id: 'missing-id',
       email: 'none@x.com',
       role: 'USER',
+      orgId: 'org1',
       tenantId: 't',
     };
     const token = auth.generateToken(payload);
@@ -315,6 +315,7 @@ describe('auth lib - getUserFromToken', () => {
       id: '1',
       email: 'blocked@x.com',
       role: 'USER',
+      orgId: 'org1',
       tenantId: 't',
     });
     const res = await auth.getUserFromToken(token);
@@ -346,6 +347,7 @@ describe('auth lib - getUserFromToken', () => {
       email: 'ok@x.com',
       role: 'ADMIN',
       tenantId: 'tenant-42',
+      orgId: 'org42',
     });
     const res = await auth.getUserFromToken(token);
     expect(res).toEqual({

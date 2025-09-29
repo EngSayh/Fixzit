@@ -33,7 +33,8 @@ async function verifyCore() {
     
     // Test 4: Work order functionality
     console.log('⚙️ Testing work order functionality...');
-    const woRepo = await import('../src/server/work-orders/wo.repo');
+    // wo.repo module was removed, using service instead
+    const woService = await import('../src/server/work-orders/wo.service');
     console.log('✅ Work order repository loaded');
     
     // Test 5: Idempotency system

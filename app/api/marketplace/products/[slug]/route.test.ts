@@ -1,5 +1,5 @@
 // Tests for app/api/marketplace/products/[slug]/route.ts
-// Framework: Jest (or Vitest-compatible with minor changes: jest -> vi)
+// Framework: Jest
 
 
 // IMPORTANT: We import the route implementation.
@@ -44,13 +44,13 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('returns product with computed buyBox (happy path with all fields)', async () => {
-    const doc = {
+    const doc: any = {
       _id: 'p1',
       name: 'Test Product',
       slug: 'test-product',
       prices: [{ listPrice: 123.45, currency: 'USD' }],
       inventories: [{ onHand: 10, leadDays: 5 }]
-    }
+    };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const params = { slug: 'test-product' }
@@ -71,11 +71,11 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('defaults currency to SAR when missing', async () => {
-    const doc = {
+    const doc: any = {
       slug: 'no-currency',
       prices: [{ listPrice: 50 }], // no currency
       inventories: [{ onHand: 3, leadDays: 2 }]
-    }
+    };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: { slug: 'no-currency' } })
@@ -88,11 +88,11 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('handles missing prices by setting price null and default currency', async () => {
-    const doc = {
+    const doc: any = {
       slug: 'no-prices',
       // prices missing
       inventories: [{ onHand: 1, leadDays: 1 }]
-    }
+    };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: { slug: 'no-prices' } })
@@ -105,11 +105,11 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('handles empty prices array by setting price null and default currency', async () => {
-    const doc = {
+    const doc: any = {
       slug: 'empty-prices',
       prices: [],
       inventories: [{ onHand: 1, leadDays: 4 }]
-    }
+    };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: { slug: 'empty-prices' } })
@@ -122,11 +122,11 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('computes inStock as false when onHand is 0 or falsy', async () => {
-    const doc = {
+    const doc: any = {
       slug: 'out-of-stock',
       prices: [{ listPrice: 10, currency: 'EUR' }],
       inventories: [{ onHand: 0, leadDays: 7 }]
-    }
+    };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: { slug: 'out-of-stock' } })
@@ -138,11 +138,11 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('defaults leadDays to 3 when inventories missing', async () => {
-    const doc = {
+    const doc: any = {
       slug: 'no-inventories',
       prices: [{ listPrice: 99.99, currency: 'GBP' }]
       // inventories missing
-    }
+    };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: { slug: 'no-inventories' } })
@@ -155,11 +155,11 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('defaults leadDays to 3 when first inventory missing leadDays', async () => {
-    const doc = {
+    const doc: any = {
       slug: 'no-leaddays',
       prices: [{ listPrice: 1.23, currency: 'JPY' }],
       inventories: [{ onHand: 2 /* leadDays missing */ }]
-    }
+    };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: { slug: 'no-leaddays' } })
@@ -179,7 +179,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('uses the provided slug param in the query', async () => {
-    const doc = { slug: 'unique-slug', prices: [], inventories: [] }
+    const doc: any = { slug: 'unique-slug', prices: [], inventories: [] };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
     const params = { slug: 'unique-slug' }

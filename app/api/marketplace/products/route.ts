@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: {
-        items: items.map(item => serializeProduct(item as any)),
+        items: items.map((item: any) => serializeProduct(item)),
         pagination: {
           page: query.page,
           limit: query.limit,

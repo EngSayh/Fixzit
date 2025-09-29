@@ -57,7 +57,7 @@ if (!process.env.NODE_ENV) {
 // NODE_ENV already set above
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
-process.env.USE_MOCK_DB = process.env.USE_MOCK_DB || 'true';
+// Using real MongoDB for all test environments
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key-for-jest-tests-minimum-32-characters-long';
 process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'test-nextauth-secret-for-jest-tests-minimum-32-characters-long';
 process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';

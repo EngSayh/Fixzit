@@ -148,23 +148,64 @@ export function calculatePaymentTermsDiscount(
   return calculateDiscountedPrice(amount, discountPercentage);
 }
 
-// Add the missing computeQuote function
-export function computeQuote(items: any[], options: any = {}) {
-  let total = 0;
+// Subscription pricing calculation
+export interface SubscriptionQuote {
+  items: Array<{
+    module: string;
+    seatCount: number;
+    unitPriceMonthly: number;
+    billingCategory: string;
+    total: number;
+  }>;
+  subtotal: number;
+  tax: number;
+  total: number;
+  monthly: number;
+  annualTotal: number;
+  annualDiscountPct: number;
+  currency: string;
+}
+
+export function computeQuote(params: {
+  items: any[];
+  seatTotal: number;
+  billingCycle: 'monthly' | 'annual';
+}): SubscriptionQuote {
+  const { items, seatTotal } = params;
+  
+  // Process items with seat-based pricing
   const processedItems = items.map(item => {
-    const itemTotal = item.quantity * item.price;
-    total += itemTotal;
+    const unitPriceMonthly = item.unitPriceMonthly || 50; // Default $50/seat/month
+    const seatCount = item.seatCount || seatTotal;
+    const total = seatCount * unitPriceMonthly;
+    
     return {
-      ...item,
-      total: itemTotal
+      module: item.moduleCode || item.module || 'UNKNOWN',
+      seatCount,
+      unitPriceMonthly,
+      billingCategory: item.billingCategory || 'CORE',
+      total
     };
   });
   
+  const subtotal = processedItems.reduce((sum, item) => sum + item.total, 0);
+  const tax = subtotal * 0.15; // 15% VAT
+  const total = subtotal + tax;
+  const monthly = total;
+  
+  // Annual discount: 15% off
+  const annualDiscountPct = 15;
+  const annualTotal = monthly * 12 * (1 - annualDiscountPct / 100);
+  
   return {
     items: processedItems,
-    subtotal: total,
-    tax: total * (options.taxRate || 0.15),
-    total: total * (1 + (options.taxRate || 0.15))
+    subtotal,
+    tax,
+    total,
+    monthly,
+    annualTotal,
+    annualDiscountPct,
+    currency: 'SAR'
   };
 }
 

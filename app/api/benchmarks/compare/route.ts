@@ -17,7 +17,11 @@ export async function POST(req: NextRequest) {
     await db;
     const body = compareSchema.parse(await req.json());
     
-    const ours = await computeQuote(body) as any;
+    const ours = computeQuote({
+      items: body.items,
+      seatTotal: body.seatTotal,
+      billingCycle: body.billingCycle
+    }) as any;
     if (ours.contactSales) return NextResponse.json(ours);
 
     const rows = await Benchmark.find({});

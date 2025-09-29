@@ -4,7 +4,15 @@ export type LanguageOption = {
   code: string;
   flag: string;
   dir: 'ltr' | 'rtl';
+  // Additional properties expected by components
+  locale: string;
+  iso: string;
+  native: string;
+  english: string;
+  country: string;
 };
+
+export type LanguageCode = 'en' | 'ar' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
 
 export const LANGUAGE_OPTIONS: LanguageOption[] = [
   {
@@ -12,15 +20,34 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     label: 'English',
     code: 'en',
     flag: '🇺🇸',
-    dir: 'ltr'
+    dir: 'ltr',
+    locale: 'en',
+    iso: 'EN',
+    native: 'English',
+    english: 'English',
+    country: 'United States'
   },
   {
     language: 'ar',
     label: 'العربية',
     code: 'ar',
     flag: '🇸🇦',
-    dir: 'rtl'
+    dir: 'rtl',
+    locale: 'ar',
+    iso: 'AR',
+    native: 'العربية',
+    english: 'Arabic',
+    country: 'Saudi Arabia'
   }
 ];
 
 export const DEFAULT_LANGUAGE = LANGUAGE_OPTIONS[0];
+
+// Helper functions for finding languages
+export const findLanguageByCode = (code: string): LanguageOption | undefined => {
+  return LANGUAGE_OPTIONS.find(lang => lang.code === code);
+};
+
+export const findLanguageByLocale = (locale: string): LanguageOption | undefined => {
+  return LANGUAGE_OPTIONS.find(lang => lang.language === locale);
+};

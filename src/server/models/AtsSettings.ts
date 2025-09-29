@@ -73,33 +73,8 @@ AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
   return doc;
 };
 
-// Add pre-save middleware to set defaults
-AtsSettingsSchema.pre('save', function() {
-  if (this.isNew) {
-    this.scoringWeights = this.scoringWeights || { skills: 0.6, experience: 0.3, culture: 0.05, education: 0.05 };
-    this.knockoutRules = this.knockoutRules || { minYears: 0, requiredSkills: [], autoRejectMissingExperience: false, autoRejectMissingSkills: true };
-  }
-});
-
-// Add instance methods
-AtsSettingsSchema.methods.shouldAutoReject = function(input: AutoRejectOptions): AutoRejectDecision {
-  return { reject: false };
-};
-
-// Add static methods
-AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
-  const existing = await this.findOne({ orgId });
-  if (existing) return existing;
-
-  return this.create({ orgId });
-};
-
+// Export model - MongoDB only
 const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
 export const AtsSettings: AtsSettingsModel = existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema);
-
-const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
-export const AtsSettings: AtsSettingsModel = isMockDB
-  ? (new AtsSettingsMockModel() as unknown as AtsSettingsModel)
-  : (existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema));
 
 export type { AutoRejectOptions, AutoRejectDecision };
