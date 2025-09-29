@@ -1,17 +1,17 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 interface SeparatorProps extends React.HTMLAttributes<HTMLDivElement> {
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: &apos;horizontal&apos; | &apos;vertical&apos;;
 }
 
 export const Separator: React.FC<SeparatorProps> = ({
-  className = '',
-  orientation = 'horizontal',
+  className = &apos;',
+  orientation = &apos;horizontal&apos;,
   ...props
 }) => {
   const orientationClasses = {
-    horizontal: 'h-[1px] w-full',
-    vertical: 'h-full w-[1px]'
+    horizontal: &apos;h-[1px] w-full&apos;,
+    vertical: &apos;h-full w-[1px]&apos;
   };
 
   return (

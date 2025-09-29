@@ -8,6 +8,7 @@ let client: MongoClient | undefined;
 let clientPromise: Promise<MongoClient> | undefined;
 
 declare global {
+  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 

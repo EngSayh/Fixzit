@@ -1,10 +1,10 @@
-'use client';
+'use client&apos;;
 
-import { useTopBar } from '@/src/contexts/TopBarContext';
-import { APPS } from '@/src/config/topbar-modules';
-import Link from 'next/link';
-import { ChevronDown, Building2, Store, Landmark } from 'lucide-react';
-import { useState } from 'react';
+import { useTopBar } from &apos;@/src/contexts/TopBarContext&apos;;
+import { APPS } from &apos;@/src/config/topbar-modules&apos;;
+import Link from &apos;next/link&apos;;
+import { ChevronDown, Building2, Store, Landmark } from &apos;lucide-react&apos;;
+import { useState } from &apos;react&apos;;
 
 const appIcons = {
   fm: Building2,
@@ -50,7 +50,7 @@ export default function AppSwitcher() {
                     setOpen(false);
                   }}
                   className={`flex items-center gap-3 p-3 rounded-md hover:bg-gray-50 transition-colors ${
-                    isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                    isActive ? &apos;bg-blue-50 text-blue-600&apos; : &apos;text-gray-700&apos;
                   }`}
                 >
                   <AppIcon className="w-5 h-5" />

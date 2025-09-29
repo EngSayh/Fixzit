@@ -1,66 +1,66 @@
-'use client';
+'use client&apos;;
 
-import { useEffect, useMemo, useState } from 'react';
-import useSWR from 'swr';
-import { formatDistanceToNowStrict } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Badge } from '@/src/components/ui/badge';
-import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
-import { Textarea } from '@/src/components/ui/textarea';
-import { Loader2, Plus, RefreshCcw, Search } from 'lucide-react';
-import { WorkOrderPriority } from '@/src/lib/sla';
+import { useEffect, useMemo, useState } from &apos;react&apos;;
+import useSWR from 'swr&apos;;
+import { formatDistanceToNowStrict } from &apos;date-fns&apos;;
+import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
+import { Badge } from &apos;@/src/components/ui/badge&apos;;
+import { Button } from &apos;@/src/components/ui/button&apos;;
+import { Input } from &apos;@/src/components/ui/input&apos;;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
+import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
+import { Loader2, Plus, RefreshCcw, Search } from &apos;lucide-react&apos;;
+import { WorkOrderPriority } from &apos;@/src/lib/sla&apos;;
 
-const fallbackUser = JSON.stringify({ id: 'demo-admin', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' });
+const fallbackUser = JSON.stringify({ id: &apos;demo-admin&apos;, role: &apos;SUPER_ADMIN&apos;, tenantId: &apos;demo-tenant&apos; });
 
 function buildHeaders(extra: Record<string, string> = {}) {
   const headers: Record<string, string> = {
-    'x-tenant-id': 'demo-tenant',
+    &apos;x-tenant-id&apos;: &apos;demo-tenant&apos;,
     ...extra,
   };
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('fixzit_token');
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const sessionUser = localStorage.getItem('x-user');
-    headers['x-user'] = sessionUser || fallbackUser;
+  if (typeof window !== &apos;undefined&apos;) {
+    const token = localStorage.getItem(&apos;fixzit_token&apos;);
+    if (token) headers[&apos;Authorization&apos;] = `Bearer ${token}`;
+    const sessionUser = localStorage.getItem(&apos;x-user&apos;);
+    headers[&apos;x-user&apos;] = sessionUser || fallbackUser;
   } else {
-    headers['x-user'] = fallbackUser;
+    headers[&apos;x-user&apos;] = fallbackUser;
   }
   return headers;
 }
 
 const statusStyles: Record<string, string> = {
-  SUBMITTED: 'bg-amber-100 text-amber-800 border border-amber-200',
-  DISPATCHED: 'bg-sky-100 text-sky-800 border border-sky-200',
-  IN_PROGRESS: 'bg-blue-100 text-blue-800 border border-blue-200',
-  ON_HOLD: 'bg-gray-100 text-gray-700 border border-gray-200',
-  COMPLETED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-  VERIFIED: 'bg-teal-100 text-teal-800 border border-teal-200',
-  CLOSED: 'bg-green-100 text-green-800 border border-green-200',
-  CANCELLED: 'bg-rose-100 text-rose-800 border border-rose-200',
+  SUBMITTED: &apos;bg-amber-100 text-amber-800 border border-amber-200&apos;,
+  DISPATCHED: &apos;bg-sky-100 text-sky-800 border border-sky-200&apos;,
+  IN_PROGRESS: &apos;bg-blue-100 text-blue-800 border border-blue-200&apos;,
+  ON_HOLD: &apos;bg-gray-100 text-gray-700 border border-gray-200&apos;,
+  COMPLETED: &apos;bg-emerald-100 text-emerald-800 border border-emerald-200&apos;,
+  VERIFIED: &apos;bg-teal-100 text-teal-800 border border-teal-200&apos;,
+  CLOSED: &apos;bg-green-100 text-green-800 border border-green-200&apos;,
+  CANCELLED: &apos;bg-rose-100 text-rose-800 border border-rose-200&apos;,
 };
 
 const priorityStyles: Record<string, string> = {
-  LOW: 'bg-slate-100 text-slate-700 border border-slate-200',
-  MEDIUM: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
-  HIGH: 'bg-orange-100 text-orange-800 border border-orange-200',
-  CRITICAL: 'bg-red-100 text-red-800 border border-red-200',
+  LOW: &apos;bg-slate-100 text-slate-700 border border-slate-200&apos;,
+  MEDIUM: &apos;bg-indigo-100 text-indigo-800 border border-indigo-200&apos;,
+  HIGH: &apos;bg-orange-100 text-orange-800 border border-orange-200&apos;,
+  CRITICAL: &apos;bg-red-100 text-red-800 border border-red-200&apos;,
 };
 
 const statusLabels: Record<string, string> = {
-  SUBMITTED: 'Submitted',
-  DISPATCHED: 'Dispatched',
-  IN_PROGRESS: 'In Progress',
-  ON_HOLD: 'On Hold',
-  COMPLETED: 'Completed',
-  VERIFIED: 'Verified',
-  CLOSED: 'Closed',
-  CANCELLED: 'Cancelled',
+  SUBMITTED: &apos;Submitted&apos;,
+  DISPATCHED: &apos;Dispatched&apos;,
+  IN_PROGRESS: &apos;In Progress&apos;,
+  ON_HOLD: &apos;On Hold&apos;,
+  COMPLETED: &apos;Completed&apos;,
+  VERIFIED: &apos;Verified&apos;,
+  CLOSED: &apos;Closed&apos;,
+  CANCELLED: &apos;Cancelled&apos;,
 };
 
-const PRIORITY_OPTIONS: WorkOrderPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const PRIORITY_OPTIONS: WorkOrderPriority[] = [&apos;LOW&apos;, &apos;MEDIUM&apos;, &apos;HIGH&apos;, &apos;CRITICAL&apos;];
 const STATUS_OPTIONS = Object.keys(statusLabels);
 const PAGE_SIZE = 10;
 
@@ -100,9 +100,9 @@ const fetcher = async (url: string) => {
 };
 
 function getDueMeta(dueAt?: string) {
-  if (!dueAt) return { label: 'Not scheduled', overdue: false };
+  if (!dueAt) return { label: &apos;Not scheduled&apos;, overdue: false };
   const dueDate = new Date(dueAt);
-  if (Number.isNaN(dueDate.getTime())) return { label: 'Not scheduled', overdue: false };
+  if (Number.isNaN(dueDate.getTime())) return { label: &apos;Not scheduled&apos;, overdue: false };
   return {
     label: formatDistanceToNowStrict(dueDate, { addSuffix: true }),
     overdue: dueDate.getTime() < Date.now(),
@@ -114,13 +114,13 @@ export type WorkOrdersViewProps = {
   description?: string;
 };
 
-export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage and track work orders across all properties' }: WorkOrdersViewProps) {
+export function WorkOrdersView({ heading = &apos;Work Orders&apos;, description = &apos;Manage and track work orders across all properties&apos; }: WorkOrdersViewProps) {
   const [clientReady, setClientReady] = useState(false);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(&apos;');
+  const [priorityFilter, setPriorityFilter] = useState(&apos;');
+  const [searchInput, setSearchInput] = useState(&apos;');
+  const [search, setSearch] = useState(&apos;');
 
   useEffect(() => setClientReady(true), []);
 
@@ -134,11 +134,11 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
-    params.set('limit', String(PAGE_SIZE));
-    params.set('page', String(page));
-    if (statusFilter) params.set('status', statusFilter);
-    if (priorityFilter) params.set('priority', priorityFilter);
-    if (search) params.set('q', search);
+    params.set(&apos;limit&apos;, String(PAGE_SIZE));
+    params.set(&apos;page&apos;, String(page));
+    if (statusFilter) params.set('status&apos;, statusFilter);
+    if (priorityFilter) params.set(&apos;priority&apos;, priorityFilter);
+    if (search) params.set(&apos;q', search);
     return params.toString();
   }, [page, priorityFilter, statusFilter, search]);
 
@@ -217,7 +217,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
               onClick={() => mutate()}
               disabled={isValidating}
             >
-              <RefreshCcw className={`mr-2 h-4 w-4 ${isValidating ? 'animate-spin' : ''}`} />
+              <RefreshCcw className={`mr-2 h-4 w-4 ${isValidating ? &apos;animate-spin&apos; : &apos;'}`} />
               Refresh
             </Button>
           </div>
@@ -253,15 +253,15 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                     <Badge className={priorityStyles[workOrder.priority] || priorityStyles.MEDIUM}>
                       Priority: {workOrder.priority}
                     </Badge>
-                    <Badge className={statusStyles[workOrder.status] || 'bg-gray-100 text-gray-700 border border-gray-200'}>
+                    <Badge className={statusStyles[workOrder.status] || &apos;bg-gray-100 text-gray-700 border border-gray-200&apos;}>
                       {statusLabels[workOrder.status] ?? workOrder.status}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600">Code: {workOrder.code}</p>
                 </div>
                 <div className="text-right text-sm text-gray-600">
-                  <p>SLA window: {workOrder.slaMinutes ? `${Math.round(workOrder.slaMinutes / 60)}h` : 'N/A'}</p>
-                  <p className={dueMeta.overdue ? 'text-red-600 font-semibold' : ''}>Due {dueMeta.label}</p>
+                  <p>SLA window: {workOrder.slaMinutes ? `${Math.round(workOrder.slaMinutes / 60)}h` : &apos;N/A&apos;}</p>
+                  <p className={dueMeta.overdue ? &apos;text-red-600 font-semibold&apos; : &apos;'}>Due {dueMeta.label}</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -270,20 +270,20 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 )}
                 <div className="grid grid-cols-1 gap-3 text-sm text-gray-600 md:grid-cols-2">
                   <div>
-                    <span className="font-medium text-gray-700">Property:</span>{' '}
-                    {workOrder.propertyId || 'Not linked'}
+                    <span className="font-medium text-gray-700">Property:</span>{&apos; '}
+                    {workOrder.propertyId || &apos;Not linked&apos;}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Assigned to:</span>{' '}
-                    {workOrder.assigneeUserId || workOrder.assigneeVendorId || 'Unassigned'}
+                    <span className="font-medium text-gray-700">Assigned to:</span>{&apos; '}
+                    {workOrder.assigneeUserId || workOrder.assigneeVendorId || &apos;Unassigned&apos;}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Category:</span>{' '}
-                    {workOrder.category || 'General'}
+                    <span className="font-medium text-gray-700">Category:</span>{&apos; '}
+                    {workOrder.category || &apos;General&apos;}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Created:</span>{' '}
-                    {workOrder.createdAt ? new Date(workOrder.createdAt).toLocaleString() : 'Unknown'}
+                    <span className="font-medium text-gray-700">Created:</span>{&apos; '}
+                    {workOrder.createdAt ? new Date(workOrder.createdAt).toLocaleString() : &apos;Unknown&apos;}
                   </div>
                 </div>
               </CardContent>
@@ -343,15 +343,15 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<WorkOrderFormState>({
-    title: '',
-    description: '',
-    priority: 'MEDIUM',
-    category: 'GENERAL',
-    propertyId: '',
+    title: &apos;',
+    description: &apos;',
+    priority: &apos;MEDIUM&apos;,
+    category: &apos;GENERAL&apos;,
+    propertyId: &apos;',
   });
 
   const reset = () => {
-    setForm({ title: '', description: '', priority: 'MEDIUM', category: 'GENERAL', propertyId: '' });
+    setForm({ title: &apos;', description: &apos;', priority: &apos;MEDIUM&apos;, category: &apos;GENERAL&apos;, propertyId: &apos;' });
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -366,24 +366,24 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
       };
       if (form.propertyId) payload.propertyId = form.propertyId;
 
-      const response = await fetch('/api/work-orders', {
-        method: 'POST',
-        headers: buildHeaders({ 'Content-Type': 'application/json' }),
+      const response = await fetch(&apos;/api/work-orders&apos;, {
+        method: &apos;POST&apos;,
+        headers: buildHeaders({ &apos;Content-Type&apos;: &apos;application/json&apos; }),
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || 'Failed to create work order');
+        throw new Error(message || &apos;Failed to create work order&apos;);
       }
 
       onCreated();
       reset();
       setOpen(false);
     } catch (error: any) {
-      console.error('Failed to create work order', error);
-      const message = error?.message ?? 'Unknown error';
-      if (typeof window !== 'undefined') {
+      console.error(&apos;Failed to create work order&apos;, error);
+      const message = error?.message ?? &apos;Unknown error&apos;;
+      if (typeof window !== &apos;undefined&apos;) {
         window.alert(`Unable to create work order: ${message}`);
       }
     } finally {
