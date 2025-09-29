@@ -1,23 +1,31 @@
-'use client&apos;;
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from &apos;react&apos;;
-import { Globe, Search } from &apos;lucide-react&apos;;
-import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
-import { LANGUAGE_OPTIONS, type LanguageOption } from &apos;@/src/data/language-options&apos;;
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Globe, Search } from 'lucide-react';
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { LANGUAGE_OPTIONS, type LanguageOption } from '@/src/data/language-options';
 
 interface LanguageSelectorProps {
-  variant?: &apos;default&apos; | &apos;compact&apos;;
+  variant?: 'default' | 'compact';
 }
 
-export default function LanguageSelector({ variant = &apos;default&apos; }: LanguageSelectorProps) {
-  const { locale, setLocale, isRTL } = useTranslation();
+/**
+ * Language selector dropdown for switching the application's locale.
+ *
+ * Renders a button that opens a searchable list of predefined languages. Allows choosing a language which calls the translation context's setter (when available), updates document `dir` and `lang` immediately to reflect RTL/LTR changes, and falls back to persisting the choice in localStorage + page reload if the translation context is absent or an error occurs.
+ *
+ * @param {'default' | 'compact'} [variant='default'] - UI density variant; `'default'` shows native name and code badge, `'compact'` shows a minimal code-only display.
+ * @returns {JSX.Element} A React element containing the language selector trigger and dropdown.
+ */
+export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
+  const { language, setLanguage, isRTL, t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState(&apos;');
+  const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const current = useMemo<LanguageOption>(() => {
-    return LANGUAGE_OPTIONS.find(option => option.locale === locale) ?? LANGUAGE_OPTIONS[0];
-  }, [locale]);
+    return LANGUAGE_OPTIONS.find(option => option.language === language) ?? LANGUAGE_OPTIONS[0];
+  }, [language]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -47,19 +55,19 @@ export default function LanguageSelector({ variant = &apos;default&apos; }: Lang
       }
     };
 
-    document.addEventListener(&apos;mousedown&apos;, handleClick);
-    return () => document.removeEventListener(&apos;mousedown&apos;, handleClick);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  const buttonPadding = variant === &apos;compact&apos; ? &apos;px-2 py-1 text-xs&apos; : &apos;px-3 py-2 text-sm&apos;;
-  const dropdownWidth = variant === &apos;compact&apos; ? &apos;w-64&apos; : &apos;w-80&apos;;
+  const buttonPadding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
+  const dropdownWidth = variant === 'compact' ? 'w-64' : 'w-80';
 
   const toggle = () => setOpen(prev => !prev);
 
   const handleSelect = (option: LanguageOption) => {
-    setLocale(option.locale);
+    setLanguage(option.language);
     setOpen(false);
-    setQuery(&apos;');
+    setQuery('');
   };
 
   return (
@@ -68,10 +76,10 @@ export default function LanguageSelector({ variant = &apos;default&apos; }: Lang
         type="button"
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={`Language ${current.native} (${current.iso})`}
+        aria-label={`${t('i18n.selectLanguageLabel', 'Select language')} ${current.native} (${current.iso})`}
         onClick={toggle}
         className={`flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors ${
-          isRTL ? &apos;flex-row-reverse&apos; : &apos;'
+          isRTL ? 'flex-row-reverse' : ''
         } ${buttonPadding}`}
       >
         <Globe className="h-4 w-4" />
@@ -79,7 +87,7 @@ export default function LanguageSelector({ variant = &apos;default&apos; }: Lang
           <span className="text-sm" aria-hidden>
             {current.flag}
           </span>
-          {variant === &apos;compact&apos; ? (
+          {variant === 'compact' ? (
             <span className="text-xs font-medium">
               {current.iso}
             </span>
@@ -89,7 +97,7 @@ export default function LanguageSelector({ variant = &apos;default&apos; }: Lang
             </span>
           )}
         </span>
-        {variant !== &apos;compact&apos; && (
+        {variant !== 'compact' && (
           <span className="text-xs text-white/80 hidden sm:inline">{current.iso}</span>
         )}
       </button>
@@ -97,18 +105,18 @@ export default function LanguageSelector({ variant = &apos;default&apos; }: Lang
       {open && (
         <div
           className={`absolute z-50 mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-lg ${dropdownWidth} ${
-            isRTL ? &apos;left-0&apos; : &apos;right-0&apos;
+            isRTL ? 'left-0' : 'right-0'
           }`}
         >
           <div className="relative mb-2">
-            <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-gray-400" />
+            <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-gray-400 ${isRTL ? 'right-2' : 'left-2'}`} aria-hidden="true" focusable="false" />
             <input
               type="text"
               value={query}
               onChange={event => setQuery(event.target.value)}
-              className="w-full rounded border border-gray-300 bg-white pl-7 pr-2 py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30"
-              placeholder="Type to filter languages"
-              aria-label="Type to filter languages"
+              className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2 text-right' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30`}
+              placeholder={t('i18n.filterLanguages', 'Type to filter languages')}
+              aria-label={t('i18n.filterLanguages', 'Type to filter languages')}
             />
           </div>
           <ul className="max-h-72 overflow-auto" role="listbox">
@@ -117,8 +125,8 @@ export default function LanguageSelector({ variant = &apos;default&apos; }: Lang
                 <button
                   type="button"
                   className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-gray-100 ${
-                    option.locale === current.locale ? &apos;bg-[#0061A8]/10 text-[#0061A8]&apos; : &apos;'
-                  } ${isRTL ? &apos;flex-row-reverse text-right&apos; : &apos;'}`}
+                    option.locale === current.locale ? 'bg-[#0061A8]/10 text-[#0061A8]' : ''
+                  } ${isRTL ? 'flex-row-reverse text-right' : ''}`}
                   onClick={() => handleSelect(option)}
                   role="option"
                   aria-selected={option.locale === current.locale}

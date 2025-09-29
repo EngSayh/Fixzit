@@ -1,102 +1,102 @@
-'use client&apos;;
-import { usePathname, useRouter } from &apos;next/navigation&apos;;
-import { useMemo } from &apos;react&apos;;
-import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
-import { useResponsive } from &apos;@/src/contexts/ResponsiveContext&apos;;
-import LanguageSelector from &apos;@/src/components/i18n/LanguageSelector&apos;;
-import CurrencySelector from &apos;@/src/components/i18n/CurrencySelector&apos;;
+'use client';
+import { usePathname, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import LanguageSelector from '@/src/components/i18n/LanguageSelector';
+import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
   ShoppingBag, Headphones, Shield, BarChart3, Cog, FileText, CheckCircle, Bell
-} from &apos;lucide-react&apos;;
+} from 'lucide-react';
 
 // Role-based module permissions
 const ROLE_PERMISSIONS = {
   SUPER_ADMIN: [
-    &apos;dashboard&apos;, &apos;work-orders&apos;, &apos;properties&apos;, &apos;assets&apos;, &apos;tenants&apos;, &apos;vendors&apos;,
-    &apos;projects&apos;, &apos;rfqs&apos;, &apos;invoices&apos;, &apos;finance&apos;, &apos;hr&apos;, &apos;administration&apos;,
-    &apos;crm&apos;, &apos;marketplace&apos;, 'support&apos;, &apos;compliance&apos;, &apos;reports&apos;, 'system&apos;
+    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'administration',
+    'crm', 'marketplace', 'support', 'compliance', 'reports', 'system'
   ],
   CORPORATE_ADMIN: [
-    &apos;dashboard&apos;, &apos;work-orders&apos;, &apos;properties&apos;, &apos;assets&apos;, &apos;tenants&apos;, &apos;vendors&apos;,
-    &apos;projects&apos;, &apos;rfqs&apos;, &apos;invoices&apos;, &apos;finance&apos;, &apos;hr&apos;, &apos;crm&apos;, 'support&apos;, &apos;reports&apos;
+    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'
   ],
   FM_MANAGER: [
-    &apos;dashboard&apos;, &apos;work-orders&apos;, &apos;properties&apos;, &apos;assets&apos;, &apos;tenants&apos;, &apos;vendors&apos;,
-    &apos;projects&apos;, &apos;rfqs&apos;, &apos;invoices&apos;, &apos;finance&apos;, 'support&apos;
+    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
+    'projects', 'rfqs', 'invoices', 'finance', 'support'
   ],
   PROPERTY_MANAGER: [
-    &apos;dashboard&apos;, &apos;properties&apos;, &apos;tenants&apos;, &apos;maintenance&apos;, &apos;reports&apos;
+    'dashboard', 'properties', 'tenants', 'maintenance', 'reports'
   ],
   TENANT: [
-    &apos;dashboard&apos;, &apos;properties&apos;, &apos;tenants&apos;, 'support&apos;
+    'dashboard', 'properties', 'tenants', 'support'
   ],
   VENDOR: [
-    &apos;dashboard&apos;, &apos;marketplace&apos;, &apos;orders&apos;, 'support&apos;
+    'dashboard', 'marketplace', 'orders', 'support'
   ],
   SUPPORT: [
-    &apos;dashboard&apos;, 'support&apos;, &apos;tickets&apos;
+    'dashboard', 'support', 'tickets'
   ],
   AUDITOR: [
-    &apos;dashboard&apos;, &apos;compliance&apos;, &apos;reports&apos;, &apos;audit&apos;
+    'dashboard', 'compliance', 'reports', 'audit'
   ],
   PROCUREMENT: [
-    &apos;dashboard&apos;, &apos;vendors&apos;, &apos;rfqs&apos;, &apos;orders&apos;, &apos;procurement&apos;
+    'dashboard', 'vendors', 'rfqs', 'orders', 'procurement'
   ],
   EMPLOYEE: [
-    &apos;dashboard&apos;, &apos;hr&apos;, 'support&apos;
+    'dashboard', 'hr', 'support'
   ],
   CUSTOMER: [
-    &apos;marketplace&apos;, &apos;orders&apos;, 'support&apos;
+    'marketplace', 'orders', 'support'
   ]
 };
 
 // Subscription-based module access
 const SUBSCRIPTION_PLANS = {
-  BASIC: [&apos;dashboard&apos;, &apos;properties&apos;, &apos;tenants&apos;, &apos;maintenance&apos;, 'support&apos;],
-  PROFESSIONAL: [&apos;dashboard&apos;, &apos;work-orders&apos;, &apos;properties&apos;, &apos;assets&apos;, &apos;tenants&apos;, &apos;vendors&apos;, &apos;rfqs&apos;, &apos;invoices&apos;, &apos;finance&apos;, &apos;hr&apos;, &apos;crm&apos;, 'support&apos;, &apos;reports&apos;],
-  ENTERPRISE: [&apos;dashboard&apos;, &apos;work-orders&apos;, &apos;properties&apos;, &apos;assets&apos;, &apos;tenants&apos;, &apos;vendors&apos;, &apos;projects&apos;, &apos;rfqs&apos;, &apos;invoices&apos;, &apos;finance&apos;, &apos;hr&apos;, &apos;crm&apos;, &apos;marketplace&apos;, 'support&apos;, &apos;compliance&apos;, &apos;reports&apos;, 'system&apos;, &apos;administration&apos;]
+  BASIC: ['dashboard', 'properties', 'tenants', 'maintenance', 'support'],
+  PROFESSIONAL: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'],
+  ENTERPRISE: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'administration']
 };
 
 const MODULES = [
-  { id:&apos;dashboard&apos;,    name:&apos;nav.dashboard&apos;,          icon:LayoutDashboard, path:&apos;/fm/dashboard&apos;, category:&apos;core&apos; },
-  { id:&apos;work-orders&apos;,  name:&apos;nav.work-orders&apos;,        icon:ClipboardList,   path:&apos;/fm/work-orders&apos;, category:&apos;fm&apos; },
-  { id:&apos;properties&apos;,   name:&apos;nav.properties&apos;,         icon:Building2,       path:&apos;/fm/properties&apos;, category:&apos;fm&apos; },
-  { id:&apos;assets&apos;,       name:&apos;nav.assets&apos;,             icon:Settings,        path:&apos;/fm/assets&apos;, category:&apos;fm&apos; },
-  { id:&apos;tenants&apos;,      name:&apos;nav.tenants&apos;,            icon:Users,           path:&apos;/fm/tenants&apos;, category:&apos;fm&apos; },
-  { id:&apos;vendors&apos;,      name:&apos;nav.vendors&apos;,            icon:ShoppingBag,     path:&apos;/fm/vendors&apos;, category:&apos;procurement&apos; },
-  { id:&apos;projects&apos;,     name:&apos;nav.projects&apos;,           icon:ClipboardList,   path:&apos;/fm/projects&apos;, category:&apos;fm&apos; },
-  { id:&apos;rfqs&apos;,         name:&apos;nav.rfqs&apos;,        icon:ClipboardList,   path:&apos;/fm/rfqs&apos;, category:&apos;procurement&apos; },
-  { id:&apos;invoices&apos;,     name:&apos;nav.invoices&apos;,           icon:DollarSign,      path:&apos;/fm/invoices&apos;, category:&apos;finance&apos; },
-  { id:&apos;finance&apos;,      name:&apos;nav.finance&apos;,            icon:DollarSign,      path:&apos;/fm/finance&apos;, category:&apos;finance&apos; },
-  { id:&apos;hr&apos;,           name:&apos;nav.hr&apos;,           icon:Users,           path:&apos;/fm/hr&apos;, category:&apos;hr&apos; },
-  { id:&apos;crm&apos;,          name:&apos;nav.crm&apos;,                icon:UserCheck,       path:&apos;/fm/crm&apos;, category:&apos;crm&apos; },
-  { id:&apos;marketplace&apos;,  name:&apos;nav.marketplace&apos;,        icon:ShoppingBag,     path:&apos;/marketplace&apos;, category:&apos;marketplace&apos; },
-  { id:'support&apos;,      name:&apos;nav.support&apos;,      icon:Headphones,      path:&apos;/fm/support&apos;, category:'support&apos; },
-  { id:&apos;compliance&apos;,   name:&apos;nav.compliance&apos;,   icon:Shield,          path:&apos;/fm/compliance&apos;, category:&apos;compliance&apos; },
-  { id:&apos;reports&apos;,      name:&apos;nav.reports&apos;,icon:BarChart3,       path:&apos;/fm/reports&apos;, category:&apos;reporting&apos; },
-  { id:'system&apos;,       name:&apos;nav.system&apos;,  icon:Cog,             path:&apos;/fm/system&apos;, category:&apos;admin&apos; },
-  { id:&apos;maintenance&apos;,  name:&apos;nav.maintenance&apos;,        icon:Settings,        path:&apos;/fm/maintenance&apos;, category:&apos;fm&apos; },
-  { id:&apos;orders&apos;,       name:&apos;nav.orders&apos;,             icon:ClipboardList,   path:&apos;/fm/orders&apos;, category:&apos;procurement&apos; }
+  { id:'dashboard',    name:'nav.dashboard',          icon:LayoutDashboard, path:'/fm/dashboard', category:'core' },
+  { id:'work-orders',  name:'nav.work-orders',        icon:ClipboardList,   path:'/fm/work-orders', category:'fm' },
+  { id:'properties',   name:'nav.properties',         icon:Building2,       path:'/fm/properties', category:'fm' },
+  { id:'assets',       name:'nav.assets',             icon:Settings,        path:'/fm/assets', category:'fm' },
+  { id:'tenants',      name:'nav.tenants',            icon:Users,           path:'/fm/tenants', category:'fm' },
+  { id:'vendors',      name:'nav.vendors',            icon:ShoppingBag,     path:'/fm/vendors', category:'procurement' },
+  { id:'projects',     name:'nav.projects',           icon:ClipboardList,   path:'/fm/projects', category:'fm' },
+  { id:'rfqs',         name:'nav.rfqs',        icon:ClipboardList,   path:'/fm/rfqs', category:'procurement' },
+  { id:'invoices',     name:'nav.invoices',           icon:DollarSign,      path:'/fm/invoices', category:'finance' },
+  { id:'finance',      name:'nav.finance',            icon:DollarSign,      path:'/fm/finance', category:'finance' },
+  { id:'hr',           name:'nav.hr',           icon:Users,           path:'/fm/hr', category:'hr' },
+  { id:'crm',          name:'nav.crm',                icon:UserCheck,       path:'/fm/crm', category:'crm' },
+  { id:'marketplace',  name:'nav.marketplace',        icon:ShoppingBag,     path:'/marketplace', category:'marketplace' },
+  { id:'support',      name:'nav.support',      icon:Headphones,      path:'/fm/support', category:'support' },
+  { id:'compliance',   name:'nav.compliance',   icon:Shield,          path:'/fm/compliance', category:'compliance' },
+  { id:'reports',      name:'nav.reports',icon:BarChart3,       path:'/fm/reports', category:'reporting' },
+  { id:'system',       name:'nav.system',  icon:Cog,             path:'/fm/system', category:'admin' },
+  { id:'maintenance',  name:'nav.maintenance',        icon:Settings,        path:'/fm/maintenance', category:'fm' },
+  { id:'orders',       name:'nav.orders',             icon:ClipboardList,   path:'/fm/orders', category:'procurement' }
 ];
 
 // User account links
 const USER_LINKS = [
-  { id:&apos;profile&apos;, name:&apos;nav.profile&apos;, icon:UserCheck, path:&apos;/profile&apos; },
-  { id:'settings&apos;, name:&apos;nav.settings&apos;, icon:Settings, path:&apos;/settings&apos; },
-  { id:&apos;notifications&apos;, name:&apos;nav.notifications&apos;, icon:Bell, path:&apos;/notifications&apos; }
+  { id:'profile', name:'nav.profile', icon:UserCheck, path:'/profile' },
+  { id:'settings', name:'nav.settings', icon:Settings, path:'/settings' },
+  { id:'notifications', name:'nav.notifications', icon:Bell, path:'/notifications' }
 ];
 
 interface SidebarProps {
   role?: string;
-  subscription?: &apos;BASIC&apos; | &apos;PROFESSIONAL&apos; | &apos;ENTERPRISE&apos;;
+  subscription?: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE';
   tenantId?: string;
 }
 
-export default function Sidebar({ role = &apos;guest&apos;, subscription = &apos;BASIC&apos;, tenantId }: SidebarProps) {
+export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { responsiveClasses, screenInfo } = useResponsive();
+  const { responsiveClasses, screenInfo } = useResponsiveLayout();
 
   // Safe translation with fallback
   let t: (key: string, fallback?: string) => string;
@@ -136,31 +136,31 @@ export default function Sidebar({ role = &apos;guest&apos;, subscription = &apos
 
   const getCategoryName = (category: string) => {
     const names: Record<string, string> = {
-      core: &apos;Core&apos;,
-      fm: &apos;Facility Management&apos;,
-      procurement: &apos;Procurement&apos;,
-      finance: &apos;Finance&apos;,
-      hr: &apos;Human Resources&apos;,
-      crm: &apos;Customer Relations&apos;,
-      marketplace: &apos;Marketplace&apos;,
-      support: &apos;Support&apos;,
-      compliance: &apos;Compliance&apos;,
-      reporting: &apos;Reporting&apos;,
-      admin: &apos;Administration&apos;
+      core: 'Core',
+      fm: 'Facility Management',
+      procurement: 'Procurement',
+      finance: 'Finance',
+      hr: 'Human Resources',
+      crm: 'Customer Relations',
+      marketplace: 'Marketplace',
+      support: 'Support',
+      compliance: 'Compliance',
+      reporting: 'Reporting',
+      admin: 'Administration'
     };
     return names[category] || category;
   };
 
   return (
-            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? &apos;right-0&apos; : &apos;left-0&apos;}` : &apos;w-64&apos;} bg-[#023047] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${translationIsRTL ? &apos;border-l&apos; : &apos;border-r&apos;}`} style={{ backgroundColor: &apos;#023047&apos; }}>
-      <div className={`${screenInfo.isMobile ? &apos;p-3&apos; : &apos;p-4&apos;}`}>
+            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'w-64'} bg-[#023047] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#023047' }}>
+      <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
         <div className="font-bold text-lg mb-6 text-white">Fixzit Enterprise</div>
 
         {/* Role and Subscription Info */}
-        {role !== &apos;guest&apos; && (
+        {role !== 'guest' && (
           <div className="mb-4 p-3 bg-[#0061A8] rounded-lg">
             <div className="text-xs text-white/80 mb-1">Role</div>
-            <div className="text-sm font-medium text-white">{role.replace(&apos;_', &apos; ')}</div>
+            <div className="text-sm font-medium text-white">{role.replace('_', ' ')}</div>
             <div className="text-xs text-white/80 mt-1">Plan: {subscription}</div>
           </div>
         )}
@@ -175,19 +175,19 @@ export default function Sidebar({ role = &apos;guest&apos;, subscription = &apos
               <div className="space-y-1">
                 {modules.map(m => {
                   const Icon = m.icon;
-                  const isActive = active === m.path || active?.startsWith(m.path + &apos;/');
+                  const isActive = active === m.path || active?.startsWith(m.path + '/');
                   return (
                         <button
                           key={m.id}
                           onClick={() => router.push(m.path)}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200
                                          ${isActive
-                                           ? &apos;bg-[#0061A8] text-white shadow-md&apos;
-                                           : &apos;text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1&apos;} ${translationIsRTL ? &apos;flex-row-reverse text-right&apos; : &apos;text-left&apos;}`}
+                                           ? 'bg-[#0061A8] text-white shadow-md'
+                                           : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'} ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                         >
                           <Icon className="w-5 h-5 flex-shrink-0" />
-                          <span className="text-sm font-medium">{t(m.name, m.name.replace(&apos;nav.&apos;, &apos;'))}</span>
-                          {isActive && <div className={`${translationIsRTL ? &apos;mr-auto&apos; : &apos;ml-auto&apos;} w-2 h-2 bg-white rounded-full`}></div>}
+                          <span className="text-sm font-medium">{t(m.name, m.name.replace('nav.', ''))}</span>
+                          {isActive && <div className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 bg-white rounded-full`}></div>}
                         </button>
                   );
                 })}
@@ -202,18 +202,18 @@ export default function Sidebar({ role = &apos;guest&apos;, subscription = &apos
           <nav className="space-y-1">
             {USER_LINKS.map(link => {
               const Icon = link.icon;
-              const isActive = active === link.path || active?.startsWith(link.path + &apos;/');
+              const isActive = active === link.path || active?.startsWith(link.path + '/');
               return (
                 <button
                   key={link.id}
                   onClick={() => router.push(link.path)}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-all duration-200
                              ${isActive
-                               ? &apos;bg-[#0061A8] text-white shadow-md&apos;
-                               : &apos;text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1&apos;}`}
+                               ? 'bg-[#0061A8] text-white shadow-md'
+                               : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'}`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-sm font-medium">{t(link.name, link.name.replace(&apos;nav.&apos;, &apos;'))}</span>
+                  <span className="text-sm font-medium">{t(link.name, link.name.replace('nav.', ''))}</span>
                   {isActive && <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>}
                 </button>
               );
@@ -222,10 +222,10 @@ export default function Sidebar({ role = &apos;guest&apos;, subscription = &apos
         </div>
 
         <div className="border-t border-white/20 pt-4 mt-4">
-          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? &apos;text-right&apos; : &apos;'}`}>
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
             Preferences
           </div>
-          <div className={`flex gap-2 px-3 ${translationIsRTL ? &apos;flex-row-reverse&apos; : &apos;'}`}>
+          <div className={`flex gap-2 px-3 ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
             <LanguageSelector variant="compact" />
             <CurrencySelector variant="compact" />
           </div>
@@ -235,7 +235,7 @@ export default function Sidebar({ role = &apos;guest&apos;, subscription = &apos
         <div className="border-t border-white/20 pt-4 mt-4">
           <div className="text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider">Help</div>
           <button
-            onClick={() => router.push(&apos;/help&apos;)}
+            onClick={() => router.push('/help')}
             className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1"
           >
             <Headphones className="w-5 h-5 flex-shrink-0" />
