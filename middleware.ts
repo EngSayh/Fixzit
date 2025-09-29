@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@/src/i18n/config';
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -29,7 +28,7 @@ const protectedApiRoutes = [
   '/api/projects',
   '/api/rfqs',
   '/api/slas',
-  '/api/invoices',
+  '/api/finance/invoices',
   '/api/users',
   '/api/work-orders',
   '/api/finance',
@@ -80,31 +79,32 @@ const protectedMarketplaceActions = [
   '/aqar/bookings'
 ];
 
-function negotiateLocale(request: NextRequest): Locale {
-  const cookieLocale = request.cookies.get('locale')?.value as Locale | undefined;
-  if (cookieLocale && SUPPORTED_LOCALES.includes(cookieLocale)) {
-    return cookieLocale;
-  }
-
-  const acceptLanguage = request.headers.get('accept-language') ?? '';
-  if (acceptLanguage.toLowerCase().includes('ar')) {
-    return 'ar';
-  }
-
-  return DEFAULT_LOCALE;
-}
-
-function applyLocale(response: NextResponse, locale: Locale) {
-  response.cookies.set('locale', locale, { path: '/', sameSite: 'lax' });
-  response.cookies.set('fxz.lang', locale, { path: '/', sameSite: 'lax' });
-  response.cookies.set('fxz.locale', locale === 'ar' ? 'ar-SA' : 'en-GB', { path: '/', sameSite: 'lax' });
-  return response;
-}
-
+/**
+ * Middleware that enforces route-level access rules for public, protected, API, marketplace, FM, and admin routes.
+ *
+ * Applies these behaviors:
+ * - Skips middleware for Next.js internals, static files, and obvious public assets.
+ * - Allows listed public routes and public marketplace browsing routes without authentication.
+ * - For /api/*:
+ *   - Allows public API paths (auth, cms, help, assistant).
+ *   - For protected API routes, requires `fixzit_auth` cookie; on success attaches a JSON `x-user` header and continues; on failure responds 401.
+ *   - For protected marketplace actions, requires `fixzit_auth` cookie; on success attaches `x-user` and continues; on failure redirects to /login.
+ * - For non-API protected routes:
+ *   - If no `fixzit_auth` cookie: redirects unauthenticated requests under /fm/ to /login; otherwise allows public access.
+ *   - If a token is present: decodes JWT payload (id, email, role, orgId), enforces admin RBAC for /admin/* (only SUPER_ADMIN, ADMIN, CORPORATE_ADMIN allowed), and:
+ *     - Redirects root or /login to role-specific destinations (fm dashboard, properties, marketplace).
+ *     - Attaches `x-user` header for FM routes and continues.
+ *   - Invalid JWTs redirect /fm/, /aqar/, and /souq/ requests to /login; other paths continue.
+ *
+ * Side effects:
+ * - May return NextResponse.next(), NextResponse.redirect(...) or NextResponse.json(...).
+ * - Sets an `x-user` response header with the decoded user object for authenticated API/FM/marketplace requests.
+ *
+ * @param request - The incoming NextRequest to evaluate.
+ * @returns A NextResponse that allows, redirects, or denies the request based on route rules and authentication.
+ */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const resolvedLocale = negotiateLocale(request);
-  const finalize = (response: NextResponse) => applyLocale(response, resolvedLocale);
 
   // Skip middleware for static files and API calls to Next.js internals
   if (
@@ -114,17 +114,17 @@ export async function middleware(request: NextRequest) {
     pathname.includes('.') ||
     pathname.startsWith('/api/_next/')
   ) {
-    return finalize(NextResponse.next());
+    return NextResponse.next();
   }
 
   // Handle public routes (including public marketplace browsing)
   if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-    return finalize(NextResponse.next());
+    return NextResponse.next();
   }
 
   // Handle public marketplace routes (browsing without login)
   if (publicMarketplaceRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-    return finalize(NextResponse.next());
+    return NextResponse.next();
   }
 
   // Handle API routes - require authentication
@@ -134,7 +134,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/api/cms/') ||
         pathname.startsWith('/api/help/') ||
         pathname.startsWith('/api/assistant/')) {
-      return finalize(NextResponse.next());
+      return NextResponse.next();
     }
 
     // Check for authentication on protected API routes
@@ -142,7 +142,7 @@ export async function middleware(request: NextRequest) {
       try {
         const authToken = request.cookies.get('fixzit_auth')?.value;
         if (!authToken) {
-          return finalize(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const payload = JSON.parse(atob(authToken.split('.')[1]));
@@ -150,44 +150,19 @@ export async function middleware(request: NextRequest) {
           id: payload.id,
           email: payload.email,
           role: payload.role,
-          tenantId: payload.tenantId
+          orgId: payload.orgId
         };
 
         // Add user info to request headers for API routes
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return finalize(response);
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
       } catch (error) {
-        return finalize(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     }
 
-    // Check for authentication on protected marketplace actions
-    if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
-      try {
-        const authToken = request.cookies.get('fixzit_auth')?.value;
-        if (!authToken) {
-          return finalize(NextResponse.redirect(new URL('/login', request.url)));
-        }
-
-        const payload = JSON.parse(atob(authToken.split('.')[1]));
-        const user = {
-          id: payload.id,
-          email: payload.email,
-          role: payload.role,
-          tenantId: payload.tenantId
-        };
-
-        // Add user context to protected marketplace actions
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return finalize(response);
-      } catch (error) {
-        return finalize(NextResponse.redirect(new URL('/login', request.url)));
-      }
-    }
-
-    return finalize(NextResponse.next());
+    return NextResponse.next();
   }
 
   // Handle protected routes
@@ -196,10 +171,13 @@ export async function middleware(request: NextRequest) {
     const authToken = request.cookies.get('fixzit_auth')?.value;
     if (!authToken) {
       // Redirect to login for unauthenticated users on protected routes
-      if (pathname.startsWith('/fm/')) {
-        return finalize(NextResponse.redirect(new URL('/login', request.url)));
+      if (
+        pathname.startsWith('/fm/') ||
+        protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))
+      ) {
+        return NextResponse.redirect(new URL('/login', request.url));
       }
-      return finalize(NextResponse.next());
+      return NextResponse.next();
     }
 
     // Basic JWT verification without database
@@ -209,46 +187,60 @@ export async function middleware(request: NextRequest) {
         id: payload.id,
         email: payload.email,
         role: payload.role,
-        tenantId: payload.tenantId
+        orgId: payload.orgId
       };
+
+      // Protect admin UI with RBAC
+      if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+        const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+        if (!adminRoles.has(user.role)) {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }
+      }
 
       // Redirect based on user role
       if (pathname === '/' || pathname === '/login') {
         // Redirect to appropriate dashboard based on role
         if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
-          return finalize(NextResponse.redirect(new URL('/fm/dashboard', request.url)));
+          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
         } else if (user.role === 'TENANT') {
-          return finalize(NextResponse.redirect(new URL('/fm/properties', request.url)));
+          return NextResponse.redirect(new URL('/fm/properties', request.url));
         } else if (user.role === 'VENDOR') {
-          return finalize(NextResponse.redirect(new URL('/fm/marketplace', request.url)));
+          return NextResponse.redirect(new URL('/fm/marketplace', request.url));
         } else {
-          return finalize(NextResponse.redirect(new URL('/fm/dashboard', request.url)));
+          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
         }
       }
 
       // FM routes - check role-based access
       if (fmRoutes.some(route => pathname.startsWith(route))) {
-        // Add user context to FM routes
-        const response = NextResponse.next();
-        response.headers.set('x-user', JSON.stringify(user));
-        return finalize(response);
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
       }
 
-      return finalize(NextResponse.next());
+      // Protected marketplace actions - require auth and attach user
+      if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set('x-user', JSON.stringify(user));
+        return NextResponse.next({ request: { headers: reqHeaders } });
+      }
+
+      return NextResponse.next();
     } catch (jwtError) {
       // Invalid token - redirect to login
       if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
-        return finalize(NextResponse.redirect(new URL('/login', request.url)));
+        return NextResponse.redirect(new URL('/login', request.url));
       }
-      return finalize(NextResponse.next());
+      return NextResponse.next();
     }
   } catch (error) {
     // Redirect to login for any errors
     if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
-      return finalize(NextResponse.redirect(new URL('/login', request.url)));
+      return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    return finalize(NextResponse.next());
+    return NextResponse.next();
   }
 }
 

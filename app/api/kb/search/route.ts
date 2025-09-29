@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       $and: [
         {
           $or: [
-            ...(user?.tenantId ? [ { tenantId: user.tenantId } ] : []),
+            ...(user?.tenantId ? [ { tenantId: (user as any)?.orgId } ] : []),
             { tenantId: { $exists: false } },
             { tenantId: null }
           ]
