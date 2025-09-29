@@ -117,3 +117,4 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
     </div>
   );
 }
+
