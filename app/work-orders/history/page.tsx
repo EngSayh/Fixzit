@@ -1,48 +1,48 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 export default function ServiceHistoryPage() {
   const serviceHistory = [
     {
-      id: 'WO-1001',
-      title: 'AC not cooling',
-      property: 'Tower A / 1204',
-      technician: 'Ahmed Al-Rashid',
-      completionDate: '2025-01-20',
-      duration: '2 hours',
-      cost: 'SAR 150',
+      id: &apos;WO-1001&apos;,
+      title: &apos;AC not cooling&apos;,
+      property: &apos;Tower A / 1204&apos;,
+      technician: &apos;Ahmed Al-Rashid&apos;,
+      completionDate: &apos;2025-01-20&apos;,
+      duration: &apos;2 hours&apos;,
+      cost: &apos;SAR 150&apos;,
       rating: 5,
-      status: 'completed'
+      status: &apos;completed&apos;
     },
     {
-      id: 'WO-1002',
-      title: 'Elevator maintenance',
-      property: 'Tower B / Lobby',
-      technician: 'Mohammed Al-Saud',
-      completionDate: '2025-01-18',
-      duration: '4 hours',
-      cost: 'SAR 300',
+      id: &apos;WO-1002&apos;,
+      title: &apos;Elevator maintenance&apos;,
+      property: &apos;Tower B / Lobby&apos;,
+      technician: &apos;Mohammed Al-Saud&apos;,
+      completionDate: &apos;2025-01-18&apos;,
+      duration: &apos;4 hours&apos;,
+      cost: &apos;SAR 300&apos;,
       rating: 4,
-      status: 'completed'
+      status: &apos;completed&apos;
     },
     {
-      id: 'WO-1003',
-      title: 'Plumbing repair',
-      property: 'Villa 9',
-      technician: 'Omar Al-Fahad',
-      completionDate: '2025-01-15',
-      duration: '1.5 hours',
-      cost: 'SAR 120',
+      id: &apos;WO-1003&apos;,
+      title: &apos;Plumbing repair&apos;,
+      property: &apos;Villa 9&apos;,
+      technician: &apos;Omar Al-Fahad&apos;,
+      completionDate: &apos;2025-01-15&apos;,
+      duration: &apos;1.5 hours&apos;,
+      cost: &apos;SAR 120&apos;,
       rating: 5,
-      status: 'completed'
+      status: &apos;completed&apos;
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case &apos;completed&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
+      case &apos;cancelled&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
+      case &apos;pending&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
+      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
     }
   };
 

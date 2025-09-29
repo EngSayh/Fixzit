@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
+import { db } from '@/src/lib/mongo';
 import Subscription from '@/src/models/Subscription';
+import { createSecureResponse } from '@/src/server/security/headers';
 import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
 import PaymentMethod from '@/src/models/PaymentMethod';
 
 // POST with secret header from cron – for each sub due this day: charge recurring via token
 export async function POST(req: NextRequest) {
   if (req.headers.get('x-cron-secret') !== process.env.CRON_SECRET) return NextResponse.json({ error:'UNAUTH' }, { status: 401 });
-  await dbConnect();
+  const client = await db;
   const today = new Date();
   const dueSubs = await Subscription.find({ billingCycle:'monthly', status:'active', nextInvoiceAt: { $lte: today }, paytabsTokenId: { $ne: null } });
 
@@ -37,5 +38,5 @@ export async function POST(req: NextRequest) {
     s.nextInvoiceAt = new Date(new Date().setMonth(today.getMonth()+1)); await s.save();
   }
 
-  return NextResponse.json({ ok: true, count: dueSubs.length });
+  return createSecureResponse({ ok: true, count: dueSubs.length });
 }

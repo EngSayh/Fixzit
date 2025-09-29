@@ -1,6 +1,6 @@
-'use client';
+'use client&apos;;
 
-import Link from 'next/link';
+import Link from &apos;next/link&apos;;
 
 export default function SupportPage() {
   return (
@@ -23,8 +23,8 @@ export default function SupportPage() {
             
             <button className="w-full text-left border border-gray-200 rounded p-4 hover:bg-gray-50"
               onClick={() => {
-                const footer = document.querySelector('footer');
-                const supportBtn = footer?.querySelector('button');
+                const footer = document.querySelector('footer&apos;);
+                const supportBtn = footer?.querySelector(&apos;button&apos;);
                 supportBtn?.click();
               }}
             >

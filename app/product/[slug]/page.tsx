@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Link from 'next/link';
+import Link from &apos;next/link&apos;;
 
-import { headers } from 'next/headers';
+import { headers } from &apos;next/headers&apos;;
 async function fetchPdp(slug: string) {
   const h = headers();
-  const cookie = h.get('cookie');
+  const cookie = h.get(&apos;cookie&apos;);
   const res = await fetch(`/api/marketplace/products/${slug}`, {
-    cache: 'no-store',
+    cache: &apos;no-store&apos;,
     headers: cookie ? { cookie } : undefined,
-    credentials: 'include'
+    credentials: &apos;include&apos;
   } as any);
   return res.json();
 }
@@ -19,7 +19,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const bb = p
     ? {
         price: p?.buy?.price ?? null,
-        currency: p?.buy?.currency ?? 'SAR',
+        currency: p?.buy?.currency ?? &apos;SAR&apos;,
         inStock: ((p?.stock?.onHand ?? 0) - (p?.stock?.reserved ?? 0)) > 0,
         leadDays: p?.buy?.leadDays ?? 3
       }
@@ -38,12 +38,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <h1 className="text-2xl font-semibold">{p?.title?.en ?? p?.title}</h1>
         <ul className="list-disc pl-5 text-sm text-gray-700">
           {[
-            { key: 'Brand', value: p?.brand },
-            { key: 'Standards', value: Array.isArray(p?.standards) ? p?.standards.join(', ') : undefined },
-            { key: 'UOM', value: p?.buy?.uom },
-            { key: 'Min Qty', value: p?.buy?.minQty }
+            { key: &apos;Brand&apos;, value: p?.brand },
+            { key: &apos;Standards&apos;, value: Array.isArray(p?.standards) ? p?.standards.join(&apos;, &apos;) : undefined },
+            { key: &apos;UOM&apos;, value: p?.buy?.uom },
+            { key: &apos;Min Qty&apos;, value: p?.buy?.minQty }
           ]
-            .filter((a: any) => a?.value !== undefined && a?.value !== null && String(a.value).trim() !== '')
+            .filter((a: any) => a?.value !== undefined && a?.value !== null && String(a.value).trim() !== &apos;')
             .slice(0, 6)
             .map((a: any, i: number) => (
               <li key={i}><b>{a.key}:</b> {String(a.value)}</li>
@@ -51,7 +51,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </ul>
         <div className="border rounded p-4">
           <div className="text-2xl font-bold">{bb?.price?.toLocaleString()} {bb?.currency}</div>
-          <div className="text-sm text-gray-600">{bb?.inStock ? 'In Stock' : 'Backorder'} · Lead {bb?.leadDays} days</div>
+          <div className="text-sm text-gray-600">{bb?.inStock ? 'In Stock&apos; : &apos;Backorder&apos;} · Lead {bb?.leadDays} days</div>
           <div className="flex gap-2 mt-3">
             <Link href="/cart" className="px-4 py-2 bg-[#0061A8] text-white rounded hover:opacity-90">Add to Cart</Link>
             <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-[#FFB400] text-black rounded hover:opacity-90">Buy Now (PO)</Link>

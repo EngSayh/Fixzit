@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Types } from 'mongoose';
 import { z } from 'zod';
-
-import { dbConnect } from '@/src/db/mongoose';
+import { Types } from 'mongoose';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import { searchProducts } from '@/src/lib/marketplace/search';
 import Category from '@/src/models/marketplace/Category';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+import { db } from '@/src/lib/mongo';
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -28,7 +24,7 @@ export async function GET(request: NextRequest) {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
     const context = await resolveMarketplaceContext(request);
-    await dbConnect();
+    await db;
 
     const categoryDoc = query.cat
       ? await Category.findOne({ orgId: context.orgId, slug: query.cat }).lean()

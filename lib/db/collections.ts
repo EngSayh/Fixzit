@@ -3,6 +3,7 @@ import type {
   Tenant, User, Property, WorkOrder, Category, Vendor, 
   Product, Cart, Order, Invoice, RFQ, Review, NotificationDoc 
 } from '@/lib/models';
+import { validateCollection, sanitizeTimestamps } from '@/lib/utils/timestamp';
 
 // Collection names
 export const COLLECTIONS = {
@@ -71,4 +72,47 @@ export async function createIndexes() {
   // Invoices
   await db.collection(COLLECTIONS.INVOICES).createIndex({ invoiceNumber: 1 }, { unique: true });
   await db.collection(COLLECTIONS.INVOICES).createIndex({ tenantId: 1 });
+}
+
+/**
+ * Safe insert operation with timestamp validation
+ */
+export async function safeInsertOne<T extends Record<string, any>>(
+  collectionName: string, 
+  document: T
+): Promise<any> {
+  const db = await getDatabase();
+  const collection = db.collection(collectionName);
+  
+  const sanitizedDoc = sanitizeTimestamps(document);
+  return await collection.insertOne(sanitizedDoc);
+}
+
+/**
+ * Safe bulk insert operation with timestamp validation
+ */
+export async function safeInsertMany<T extends Record<string, any>>(
+  collectionName: string, 
+  documents: T[]
+): Promise<any> {
+  const db = await getDatabase();
+  const collection = db.collection(collectionName);
+  
+  const sanitizedDocs = validateCollection(documents);
+  return await collection.insertMany(sanitizedDocs);
+}
+
+/**
+ * Safe update operation with timestamp validation
+ */
+export async function safeUpdateOne<T extends Record<string, any>>(
+  collectionName: string,
+  filter: any,
+  update: T
+): Promise<any> {
+  const db = await getDatabase();
+  const collection = db.collection(collectionName);
+  
+  const sanitizedUpdate = sanitizeTimestamps(update, ['updatedAt']);
+  return await collection.updateOne(filter, { $set: sanitizedUpdate });
 }
