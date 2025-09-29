@@ -1,0 +1,120 @@
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { Loader2, ShoppingCart, Star } from 'lucide-react';
+import { useState } from 'react';
+import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { addProductToCart } from '@/src/lib/marketplace/cartClient';
+
+export interface MarketplaceProductCard {
+  _id: string;
+  slug: string;
+  title: { en: string; ar?: string };
+  summary?: string;
+  brand?: string;
+  media?: { url: string; role?: string }[];
+  buy: { price: number; currency: string; uom: string; leadDays?: number; minQty?: number };
+  rating?: { avg: number; count: number };
+  standards?: string[];
+}
+
+interface ProductCardProps {
+  product: MarketplaceProductCard;
+  onAddToCart?: (productId: string) => void;
+  isRTL?: boolean;
+}
+
+function formatCurrency(value: number, currency: string) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency
+    }).format(value);
+  } catch (error) {
+    return `${currency} ${value.toFixed(2)}`;
+  }
+}
+
+export default function ProductCard({ product, onAddToCart, isRTL }: ProductCardProps) {
+  const { currency } = useCurrency();
+  const [adding, setAdding] = useState(false);
+  const image = product.media?.find(item => item.role === 'GALLERY')?.url || product.media?.[0]?.url || '/images/marketplace/placeholder-product.svg';
+  const displayPrice = formatCurrency(product.buy.price, product.buy.currency || currency);
+
+  const handleAddToCart = async () => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const quantity = Math.max(product.buy.minQty ?? 1, 1);
+      await addProductToCart(product._id, quantity);
+      onAddToCart?.(product._id);
+    } catch (error) {
+      console.error('Failed to add product to cart', error);
+      if (typeof window !== 'undefined') {
+        const message = error instanceof Error ? error.message : 'Unable to add to cart';
+        window.alert?.(`Unable to add to cart: ${message}`);
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  return (
+    <div
+      className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+      data-testid="product-card"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
+      <Link href={`/marketplace/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gray-100">
+        <Image src={image} alt={product.title.en} fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover transition duration-500 hover:scale-105" />
+      </Link>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            {product.brand && <p className="text-xs font-semibold uppercase tracking-wide text-[#00A859]">{product.brand}</p>}
+            <h3 className="text-sm font-semibold text-gray-900">
+              <Link href={`/marketplace/product/${product.slug}`}>{product.title.en}</Link>
+            </h3>
+            {product.summary && <p className="line-clamp-2 text-xs text-gray-600">{product.summary}</p>}
+          </div>
+          {product.rating && product.rating.count > 0 && (
+            <div className="flex items-center gap-1 text-xs text-[#FFB400]">
+              <Star size={14} fill="#FFB400" strokeWidth={0} />
+              <span>{product.rating.avg.toFixed(1)}</span>
+              <span className="text-gray-400">({product.rating.count})</span>
+            </div>
+          )}
+        </div>
+
+        {product.standards && product.standards.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-[11px] font-medium text-[#0061A8]">
+            {product.standards.map(standard => (
+              <span key={standard} className="rounded-full bg-[#0061A8]/10 px-2 py-1">{standard}</span>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-auto flex items-end justify-between gap-4">
+          <div>
+            <p className="text-lg font-semibold text-[#0F1111]">{displayPrice}</p>
+            <p className="text-xs text-gray-500">per {product.buy.uom} · Min {product.buy.minQty ?? 1}</p>
+            {product.buy.leadDays != null && (
+              <p className="text-xs text-[#00A859]">Lead time {product.buy.leadDays} day(s)</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={adding}
+            className="flex items-center gap-2 rounded-full bg-[#FFB400] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {adding ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ShoppingCart size={16} aria-hidden />}
+            {adding ? 'Adding…' : 'Add to Cart'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

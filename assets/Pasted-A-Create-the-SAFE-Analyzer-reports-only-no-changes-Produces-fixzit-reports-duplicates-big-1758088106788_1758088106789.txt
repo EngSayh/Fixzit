@@ -1,0 +1,235 @@
+A) Create the SAFE Analyzer (reports only; no changes)
+
+Produces: .fixzit-reports/ → duplicates, biggest folders/files, assets, extensions, and a dry‑run deletion script.
+
+# === Block A: create SAFE Analyzer ===
+mkdir -p tools .fixzit-reports
+
+cat > tools/analyze.py <<'PY'
+#!/usr/bin/env python3
+import argparse, os, hashlib, csv
+from collections import defaultdict, Counter
+from pathlib import Path
+
+DEFAULT_EXCLUDES = [".git","node_modules",".next","dist","build","out",".turbo",".vercel","coverage",".cache"]
+IMG_EXT={".png",".jpg",".jpeg",".webp",".avif",".gif",".svg",".bmp",".tiff"}; VID_EXT={".mp4",".mov",".mkv",".avi",".webm",".m4v"}
+
+def sha256_file(p, buf=1024*1024):
+    h=hashlib.sha256()
+    with open(p,"rb") as f:
+        for b in iter(lambda:f.read(buf), b""): h.update(b)
+    return h.hexdigest()
+
+def should_skip(path, root, excludes):
+    return any(part in excludes for part in path.relative_to(root).parts)
+
+def walk_files(root, excludes):
+    for dp, dn, fn in os.walk(root):
+        if any(p in excludes for p in Path(dp).relative_to(root).parts): continue
+        for name in fn:
+            p=Path(dp)/name
+            if p.is_file() and not should_skip(p,root,excludes): yield p
+
+def write_csv(path, rows, headers):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path,"w",newline="",encoding="utf-8") as f:
+        w=csv.DictWriter(f,fieldnames=headers); w.writeheader()
+        for r in rows: w.writerow(r)
+
+def du_dirs(root, depth, excludes):
+    sizes=defaultdict(int)
+    for p in walk_files(root, excludes):
+        rel=p.relative_to(root).parts
+        for d in range(1, depth+1):
+            sizes[str(root/Path(*rel[:d]))]+=p.stat().st_size
+    rows=[{"path":k,"size_bytes":v} for k,v in sizes.items()]
+    rows.sort(key=lambda r:r["size_bytes"], reverse=True); return rows
+
+def choose_keep(paths):
+    def score(p):
+        s=0; t=str(p).lower()
+        if "/src/" in t or t.endswith((".ts",".tsx",".js",".jsx",".css",".json",".md",".yml",".yaml")): s-=5
+        for b in ("/node_modules/","/.next/","/dist/","/build/","/out/","/coverage/","/archive/","/bak/","/backup/"): 
+            if b in t: s+=10
+        s+=len(t)*0.001; return s
+    return sorted(paths, key=score)[0]
+
+def main():
+    ap=argparse.ArgumentParser(description="Fixzit SAFE Analyzer (non-destructive)")
+    ap.add_argument("--root", default=".")
+    ap.add_argument("--out", default=".fixzit-reports")
+    ap.add_argument("--exclude", action="append", default=[])
+    args=ap.parse_args()
+    root=Path(args.root).resolve(); out=Path(args.out).resolve()
+    excludes=set(DEFAULT_EXCLUDES+args.exclude); out.mkdir(parents=True, exist_ok=True)
+
+    inv=[]; hash_groups=defaultdict(list); name_groups=defaultdict(list); ext_sizes=Counter(); assets=[]
+    files=list(walk_files(root, excludes))
+    for p in files:
+        try:
+            st=p.stat(); size=st.st_size; ext=p.suffix.lower(); ext_sizes[ext]+=size
+            inv.append({"path":str(p),"relpath":str(p.relative_to(root)),"size_bytes":size,"ext":ext,
+                        "category":"video" if ext in VID_EXT else ("image" if ext in IMG_EXT else "other")})
+            h=sha256_file(p); hash_groups[h].append(p)
+            name_groups[p.name.lower()].append((p,h,size))
+            if ext in IMG_EXT or ext in VID_EXT: assets.append({"path":str(p),"size_bytes":size,"ext":ext})
+        except Exception: continue
+
+    dup_rows=[]; dup_detail=[]; del_cmds=[]
+    for h,paths in {h:ps for h,ps in hash_groups.items() if len(ps)>1}.items():
+        keep=choose_keep(paths); total=sum(Path(p).stat().st_size for p in paths)
+        for p in paths:
+            sz=Path(p).stat().st_size; dk=str(p)!=str(keep)
+            dup_detail.append({"hash":h,"path":str(p),"size_bytes":sz,"recommended_keep":str(keep),"delete_candidate":dk})
+            if dk: del_cmds.append(f"echo rm -rf '{p}'  # duplicate of {keep}")
+        dup_rows.append({"hash":h,"count":len(paths),"total_bytes":total,"keep":str(keep)})
+
+    name_rows=[]
+    for nm, arr in name_groups.items():
+        if len(arr)>1 and len({h for _,h,_ in arr})>1:
+            for p,h,s in arr: name_rows.append({"name":nm,"path":str(p),"hash":h,"size_bytes":s})
+
+    inv_sorted=sorted(inv, key=lambda r:r["size_bytes"], reverse=True)
+    write_csv(out/"file_inventory.csv", inv_sorted, ["path","relpath","size_bytes","ext","category"])
+    write_csv(out/"duplicates_by_hash.csv", sorted(dup_rows, key=lambda r:r["total_bytes"], reverse=True),
+              ["hash","count","total_bytes","keep"])
+    write_csv(out/"duplicates_detail.csv", dup_detail, ["hash","path","size_bytes","recommended_keep","delete_candidate"])
+    write_csv(out/"duplicates_by_name.csv", sorted(name_rows, key=lambda r:r["size_bytes"], reverse=True),
+              ["name","path","hash","size_bytes"])
+    write_csv(out/"large_files.csv", inv_sorted[:500], ["path","relpath","size_bytes","ext","category"])
+    write_csv(out/"large_dirs_depth1.csv", du_dirs(root,1,excludes), ["path","size_bytes"])
+    write_csv(out/"large_dirs_depth2.csv", du_dirs(root,2,excludes), ["path","size_bytes"])
+    write_csv(out/"large_dirs_depth3.csv", du_dirs(root,3,excludes), ["path","size_bytes"])
+    write_csv(out/"extensions.csv", [{"ext":k or "(no-ext)","size_bytes":v} for k,v in 
+              sorted(ext_sizes.items(), key=lambda kv:kv[1], reverse=True)], ["ext","size_bytes"])
+    write_csv(out/"assets_images.csv", sorted(assets, key=lambda r:r["size_bytes"], reverse=True),
+              ["path","size_bytes","ext"])
+
+    with open(out/"delete_candidates.sh","w",encoding="utf-8") as f:
+        f.write("#!/usr/bin/env bash\nset -euo pipefail\n# DRY-RUN: remove 'echo' after review\n")
+        for c in del_cmds: f.write(c+"\n")
+    with open(out/"HEAVY_GIT.md","w",encoding="utf-8") as f:
+        f.write("# Diagnose Large Git History (Safe)\n\n"
+                "git rev-list --objects --all | \\\n"
+                "  git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | \\\n"
+                "  awk '$1==\"blob\" {print $3 \" \" $4}' | sort -nr | head -50\n\n"
+                "git reflog expire --expire=now --all\n"
+                "git gc --prune=now --aggressive\n"
+                "# If still huge: java -jar bfg.jar --strip-blobs-bigger-than 100M\n")
+    print(f"Wrote reports to: {out}")
+if __name__=="__main__": main()
+PY
+
+python3 tools/analyze.py --root . --out .fixzit-reports
+
+
+Open these reports (they’re in your project):
+.fixzit-reports/large_dirs_depth1.csv, .fixzit-reports/duplicates_by_hash.csv, .fixzit-reports/duplicates_detail.csv, .fixzit-reports/assets_images.csv, .fixzit-reports/extensions.csv.
+
+B) Create the Library Clean (dry‑run) tool
+
+Tidies the right‑sidebar clutter into folders that already exist only.
+No new top‑level categories are created. If a target folder doesn’t exist, the rule is skipped.
+
+# === Block B: create Library Clean (dry-run by default) ===
+cat > library_clean_dryrun.sh <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s nullglob
+
+ROOT="."
+APPLY="${APPLY:-0}"
+
+log(){ printf "%s\n" "$*"; }
+do_move(){
+  local src="$1" dest="$2"
+  [[ -e "$src" ]] || return 0
+  [[ -d "$dest" ]] || { log "SKIP (no dest): $src -> $dest"; return 0; }
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if [[ "$APPLY" == "1" ]]; then git mv -v -- "$src" "$dest/"; else echo git mv -v -- "$src" "$dest/"; fi
+  else
+    if [[ "$APPLY" == "1" ]]; then mv -vn -- "$src" "$dest/"; else echo mv -vn -- "$src" "$dest/"; fi
+  fi
+}
+
+# 1) Reports clutter -> reports/ (only if reports/ exists)
+if [[ -d reports ]]; then
+  for p in audit-report*.* audit*.* COMPREHENSIVE_*.* COMPLETE_*_REPORT*.* final-*.* final_*.* \
+           final-security*.* verification_*.* verify*.* VERIFY_* SYSTEM_HEALTH_REPORT*.* \
+           *_report.json *_REPORT.json *_REPORT.md report*.json; do
+    for f in "$p"; do do_move "$f" reports; done
+  done
+fi
+
+# 2) Tools/tests at root -> tools/ (only if tools/ exists)
+if [[ -d tools ]]; then
+  for p in test_*.* *-test.* *-checker*.* *-scanner*.* analyzer-*.* create_*.* usage_logger.*; do
+    for f in "$p"; do do_move "$f" tools; done
+  done
+fi
+
+# 3) Backups -> ARCHIVE_DUPLICATES/ (only if ARCHIVE_DUPLICATES/ exists)
+if [[ -d ARCHIVE_DUPLICATES ]]; then
+  for p in *.bak *.bakup *backup* backup_* *~ *.old; do
+    for f in "$p"; do do_move "$f" ARCHIVE_DUPLICATES; done
+  done
+fi
+
+# 4) Legacy Next.js pages/ -> ARCHIVE_DUPLICATES/legacy_pages_YYYYMMDD (ONLY if ARCHIVE_DUPLICATES/ and src/app/ exist)
+DATE=$(date +%Y%m%d)
+if [[ -d pages && -d src/app && -d ARCHIVE_DUPLICATES ]]; then
+  LEG="ARCHIVE_DUPLICATES/legacy_pages_${DATE}"
+  mkdir -p "$LEG"
+  if [[ "$APPLY" == "1" ]]; then mv -vn pages "$LEG/"; else echo mv -vn pages "$LEG/"; fi
+fi
+
+# 5) styles -> src/styles (only if both exist)
+if [[ -d styles && -d src/styles ]]; then
+  find styles -maxdepth 1 -type f -name '*.*' | while read -r f; do do_move "$f" src/styles; done
+  # Optional: move subfolders safely (non-destructive)
+  for d in styles/*/; do do_move "$d" src/styles; done
+fi
+
+# 6) ui -> src/components/ui (only if both exist)
+if [[ -d ui && -d src/components/ui ]]; then
+  find ui -maxdepth 1 -type f -name '*.*' | while read -r f; do do_move "$f" src/components/ui; done
+  for d in ui/*/; do do_move "$d" src/components/ui; done
+fi
+
+# 7) attached_assets -> assets (only if both exist)
+if [[ -d attached_assets && -d assets ]]; then
+  for f in attached_assets/*; do do_move "$f" assets; done
+fi
+
+echo
+if [[ "$APPLY" == "1" ]]; then echo "APPLIED: moves executed."; else echo "DRY-RUN ONLY. To apply: APPLY=1 bash ./library_clean_dryrun.sh"; fi
+SH
+chmod +x library_clean_dryrun.sh
+
+# Dry-run (prints what would move)
+bash ./library_clean_dryrun.sh
+
+# Apply moves when the plan looks correct:
+# APPLY=1 bash ./library_clean_dryrun.sh
+
+What you’ll see after Block A (Analyzer)
+
+.fixzit-reports/large_dirs_depth1.csv → your biggest top‑level folders (e.g., reports, fixzit-postgres, assets, ARCHIVE_DUPLICATES, etc.).
+
+.fixzit-reports/duplicates_by_hash.csv & duplicates_detail.csv → true content duplicates with a recommended_keep path.
+
+.fixzit-reports/assets_images.csv → largest images/videos.
+
+.fixzit-reports/extensions.csv → which file types are bloating space.
+
+Use these to decide what to remove in the next pass (only after review).
+
+Why this won’t break anything
+
+No new top‑level folders are created (rules run only if destination already exists).
+
+Dry‑run by default; nothing changes until you run with APPLY=1.
+
+Uses git mv when available to preserve history; otherwise plain mv -vn (no overwrite).
+
+Delivery complete: You can run the Analyzer and Library Clean now without downloading, without creating more mess, and without risking the working components.

@@ -1,0 +1,262 @@
+{
+  "name": "Fixzit Souq - Enterprise Facility Management",
+  "short_name": "Fixzit Souq",
+  "name_ar": "فكسيت سوق - إدارة المرافق للمؤسسات",
+  "short_name_ar": "فكسيت سوق",
+  "description": "Complete enterprise facility management platform for Saudi market with Arabic support",
+  "description_ar": "منصة شاملة لإدارة مرافق المؤسسات للسوق السعودي مع الدعم العربي",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0061A8",
+  "background_color": "#f8fafc",
+  "lang": "en",
+  "dir": "auto",
+  "categories": ["business", "productivity", "utilities", "finance"],
+  "keywords": ["facility management", "property management", "maintenance", "Saudi Arabia", "إدارة المرافق", "إدارة العقارات", "صيانة", "السعودية"],
+  
+  "icons": [
+    {
+      "src": "/assets/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-96x96.png", 
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-128x128.png",
+      "sizes": "128x128", 
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Properties",
+      "name_ar": "العقارات",
+      "short_name": "Properties",
+      "short_name_ar": "العقارات",
+      "description": "Manage your properties",
+      "description_ar": "إدارة العقارات الخاصة بك",
+      "url": "/properties",
+      "icons": [
+        {
+          "src": "/assets/icons/properties-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Work Orders",
+      "name_ar": "أوامر العمل",
+      "short_name": "Orders",
+      "short_name_ar": "الأوامر", 
+      "description": "View and manage work orders",
+      "description_ar": "عرض وإدارة أوامر العمل",
+      "url": "/work-orders",
+      "icons": [
+        {
+          "src": "/assets/icons/orders-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Marketplace",
+      "name_ar": "السوق",
+      "short_name": "Market",
+      "short_name_ar": "السوق",
+      "description": "Browse marketplace services",
+      "description_ar": "تصفح خدمات السوق",
+      "url": "/marketplace",
+      "icons": [
+        {
+          "src": "/assets/icons/marketplace-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Financial Reports",
+      "name_ar": "التقارير المالية",
+      "short_name": "Finance",
+      "short_name_ar": "المالية",
+      "description": "View financial reports and analytics",
+      "description_ar": "عرض التقارير المالية والتحليلات",
+      "url": "/reports/financial",
+      "icons": [
+        {
+          "src": "/assets/icons/finance-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "documents",
+          "accept": ["image/*", "application/pdf", ".doc", ".docx", ".xls", ".xlsx"]
+        }
+      ]
+    }
+  },
+
+  "file_handlers": [
+    {
+      "action": "/file-handler",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"]
+      }
+    }
+  ],
+
+  "protocol_handlers": [
+    {
+      "protocol": "web+fixzitsouq",
+      "url": "/handle-protocol?url=%s"
+    }
+  ],
+
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+
+  "launch_handler": {
+    "client_mode": "auto"
+  },
+
+  "handle_links": "preferred",
+
+  "capture_links": "existing-client-navigate",
+
+  "prefer_related_applications": false,
+
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.fixzitsouq.enterprise",
+      "id": "com.fixzitsouq.enterprise"
+    },
+    {
+      "platform": "itunes", 
+      "url": "https://apps.apple.com/sa/app/fixzit-souq-enterprise/id123456789",
+      "id": "123456789"
+    }
+  ],
+
+  "screenshots": [
+    {
+      "src": "/assets/screenshots/mobile-dashboard-en.png",
+      "sizes": "320x640",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Dashboard - Properties and Work Orders"
+    },
+    {
+      "src": "/assets/screenshots/mobile-dashboard-ar.png", 
+      "sizes": "320x640",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "لوحة التحكم - العقارات وأوامر العمل",
+      "lang": "ar"
+    },
+    {
+      "src": "/assets/screenshots/desktop-analytics.png",
+      "sizes": "1280x800",
+      "type": "image/png", 
+      "platform": "wide",
+      "label": "Analytics Dashboard - Financial Reports"
+    },
+    {
+      "src": "/assets/screenshots/mobile-marketplace.png",
+      "sizes": "320x640", 
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Marketplace - Service Providers"
+    }
+  ],
+
+  "display_override": ["window-controls-overlay", "minimal-ui", "browser"],
+
+  "custom": {
+    "saudi_market": {
+      "hijri_calendar_support": true,
+      "zatca_integration": true,
+      "payment_methods": ["mada", "stcpay", "applepay", "googlepay"],
+      "language_preference": "dual",
+      "rtl_primary": true,
+      "cultural_colors": {
+        "primary": "#0061A8",
+        "saudi_green": "#006C35", 
+        "gold_accent": "#FFB400",
+        "heritage_brown": "#8B4513"
+      }
+    },
+    "mobile_optimizations": {
+      "network_aware": true,
+      "offline_capabilities": true,
+      "touch_optimized": true,
+      "gesture_navigation": true,
+      "arabic_keyboard_support": true
+    },
+    "accessibility": {
+      "screen_reader_arabic": true,
+      "high_contrast_support": true,
+      "font_scaling": true,
+      "voice_navigation": true
+    }
+  }
+}

@@ -12,7 +12,7 @@ import type {
   WorkOrderReport,
   WorkOrderSLA,
   EscalationLevel,
-} from '@lib/types/work-orders';
+} from '@/lib/types/work-orders';
 
 export type WorkOrderStatus =
   | 'draft'
