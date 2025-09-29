@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { connectDb } from "@/src/lib/mongo";
+
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
@@ -42,31 +44,32 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await (db as any)(); // This will work with mock DB too
+    await (db as any)();
     const WOMod = await import('@/src/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && (WOMod as any).WorkOrder;
     if (!WorkOrder) {
       return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
     }
-    const user = await getSessionUser(req);
-    const { searchParams } = new URL(req.url);
-    const q = searchParams.get("q") || "";
-    const status = searchParams.get("status") || undefined;
-    const priority = searchParams.get("priority") || undefined;
-    const page = Number(searchParams.get("page") || 1);
-    const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
+  await connectDb();
+  const user = await getSessionUser(req);
+  const { searchParams } = new URL(req.url);
+  const q = searchParams.get("q") || "";
+  const status = searchParams.get("status") || undefined;
+  const priority = searchParams.get("priority") || undefined;
+  const page = Number(searchParams.get("page") || 1);
+  const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
-    const match: any = { tenantId: user.tenantId, deletedAt: { $exists: false } };
-    if (status) match.status = status;
-    if (priority) match.priority = priority;
-    if (q) match.$text = { $search: q };
+  const match: any = { tenantId: (user as any)?.orgId, deletedAt: { $exists: false } };
+  if (status) match.status = status;
+  if (priority) match.priority = priority;
+  if (q) match.$text = { $search: q };
 
-    // Handle both mock and real database
-    let items: any[];
-    let total: number;
+  // Handle both mock and real database
+  let items: any[];
+  let total: number;
 
-    // Respect explicit mock flag only
-    const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
+  // Respect explicit mock flag only
+  const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
 
   if (isMockDB) {
     // Use mock database logic
@@ -110,20 +113,21 @@ export async function POST(req: NextRequest) {
     if (!WorkOrder) {
       return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
     }
-    const user = await requireAbility("CREATE")(req);
-    if (user instanceof NextResponse) return user as any;
+  const user = await requireAbility("CREATE")(req);
+  if (user instanceof NextResponse) return user as any;
+  await connectDb();
 
-    const body = await req.json();
-    const data = createSchema.parse(body);
+  const body = await req.json();
+  const data = createSchema.parse(body);
 
-    const createdAt = new Date();
-    // Generate cryptographically secure work order code
-    const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
-    const code = `WO-${new Date().getFullYear()}-${uuid}`;
-    const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
+  const createdAt = new Date();
+  // Generate cryptographically secure work order code
+  const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const code = `WO-${new Date().getFullYear()}-${uuid}`;
+  const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
-    const wo = await (WorkOrder as any).create({
-    tenantId: user.tenantId,
+  const wo = await (WorkOrder as any).create({
+    tenantId: (user as any)?.orgId,
     code,
     title: data.title,
     description: data.description,
@@ -148,3 +152,4 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
+

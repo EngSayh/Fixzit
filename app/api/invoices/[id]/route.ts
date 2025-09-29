@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Invoice } from "@/src/server/models/Invoice";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -22,7 +22,7 @@ const updateInvoiceSchema = z.object({
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const invoice = await (Invoice as any).findOne({
       _id: params.id,
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const data = updateInvoiceSchema.parse(await req.json());
 
@@ -156,7 +156,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await db;
+    await connectDb();
 
     const invoice = await (Invoice as any).findOne({
       _id: params.id,
