@@ -88,7 +88,7 @@ describe('paytabsBase', () => {
 
 describe('createHppRequest', () => {
   it('posts to region-specific /payment/request with correct headers and payload and returns parsed JSON', async () => {
-    setEnv({ PAYTABS_SERVER_KEY: 'sk_live_987' });
+    setEnv({ PAYTABS_SERVER_KEY: 'sk_test_example_key_for_testing' });
     const mod = await importPaytabs();
     const { createHppRequest, paytabsBase } = mod as any;
 
@@ -106,7 +106,7 @@ describe('createHppRequest', () => {
     expect(url).toBe(`${paytabsBase(region)}/payment/request`);
     expect(options.method).toBe('POST');
     // Header key is intentionally lowercase 'authorization' in this function
-    expect(options.headers['authorization']).toBe('sk_live_987');
+    expect(options.headers['authorization']).toBe('sk_test_example_key_for_testing');
     expect(options.headers['Content-Type']).toBe('application/json');
     expect(options.body).toBe(JSON.stringify(payload));
     expect(result).toEqual(mockResponse);
