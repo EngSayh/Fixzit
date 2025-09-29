@@ -37,16 +37,16 @@
 
 #### Frontend Dashboard
 ```
-http://localhost:5000
+http://localhost:3000
 ```
-- Modern React interface
-- 9 module navigation
+- Modern Next.js application
+- Full-stack with API routes
 - Real-time updates
 - Mobile responsive
 
 #### API Endpoints
 ```
-Base URL: http://localhost:5000/api
+Base URL: http://localhost:3000/api
 
 Authentication:
 - POST /api/auth/login

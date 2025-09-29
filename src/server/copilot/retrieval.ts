@@ -103,7 +103,7 @@ export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slu
       $set: {
         title: doc.title,
         content: doc.content,
-        tenantId: doc.tenantId ?? null,
+        tenantId: doc.tenantId || '',
         roles: doc.roles ?? [],
         locale: doc.locale ?? "en",
         tags: doc.tags ?? [],

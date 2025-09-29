@@ -46,7 +46,7 @@ JobSchema.index({ title: 'text', description: 'text', requirements: 'text', skil
 
 export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
 
-JobSchema.methods.publish = async function(this: JobDoc) {
+JobSchema.methods.publish = async function() {
   if (this.status !== 'published') {
     this.status = 'published';
     this.visibility = this.visibility || 'public';
