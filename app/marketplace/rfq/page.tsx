@@ -1,11 +1,11 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import RFQBoard from '@/src/components/marketplace/RFQBoard';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import RFQBoard from &apos;@/src/components/marketplace/RFQBoard&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 export default async function RFQPage() {
   const [categoriesResponse, rfqResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/rfq')
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/rfq&apos;)
   ]);
 
   const departments = (categoriesResponse.data as any[]).map((category: any) => ({

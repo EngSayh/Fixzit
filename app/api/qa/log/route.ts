@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isMockDB, getNativeDb } from '@/src/lib/mongo';
+import { db, getNativeDb } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { event, data } = body;
 
-    // Log the event to console for mock database
-    if (isMockDB) {
-      console.log(`📝 QA Log (Mock): ${event}`, data);
-      return NextResponse.json({ success: true, mock: true });
-    }
-
-    // Log the event to database for real database
+    // Log the event to database
     const native = await getNativeDb();
     await native.collection('qa_logs').insertOne({
       event,
@@ -39,10 +33,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Number.isFinite(parsed) && parsed > 0 ? parsed : 100, 1000);
     const eventType = searchParams.get('event');
 
-    // Return empty array for mock database
-    if (isMockDB) {
-      return NextResponse.json({ logs: [], mock: true });
-    }
+    // Query database
 
     let query = {} as any;
     if (eventType) {

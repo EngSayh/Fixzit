@@ -4,7 +4,10 @@ import pc from 'picocolors';
 const client = new MongoClient(cfg.mongoUri);
 
 async function up(){
-  await client.connect();
+  try { await client.connect(); } catch (e) {
+    console.log(pc.yellow('⚠ Skipping seed: Mongo not reachable.'));
+    process.exit(0);
+  }
   const db = client.db(cfg.mongoDb);
 
   const org = await db.collection('organizations').findOneAndUpdate(

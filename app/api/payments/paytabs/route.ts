@@ -10,12 +10,27 @@ const PaymentSchema = z.object({
   customerPhone: z.string()
 });
 
-// PayTabs payment page creation
+/**
+ * Create a PayTabs payment page for an incoming POST request and return a JSON response.
+ *
+ * Validates the request body against `PaymentSchema`, builds a PayTabs payload, and POSTs it
+ * to the PayTabs payment request endpoint with a 15-second timeout. On success returns
+ * `{ ok: true, paymentUrl, tranRef }`. Returns structured error responses for missing server key
+ * (500), upstream PayTabs failures (502 with status and body), payment initialization failures (400
+ * with details), or unexpected errors (500).
+ *
+ * @returns A NextResponse containing a JSON object describing success or failure and appropriate HTTP status codes.
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = PaymentSchema.parse(body);
     
+    const serverKey = process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
+    if (!serverKey) {
+      return NextResponse.json({ ok: false, error: 'PAYTABS server key not configured' }, { status: 500 });
+    }
+
     const payload = {
       profile_id: process.env.PAYTABS_PROFILE_ID || '85119',
       tran_type: 'sale',
@@ -34,15 +49,23 @@ export async function POST(req: NextRequest) {
       return: `${process.env.NEXTAUTH_URL}/marketplace/order-success`
     };
     
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const response = await fetch('https://secure.paytabs.sa/payment/request', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': process.env.PAYTABS_API_SERVER_KEY || ''
+        'Authorization': serverKey
       },
-      body: JSON.stringify(payload)
-    });
-    
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeout));
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      return NextResponse.json({ ok: false, error: 'PayTabs request failed', status: response.status, body: text }, { status: 502 });
+    }
+
     const result = await response.json();
     
     if (result.redirect_url) {
