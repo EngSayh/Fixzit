@@ -51,6 +51,8 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
 
   const heading = `${searchData.pagination.total} result(s) for ‘${searchParams.q ?? 'All products'}’`;
 
+  const heading = `${searchData.pagination.total} result(s) for ‘${searchParams.q ?? 'All products'}’`;
+
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       <TopBarAmazon departments={departments} loadingDepartments={!categories.length} />
