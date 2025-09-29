@@ -1,7 +1,7 @@
-'use client&apos;;
+'use client';
 
-import { useEffect, useRef, useState } from &apos;react&apos;;
-import { Loader } from &apos;lucide-react&apos;;
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Loader } from 'lucide-react';
 
 interface GoogleMapProps {
   center: { lat: number; lng: number };
@@ -19,7 +19,7 @@ export default function GoogleMap({
   center, 
   zoom = 13, 
   markers = [], 
-  height = &apos;400px&apos;,
+  height = '400px',
   onMapClick 
 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -27,10 +27,41 @@ export default function GoogleMap({
   const [loading, setLoading] = useState(true);
   const markersRef = useRef<google.maps.Marker[]>([]);
 
+  const initializeMap = useCallback(() => {
+    if (!mapRef.current || !window.google) return;
+
+    const mapInstance = new google.maps.Map(mapRef.current, {
+      center,
+      zoom,
+      mapTypeControl: true,
+      streetViewControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+      styles: [
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        }
+      ]
+    });
+
+    if (onMapClick) {
+      mapInstance.addListener('click', (event: google.maps.MapMouseEvent) => {
+        if (event.latLng) {
+          onMapClick(event.latLng.lat(), event.latLng.lng());
+        }
+      });
+    }
+
+    setMap(mapInstance);
+    setLoading(false);
+  }, [center, zoom, onMapClick]);
+
   useEffect(() => {
     // Load Google Maps script
     if (!window.google) {
-      const script = document.createElement('script&apos;);
+      const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
       script.async = true;
       script.defer = true;
@@ -45,13 +76,13 @@ export default function GoogleMap({
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
     };
-  }, []);
+  }, [initializeMap]);
 
   useEffect(() => {
     if (map) {
       map.setCenter(center);
     }
-  }, [center, map]);
+  }, [center, map?.setCenter]);
 
   useEffect(() => {
     if (map) {
@@ -72,13 +103,13 @@ export default function GoogleMap({
           const infoWindow = new google.maps.InfoWindow({
             content: `
               <div class="p-2">
-                <h3 class="font-semibold">${markerData.title || &apos;'}</h3>
+                <h3 class="font-semibold">${markerData.title || ''}</h3>
                 <p class="text-sm text-gray-600">${markerData.info}</p>
               </div>
             `
           });
 
-          marker.addListener(&apos;click&apos;, () => {
+          marker.addListener('click', () => {
             infoWindow.open(map, marker);
           });
         }
@@ -87,37 +118,6 @@ export default function GoogleMap({
       });
     }
   }, [markers, map]);
-
-  const initializeMap = () => {
-    if (!mapRef.current || !window.google) return;
-
-    const mapInstance = new google.maps.Map(mapRef.current, {
-      center,
-      zoom,
-      mapTypeControl: true,
-      streetViewControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
-      styles: [
-        {
-          featureType: &apos;poi&apos;,
-          elementType: &apos;labels&apos;,
-          stylers: [{ visibility: &apos;off&apos; }]
-        }
-      ]
-    });
-
-    if (onMapClick) {
-      mapInstance.addListener(&apos;click&apos;, (event: google.maps.MapMouseEvent) => {
-        if (event.latLng) {
-          onMapClick(event.latLng.lat(), event.latLng.lng());
-        }
-      });
-    }
-
-    setMap(mapInstance);
-    setLoading(false);
-  };
 
   return (
     <div className="relative" style={{ height }}>
@@ -130,3 +130,4 @@ export default function GoogleMap({
     </div>
   );
 }
+

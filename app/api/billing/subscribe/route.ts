@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate limiting for subscription operations
-    const key = `billing:subscribe:${user.tenantId}`;
+    const key = `billing:subscribe:${user.orgId}`;
     const rl = rateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Subscription rate limit exceeded. Please wait before creating another subscription.' }, { status: 429 });
@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
 
     // 1) Upsert customer - ensure tenant isolation
     const customer = await Customer.findOneAndUpdate(
-      { type: body.customer.type, billingEmail: body.customer.billingEmail, orgId: user.tenantId },
-      { ...body.customer, orgId: user.tenantId }, 
+      { type: body.customer.type, billingEmail: body.customer.billingEmail, orgId: user.orgId },
+      { ...body.customer, orgId: user.orgId }, 
       { upsert: true, new: true }
     );
 
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     // 3) Create Subscription snapshot (status pending until paid)
     const sub = await Subscription.create({
       customerId: customer._id,
-      orgId: user.tenantId,
+      orgId: user.orgId,
       planType: body.planType,
       items: (quote.items || []).map((i:any)=>({ moduleId: undefined, // resolved later in worker if needed
         moduleCode: i.module, // keep code snapshot
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     const inv = await SubscriptionInvoice.create({
       subscriptionId: sub._id,
-      orgId: user.tenantId,
+      orgId: user.orgId,
       amount, currency: quote.currency,
       periodStart: new Date(),
       periodEnd: new Date(new Date().setMonth(new Date().getMonth() + (body.billingCycle==='annual'?12:1))),

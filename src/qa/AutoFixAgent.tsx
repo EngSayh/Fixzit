@@ -1,16 +1,16 @@
-'use client&apos;;
+'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from &apos;react&apos;;
-import html2canvas from &apos;html2canvas&apos;;
-import { nanoid } from &apos;nanoid&apos;;
-import { getDomPath } from &apos;./domPath&apos;;
-import { hijackConsole, ConsoleRecord } from &apos;./consoleHijack&apos;;
-import { heuristics } from &apos;./qaPatterns&apos;;
-import { passesStrict } from &apos;./acceptance&apos;;
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import { nanoid } from 'nanoid';
+import { getDomPath } from './domPath';
+import { hijackConsole, ConsoleRecord } from './consoleHijack';
+import { heuristics } from './qaPatterns';
+import { passesStrict } from './acceptance';
 
 type QaEvent = {
   id: string;
-  type: &apos;click&apos;|'console&apos;|'runtime-error&apos;|'unhandled-rejection&apos;|'network-error&apos;|'gate&apos;;
+  type: 'click'|'console'|'runtime-error'|'unhandled-rejection'|'network-error'|'gate';
   route: string;
   role: string;
   orgId: string;
@@ -19,24 +19,24 @@ type QaEvent = {
   screenshot?: string; // data URL when captured
 };
 
-const HUD_POS_KEY = &apos;fixzit.qa.hud.pos&apos;;
+const HUD_POS_KEY = 'fixzit.qa.hud.pos';
 
 export function AutoFixAgent() {
   const [active, setActive] = useState(true);
   const [errors, setErrors] = useState<{ console:number; network:number; hydration:number }>({ console:0, network:0, hydration:0 });
-  const [lastNote, setLastNote] = useState<string>(&apos;');
+  const [lastNote, setLastNote] = useState<string>('');
   const [halted, setHalted] = useState(false);
   const [pos, setPos] = useState<{x:number,y:number}>(() => {
     try { return JSON.parse(localStorage.getItem(HUD_POS_KEY)!) || { x: 16, y: 16 }; } catch { return { x:16, y:16 }; }
   });
 
   // Get from context or localStorage
-  const role = typeof window !== &apos;undefined&apos; 
-    ? (localStorage.getItem(&apos;fixzit-role&apos;) || &apos;Guest&apos;)
-    : &apos;Guest&apos;;
-  const orgId = typeof window !== &apos;undefined&apos;
-    ? (localStorage.getItem(&apos;fixzit-org&apos;) || &apos;unknown&apos;)
-    : &apos;unknown&apos;;
+  const role = typeof window !== 'undefined' 
+    ? (localStorage.getItem('fixzit-role') || 'Guest')
+    : 'Guest';
+  const orgId = typeof window !== 'undefined'
+    ? (localStorage.getItem('fixzit-org') || 'unknown')
+    : 'unknown';
   const hudRef = useRef<HTMLDivElement>(null);
   const eventBuffer = useRef<QaEvent[]>([]);
   const originalFetchRef = useRef<any>(null);
@@ -45,7 +45,7 @@ export function AutoFixAgent() {
     if (!eventBuffer.current.length) return;
     const payload = eventBuffer.current.splice(0, eventBuffer.current.length);
     try {
-      await fetch(&apos;/api/qa/log&apos;, { method: &apos;POST&apos;, headers: { &apos;Content-Type&apos;:'application/json&apos; }, body: JSON.stringify({ batch: payload }) });
+      await fetch('/api/qa/log', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ batch: payload }) });
     } catch { /* logging should never crash the app */ }
   };
 
@@ -55,35 +55,35 @@ export function AutoFixAgent() {
       const target = e.target as Element;
       if (!target) return;
       const tag = (target as HTMLElement).tagName.toLowerCase();
-      const clickable = tag === &apos;button&apos; || tag === &apos;a' || (target as HTMLElement).onclick || target.closest(&apos;button,a,[role="button"]&apos;);
+      const clickable = tag === 'button' || tag === 'a' || (target as HTMLElement).onclick || target.closest('button,a,[role="button"]');
       if (!clickable) return;
 
       const evt: QaEvent = {
         id: nanoid(),
-        type: &apos;click&apos;,
+        type: 'click',
         route: window.location.pathname,
         role, orgId,
         ts: Date.now(),
         meta: {
           tag,
-          text: (target as HTMLElement).innerText?.slice(0, 80) || &apos;',
+          text: (target as HTMLElement).innerText?.slice(0, 80) || '',
           path: getDomPath(target),
         },
       };
       eventBuffer.current.push(evt);
       if (!halted) sendBatch();
     };
-    document.addEventListener(&apos;click&apos;, onClick, true);
-    return () => document.removeEventListener(&apos;click&apos;, onClick, true);
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
   }, [halted, role, orgId]);
 
   // ---- CONSOLE & RUNTIME ----
   useEffect(() => {
     const undo = hijackConsole((rec: ConsoleRecord) => {
-      if (rec.level === &apos;error&apos;) {
+      if (rec.level === 'error') {
         setErrors(s => ({ ...s, console: s.console + 1 }));
         bufferConsole(rec);
-        haltAndHeal(&apos;console&apos;, rec.args?.[0]?.message || String(rec.args?.[0] || &apos;console.error&apos;));
+        haltAndHeal('console', rec.args?.[0]?.message || String(rec.args?.[0] || 'console.error'));
       }
     });
 
@@ -91,23 +91,23 @@ export function AutoFixAgent() {
       if (/hydration/i.test(ev.message)) {
         setErrors(s => ({ ...s, hydration: s.hydration + 1 }));
       }
-      bufferRuntime(&apos;runtime-error&apos;, ev.message, ev.error?.stack);
-      haltAndHeal(&apos;runtime-error&apos;, ev.message);
+      bufferRuntime('runtime-error', ev.message, ev.error?.stack);
+      haltAndHeal('runtime-error', ev.message);
     };
     const onRejection = (ev: PromiseRejectionEvent) => {
-      const msg = String(ev.reason?.message || ev.reason || &apos;unhandledrejection&apos;);
-      bufferRuntime(&apos;unhandled-rejection&apos;, msg, ev.reason?.stack);
-      haltAndHeal(&apos;unhandled-rejection&apos;, msg);
+      const msg = String(ev.reason?.message || ev.reason || 'unhandledrejection');
+      bufferRuntime('unhandled-rejection', msg, ev.reason?.stack);
+      haltAndHeal('unhandled-rejection', msg);
     };
 
-    window.addEventListener(&apos;error&apos;, onError);
-    window.addEventListener(&apos;unhandledrejection&apos;, onRejection);
-    window.addEventListener(&apos;fixzit:errorBoundary&apos;, (e:any) => {
-      bufferRuntime(&apos;runtime-error&apos;, e.detail?.error?.message || &apos;ErrorBoundary&apos;, e.detail?.error?.stack);
-      haltAndHeal(&apos;runtime-error&apos;, e.detail?.error?.message || &apos;ErrorBoundary&apos;);
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onRejection);
+    window.addEventListener('fixzit:errorBoundary', (e:any) => {
+      bufferRuntime('runtime-error', e.detail?.error?.message || 'ErrorBoundary', e.detail?.error?.stack);
+      haltAndHeal('runtime-error', e.detail?.error?.message || 'ErrorBoundary');
     });
 
-    return () => { undo(); window.removeEventListener(&apos;error&apos;, onError); window.removeEventListener(&apos;unhandledrejection&apos;, onRejection); };
+    return () => { undo(); window.removeEventListener('error', onError); window.removeEventListener('unhandledrejection', onRejection); };
   }, []);
 
   // ---- NETWORK ---- (Fixed: Prevent fetch interceptor detaching)
@@ -127,18 +127,22 @@ export function AutoFixAgent() {
         }
 
         const res = await originalFetch(input, init);
-        if (!res.ok) {
+        // Only intercept if agent is active and response is not ok
+        if (active && !res.ok) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
-          const url = typeof input === 'string&apos; ? input : (input as any).url;
+          const url = typeof input === 'string' ? input : (input as any).url;
           bufferNetwork(url, res.status);
-          haltAndHeal(&apos;network-error&apos;, `HTTP ${res.status} on ${url}`);
+          haltAndHeal('network-error', `HTTP ${res.status} on ${url}`);
         }
         return res;
       } catch (err:any) {
-        setErrors(s => ({ ...s, network: s.network + 1 }));
-        const url = typeof input === 'string&apos; ? input : (input as any).url;
-        bufferNetwork(url, -1);
-        haltAndHeal(&apos;network-error&apos;, `Network error on ${url}: ${String(err?.message || err)}`);
+        // Only intercept if agent is active
+        if (active) {
+          setErrors(s => ({ ...s, network: s.network + 1 }));
+          const url = typeof input === 'string' ? input : (input as any).url;
+          bufferNetwork(url, -1);
+          haltAndHeal('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
+        }
         throw err;
       }
     };
@@ -154,15 +158,15 @@ export function AutoFixAgent() {
   }, [active]); // Depend on active state to ensure reliability
 
   // ---- HALT–FIX–VERIFY ----
-  const haltAndHeal = async (type: QaEvent[&apos;type&apos;], msg: string) => {
+  const haltAndHeal = async (type: QaEvent['type'], msg: string) => {
     if (!active || halted) return;
     setHalted(true);
-    await capture(&apos;before&apos;);
+    await capture('before');
     const { note } = await tryHeuristics(msg);
     setLastNote(note);
     // wait 10s (per STRICT) then capture again
     await wait(10000);
-    await capture(&apos;after&apos;);
+    await capture('after');
     // Check gates and only then un-halt
     const clean = passesStrict({ consoleErrors: errors.console, networkFailures: errors.network, hydrationErrors: errors.hydration });
     bufferGate(clean);
@@ -171,22 +175,22 @@ export function AutoFixAgent() {
   };
 
   const tryHeuristics = async (message:string) => {
-    if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== &apos;1') return { note: &apos;Auto-heal disabled&apos; };
+    if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== '1') return { note: 'Auto-heal disabled' };
     for (const h of heuristics) {
       if (h.test({ message })) {
         try { return await h.apply(); } catch { /* ignore */ }
       }
     }
-    return { note: &apos;No heuristic matched; logged for follow-up.&apos; };
+    return { note: 'No heuristic matched; logged for follow-up.' };
   };
 
-  const capture = async (phase:&apos;before&apos;|'after&apos;) => {
+  const capture = async (phase:'before'|'after') => {
     try {
       const canvas = await html2canvas(document.body, { backgroundColor: null, scale: 0.6 });
-      const data = canvas.toDataURL(&apos;image/jpeg&apos;, 0.6);
+      const data = canvas.toDataURL('image/jpeg', 0.6);
       eventBuffer.current.push({
         id: nanoid(),
-        type: &apos;gate&apos;,
+        type: 'gate',
         route: window.location.pathname, role, orgId, ts: Date.now(),
         meta: { phase, errors }, screenshot: data
       });
@@ -194,22 +198,22 @@ export function AutoFixAgent() {
   };
 
   const bufferConsole = (rec: ConsoleRecord) => {
-    eventBuffer.current.push({ id: nanoid(), type: &apos;console&apos;, route: window.location.pathname, role, orgId, ts: Date.now(), meta: rec });
+    eventBuffer.current.push({ id: nanoid(), type: 'console', route: window.location.pathname, role, orgId, ts: Date.now(), meta: rec });
   };
-  const bufferRuntime = (type: QaEvent[&apos;type&apos;], message: string, stack?: string) => {
+  const bufferRuntime = (type: QaEvent['type'], message: string, stack?: string) => {
     eventBuffer.current.push({ id: nanoid(), type, route: window.location.pathname, role, orgId, ts: Date.now(), meta: { message, stack } });
   };
   const bufferNetwork = (url: string, status: number) => {
-    eventBuffer.current.push({ id: nanoid(), type: &apos;network-error&apos;, route: window.location.pathname, role, orgId, ts: Date.now(), meta: { url, status } });
+    eventBuffer.current.push({ id: nanoid(), type: 'network-error', route: window.location.pathname, role, orgId, ts: Date.now(), meta: { url, status } });
   };
   const bufferGate = (clean: boolean) => {
-    eventBuffer.current.push({ id: nanoid(), type: &apos;gate&apos;, route: window.location.pathname, role, orgId, ts: Date.now(), meta: { clean, errors } });
+    eventBuffer.current.push({ id: nanoid(), type: 'gate', route: window.location.pathname, role, orgId, ts: Date.now(), meta: { clean, errors } });
   };
 
   // ---- HUD (draggable, non-invasive) ----
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (hudRef.current?.dataset.dragging === &apos;1') {
+      if (hudRef.current?.dataset.dragging === '1') {
         const nx = Math.max(8, Math.min(window.innerWidth - 180, e.clientX - 60));
         const ny = Math.max(8, Math.min(window.innerHeight - 48, e.clientY - 10));
         setPos({ x: nx, y: ny });
@@ -217,13 +221,13 @@ export function AutoFixAgent() {
     };
     const onUp = () => {
       if (hudRef.current) {
-        hudRef.current.dataset.dragging = &apos;0';
+        hudRef.current.dataset.dragging = '0';
         localStorage.setItem(HUD_POS_KEY, JSON.stringify(pos));
       }
     };
-    window.addEventListener(&apos;mousemove&apos;, onMove);
-    window.addEventListener(&apos;mouseup&apos;, onUp);
-    return () => { window.removeEventListener(&apos;mousemove&apos;, onMove); window.removeEventListener(&apos;mouseup&apos;, onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [pos]);
 
   const wait = (ms:number) => new Promise(res => setTimeout(res, ms));
@@ -231,22 +235,22 @@ export function AutoFixAgent() {
   // Minimal status colors consistent with brand tokens (no layout changes).
   const badge = useMemo(() => {
     const bad = errors.console + errors.network + errors.hydration;
-    return bad ? &apos;#FFB400&apos; : &apos;#00A859&apos;;
+    return bad ? '#FFB400' : '#00A859';
   }, [errors]);
 
   return (
     <div
       ref={hudRef}
-      style={{ position: &apos;fixed&apos;, left: pos.x, top: pos.y, zIndex: 2147483647, pointerEvents: &apos;auto&apos; }}
-      onMouseDown={(e) => { if ((e.target as HTMLElement).id === &apos;fixzit-hud&apos;) (hudRef.current!.dataset.dragging = &apos;1'); }}
+      style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 2147483647, pointerEvents: 'auto' }}
+      onMouseDown={(e) => { if ((e.target as HTMLElement).id === 'fixzit-hud') (hudRef.current!.dataset.dragging = '1'); }}
     >
       <div id="fixzit-hud"
-           style={{ userSelect: &apos;none&apos;, cursor: &apos;move&apos;, fontFamily: 'system-ui, sans-serif&apos;,
-                    background: &apos;#023047&apos;, color: &apos;white&apos;, borderRadius: 8, padding: &apos;6px 10px&apos;,
-                    boxShadow: &apos;0 2px 8px rgba(0,0,0,.2)&apos;, width: 180 }}>
-        <div style={{ display:&apos;flex&apos;, justifyContent:'space-between&apos;, alignItems:&apos;center&apos; }}>
+           style={{ userSelect: 'none', cursor: 'move', fontFamily: 'system-ui, sans-serif',
+                    background: '#023047', color: 'white', borderRadius: 8, padding: '6px 10px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,.2)', width: 180 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <strong>Fixzit QA</strong>
-          <span style={{ background: badge, width:10, height:10, borderRadius:&apos;50%&apos; }} />
+          <span style={{ background: badge, width:10, height:10, borderRadius:'50%' }} />
         </div>
         <div style={{ fontSize:12, opacity:.9, marginTop:4 }}>
           Role: {role} · {window.location.pathname}
@@ -254,9 +258,9 @@ export function AutoFixAgent() {
         <div style={{ fontSize:12, marginTop:6 }}>
           CE:{errors.console} · NE:{errors.network} · HY:{errors.hydration}
         </div>
-        {halted && <div style={{ fontSize:12, marginTop:6, color:&apos;#FFB400&apos; }}>HALTED: {lastNote || &apos;diagnosing…&apos;}</div>}
-        <div style={{ display:&apos;flex&apos;, gap:6, marginTop:6 }}>
-          <button onClick={() => setActive(a => !a)} style={btnStyle}>Agent: {active ? &apos;On&apos; : &apos;Off&apos;}</button>
+        {halted && <div style={{ fontSize:12, marginTop:6, color:'#FFB400' }}>HALTED: {lastNote || 'diagnosing…'}</div>}
+        <div style={{ display:'flex', gap:6, marginTop:6 }}>
+          <button onClick={() => setActive(a => !a)} style={btnStyle}>Agent: {active ? 'On' : 'Off'}</button>
           <button onClick={() => { setErrors({console:0,network:0,hydration:0}); }} style={btnStyle}>Clear</button>
         </div>
       </div>
@@ -265,6 +269,6 @@ export function AutoFixAgent() {
 }
 
 const btnStyle: React.CSSProperties = {
-  background: &apos;#0061A8&apos;, color: &apos;white&apos;, border: &apos;none&apos;,
-  padding: &apos;4px 8px&apos;, borderRadius: 6, fontSize: 12, cursor: &apos;pointer&apos;
+  background: '#0061A8', color: 'white', border: 'none',
+  padding: '4px 8px', borderRadius: 6, fontSize: 12, cursor: 'pointer'
 };

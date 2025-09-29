@@ -1,7 +1,8 @@
-import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
-import PDPBuyBox from &apos;@/src/components/marketplace/PDPBuyBox&apos;;
-import ProductCard from &apos;@/src/components/marketplace/ProductCard&apos;;
-import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
+import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import Image from 'next/image';
+import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
+import ProductCard from '@/src/components/marketplace/ProductCard';
+import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 interface ProductPageProps {
   params: { slug: string };
@@ -9,7 +10,7 @@ interface ProductPageProps {
 
 export default async function ProductDetail({ params }: ProductPageProps) {
   const [categoriesResponse, productResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
+    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)
   ]);
 
@@ -21,12 +22,12 @@ export default async function ProductDetail({ params }: ProductPageProps) {
   const product = productResponse.data.product;
   const category = productResponse.data.category;
 
-  const attachments = product.media?.filter((file: any) => file.role === &apos;MSDS&apos; || file.role === &apos;COA&apos;) ?? [];
-  const gallery = product.media?.filter((file: any) => file.role === &apos;GALLERY&apos;) ?? [];
+  const attachments = product.media?.filter((file: any) => file.role === 'MSDS' || file.role === 'COA') ?? [];
+  const gallery = product.media?.filter((file: any) => file.role === 'GALLERY') ?? [];
 
-  const FIXZIT_COLORS = { primary: &apos;#0061A8&apos;, success: &apos;#00A859&apos;, warning: &apos;#FFB400&apos; } as const;
+  const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
   return (
-    <div className="min-h-screen bg-[#F5F6F8]" style={{ direction: 'ltr&apos; }}>
+    <div className="min-h-screen bg-[#F5F6F8]" style={{ direction: 'ltr' }}>
       <TopBarAmazon departments={departments} />
       <main className="mx-auto max-w-7xl px-4 py-8">
         <nav className="text-sm text-[#0061A8]">
@@ -48,21 +49,26 @@ export default async function ProductDetail({ params }: ProductPageProps) {
             <div className="rounded-3xl bg-white p-6 shadow-lg">
               <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                 <div className="space-y-4">
-                  <div className="overflow-hidden rounded-2xl bg-gray-100">
-                    <img
-                      src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg&apos;}
+                  <div className="relative overflow-hidden rounded-2xl bg-gray-100 h-96">
+                    <Image
+                      src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg'}
                       alt={product.title.en}
-                      className="h-96 w-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
                     />
                   </div>
                   <div className="flex gap-3 overflow-x-auto">
                     {gallery.map((image: any) => (
-                      <img
-                        key={image.url}
-                        src={image.url}
-                        alt={product.title.en}
-                        className="h-16 w-16 rounded-xl border border-gray-200 object-cover"
-                      />
+                      <div key={image.url} className="relative h-16 w-16 rounded-xl border border-gray-200 overflow-hidden">
+                        <Image
+                          src={image.url}
+                          alt={product.title.en}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -74,7 +80,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
                     {product.brand && <p><span className="font-semibold">Brand:</span> {product.brand}</p>}
                     {product.standards?.length ? (
                       <p>
-                        <span className="font-semibold">Standards:</span> {product.standards.join(', &apos;)}
+                        <span className="font-semibold">Standards:</span> {product.standards.join(', ')}
                       </p>
                     ) : null}
                   </div>
@@ -83,7 +89,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
                     <ul className="mt-2 space-y-1 text-sm text-gray-700">
                       {Object.entries(product.specs || {}).map(([key, value]) => (
                         <li key={key} className="flex justify-between gap-4">
-                          <span className="font-medium capitalize text-gray-500">{key.replace(/_/g, &apos; ')}</span>
+                          <span className="font-medium capitalize text-gray-500">{key.replace(/_/g, ' ')}</span>
                           <span>{String(value)}</span>
                         </li>
                       ))}
@@ -96,7 +102,7 @@ export default async function ProductDetail({ params }: ProductPageProps) {
                         {attachments.map((file: any) => (
                           <li key={file.url}>
                             <a href={file.url} className="hover:underline" target="_blank">
-                              {file.role === 'MSDS&apos; ? &apos;Material Safety Data Sheet&apos; : &apos;Certificate of Analysis&apos;}
+                              {file.role === 'MSDS' ? 'Material Safety Data Sheet' : 'Certificate of Analysis'}
                             </a>
                           </li>
                         ))}

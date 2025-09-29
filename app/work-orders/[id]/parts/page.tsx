@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from &apos;react&apos;;
-import { Search, Plus, ShoppingCart } from &apos;lucide-react&apos;;
-import { useParams } from &apos;next/navigation&apos;;
+import { useCallback, useEffect, useState } from 'react';
+import { Search, Plus, ShoppingCart } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 export default function WorkOrderPartsPage() {
   const params = useParams();
   const workOrderId = params.id;
   
-  const [search, setSearch] = useState(&apos;');
+  const [search, setSearch] = useState('');
   const [parts, setParts] = useState<Array<{
     _id: string;
     name: string;
@@ -25,11 +25,7 @@ export default function WorkOrderPartsPage() {
   }>>([]);
   const [loading, setLoading] = useState(false);
   
-  useEffect(() => {
-    searchParts();
-  }, [search]);
-  
-  const searchParts = async () => {
+  const searchParts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/marketplace/products?q=${search}&limit=10`);
@@ -38,11 +34,15 @@ export default function WorkOrderPartsPage() {
         setParts(data.data.products);
       }
     } catch (error) {
-      console.error(&apos;Failed to search parts:&apos;, error);
+      console.error('Failed to search parts:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    searchParts();
+  }, [searchParts]);
   
   const addPart = (part: any) => {
     const existing = selectedParts.find(p => p._id === part._id);
@@ -91,9 +91,9 @@ export default function WorkOrderPartsPage() {
       total: selectedParts.reduce((sum, p) => sum + (p.price * p.quantity), 0)
     };
     
-    console.log(&apos;Creating PO:&apos;, po);
+    console.log('Creating PO:', po);
     // In production, send to API
-    alert(&apos;Purchase Order created successfully!&apos;);
+    alert('Purchase Order created successfully!');
   };
   
   return (
