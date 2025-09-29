@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
-import { MockModel } from '@/src/lib/mockDb';
 
 const JobStatuses = ['draft', 'pending', 'published', 'closed', 'archived'] as const;
 const JobVisibilities = ['internal', 'public'] as const;
@@ -59,47 +58,16 @@ JobSchema.methods.publish = async function(this: JobDoc) {
 
 export interface JobModel extends Model<JobDoc> {}
 
-class JobMockModel extends MockModel {
-  constructor() {
-    super('jobs');
+// Add pre-save middleware to set defaults
+JobSchema.pre('save', function() {
+  if (this.isNew) {
+    this.status = this.status || 'draft';
+    this.visibility = this.visibility || 'internal';
+    this.applicationCount = this.applicationCount || 0;
+    this.screeningRules = this.screeningRules || { minYears: 0, requiredSkills: [] };
   }
+});
 
-  private attach(doc: any) {
-    if (!doc) return doc;
-    (doc as any).publish = async () => {
-      (doc as any).status = 'published';
-      (doc as any).visibility = (doc as any).visibility || 'public';
-      (doc as any).publishedAt = new Date();
-      await this.findByIdAndUpdate((doc as any)._id, { $set: { status: (doc as any).status, visibility: (doc as any).visibility, publishedAt: (doc as any).publishedAt } });
-      return doc;
-    };
-    return doc;
-  }
-
-  override async create(doc: any) {
-    const created = await super.create({
-      status: doc?.status || 'draft',
-      visibility: doc?.visibility || 'internal',
-      applicationCount: 0,
-      screeningRules: { minYears: 0, requiredSkills: [] },
-      ...doc
-    });
-    return this.attach(created);
-  }
-
-  override async findById(id: string) {
-    const doc = await super.findById(id);
-    return this.attach(doc);
-  }
-
-  override async findOne(query: any) {
-    const doc = await super.findOne(query);
-    return this.attach(doc);
-  }
-}
-
-export const Job: JobModel = isMockDB
-  ? new JobMockModel() as unknown as JobModel
-  : (models.Job || model<JobDoc>('Job', JobSchema));
+export const Job: JobModel = models.Job || model<JobDoc>('Job', JobSchema);
 
 export type { JobStatus };

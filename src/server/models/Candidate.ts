@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
-import { MockModel } from '@/src/lib/mockDb';
 
 const CandidateSchema = new Schema({
   orgId: { type: String, required: true, index: true },
@@ -41,43 +40,21 @@ CandidateSchema.statics.findByEmail = function(orgId: string, email: string) {
   return this.findOne({ orgId, emailLower: email.toLowerCase() });
 };
 
-class CandidateMockModel extends MockModel {
-  constructor() {
-    super('candidates');
+// Add pre-save middleware to set defaults
+CandidateSchema.pre('save', function() {
+  if (this.isNew) {
+    this.skills = this.skills || [];
+    this.consents = this.consents || { privacy: true, contact: true, dataRetention: true };
+    if (this.email) {
+      this.emailLower = this.email.toLowerCase();
+    }
   }
+});
 
-  private attach(doc: any) {
-    if (!doc) return doc;
-    (doc as any).save = async () => {
-      await this.findByIdAndUpdate(doc._id, { $set: doc });
-      return doc;
-    };
-    return doc;
-  }
-
-  override async create(doc: any) {
-    const payload = {
-      skills: [],
-      consents: { privacy: true, contact: true, dataRetention: true },
-      ...doc,
-      emailLower: doc.email?.toLowerCase()
-    };
-    const created = await super.create(payload);
-    return this.attach(created);
-  }
-
-  async findByEmail(orgId: string, email: string) {
-    const doc = await super.findOne({ orgId, emailLower: email.toLowerCase() });
-    return this.attach(doc);
-  }
-
-  override async findOne(query: any) {
-    const doc = await super.findOne(query);
-    return this.attach(doc);
-  }
-}
+// Add static method
+CandidateSchema.statics.findByEmail = async function(orgId: string, email: string) {
+  return this.findOne({ orgId, emailLower: email.toLowerCase() });
+};
 
 const existingCandidateModel = models.Candidate as CandidateModel | undefined;
-export const Candidate: CandidateModel = isMockDB
-  ? (new CandidateMockModel() as unknown as CandidateModel)
-  : (existingCandidateModel || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema));
+export const Candidate: CandidateModel = existingCandidateModel || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema);
