@@ -5,40 +5,40 @@ import { Package, Users, FileText, ClipboardList, Truck, Star, Filter, Search, S
 
 const SOUQ_FEATURES = [
   {
-    title: 'Catalog Management',
+    title: 'Catalog Management&apos;,
     icon: Package,
-    description: 'Browse and manage your product catalog with advanced filtering',
-    link: '/souq/catalog'
+    description: &apos;Browse and manage your product catalog with advanced filtering&apos;,
+    link: &apos;/souq/catalog&apos;
   },
   {
-    title: 'Vendor Portal',
+    title: &apos;Vendor Portal&apos;,
     icon: Users,
-    description: 'Connect with verified vendors and suppliers',
-    link: '/souq/vendors'
+    description: &apos;Connect with verified vendors and suppliers&apos;,
+    link: &apos;/souq/vendors&apos;
   },
   {
-    title: 'RFQs & Bids',
+    title: &apos;RFQs & Bids&apos;,
     icon: FileText,
-    description: 'Request for quotations and manage bidding processes',
-    link: '/souq/rfqs'
+    description: &apos;Request for quotations and manage bidding processes&apos;,
+    link: &apos;/souq/rfqs&apos;
   },
   {
-    title: 'Order Management',
+    title: &apos;Order Management&apos;,
     icon: ClipboardList,
-    description: 'Track orders, purchase orders, and delivery status',
-    link: '/souq/orders'
+    description: &apos;Track orders, purchase orders, and delivery status&apos;,
+    link: &apos;/souq/orders&apos;
   },
   {
-    title: 'Shipping & Logistics',
+    title: &apos;Shipping & Logistics&apos;,
     icon: Truck,
-    description: 'Manage shipping, tracking, and logistics partners',
-    link: '/souq/shipping'
+    description: &apos;Manage shipping, tracking, and logistics partners&apos;,
+    link: &apos;/souq/shipping&apos;
   },
   {
-    title: 'Reviews & Ratings',
+    title: &apos;Reviews & Ratings&apos;,
     icon: Star,
-    description: 'View and manage product reviews and vendor ratings',
-    link: '/souq/reviews'
+    description: &apos;View and manage product reviews and vendor ratings&apos;,
+    link: &apos;/souq/reviews&apos;
   }
 ];
 

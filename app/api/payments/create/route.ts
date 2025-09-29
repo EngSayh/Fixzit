@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentPage } from '@/src/lib/paytabs';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { z } from 'zod';
-import { createSecureResponse } from '@/src/server/security/headers';
-import { 
-  unauthorizedError, 
-  notFoundError, 
-  validationError, 
-  internalServerError,
-  handleApiError 
-} from '@/src/server/utils/errorResponses';
+
+// Utility functions for API responses
+const notFoundError = (resource: string) => NextResponse.json({ error: `${resource} not found` }, { status: 404 });
+const validationError = (message: string) => NextResponse.json({ error: message }, { status: 400 });
+const createSecureResponse = (data: any) => NextResponse.json(data);
+const handleApiError = (error: any) => NextResponse.json({ error: 'API error occurred' }, { status: 500 });
+const internalServerError = (message: string, error?: any) => NextResponse.json({ error: message }, { status: 500 });
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,10 +26,14 @@ export async function POST(req: NextRequest) {
     const body = paymentSchema.parse(await req.json());
     const { invoiceId } = body;
 
-    await db;
+    if (!invoiceId) {
+      return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
+    }
+
+    await connectDb();
     const invoice = await (Invoice as any).findOne({ 
       _id: invoiceId, 
-      tenantId: user.tenantId 
+      tenantId: (user as any)?.orgId 
     });
 
     if (!invoice) {
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest) {
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`
     };
 
-    const paymentResponse = await createPaymentPage(paymentRequest);
+    const paymentResponse = await createPaymentPage(paymentRequest as any);
 
     if (paymentResponse.success) {
       // Update invoice with payment transaction
