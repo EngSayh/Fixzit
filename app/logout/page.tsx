@@ -1,7 +1,7 @@
-'use client&apos;;
+'use client';
 
-import { useEffect } from &apos;react&apos;;
-import { useRouter } from &apos;next/navigation&apos;;
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function LogoutPage() {
   const router = useRouter();
@@ -10,32 +10,32 @@ export default function LogoutPage() {
     const handleLogout = async () => {
       try {
         // Call logout API to clear server-side session
-        await fetch(&apos;/api/auth/logout&apos;, {
-          method: &apos;POST&apos;,
-          credentials: &apos;include&apos;
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
         });
 
         // Clear client-side storage
-        localStorage.removeItem(&apos;fixzit-role&apos;);
-        localStorage.removeItem(&apos;fxz.lang&apos;);
-        localStorage.removeItem(&apos;fixzit-currency&apos;);
-        localStorage.removeItem(&apos;fixzit-theme&apos;);
+        localStorage.removeItem('fixzit-role');
+        localStorage.removeItem('fxz.lang');
+        localStorage.removeItem('fixzit-currency');
+        localStorage.removeItem('fixzit-theme');
 
         // Clear any other localStorage items related to the app
         Object.keys(localStorage).forEach(key => {
-          if (key.startsWith(&apos;fixzit-&apos;) || key.startsWith(&apos;fxz-&apos;)) {
+          if (key.startsWith('fixzit-') || key.startsWith('fxz-')) {
             localStorage.removeItem(key);
           }
         });
 
         // Small delay to ensure API call completes
         setTimeout(() => {
-          router.push(&apos;/login&apos;);
+          router.push('/login');
         }, 100);
       } catch (error) {
-        console.error(&apos;Logout error:&apos;, error);
+        console.error('Logout error:', error);
         // Still redirect even if API call fails
-        router.push(&apos;/login&apos;);
+        router.push('/login');
       }
     };
 

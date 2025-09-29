@@ -1,4 +1,4 @@
-'use client&apos;;
+'use client';
 
 export default function SystemPage() {
   return (

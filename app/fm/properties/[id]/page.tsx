@@ -1,19 +1,19 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import useSWR from 'swr&apos;;
-import { useParams } from &apos;next/navigation&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Separator } from &apos;@/src/components/ui/separator&apos;;
-import GoogleMap from &apos;@/src/components/GoogleMap&apos;;
+import { useState } from 'react';
+import useSWR from 'swr';
+import { useParams } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Badge } from '@/src/components/ui/badge';
+import { Separator } from '@/src/components/ui/separator';
+import GoogleMap from '@/src/components/GoogleMap';
 import {
   Building2, MapPin, Calendar, DollarSign, Users, Home,
   Wrench, Shield, FileText, ChevronLeft, Edit, Trash2,
   Phone, Mail, Clock, CheckCircle, AlertCircle
-} from &apos;lucide-react&apos;;
-import Link from &apos;next/link&apos;;
+} from 'lucide-react';
+import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -71,23 +71,23 @@ export default function PropertyDetailsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Subtype</p>
-                  <p className="font-medium">{property.subtype || 'N/A&apos;}</p>
+                  <p className="font-medium">{property.subtype || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Area</p>
-                  <p className="font-medium">{property.details?.totalArea || 'N/A&apos;} sqm</p>
+                  <p className="font-medium">{property.details?.totalArea || 'N/A'} sqm</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Built Area</p>
-                  <p className="font-medium">{property.details?.builtArea || 'N/A&apos;} sqm</p>
+                  <p className="font-medium">{property.details?.builtArea || 'N/A'} sqm</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Year Built</p>
-                  <p className="font-medium">{property.details?.yearBuilt || 'N/A&apos;}</p>
+                  <p className="font-medium">{property.details?.yearBuilt || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Floors</p>
-                  <p className="font-medium">{property.details?.floors || 'N/A&apos;}</p>
+                  <p className="font-medium">{property.details?.floors || 'N/A'}</p>
                 </div>
               </div>
 
@@ -167,9 +167,9 @@ export default function PropertyDetailsPage() {
                       </div>
                       <div className="text-right">
                         <Badge className={
-                          unit.status === 'OCCUPIED&apos; ? &apos;bg-green-100 text-green-800&apos; :
-                          unit.status === &apos;VACANT&apos; ? &apos;bg-yellow-100 text-yellow-800&apos; :
-                          &apos;bg-gray-100 text-gray-800&apos;
+                          unit.status === 'OCCUPIED' ? 'bg-green-100 text-green-800' :
+                          unit.status === 'VACANT' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
                         }>
                           {unit.status}
                         </Badge>
@@ -199,25 +199,25 @@ export default function PropertyDetailsPage() {
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Purchase Price</span>
                 <span className="font-medium">
-                  {property.financial?.purchasePrice?.toLocaleString() || 'N/A&apos;} SAR
+                  {property.financial?.purchasePrice?.toLocaleString() || 'N/A'} SAR
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Current Value</span>
                 <span className="font-medium">
-                  {property.financial?.currentValue?.toLocaleString() || 'N/A&apos;} SAR
+                  {property.financial?.currentValue?.toLocaleString() || 'N/A'} SAR
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Monthly Rent</span>
                 <span className="font-medium">
-                  {property.financial?.monthlyRent?.toLocaleString() || 'N/A&apos;} SAR
+                  {property.financial?.monthlyRent?.toLocaleString() || 'N/A'} SAR
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Annual Yield</span>
                 <span className="font-medium">
-                  {property.financial?.annualYield || 'N/A&apos;}%
+                  {property.financial?.annualYield || 'N/A'}%
                 </span>
               </div>
             </CardContent>
@@ -234,7 +234,7 @@ export default function PropertyDetailsPage() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm text-gray-600">Type</p>
-                <p className="font-medium">{property.ownership?.type || 'N/A&apos;}</p>
+                <p className="font-medium">{property.ownership?.type || 'N/A'}</p>
               </div>
               {property.ownership?.owner && (
                 <div>
@@ -292,7 +292,7 @@ export default function PropertyDetailsPage() {
                 <p className="font-medium">
                   {property.maintenance?.lastInspection 
                     ? new Date(property.maintenance.lastInspection).toLocaleDateString()
-                    : 'N/A&apos;}
+                    : 'N/A'}
                 </p>
               </div>
               <div>
@@ -300,7 +300,7 @@ export default function PropertyDetailsPage() {
                 <p className="font-medium">
                   {property.maintenance?.nextInspection 
                     ? new Date(property.maintenance.nextInspection).toLocaleDateString()
-                    : 'N/A&apos;}
+                    : 'N/A'}
                 </p>
               </div>
               {property.maintenance?.issues && property.maintenance.issues.length > 0 && (
@@ -311,9 +311,9 @@ export default function PropertyDetailsPage() {
                     .map((issue: any, index: number) => (
                       <div key={index} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${
-                          issue.severity === 'HIGH&apos; ? &apos;text-red-600&apos; :
-                          issue.severity === &apos;MEDIUM&apos; ? &apos;text-yellow-600&apos; :
-                          &apos;text-gray-600&apos;
+                          issue.severity === 'HIGH' ? 'text-red-600' :
+                          issue.severity === 'MEDIUM' ? 'text-yellow-600' :
+                          'text-gray-600'
                         }`} />
                         <span>{issue.type}</span>
                       </div>

@@ -5,52 +5,52 @@ import { Map, Building2, Home, Search, Filter, Heart, TrendingUp, Star, BarChart
 
 const AQAR_FEATURES = [
   {
-    title: 'Interactive Property Map&apos;,
+    title: 'Interactive Property Map',
     icon: Map,
-    description: &apos;Explore properties on an interactive map with real-time data&apos;,
-    link: &apos;/aqar/map&apos;
+    description: 'Explore properties on an interactive map with real-time data',
+    link: '/aqar/map'
   },
   {
-    title: &apos;Property Search&apos;,
+    title: 'Property Search',
     icon: Search,
-    description: &apos;Advanced search with filters for location, price, and features&apos;,
-    link: &apos;/aqar/search&apos;
+    description: 'Advanced search with filters for location, price, and features',
+    link: '/aqar/search'
   },
   {
-    title: &apos;Property Listings&apos;,
+    title: 'Property Listings',
     icon: Building2,
-    description: &apos;Browse detailed property listings with photos and specifications&apos;,
-    link: &apos;/aqar/properties&apos;
+    description: 'Browse detailed property listings with photos and specifications',
+    link: '/aqar/properties'
   },
   {
-    title: &apos;My Listings&apos;,
+    title: 'My Listings',
     icon: Home,
-    description: &apos;Manage your property listings and inquiries&apos;,
-    link: &apos;/aqar/listings&apos;
+    description: 'Manage your property listings and inquiries',
+    link: '/aqar/listings'
   },
   {
-    title: &apos;Advanced Filters&apos;,
+    title: 'Advanced Filters',
     icon: Filter,
-    description: &apos;Filter properties by location, price range, property type, and more&apos;,
-    link: &apos;/aqar/filters&apos;
+    description: 'Filter properties by location, price range, property type, and more',
+    link: '/aqar/filters'
   },
   {
-    title: &apos;Favorites&apos;,
+    title: 'Favorites',
     icon: Heart,
-    description: &apos;Save and organize your favorite properties&apos;,
-    link: &apos;/aqar/favorites&apos;
+    description: 'Save and organize your favorite properties',
+    link: '/aqar/favorites'
   },
   {
-    title: &apos;Market Trends&apos;,
+    title: 'Market Trends',
     icon: TrendingUp,
-    description: &apos;View market analysis and property value trends&apos;,
-    link: &apos;/aqar/trends&apos;
+    description: 'View market analysis and property value trends',
+    link: '/aqar/trends'
   },
   {
-    title: &apos;Premium Listings&apos;,
+    title: 'Premium Listings',
     icon: Star,
-    description: &apos;Access exclusive premium property listings&apos;,
-    link: &apos;/aqar/premium&apos;
+    description: 'Access exclusive premium property listings',
+    link: '/aqar/premium'
   }
 ];
 

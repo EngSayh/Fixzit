@@ -1,27 +1,27 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import useSWR from 'swr&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
-import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
-import { Separator } from &apos;@/src/components/ui/separator&apos;;
+import { useState } from 'react';
+import useSWR from 'swr';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Badge } from '@/src/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Textarea } from '@/src/components/ui/textarea';
+import { Separator } from '@/src/components/ui/separator';
 import { 
   FileText, Plus, Search, Filter, Calendar, DollarSign, 
   MapPin, Users, Eye, Edit, Trash2, Send, Clock,
   Shield, Package, Wrench, Building2
-} from &apos;lucide-react&apos;;
+} from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function RFQsPage() {
-  const [search, setSearch] = useState(&apos;');
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState(&apos;');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, mutate } = useSWR(
@@ -129,11 +129,11 @@ export default function RFQsPage() {
 function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
-      case 'construction&apos;:
+      case 'construction':
         return <Building2 className="w-5 h-5" />;
-      case 'maintenance&apos;:
+      case 'maintenance':
         return <Wrench className="w-5 h-5" />;
-      case 'supplies&apos;:
+      case 'supplies':
         return <Package className="w-5 h-5" />;
       default:
         return <FileText className="w-5 h-5" />;
@@ -142,20 +142,20 @@ function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT&apos;:
-        return &apos;bg-gray-100 text-gray-800&apos;;
-      case &apos;PUBLISHED&apos;:
-        return &apos;bg-blue-100 text-blue-800&apos;;
-      case &apos;BIDDING&apos;:
-        return &apos;bg-yellow-100 text-yellow-800&apos;;
-      case &apos;CLOSED&apos;:
-        return &apos;bg-orange-100 text-orange-800&apos;;
-      case &apos;AWARDED&apos;:
-        return &apos;bg-green-100 text-green-800&apos;;
-      case &apos;CANCELLED&apos;:
-        return &apos;bg-red-100 text-red-800&apos;;
+      case 'DRAFT':
+        return 'bg-gray-100 text-gray-800';
+      case 'PUBLISHED':
+        return 'bg-blue-100 text-blue-800';
+      case 'BIDDING':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'CLOSED':
+        return 'bg-orange-100 text-orange-800';
+      case 'AWARDED':
+        return 'bg-green-100 text-green-800';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800';
       default:
-        return &apos;bg-gray-100 text-gray-800&apos;;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -195,7 +195,7 @@ function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
         </div>
 
         {/* Bid Collection Progress */}
-        {rfq.status === 'BIDDING&apos; && (
+        {rfq.status === 'BIDDING' && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Bid Collection</span>
@@ -225,7 +225,7 @@ function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
                 daysRemaining > 0 
                   ? `${daysRemaining} days left`
                   : `Closed`
-              ) : &apos;No deadline&apos;}
+              ) : 'No deadline'}
             </p>
           </div>
           <div>
@@ -234,7 +234,7 @@ function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
               Budget
             </div>
             <p className="font-medium mt-1">
-              {rfq.budget?.estimated?.toLocaleString() || 'N/A&apos;} {rfq.budget?.currency || &apos;SAR&apos;}
+              {rfq.budget?.estimated?.toLocaleString() || 'N/A'} {rfq.budget?.currency || 'SAR'}
             </p>
           </div>
         </div>
@@ -258,7 +258,7 @@ function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
             <Button variant="ghost" size="sm">
               <Eye className="w-4 h-4" />
             </Button>
-            {rfq.status === 'DRAFT&apos; && (
+            {rfq.status === 'DRAFT' && (
               <Button variant="ghost" size="sm">
                 <Send className="w-4 h-4" />
               </Button>
@@ -272,32 +272,32 @@ function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
 
 function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
   const [formData, setFormData] = useState({
-    title: &apos;',
+    title: '',
     description: '',
-    category: &apos;',
+    category: '',
     subcategory: '',
-    type: &apos;WORKS&apos;,
+    type: 'WORKS',
     location: {
-      city: &apos;Riyadh&apos;,
-      region: &apos;Riyadh&apos;,
-      address: &apos;',
+      city: 'Riyadh',
+      region: 'Riyadh',
+      address: '',
       radius: 20,
       nationalAddress: ''
     },
-    projectId: &apos;',
+    projectId: '',
     specifications: [] as any[],
     timeline: {
       bidDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split(&apos;T')[0],
+      startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       completionDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     },
     budget: {
       estimated: 0,
-      currency: &apos;SAR&apos;
+      currency: 'SAR'
     },
     requirements: {
       qualifications: [] as string[],
-      experience: &apos;',
+      experience: '',
       insurance: {
         required: true,
         minimum: 1000000
@@ -324,19 +324,19 @@ function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(&apos;/api/rfqs&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
+      const response = await fetch('/api/rfqs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert(&apos;Failed to create RFQ&apos;);
+        alert('Failed to create RFQ');
       }
     } catch (error) {
-      alert(&apos;Error creating RFQ&apos;);
+      alert('Error creating RFQ');
     }
   };
 

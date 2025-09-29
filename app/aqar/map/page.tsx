@@ -1,4 +1,4 @@
-'use client&apos;;
+'use client';
 
 import { useMemo, useState } from 'react';
 import GoogleMap from '@/src/components/GoogleMap';

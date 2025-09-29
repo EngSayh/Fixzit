@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectMongo } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
 import { rateLimit } from '@/src/server/security/rateLimit';
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ATS public-post endpoint not available in this deployment' }, { status: 501 });
     }
 
-    await connectMongo();
+    await connectToDatabase();
     const body = await req.json();
     // Basic rate limiting for public endpoint
     const rl = await rateLimit(`ats:public:${req.ip ?? '0'}`, 10, 60_000);

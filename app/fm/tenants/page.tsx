@@ -1,21 +1,21 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import useSWR from 'swr&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
-import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
-import { Separator } from &apos;@/src/components/ui/separator&apos;;
-import { Users, Plus, Search, Filter, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from &apos;lucide-react&apos;;
+import { useState } from 'react';
+import useSWR from 'swr';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Badge } from '@/src/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Textarea } from '@/src/components/ui/textarea';
+import { Separator } from '@/src/components/ui/separator';
+import { Users, Plus, Search, Filter, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function TenantsPage() {
-  const [search, setSearch] = useState(&apos;');
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -108,11 +108,11 @@ export default function TenantsPage() {
 function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'INDIVIDUAL&apos;:
+      case 'INDIVIDUAL':
         return <User className="w-5 h-5" />;
-      case 'COMPANY&apos;:
+      case 'COMPANY':
         return <Building className="w-5 h-5" />;
-      case 'GOVERNMENT&apos;:
+      case 'GOVERNMENT':
         return <Shield className="w-5 h-5" />;
       default:
         return <User className="w-5 h-5" />;
@@ -121,18 +121,18 @@ function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void 
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'INDIVIDUAL&apos;:
-        return &apos;bg-blue-100 text-blue-800&apos;;
-      case &apos;COMPANY&apos;:
-        return &apos;bg-green-100 text-green-800&apos;;
-      case &apos;GOVERNMENT&apos;:
-        return &apos;bg-red-100 text-red-800&apos;;
+      case 'INDIVIDUAL':
+        return 'bg-blue-100 text-blue-800';
+      case 'COMPANY':
+        return 'bg-green-100 text-green-800';
+      case 'GOVERNMENT':
+        return 'bg-red-100 text-red-800';
       default:
-        return &apos;bg-gray-100 text-gray-800&apos;;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const activeProperties = tenant.properties?.filter((p: any) => p.occupancy?.status === &apos;ACTIVE&apos;).length || 0;
+  const activeProperties = tenant.properties?.filter((p: any) => p.occupancy?.status === 'ACTIVE').length || 0;
   const totalProperties = tenant.properties?.length || 0;
 
   return (
@@ -179,13 +179,13 @@ function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void 
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Lease Status:</span>
             <Badge variant="outline" className="text-green-700 border-green-300">
-              {activeProperties > 0 ? 'Active&apos; : &apos;No Active Leases&apos;}
+              {activeProperties > 0 ? 'Active' : 'No Active Leases'}
             </Badge>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Outstanding Balance:</span>
             <span className="text-sm font-medium">
-              {tenant.financial?.outstandingBalance?.toLocaleString() || &apos;0'} SAR
+              {tenant.financial?.outstandingBalance?.toLocaleString() || '0'} SAR
             </span>
           </div>
         </div>
@@ -208,45 +208,45 @@ function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void 
 
 function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
   const [formData, setFormData] = useState({
-    name: &apos;',
+    name: '',
     type: '',
     contact: {
       primary: {
-        name: &apos;',
+        name: '',
         title: '',
-        email: &apos;',
+        email: '',
         phone: '',
-        mobile: &apos;'
+        mobile: ''
       },
       secondary: {
         name: '',
-        email: &apos;',
+        email: '',
         phone: ''
       },
       emergency: {
-        name: &apos;',
+        name: '',
         relationship: '',
-        phone: &apos;'
+        phone: ''
       }
     },
     identification: {
       nationalId: '',
-      companyRegistration: &apos;',
+      companyRegistration: '',
       taxId: '',
-      licenseNumber: &apos;'
+      licenseNumber: ''
     },
     address: {
       current: {
         street: '',
-        city: &apos;',
+        city: '',
         region: '',
-        postalCode: &apos;'
+        postalCode: ''
       },
       permanent: {
         street: '',
-        city: &apos;',
+        city: '',
         region: '',
-        postalCode: &apos;'
+        postalCode: ''
       }
     },
     preferences: {
@@ -262,8 +262,8 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
         events: false,
         announcements: false
       },
-      language: &apos;ar&apos;,
-      timezone: &apos;Asia/Riyadh&apos;
+      language: 'ar',
+      timezone: 'Asia/Riyadh'
     },
     tags: [] as string[]
   });
@@ -271,19 +271,19 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(&apos;/api/tenants&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
+      const response = await fetch('/api/tenants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert(&apos;Failed to create tenant&apos;);
+        alert('Failed to create tenant');
       }
     } catch (error) {
-      alert(&apos;Error creating tenant&apos;);
+      alert('Error creating tenant');
     }
   };
 

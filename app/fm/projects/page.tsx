@@ -1,27 +1,27 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import useSWR from 'swr&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
-import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
-import { Separator } from &apos;@/src/components/ui/separator&apos;;
+import { useState } from 'react';
+import useSWR from 'swr';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Badge } from '@/src/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Textarea } from '@/src/components/ui/textarea';
+import { Separator } from '@/src/components/ui/separator';
 import { 
   Briefcase, Plus, Search, Filter, Calendar, DollarSign, 
   TrendingUp, Users, Eye, Edit, Trash2, BarChart3, 
   Construction, Hammer, PaintBucket, Building 
-} from &apos;lucide-react&apos;;
+} from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function ProjectsPage() {
-  const [search, setSearch] = useState(&apos;');
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState(&apos;');
+  const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, mutate } = useSWR(
@@ -130,13 +130,13 @@ export default function ProjectsPage() {
 function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'NEW_CONSTRUCTION&apos;:
+      case 'NEW_CONSTRUCTION':
         return <Construction className="w-5 h-5" />;
-      case 'RENOVATION&apos;:
+      case 'RENOVATION':
         return <Hammer className="w-5 h-5" />;
-      case 'MAINTENANCE&apos;:
+      case 'MAINTENANCE':
         return <PaintBucket className="w-5 h-5" />;
-      case 'FIT_OUT&apos;:
+      case 'FIT_OUT':
         return <Building className="w-5 h-5" />;
       default:
         return <Briefcase className="w-5 h-5" />;
@@ -145,22 +145,22 @@ function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => vo
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PLANNING&apos;:
-        return &apos;bg-gray-100 text-gray-800&apos;;
-      case &apos;APPROVED&apos;:
-        return &apos;bg-green-100 text-green-800&apos;;
-      case &apos;IN_PROGRESS&apos;:
-        return &apos;bg-blue-100 text-blue-800&apos;;
-      case &apos;ON_HOLD&apos;:
-        return &apos;bg-yellow-100 text-yellow-800&apos;;
-      case &apos;COMPLETED&apos;:
-        return &apos;bg-emerald-100 text-emerald-800&apos;;
-      case &apos;CANCELLED&apos;:
-        return &apos;bg-red-100 text-red-800&apos;;
-      case &apos;CLOSED&apos;:
-        return &apos;bg-purple-100 text-purple-800&apos;;
+      case 'PLANNING':
+        return 'bg-gray-100 text-gray-800';
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800';
+      case 'IN_PROGRESS':
+        return 'bg-blue-100 text-blue-800';
+      case 'ON_HOLD':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'COMPLETED':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800';
+      case 'CLOSED':
+        return 'bg-purple-100 text-purple-800';
       default:
-        return &apos;bg-gray-100 text-gray-800&apos;;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -180,7 +180,7 @@ function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => vo
             </div>
           </div>
           <Badge className={getStatusColor(project.status)}>
-            {project.status.toLowerCase().replace(&apos;_', ' ')}
+            {project.status.toLowerCase().replace('_', ' ')}
           </Badge>
         </div>
       </CardHeader>
@@ -214,7 +214,7 @@ function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => vo
                 daysRemaining > 0 
                   ? `${daysRemaining} days left`
                   : `${Math.abs(daysRemaining)} days overdue`
-              ) : &apos;No deadline&apos;}
+              ) : 'No deadline'}
             </p>
           </div>
           <div>
@@ -223,7 +223,7 @@ function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => vo
               Budget
             </div>
             <p className="font-medium mt-1">
-              {project.budget?.total?.toLocaleString() || 'N/A&apos;} {project.budget?.currency || &apos;SAR&apos;}
+              {project.budget?.total?.toLocaleString() || 'N/A'} {project.budget?.currency || 'SAR'}
             </p>
           </div>
         </div>
@@ -254,23 +254,23 @@ function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => vo
 
 function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
   const [formData, setFormData] = useState({
-    name: &apos;',
+    name: '',
     description: '',
-    type: &apos;',
+    type: '',
     propertyId: '',
     location: {
-      address: &apos;',
+      address: '',
       city: '',
       coordinates: { lat: 24.7136, lng: 46.6753 }
     },
     timeline: {
-      startDate: new Date().toISOString().split(&apos;T')[0],
+      startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       duration: 90
     },
     budget: {
       total: 0,
-      currency: &apos;SAR&apos;
+      currency: 'SAR'
     },
     tags: [] as string[]
   });
@@ -278,19 +278,19 @@ function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(&apos;/api/projects&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert(&apos;Failed to create project&apos;);
+        alert('Failed to create project');
       }
     } catch (error) {
-      alert(&apos;Error creating project&apos;);
+      alert('Error creating project');
     }
   };
 

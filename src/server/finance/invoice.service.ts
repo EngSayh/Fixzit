@@ -1,5 +1,5 @@
 import { InvoiceCreate, InvoicePost } from "./invoice.schema";
-import { connectMongo } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { Invoice } from "@/src/server/models/Invoice";
 
 // Mock implementation retained for optional mock mode
@@ -56,10 +56,7 @@ const mockService = new MockInvoiceService();
 export async function create(input: unknown, actorId?: string, ip?: string) {
   const data = InvoiceCreate.parse(input);
 
-    return mockService.create(data);
-  }
-
-  await connectMongo();
+  await connectDb();
 
   const number = await nextInvoiceNumber(data.tenantId);
   const totals = computeTotals(data.lines);
@@ -96,10 +93,7 @@ export async function create(input: unknown, actorId?: string, ip?: string) {
 }
 
 export async function list(tenantId: string, q?: string, status?: string) {
-    return mockService.list(tenantId, q, status);
-  }
-
-  await connectMongo();
+  await connectDb();
 
   const filters: Record<string, any> = { tenantId };
 
@@ -126,9 +120,6 @@ export async function list(tenantId: string, q?: string, status?: string) {
 
 export async function post(tenantId: string, id: string, input: unknown, actorId?: string, ip?: string) {
   const data = InvoicePost.parse(input);
-
-    return mockService.setStatus(id, data.action === 'POST' ? 'SENT' : 'CANCELLED');
-  }
 
   await connectMongo();
 
@@ -198,3 +189,4 @@ function computeTotals(lines: Array<{ qty: number; unitPrice: number; vatRate: n
 
 function round(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
+}
