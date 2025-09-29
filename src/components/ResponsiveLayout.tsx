@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 import { Menu, X } from 'lucide-react';
 
 interface ResponsiveLayoutProps {
@@ -21,7 +21,7 @@ export default function ResponsiveLayout({
   footer,
   className = ''
 }: ResponsiveLayoutProps) {
-  const { screenInfo, responsiveClasses } = useResponsive();
+  const { screenInfo, responsiveClasses } = useResponsiveLayout();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar on mobile when screen size changes to desktop
@@ -108,7 +108,7 @@ export function ResponsiveCard({
   padding = 'medium',
   hover = true
 }: ResponsiveCardProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getPaddingClass = () => {
     switch (padding) {
@@ -150,7 +150,7 @@ export function ResponsiveButton({
   disabled = false,
   className = ''
 }: ResponsiveButtonProps) {
-  const { screenInfo } = useResponsive();
+  const { screenInfo } = useResponsiveLayout();
 
   const getVariantClass = () => {
     switch (variant) {

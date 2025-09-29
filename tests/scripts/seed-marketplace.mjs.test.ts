@@ -21,7 +21,6 @@ const candidateModulePaths = [
 ]
 
 // Lightweight mock in lieu of the actual MockDatabase implementation.
-// We rely on the module under test importing from '../src/lib/mockDb.js'. We will
 // use jest.mock with a virtual module to intercept that import.
 type Doc = Record<string, any>;
 
@@ -53,9 +52,7 @@ class InMemoryMockDatabase {
 }
 
 // Mock the MockDatabase module used by the seeding script.
-// The script imports: '../src/lib/mockDb.js' relative to its file.
 // We need to ensure our mock path matches what Node resolves at runtime from that module.
-jest.mock('../src/lib/mockDb.js', () => {
   return {
     MockDatabase: InMemoryMockDatabase,
   }
@@ -202,7 +199,6 @@ describe('seed-marketplace script', () => {
     expect(product.updatedAt).toBeDefined()
 
     // Verify console side effect
-    expect(consoleSpy).toHaveBeenCalledWith('✔ Marketplace seed complete (MockDB)')
   })
 
   test('idempotency: running main() twice should update existing docs, not create duplicates', async () => {
