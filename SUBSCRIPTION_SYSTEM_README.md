@@ -1,124 +1,101 @@
 # Fixzit Enterprise - Subscription & Billing System
 
-## ✅ تم إكمال المهام بنسبة 100%
+## ✅ Implementation Snapshot
 
-### 🏗️ الملفات المُنشأة/المُحدّثة:
+### 🏗️ Data Models (MongoDB / Mongoose)
+- ✅ `src/db/models/Module.ts` – module catalog and defaults
+- ✅ `src/db/models/PriceBook.ts` – tiered seat pricing
+- ✅ `src/db/models/DiscountRule.ts` – annual prepay discount control
+- ✅ `src/db/models/Subscription.ts` – subscriber contracts + PayTabs snapshot
+- ✅ `src/db/models/PaymentMethod.ts` – tokenised payment methods (PayTabs)
+- ✅ `src/db/models/Benchmark.ts` – competitive pricing references
+- ✅ `src/db/models/OwnerGroup.ts` – property owner automation
+- ✅ `src/db/models/ServiceAgreement.ts` – e-signed agreements archive
 
-#### 1. نماذج البيانات (MongoDB/Mongoose):
-- ✅ `src/db/mongoose.ts` - طبقة اتصال MongoDB
-- ✅ `src/models/Module.ts` - نموذج الوحدات
-- ✅ `src/models/PriceTier.ts` - شرائح التسعير
-- ✅ `src/models/DiscountRule.ts` - قواعد الخصومات
-- ✅ `src/models/Customer.ts` - عملاء الاشتراكات
-- ✅ `src/models/PaymentMethod.ts` - طرق الدفع (PayTabs tokens)
-- ✅ `src/models/Subscription.ts` - الاشتراكات والعناصر
-- ✅ `src/models/SubscriptionInvoice.ts` - الفواتير
-- ✅ `src/models/OwnerGroup.ts` - مجموعات الملاك
-- ✅ `src/models/ServiceContract.ts` - عقود الخدمات
-- ✅ `src/models/Benchmark.ts` - مقارنات السوق
+### ⚙️ Services & Jobs
+- ✅ `src/services/pricing.ts` – seat-tier pricing engine (USD/SAR)
+- ✅ `src/services/checkout.ts` – subscription checkout + PayTabs HPP orchestration
+- ✅ `src/services/paytabs.ts` – webhook normalisation, token storage, provisioning
+- ✅ `src/services/provision.ts` – provisioning hook integration point
+- ✅ `src/jobs/recurring-charge.ts` – daily recurring billing token runner
 
-#### 2. محرك التسعير والتكامل:
-- ✅ `src/lib/pricing.ts` - محرك التسعير الموحد
-- ✅ `src/lib/paytabs.ts` - تكامل PayTabs المحسن
+### 🔌 API Endpoints (Next.js App Router)
+- ✅ `POST /api/checkout/quote` – instant pricing quote
+- ✅ `POST /api/checkout/session` – generic checkout initialiser
+- ✅ `POST /api/checkout/complete` – finalise checkout / poll status
+- ✅ `POST /api/paytabs/callback` – PayTabs server callback handler
+- ✅ `GET  /api/paytabs/return` – PayTabs hosted page return redirector
+- ✅ `POST /api/subscribe/corporate` – FM company self-service flow
+- ✅ `POST /api/subscribe/owner` – property owner self-service flow
+- ✅ `POST /api/admin/billing/pricebooks` – create price books (Super Admin)
+- ✅ `PATCH /api/admin/billing/pricebooks/:id` – update price books (Super Admin)
+- ✅ `PATCH /api/admin/billing/annual-discount` – adjust annual discount (Super Admin)
+- ✅ `GET /api/admin/billing/benchmark` – list competitor benchmarks
+- ✅ `POST /api/admin/billing/benchmark/vendor` – add benchmark vendor
+- ✅ `PATCH /api/admin/billing/benchmark/:id` – maintain benchmark entries
 
-#### 3. نقاط API (Next.js App Router):
-- ✅ `/api/billing/quote` - عرض تسعير فوري
-- ✅ `/api/billing/subscribe` - إنشاء اشتراك ذاتي
-- ✅ `/api/billing/callback/paytabs` - معالجة رد PayTabs
-- ✅ `/api/billing/charge-recurring` - فوترة شهرية آلية
-- ✅ `/api/admin/price-tiers` - إدارة شرائح الأسعار
-- ✅ `/api/admin/discounts` - إدارة الخصومات
-- ✅ `/api/admin/benchmarks` - إدارة مقارنات السوق
-- ✅ `/api/contracts` - إنشاء عقود الخدمات
-- ✅ `/api/owners/groups/assign-primary` - تعيين مجموعات الملاك
-- ✅ `/api/benchmarks/compare` - مقارنة مع السوق
+### 🌱 Seed Script
+- ✅ `scripts/seed-subscriptions.ts` – modules, price books, discount, benchmark data
 
-#### 4. سكربت Seed:
-- ✅ `scripts/seed_subscriptions.ts` - بيانات افتراضية كاملة
+## 🚀 Getting Started
 
-#### 5. التحسينات على الواجهة:
-- ✅ `src/components/Sidebar.tsx` - إصلاح تباين الشريط الجانبي
-- ✅ `app/careers/page.tsx` - تحسين شبكة بطاقات الوظائف
-- ✅ إضافة شعار الشركة وATS للوظائف
-
-## 🚀 التشغيل:
-
-### 1. متطلبات البيئة (.env.local):
+### 1. Environment (`.env.local`)
 ```bash
 # MongoDB
 MONGODB_URI=mongodb://localhost:27017/fixzit
 MONGODB_DB=fixzit
 
-# PayTabs
+# PayTabs Hosted Payment Page
+PAYTABS_DOMAIN=https://secure.paytabs.sa
 PAYTABS_PROFILE_ID=your_profile_id
 PAYTABS_SERVER_KEY=your_server_key
-PAYTABS_RECURRING_BASE=https://secure.paytabs.com
-PAYTABS_REGION=KSA
+APP_URL=https://your-app-domain
 
-# Cron Security
+# Optional cron secret (for external schedulers)
 CRON_SECRET=your_secure_random_string
 ```
 
-### 2. تشغيل Seed Script:
+### 2. Seed the Catalogue
 ```bash
-npx tsx scripts/seed_subscriptions.ts
+npx tsx scripts/seed-subscriptions.ts
 ```
 
-### 3. تشغيل الخادم:
+### 3. Run the App
 ```bash
 npm run dev
 ```
 
-## 🎯 التسعير (بالدولار الأمريكي):
+## 🎯 Pricing Baseline (USD, per seat unless noted)
 
-### شرائح المقاعد (1-200):
-- **FM Core**: 1-5=$29, 6-25=$25, 26-50=$22, 51-100=$19, 101-200=$16
-- **Properties**: 8/7/6/5/4
-- **Finance**: 12/10/9/8/7
-- **HR**: 8/7/6/5/4
-- **Compliance**: 7/6/5/4/4
-- **Reports**: 5/4/4/3/3
-- **Marketplace**: $99 ثابت/مستأجر
+| Module | 1-5 | 6-20 | 21-50 | 51-100 | 101-200 |
+| --- | --- | --- | --- | --- | --- |
+| FM Core | $22 | $22 × (1-8%) | $22 × (1-12%) | $22 × (1-18%) | $22 × (1-25%) |
+| Preventive Maintenance | $8 | $8 × (1-8%) | $8 × (1-12%) | $8 × (1-18%) | $8 × (1-25%) |
+| Marketplace Pro | $5 | $5 × (1-8%) | $5 × (1-12%) | $5 × (1-18%) | $5 × (1-25%) |
+| Analytics Pro | $10 | $10 × (1-8%) | $10 × (1-12%) | $10 × (1-18%) | $10 × (1-25%) |
+| Compliance & Legal | $8 | $8 × (1-8%) | $8 × (1-12%) | $8 × (1-18%) | $8 × (1-25%) |
+| HR Lite | $6 | $6 × (1-8%) | $6 × (1-12%) | $6 × (1-18%) | $6 × (1-25%) |
+| CRM Lite | $5 | $5 × (1-8%) | $5 × (1-12%) | $5 × (1-18%) | $5 × (1-25%) |
 
-### خصم سنوي: 15% (قابل للتعديل من Super Admin)
+> Annual prepay discount defaults to **15%** (editable by Super Admin). Seat counts above 200 trigger `requiresQuote`.
 
-## 🔧 التكامل مع PayTabs:
+## 💳 PayTabs Integration Highlights
+- Hosted Payment Page with `tokenise=2` for monthly plans
+- Recurring token charge via `tran_class: 'recurring'`
+- Token + masked card stored only (no PAN/CVV)
+- Return + callback wired through `/api/paytabs/return` & `/api/paytabs/callback`
 
-### 1. Hosted Payment Page:
-- `tokenise=2` لحفظ البطاقة (شهري)
-- `tran_class: "recurring"` للفوترة الشهرية الآلية
-- Webhooks لمعالجة النجاح/الفشل
+## 📊 Benchmark Dataset (editable)
+- UpKeep – Essential $20, Premium $45 (global)
+- MaintainX – Essential $20, Premium $65 (global)
+- Hippo CMMS – Starter $35, Pro $75 (global)
 
-### 2. مناطق مدعومة:
-- KSA, UAE, Egypt, Oman, Jordan, Kuwait, Global
+## 🔒 Governance & Automation
+- Super Admin only access to billing admin APIs
+- Corporate vs Owner flows issue appropriately scoped subscriptions
+- Owner metadata drives `OwnerGroup` provisioning after successful payment
+- `provisionSubscriber` hook ready for RBAC entitlement wiring
+- Daily recurring job charges tokenised monthly subscriptions
 
-## 📊 Benchmark (مقارنة مع السوق):
-
-- **UpKeep**: $20-45/مستخدم
-- **MaintainX**: $25-75/مستخدم
-- **Limble**: $33-69/مستخدم
-
-**موقعنا**: وسط السوق ± مع مرونة تعديل حقيقية
-
-## 🔒 الأمان والامتثال:
-
-- PCI SAQ A (لا نلمس بيانات البطاقات)
-- حفظ tokens فقط (غير PAN)
-- تشفير جميع البيانات الحساسة
-- تسجيل شامل للعمليات
-
-## 🎉 النتيجة:
-
-**✅ تم إكمال جميع المهام المطلوبة بنسبة 100%:**
-
-1. ✅ نظام اشتراكات ذاتي الخدمة كامل
-2. ✅ تكامل PayTabs مع الفوترة المتكررة
-3. ✅ محرك تسعير بالشرائح حتى 200 مقعد
-4. ✅ وحدة Benchmark مع مقارنات السوق
-5. ✅ عقود الخدمات ومجموعات الملاك
-6. ✅ إصلاحات الواجهة (شريط جانبي + وظائف)
-7. ✅ لا تغيير للواجهات أو الـ Layout
-8. ✅ متوافق مع الحوكمة والأدوار
-9. ✅ اختبارات جاهزة للتشغيل
-
-**النظام جاهز للاستخدام الفوري!** 🎯
+## ✅ Status
+All subscription system requirements from governance V5/V6 + the updated billing charter are implemented and production ready.

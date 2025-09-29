@@ -1,8 +1,8 @@
-'use client';
+'use client&apos;;
 
-import { useState } from 'react';
-import { X, LogIn, UserPlus, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from &apos;react&apos;;
+import { X, LogIn, UserPlus, ArrowRight } from &apos;lucide-react&apos;;
+import Link from &apos;next/link&apos;;
 
 interface LoginPromptProps {
   isOpen: boolean;
@@ -27,15 +27,15 @@ export default function LoginPrompt({
 
   const handleSignIn = () => {
     const params = new URLSearchParams();
-    if (redirectTo) params.set('redirect', redirectTo);
-    if (action) params.set('action', action);
+    if (redirectTo) params.set(&apos;redirect&apos;, redirectTo);
+    if (action) params.set(&apos;action&apos;, action);
     window.location.href = `/login?${params.toString()}`;
   };
 
   const handleSignUp = () => {
     const params = new URLSearchParams();
-    if (redirectTo) params.set('redirect', redirectTo);
-    if (action) params.set('action', action);
+    if (redirectTo) params.set(&apos;redirect&apos;, redirectTo);
+    if (action) params.set(&apos;action&apos;, action);
     window.location.href = `/login?signup=true&${params.toString()}`;
   };
 
@@ -68,12 +68,12 @@ export default function LoginPrompt({
               <LogIn className="w-8 h-8 text-white" />
             </div>
             <h4 className="text-lg font-semibold text-gray-900 mb-2">
-              {isSignUp ? 'Create Your Account' : 'Welcome Back'}
+              {isSignUp ? &apos;Create Your Account&apos; : &apos;Welcome Back&apos;}
             </h4>
             <p className="text-gray-600 text-sm">
               {isSignUp
-                ? 'Join Fixzit to access exclusive features and manage your purchases.'
-                : 'Sign in to your Fixzit account to continue.'
+                ? &apos;Join Fixzit to access exclusive features and manage your purchases.&apos;
+                : &apos;Sign in to your Fixzit account to continue.&apos;
               }
             </p>
           </div>

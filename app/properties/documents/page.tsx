@@ -1,81 +1,81 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 export default function PropertiesDocumentsPage() {
   const documents = [
     {
-      id: 'DOC-001',
-      name: 'Tower A - Building Permit',
-      type: 'Legal',
-      property: 'Tower A',
-      uploadedBy: 'Admin User',
-      uploadDate: '2024-01-15',
-      expiryDate: '2026-01-15',
-      status: 'Active',
-      size: '2.4 MB'
+      id: &apos;DOC-001&apos;,
+      name: &apos;Tower A - Building Permit&apos;,
+      type: &apos;Legal&apos;,
+      property: &apos;Tower A&apos;,
+      uploadedBy: &apos;Admin User&apos;,
+      uploadDate: &apos;2024-01-15&apos;,
+      expiryDate: &apos;2026-01-15&apos;,
+      status: &apos;Active&apos;,
+      size: &apos;2.4 MB&apos;
     },
     {
-      id: 'DOC-002',
-      name: 'Fire Safety Certificate',
-      type: 'Safety',
-      property: 'Tower B',
-      uploadedBy: 'Safety Officer',
-      uploadDate: '2024-01-10',
-      expiryDate: '2025-01-10',
-      status: 'Expiring Soon',
-      size: '1.8 MB'
+      id: &apos;DOC-002&apos;,
+      name: &apos;Fire Safety Certificate&apos;,
+      type: &apos;Safety&apos;,
+      property: &apos;Tower B&apos;,
+      uploadedBy: &apos;Safety Officer&apos;,
+      uploadDate: &apos;2024-01-10&apos;,
+      expiryDate: &apos;2025-01-10&apos;,
+      status: &apos;Expiring Soon&apos;,
+      size: &apos;1.8 MB&apos;
     },
     {
-      id: 'DOC-003',
-      name: 'Lease Agreement - Unit 1204',
-      type: 'Contract',
-      property: 'Tower A',
-      uploadedBy: 'Property Manager',
-      uploadDate: '2024-01-05',
-      expiryDate: '2025-12-31',
-      status: 'Active',
-      size: '3.2 MB'
+      id: &apos;DOC-003&apos;,
+      name: &apos;Lease Agreement - Unit 1204&apos;,
+      type: &apos;Contract&apos;,
+      property: &apos;Tower A&apos;,
+      uploadedBy: &apos;Property Manager&apos;,
+      uploadDate: &apos;2024-01-05&apos;,
+      expiryDate: &apos;2025-12-31&apos;,
+      status: &apos;Active&apos;,
+      size: &apos;3.2 MB&apos;
     },
     {
-      id: 'DOC-004',
-      name: 'Insurance Policy - All Properties',
-      type: 'Insurance',
-      property: 'All Properties',
-      uploadedBy: 'Admin User',
-      uploadDate: '2023-12-20',
-      expiryDate: '2024-12-20',
-      status: 'Expired',
-      size: '5.1 MB'
+      id: &apos;DOC-004&apos;,
+      name: &apos;Insurance Policy - All Properties&apos;,
+      type: &apos;Insurance&apos;,
+      property: &apos;All Properties&apos;,
+      uploadedBy: &apos;Admin User&apos;,
+      uploadDate: &apos;2023-12-20&apos;,
+      expiryDate: &apos;2024-12-20&apos;,
+      status: &apos;Expired&apos;,
+      size: &apos;5.1 MB&apos;
     },
     {
-      id: 'DOC-005',
-      name: 'Maintenance Contract - Elevators',
-      type: 'Contract',
-      property: 'Tower A & B',
-      uploadedBy: 'Maintenance Manager',
-      uploadDate: '2024-01-01',
-      expiryDate: '2025-12-31',
-      status: 'Active',
-      size: '1.5 MB'
+      id: &apos;DOC-005&apos;,
+      name: &apos;Maintenance Contract - Elevators&apos;,
+      type: &apos;Contract&apos;,
+      property: &apos;Tower A & B&apos;,
+      uploadedBy: &apos;Maintenance Manager&apos;,
+      uploadDate: &apos;2024-01-01&apos;,
+      expiryDate: &apos;2025-12-31&apos;,
+      status: &apos;Active&apos;,
+      size: &apos;1.5 MB&apos;
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Expiring Soon': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Pending Review': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case &apos;Active&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
+      case &apos;Expiring Soon&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
+      case &apos;Expired&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
+      case &apos;Pending Review&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
+      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Legal': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Safety': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Contract': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Insurance': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case &apos;Legal&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
+      case &apos;Safety&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
+      case &apos;Contract&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
+      case &apos;Insurance&apos;: return &apos;bg-purple-100 text-purple-800 border-purple-200&apos;;
+      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
     }
   };
 
@@ -224,7 +224,7 @@ export default function PropertiesDocumentsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.uploadedBy}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.uploadDate}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.expiryDate || 'N/A'}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.expiryDate || 'N/A&apos;}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.size}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(doc.status)}`}>
