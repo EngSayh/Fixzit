@@ -5,8 +5,8 @@ info:
     Complete OpenAPI specification for Fixzit Marketplace endpoints.
     
     This API provides comprehensive marketplace functionality including:
-    - Product search and catalog management
-    - Vendor and service provider operations
+  - Product search and catalog management
+  - Vendor and service provider operations
     - Request for Quote (RFQ) system
     - Order management and tracking
     - Payment processing integration
@@ -303,6 +303,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+<<<<<<< HEAD
 
   schemas:
     MarketplaceSearchResult:
@@ -731,3 +732,5 @@ tags:
 externalDocs:
   description: Fixzit Developer Documentation
   url: https://docs.fixzit.co
+=======
+>>>>>>> main

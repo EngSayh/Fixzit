@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Send, Bot, User, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bot, User, X, Send } from 'lucide-react';
 
 export default function AIChatPage() {
   const [messages, setMessages] = useState([
