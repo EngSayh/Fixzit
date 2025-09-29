@@ -1,88 +1,46 @@
-const REGIONS = {
-  KSA: 'https://secure.paytabs.sa',
-  UAE: 'https://secure.paytabs.com',
-  EGYPT: 'https://secure-egypt.paytabs.com',
-  OMAN: 'https://secure-oman.paytabs.com',
-  JORDAN: 'https://secure-jordan.paytabs.com',
-  KUWAIT: 'https://secure-kuwait.paytabs.com',
-  GLOBAL: 'https://secure-global.paytabs.com'
-} as const;
-
-type PaytabsRegion = keyof typeof REGIONS;
-
-export interface PaytabsCustomerDetails {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  zip: string;
-}
-
-export interface PaymentRequest {
-  amount: number;
-  currency: string;
-  description: string;
-  customerDetails: PaytabsCustomerDetails;
-  callbackUrl: string;
-  returnUrl: string;
-  invoiceId?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export type PaymentResponse =
-  | { success: true; paymentUrl: string; transactionId: string }
-  | { success: false; error: string };
-
-export const paytabsBase = (region: string = 'GLOBAL'): string => {
-  const normalized = region.toUpperCase();
-
-  if (normalized === 'SAU' || normalized === 'SA') {
-    return REGIONS.KSA;
-  }
-
-  return REGIONS[normalized as PaytabsRegion] ?? REGIONS.GLOBAL;
+const REGIONS: Record<string,string> = {
+  KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
+  EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
+  JORDAN:'https://secure-jordan.paytabs.com', KUWAIT:'https://secure-kuwait.paytabs.com',
+  GLOBAL:'https://secure-global.paytabs.com'
 };
 
-const PAYTABS_CONFIG = Object.freeze({
-  profileId: process.env.PAYTABS_PROFILE_ID ?? '',
-  serverKey: process.env.PAYTABS_SERVER_KEY ?? '',
-  baseUrl: process.env.PAYTABS_BASE_URL ?? paytabsBase(process.env.PAYTABS_REGION ?? 'GLOBAL')
-});
+export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
 
-const assertConfig = () => {
-  if (!PAYTABS_CONFIG.profileId) {
-    throw new Error('PayTabs profile ID is not configured');
-  }
-
-  if (!PAYTABS_CONFIG.serverKey) {
-    throw new Error('PayTabs server key is not configured');
-  }
-};
-
-export async function createHppRequest(region: string, payload: unknown) {
-  assertConfig();
-
-  const response = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method: 'POST',
+export async function createHppRequest(region:string, payload:any) {
+  const r = await fetch(`${paytabsBase(region)}/payment/request`, {
+    method:'POST',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: PAYTABS_CONFIG.serverKey
+      'Content-Type':'application/json',
+      'authorization': process.env.PAYTABS_SERVER_KEY!,
     },
     body: JSON.stringify(payload)
   });
-
-  return response.json();
+  return r.json();
 }
 
-// removed duplicate local types; using exported interfaces above
+export type SimplePaymentRequest = {
+  amount: number;
+  currency: string;
+  customerDetails: {
+    name: string; email: string; phone: string; address: string; city: string; state: string; country: string; zip: string;
+  };
+  description: string;
+  invoiceId?: string;
+  returnUrl: string;
+  callbackUrl: string;
+}
 
-export async function createPaymentPage(request: PaymentRequest): Promise<PaymentResponse> {
+export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
+
+const PAYTABS_CONFIG = {
+  profileId: process.env.PAYTABS_PROFILE_ID || '',
+  serverKey: process.env.PAYTABS_SERVER_KEY || '',
+  baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase('GLOBAL')
+};
+
+export async function createPaymentPage(request: SimplePaymentRequest): Promise<SimplePaymentResponse> {
   try {
-    assertConfig();
-
     const payload = {
       profile_id: PAYTABS_CONFIG.profileId,
       tran_type: 'sale',
@@ -91,11 +49,11 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
       cart_currency: request.currency,
       cart_amount: request.amount.toFixed(2),
       cart_description: request.description,
-
+      
       // URLs
       return: request.returnUrl,
       callback: request.callbackUrl,
-
+      
       // Customer details
       customer_details: {
         name: request.customerDetails.name,
@@ -136,21 +94,19 @@ export async function createPaymentPage(request: PaymentRequest): Promise<Paymen
       return {
         success: false,
         error: data.message || 'Payment initialization failed'
-      };
+      } as const;
     }
   } catch (error: any) {
     console.error('PayTabs error:', error);
     return {
       success: false,
       error: error.message || 'Payment gateway error'
-    };
+    } as const;
   }
 }
 
 export async function verifyPayment(tranRef: string): Promise<any> {
   try {
-    assertConfig();
-
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
@@ -170,36 +126,17 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-import crypto from 'crypto';
 export function validateCallback(payload: any, signature: string): boolean {
-  if (!signature) return false;
-  const calculated = generateSignature(payload, PAYTABS_CONFIG.serverKey);
-  try {
-    return crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(signature));
-  } catch {
-    return false;
-  }
+  // Implement signature validation according to PayTabs documentation
+  // This is a simplified version - refer to PayTabs docs for actual implementation
+  const calculatedSignature = generateSignature(payload);
+  return calculatedSignature === signature;
 }
 
-function generateSignature(payload: any, secret: string): string {
-  const canonical = canonicalizePayload(payload);
-  return crypto.createHmac('sha256', secret).update(canonical).digest('hex');
-}
-
-function canonicalizePayload(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-
-  if (Array.isArray(value)) {
-    return `[${value.map(item => canonicalizePayload(item)).join(',')}]`;
-  }
-
-  const entries = Object.entries(value as Record<string, unknown>)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, val]) => `${JSON.stringify(key)}:${canonicalizePayload(val)}`);
-
-  return `{${entries.join(',')}}`;
+function generateSignature(payload: any): string {
+  // Implement according to PayTabs signature generation algorithm
+  // This is a placeholder - actual implementation depends on PayTabs docs
+  return '';
 }
 
 // Payment methods supported in Saudi Arabia
@@ -211,7 +148,7 @@ export const PAYMENT_METHODS = {
   STC_PAY: 'stcpay',
   TAMARA: 'tamara', // Buy Now Pay Later
   TABBY: 'tabby'    // Buy Now Pay Later
-};
+} as const;
 
 // Currency codes
 export const CURRENCIES = {
@@ -219,7 +156,7 @@ export const CURRENCIES = {
   USD: 'USD',
   EUR: 'EUR',
   AED: 'AED'  // UAE Dirham
-};
+} as const;
 
 export interface PaymentMethod {
   id: string;

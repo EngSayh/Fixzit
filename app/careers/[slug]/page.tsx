@@ -1,8 +1,8 @@
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 
 export default async function JobDetailPage({ params }: { params: { slug: string } }) {
-  await db;
+  await connectDb();
   const orgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
   const job = await Job.findOne({ orgId, slug: params.slug, status: 'published' }).lean();
   if (!job) {

@@ -1,23 +1,11 @@
 const { Schema, model, models } = require('mongoose');
+const {
+  getMarketplaceMockModelFactory,
+  shouldUseMarketplaceMockModel,
+} = require('./utils/mockModel');
+const { MARKETPLACE_COLLECTIONS } = require('./utils/collectionNames');
 
-const LOCAL_URI_PATTERNS = [/localhost/i, /127\.0\.0\.1/];
-
-function shouldUseMockModel() {
-  const env = process.env.NODE_ENV ?? 'development';
-  if (process.env.USE_REAL_DB === '1') {
-    return false;
-  }
-  if (env === 'production') {
-    return false;
-  }
-
-  const uri = process.env.MONGODB_URI ?? '';
-  if (!uri) {
-    return true;
-  }
-
-  return LOCAL_URI_PATTERNS.some(pattern => pattern.test(uri));
-}
+const COLLECTION_NAME = MARKETPLACE_COLLECTIONS.PRODUCTS;
 
 const ProductSchema = new Schema(
   {
@@ -67,40 +55,32 @@ ProductSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 ProductSchema.index({ orgId: 1, status: 1 });
 ProductSchema.index({ 'title.en': 'text', 'title.ar': 'text', summary: 'text', brand: 'text', standards: 'text' });
 
-const ProductModel = models.MarketplaceProduct || model('MarketplaceProduct', ProductSchema);
+let cachedMockMarketplaceProduct;
 
-function loadMockModel() {
-  try {
-    // Try requiring the TypeScript file (will work in Node with proper transpilation)
-    const mod = require('../lib/mockDb');
-    if (mod && typeof mod.MockModel === 'function') {
-      return mod.MockModel;
-    }
-    // Fallback to try other possible exports
-    if (typeof mod === 'function') {
-      return mod;
-    }
-    throw new Error('MockModel not found in mockDb module');
-  } catch (error) {
-    // If TypeScript module fails, create a simple mock
-    console.warn('MockDb module not available, using simple mock for MarketplaceProduct');
-    return class SimpleMock {
-      constructor(collectionName) {
-        this.collectionName = collectionName;
-        this.data = [];
-      }
-      async find() { return this.data; }
-      async findOne() { return null; }
-      async create(doc) { return doc; }
-      async findOneAndUpdate() { return null; }
-      async deleteOne() { return { deletedCount: 0 }; }
-    };
+const useMockModel = shouldUseMarketplaceMockModel();
+
+if (useMockModel && !cachedMockMarketplaceProduct) {
+  cachedMockMarketplaceProduct = new (getMarketplaceMockModelFactory())(COLLECTION_NAME);
+  if (models && typeof models === 'object') {
+    models.MarketplaceProduct = cachedMockMarketplaceProduct;
   }
 }
 
-const MarketplaceProduct = shouldUseMockModel()
-  ? new (loadMockModel())('marketplaceproducts')
-  : ProductModel;
+let MarketplaceProduct;
+
+if (useMockModel) {
+  MarketplaceProduct = cachedMockMarketplaceProduct;
+} else {
+  const existingModel = models.MarketplaceProduct;
+  const isMongooseModel = Boolean(existingModel?.schema instanceof Schema);
+
+  if (!isMongooseModel && existingModel) {
+    delete models.MarketplaceProduct;
+  }
+
+  const productModel = models.MarketplaceProduct || model('MarketplaceProduct', ProductSchema);
+  MarketplaceProduct = productModel;
+}
 
 module.exports = MarketplaceProduct;
 module.exports.MarketplaceProduct = MarketplaceProduct;
