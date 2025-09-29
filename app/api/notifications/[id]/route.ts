@@ -11,27 +11,27 @@ const updateNotificationSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  let tenantId: string;
+  let orgId: string;
   try {
     const user = await getSessionUser(req);
-    tenantId = user.tenantId;
+    orgId = user.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-  const doc = await notifications.findOne({ _id: _id as any, tenantId });
+  const doc = await notifications.findOne({ _id: _id as any, orgId });
   if (!doc) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   const { _id: rawId, ...rest } = doc as any;
   return createSecureResponse({ id: String(rawId), ...rest });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  let tenantId: string;
+  let orgId: string;
   try {
     const user = await getSessionUser(req);
-    tenantId = user.tenantId;
+    orgId = user.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (typeof read === 'boolean') update.$set.read = read;
   if (typeof archived === 'boolean') update.$set.archived = archived;
 
-  const updated = await notifications.findOneAndUpdate({ _id: _id as any, tenantId }, update, { returnDocument: 'after' });
+  const updated = await notifications.findOneAndUpdate({ _id: _id as any, orgId }, update, { returnDocument: 'after' });
   const value = updated as any;
   if (!value) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   const normalized = { id: String(value._id), ...value, _id: undefined };
@@ -53,17 +53,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  let tenantId: string;
+  let orgId: string;
   try {
     const user = await getSessionUser(req);
-    tenantId = user.tenantId;
+    orgId = user.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-  const res = await notifications.deleteOne({ _id: _id as any, tenantId });
+  const res = await notifications.deleteOne({ _id: _id as any, orgId });
   if (!res.deletedCount) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
   return createSecureResponse({ success: true });
 }

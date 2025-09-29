@@ -1,21 +1,21 @@
-'use client'
+'use client&apos;
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from &apos;react&apos;
 
 export default function Reports() {
   const [isRTL, setIsRTL] = useState(false)
 
   const toggleLang = () => {
     const html = document.documentElement;
-    const now = html.getAttribute('dir') === 'rtl' ? 'ltr' : 'rtl';
-    html.setAttribute('dir', now);
-    html.setAttribute('lang', now === 'rtl' ? 'ar' : 'en');
-    setIsRTL(now === 'rtl');
+    const now = html.getAttribute(&apos;dir&apos;) === &apos;rtl&apos; ? &apos;ltr&apos; : &apos;rtl&apos;;
+    html.setAttribute(&apos;dir&apos;, now);
+    html.setAttribute(&apos;lang&apos;, now === &apos;rtl&apos; ? &apos;ar&apos; : &apos;en&apos;);
+    setIsRTL(now === &apos;rtl&apos;);
   }
 
   useEffect(() => {
     const html = document.documentElement;
-    setIsRTL(html.getAttribute('dir') === 'rtl');
+    setIsRTL(html.getAttribute(&apos;dir&apos;) === &apos;rtl&apos;);
   }, [])
 
   const translations = {
@@ -83,14 +83,14 @@ export default function Reports() {
     }
   }
 
-  const t = translations[isRTL ? 'ar' : 'en']
+  const t = translations[isRTL ? 'ar&apos; : &apos;en&apos;]
 
   return (
     <>
       <div className="fxz-topbar">
         <div className="fxz-brand">{t.brand}</div>
         <div className="fxz-top-actions">
-          <button className="fxz-btn primary" onClick={() => alert('New Report')}>{t.newReport}</button>
+          <button className="fxz-btn primary" onClick={() => alert('New Report&apos;)}>{t.newReport}</button>
           <button className="fxz-btn secondary" onClick={toggleLang}>{t.langBtn}</button>
         </div>
       </div>
@@ -118,30 +118,30 @@ export default function Reports() {
 
         <main className="fxz-main">
           <div className="fxz-content">
-            <h2 style={{margin: '0 0 6px'}}>{t.reports}</h2>
+            <h2 style={{margin: '0 0 6px&apos;}}>{t.reports}</h2>
             <div className="fxz-pills" data-tabs="reports">
               <button className="fxz-pill active" data-tab="dashboard" onClick={() => {
                 document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
-                  p.classList.toggle('active', p.getAttribute('data-tab') === 'dashboard');
+                  p.classList.toggle(&apos;active&apos;, p.getAttribute(&apos;data-tab&apos;) === &apos;dashboard&apos;);
                 });
-                document.querySelectorAll('[data-panels="reports"] [data-panel]').forEach(p => {
-                  p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'dashboard');
+                document.querySelectorAll(&apos;[data-panels="reports"] [data-panel]').forEach(p => {
+                  p.classList.toggle(&apos;fxz-hidden&apos;, p.getAttribute(&apos;data-panel&apos;) !== &apos;dashboard&apos;);
                 });
               }}>{t.dashboard}</button>
               <button className="fxz-pill" data-tab="builder" onClick={() => {
                 document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
-                  p.classList.toggle('active', p.getAttribute('data-tab') === 'builder');
+                  p.classList.toggle(&apos;active&apos;, p.getAttribute(&apos;data-tab&apos;) === &apos;builder&apos;);
                 });
-                document.querySelectorAll('[data-panels="reports"] [data-panel]').forEach(p => {
-                  p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'builder');
+                document.querySelectorAll(&apos;[data-panels="reports"] [data-panel]').forEach(p => {
+                  p.classList.toggle(&apos;fxz-hidden&apos;, p.getAttribute(&apos;data-panel&apos;) !== &apos;builder&apos;);
                 });
               }}>{t.builder}</button>
               <button className="fxz-pill" data-tab="viewer" onClick={() => {
                 document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
-                  p.classList.toggle('active', p.getAttribute('data-tab') === 'viewer');
+                  p.classList.toggle(&apos;active&apos;, p.getAttribute(&apos;data-tab&apos;) === &apos;viewer&apos;);
                 });
-                document.querySelectorAll('[data-panels="reports"] [data-panel]').forEach(p => {
-                  p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'viewer');
+                document.querySelectorAll(&apos;[data-panels="reports"] [data-panel]').forEach(p => {
+                  p.classList.toggle(&apos;fxz-hidden&apos;, p.getAttribute(&apos;data-panel&apos;) !== &apos;viewer&apos;);
                 });
               }}>{t.viewer}</button>
             </div>
@@ -163,30 +163,30 @@ export default function Reports() {
                       <td>Monthly Financial Summary</td>
                       <td>{t.financial}</td>
                       <td>2024-01-15 10:30</td>
-                      <td style={{color: '#16A34A'}}>{t.ready}</td>
+                      <td style={{color: '#16A34A&apos;}}>{t.ready}</td>
                       <td>
-                        <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}}>View</button>
-                        <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}}>Download</button>
+                        <button className="fxz-btn secondary" style={{padding: '4px 8px&apos;, fontSize: &apos;12px&apos;}}>View</button>
+                        <button className="fxz-btn primary" style={{padding: '4px 8px&apos;, fontSize: &apos;12px&apos;, marginLeft: &apos;4px&apos;}}>Download</button>
                       </td>
                     </tr>
                     <tr>
                       <td>Work Orders Performance</td>
                       <td>{t.operational}</td>
                       <td>2024-01-14 15:45</td>
-                      <td style={{color: '#FACC15'}}>{t.running}</td>
+                      <td style={{color: &apos;#FACC15&apos;}}>{t.running}</td>
                       <td>
-                        <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}} disabled>View</button>
-                        <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}} disabled>Download</button>
+                        <button className="fxz-btn secondary" style={{padding: '4px 8px&apos;, fontSize: &apos;12px&apos;}} disabled>View</button>
+                        <button className="fxz-btn primary" style={{padding: '4px 8px&apos;, fontSize: &apos;12px&apos;, marginLeft: &apos;4px&apos;}} disabled>Download</button>
                       </td>
                     </tr>
                     <tr>
                       <td>Compliance Status Report</td>
                       <td>{t.compliance}</td>
                       <td>2024-01-13 09:15</td>
-                      <td style={{color: '#DC2626'}}>{t.error}</td>
+                      <td style={{color: &apos;#DC2626&apos;}}>{t.error}</td>
                       <td>
-                        <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}}>Retry</button>
-                        <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}}>Edit</button>
+                        <button className="fxz-btn secondary" style={{padding: '4px 8px&apos;, fontSize: &apos;12px&apos;}}>Retry</button>
+                        <button className="fxz-btn primary" style={{padding: '4px 8px&apos;, fontSize: &apos;12px&apos;, marginLeft: &apos;4px&apos;}}>Edit</button>
                       </td>
                     </tr>
                   </tbody>
