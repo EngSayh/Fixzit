@@ -238,7 +238,7 @@ async function rateLimitAssert(req: NextRequest) {
       multi.expire(key, 60);
       const results = await multi.exec();
       
-      if (results && results[0] && results[0][1] > MAX_RATE_PER_MIN) {
+      if (results && results[0] && typeof results[0][1] === 'number' && results[0][1] > MAX_RATE_PER_MIN) {
         throw new Error('Rate limited');
       }
       return;
@@ -256,5 +256,42 @@ async function rateLimitAssert(req: NextRequest) {
   rateMap.set(key, rec);
   if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
+// Add request validation middleware
+function validateRequest(body: AskRequest): { valid: boolean; error?: string } {
+  if (!body.question?.trim()) {
+    return { valid: false, error: 'Question is required' };
+  }
+  if (body.limit !== undefined && (!Number.isFinite(body.limit) || body.limit < 1 || body.limit > 8)) {
+    return { valid: false, error: 'Limit must be between 1 and 8' };
+  }
+  if (body.category && typeof body.category !== 'string') {
+    return { valid: false, error: 'Category must be a string' };
+  }
+  return { valid: true };
+}
 
+// Add response caching
+const responseCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(question: string, category?: string, lang?: string): string {
+  return crypto.createHash('sha256')
+    .update(`${question}:${category || ''}:${lang || 'en'}`)
+    .digest('hex');
+}
+
+// Add metrics collection
+async function trackMetrics(action: string, success: boolean, duration: number) {
+  // Implement your metrics collection here
+  console.log(`Metrics: action=${action}, success=${success}, duration=${duration}ms`);
+}
+
+// Add security headers
+export async function middleware(req: NextRequest) {
+  const headers = new Headers();
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('X-XSS-Protection', '1; mode=block');
+  return NextResponse.next({ headers });
+}
 // Note: Do not export any non-standard route fields; Next.js restricts exports to HTTP methods only.

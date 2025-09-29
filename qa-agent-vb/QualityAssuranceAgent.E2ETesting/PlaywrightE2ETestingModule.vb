@@ -477,7 +477,7 @@ Namespace QualityAssuranceAgent.E2ETesting
                 
                 result.PerformanceMetrics = New PerformanceMetrics With {
                     .PageLoadTime = stopwatch.Elapsed,
-                    .LighthouseScore = 85 ' Placeholder - would need actual Lighthouse integration
+                    .LighthouseScore = 0 ' TODO: Implement actual Lighthouse integration for performance scoring
                 }
 
                 If stopwatch.ElapsedMilliseconds <= config.PerformanceRules.MaxPageLoadTimeMs Then

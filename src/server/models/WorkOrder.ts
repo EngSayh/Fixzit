@@ -393,11 +393,11 @@ const WorkOrderSchema = new Schema({
 WorkOrderSchema.plugin(tenantIsolationPlugin);
 WorkOrderSchema.plugin(auditPlugin);
 
-// Indexes for performance and querying
-WorkOrderSchema.index({ orgId: 1, workOrderNumber: 1 }, { unique: true });
-WorkOrderSchema.index({ orgId: 1, status: 1 });
-WorkOrderSchema.index({ orgId: 1, priority: 1 });
-WorkOrderSchema.index({ orgId: 1, 'location.propertyId': 1 });
+// Indexes for performance and querying (orgId is already indexed by tenantIsolationPlugin)
+WorkOrderSchema.index({ workOrderNumber: 1 }, { unique: true });
+WorkOrderSchema.index({ status: 1 });
+WorkOrderSchema.index({ priority: 1 });
+WorkOrderSchema.index({ 'location.propertyId': 1 });
 WorkOrderSchema.index({ orgId: 1, 'assignment.assignedTo.userId': 1 });
 WorkOrderSchema.index({ orgId: 1, 'sla.resolutionDeadline': 1 });
 WorkOrderSchema.index({ orgId: 1, 'recurrence.nextScheduledDate': 1 });

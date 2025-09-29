@@ -27,5 +27,8 @@ export async function requireSuperAdmin(req: NextRequest): Promise<AuthContext> 
     });
   }
 
-  return payload;
+  return {
+    ...payload,
+    tenantId: payload.tenantId || '',
+  } as AuthContext;
 }

@@ -1,19 +1,14 @@
 import React from 'react';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-// Import the component from its existing location. The file provided to us is named *.test.tsx but contains the component.
-// We import default export and named types per the provided source content.
-import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView.test';
-/**
- Note: If the actual component resides at a different path (e.g., ../WorkOrdersView),
- update the import above accordingly. We avoid touching component code in this PR.
-*/
+// Import the component from its actual location
+import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView';
 
 jest.mock('swr', () => {
   // We'll provide a helper to control return values per test.
   let current: any = { data: undefined, error: undefined, isLoading: false, mutate: jest.fn(), isValidating: false };
-  const useSWR = (_key: any, _fetcher: any) => current;
+  const useSWR = () => current;
   (useSWR as any).__set = (next: any) => { current = { ...current, ...next }; };
   (useSWR as any).__reset = () => { current = { data: undefined, error: undefined, isLoading: false, mutate: jest.fn(), isValidating: false }; };
   return useSWR;
@@ -188,12 +183,11 @@ describe('WorkOrdersView', () => {
     // We'll not assert the URL directly since we mock useSWR; instead, we track state changes by ensuring SWR receives new key.
     // To do this, temporarily un-mock useSWR and spy on global.fetch to capture requested URL.
     jest.resetModules();
-    const { default: RealUseSWR } = jest.requireActual('swr');
 
     // Replace module with a wrapper that exposes last key
     let lastKey: any = null;
     jest.doMock('swr', () => {
-      return (key: any, fetcher: any, opts: any) => {
+      return (key: any) => {
         lastKey = key;
         return { data: { items: [], page: 1, limit: 10, total: 0 }, isLoading: false, error: undefined, mutate: jest.fn(), isValidating: false };
       };

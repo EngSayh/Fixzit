@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
   const payload = payloadSchema.parse(json);
 
   for (const doc of payload.docs) {
-    await upsertKnowledgeDocument(doc);
+    await upsertKnowledgeDocument({
+      ...doc,
+      tenantId: doc.tenantId || undefined
+    });
   }
 
   return NextResponse.json({ ok: true, count: payload.docs.length });

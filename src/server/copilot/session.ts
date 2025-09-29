@@ -47,7 +47,7 @@ export async function resolveCopilotSession(req: NextRequest): Promise<CopilotSe
 
   return {
     userId: user.id,
-    tenantId: user.tenantId,
+    tenantId: user.orgId || 'default',
     role: (user.role || "GUEST") as CopilotRole,
     email: user.email,
     name: user.name,

@@ -1626,12 +1626,16 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = (lang: Language) => {
     const nextOption = findLanguageByCode(lang);
-    setCurrentOption(nextOption);
+    if (nextOption) {
+      setCurrentOption(nextOption);
+    }
   };
 
   const setLocale = (locale: string) => {
     const nextOption = findLanguageByLocale(locale) ?? findLanguageByCode(currentOption.language);
-    setCurrentOption(nextOption);
+    if (nextOption) {
+      setCurrentOption(nextOption);
+    }
   };
 
   const language = currentOption.language;
@@ -1640,7 +1644,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
   const t = (key: string, fallback: string = key): string => {
     try {
-      const langData = translations[language];
+      const langData = translations[language as LanguageCode];
       const result = langData?.[key] || fallback;
       return result;
     } catch (error) {
@@ -1650,7 +1654,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TranslationContext.Provider value={{ language, locale, setLanguage, setLocale, t, isRTL }}>
+    <TranslationContext.Provider value={{ language: language as LanguageCode, locale, setLanguage, setLocale, t, isRTL }}>
       {children}
     </TranslationContext.Provider>
   );

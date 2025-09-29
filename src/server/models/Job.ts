@@ -8,7 +8,7 @@ const WorkModes = ['onsite', 'remote', 'hybrid'] as const;
 type JobStatus = typeof JobStatuses[number];
 
 const JobSchema = new Schema({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: String, required: true },
   slug: { type: String, required: true },
   title: { type: String, required: true },
   department: { type: String },
@@ -41,7 +41,7 @@ const JobSchema = new Schema({
   applicationCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
-JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
+JobSchema.index({ slug: 1 }, { unique: true });
 JobSchema.index({ title: 'text', description: 'text', requirements: 'text', skills: 'text', tags: 'text' });
 
 export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
