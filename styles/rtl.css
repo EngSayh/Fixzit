@@ -1,0 +1,19 @@
+html.rtl body {
+  direction: rtl;
+}
+
+html:not(.rtl) body {
+  direction: ltr;
+}
+
+.ms-2 {
+  margin-inline-start: 0.5rem;
+}
+
+.me-2 {
+  margin-inline-end: 0.5rem;
+}
+
+html.rtl .px-inline-3 {
+  padding-inline: 0.75rem;
+}
