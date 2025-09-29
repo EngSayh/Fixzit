@@ -69,20 +69,20 @@ async function renderMarkdown(md: string){
   
   // Headers
   html = html.replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold mt-6 mb-3">$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>');
+  html = html.replace(/^## (.*$)/gim, &apos;<h2 class="text-xl font-semibold mt-6 mb-3">$1</h2>');
+  html = html.replace(/^# (.*$)/gim, &apos;<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>');
   
   // Lists
-  html = html.replace(/^\* (.+)$/gim, '<li class="ml-4">$1</li>');
-  html = html.replace(/^- (.+)$/gim, '<li class="ml-4">$1</li>');
-  html = html.replace(/(<li.*>.*<\/li>)/g, '<ul class="list-disc pl-6 mb-4">$1</ul>');
+  html = html.replace(/^\* (.+)$/gim, &apos;<li class="ml-4">$1</li>');
+  html = html.replace(/^- (.+)$/gim, &apos;<li class="ml-4">$1</li>');
+  html = html.replace(/(<li.*>.*<\/li>)/g, &apos;<ul class="list-disc pl-6 mb-4">$1</ul>');
   
   // Bold and italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/\*\*(.+?)\*\*/g, &apos;<strong>$1</strong>&apos;);
+  html = html.replace(/\*(.+?)\*/g, &apos;<em>$1</em>&apos;);
   
   // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:underline">$1</a>');
+  html = html.replace(/\[([^\]]+)\](([^)]+))/g, &apos;<a href="$2" class="text-blue-600 hover:underline">$1</a>&apos;);
   
   // Paragraphs
   html = html.split(/\n{2,}/).map(p => {

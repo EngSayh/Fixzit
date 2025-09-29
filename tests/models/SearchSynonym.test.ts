@@ -71,8 +71,8 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
     const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
     const mockIndex = jest.fn()
-    ;(mockSchemaCtor as any).prototype = {}
-    ;(mockSchemaCtor as any).prototype.index = mockIndex
+    (mockSchemaCtor as any).prototype = {}
+    (mockSchemaCtor as any).prototype.index = mockIndex
 
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "test", MONGODB_URI: undefined },
@@ -94,8 +94,8 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     const existingModel = { __kind: "ExistingMongooseModel", modelName: "SearchSynonym" }
     const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
     const mockIndex = jest.fn()
-    ;(mockSchemaCtor as any).prototype = {}
-    ;(mockSchemaCtor as any).prototype.index = mockIndex
+    (mockSchemaCtor as any).prototype = {}
+    (mockSchemaCtor as any).prototype.index = mockIndex
 
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "production", MONGODB_URI: "mongodb+srv://cluster/some" },
@@ -203,8 +203,8 @@ describe("models/SearchSynonym - negative and edge behaviors without DB", () => 
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
     const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
     const mockIndex = jest.fn()
-    ;(mockSchemaCtor as any).prototype = {}
-    ;(mockSchemaCtor as any).prototype.index = mockIndex
+    (mockSchemaCtor as any).prototype = {}
+    (mockSchemaCtor as any).prototype.index = mockIndex
 
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "development", MONGODB_URI: "mongodb+srv://prod/uri" },
