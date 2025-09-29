@@ -1,14 +1,14 @@
-'use client&apos;;
+'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from &apos;react&apos;;
-import Link from &apos;next/link&apos;;
-import { useRouter, useSearchParams } from &apos;next/navigation&apos;;
-import { ChevronDown, Globe2, Loader2, Search, ShoppingCart, UserRound } from &apos;lucide-react&apos;;
-import clsx from &apos;clsx&apos;;
-import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
-import { useCurrency } from &apos;@/src/contexts/CurrencyContext&apos;;
-import { LANGUAGE_OPTIONS } from &apos;@/src/data/language-options&apos;;
-import { CART_UPDATED_EVENT, computeCartCount } from &apos;@/src/lib/marketplace/cartClient&apos;;
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ChevronDown, Globe2, Loader2, Search, ShoppingCart, UserRound } from 'lucide-react';
+import clsx from 'clsx';
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { LANGUAGE_OPTIONS } from '@/src/data/language-options';
+import { CART_UPDATED_EVENT, computeCartCount } from '@/src/lib/marketplace/cartClient';
 
 interface DepartmentOption {
   name: string;
@@ -21,22 +21,22 @@ interface TopBarAmazonProps {
 }
 
 const QUICK_LINKS = [
-  { href: &apos;/marketplace/deals&apos;, label: &apos;Deals&apos; },
-  { href: &apos;/marketplace/new&apos;, label: &apos;New Arrivals&apos; },
-  { href: &apos;/marketplace/ppe&apos;, label: &apos;PPE&apos; },
-  { href: &apos;/marketplace/mro&apos;, label: &apos;MRO&apos; },
-  { href: &apos;/marketplace/bulk&apos;, label: &apos;Bulk Orders&apos; }
+  { href: '/marketplace/deals', label: 'Deals' },
+  { href: '/marketplace/new', label: 'New Arrivals' },
+  { href: '/marketplace/ppe', label: 'PPE' },
+  { href: '/marketplace/mro', label: 'MRO' },
+  { href: '/marketplace/bulk', label: 'Bulk Orders' }
 ];
 
-const TOPBAR_FLAG = &apos;fixzitMarketplaceTopbarMounted&apos;;
+const TOPBAR_FLAG = 'fixzitMarketplaceTopbarMounted';
 
 export default function TopBarAmazon({ departments: initialDepartments, loadingDepartments }: TopBarAmazonProps) {
   const router = useRouter();
   const params = useSearchParams();
   const { language, setLanguage, isRTL } = useTranslation();
   const { currency, setCurrency, options: currencyOptions } = useCurrency();
-  const [searchTerm, setSearchTerm] = useState(params?.get(&apos;q') ?? &apos;');
-  const [selectedDepartment, setSelectedDepartment] = useState(params?.get(&apos;cat&apos;) ?? &apos;');
+  const [searchTerm, setSearchTerm] = useState(params?.get('q') ?? '');
+  const [selectedDepartment, setSelectedDepartment] = useState(params?.get('cat') ?? '');
   const [departments, setDepartments] = useState(initialDepartments ?? []);
   const [openDepartments, setOpenDepartments] = useState(false);
   const [guardPassed, setGuardPassed] = useState(false);
@@ -44,12 +44,12 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    if (typeof document === &apos;undefined&apos;) return;
-    if (document.body.dataset[TOPBAR_FLAG] === &apos;true&apos;) {
+    if (typeof document === 'undefined') return;
+    if (document.body.dataset[TOPBAR_FLAG] === 'true') {
       setGuardPassed(false);
       return;
     }
-    document.body.dataset[TOPBAR_FLAG] = &apos;true&apos;;
+    document.body.dataset[TOPBAR_FLAG] = 'true';
     setGuardPassed(true);
 
     return () => {
@@ -65,9 +65,9 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
     async function loadDepartments() {
       try {
         setFetchingDepartments(true);
-        const response = await fetch(&apos;/api/marketplace/categories&apos;, { cache: &apos;no-store&apos; });
+        const response = await fetch('/api/marketplace/categories', { cache: 'no-store' });
         if (!response.ok) {
-          throw new Error(&apos;Failed to load departments&apos;);
+          throw new Error('Failed to load departments');
         }
         const payload = await response.json();
         if (!cancelled && payload?.data?.length) {
@@ -101,7 +101,7 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
   );
 
   useEffect(() => {
-    if (!guardPassed || typeof window === &apos;undefined&apos;) {
+    if (!guardPassed || typeof window === 'undefined') {
       return undefined;
     }
 
@@ -109,7 +109,7 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
 
     async function loadCartCount() {
       try {
-        const response = await fetch(&apos;/api/marketplace/cart&apos;, { cache: &apos;no-store&apos;, credentials: &apos;include&apos; });
+        const response = await fetch('/api/marketplace/cart', { cache: 'no-store', credentials: 'include' });
         if (!response.ok) {
           return;
         }
@@ -118,7 +118,7 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
           setCartCount(computeCartCount(payload?.data));
         }
       } catch (error) {
-        console.error(&apos;Failed to load cart snapshot&apos;, error);
+        console.error('Failed to load cart snapshot', error);
       }
     }
 
@@ -126,7 +126,7 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
 
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<{ count: number }>).detail;
-      if (!cancelled && detail && typeof detail.count === &apos;number&apos; && Number.isFinite(detail.count)) {
+      if (!cancelled && detail && typeof detail.count === 'number' && Number.isFinite(detail.count)) {
         setCartCount(detail.count);
       }
     };
@@ -146,12 +146,12 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
     event.preventDefault();
     const params = new URLSearchParams();
     if (searchTerm.trim().length) {
-      params.set(&apos;q', searchTerm.trim());
+      params.set('q', searchTerm.trim());
     }
     if (selectedDepartment) {
-      params.set(&apos;cat&apos;, selectedDepartment);
+      params.set('cat', selectedDepartment);
     }
-    router.push(`/marketplace/search${params.toString() ? `?${params.toString()}` : &apos;'}`);
+    router.push(`/marketplace/search${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   return (
@@ -288,8 +288,8 @@ export default function TopBarAmazon({ departments: initialDepartments, loadingD
 
       <nav
         className={clsx(
-          &apos;border-t border-[#232F3E] bg-[#232F3E]/95 text-sm text-gray-200&apos;,
-          isRTL ? &apos;flex-row-reverse&apos; : &apos;'
+          'border-t border-[#232F3E] bg-[#232F3E]/95 text-sm text-gray-200',
+          isRTL ? 'flex-row-reverse' : ''
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4">

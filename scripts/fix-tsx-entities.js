@@ -25,13 +25,13 @@ function fixTsxFile(filePath) {
     let modified = content;
     
     // Only fix HTML entities in TSX files that shouldn't be there
-    // Keep proper JSX entities like &apos; in JSX content, but fix them in JavaScript strings
+    // Keep proper JSX entities like ' in JSX content, but fix them in JavaScript strings
     
     // Fix entities in string literals and template literals
-    modified = modified.replace(/(['"`])([^'"`]*?)&apos;([^'"`]*?)\1/g, "$1$2'$3$1");
+    modified = modified.replace(/(['"`])([^'"`]*?)'([^'"`]*?)\1/g, "$1$2'$3$1");
     modified = modified.replace(/(['"`])([^'"`]*?)&quot;([^'"`]*?)\1/g, '$1$2"$3$1');
-    modified = modified.replace(/(['"`])([^'"`]*?)&lt;([^'"`]*?)\1/g, '$1$2<$3$1');
-    modified = modified.replace(/(['"`])([^'"`]*?)&gt;([^'"`]*?)\1/g, '$1$2>$3$1');
+    modified = modified.replace(/(['"`])([^'"`]*?)<([^'"`]*?)\1/g, '$1$2<$3$1');
+    modified = modified.replace(/(['"`])([^'"`]*?)>([^'"`]*?)\1/g, '$1$2>$3$1');
     modified = modified.replace(/(['"`])([^'"`]*?)&amp;([^'"`]*?)\1/g, '$1$2&$3$1');
     
     if (content !== modified) {

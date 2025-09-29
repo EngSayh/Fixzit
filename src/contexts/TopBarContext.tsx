@@ -1,8 +1,8 @@
-'use client&apos;;
+'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from &apos;react&apos;;
-import { usePathname } from &apos;next/navigation&apos;;
-import { APPS, AppKey, detectAppFromPath } from &apos;@/src/config/topbar-modules&apos;;
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { APPS, AppKey, detectAppFromPath } from '@/src/config/topbar-modules';
 
 interface TopBarState {
   app: AppKey;
@@ -21,25 +21,25 @@ const TopBarContext = createContext<TopBarState | null>(null);
 
 export function TopBarProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [app, setApp] = useState<AppKey>(() => detectAppFromPath(pathname || &apos;/'));
+  const [app, setApp] = useState<AppKey>(() => detectAppFromPath(pathname || '/'));
 
   // Update app when pathname changes
   useEffect(() => {
-    const newApp = detectAppFromPath(pathname || &apos;/');
+    const newApp = detectAppFromPath(pathname || '/');
     setApp(newApp);
   }, [pathname]);
 
   // Persist app selection
   useEffect(() => {
-    if (typeof window !== &apos;undefined&apos;) {
-      localStorage.setItem(&apos;fixzit-topbar-app&apos;, app);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fixzit-topbar-app', app);
     }
   }, [app]);
 
   // Load persisted app selection on mount
   useEffect(() => {
-    if (typeof window !== &apos;undefined&apos;) {
-      const saved = localStorage.getItem(&apos;fixzit-topbar-app&apos;) as AppKey;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('fixzit-topbar-app') as AppKey;
       if (saved && APPS[saved]) {
         setApp(saved);
       }
@@ -65,7 +65,7 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
 export function useTopBar() {
   const context = useContext(TopBarContext);
   if (!context) {
-    throw new Error(&apos;useTopBar must be used within TopBarProvider&apos;);
+    throw new Error('useTopBar must be used within TopBarProvider');
   }
   return context;
 }

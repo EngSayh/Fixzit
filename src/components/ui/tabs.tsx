@@ -1,4 +1,4 @@
-import React from &apos;react&apos;;
+import React from 'react';
 
 interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {}
 interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -13,13 +13,13 @@ const TabsContext = React.createContext<{
   value: string;
   onValueChange: (value: string) => void;
 }>({
-  value: &apos;',
+  value: '',
   onValueChange: () => {}
 });
 
 export const Tabs: React.FC<TabsProps & { defaultValue?: string }> = ({ 
-  className = &apos;', 
-  defaultValue = &apos;',
+  className = '', 
+  defaultValue = '',
   children,
   ...props 
 }) => {
@@ -34,7 +34,7 @@ export const Tabs: React.FC<TabsProps & { defaultValue?: string }> = ({
   );
 };
 
-export const TabsList: React.FC<TabsListProps> = ({ className = &apos;', ...props }) => {
+export const TabsList: React.FC<TabsListProps> = ({ className = '', ...props }) => {
   return (
     <div
       className={`inline-flex h-10 items-center justify-center rounded-md bg-gray-100 p-1 text-gray-500 ${className}`}
@@ -44,7 +44,7 @@ export const TabsList: React.FC<TabsListProps> = ({ className = &apos;', ...prop
 };
 
 export const TabsTrigger: React.FC<TabsTriggerProps> = ({ 
-  className = &apos;', 
+  className = '', 
   value,
   children,
   ...props 
@@ -56,8 +56,8 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     <button
       className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
         isActive
-          ? &apos;bg-white text-gray-900 shadow-sm&apos;
-          : &apos;text-gray-700 hover:text-gray-900&apos;
+          ? 'bg-white text-gray-900 shadow-sm'
+          : 'text-gray-700 hover:text-gray-900'
       } ${className}`}
       onClick={() => onValueChange(value)}
       {...props}
@@ -68,7 +68,7 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
 };
 
 export const TabsContent: React.FC<TabsContentProps> = ({ 
-  className = &apos;', 
+  className = '', 
   value,
   children,
   ...props 

@@ -1,4 +1,4 @@
-'use client&apos;;
+'use client';
 
 import "./globals.css";
 import Providers from "@/src/providers/Providers";

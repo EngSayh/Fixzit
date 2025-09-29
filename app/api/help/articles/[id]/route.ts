@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectMongo } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { HelpArticle } from "@/src/server/models/HelpArticle";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";

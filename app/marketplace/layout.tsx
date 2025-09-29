@@ -1,13 +1,13 @@
-import { ReactNode } from &apos;react&apos;;
-import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
-import { cookies } from &apos;next/headers&apos;;
+import { ReactNode } from 'react';
+import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+import { cookies } from 'next/headers';
 
 export default function MarketplaceLayout({ children }: { children: ReactNode }) {
   const cookieStore = cookies();
-  const lang = (cookieStore.get(&apos;lang&apos;)?.value || &apos;en&apos;).toLowerCase();
-  const isRTL = lang === &apos;ar&apos;;
+  const lang = (cookieStore.get('lang')?.value || 'en').toLowerCase();
+  const isRTL = lang === 'ar';
   return (
-    <div dir={isRTL ? &apos;rtl&apos; : &apos;ltr&apos;}>
+    <div dir={isRTL ? 'rtl' : 'ltr'}>
       <TopBarAmazon departments={[]} loadingDepartments />
       {children}
     </div>

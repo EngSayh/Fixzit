@@ -1,23 +1,23 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import useSWR from 'swr&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
-import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
-import { Separator } from &apos;@/src/components/ui/separator&apos;;
-import { Truck, Plus, Search, Filter, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from &apos;lucide-react&apos;;
+import { useState } from 'react';
+import useSWR from 'swr';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Badge } from '@/src/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Textarea } from '@/src/components/ui/textarea';
+import { Separator } from '@/src/components/ui/separator';
+import { Truck, Plus, Search, Filter, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function VendorsPage() {
-  const [search, setSearch] = useState(&apos;');
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState(&apos;');
+  const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, mutate } = useSWR(
@@ -123,13 +123,13 @@ export default function VendorsPage() {
 function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'SUPPLIER&apos;:
+      case 'SUPPLIER':
         return <ShoppingCart className="w-5 h-5" />;
-      case 'CONTRACTOR&apos;:
+      case 'CONTRACTOR':
         return <Wrench className="w-5 h-5" />;
-      case 'SERVICE_PROVIDER&apos;:
+      case 'SERVICE_PROVIDER':
         return <Users className="w-5 h-5" />;
-      case 'CONSULTANT&apos;:
+      case 'CONSULTANT':
         return <Building2 className="w-5 h-5" />;
       default:
         return <Truck className="w-5 h-5" />;
@@ -138,33 +138,33 @@ function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void 
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'SUPPLIER&apos;:
-        return &apos;bg-blue-100 text-blue-800&apos;;
-      case &apos;CONTRACTOR&apos;:
-        return &apos;bg-green-100 text-green-800&apos;;
-      case &apos;SERVICE_PROVIDER&apos;:
-        return &apos;bg-purple-100 text-purple-800&apos;;
-      case &apos;CONSULTANT&apos;:
-        return &apos;bg-orange-100 text-orange-800&apos;;
+      case 'SUPPLIER':
+        return 'bg-blue-100 text-blue-800';
+      case 'CONTRACTOR':
+        return 'bg-green-100 text-green-800';
+      case 'SERVICE_PROVIDER':
+        return 'bg-purple-100 text-purple-800';
+      case 'CONSULTANT':
+        return 'bg-orange-100 text-orange-800';
       default:
-        return &apos;bg-gray-100 text-gray-800&apos;;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case &apos;APPROVED&apos;:
-        return &apos;bg-green-100 text-green-800&apos;;
-      case &apos;PENDING&apos;:
-        return &apos;bg-yellow-100 text-yellow-800&apos;;
-      case &apos;SUSPENDED&apos;:
-        return &apos;bg-red-100 text-red-800&apos;;
-      case &apos;REJECTED&apos;:
-        return &apos;bg-gray-100 text-gray-800&apos;;
-      case &apos;BLACKLISTED&apos;:
-        return &apos;bg-black text-white&apos;;
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800';
+      case 'PENDING':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'SUSPENDED':
+        return 'bg-red-100 text-red-800';
+      case 'REJECTED':
+        return 'bg-gray-100 text-gray-800';
+      case 'BLACKLISTED':
+        return 'bg-black text-white';
       default:
-        return &apos;bg-gray-100 text-gray-800&apos;;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -197,7 +197,7 @@ function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void 
 
         <div className="flex items-center text-sm">
           <Star className="w-4 h-4 mr-1 text-yellow-500" />
-          <span className="font-medium">{vendor.performance?.rating || 'N/A&apos;}</span>
+          <span className="font-medium">{vendor.performance?.rating || 'N/A'}</span>
           <span className="text-gray-600 ml-2">
             ({vendor.performance?.completedProjects || 0} projects)
           </span>
@@ -212,7 +212,7 @@ function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void 
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Response Time:</span>
-            <span className="text-sm font-medium">{vendor.performance?.averageResponseTime || 'N/A&apos;} hrs</span>
+            <span className="text-sm font-medium">{vendor.performance?.averageResponseTime || 'N/A'} hrs</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Specializations:</span>
@@ -238,58 +238,58 @@ function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void 
 
 function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
   const [formData, setFormData] = useState({
-    name: &apos;',
+    name: '',
     type: '',
     contact: {
       primary: {
-        name: &apos;',
+        name: '',
         title: '',
-        email: &apos;',
+        email: '',
         phone: '',
-        mobile: &apos;'
+        mobile: ''
       },
       secondary: {
         name: '',
-        email: &apos;',
+        email: '',
         phone: ''
       },
       address: {
-        street: &apos;',
+        street: '',
         city: '',
-        region: &apos;',
+        region: '',
         postalCode: ''
       }
     },
     business: {
-      registrationNumber: &apos;',
+      registrationNumber: '',
       taxId: '',
-      licenseNumber: &apos;',
+      licenseNumber: '',
       establishedDate: '',
       employees: 0,
       annualRevenue: 0,
       specializations: [] as string[],
       certifications: [] as any[]
     },
-    status: &apos;PENDING&apos;,
+    status: 'PENDING',
     tags: [] as string[]
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(&apos;/api/vendors&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
+      const response = await fetch('/api/vendors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert(&apos;Failed to create vendor&apos;);
+        alert('Failed to create vendor');
       }
     } catch (error) {
-      alert(&apos;Error creating vendor&apos;);
+      alert('Error creating vendor');
     }
   };
 

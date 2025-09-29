@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getNativeDb } from '@/src/lib/mongo';
+import { connectToDatabase, getDatabase } from '@/src/lib/mongodb-unified';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 
 // Constants for clustering grid cell calculation
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     try {
       user = await getSessionUser(req);
     } catch {
-      user = { id: 'guest', role: 'SUPER_ADMIN' as any, tenantId: 'demo-tenant' };
+      user = { id: 'guest', role: 'SUPER_ADMIN' as any, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
     }
 
     const { searchParams } = new URL(req.url);
@@ -32,7 +32,8 @@ export async function GET(req: NextRequest) {
       LATITUDE_RANGE_DEGREES / Math.pow(ZOOM_EXPONENT_BASE, z + 2)
     );
 
-    const db = await getNativeDb();
+    await connectToDatabase();
+    const db = await getDatabase();
     const col = db.collection('properties');
 
     const match: any = {

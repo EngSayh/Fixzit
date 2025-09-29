@@ -1,48 +1,48 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import { useRouter } from &apos;next/navigation&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Input } from '@/src/components/ui/input';
+import { Button } from '@/src/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 
 export default function NewJobPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    title: &apos;',
-    department: &apos;',
+    title: '',
+    department: '',
     city: '',
-    country: &apos;',
-    jobType: 'full-time&apos;,
-    salaryMin: &apos;',
-    salaryMax: &apos;',
-    currency: 'SAR&apos;,
-    description: &apos;'
+    country: '',
+    jobType: 'full-time',
+    salaryMin: '',
+    salaryMax: '',
+    currency: 'SAR',
+    description: ''
   });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch(&apos;/api/ats/jobs&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
+      const res = await fetch('/api/ats/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title,
           department: form.department,
           jobType: form.jobType,
-          location: { city: form.city, country: form.country, mode: &apos;onsite&apos; },
+          location: { city: form.city, country: form.country, mode: 'onsite' },
           salaryRange: { min: Number(form.salaryMin)||0, max: Number(form.salaryMax)||0, currency: form.currency },
           description: form.description,
           requirements: [], benefits: [], skills: []
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || &apos;Failed&apos;);
-      router.push(&apos;/hr/ats/jobs&apos;);
+      if (!res.ok) throw new Error(data?.error || 'Failed');
+      router.push('/hr/ats/jobs');
     } catch (err: any) {
-      alert(err.message || &apos;Failed to create job&apos;);
+      alert(err.message || 'Failed to create job');
     } finally {
       setSubmitting(false);
     }
@@ -69,8 +69,8 @@ export default function NewJobPage() {
             </div>
             <textarea className="w-full border rounded p-2" rows={6} placeholder="Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} />
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={()=>router.push('/hr/ats/jobs&apos;)}>Cancel</Button>
-              <Button type="submit" disabled={submitting} className="bg-[#0061A8] hover:bg-[#0061A8]/90">{submitting? &apos;Posting…&apos; : &apos;Post&apos;}</Button>
+              <Button type="button" variant="outline" onClick={()=>router.push('/hr/ats/jobs')}>Cancel</Button>
+              <Button type="submit" disabled={submitting} className="bg-[#0061A8] hover:bg-[#0061A8]/90">{submitting? 'Posting…' : 'Post'}</Button>
             </div>
           </form>
         </CardContent>

@@ -1,74 +1,74 @@
-import React from &apos;react&apos;;
+import React from 'react';
 
 export default function PropertiesLeasesPage() {
   const leases = [
     {
-      id: &apos;L-001&apos;,
-      unit: &apos;Tower A / 1204&apos;,
-      tenant: &apos;John Smith&apos;,
-      type: &apos;Residential&apos;,
-      startDate: &apos;2024-01-01&apos;,
-      endDate: &apos;2025-12-31&apos;,
-      monthlyRent: &apos;SAR 8,500&apos;,
-      status: &apos;Active&apos;,
-      securityDeposit: &apos;SAR 17,000&apos;,
-      paymentStatus: &apos;Paid&apos;
+      id: 'L-001',
+      unit: 'Tower A / 1204',
+      tenant: 'John Smith',
+      type: 'Residential',
+      startDate: '2024-01-01',
+      endDate: '2025-12-31',
+      monthlyRent: 'SAR 8,500',
+      status: 'Active',
+      securityDeposit: 'SAR 17,000',
+      paymentStatus: 'Paid'
     },
     {
-      id: &apos;L-002&apos;,
-      unit: &apos;Tower B / 901&apos;,
-      tenant: &apos;Sarah Johnson&apos;,
-      type: &apos;Residential&apos;,
-      startDate: &apos;2024-03-15&apos;,
-      endDate: &apos;2025-03-14&apos;,
-      monthlyRent: &apos;SAR 12,000&apos;,
-      status: &apos;Active&apos;,
-      securityDeposit: &apos;SAR 24,000&apos;,
-      paymentStatus: &apos;Paid&apos;
+      id: 'L-002',
+      unit: 'Tower B / 901',
+      tenant: 'Sarah Johnson',
+      type: 'Residential',
+      startDate: '2024-03-15',
+      endDate: '2025-03-14',
+      monthlyRent: 'SAR 12,000',
+      status: 'Active',
+      securityDeposit: 'SAR 24,000',
+      paymentStatus: 'Paid'
     },
     {
-      id: &apos;L-003&apos;,
-      unit: &apos;Villa 9&apos;,
-      tenant: &apos;Ahmed Al-Rashid&apos;,
-      type: &apos;Residential&apos;,
-      startDate: &apos;2024-06-01&apos;,
-      endDate: &apos;2025-05-31&apos;,
-      monthlyRent: &apos;SAR 25,000&apos;,
-      status: &apos;Expiring Soon&apos;,
-      securityDeposit: &apos;SAR 50,000&apos;,
-      paymentStatus: &apos;Paid&apos;
+      id: 'L-003',
+      unit: 'Villa 9',
+      tenant: 'Ahmed Al-Rashid',
+      type: 'Residential',
+      startDate: '2024-06-01',
+      endDate: '2025-05-31',
+      monthlyRent: 'SAR 25,000',
+      status: 'Expiring Soon',
+      securityDeposit: 'SAR 50,000',
+      paymentStatus: 'Paid'
     },
     {
-      id: &apos;L-004&apos;,
-      unit: &apos;Tower A / 1001&apos;,
-      tenant: &apos;Available&apos;,
-      type: &apos;Commercial&apos;,
+      id: 'L-004',
+      unit: 'Tower A / 1001',
+      tenant: 'Available',
+      type: 'Commercial',
       startDate: null,
       endDate: null,
-      monthlyRent: &apos;SAR 15,000&apos;,
-      status: &apos;Vacant&apos;,
+      monthlyRent: 'SAR 15,000',
+      status: 'Vacant',
       securityDeposit: null,
-      paymentStatus: &apos;N/A&apos;
+      paymentStatus: 'N/A'
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case &apos;Active&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;Expiring Soon&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      case &apos;Expired&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;Vacant&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'Active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Expiring Soon': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Vacant': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case &apos;Paid&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;Pending&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      case &apos;Overdue&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;N/A&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'Paid': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Overdue': return 'bg-red-100 text-red-800 border-red-200';
+      case 'N/A': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -190,8 +190,8 @@ export default function PropertiesLeasesPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.unit}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.tenant}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.type}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.startDate || 'N/A&apos;}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.endDate || 'N/A&apos;}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.startDate || 'N/A'}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.endDate || 'N/A'}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.monthlyRent}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(lease.status)}`}>
@@ -224,7 +224,7 @@ export default function PropertiesLeasesPage() {
           <button className="btn-ghost">View All</button>
         </div>
         <div className="space-y-3">
-          {leases.filter(lease => lease.status === 'Expiring Soon&apos;).map(lease => (
+          {leases.filter(lease => lease.status === 'Expiring Soon').map(lease => (
             <div key={lease.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="text-yellow-400">⚠️</div>

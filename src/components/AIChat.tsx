@@ -1,11 +1,11 @@
-﻿&apos;use client&apos;;
+﻿'use client';
 
-import { useState, useRef, useEffect } from &apos;react&apos;;
-import { Send, Bot, User, X, Loader2 } from &apos;lucide-react&apos;;
+import { useState, useRef, useEffect } from 'react';
+import { Send, Bot, User, X, Loader2 } from 'lucide-react';
 
 interface Message {
   id: string;
-  type: &apos;user&apos; | &apos;bot&apos;;
+  type: 'user' | 'bot';
   content: string;
   timestamp: Date;
 }
@@ -13,18 +13,18 @@ interface Message {
 export default function AIChat({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: &apos;1',
-      type: &apos;bot&apos;,
-      content: &apos;Hello! I\&apos;m Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?&apos;,
+      id: '1',
+      type: 'bot',
+      content: 'Hello! I\'m Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?',
       timestamp: new Date()
     }
   ]);
-  const [input, setInput] = useState(&apos;');
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth&apos; });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -36,19 +36,19 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      type: &apos;user&apos;,
+      type: 'user',
       content: input.trim(),
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInput(&apos;');
+    setInput('');
     setIsLoading(true);
 
     try {
-      const response = await fetch(&apos;/api/assistant/query&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
+      const response = await fetch('/api/assistant/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: input.trim() })
       });
 
@@ -56,7 +56,7 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        type: &apos;bot&apos;,
+        type: 'bot',
         content: data.answer,
         timestamp: new Date()
       };
@@ -67,19 +67,19 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
       if (data.citations && data.citations.length > 0) {
         const citationMessage: Message = {
           id: (Date.now() + 2).toString(),
-          type: &apos;bot&apos;,
-          content: `📚 **Related Help Articles:**\n${data.citations.map((c: any, i: number) => `${i + 1}. [${c.title}](/help/${c.slug})`).join(&apos;\n&apos;)}`,
+          type: 'bot',
+          content: `📚 **Related Help Articles:**\n${data.citations.map((c: any, i: number) => `${i + 1}. [${c.title}](/help/${c.slug})`).join('\n')}`,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, citationMessage]);
       }
 
     } catch (error) {
-      console.error(&apos;AI Chat error:&apos;, error);
+      console.error('AI Chat error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        type: &apos;bot&apos;,
-        content: &apos;I apologize, but I encountered an error. Please try again or contact support if the problem persists.&apos;,
+        type: 'bot',
+        content: 'I apologize, but I encountered an error. Please try again or contact support if the problem persists.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -89,7 +89,7 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === &apos;Enter&apos; && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -123,27 +123,27 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex items-start gap-3 ${message.type === &apos;user&apos; ? &apos;flex-row-reverse&apos; : &apos;'}`}
+              className={`flex items-start gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                message.type === &apos;user&apos;
-                  ? &apos;bg-green-600&apos;
-                  : &apos;bg-blue-600&apos;
+                message.type === 'user'
+                  ? 'bg-green-600'
+                  : 'bg-blue-600'
               }`}>
-                {message.type === &apos;user&apos; ? (
+                {message.type === 'user' ? (
                   <User className="w-4 h-4 text-white" />
                 ) : (
                   <Bot className="w-4 h-4 text-white" />
                 )}
               </div>
               <div className={`max-w-[80%] p-3 rounded-lg ${
-                message.type === &apos;user&apos;
-                  ? &apos;bg-green-600 text-white&apos;
-                  : &apos;bg-gray-100 dark:bg-neutral-800 text-gray-900 dark:text-white&apos;
+                message.type === 'user'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 dark:bg-neutral-800 text-gray-900 dark:text-white'
               }`}>
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 <p className="text-xs mt-1 opacity-70">
-                  {message.timestamp.toLocaleTimeString([], { hour: &apos;2-digit&apos;, minute: &apos;2-digit&apos; })}
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>

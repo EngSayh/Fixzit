@@ -1,23 +1,23 @@
-&apos;use client&apos;;
+'use client';
 
-import { useState } from &apos;react&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
-import { Label } from &apos;@/src/components/ui/label&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
-import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
-import { MapPin, Clock, DollarSign, Users, FileText, Send, Upload, Star, AlertTriangle } from &apos;lucide-react&apos;;
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Textarea } from '@/src/components/ui/textarea';
+import { Label } from '@/src/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Badge } from '@/src/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { MapPin, Clock, DollarSign, Users, FileText, Send, Upload, Star, AlertTriangle } from 'lucide-react';
 
 interface Job {
   id: string;
   title: string;
   department: string;
   location: string;
-  type: &apos;Full-time&apos; | &apos;Part-time&apos; | &apos;Contract&apos; | &apos;Remote&apos;;
+  type: 'Full-time' | 'Part-time' | 'Contract' | 'Remote';
   salary: string;
   description: string;
   requirements: string[];
@@ -25,7 +25,7 @@ interface Job {
   skills: string[];
   experience: string;
   postedDate: string;
-  status: &apos;Open&apos; | &apos;Closed&apos;;
+  status: 'Open' | 'Closed';
   urgent?: boolean;
   featured?: boolean;
 }
@@ -39,247 +39,247 @@ export default function CareersPage() {
   // Comprehensive job data
   const jobs: Job[] = [
     {
-      id: &apos;1',
-      title: &apos;Senior Facility Manager&apos;,
-      department: &apos;Operations&apos;,
-      location: &apos;Riyadh, Saudi Arabia&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 15,000 - 25,000&apos;,
-      description: &apos;We are looking for an experienced Facility Manager to oversee our commercial properties across Riyadh. The ideal candidate will have 5+ years of experience in facility management and will be responsible for ensuring optimal building operations, tenant satisfaction, and regulatory compliance.&apos;,
+      id: '1',
+      title: 'Senior Facility Manager',
+      department: 'Operations',
+      location: 'Riyadh, Saudi Arabia',
+      type: 'Full-time',
+      salary: 'SAR 15,000 - 25,000',
+      description: 'We are looking for an experienced Facility Manager to oversee our commercial properties across Riyadh. The ideal candidate will have 5+ years of experience in facility management and will be responsible for ensuring optimal building operations, tenant satisfaction, and regulatory compliance.',
       requirements: [
-        &apos;Bachelor\&apos;s degree in Engineering, Business Administration, or related field&apos;,
-        &apos;5+ years of experience in facility management&apos;,
-        &apos;Strong knowledge of building systems and maintenance&apos;,
-        &apos;Excellent leadership and communication skills&apos;,
-        &apos;Proficiency in English and Arabic&apos;,
-        &apos;Experience with property management software&apos;,
-        &apos;Knowledge of local building codes and regulations&apos;
+        'Bachelor\'s degree in Engineering, Business Administration, or related field',
+        '5+ years of experience in facility management',
+        'Strong knowledge of building systems and maintenance',
+        'Excellent leadership and communication skills',
+        'Proficiency in English and Arabic',
+        'Experience with property management software',
+        'Knowledge of local building codes and regulations'
       ],
       benefits: [
-        &apos;Competitive salary package&apos;,
-        &apos;Health insurance coverage&apos;,
-        &apos;Annual performance bonus&apos;,
-        &apos;Professional development opportunities&apos;,
-        &apos;Company car allowance&apos;,
-        &apos;25 days annual leave&apos;
+        'Competitive salary package',
+        'Health insurance coverage',
+        'Annual performance bonus',
+        'Professional development opportunities',
+        'Company car allowance',
+        '25 days annual leave'
       ],
-      skills: [&apos;Facility Management&apos;, &apos;Building Operations&apos;, &apos;Team Leadership&apos;, &apos;Budget Management&apos;, &apos;Vendor Relations&apos;],
-      experience: &apos;5+ years&apos;,
-      postedDate: &apos;2025-01-15&apos;,
-      status: &apos;Open&apos;,
+      skills: ['Facility Management', 'Building Operations', 'Team Leadership', 'Budget Management', 'Vendor Relations'],
+      experience: '5+ years',
+      postedDate: '2025-01-15',
+      status: 'Open',
       urgent: true,
       featured: true
     },
     {
-      id: &apos;2',
-      title: &apos;Property Maintenance Technician&apos;,
-      department: &apos;Maintenance&apos;,
-      location: &apos;Jeddah, Saudi Arabia&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 8,000 - 12,000&apos;,
-      description: &apos;Join our maintenance team to ensure the optimal operation of our properties. You will be responsible for preventive maintenance, repairs, emergency response, and ensuring all building systems operate efficiently.&apos;,
+      id: '2',
+      title: 'Property Maintenance Technician',
+      department: 'Maintenance',
+      location: 'Jeddah, Saudi Arabia',
+      type: 'Full-time',
+      salary: 'SAR 8,000 - 12,000',
+      description: 'Join our maintenance team to ensure the optimal operation of our properties. You will be responsible for preventive maintenance, repairs, emergency response, and ensuring all building systems operate efficiently.',
       requirements: [
-        &apos;Technical diploma or certification in electrical/mechanical systems&apos;,
-        &apos;3+ years of experience in building maintenance&apos;,
-        &apos;Knowledge of HVAC, electrical, and plumbing systems&apos;,
-        &apos;Valid driver\&apos;s license&apos;,
-        &apos;Basic computer skills&apos;,
-        &apos;Ability to work flexible hours&apos;,
-        &apos;Safety certification preferred&apos;
+        'Technical diploma or certification in electrical/mechanical systems',
+        '3+ years of experience in building maintenance',
+        'Knowledge of HVAC, electrical, and plumbing systems',
+        'Valid driver\'s license',
+        'Basic computer skills',
+        'Ability to work flexible hours',
+        'Safety certification preferred'
       ],
       benefits: [
-        &apos;Competitive salary&apos;,
-        &apos;Health and safety training&apos;,
-        &apos;Overtime opportunities&apos;,
-        &apos;Tool allowance&apos;,
-        &apos;Career advancement path&apos;,
-        &apos;21 days annual leave&apos;
+        'Competitive salary',
+        'Health and safety training',
+        'Overtime opportunities',
+        'Tool allowance',
+        'Career advancement path',
+        '21 days annual leave'
       ],
-      skills: [&apos;HVAC Systems&apos;, &apos;Electrical Maintenance&apos;, &apos;Plumbing&apos;, &apos;Preventive Maintenance&apos;, &apos;Emergency Response&apos;],
-      experience: &apos;3+ years&apos;,
-      postedDate: &apos;2025-01-10&apos;,
-      status: &apos;Open&apos;
+      skills: ['HVAC Systems', 'Electrical Maintenance', 'Plumbing', 'Preventive Maintenance', 'Emergency Response'],
+      experience: '3+ years',
+      postedDate: '2025-01-10',
+      status: 'Open'
     },
     {
-      id: &apos;3',
-      title: &apos;Tenant Relations Specialist&apos;,
-      department: &apos;Customer Service&apos;,
-      location: &apos;Dammam, Saudi Arabia&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 10,000 - 15,000&apos;,
-      description: &apos;We are seeking a customer-focused professional to manage tenant relationships and ensure excellent service delivery across our property portfolio. You will be the primary point of contact for tenant inquiries and will work to maintain high satisfaction levels.&apos;,
+      id: '3',
+      title: 'Tenant Relations Specialist',
+      department: 'Customer Service',
+      location: 'Dammam, Saudi Arabia',
+      type: 'Full-time',
+      salary: 'SAR 10,000 - 15,000',
+      description: 'We are seeking a customer-focused professional to manage tenant relationships and ensure excellent service delivery across our property portfolio. You will be the primary point of contact for tenant inquiries and will work to maintain high satisfaction levels.',
       requirements: [
-        &apos;Bachelor\&apos;s degree in Business, Communication, or related field&apos;,
-        &apos;3+ years of experience in customer service&apos;,
-        &apos;Excellent communication and interpersonal skills&apos;,
-        &apos;Proficiency in English and Arabic&apos;,
-        &apos;Experience with CRM systems&apos;,
-        &apos;Problem-solving abilities&apos;,
-        &apos;Professional presentation skills&apos;
+        'Bachelor\'s degree in Business, Communication, or related field',
+        '3+ years of experience in customer service',
+        'Excellent communication and interpersonal skills',
+        'Proficiency in English and Arabic',
+        'Experience with CRM systems',
+        'Problem-solving abilities',
+        'Professional presentation skills'
       ],
       benefits: [
-        &apos;Attractive salary package&apos;,
-        &apos;Customer service training&apos;,
-        &apos;Performance incentives&apos;,
-        &apos;Flexible working hours&apos;,
-        &apos;Career growth opportunities&apos;,
-        &apos;23 days annual leave&apos;
+        'Attractive salary package',
+        'Customer service training',
+        'Performance incentives',
+        'Flexible working hours',
+        'Career growth opportunities',
+        '23 days annual leave'
       ],
-      skills: [&apos;Customer Service&apos;, &apos;Communication&apos;, &apos;CRM Systems&apos;, &apos;Conflict Resolution&apos;, &apos;Relationship Management&apos;],
-      experience: &apos;3+ years&apos;,
-      postedDate: &apos;2025-01-08&apos;,
-      status: &apos;Open&apos;
+      skills: ['Customer Service', 'Communication', 'CRM Systems', 'Conflict Resolution', 'Relationship Management'],
+      experience: '3+ years',
+      postedDate: '2025-01-08',
+      status: 'Open'
     },
     {
-      id: &apos;4',
-      title: &apos;IT Support Specialist&apos;,
-      department: &apos;Information Technology&apos;,
-      location: &apos;Riyadh, Saudi Arabia&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 12,000 - 18,000&apos;,
-      description: &apos;Support our growing technology infrastructure by providing technical assistance to employees and maintaining our IT systems. You will troubleshoot hardware and software issues, manage network operations, and ensure system security.&apos;,
+      id: '4',
+      title: 'IT Support Specialist',
+      department: 'Information Technology',
+      location: 'Riyadh, Saudi Arabia',
+      type: 'Full-time',
+      salary: 'SAR 12,000 - 18,000',
+      description: 'Support our growing technology infrastructure by providing technical assistance to employees and maintaining our IT systems. You will troubleshoot hardware and software issues, manage network operations, and ensure system security.',
       requirements: [
-        &apos;Bachelor\&apos;s degree in Computer Science or related field&apos;,
-        &apos;2+ years of experience in IT support&apos;,
-        &apos;Knowledge of Windows, macOS, and Linux systems&apos;,
-        &apos;Experience with network administration&apos;,
-        &apos;Strong problem-solving skills&apos;,
-        &apos;IT certifications preferred&apos;,
-        &apos;Customer service oriented&apos;
+        'Bachelor\'s degree in Computer Science or related field',
+        '2+ years of experience in IT support',
+        'Knowledge of Windows, macOS, and Linux systems',
+        'Experience with network administration',
+        'Strong problem-solving skills',
+        'IT certifications preferred',
+        'Customer service oriented'
       ],
       benefits: [
-        &apos;Competitive compensation&apos;,
-        &apos;Technical training programs&apos;,
-        &apos;Certification support&apos;,
-        &apos;Modern equipment&apos;,
-        &apos;Flexible work arrangements&apos;,
-        &apos;24 days annual leave&apos;
+        'Competitive compensation',
+        'Technical training programs',
+        'Certification support',
+        'Modern equipment',
+        'Flexible work arrangements',
+        '24 days annual leave'
       ],
-      skills: [&apos;IT Support&apos;, &apos;Network Administration&apos;, &apos;Hardware Troubleshooting&apos;, &apos;Software Installation&apos;, &apos;System Security&apos;],
-      experience: &apos;2+ years&apos;,
-      postedDate: &apos;2025-01-05&apos;,
-      status: &apos;Open&apos;
+      skills: ['IT Support', 'Network Administration', 'Hardware Troubleshooting', 'Software Installation', 'System Security'],
+      experience: '2+ years',
+      postedDate: '2025-01-05',
+      status: 'Open'
     },
     {
-      id: &apos;5',
-      title: &apos;Property Accountant&apos;,
-      department: &apos;Finance&apos;,
-      location: &apos;Riyadh, Saudi Arabia&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 14,000 - 20,000&apos;,
-      description: &apos;Manage financial operations for our property portfolio including rent collection, expense tracking, financial reporting, and budget preparation. You will work closely with property managers to ensure accurate financial records.&apos;,
+      id: '5',
+      title: 'Property Accountant',
+      department: 'Finance',
+      location: 'Riyadh, Saudi Arabia',
+      type: 'Full-time',
+      salary: 'SAR 14,000 - 20,000',
+      description: 'Manage financial operations for our property portfolio including rent collection, expense tracking, financial reporting, and budget preparation. You will work closely with property managers to ensure accurate financial records.',
       requirements: [
-        &apos;Bachelor\&apos;s degree in Accounting or Finance&apos;,
-        &apos;3+ years of experience in property accounting&apos;,
-        &apos;Proficiency in accounting software&apos;,
-        &apos;Knowledge of real estate financial principles&apos;,
-        &apos;Strong analytical skills&apos;,
-        &apos;CPA or equivalent certification preferred&apos;,
-        &apos;Experience with property management systems&apos;
+        'Bachelor\'s degree in Accounting or Finance',
+        '3+ years of experience in property accounting',
+        'Proficiency in accounting software',
+        'Knowledge of real estate financial principles',
+        'Strong analytical skills',
+        'CPA or equivalent certification preferred',
+        'Experience with property management systems'
       ],
       benefits: [
-        &apos;Excellent salary package&apos;,
-        &apos;Professional accounting training&apos;,
-        &apos;Performance bonuses&apos;,
-        &apos;Health insurance&apos;,
-        &apos;Retirement plan&apos;,
-        &apos;26 days annual leave&apos;
+        'Excellent salary package',
+        'Professional accounting training',
+        'Performance bonuses',
+        'Health insurance',
+        'Retirement plan',
+        '26 days annual leave'
       ],
-      skills: [&apos;Financial Accounting&apos;, &apos;Budget Management&apos;, &apos;Financial Reporting&apos;, &apos;Property Management Software&apos;, &apos;Tax Compliance&apos;],
-      experience: &apos;3+ years&apos;,
-      postedDate: &apos;2025-01-12&apos;,
-      status: &apos;Open&apos;
+      skills: ['Financial Accounting', 'Budget Management', 'Financial Reporting', 'Property Management Software', 'Tax Compliance'],
+      experience: '3+ years',
+      postedDate: '2025-01-12',
+      status: 'Open'
     },
     {
-      id: &apos;6',
-      title: &apos;Marketing Coordinator&apos;,
-      department: &apos;Marketing&apos;,
-      location: &apos;Jeddah, Saudi Arabia&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 11,000 - 16,000&apos;,
-      description: &apos;Support our marketing efforts by coordinating campaigns, managing social media presence, creating marketing materials, and analyzing market trends. You will help promote our properties and services to potential tenants and clients.&apos;,
+      id: '6',
+      title: 'Marketing Coordinator',
+      department: 'Marketing',
+      location: 'Jeddah, Saudi Arabia',
+      type: 'Full-time',
+      salary: 'SAR 11,000 - 16,000',
+      description: 'Support our marketing efforts by coordinating campaigns, managing social media presence, creating marketing materials, and analyzing market trends. You will help promote our properties and services to potential tenants and clients.',
       requirements: [
-        &apos;Bachelor\&apos;s degree in Marketing, Communications, or related field&apos;,
-        &apos;2+ years of experience in marketing&apos;,
-        &apos;Proficiency in digital marketing tools&apos;,
-        &apos;Strong creative and writing skills&apos;,
-        &apos;Social media management experience&apos;,
-        &apos;Knowledge of real estate market&apos;,
-        &apos;Proficiency in English and Arabic&apos;
+        'Bachelor\'s degree in Marketing, Communications, or related field',
+        '2+ years of experience in marketing',
+        'Proficiency in digital marketing tools',
+        'Strong creative and writing skills',
+        'Social media management experience',
+        'Knowledge of real estate market',
+        'Proficiency in English and Arabic'
       ],
       benefits: [
-        &apos;Creative work environment&apos;,
-        &apos;Marketing training programs&apos;,
-        &apos;Flexible hours&apos;,
-        &apos;Remote work options&apos;,
-        &apos;Professional development&apos;,
-        &apos;22 days annual leave&apos;
+        'Creative work environment',
+        'Marketing training programs',
+        'Flexible hours',
+        'Remote work options',
+        'Professional development',
+        '22 days annual leave'
       ],
-      skills: [&apos;Digital Marketing&apos;, &apos;Social Media Management&apos;, &apos;Content Creation&apos;, &apos;Campaign Planning&apos;, &apos;Market Analysis&apos;],
-      experience: &apos;2+ years&apos;,
-      postedDate: &apos;2025-01-14&apos;,
-      status: &apos;Open&apos;,
+      skills: ['Digital Marketing', 'Social Media Management', 'Content Creation', 'Campaign Planning', 'Market Analysis'],
+      experience: '2+ years',
+      postedDate: '2025-01-14',
+      status: 'Open',
       featured: true
     },
     {
-      id: &apos;7',
-      title: &apos;Security Supervisor&apos;,
-      department: &apos;Security&apos;,
-      location: &apos;Multiple Locations&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 9,000 - 13,000&apos;,
-      description: &apos;Oversee security operations across our properties to ensure the safety of tenants, employees, and visitors. You will manage security personnel, coordinate with local authorities, and implement security protocols.&apos;,
+      id: '7',
+      title: 'Security Supervisor',
+      department: 'Security',
+      location: 'Multiple Locations',
+      type: 'Full-time',
+      salary: 'SAR 9,000 - 13,000',
+      description: 'Oversee security operations across our properties to ensure the safety of tenants, employees, and visitors. You will manage security personnel, coordinate with local authorities, and implement security protocols.',
       requirements: [
-        &apos;Security management certification&apos;,
-        &apos;4+ years of experience in security&apos;,
-        &apos;Knowledge of security systems&apos;,
-        &apos;Leadership and training skills&apos;,
-        &apos;Emergency response experience&apos;,
-        &apos;Valid security license&apos;,
-        &apos;Strong communication skills&apos;
+        'Security management certification',
+        '4+ years of experience in security',
+        'Knowledge of security systems',
+        'Leadership and training skills',
+        'Emergency response experience',
+        'Valid security license',
+        'Strong communication skills'
       ],
       benefits: [
-        &apos;Security training programs&apos;,
-        &apos;Health and safety coverage&apos;,
-        &apos;Shift allowances&apos;,
-        &apos;Career advancement&apos;,
-        &apos;Equipment provided&apos;,
-        &apos;21 days annual leave&apos;
+        'Security training programs',
+        'Health and safety coverage',
+        'Shift allowances',
+        'Career advancement',
+        'Equipment provided',
+        '21 days annual leave'
       ],
-      skills: [&apos;Security Management&apos;, &apos;Risk Assessment&apos;, &apos;Emergency Response&apos;, &apos;Team Leadership&apos;, &apos;Security Systems&apos;],
-      experience: &apos;4+ years&apos;,
-      postedDate: &apos;2025-01-09&apos;,
-      status: &apos;Open&apos;
+      skills: ['Security Management', 'Risk Assessment', 'Emergency Response', 'Team Leadership', 'Security Systems'],
+      experience: '4+ years',
+      postedDate: '2025-01-09',
+      status: 'Open'
     },
     {
-      id: &apos;8',
-      title: &apos;Procurement Officer&apos;,
-      department: &apos;Procurement&apos;,
-      location: &apos;Riyadh, Saudi Arabia&apos;,
-      type: &apos;Full-time&apos;,
-      salary: &apos;SAR 13,000 - 19,000&apos;,
-      description: &apos;Manage procurement activities for our properties including vendor selection, contract negotiation, and supplier relationship management. You will ensure cost-effective procurement of goods and services while maintaining quality standards.&apos;,
+      id: '8',
+      title: 'Procurement Officer',
+      department: 'Procurement',
+      location: 'Riyadh, Saudi Arabia',
+      type: 'Full-time',
+      salary: 'SAR 13,000 - 19,000',
+      description: 'Manage procurement activities for our properties including vendor selection, contract negotiation, and supplier relationship management. You will ensure cost-effective procurement of goods and services while maintaining quality standards.',
       requirements: [
-        &apos;Bachelor\&apos;s degree in Business, Supply Chain, or related field&apos;,
-        &apos;3+ years of experience in procurement&apos;,
-        &apos;Strong negotiation skills&apos;,
-        &apos;Knowledge of procurement processes&apos;,
-        &apos;Experience with vendor management&apos;,
-        &apos;Proficiency in procurement software&apos;,
-        &apos;Analytical and decision-making skills&apos;
+        'Bachelor\'s degree in Business, Supply Chain, or related field',
+        '3+ years of experience in procurement',
+        'Strong negotiation skills',
+        'Knowledge of procurement processes',
+        'Experience with vendor management',
+        'Proficiency in procurement software',
+        'Analytical and decision-making skills'
       ],
       benefits: [
-        &apos;Procurement training&apos;,
-        &apos;Negotiation skill development&apos;,
-        &apos;Performance incentives&apos;,
-        &apos;Travel opportunities&apos;,
-        &apos;Professional certification support&apos;,
-        &apos;25 days annual leave&apos;
+        'Procurement training',
+        'Negotiation skill development',
+        'Performance incentives',
+        'Travel opportunities',
+        'Professional certification support',
+        '25 days annual leave'
       ],
-      skills: [&apos;Procurement Management&apos;, &apos;Vendor Relations&apos;, &apos;Contract Negotiation&apos;, &apos;Cost Analysis&apos;, &apos;Supply Chain Management&apos;],
-      experience: &apos;3+ years&apos;,
-      postedDate: &apos;2025-01-07&apos;,
-      status: &apos;Open&apos;
+      skills: ['Procurement Management', 'Vendor Relations', 'Contract Negotiation', 'Cost Analysis', 'Supply Chain Management'],
+      experience: '3+ years',
+      postedDate: '2025-01-07',
+      status: 'Open'
     }
   ];
 
@@ -296,14 +296,14 @@ export default function CareersPage() {
 
     // Add job information to the form data
     if (selectedJob) {
-      formData.append(&apos;jobId&apos;, selectedJob.id);
-      formData.append(&apos;position&apos;, selectedJob.title);
-      formData.append(&apos;department&apos;, selectedJob.department);
+      formData.append('jobId', selectedJob.id);
+      formData.append('position', selectedJob.title);
+      formData.append('department', selectedJob.department);
     }
 
     try {
-      const response = await fetch(&apos;/api/careers/apply&apos;, {
-        method: &apos;POST&apos;,
+      const response = await fetch('/api/careers/apply', {
+        method: 'POST',
         body: formData,
       });
 
@@ -319,7 +319,7 @@ Position: ${selectedJob?.title}
 Department: ${selectedJob?.department}
 
 Next Steps:
-${result.nextSteps.map((step: string, index: number) => `${index + 1}. ${step}`).join(&apos;\n&apos;)}
+${result.nextSteps.map((step: string, index: number) => `${index + 1}. ${step}`).join('\n')}
 
 You will receive a confirmation email shortly.
 Thank you for your interest in joining Fixzit Enterprise!
@@ -334,14 +334,14 @@ Thank you for your interest in joining Fixzit Enterprise!
         // Clear the form
         (e.target as HTMLFormElement).reset();
       } else {
-        throw new Error(result.error || &apos;Failed to submit application&apos;);
+        throw new Error(result.error || 'Failed to submit application');
       }
     } catch (error) {
-      console.error(&apos;Application submission error:&apos;, error);
+      console.error('Application submission error:', error);
 
       const errorMessage = error instanceof Error
         ? `Error: ${error.message}\n\nPlease check your internet connection and try again.`
-        : &apos;An unexpected error occurred. Please try again.&apos;;
+        : 'An unexpected error occurred. Please try again.';
 
       alert(errorMessage);
     } finally {
@@ -351,9 +351,9 @@ Thank you for your interest in joining Fixzit Enterprise!
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case &apos;Open&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;Closed&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'Open': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Closed': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -397,7 +397,7 @@ Thank you for your interest in joining Fixzit Enterprise!
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
-              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? &apos;ring-2 ring-[#0061A8]/20 border-[#0061A8]/30&apos; : &apos;'}`}>
+              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? 'ring-2 ring-[#0061A8]/20 border-[#0061A8]/30' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -504,7 +504,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                       <DialogTrigger asChild>
                         <Button
                           onClick={() => setSelectedJob(job)}
-                          disabled={job.status === &apos;Closed&apos;}
+                          disabled={job.status === 'Closed'}
                           className="bg-[#0061A8] hover:bg-[#0061A8]/90"
                         >
                           <FileText className="w-4 h-4 mr-2" />
@@ -592,9 +592,9 @@ Thank you for your interest in joining Fixzit Enterprise!
                           <div>
                             <Label className="text-lg font-semibold mb-3 block">Hiring Stages</Label>
                             <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                              {[&apos;Applied&apos;,'Screening&apos;,'Interview&apos;,'Offer&apos;,'Hired&apos;].map((stage, idx) => (
+                              {['Applied','Screening','Interview','Offer','Hired'].map((stage, idx) => (
                                 <li key={stage} className="flex items-center gap-3 p-3 rounded border border-gray-200 bg-white">
-                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? &apos;bg-[#00A859] text-white&apos; : &apos;bg-gray-200 text-gray-600&apos;}`}>{idx+1}</span>
+                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-[#00A859] text-white' : 'bg-gray-200 text-gray-600'}`}>{idx+1}</span>
                                   <span className="text-sm text-gray-800">{stage}</span>
                                 </li>
                               ))}
@@ -613,12 +613,12 @@ Thank you for your interest in joining Fixzit Enterprise!
                                   <strong>Application Deadline:</strong> Applications are reviewed on a rolling basis
                                 </p>
                                 <p className="text-sm text-gray-600 mt-1">
-                                  <strong>Status:</strong> <span className={job.status === &apos;Open&apos; ? &apos;text-green-600&apos; : &apos;text-red-600&apos;}>{job.status}</span>
+                                  <strong>Status:</strong> <span className={job.status === 'Open' ? 'text-green-600' : 'text-red-600'}>{job.status}</span>
                                 </p>
                               </div>
                               <Button
                                 onClick={() => handleApply(job)}
-                                disabled={job.status === &apos;Closed&apos;}
+                                disabled={job.status === 'Closed'}
                                 className="bg-[#0061A8] hover:bg-[#0061A8]/90 text-white px-6 py-2"
                               >
                                 <Send className="w-4 h-4 mr-2" />
@@ -700,7 +700,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                   name="coverLetter"
                   rows={4}
                   required
-                  placeholder="Tell us why you&apos;re interested in this position and what makes you a great fit..."
+                  placeholder="Tell us why you're interested in this position and what makes you a great fit..."
                 />
               </div>
 

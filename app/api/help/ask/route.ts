@@ -197,7 +197,6 @@ export async function POST(req: NextRequest) {
       devMessage: String(err?.message ?? err),
       correlationId
     }, { status: 500 });
-    }, { status: 500 });
   }
 }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getNativeDb } from '@/src/lib/mongo';
+import { connectToDatabase, getDatabase } from '@/src/lib/mongodb-unified';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 
 // Query: /api/aqar/properties?city=&district=&type=&bedsMin=&bathsMin=&areaMin=&areaMax=&priceMin=&priceMax=&sort=&page=&pageSize=
@@ -12,10 +12,11 @@ export async function GET(req: NextRequest) {
       user = await getSessionUser(req);
     } catch {
       // Fallback for dev/guest exploration: restrict to demo tenant
-      user = { id: 'guest', role: 'SUPER_ADMIN' as any, tenantId: 'demo-tenant' };
+      user = { id: 'guest', role: 'SUPER_ADMIN' as any, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
     }
 
-    const db = await getNativeDb();
+    await connectToDatabase();
+    const db = await getDatabase();
     const col = db.collection('properties');
 
     const { searchParams } = new URL(req.url);
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    const sortStage =
+    const sortStage: Record<string, 1 | -1> =
       sort === 'price_asc' ? { 'market.listingPrice': 1 } :
       sort === 'price_desc' ? { 'market.listingPrice': -1 } :
       sort === 'area_desc' ? { 'details.totalArea': -1 } :

@@ -5,40 +5,40 @@ import { Package, Users, FileText, ClipboardList, Truck, Star, Filter, Search, S
 
 const SOUQ_FEATURES = [
   {
-    title: 'Catalog Management&apos;,
+    title: 'Catalog Management',
     icon: Package,
-    description: &apos;Browse and manage your product catalog with advanced filtering&apos;,
-    link: &apos;/souq/catalog&apos;
+    description: 'Browse and manage your product catalog with advanced filtering',
+    link: '/souq/catalog'
   },
   {
-    title: &apos;Vendor Portal&apos;,
+    title: 'Vendor Portal',
     icon: Users,
-    description: &apos;Connect with verified vendors and suppliers&apos;,
-    link: &apos;/souq/vendors&apos;
+    description: 'Connect with verified vendors and suppliers',
+    link: '/souq/vendors'
   },
   {
-    title: &apos;RFQs & Bids&apos;,
+    title: 'RFQs & Bids',
     icon: FileText,
-    description: &apos;Request for quotations and manage bidding processes&apos;,
-    link: &apos;/souq/rfqs&apos;
+    description: 'Request for quotations and manage bidding processes',
+    link: '/souq/rfqs'
   },
   {
-    title: &apos;Order Management&apos;,
+    title: 'Order Management',
     icon: ClipboardList,
-    description: &apos;Track orders, purchase orders, and delivery status&apos;,
-    link: &apos;/souq/orders&apos;
+    description: 'Track orders, purchase orders, and delivery status',
+    link: '/souq/orders'
   },
   {
-    title: &apos;Shipping & Logistics&apos;,
+    title: 'Shipping & Logistics',
     icon: Truck,
-    description: &apos;Manage shipping, tracking, and logistics partners&apos;,
-    link: &apos;/souq/shipping&apos;
+    description: 'Manage shipping, tracking, and logistics partners',
+    link: '/souq/shipping'
   },
   {
-    title: &apos;Reviews & Ratings&apos;,
+    title: 'Reviews & Ratings',
     icon: Star,
-    description: &apos;View and manage product reviews and vendor ratings&apos;,
-    link: &apos;/souq/reviews&apos;
+    description: 'View and manage product reviews and vendor ratings',
+    link: '/souq/reviews'
   }
 ];
 

@@ -1,82 +1,82 @@
-import React from &apos;react&apos;;
+import React from 'react';
 
 export default function WorkOrderApprovalsPage() {
   const pendingApprovals = [
     {
-      id: &apos;WO-1004&apos;,
-      title: &apos;Emergency electrical repair&apos;,
-      property: &apos;Tower A / 1204&apos;,
-      requestedBy: &apos;Ahmed Al-Rashid&apos;,
-      requestDate: &apos;2025-01-22&apos;,
-      estimatedCost: &apos;SAR 800&apos;,
-      priority: &apos;P1&apos;,
-      reason: &apos;Urgent safety issue requiring immediate attention&apos;,
-      status: &apos;pending&apos;
+      id: 'WO-1004',
+      title: 'Emergency electrical repair',
+      property: 'Tower A / 1204',
+      requestedBy: 'Ahmed Al-Rashid',
+      requestDate: '2025-01-22',
+      estimatedCost: 'SAR 800',
+      priority: 'P1',
+      reason: 'Urgent safety issue requiring immediate attention',
+      status: 'pending'
     },
     {
-      id: &apos;WO-1005&apos;,
-      title: &apos;HVAC system upgrade&apos;,
-      property: &apos;Tower B / Lobby&apos;,
-      requestedBy: &apos;Property Manager&apos;,
-      requestDate: &apos;2025-01-21&apos;,
-      estimatedCost: &apos;SAR 2,500&apos;,
-      priority: &apos;P2&apos;,
-      reason: &apos;Scheduled upgrade to improve efficiency&apos;,
-      status: &apos;pending&apos;
+      id: 'WO-1005',
+      title: 'HVAC system upgrade',
+      property: 'Tower B / Lobby',
+      requestedBy: 'Property Manager',
+      requestDate: '2025-01-21',
+      estimatedCost: 'SAR 2,500',
+      priority: 'P2',
+      reason: 'Scheduled upgrade to improve efficiency',
+      status: 'pending'
     },
     {
-      id: &apos;WO-1006&apos;,
-      title: &apos;Painting exterior walls&apos;,
-      property: &apos;Villa Complex&apos;,
-      requestedBy: &apos;Omar Al-Fahad&apos;,
-      requestDate: &apos;2025-01-20&apos;,
-      estimatedCost: &apos;SAR 1,200&apos;,
-      priority: &apos;P3&apos;,
-      reason: &apos;Routine maintenance and aesthetic improvement&apos;,
-      status: &apos;under-review&apos;
+      id: 'WO-1006',
+      title: 'Painting exterior walls',
+      property: 'Villa Complex',
+      requestedBy: 'Omar Al-Fahad',
+      requestDate: '2025-01-20',
+      estimatedCost: 'SAR 1,200',
+      priority: 'P3',
+      reason: 'Routine maintenance and aesthetic improvement',
+      status: 'under-review'
     }
   ];
 
   const approvedWorkOrders = [
     {
-      id: &apos;WO-1001&apos;,
-      title: &apos;AC not cooling&apos;,
-      property: &apos;Tower A / 1204&apos;,
-      approvedBy: &apos;Admin User&apos;,
-      approvalDate: &apos;2025-01-19&apos;,
-      estimatedCost: &apos;SAR 150&apos;,
-      actualCost: &apos;SAR 145&apos;,
-      status: &apos;approved&apos;
+      id: 'WO-1001',
+      title: 'AC not cooling',
+      property: 'Tower A / 1204',
+      approvedBy: 'Admin User',
+      approvalDate: '2025-01-19',
+      estimatedCost: 'SAR 150',
+      actualCost: 'SAR 145',
+      status: 'approved'
     },
     {
-      id: &apos;WO-1002&apos;,
-      title: &apos;Elevator maintenance&apos;,
-      property: &apos;Tower B / Lobby&apos;,
-      approvedBy: &apos;Admin User&apos;,
-      approvalDate: &apos;2025-01-18&apos;,
-      estimatedCost: &apos;SAR 300&apos;,
-      actualCost: &apos;SAR 285&apos;,
-      status: &apos;approved&apos;
+      id: 'WO-1002',
+      title: 'Elevator maintenance',
+      property: 'Tower B / Lobby',
+      approvedBy: 'Admin User',
+      approvalDate: '2025-01-18',
+      estimatedCost: 'SAR 300',
+      actualCost: 'SAR 285',
+      status: 'approved'
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case &apos;pending&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      case &apos;approved&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;rejected&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;under-review&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      case 'under-review': return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case &apos;P1&apos;: return &apos;bg-red-500 text-white&apos;;
-      case &apos;P2&apos;: return &apos;bg-orange-500 text-white&apos;;
-      case &apos;P3&apos;: return &apos;bg-yellow-500 text-black&apos;;
-      case &apos;P4&apos;: return &apos;bg-green-500 text-white&apos;;
-      default: return &apos;bg-gray-500 text-white&apos;;
+      case 'P1': return 'bg-red-500 text-white';
+      case 'P2': return 'bg-orange-500 text-white';
+      case 'P3': return 'bg-yellow-500 text-black';
+      case 'P4': return 'bg-green-500 text-white';
+      default: return 'bg-gray-500 text-white';
     }
   };
 

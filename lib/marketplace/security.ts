@@ -1,223 +1,149 @@
-/**
- * Security headers configuration for marketplace APIs
- */
+import { NextResponse } from 'next/server';
 
-export interface SecurityConfig {
-  cors?: {
-    origin?: string | string[] | boolean;
-    methods?: string[];
-    allowedHeaders?: string[];
-    credentials?: boolean;
-  };
-  csp?: {
-    directives?: Record<string, string | string[]>;
-  };
-  hsts?: {
-    maxAge?: number;
-    includeSubDomains?: boolean;
-    preload?: boolean;
-  };
+/**
+ * Marketplace Security Headers Utility
+ * Provides standardized security headers for marketplace API responses
+ */
+export interface SecurityHeadersConfig {
+  enableCORS?: boolean;
+  corsOrigin?: string | string[];
+  enableCSP?: boolean;
+  customCSP?: string;
+  enableHSTS?: boolean;
+  enableFrameOptions?: boolean;
+  enableContentTypeOptions?: boolean;
+
+  enableReferrerPolicy?: boolean;
 }
 
 /**
- * Default security configuration
+ * Default security headers configuration for marketplace APIs
  */
-const defaultSecurityConfig: SecurityConfig = {
-  cors: {
-    origin: process.env.NODE_ENV === 'development' ? true : false,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization', 
-      'X-Tenant-ID',
-      'X-Correlation-ID',
-      'Accept-Language'
-    ],
-    credentials: true
-  },
-  csp: {
-    directives: {
-      'default-src': "'self'",
-      'script-src': "'self' 'unsafe-inline' 'unsafe-eval'",
-      'style-src': "'self' 'unsafe-inline'",
-      'img-src': "'self' data: https:",
-      'font-src': "'self' data:",
-      'connect-src': "'self'",
-      'frame-ancestors': "'none'",
-    }
-  },
-  hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
-  }
+const DEFAULT_SECURITY_CONFIG: Required<SecurityHeadersConfig> = {
+  enableCORS: true,
+  corsOrigin: '*', // Will be overridden by environment-specific values
+  enableCSP: true,
+  customCSP: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' https:;",
+  enableHSTS: true,
+  enableFrameOptions: true,
+  enableContentTypeOptions: true,
+  enableReferrerPolicy: true,
 };
 
-/**
- * Apply security headers to a response
- */
-export function applySecurityHeaders(
-  response: Response, 
-  config: SecurityConfig = defaultSecurityConfig
-): Response {
-  const headers = new Headers(response.headers);
+  /**
+   * Get CORS origins from environment or use defaults
+   */
+  function getCORSOrigins(): string | string[] {
+    const envOrigins = process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS;
+    if (envOrigins) {
+      return envOrigins.split(',').map(origin => origin.trim());
+    }
+    if (process.env.NODE_ENV === 'development') {
+      return [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://localhost:3000',
+        'https://localhost:3001'
+      ];
+    }
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+    if (baseUrl) {
+      return [baseUrl];
+    }
+    return '*'; // Fallback, should be avoided in production
+  }
 
-  // CORS headers
-  if (config.cors) {
-    const { origin, methods, allowedHeaders, credentials } = config.cors;
-    
-    if (origin === true) {
-      if (credentials) {
-        throw new Error(
-          'Invalid CORS configuration: credentials=true cannot be combined with a wildcard origin. Provide an explicit origin string or array.'
-        );
+  /**
+   * Apply security headers to a NextResponse
+   */
+  export function applySecurityHeaders(
+    response: NextResponse,
+    config: SecurityHeadersConfig = {}
+  ): NextResponse {
+    const finalConfig = { ...DEFAULT_SECURITY_CONFIG, ...config };
+    // CORS Headers
+    if (finalConfig.enableCORS) {
+      const origins = finalConfig.corsOrigin === '*' ? getCORSOrigins() : finalConfig.corsOrigin;
+      if (Array.isArray(origins)) {
+        response.headers.set('Access-Control-Allow-Origin', origins.length === 1 ? origins[0] : '*');
+      } else {
+        response.headers.set('Access-Control-Allow-Origin', origins);
       }
-      headers.set('Access-Control-Allow-Origin', '*');
-    } else if (typeof origin === 'string') {
-      headers.set('Access-Control-Allow-Origin', origin);
-    } else if (Array.isArray(origin)) {
-      // In a real implementation, you'd check the request origin
-      headers.set('Access-Control-Allow-Origin', origin[0]);
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Correlation-ID, X-Request-Timestamp, X-Operation, X-User-ID, X-Tenant-ID');
+      response.headers.set('Access-Control-Expose-Headers', 'X-Correlation-ID, X-Request-Timestamp, X-RateLimit-Limit, X-RateLimit-Remaining');
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+      response.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
     }
-
-    if (methods?.length) {
-      headers.set('Access-Control-Allow-Methods', methods.join(', '));
+    // Content Security Policy
+    if (finalConfig.enableCSP) {
+      response.headers.set('Content-Security-Policy', finalConfig.customCSP);
     }
-
-    if (allowedHeaders?.length) {
-      headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
+    // HTTP Strict Transport Security (HSTS)
+    if (finalConfig.enableHSTS && process.env.NODE_ENV === 'production') {
+      response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
-
-    if (credentials && !(typeof origin === 'string' || Array.isArray(origin))) {
-      throw new Error(
-        'Invalid CORS configuration: credentials=true requires an explicit origin string or array.'
-      );
+    // X-Frame-Options (prevent clickjacking)
+    if (finalConfig.enableFrameOptions) {
+      response.headers.set('X-Frame-Options', 'DENY');
     }
-
-    if (credentials) {
-      headers.set('Access-Control-Allow-Credentials', 'true');
+    // X-Content-Type-Options (prevent MIME sniffing)
+    if (finalConfig.enableContentTypeOptions) {
+      response.headers.set('X-Content-Type-Options', 'nosniff');
     }
+    // Referrer Policy
+    if (finalConfig.enableReferrerPolicy) {
+      response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     }
-
-    if (credentials && !(typeof origin === 'string' || Array.isArray(origin))) {
-      throw new Error(
-        'Invalid CORS configuration: credentials=true requires an explicit origin string or array.'
-      );
-    }
-
-    if (credentials) {
-      headers.set('Access-Control-Allow-Credentials', 'true');
-    }
+    // Additional security headers
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('X-DNS-Prefetch-Control', 'off');
+    response.headers.set('X-Download-Options', 'noopen');
+    response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
+    // Cache control for sensitive data
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    response.headers.set('Pragma', 'no-cache');
+    return response;
   }
 
-  // Content Security Policy
-  if (config.csp?.directives) {
-    const cspValue = Object.entries(config.csp.directives)
-      .map(([directive, value]) => 
-        `${directive} ${Array.isArray(value) ? value.join(' ') : value}`
-      )
-      .join('; ');
-    headers.set('Content-Security-Policy', cspValue);
+  /**
+   * Create a new response with security headers applied
+   */
+  export function createSecureResponse(
+    data: unknown,
+    init?: ResponseInit,
+    config?: SecurityHeadersConfig
+  ): NextResponse {
+    const response = NextResponse.json(data, init);
+    return applySecurityHeaders(response, config);
   }
 
-  // HSTS (only in production HTTPS)
-  if (config.hsts && process.env.NODE_ENV === 'production') {
-    const { maxAge, includeSubDomains, preload } = config.hsts;
-    let hstsValue = `max-age=${maxAge}`;
-    if (includeSubDomains) hstsValue += '; includeSubDomains';
-    if (preload) hstsValue += '; preload';
-    headers.set('Strict-Transport-Security', hstsValue);
+  /**
+   * Handle OPTIONS preflight requests for CORS
+   */
+  export function handleCORSPreflight(config?: SecurityHeadersConfig): NextResponse {
+    const response = new NextResponse(null, { status: 200 });
+    return applySecurityHeaders(response, config);
   }
 
-  // Additional security headers
-  headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('X-Frame-Options', 'DENY');
-  headers.set('X-XSS-Protection', '1; mode=block');
-  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
-/**
- * Handle CORS preflight requests
- */
-export function handleCORSPreflight(
-  request: Request,
-  config: SecurityConfig = defaultSecurityConfig
-): Response {
-  const headers = new Headers();
-
-  if (config.cors) {
-    const { origin, methods, allowedHeaders, credentials } = config.cors;
-    
-    const requestOrigin = request.headers.get('Origin');
-    
-    // Check origin
-    if (origin === true || origin === requestOrigin) {
-      headers.set('Access-Control-Allow-Origin', requestOrigin || '*');
-    } else if (Array.isArray(origin) && requestOrigin && origin.includes(requestOrigin)) {
-      headers.set('Access-Control-Allow-Origin', requestOrigin);
-    }
-
-    if (methods?.length) {
-      headers.set('Access-Control-Allow-Methods', methods.join(', '));
-    }
-
-    if (allowedHeaders?.length) {
-      headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
-    }
-
-    if (credentials) {
-      headers.set('Access-Control-Allow-Credentials', 'true');
-    }
+  /**
+   * Middleware-style function to wrap API route handlers with security headers
+   */
+  export function withSecurityHeaders<T extends any[]>(
+    handler: (..._args: T) => Promise<NextResponse> | NextResponse,
+    config?: SecurityHeadersConfig
+  ) {
+    return async (...args: T): Promise<NextResponse> => {
+      try {
+        const response = await handler(...args);
+        return applySecurityHeaders(response, config);
+      } catch {
+        // Even error responses should have security headers
+        const errorResponse = NextResponse.json(
+          { error: 'Internal server error' },
+          { status: 500 }
+        );
+        return applySecurityHeaders(errorResponse, config);
+      }
+    };
   }
-
-  headers.set('Access-Control-Max-Age', '86400'); // 24 hours
-
-  return new Response(null, {
-    status: 204,
-    headers
-  });
-}
-
-/**
- * Security middleware for marketplace routes
- */
-export function securityMiddleware(config?: SecurityConfig) {
-  return function(request: Request): Response | null {
-    // Handle preflight requests
-    if (request.method === 'OPTIONS') {
-      return handleCORSPreflight(request, config);
-    }
-
-    // Continue with normal processing
-    return null;
-  };
-}
-
-/**
- * Create a secure response with proper headers
- */
-export function createSecureResponse(
-  body: any,
-  init?: ResponseInit,
-  config?: SecurityConfig
-): Response {
-  const response = new Response(
-    typeof body === 'string' ? body : JSON.stringify(body),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...init?.headers
-      },
-      ...init
-    }
-  );
-
-  return applySecurityHeaders(response, config);
-}

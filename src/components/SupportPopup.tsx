@@ -23,7 +23,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
   // Auto-populate fields if error details are provided
   useEffect(() => {
     if (errorDetails) {
-      setSubject(`System Error: ${errorDetails.error?.name || &apos;Unknown&apos;} - ${errorDetails.error?.message?.substring(0, 50) || &apos;'}...`);
+      setSubject(`System Error: ${errorDetails.error?.name || 'Unknown'} - ${errorDetails.error?.message?.substring(0, 50) || ''}...`);
       setModule("Other");
       setType("Bug");
       setPriority("High");
@@ -40,30 +40,30 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
 **User Agent:** ${errorDetails.userAgent}
 
 **Error Details:**
-- **Type:** ${errorDetails.error?.name || &apos;Unknown&apos;}
-- **Message:** ${errorDetails.error?.message || &apos;No message available&apos;}
+- **Type:** ${errorDetails.error?.name || 'Unknown'}
+- **Message:** ${errorDetails.error?.message || 'No message available'}
 - **Viewport:** ${errorDetails.viewport}
-- **Platform:** ${errorDetails.system?.platform || &apos;Unknown&apos;}
+- **Platform:** ${errorDetails.system?.platform || 'Unknown'}
 
 **System Information:**
-- **Language:** ${errorDetails.system?.language || &apos;Unknown&apos;}
-- **Online Status:** ${errorDetails.system?.onLine ? &apos;Online&apos; : &apos;Offline&apos;}
-${errorDetails.system?.memory ? `- **Memory Usage:** ${Math.round(errorDetails.system.memory.used / 1024 / 1024)}MB used` : &apos;'}
+- **Language:** ${errorDetails.system?.language || 'Unknown'}
+- **Online Status:** ${errorDetails.system?.onLine ? 'Online' : 'Offline'}
+${errorDetails.system?.memory ? `- **Memory Usage:** ${Math.round(errorDetails.system.memory.used / 1024 / 1024)}MB used` : ''}
 
 **Application State:**
-- **Authenticated:** ${errorDetails.localStorage?.hasAuth ? &apos;✅' : &apos;❌'}
-- **User Data:** ${errorDetails.localStorage?.hasUser ? &apos;✅' : &apos;❌'}
-- **Language Set:** ${errorDetails.localStorage?.hasLang ? &apos;✅' : &apos;❌'}
-- **Theme Set:** ${errorDetails.localStorage?.hasTheme ? &apos;✅' : &apos;❌'}
+- **Authenticated:** ${errorDetails.localStorage?.hasAuth ? '✅' : '❌'}
+- **User Data:** ${errorDetails.localStorage?.hasUser ? '✅' : '❌'}
+- **Language Set:** ${errorDetails.localStorage?.hasLang ? '✅' : '❌'}
+- **Theme Set:** ${errorDetails.localStorage?.hasTheme ? '✅' : '❌'}
 
 **Stack Trace:**
 \`\`\`
-${errorDetails.error?.stack || &apos;No stack trace available&apos;}
+${errorDetails.error?.stack || 'No stack trace available'}
 \`\`\`
 
 **Component Stack:**
 \`\`\`
-${errorDetails.error?.componentStack || &apos;No component stack available&apos;}
+${errorDetails.error?.componentStack || 'No component stack available'}
 \`\`\`
 
 ---
@@ -88,7 +88,7 @@ ${errorDetails.error?.componentStack || &apos;No component stack available&apos;
       if (!hdr) payload.requester = { name, email, phone };
 
       // Show loading state
-      const submitBtn = document.querySelector(&apos;[data-testid="submit-btn"]&apos;) as HTMLButtonElement;
+      const submitBtn = document.querySelector('[data-testid="submit-btn"]') as HTMLButtonElement;
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = "Creating Ticket...";
@@ -114,7 +114,7 @@ Thank you for contacting Fixzit Support!
 ${!hdr && email ? `
 
 📧 Welcome Email Sent!
-We&apos;ve sent a welcome email to ${email} with registration instructions and next steps.` : &apos;'}`;
+We've sent a welcome email to ${email} with registration instructions and next steps.` : ''}`;
 
       alert(successMessage);
       onClose();
@@ -123,7 +123,7 @@ We&apos;ve sent a welcome email to ${email} with registration instructions and n
       alert(`❌ Failed to create ticket: ${e.message || "Please try again or contact support directly."}`);
 
       // Reset button state
-      const submitBtn = document.querySelector(&apos;[data-testid="submit-btn"]&apos;) as HTMLButtonElement;
+      const submitBtn = document.querySelector('[data-testid="submit-btn"]') as HTMLButtonElement;
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = "Submit Ticket";

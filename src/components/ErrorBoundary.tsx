@@ -1,8 +1,8 @@
-'use client&apos;;
-import React from &apos;react&apos;;
-import dynamic from &apos;next/dynamic&apos;;
+'use client';
+import React from 'react';
+import dynamic from 'next/dynamic';
 
-const SupportPopup = dynamic(() => import(&apos;@/src/components/SupportPopup&apos;), { ssr: false });
+const SupportPopup = dynamic(() => import('@/src/components/SupportPopup'), { ssr: false });
 
 type ErrorState = {
   hasError: boolean;
@@ -32,10 +32,10 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   private errorFixes: ErrorFix[] = [
     // JSON parsing errors
     {
-      pattern: /Failed to execute &apos;json&apos; on &apos;Response&apos;/,
-      type: &apos;JSON_PARSE_ERROR&apos;,
+      pattern: /Failed to execute 'json' on 'Response'/,
+      type: 'JSON_PARSE_ERROR',
       autoFix: async (error: Error) => {
-        console.log(&apos;🔧 Auto-fixing JSON parsing error...&apos;);
+        console.log('🔧 Auto-fixing JSON parsing error...');
 
         // Clear localStorage cache that might be corrupted
         try {
@@ -50,24 +50,24 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log(&apos;⚠️ JSON fix fallback triggered&apos;);
+        console.log('⚠️ JSON fix fallback triggered');
         this.forceRefresh();
       }
     },
 
     // Module not found errors
     {
-      pattern: /Module not found|Can&apos;t resolve/,
-      type: &apos;MODULE_NOT_FOUND&apos;,
+      pattern: /Module not found|Can't resolve/,
+      type: 'MODULE_NOT_FOUND',
       autoFix: async (error: Error) => {
-        console.log(&apos;🔧 Auto-fixing module resolution...&apos;);
+        console.log('🔧 Auto-fixing module resolution...');
 
         // Try to clear module cache
         try {
-          if (typeof window !== &apos;undefined&apos;) {
+          if (typeof window !== 'undefined') {
             // Clear any cached imports
             Object.keys(window).forEach(key => {
-              if (key.startsWith(&apos;__webpack&apos;) || key.startsWith(&apos;__next&apos;)) {
+              if (key.startsWith('__webpack') || key.startsWith('__next')) {
                 delete (window as any)[key];
               }
             });
@@ -82,17 +82,17 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log(&apos;⚠️ Module fix fallback triggered&apos;);
-        this.showErrorMessage(&apos;Module loading failed. Please refresh the page.&apos;);
+        console.log('⚠️ Module fix fallback triggered');
+        this.showErrorMessage('Module loading failed. Please refresh the page.');
       }
     },
 
     // Network errors
     {
       pattern: /fetch.*failed|Network request failed/,
-      type: &apos;NETWORK_ERROR&apos;,
+      type: 'NETWORK_ERROR',
       autoFix: async (error: Error) => {
-        console.log(&apos;🔧 Auto-fixing network error...&apos;);
+        console.log('🔧 Auto-fixing network error...');
 
         try {
           // Wait and retry
@@ -100,7 +100,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
           // Check if online
           if (!navigator.onLine) {
-            this.showErrorMessage(&apos;Please check your internet connection.&apos;);
+            this.showErrorMessage('Please check your internet connection.');
             return false;
           }
 
@@ -110,21 +110,21 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log(&apos;⚠️ Network fix fallback triggered&apos;);
-        this.showErrorMessage(&apos;Network error. Please check your connection and try again.&apos;);
+        console.log('⚠️ Network fix fallback triggered');
+        this.showErrorMessage('Network error. Please check your connection and try again.');
       }
     },
 
     // Hydration errors
     {
       pattern: /hydration|Hydration failed/,
-      type: &apos;HYDRATION_ERROR&apos;,
+      type: 'HYDRATION_ERROR',
       autoFix: async (error: Error) => {
-        console.log(&apos;🔧 Auto-fixing hydration error...&apos;);
+        console.log('🔧 Auto-fixing hydration error...');
 
         try {
           // Force client-side rendering mode
-          localStorage.setItem(&apos;fxz.render&apos;, &apos;client&apos;);
+          localStorage.setItem('fxz.render', 'client');
           window.location.reload();
           return true;
         } catch {
@@ -132,23 +132,23 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log(&apos;⚠️ Hydration fix fallback triggered&apos;);
-        this.showErrorMessage(&apos;Rendering error. Please refresh the page.&apos;);
+        console.log('⚠️ Hydration fix fallback triggered');
+        this.showErrorMessage('Rendering error. Please refresh the page.');
       }
     },
 
     // Generic runtime errors
     {
       pattern: /TypeError|ReferenceError/,
-      type: &apos;RUNTIME_ERROR&apos;,
+      type: 'RUNTIME_ERROR',
       autoFix: async (error: Error) => {
-        console.log(&apos;🔧 Auto-fixing runtime error...&apos;);
+        console.log('🔧 Auto-fixing runtime error...');
 
         try {
           // Clear application state
-          localStorage.removeItem(&apos;fxz.auth&apos;);
-          localStorage.removeItem(&apos;fxz.user&apos;);
-          localStorage.removeItem(&apos;fxz.state&apos;);
+          localStorage.removeItem('fxz.auth');
+          localStorage.removeItem('fxz.user');
+          localStorage.removeItem('fxz.state');
 
           // Attempt recovery
           setTimeout(() => {
@@ -161,8 +161,8 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log(&apos;⚠️ Runtime fix fallback triggered&apos;);
-        this.showErrorMessage(&apos;Application error. Please refresh and try again.&apos;);
+        console.log('⚠️ Runtime fix fallback triggered');
+        this.showErrorMessage('Application error. Please refresh and try again.');
       }
     }
   ];
@@ -172,13 +172,13 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     return {
       hasError: true,
       msg: err?.message,
-      errorType: err?.name || &apos;Unknown&apos;
+      errorType: err?.name || 'Unknown'
     };
   }
 
   componentDidCatch(error: unknown, errorInfo: React.ErrorInfo) {
     const err = error as Error;
-    console.error(&apos;🚨 UI Error Caught:&apos;, {
+    console.error('🚨 UI Error Caught:', {
       error: err,
       message: err?.message,
       stack: err?.stack,
@@ -203,12 +203,12 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
     // Also auto-report an incident so Support gets a ticket without user action
     try {
-      const userStr = typeof localStorage !== &apos;undefined&apos; ? localStorage.getItem(&apos;x-user&apos;) : null;
+      const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('x-user') : null;
       const user = userStr ? JSON.parse(userStr) : null;
       const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
       const safeUser = user ? { userId: user.id, tenant: user.tenantId } : undefined;
       const payload = {
-        code: &apos;UI-UI-RENDER-001&apos;,
+        code: 'UI-UI-RENDER-001',
         incidentKey: errorReport.errorId,
         message: truncate(errorReport.error.message, 500),
         details: truncate(errorReport.error.stack, 4000),
@@ -217,39 +217,39 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
           url: errorReport.url,
           userAgent: errorReport.userAgent,
           locale: errorReport.system.language,
-          rtl: typeof document !== &apos;undefined&apos; ? (document.dir === &apos;rtl&apos;) : false,
+          rtl: typeof document !== 'undefined' ? (document.dir === 'rtl') : false,
           time: errorReport.timestamp
         }
       };
       // Prevent duplicate submission if AutoIncidentReporter already sent for this errorId
-      if (typeof sessionStorage !== &apos;undefined&apos;) {
-        const last = sessionStorage.getItem(&apos;fxz_last_incident&apos;);
+      if (typeof sessionStorage !== 'undefined') {
+        const last = sessionStorage.getItem('fxz_last_incident');
         if (last === errorReport.errorId) return;
-        sessionStorage.setItem(&apos;fxz_last_incident&apos;, errorReport.errorId);
+        sessionStorage.setItem('fxz_last_incident', errorReport.errorId);
       }
-      const blob = new Blob([JSON.stringify(payload)], { type: &apos;application/json&apos; });
-      if (!('sendBeacon&apos; in navigator) || !(navigator as any).sendBeacon(&apos;/api/support/incidents&apos;, blob)) {
-        fetch(&apos;/api/support/incidents&apos;, { method: &apos;POST&apos;, headers: { &apos;content-type&apos;: &apos;application/json&apos; }, body: JSON.stringify(payload), keepalive: true });
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      if (!('sendBeacon' in navigator) || !(navigator as any).sendBeacon('/api/support/incidents', blob)) {
+        fetch('/api/support/incidents', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true });
       }
     } catch {}
   }
 
   private logErrorToQA = (errorReport: any) => {
-    fetch(&apos;/api/qa/log&apos;, {
-      method: &apos;POST&apos;,
-      headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
+    fetch('/api/qa/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        event: &apos;ERROR_BOUNDARY_CAUGHT&apos;,
+        event: 'ERROR_BOUNDARY_CAUGHT',
         data: errorReport,
-        level: &apos;ERROR&apos;,
-        source: &apos;ErrorBoundary&apos;,
-        category: &apos;UI_ERROR&apos;
+        level: 'ERROR',
+        source: 'ErrorBoundary',
+        category: 'UI_ERROR'
       })
     }).catch(() => {}); // Fire and forget
   };
 
   private attemptAutoFix = async (error: Error) => {
-    console.log(&apos;🤖 Attempting auto-fix for:&apos;, error.message);
+    console.log('🤖 Attempting auto-fix for:', error.message);
 
     for (const fix of this.errorFixes) {
       if (fix.pattern.test(error.message)) {
@@ -269,7 +269,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
             return;
           }
         } catch (fixError) {
-          console.error(&apos;❌ Auto-fix failed:&apos;, fixError);
+          console.error('❌ Auto-fix failed:', fixError);
         }
 
         // Apply fallback
@@ -292,11 +292,11 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     };
 
     // Send to logging API
-    fetch(&apos;/api/qa/log&apos;, {
-      method: &apos;POST&apos;,
-      headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
+    fetch('/api/qa/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        event: &apos;AUTO_FIX_ATTEMPT&apos;,
+        event: 'AUTO_FIX_ATTEMPT',
         data: logEntry
       })
     }).catch(() => {}); // Fire and forget
@@ -326,7 +326,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       userAgent: navigator.userAgent,
       url: window.location.href,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
-      userId: localStorage.getItem(&apos;x-user&apos;) ? &apos;Authenticated User&apos; : &apos;Guest User&apos;,
+      userId: localStorage.getItem('x-user') ? 'Authenticated User' : 'Guest User',
       error: {
         name: error.name,
         message: error.message,
@@ -345,10 +345,10 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         } : null
       },
       localStorage: {
-        hasAuth: !!localStorage.getItem(&apos;x-user&apos;),
-        hasUser: !!localStorage.getItem(&apos;fxz.user&apos;),
-        hasLang: !!localStorage.getItem(&apos;fxz.lang&apos;),
-        hasTheme: !!localStorage.getItem(&apos;fxz.theme&apos;)
+        hasAuth: !!localStorage.getItem('x-user'),
+        hasUser: !!localStorage.getItem('fxz.user'),
+        hasLang: !!localStorage.getItem('fxz.lang'),
+        hasTheme: !!localStorage.getItem('fxz.theme')
       }
     };
 
@@ -372,7 +372,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   Language: ${errorReport.system.language}
   Platform: ${errorReport.system.platform}
   Online: ${errorReport.system.onLine}
-  ${errorReport.system.memory ? `Memory: ${Math.round(errorReport.system.memory.used / 1024 / 1024)}MB / ${Math.round(errorReport.system.memory.total / 1024 / 1024)}MB` : &apos;'}
+  ${errorReport.system.memory ? `Memory: ${Math.round(errorReport.system.memory.used / 1024 / 1024)}MB / ${Math.round(errorReport.system.memory.total / 1024 / 1024)}MB` : ''}
 
 🔧 Application State:
   Authenticated: ${errorReport.localStorage.hasAuth}
@@ -381,23 +381,23 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   Theme Set: ${errorReport.localStorage.hasTheme}
 
 📋 Stack Trace:
-${errorReport.error.stack || &apos;No stack trace available&apos;}
+${errorReport.error.stack || 'No stack trace available'}
 
 📄 Component Stack:
-${errorReport.error.componentStack || &apos;No component stack available&apos;}
+${errorReport.error.componentStack || 'No component stack available'}
     `.trim();
 
     navigator.clipboard.writeText(errorText).then(() => {
-      this.showErrorMessage(&apos;Error details copied to clipboard!&apos;);
+      this.showErrorMessage('Error details copied to clipboard!');
     }).catch(() => {
       // Fallback for older browsers
-      const textArea = document.createElement(&apos;textarea&apos;);
+      const textArea = document.createElement('textarea');
       textArea.value = errorText;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand(&apos;copy&apos;);
+      document.execCommand('copy');
       document.body.removeChild(textArea);
-      this.showErrorMessage(&apos;Error details copied to clipboard!&apos;);
+      this.showErrorMessage('Error details copied to clipboard!');
     });
   };
 
@@ -409,18 +409,18 @@ ${errorReport.error.componentStack || &apos;No component stack available&apos;}
   // Send welcome email to new users who encountered errors
   private sendWelcomeEmail = async (email: string, errorId: string) => {
     try {
-      await fetch(&apos;/api/support/welcome-email&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
+      await fetch('/api/support/welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           errorId,
-          subject: &apos;Welcome to Fixzit Enterprise - Error Resolution Steps&apos;,
+          subject: 'Welcome to Fixzit Enterprise - Error Resolution Steps',
           registrationLink: `${window.location.origin}/login?welcome=true`
         })
       });
     } catch (error) {
-      console.error(&apos;Failed to send welcome email:&apos;, error);
+      console.error('Failed to send welcome email:', error);
     }
   };
 
@@ -428,7 +428,7 @@ ${errorReport.error.componentStack || &apos;No component stack available&apos;}
     const newRetryCount = (this.state.retryCount || 0) + 1;
 
     if (newRetryCount >= 3) {
-      this.showErrorMessage(&apos;Maximum retry attempts reached. Please refresh the page manually.&apos;);
+      this.showErrorMessage('Maximum retry attempts reached. Please refresh the page manually.');
       return;
     }
 
@@ -456,15 +456,15 @@ ${errorReport.error.componentStack || &apos;No component stack available&apos;}
             </div>
 
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {this.state.fixSuccessful ? &apos;Auto-Fix Applied&apos; : &apos;System Error Detected&apos;}
+              {this.state.fixSuccessful ? 'Auto-Fix Applied' : 'System Error Detected'}
             </h2>
 
             <p className="text-gray-600 mb-4">
               {this.state.fixSuccessful
-                ? &apos;The system has automatically fixed the issue and is reloading...&apos;
+                ? 'The system has automatically fixed the issue and is reloading...'
                 : this.state.fixAttempted
-                  ? &apos;Auto-fix attempted but failed. Manual intervention required.&apos;
-                  : this.state.msg || &apos;An unexpected error occurred.&apos;
+                  ? 'Auto-fix attempted but failed. Manual intervention required.'
+                  : this.state.msg || 'An unexpected error occurred.'
               }
             </p>
 
@@ -485,10 +485,10 @@ ${errorReport.error.componentStack || &apos;No component stack available&apos;}
               {this.state.fixAttempted && (
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   this.state.fixSuccessful
-                    ? &apos;bg-green-100 text-green-800&apos;
-                    : &apos;bg-red-100 text-red-800&apos;
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800'
                 }`}>
-                  {this.state.fixSuccessful ? &apos;✅ Fixed&apos; : &apos;❌ Fix Failed&apos;}
+                  {this.state.fixSuccessful ? '✅ Fixed' : '❌ Fix Failed'}
                 </span>
               )}
               <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -563,7 +563,7 @@ ${errorReport.error.componentStack || &apos;No component stack available&apos;}
                 <div><strong>Error:</strong> {this.state.msg}</div>
                 <div><strong>Type:</strong> {this.state.errorType}</div>
                 <div><strong>Time:</strong> {new Date().toISOString()}</div>
-                <div><strong>URL:</strong> {typeof window !== &apos;undefined&apos; ? window.location.href : &apos;SSR&apos;}</div>
+                <div><strong>URL:</strong> {typeof window !== 'undefined' ? window.location.href : 'SSR'}</div>
                 {this.state.errorReport && (
                   <>
                     <div><strong>User Agent:</strong> {this.state.errorReport.userAgent}</div>
@@ -581,7 +581,7 @@ ${errorReport.error.componentStack || &apos;No component stack available&apos;}
                   📋 Stack Trace
                 </summary>
                 <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono text-gray-600 overflow-auto max-h-40">
-                  {this.state.errorReport.error.stack || &apos;No stack trace available&apos;}
+                  {this.state.errorReport.error.stack || 'No stack trace available'}
                 </div>
               </details>
             )}
@@ -593,7 +593,7 @@ ${errorReport.error.componentStack || &apos;No component stack available&apos;}
                   📄 Component Stack
                 </summary>
                 <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono text-gray-600 overflow-auto max-h-40">
-                  {this.state.errorReport.error.componentStack || &apos;No component stack available&apos;}
+                  {this.state.errorReport.error.componentStack || 'No component stack available'}
                 </div>
               </details>
             )}
