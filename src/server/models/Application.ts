@@ -91,7 +91,19 @@ ApplicationSchema.pre('save', function() {
 });
 
 // Add post-find middleware to attach defaults
-ApplicationSchema.post(['find', 'findOne', 'findById'], function(doc: any) {
+ApplicationSchema.post('find', function(doc: any) {
+  if (doc && typeof attachHistoryDefaults === 'function') {
+    attachHistoryDefaults(doc);
+  }
+});
+
+ApplicationSchema.post('findOne', function(doc: any) {
+  if (doc && typeof attachHistoryDefaults === 'function') {
+    attachHistoryDefaults(doc);
+  }
+});
+
+ApplicationSchema.post('findOneAndUpdate', function(doc: any) {
   if (doc && typeof attachHistoryDefaults === 'function') {
     attachHistoryDefaults(doc);
   }
