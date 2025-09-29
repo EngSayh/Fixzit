@@ -21,7 +21,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
   const isLandingPage = publicRoutes.has(pathname);
-  const { screenInfo } = useResponsiveLayout();
   // Safe translation access with fallback
   let language = 'ar';
   let isRTL = false;
