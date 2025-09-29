@@ -1,13 +1,13 @@
-'use client';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+'use client&apos;;
+import { createContext, useContext, useEffect, useMemo, useState } from &apos;react&apos;;
 
-type Theme = 'light' | 'dark' | 'auto';
-type Ctx = { theme: Theme; setTheme: (t: Theme) => void; dir: 'ltr'|'rtl'; setDir:(d:'ltr'|'rtl')=>void };
+type Theme = &apos;light&apos; | &apos;dark&apos; | &apos;auto&apos;;
+type Ctx = { theme: Theme; setTheme: (t: Theme) => void; dir: &apos;ltr&apos;|'rtl&apos;; setDir:(d:&apos;ltr&apos;|'rtl&apos;)=>void };
 
 const ThemeCtx = createContext<Ctx | null>(null);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
-  const [dir, setDir] = useState<'ltr'|'rtl'>('ltr');
+  const [theme, setTheme] = useState<Theme>(&apos;light&apos;);
+  const [dir, setDir] = useState<&apos;ltr&apos;|'rtl&apos;>(&apos;ltr&apos;);
 
   // SSR-safe: mutate DOM only in effect
   useEffect(() => {
@@ -21,7 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 export const useThemeCtx = () => {
   const v = useContext(ThemeCtx);
-  if (!v) throw new Error('useThemeCtx must be used within ThemeProvider');
+  if (!v) throw new Error(&apos;useThemeCtx must be used within ThemeProvider&apos;);
   return v;
 };
 

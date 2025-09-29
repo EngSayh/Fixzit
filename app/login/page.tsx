@@ -6,7 +6,7 @@ import { Input } from '../../src/components/ui/input';
 import {
   Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Globe,
   ChevronDown, User, Shield, Building2, Users,
-  ArrowRight, Github, Chrome, Apple
+  ArrowRight, Chrome, Apple
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -599,7 +599,7 @@ export default function LoginPage() {
             {/* Sign Up Link */}
             <div className="mt-6 text-center">
               <p className="text-gray-600">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link href="/signup" className="text-[#0061A8] hover:underline font-medium">
                   Sign up here
                 </Link>
