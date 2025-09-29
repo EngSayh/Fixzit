@@ -31,10 +31,7 @@ const createSchema = z.object({
  * tenantId and exclude soft-deleted records (deletedAt exists). Database access is initialized
  * before querying.
  *
- * Behavior differs based on the environment flag USE_MOCK_DB="true" (case-insensitive):
- * - When true, results are retrieved from the mock store, sorted by createdAt (desc) in-memory,
- *   and then paginated.
- * - Otherwise, results are queried from the real database with server-side sort/skip/limit.
+ * Uses MongoDB for all data operations with server-side sort/skip/limit.
  *
  * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
  */
@@ -64,33 +61,16 @@ export async function GET(req: NextRequest) {
   if (priority) match.priority = priority;
   if (q) match.$text = { $search: q };
 
-  // Handle both mock and real database
+  // MongoDB-only implementation
   let items: any[];
   let total: number;
 
-  // Respect explicit mock flag only
-  const isMockDB = String(process.env.USE_MOCK_DB || '').toLowerCase() === 'true';
-
-  if (isMockDB) {
-    // Use mock database logic
-    items = await (WorkOrder as any).find(match);
-    if (items && Array.isArray(items)) {
-      // Sort manually
-      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      // Apply pagination
-      items = items.slice((page - 1) * limit, page * limit);
-    } else {
-      items = [];
-    }
-    total = await (WorkOrder as any).countDocuments(match);
-  } else {
-    // Use real Mongoose
-    items = await (WorkOrder as any).find(match)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
-    total = await (WorkOrder as any).countDocuments(match);
-  }
+  // Real MongoDB operations
+  items = await (WorkOrder as any).find(match)
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+  total = await (WorkOrder as any).countDocuments(match);
 
   return NextResponse.json({ items, page, limit, total });
   } catch (error: any) {

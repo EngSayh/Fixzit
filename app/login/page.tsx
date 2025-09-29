@@ -10,7 +10,109 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { memo, useCallback, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+// Memoized components for better performance
+const LanguageSelector = memo(({ 
+  selectedLang, 
+  showDropdown, 
+  onToggle, 
+  onChange 
+}: {
+  selectedLang: Lang;
+  showDropdown: boolean;
+  onToggle: () => void;
+  onChange: (lang: Lang) => void;
+}) => (
+  <div className="relative">
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-all duration-200 backdrop-blur-sm"
+      aria-label="Language selector"
+      aria-expanded={showDropdown}
+    >
+      <span className="text-lg">{selectedLang.flag}</span>
+      <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
+      <ChevronDown size={14} className={cn(
+        "transition-transform duration-200",
+        showDropdown && "rotate-180"
+      )} />
+    </button>
 
+    <AnimatePresence>
+      {showDropdown && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 overflow-hidden"
+        >
+          {LANGUAGES.map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => onChange(lang)}
+              className={cn(
+                "w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 transition-colors",
+                lang.code === selectedLang.code && "bg-[#0061A8]/10"
+              )}
+            >
+              <span className="text-xl">{lang.flag}</span>
+              <div className="flex-1 text-left">
+                <div className="font-medium">{lang.native}</div>
+                <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
+              </div>
+              {lang.code === selectedLang.code && (
+                <motion.div 
+                  layoutId="selected-lang"
+                  className="w-2 h-2 rounded-full bg-[#0061A8]" 
+                />
+              )}
+            </button>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+));
+
+LanguageSelector.displayName = 'LanguageSelector';
+
+// Extract form validation logic
+const useFormValidation = (loginMethod: string, email: string, employeeNumber: string, password: string) => {
+  return useMemo(() => {
+    const errors: Record<string, string> = {};
+    
+    if (loginMethod === 'personal') {
+      if (!email) errors.email = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errors.email = 'Invalid email format';
+      }
+    } else if (loginMethod === 'corporate') {
+      if (!employeeNumber) errors.employeeNumber = 'Employee number is required';
+      else if (!/^EMP\d{3,}$/.test(employeeNumber)) {
+        errors.employeeNumber = 'Invalid employee number format';
+      }
+    }
+    
+    if (!password) errors.password = 'Password is required';
+    else if (password.length < 8) errors.password = 'Password must be at least 8 characters';
+    
+    return { isValid: Object.keys(errors).length === 0, errors };
+  }, [loginMethod, email, employeeNumber, password]);
+};
+
+// Add debounce utility
+const useDebounce = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  
+  return debouncedValue;
+};
 type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
 const LANGUAGES: Lang[] = [
   { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
@@ -599,7 +701,7 @@ export default function LoginPage() {
             {/* Sign Up Link */}
             <div className="mt-6 text-center">
               <p className="text-gray-600">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link href="/signup" className="text-[#0061A8] hover:underline font-medium">
                   Sign up here
                 </Link>

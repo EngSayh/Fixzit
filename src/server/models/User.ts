@@ -28,9 +28,9 @@ const UserSchema = new Schema({
   // orgId: { type: String, required: true, index: true },
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
+  code: { type: String, required: true },
+  username: { type: String, required: true },
+  email: { type: String, required: true },
   password: { type: String, required: true }, // Hashed password
   phone: String,
   mobile: String,
@@ -57,7 +57,7 @@ const UserSchema = new Schema({
 
   // Professional Information
   professional: {
-    role: { type: String, enum: UserRole, required: true, index: true },
+    role: { type: String, enum: UserRole, required: true },
     title: String,
     department: String,
     manager: String, // user ID of manager
@@ -215,12 +215,14 @@ const UserSchema = new Schema({
 UserSchema.plugin(tenantIsolationPlugin);
 UserSchema.plugin(auditPlugin);
 
-// Indexes for performance
-UserSchema.index({ orgId: 1, 'professional.role': 1 });
-UserSchema.index({ orgId: 1, email: 1 }, { unique: true });
-UserSchema.index({ orgId: 1, 'professional.skills.category': 1 });
-UserSchema.index({ orgId: 1, 'workload.available': 1 });
-UserSchema.index({ orgId: 1, 'performance.rating': -1 });
+// Indexes for performance (orgId is already indexed by tenantIsolationPlugin)
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ username: 1 }, { unique: true });
+UserSchema.index({ code: 1 }, { unique: true });
+UserSchema.index({ 'professional.role': 1 });
+UserSchema.index({ 'professional.skills.category': 1 });
+UserSchema.index({ 'workload.available': 1 });
+UserSchema.index({ 'performance.rating': -1 });
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 

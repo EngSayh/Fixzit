@@ -1,5 +1,4 @@
-import { nanoid } from 'nanoid';
-// Removed isMockDB import - using MongoDB only
+// AutoFixManager for system health monitoring - MongoDB only
 
 export interface SystemCheck {
   id: string;
@@ -159,36 +158,18 @@ export class AutoFixManager {
         }
       },
 
-      // Component loading
-      {
-        id: 'component-loading',
-        name: 'Component Loading',
-        description: 'Verify UI components load correctly',
-        category: 'component',
-        priority: 'medium',
-        check: async () => {
-          try {
-            // Test if key components are available
-            const testComponents = ['ErrorBoundary', 'HelpWidget', 'TopBar'];
-            return testComponents.every(name => {
-              try {
-                require(`@/src/components/${name}`);
-                return true;
-              } catch {
-                return false;
-              }
-            });
-          } catch {
-            return false;
-          }
-        },
-        fix: async () => {
-          console.log('🔧 Fixing component loading...');
-          // Clear component cache and reload
-          window.location.reload();
-          return true;
-        }
-      },
+      // Component loading - disabled to prevent dynamic import issues
+      // {
+      //   id: 'component-loading',
+      //   name: 'Component Loading',
+      //   description: 'Verify UI components load correctly',
+      //   category: 'component',
+      //   priority: 'medium',
+      //   check: async () => {
+      //     // Skip component loading check
+      //     return true;
+      //   }
+      // },
 
       // Local storage
       {

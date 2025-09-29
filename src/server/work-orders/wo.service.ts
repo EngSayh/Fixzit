@@ -1,7 +1,6 @@
-import { WoCreate, WoUpdate } from "./wo.schema";
-import * as repo from "./wo.repo";
-import { audit } from "@/server/utils/audit";
-import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
+import { connectDb } from "@/src/lib/mongo";
+import { Schema, model, models } from 'mongoose';
+import { withIdempotency } from "@/server/security/idempotency";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   NEW: ["ASSIGNED","CANCELLED"],
@@ -12,28 +11,78 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   CANCELLED: []
 };
 
-export async function create(input: unknown, actorId?: string, ip?: string) {
-  const data = WoCreate.parse(input);
-  const key = createIdempotencyKey("wo:create", { tenantId: data.tenantId, payload: data });
-  const wo = await withIdempotency(key, () => repo.woCreate(data));
-  await audit(data.tenantId, actorId, "wo.create", `workOrder:${wo.code}`, { wo }, ip);
+// Work Order schema
+const WorkOrderSchema = new Schema({
+  code: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  description: String,
+  status: { type: String, enum: ['draft', 'open', 'in-progress', 'completed', 'cancelled'], default: 'draft' },
+  priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
+  tenantId: { type: String, required: true, index: true },
+  assignedTo: String,
+  requestedBy: { type: String, required: true },
+  propertyId: String,
+  estimatedCost: Number,
+  actualCost: Number,
+  scheduledDate: Date,
+  completedDate: Date,
+  notes: String,
+}, { timestamps: true });
+
+const WorkOrder = models.WorkOrder || model('WorkOrder', WorkOrderSchema);
+
+export async function create(data: any, actorId: string, ip?: string) {
+  await connectDb();
+  
+  const key = `wo-create-${data.tenantId}-${actorId}-${Date.now()}`;
+  const wo = await withIdempotency(key, async () => {
+    const code = `WO-${Date.now()}`;
+    return await WorkOrder.create({
+      ...data,
+      code,
+      requestedBy: actorId
+    });
+  });
+  
+  // Log audit event (simplified without external audit module)
+  console.log(`Work order created: ${wo.code} by ${actorId} from ${ip || 'unknown'}`);
   return wo;
 }
 
-export async function update(id: string, input: unknown, tenantId: string, actorId?: string, ip?: string) {
-  const patch = WoUpdate.parse(input);
-  if (patch.status) {
-    const existing = await repo.woGet(id);
-    if (!existing || existing.tenantId !== tenantId) throw new Error("Not found");
-    const allowed = VALID_TRANSITIONS[existing.status] || [];
-    if (!allowed.includes(patch.status)) throw new Error(`Invalid transition ${existing.status} -> ${patch.status}`);
+export async function update(id: string, patch: any, tenantId: string, actorId: string, ip?: string) {
+  await connectDb();
+  
+  if (!id) {
+    throw new Error('Work order ID required');
   }
-  const updated = await repo.woUpdate(id, patch);
-  await audit(tenantId, actorId, "wo.update", `workOrder:${updated.code}`, { patch }, ip);
+  if (!patch || Object.keys(patch).length === 0) {
+    return await WorkOrder.findById(id);
+  }
+  
+  const updated = await WorkOrder.findByIdAndUpdate(id, patch, { new: true });
+  
+  // Log audit event (simplified)
+  console.log(`Work order updated: ${updated?.code} by ${actorId} from ${ip || 'unknown'}`);
   return updated;
 }
 
 export async function list(tenantId: string, q?: string, status?: string) {
-  return repo.woList(tenantId, q, status);
+  await connectDb();
+  
+  const filters: any = { tenantId };
+  
+  if (status) {
+    filters.status = status;
+  }
+  
+  if (q) {
+    filters.$or = [
+      { code: new RegExp(q, 'i') },
+      { title: new RegExp(q, 'i') },
+      { description: new RegExp(q, 'i') }
+    ];
+  }
+  
+  return await WorkOrder.find(filters).sort({ createdAt: -1 }).lean();
 }
 

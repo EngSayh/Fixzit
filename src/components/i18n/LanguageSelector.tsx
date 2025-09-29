@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Globe, Search } from 'lucide-react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
-import { LANGUAGE_OPTIONS, type LanguageOption } from '@/src/data/language-options';
+import { LANGUAGE_OPTIONS, type LanguageOption, type LanguageCode } from '@/src/data/language-options';
 
 interface LanguageSelectorProps {
   variant?: 'default' | 'compact';
@@ -65,7 +65,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
   const toggle = () => setOpen(prev => !prev);
 
   const handleSelect = (option: LanguageOption) => {
-    setLanguage(option.language);
+    setLanguage(option.language as LanguageCode);
     setOpen(false);
     setQuery('');
   };

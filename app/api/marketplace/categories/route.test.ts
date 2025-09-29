@@ -9,14 +9,12 @@ jest.mock('@/lib/db/collections', () => ({
 
 import { getCollections } from '@/lib/db/collections';
 
-type FindReturn = { sort: jest.Mock; toArray?: jest.Mock };
-type CategoriesCollection = { find: jest.Mock };
 type ProductsCollection = { distinct: jest.Mock };
 
 const makeCollections = (distinctValues: unknown[] = [], categoryDocs: any[] = []) => {
   const toArray = jest.fn().mockResolvedValue(categoryDocs);
   const sort = jest.fn().mockReturnValue({ toArray });
-  const find = jest.fn().mockReturnValue({ sort }) as CategoriesCollection;
+  const find = jest.fn().mockReturnValue({ sort });
 
   const products: ProductsCollection = {
     distinct: jest.fn().mockResolvedValue(distinctValues),
