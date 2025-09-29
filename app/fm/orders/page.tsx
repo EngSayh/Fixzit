@@ -37,71 +37,74 @@ interface ServiceOrder {
   location: string;
 }
 
+const PURCHASE_ORDERS: PurchaseOrder[] = [
+  {
+    id: 'PO-001',
+    orderNumber: 'PO-2025-001',
+    vendor: 'CoolAir Co.',
+    total: '24,000',
+    date: '2025-09-12',
+    status: 'Approved',
+    items: ['AC Maintenance - Tower A', 'Filter Replacement x 10'],
+    deliveryDate: '2025-09-20',
+    priority: 'Medium'
+  },
+  {
+    id: 'PO-002',
+    orderNumber: 'PO-2025-002',
+    vendor: 'Spark Electric',
+    total: '15,500',
+    date: '2025-09-10',
+    status: 'Delivered',
+    items: ['Electrical Inspection', 'Outlet Installation x 5'],
+    deliveryDate: '2025-09-15',
+    priority: 'High'
+  },
+  {
+    id: 'PO-003',
+    orderNumber: 'PO-2025-003',
+    vendor: 'AquaFlow',
+    total: '8,750',
+    date: '2025-09-08',
+    status: 'Draft',
+    items: ['Plumbing Repairs', 'Pipe Replacement'],
+    deliveryDate: '2025-09-25',
+    priority: 'Low'
+  }
+];
+
+const SERVICE_ORDERS: ServiceOrder[] = [
+  {
+    id: 'SO-001',
+    orderNumber: 'SO-2025-001',
+    service: 'AC Maintenance',
+    vendor: 'CoolAir Co.',
+    amount: '3,500',
+    date: '2025-09-12',
+    status: 'In Progress',
+    description: 'Monthly AC maintenance for Tower A',
+    location: 'Tower A - Floors 1-5'
+  },
+  {
+    id: 'SO-002',
+    orderNumber: 'SO-2025-002',
+    service: 'Cleaning Services',
+    vendor: 'CleanPro Services',
+    amount: '2,800',
+    date: '2025-09-11',
+    status: 'Completed',
+    description: 'Weekly cleaning service for common areas',
+    location: 'Building 1 - Common Areas'
+  }
+];
+
 export default function OrdersPage() {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const purchaseOrders: PurchaseOrder[] = [
-    {
-      id: 'PO-001',
-      orderNumber: 'PO-2025-001',
-      vendor: 'CoolAir Co.',
-      total: '24,000',
-      date: '2025-09-12',
-      status: 'Approved',
-      items: ['AC Maintenance - Tower A', 'Filter Replacement x 10'],
-      deliveryDate: '2025-09-20',
-      priority: 'Medium'
-    },
-    {
-      id: 'PO-002',
-      orderNumber: 'PO-2025-002',
-      vendor: 'Spark Electric',
-      total: '15,500',
-      date: '2025-09-10',
-      status: 'Delivered',
-      items: ['Electrical Inspection', 'Outlet Installation x 5'],
-      deliveryDate: '2025-09-15',
-      priority: 'High'
-    },
-    {
-      id: 'PO-003',
-      orderNumber: 'PO-2025-003',
-      vendor: 'AquaFlow',
-      total: '8,750',
-      date: '2025-09-08',
-      status: 'Draft',
-      items: ['Plumbing Repairs', 'Pipe Replacement'],
-      deliveryDate: '2025-09-25',
-      priority: 'Low'
-    }
-  ];
-
-  const serviceOrders: ServiceOrder[] = [
-    {
-      id: 'SO-001',
-      orderNumber: 'SO-2025-001',
-      service: 'AC Maintenance',
-      vendor: 'CoolAir Co.',
-      amount: '3,500',
-      date: '2025-09-12',
-      status: 'In Progress',
-      description: 'Monthly AC maintenance for Tower A',
-      location: 'Tower A - Floors 1-5'
-    },
-    {
-      id: 'SO-002',
-      orderNumber: 'SO-2025-002',
-      service: 'Cleaning Services',
-      vendor: 'CleanPro Services',
-      amount: '2,800',
-      date: '2025-09-11',
-      status: 'Completed',
-      description: 'Weekly cleaning service for common areas',
-      location: 'Building 1 - Common Areas'
-    }
-  ];
+  const purchaseOrders = PURCHASE_ORDERS;
+  const serviceOrders = SERVICE_ORDERS;
 
   const filteredPurchaseOrders = useMemo(() => {
     return purchaseOrders.filter(order => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MapPin, Home, Users, Wrench } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
@@ -27,20 +27,7 @@ export default function PropertyDetailPage() {
     openWorkOrders: 7
   });
   
-  useEffect(() => {
-    // Load Google Maps
-    if (!window.google) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&callback=initMap`;
-      script.async = true;
-      window.initMap = initializeMap;
-      document.head.appendChild(script);
-    } else {
-      initializeMap();
-    }
-  }, []);
-  
-  const initializeMap = () => {
+  const initializeMap = useCallback(() => {
     if (typeof window !== 'undefined' && window.google && window.google.maps) {
       const map = new window.google.maps.Map(document.getElementById('property-map'), {
         center: { lat: property.lat, lng: property.lng },
@@ -55,7 +42,20 @@ export default function PropertyDetailPage() {
         title: property.name
       });
     }
-  };
+  }, [property.lat, property.lng, property.name]);
+
+  useEffect(() => {
+    // Load Google Maps
+    if (!window.google) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&callback=initMap`;
+      script.async = true;
+      window.initMap = initializeMap;
+      document.head.appendChild(script);
+    } else {
+      initializeMap();
+    }
+  }, [initializeMap]);
   
   return (
     <div className="min-h-screen bg-gray-50">
