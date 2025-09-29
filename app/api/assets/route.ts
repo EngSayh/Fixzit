@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { connectDb } from "@/src/lib/mongo";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -50,18 +51,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
-    await db;
+    await (db as any)();
     const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
     const Asset = AssetMod && (AssetMod as any).Asset;
     if (!Asset) {
       return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
     }
     const user = await getSessionUser(req);
+    await connectDb();
 
     const data = createAssetSchema.parse(await req.json());
 
-    const asset = await Asset.create({
-      tenantId: user.tenantId,
+    const asset = await (Asset as any).create({
+      tenantId: (user as any)?.orgId,
       code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -90,6 +92,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+    await connectDb();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -99,7 +102,7 @@ export async function GET(req: NextRequest) {
     const propertyId = searchParams.get("propertyId");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.tenantId };
+    const match: any = { tenantId: (user as any)?.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;
@@ -128,3 +131,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

@@ -1,86 +1,129 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { db } from "@/src/lib/mongo";
+import { HelpArticle } from "@/src/server/models/HelpArticle";
+import { WorkOrder } from "@/src/server/models/WorkOrder";
+import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
-const schema = z.object({ question: z.string().min(3), contextRoute: z.string().optional() });
+const BodySchema = z.object({
+  question: z.string().min(1),
+});
 
-// Mock help articles for search
-const mockArticles = [
-  {
-    title: 'Getting Started with Fixzit Enterprise',
-    slug: 'getting-started'
-  },
-  {
-    title: 'Work Orders Overview',
-    slug: 'work-orders-overview'
-  },
-  {
-    title: 'Managing Vendors and Suppliers',
-    slug: 'vendor-management'
-  },
-  {
-    title: 'Tenant Relations and Communication',
-    slug: 'tenant-relations'
-  },
-  {
-    title: 'Financial Reporting and Invoicing',
-    slug: 'financial-reporting'
-  },
-  {
-    title: 'Property Maintenance Best Practices',
-    slug: 'property-maintenance'
-  },
-  {
-    title: 'Request for Quote (RFQ) Process',
-    slug: 'rfq-process'
-  },
-  {
-    title: 'Compliance and Regulatory Requirements',
-    slug: 'compliance-requirements'
-  }
-];
+type Citation = { title: string; slug: string };
 
-export async function POST(req: NextRequest){
-  try {
-    const { question, contextRoute } = schema.parse(await req.json());
+function parseNewTicket(question: string) {
+  const isSlash = question.trim().toLowerCase().startsWith("/new-ticket");
+  const isNatural = /\b(create|open)\b.*\b(work\s*order|ticket)\b/i.test(question);
+  if (!isSlash && !isNatural) return null;
 
-    // Simple keyword search in mock articles
-    const q = question.toLowerCase();
-    const articles = mockArticles.filter(article =>
-      article.title.toLowerCase().includes(q) ||
-      q.includes(article.title.toLowerCase().split(' ')[0]) ||
-      q.includes(article.title.toLowerCase().split(' ')[1])
-    ).slice(0, 5);
+  const get = (key: string) => {
+    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^\s]+))`, "i"));
+    if (!m) return undefined;
+    return (m[2] || m[3])?.trim();
+  };
 
-    const answer = articles.length > 0
-      ? `I found ${articles.length} help article(s) related to your question. You can find detailed information in the help center.`
-      : `I couldn't find specific help articles for your question. I can help you create a support ticket if you need further assistance.`;
-
-    return NextResponse.json({
-      mode: "public",
-      answer,
-      citations: articles.map((a: any)=>({ title: a.title, slug: a.slug })),
-      actions: [
-        {
-          type: "create_ticket",
-          label: "Create Support Ticket",
-          description: "Get personalized help from our support team"
-        }
-      ]
-    });
-  } catch (error) {
-    console.error('AI Assistant error:', error);
-
-    return NextResponse.json({
-      mode: "public",
-      answer: "I'm having trouble processing your request right now. Please try again or create a support ticket for assistance.",
-      citations: [],
-      actions: [
-        {
-          type: "create_ticket",
-          label: "Create Support Ticket",
-          description: "Get help from our support team"
-        }
-      ]
-    });
-  }
+  const title = get("title") || question.replace(/^\s*\/new-ticket\s*/i, "").trim() || "General request";
+  const description = get("desc") || get("description");
+  const priority = (get("priority") || "MEDIUM").toUpperCase();
+  const propertyId = get("propertyId");
+  const unitId = get("unitId");
+  return { title, description, priority, propertyId, unitId } as const;
 }
+
+function isMyTickets(question: string) {
+  return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work\s*orders)\b/i.test(question);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await db; // ensure DB/init (real or mock)
+  } catch {}
+
+  let user: { id: string; tenantId: string; role: string } | null = null;
+  try {
+    user = await getSessionUser(req) as any;
+  } catch {
+    user = null; // allow public help queries without actions
+  }
+
+  let body: z.infer<typeof BodySchema>;
+  try {
+    body = BodySchema.parse(await req.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  const q = body.question.trim();
+
+  // Tools: create new ticket
+  const createArgs = parseNewTicket(q);
+  if (createArgs) {
+    if (!user) {
+      return NextResponse.json({ answer: "Please sign in to create a work order.", citations: [] });
+    }
+    try {
+      const seq = Math.floor((Date.now() / 1000) % 100000);
+      const code = `WO-${new Date().getFullYear()}-${seq}`;
+      const wo = await (WorkOrder as any).create({
+        tenantId: (user as any)?.orgId,
+        code,
+        title: createArgs.title,
+        description: createArgs.description,
+        priority: ["LOW","MEDIUM","HIGH","URGENT"].includes(createArgs.priority) ? createArgs.priority : "MEDIUM",
+        propertyId: createArgs.propertyId,
+        unitId: createArgs.unitId,
+        requester: { type: "TENANT", id: user.id },
+        status: "SUBMITTED",
+        statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
+        createdBy: user.id,
+      });
+      const answer = `Created work order ${wo.code} – "${wo.title}" with priority ${wo.priority}.`;
+      return NextResponse.json({ answer, citations: [] as Citation[] });
+    } catch (e: any) {
+      return NextResponse.json({ answer: `Could not create work order: ${e.message || "unknown error"}`, citations: [] as Citation[] });
+    }
+  }
+
+  // Tools: list my tickets
+  if (isMyTickets(q)) {
+    if (!user) {
+      return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
+    }
+    const items = await (WorkOrder as any).find({ tenantId: (user as any)?.orgId, createdBy: user.id })
+      .sort?.({ createdAt: -1 })
+      .limit?.(5) || [];
+    const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
+    const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
+    return NextResponse.json({ answer, citations: [] as Citation[] });
+  }
+
+  // Knowledge retrieval from Help Articles (tenant-agnostic help)
+  let docs: any[] = [];
+  try {
+    docs = await (HelpArticle as any).find({ status: "PUBLISHED", $text: { $search: q } })
+      .sort?.({ updatedAt: -1 })
+      .limit?.(5) || [];
+  } catch {
+    // Fallback: simple title match in mock mode
+    try {
+      docs = await (HelpArticle as any).find({ status: "PUBLISHED" })
+        .sort?.({ updatedAt: -1 })
+        .limit?.(20) || [];
+      const s = q.toLowerCase();
+      docs = (docs as any[]).filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
+    } catch {}
+  }
+
+  const citations: Citation[] = (docs || []).map((d: any) => ({ title: d.title, slug: d.slug })).slice(0, 5);
+  let answer = "";
+  if (docs?.length) {
+    const d0 = docs[0];
+    const firstPara = (d0.content || "").split(/\n\n+/)[0]?.trim() || d0.title;
+    answer = `${firstPara}\n\nI included related help articles below.`;
+  } else {
+    answer = "I could not find a specific article for that yet. Try rephrasing or ask about work orders, properties, invoices, or approvals.";
+  }
+
+  return NextResponse.json({ answer, citations });
+}
+
