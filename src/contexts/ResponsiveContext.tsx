@@ -1,7 +1,8 @@
 'use client';
-import React, { createContext, useContext, useMemo, ReactNode } from 'react';
+
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/src/hooks/useScreenSize';
 import { useTranslation } from '@/src/contexts/TranslationContext';
-import { getResponsiveClasses, ScreenInfo, useScreenSize } from '@/src/hooks/useScreenSize';
 
 interface ResponsiveContextType {
   screenInfo: ScreenInfo;
@@ -13,34 +14,25 @@ interface ResponsiveContextType {
 
 const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undefined);
 
-const FALLBACK_SCREEN_INFO: ScreenInfo = {
-  width: 1024,
-  height: 768,
-  size: 'desktop',
-  isMobile: false,
-  isTablet: false,
-  isDesktop: true,
-  isLarge: false,
-  isSmall: false,
-  isPortrait: false,
-  isLandscape: true,
-  devicePixelRatio: 1,
-  isTouchDevice: false,
-  isHighResolution: false
-};
-
-const noop = () => {};
-
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
-  const { isRTL } = useTranslation();
 
-  const responsiveClasses = useMemo(() => getResponsiveClasses(screenInfo), [screenInfo]);
-  const value = useMemo<ResponsiveContextType>(
-    () => ({ screenInfo, isReady, responsiveClasses, isRTL, updateScreenInfo }),
-    [screenInfo, isReady, responsiveClasses, isRTL, updateScreenInfo]
+  const responsiveClasses = getResponsiveClasses(screenInfo);
+
+  const value = {
+    screenInfo,
+    isReady,
+    responsiveClasses,
+    // isRTL will be available when used in components with useResponsive hook
+    isRTL: false, // This will be overridden in the useResponsive hook
+    updateScreenInfo
+  };
+
+  return (
+    <ResponsiveContext.Provider value={value}>
+      {children}
+    </ResponsiveContext.Provider>
   );
-  return <ResponsiveContext.Provider value={value}>{children}</ResponsiveContext.Provider>;
 }
 
 export function useResponsiveContext() {
@@ -51,35 +43,60 @@ export function useResponsiveContext() {
   return context;
 }
 
-function buildFallback(isRTL: boolean): ResponsiveContextType {
-  return {
-    screenInfo: FALLBACK_SCREEN_INFO,
-    isReady: false,
-    responsiveClasses: getResponsiveClasses(FALLBACK_SCREEN_INFO),
-    isRTL,
-    updateScreenInfo: noop
-  };
-}
-
 // Convenience hook that combines both screen size and responsive context
 export function useResponsiveLayout() {
   const context = useContext(ResponsiveContext);
-  const { isRTL } = useTranslation();
 
-  return useMemo(() => {
-    if (!context) {
-      return buildFallback(isRTL);
-    }
+  if (!context) {
+    // Fallback when context is not available
+    return {
+      screenInfo: {
+        width: 1024,
+        height: 768,
+        size: 'desktop' as const,
+        isMobile: false,
+        isTablet: false,
+        isDesktop: true,
+        isLarge: false,
+        isSmall: false,
+        isPortrait: false,
+        isLandscape: true,
+        devicePixelRatio: 1,
+        isTouchDevice: false,
+        isHighResolution: false
+      },
+      isReady: true,
+      isRTL: false,
+      responsiveClasses: {
+        container: 'max-w-6xl mx-auto px-8',
+        grid: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+        text: 'text-base',
+        spacing: 'space-y-6',
+        sidebarVisible: true,
+        mobileOptimizations: '',
+        tabletOptimizations: '',
+        desktopOptimizations: 'hover:shadow-lg'
+      },
+      updateScreenInfo: () => {}
+    };
+  }
 
-    if (context.isRTL === isRTL) {
-      return context;
-    }
+  // Try to get isRTL from TranslationContext
+  let isRTL = context.isRTL;
+  try {
+    // Use proper ESM import instead of require() to avoid webpack_require.n errors
+    const translationContext = useTranslation();
+    isRTL = translationContext.isRTL;
+  } catch {
+    // Fallback if translation context is not available
+    isRTL = false;
+  }
 
-    return { ...context, isRTL };
-  }, [context, isRTL]);
+  return {
+    ...context,
+    isRTL
+  };
 }
 
-// Backwards-compatible alias for legacy imports
-export function useResponsive() {
-  return useResponsiveLayout();
-}
+// Backward compatibility alias
+export const useResponsive = useResponsiveLayout;

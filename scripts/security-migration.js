@@ -129,9 +129,9 @@ const fixes = {
         
         // Remove console.log, console.error, console.warn statements
         const patterns = [
-          /console\.(log|error|warn|info|debug)\([^)]*\);?\n?/g,
-          /console\.(log|error|warn|info|debug)\([^{]*{[^}]*}\);?\n?/g,
-          /console\.(log|error|warn|info|debug)\(`[^`]*`\);?\n?/g
+          /console\.(log|error|warn|info|debug)([^)]*);?\n?/g,
+          /console\.(log|error|warn|info|debug)([^{]*{[^}]*});?\n?/g,
+          /console\.(log|error|warn|info|debug)(`[^`]*`);?\n?/g
         ];
         
         let removedCount = 0;
@@ -348,7 +348,7 @@ const helmet = require('helmet');`;
       
       // Add security middleware after app initialization
       if (!content.includes('app.use(helmet())')) {
-        const appInitPattern = /const app = express\(\);/;
+        const appInitPattern = /const app = express();/;
         content = content.replace(appInitPattern, 
           `const app = express();
 app.use(helmet());
@@ -356,9 +356,9 @@ app.use(securityHeaders);`);
       }
       
       // Replace console.log with logger
-      content = content.replace(/console\.log\(/g, 'logger.info(');
-      content = content.replace(/console\.error\(/g, 'logger.error(');
-      content = content.replace(/console\.warn\(/g, 'logger.warn(');
+      content = content.replace(/console\.log(/g, 'logger.info(');
+      content = content.replace(/console\.error(/g, 'logger.error(');
+      content = content.replace(/console\.warn(/g, 'logger.warn(');
       
       await fs.writeFile('server.js', content);
       log.success('Updated server.js with security middleware');

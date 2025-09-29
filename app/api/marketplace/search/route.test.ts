@@ -10,7 +10,7 @@
  * - Verify query building: text search terms, regex case-insensitivity, sorting, limiting, and tenant scoping.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, no-unused-vars */
 
 const jsonMock = jest.fn()
 const findOneMock = jest.fn()

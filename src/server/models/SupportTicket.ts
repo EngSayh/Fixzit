@@ -1,6 +1,4 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { MockModel } from "@/src/lib/mockDb";
-import { isMockDB } from "@/src/lib/mongo";
 
 const Message = new Schema({
   byUserId: { type: String }, // null when guest
@@ -11,8 +9,8 @@ const Message = new Schema({
 }, { _id: false });
 
 const SupportTicketSchema = new Schema({
-  tenantId: { type: String },
-  code: { type: String, required: true, unique: true },
+  tenantId: { type: String, required: true, index: true },
+  code: { type: String, required: true, index: true },
   subject: { type: String, required: true },
   module: { type: String, enum: ["FM","Souq","Aqar","Account","Billing","Other"], default: "Other", index: true },
   type:   { type: String, enum: ["Bug","Feature","Complaint","Billing","Access","Other"], default: "Other", index: true },
@@ -28,11 +26,13 @@ const SupportTicketSchema = new Schema({
   resolvedAt: { type: Date }
 }, { timestamps: true });
 
+// Ensure code uniqueness is scoped to tenant
+SupportTicketSchema.index({ tenantId: 1, code: 1 }, { unique: true });
+
 SupportTicketSchema.index({ status:1, module:1, priority:1 });
 SupportTicketSchema.index({ createdByUserId:1 });
 
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 
-export const SupportTicket = isMockDB 
-  ? new MockModel('supporttickets') as any
-  : (models.SupportTicket || model("SupportTicket", SupportTicketSchema));
+// Check if we're using mock database
+export const SupportTicket = models.SupportTicket || model("SupportTicket", SupportTicketSchema);

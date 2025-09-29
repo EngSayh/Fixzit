@@ -36,7 +36,7 @@ function applyAuthToRoutes(directory) {
       
       // Add enhanced auth middleware import
       if (!content.includes("require('../middleware/enhancedAuth')") && content.includes('express')) {
-        const routerMatch = content.match(/const router = (require\('express'\)\.Router\(\)|express\.Router\(\))/);
+        const routerMatch = content.match(/const router = (require('express')\.Router()|express\.Router())/);
         if (routerMatch) {
           content = content.replace(
             routerMatch[0],
@@ -60,7 +60,7 @@ function applyAuthToRoutes(directory) {
       }
       
       // Wrap async route handlers with asyncHandler
-      const routeHandlerRegex = /router\.(get|post|put|delete|patch)\((.*?),\s*async\s*\((req,\s*res)(\,\s*next)?\)\s*=>\s*{/g;
+      const routeHandlerRegex = /router\.(get|post|put|delete|patch)((.*?),\s*async\s*((req,\s*res)(\,\s*next)?)\s*=>\s*{/g;
       let match;
       while ((match = routeHandlerRegex.exec(content)) !== null) {
         const method = match[1];
@@ -76,11 +76,11 @@ function applyAuthToRoutes(directory) {
       
       // Add role-based authorization to sensitive endpoints
       const sensitiveEndpoints = [
-        { pattern: /router\.delete\(/g, roles: "authorize(['admin', 'manager'])" },
-        { pattern: /router\.post\([^,]*admin[^,]*/g, roles: "authorize(['admin'])" },
-        { pattern: /router\.put\([^,]*admin[^,]*/g, roles: "authorize(['admin'])" },
-        { pattern: /router\.(get|post|put)\([^,]*\/users[^,]*/g, roles: "authorize(['admin', 'hr'])" },
-        { pattern: /router\.(post|put|delete)\([^,]*\/properties[^,]*/g, roles: "authorize(['admin', 'property_owner', 'property_manager'])" }
+        { pattern: /router\.delete(/g, roles: "authorize(['admin', 'manager'])" },
+        { pattern: /router\.post([^,]*admin[^,]*/g, roles: "authorize(['admin'])" },
+        { pattern: /router\.put([^,]*admin[^,]*/g, roles: "authorize(['admin'])" },
+        { pattern: /router\.(get|post|put)([^,]*\/users[^,]*/g, roles: "authorize(['admin', 'hr'])" },
+        { pattern: /router\.(post|put|delete)([^,]*\/properties[^,]*/g, roles: "authorize(['admin', 'property_owner', 'property_manager'])" }
       ];
       
       sensitiveEndpoints.forEach(endpoint => {

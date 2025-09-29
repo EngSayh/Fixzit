@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 import { Job } from '@/src/server/models/Job';
 import { getUserFromToken } from '@/src/lib/auth';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await db;
+    await connectDb();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;

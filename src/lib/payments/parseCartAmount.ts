@@ -1,60 +1,45 @@
-/**
- * Converts the PayTabs `cart_amount` payload value into a finite number.
- *
- * The gateway may return the amount as a string (e.g. "147.25"), a string
- * with locale-specific separators ("1.234,56"), or a number depending on the
- * integration path. This helper normalizes the value and guarantees that
- * callers receive either a valid numeric amount or `null` when the payload is
- * malformed.
- */
-export function parseCartAmount(value: unknown): number | null {
+export function parseCartAmount(value: unknown, fallback = 0): number {
   if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
+    return Number.isFinite(value) ? value : fallback;
   }
 
   if (typeof value === 'string') {
-    const trimmed = value.trim();
-
-    if (!trimmed) {
-      return null;
+    let s = value.trim();
+    if (!s) return fallback;
+    // Normalize unicode minus and whitespace (incl NBSP)
+    s = s.replace(/\u2212/g, '-').replace(/[\s\u00A0]/g, '');
+    // Parentheses negative e.g. (1,234.56)
+    if (/^\(.*\)$/.test(s)) s = '-' + s.slice(1, -1);
+    // Keep only digits, separators, and a leading '-'
+    s = s.replace(/[^0-9.,-]/g, '').replace(/(?!^)-/g, '');
+    const lastDot = s.lastIndexOf('.');
+    const lastComma = s.lastIndexOf(',');
+    if (lastDot !== -1 && lastComma !== -1) {
+      const decimalSep = lastComma > lastDot ? ',' : '.';
+      const thousandSep = decimalSep === ',' ? '.' : ',';
+      s = s.replace(new RegExp('\\' + thousandSep, 'g'), '');
+      if (decimalSep === ',') s = s.replace(/,/g, '.');
+    } else if (lastComma !== -1) {
+      if (/^-?\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g, '');
+      else s = s.replace(/,/g, '.');
+    } else if (lastDot !== -1) {
+      if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
     }
-
-    const condensed = trimmed.replace(/[\s\u00A0_]/g, '');
-    const sanitized = condensed.replace(/[^0-9,.-]/g, '');
-    const cleaned = sanitized.replace(/^[^-\d]+/, '');
-
-    if (!cleaned) {
-      return null;
-    }
-
-    const US_GROUPED = /^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
-    const EU_GROUPED = /^-?\d{1,3}(?:\.\d{3})+(?:,\d+)?$/;
-    const SIMPLE_DOT = /^-?\d+(?:\.\d+)?$/;
-    const SIMPLE_COMMA = /^-?\d+(?:,\d+)?$/;
-
-    let normalized: string | null = null;
-
-    if (US_GROUPED.test(cleaned)) {
-      normalized = cleaned.replace(/,/g, '');
-    } else if (EU_GROUPED.test(cleaned)) {
-      normalized = cleaned.replace(/\./g, '').replace(',', '.');
-    } else if (SIMPLE_DOT.test(cleaned)) {
-      normalized = cleaned;
-    } else if (SIMPLE_COMMA.test(cleaned)) {
-      normalized = cleaned.replace(',', '.');
-    }
-
-    if (!normalized) {
-      return null;
-    }
-
-    if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) {
-      return null;
-    }
-
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : null;
+    const parsed = Number.parseFloat(s);
+    return Number.isFinite(parsed) ? parsed : fallback;
   }
 
-  return null;
+  if (value && typeof value === 'object' && 'amount' in (value as Record<string, unknown>)) {
+    return parseCartAmount((value as Record<string, unknown>).amount, fallback);
+  }
+
+  return fallback;
+}
+
+export function parseCartAmountOrThrow(value: unknown, message = 'Invalid cart amount'): number {
+  const parsed = parseCartAmount(value, Number.NaN);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(message);
+  }
+  return parsed;
 }

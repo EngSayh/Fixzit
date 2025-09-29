@@ -1,13 +1,13 @@
-'use client';
+'use client&apos;;
 
-import { BarChart3, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign } from &apos;lucide-react&apos;;
 
 export default function DashboardPage() {
   const stats = [
-    { label: 'Total Properties', value: '42', icon: Users, color: 'bg-fixzit-blue' },
-    { label: 'Open Work Orders', value: '17', icon: TrendingUp, color: 'bg-fixzit-green' },
-    { label: 'Monthly Revenue', value: 'SAR 284,500', icon: DollarSign, color: 'bg-fixzit-yellow' },
-    { label: 'Occupancy Rate', value: '92%', icon: BarChart3, color: 'bg-fixzit-orange' },
+    { label: &apos;Total Properties&apos;, value: &apos;42&apos;, icon: Users, color: &apos;bg-fixzit-blue&apos; },
+    { label: &apos;Open Work Orders&apos;, value: &apos;17&apos;, icon: TrendingUp, color: &apos;bg-fixzit-green&apos; },
+    { label: &apos;Monthly Revenue&apos;, value: &apos;SAR 284,500&apos;, icon: DollarSign, color: &apos;bg-fixzit-yellow&apos; },
+    { label: &apos;Occupancy Rate&apos;, value: &apos;92%&apos;, icon: BarChart3, color: &apos;bg-fixzit-orange&apos; },
   ];
 
   return (

@@ -17,7 +17,7 @@ const MOVE_PATTERNS = [
   /\.log$/i,
   /\.tmp$/i,
   /\.bak$/i,
-  /\s\(\d+\)\./,                    // duplicates like "config (2).zip"
+  /\s(\d+)\./,                    // duplicates like "config (2).zip"
 ];
 
 const ENV_KEEP = new Set([".env.local", "env.example"]);
