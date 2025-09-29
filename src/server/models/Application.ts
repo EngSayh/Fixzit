@@ -1,5 +1,4 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
-import { MockModel } from '@/src/lib/mockDb';
 
 const ApplicationStages = [
   'applied',
@@ -79,36 +78,26 @@ function attachHistoryDefaults(application: any) {
   return application;
 }
 
-class ApplicationMockModel extends MockModel {
-  constructor() {
-    super('applications');
+// Add pre-save middleware to set defaults
+ApplicationSchema.pre('save', function() {
+  if (this.isNew) {
+    this.stage = this.stage || 'applied';
+    this.score = this.score || 0;
+    this.source = this.source || 'careers';
+    if (!this.history || this.history.length === 0) {
+      this.history = [{ action: 'applied', by: 'candidate', at: new Date() }];
+    }
   }
+});
 
-  override async create(doc: any) {
-    const created = await super.create({
-      stage: 'applied',
-      score: 0,
-      source: 'careers',
-      history: [{ action: 'applied', by: doc?.history?.[0]?.by || 'candidate', at: new Date() }],
-      ...doc
-    });
-    return attachHistoryDefaults(created);
+// Add post-find middleware to attach defaults
+ApplicationSchema.post(['find', 'findOne', 'findById'], function(doc: any) {
+  if (doc && typeof attachHistoryDefaults === 'function') {
+    attachHistoryDefaults(doc);
   }
-
-  override async findById(id: string) {
-    const doc = await super.findById(id);
-    return attachHistoryDefaults(doc);
-  }
-
-  override async findOne(query: any) {
-    const doc = await super.findOne(query);
-    return attachHistoryDefaults(doc);
-  }
-}
+});
 
 const existingApplication = models.Application as ApplicationModel | undefined;
-export const Application: ApplicationModel = isMockDB
-  ? (new ApplicationMockModel() as unknown as ApplicationModel)
-  : (existingApplication || model<ApplicationDoc, ApplicationModel>('Application', ApplicationSchema));
+export const Application: ApplicationModel = existingApplication || model<ApplicationDoc, ApplicationModel>('Application', ApplicationSchema);
 
 export type { AutoRejectResult, KnockoutInput, ApplicationStage };

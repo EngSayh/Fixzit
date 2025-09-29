@@ -121,7 +121,7 @@ export async function list(tenantId: string, q?: string, status?: string) {
 export async function post(tenantId: string, id: string, input: unknown, actorId?: string, ip?: string) {
   const data = InvoicePost.parse(input);
 
-  await connectMongo();
+  await connectDb();
 
   const status = data.action === 'POST' ? 'SENT' : 'CANCELLED';
   const historyEntry = {

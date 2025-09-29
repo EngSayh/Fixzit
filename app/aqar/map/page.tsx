@@ -7,13 +7,6 @@ const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
 const DEFAULT_ZOOM = 11;
 const CLICK_BBOX_DELTA = 0.05;
 
-import { useMemo, useState } from 'react';
-import GoogleMap from '@/src/components/GoogleMap';
-
-const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
-const DEFAULT_ZOOM = 11;
-const CLICK_BBOX_DELTA = 0.05;
-
 export default function MapPage() {
   const center = useMemo(() => DEFAULT_CENTER, []);
   const [markers, setMarkers] = useState<any[]>([]);
