@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button, a { margin: 10px; padding: 10px 20px; display: inline-block; }
+        .btn-yellow { background: #FFB400; color: black; border: none; border-radius: 8px; }
+        .btn-white { background: white; color: #0061A8; border: 1px solid #0061A8; border-radius: 8px; }
+        .btn-dark { background: #023047; color: white; border: none; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Landing Page Button Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Language Toggle Button</h2>
+        <button class="btn-yellow" onclick="alert('Language toggle clicked!')">
+            🌐 العربية
+        </button>
+        <p>✅ Should show alert when clicked</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Marketplace Link</h2>
+        <a href="/marketplace" class="btn-white">
+            🛍️ Fixzit Souq
+        </a>
+        <p>✅ Should navigate to /marketplace</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Login Link</h2>
+        <a href="/login" class="btn-dark">
+            🔐 Access Fixzit
+        </a>
+        <p>✅ Should navigate to /login</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 4: CTA Banner Link</h2>
+        <a href="/login" class="btn-primary" style="background: #0061A8; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+            Sign In
+        </a>
+        <p>✅ Should navigate to /login</p>
+    </div>
+    
+    <script>
+        console.log('Button test page loaded');
+        console.log('All buttons should be clickable and functional');
+    </script>
+</body>
+</html>

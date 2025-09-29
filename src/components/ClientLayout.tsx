@@ -1,0 +1,126 @@
+'use client';
+
+import { ReactNode, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import TopBar from './TopBar';
+import Sidebar from './Sidebar';
+import Footer from './Footer';
+import HelpWidget from './HelpWidget';
+import AutoFixInitializer from './AutoFixInitializer';
+import ErrorTest from './ErrorTest';
+import ResponsiveLayout from './ResponsiveLayout';
+import dynamic from 'next/dynamic';
+const AutoIncidentReporter = dynamic(() => import('@/src/components/AutoIncidentReporter'), { ssr: false });
+import PreferenceBroadcast from './PreferenceBroadcast';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { TopBarProvider } from '@/src/contexts/TopBarContext';
+
+export default function ClientLayout({ children }: { children: ReactNode }) {
+  const [role, setRole] = useState('guest');
+  const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+  const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
+  const isLandingPage = publicRoutes.has(pathname);
+  const { screenInfo } = useResponsiveLayout();
+  // Safe translation access with fallback
+  let language = 'ar';
+  let isRTL = false;
+
+  try {
+    const translationContext = useTranslation();
+    language = translationContext.language;
+    isRTL = translationContext.isRTL;
+  } catch (error) {
+    console.warn('Translation context not available in ClientLayout:', error);
+  }
+
+  // Update document attributes when language changes
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+  }, [language, isRTL]);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        // First check localStorage for cached role
+        const cachedRole = localStorage.getItem('fixzit-role');
+        if (cachedRole && cachedRole !== 'guest') {
+          setRole(cachedRole);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch current user from API
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include' // Include cookies
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user && data.user.role) {
+            const userRole = data.user.role;
+            setRole(userRole);
+            // Cache the role in localStorage
+            localStorage.setItem('fixzit-role', userRole);
+          }
+        } else {
+          // If no valid session, ensure role is guest
+          setRole('guest');
+          localStorage.setItem('fixzit-role', 'guest');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user role:', error);
+        setRole('guest');
+        localStorage.setItem('fixzit-role', 'guest');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  // Show loading state while fetching user data
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
+        <TopBar role={role} />
+        <div className="flex flex-1">
+          <main className={`flex-1 flex flex-col overflow-hidden ${isLandingPage ? 'w-full' : ''}`}>
+            <div className="flex-1 overflow-auto">
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading...</p>
+                </div>
+              </div>
+            </div>
+            <Footer />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB]">
+      <AutoFixInitializer />
+      <TopBarProvider>
+        <ResponsiveLayout
+          header={<TopBar role={role} />}
+          sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+          showSidebarToggle={!isLandingPage}
+          footer={<Footer />}
+        >
+          {children}
+        </ResponsiveLayout>
+        <PreferenceBroadcast />
+      </TopBarProvider>
+      <HelpWidget />
+      <ErrorTest />
+      <AutoIncidentReporter />
+    </div>
+  );
+}

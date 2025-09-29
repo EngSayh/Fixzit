@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-09-03T09:30:52.531999",
+  "stats": {
+    "total_checks": 6,
+    "passed": 10,
+    "failed": 2,
+    "warnings": 1
+  },
+  "errors": [
+    "Database error: 0",
+    "Pages directory not found"
+  ],
+  "warnings": [
+    "Services directory not found"
+  ],
+  "passes": [
+    "Package installed: streamlit",
+    "Package installed: pandas",
+    "Package installed: psycopg2",
+    "Package installed: bcrypt",
+    "Package installed: plotly",
+    "Package installed: folium",
+    "DATABASE_URL environment variable found",
+    "Navigation for 'admin': 97 pages",
+    "Navigation for 'manager': 75 pages",
+    "Navigation for 'tenant': 28 pages"
+  ],
+  "status": "FAIL"
+}

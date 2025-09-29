@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "es2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -14,24 +18,66 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "downlevelIteration": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
+    "types": [
+      "node",
+      "react",
+      "react-dom",
+      "next",
+      "google.maps",
+      "jest"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@modules/*": ["src/modules/*"],
-      "@components/*": ["src/components/*"],
-      "@lib/*": ["src/lib/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@schemas/*": ["src/schemas/*"],
-      "@types/*": ["src/types/*"],
-      "@/types/*": ["src/types/*"],
-      "@utils/*": ["src/utils/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/server/*": [
+        "src/server/*"
+      ],
+      "@modules/*": [
+        "src/modules/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@schemas/*": [
+        "src/schemas/*"
+      ],
+      "@types/*": [
+        "src/types/*"
+      ],
+      "@/types/*": [
+        "src/types/*"
+      ],
+      "@utils/*": [
+        "src/utils/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "tests",
+    "vitest.config.ts",
+    "qa/tests",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ]
 }

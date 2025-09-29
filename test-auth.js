@@ -10,9 +10,9 @@ const { URL } = require('url');
 // Test configuration
 const BASE_URL = 'http://localhost:3000';
 const TEST_USERS = [
-  { email: 'admin@fixzit.com', password: 'password123', name: 'Admin User' },
-  { email: 'property@fixzit.com', password: 'password123', name: 'Property Manager' },
-  { email: 'tech@fixzit.com', password: 'password123', name: 'Technician' }
+  { email: 'admin@fixzit.co', password: 'password123', name: 'Admin User' },
+  { email: 'property@fixzit.co', password: 'password123', name: 'Property Manager' },
+  { email: 'tech@fixzit.co', password: 'password123', name: 'Technician' }
 ];
 
 // Colors for console output

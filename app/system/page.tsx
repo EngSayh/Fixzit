@@ -1,0 +1,14 @@
+'use client&apos;;
+
+import SystemVerifier from &apos;@/src/components/SystemVerifier&apos;;
+
+export default function SystemPage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SystemVerifier />
+      </div>
+    </div>
+  );
+}
+
