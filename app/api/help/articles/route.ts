@@ -60,9 +60,9 @@ export async function GET(req: NextRequest){
 
     // Indexes are created by scripts/add-database-indexes.js
 
-    // Enforce tenant isolation; allow global articles with no tenantId
-    const orClauses: any[] = [ { tenantId: { $exists: false } }, { tenantId: null } ];
-    if ((user as any)?.tenantId) orClauses.unshift({ tenantId: (user as any).tenantId });
+    // Enforce tenant isolation; allow global articles with no orgId
+    const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    if ((user as any)?.orgId) orClauses.unshift({ orgId: (user as any).orgId });
     const tenantScope = { $or: orClauses } as any;
     const filter: any = { ...tenantScope };
     if (status && status !== 'ALL') filter.status = status;

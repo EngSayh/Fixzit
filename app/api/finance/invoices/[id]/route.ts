@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params:{ id:string }
 
     const body = invoiceUpdateSchema.parse(await req.json());
     
-    const inv = await svc.post(user.tenantId, params.id, body, user.id, req.ip ?? "");
+    const inv = await svc.post(user.orgId, params.id, body, user.id, req.ip ?? "");
     return NextResponse.json({ data: inv });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

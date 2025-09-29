@@ -147,7 +147,7 @@ export default function GlobalSearch() {
             </div>
           ) : query && !loading ? (
             <div className="p-4 text-center text-gray-500">
-              <div className="text-sm">No results found for "{query}"</div>
+              <div className="text-sm">No results found for &ldquo;{query}&rdquo;</div>
               <div className="text-xs mt-1">Try different keywords</div>
             </div>
           ) : null}

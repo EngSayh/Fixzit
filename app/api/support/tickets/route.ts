@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { connectMongo } from "@/src/lib/mongo";
+import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import crypto from "crypto";
 
 const createSchema = z.object({
   subject: z.string().min(4),
@@ -15,57 +18,43 @@ const createSchema = z.object({
 
 export async function POST(req: NextRequest){
   try {
-    if (process.env.SUPPORT_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Support endpoint not available in this deployment' }, { status: 501 });
-    }
-    const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
-    const SupportTicketMod = await import('@/src/server/models/SupportTicket').catch(() => null);
-    const SupportTicket = SupportTicketMod && (SupportTicketMod as any).SupportTicket;
-    if (!SupportTicket) {
-      return NextResponse.json({ success: false, error: 'Support Ticket dependencies are not available in this deployment' }, { status: 501 });
-    }
+    await connectMongo();
     const user = await getSessionUser(req).catch(()=>null);
     const body = createSchema.parse(await req.json());
 
-    const code = `SUP-${new Date().getFullYear()}-${Math.floor(Math.random()*100000)}`;
-    const ticket = await (SupportTicket as any).create({
-    tenantId: user?.tenantId,
-    code,
-    subject: body.subject,
-    module: body.module,
-    type: body.type,
-    priority: body.priority,
-    category: body.category,
-    subCategory: body.subCategory,
-    status: "New",
-    createdByUserId: user?.id,
-    requester: user ? undefined : body.requester,
-    messages: [{ byUserId: user?.id, byRole: user ? "USER" : "GUEST", text: body.text, at: new Date() }]
-  });
+    // Generate cryptographically secure ticket code
+    const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+    const code = `SUP-${new Date().getFullYear()}-${uuid}`;
+    
+    const ticket = await SupportTicket.create({
+      orgId: user?.orgId,
+      code,
+      subject: body.subject,
+      module: body.module,
+      type: body.type,
+      priority: body.priority,
+      category: body.category,
+      subCategory: body.subCategory,
+      status: "New",
+      createdByUserId: user?.id,
+      requester: user ? undefined : body.requester,
+      messages: [{ byUserId: user?.id, byRole: user ? "USER" : "GUEST", text: body.text, at: new Date() }]
+    });
 
-  return NextResponse.json(ticket, { status: 201 });
+    return NextResponse.json(ticket, { status: 201 });
   } catch (error: any) {
-    console.error('Support Tickets POST error:', error);
-    return NextResponse.json({ 
-      error: 'Failed to create support ticket' 
-    }, { status: 500 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+    }
+    console.error('Support ticket creation failed:', error);
+    return NextResponse.json({ error: 'Failed to create support ticket' }, { status: 500 });
   }
 }
 
 // Admin list with filters
 export async function GET(req: NextRequest){
   try {
-    if (process.env.SUPPORT_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Support endpoint not available in this deployment' }, { status: 501 });
-    }
-    const { db } = await import('@/src/lib/mongo');
-    await (db as any)();
-    const SupportTicketMod = await import('@/src/server/models/SupportTicket').catch(() => null);
-    const SupportTicket = SupportTicketMod && (SupportTicketMod as any).SupportTicket;
-    if (!SupportTicket) {
-      return NextResponse.json({ success: false, error: 'Support Ticket dependencies are not available in this deployment' }, { status: 501 });
-    }
+    await connectMongo();
     const user = await getSessionUser(req).catch(()=>null);
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
       return NextResponse.json({ error: "Forbidden"},{ status: 403 });
@@ -83,15 +72,13 @@ export async function GET(req: NextRequest){
     if (type) match.type = type;
     if (priority) match.priority = priority;
 
-  const [items,total] = await Promise.all([
-    (SupportTicket as any).find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
-    (SupportTicket as any).countDocuments(match)
-  ]);
-  return NextResponse.json({ items, page, limit, total });
-  } catch (error: any) {
-    console.error('Support Tickets GET error:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch support tickets' 
-    }, { status: 500 });
+    const [items,total] = await Promise.all([
+      (SupportTicket as any).find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
+      (SupportTicket as any).countDocuments(match)
+    ]);
+    return NextResponse.json({ items, page, limit, total });
+  } catch (error) {
+    console.error('Support tickets query failed:', error);
+    return NextResponse.json({ error: 'Failed to fetch support tickets' }, { status: 500 });
   }
 }

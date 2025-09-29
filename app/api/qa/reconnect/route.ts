@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectDb } from '@/src/lib/mongo';
 
 export async function POST(req: NextRequest) {
   try {
     // Force database reconnection by accessing it
-    await db;
+    await connectDb();
     console.log('🔄 Database reconnected successfully');
 
     return NextResponse.json({

@@ -33,6 +33,8 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
 
   const departments = categories.map((category: any) => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
 
+  const heading = `${searchData.pagination.total} result(s) for ‘${searchParams.q ?? 'All products'}’`;
+
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       <TopBarAmazon departments={departments} loadingDepartments={!categories.length} />
@@ -42,9 +44,7 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm uppercase tracking-wide text-[#0061A8]">Search results</p>
-              <h1 className="text-2xl font-semibold text-[#0F1111]">
-                {searchData.pagination.total} result(s) for '{searchParams.q ?? 'All products'}'
-              </h1>
+              <h1 className="text-2xl font-semibold text-[#0F1111]">{heading}</h1>
             </div>
             <Link
               href="/marketplace/rfq"

@@ -121,9 +121,9 @@ export async function POST(req: NextRequest) {
 
     // Text index is created by scripts/add-database-indexes.js
 
-    // Enforce tenant isolation; allow global articles with no tenantId
-    const orClauses: any[] = [ { tenantId: { $exists: false } }, { tenantId: null } ];
-    if ((user as any)?.tenantId) orClauses.unshift({ tenantId: (user as any).tenantId });
+    // Enforce tenant isolation; allow global articles with no orgId
+    const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    if ((user as any)?.orgId) orClauses.unshift({ orgId: (user as any).orgId });
     const tenantScope = { $or: orClauses } as any;
     const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       const { embedText } = await import('@/src/ai/embeddings');
       const { performKbSearch } = await import('@/src/kb/search');
       const qVec = await embedText(question);
-      const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
+      const chunks = await performKbSearch({ orgId: (user as any)?.orgId, query: qVec, q: question, lang, role, route, limit });
       docs = (chunks || []).map((c: any) => ({
         slug: c.slug || c.articleId || '',
         title: c.title || '',
