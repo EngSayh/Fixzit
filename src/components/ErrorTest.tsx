@@ -1,29 +1,29 @@
-'use client&apos;;
+'use client';
 
-import { useState } from &apos;react&apos;;
+import { useState } from 'react';
 
 export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
 
   const triggerError = () => {
     // This will trigger the error boundary
-    throw new Error(&apos;Test error triggered by user for error boundary testing&apos;);
+    throw new Error('Test error triggered by user for error boundary testing');
   };
 
   const triggerAsyncError = async () => {
     // Simulate an async error
     await new Promise(resolve => setTimeout(resolve, 1000));
-    throw new Error(&apos;Async test error triggered by user&apos;);
+    throw new Error('Async test error triggered by user');
   };
 
   const triggerJSONError = () => {
     // Simulate JSON parsing error
-    JSON.parse(&apos;{invalid json}&apos;);
+    JSON.parse('{invalid json}');
   };
 
   const triggerNetworkError = () => {
     // Simulate network error
-    fetch(&apos;https://invalid-url-that-does-not-exist.com/api/test&apos;);
+    fetch('https://invalid-url-that-does-not-exist.com/api/test');
   };
 
   if (!showTest) {

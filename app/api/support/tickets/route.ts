@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectMongo } from "@/src/lib/mongo";
+import { connectDb } from "@/src/lib/mongo";
 import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -18,7 +18,7 @@ const createSchema = z.object({
 
 export async function POST(req: NextRequest){
   try {
-    await connectMongo();
+    await connectDb();
     const user = await getSessionUser(req).catch(()=>null);
     const body = createSchema.parse(await req.json());
 
@@ -52,10 +52,10 @@ export async function POST(req: NextRequest){
 }
 
 // Admin list with filters
-export async function GET(req: NextRequest){
+export async function GET(req: NextRequest) {
   try {
-    await connectMongo();
-    const user = await getSessionUser(req).catch(()=>null);
+    await connectDb();
+    const user = await getSessionUser(req);
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
       return NextResponse.json({ error: "Forbidden"},{ status: 403 });
     }

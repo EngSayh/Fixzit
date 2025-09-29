@@ -1,7 +1,7 @@
-'use client&apos;;
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from &apos;react&apos;;
-import { useRouter } from &apos;next/navigation&apos;;
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface UseUnsavedChangesOptions {
   message?: string;
@@ -13,9 +13,9 @@ interface UseUnsavedChangesOptions {
 
 export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
   const {
-    message = &apos;You have unsaved changes. Are you sure you want to leave without saving?&apos;,
-    saveMessage = &apos;Your changes have been saved successfully.&apos;,
-    cancelMessage = &apos;Changes were not saved.&apos;,
+    message = 'You have unsaved changes. Are you sure you want to leave without saving?',
+    saveMessage = 'Your changes have been saved successfully.',
+    cancelMessage = 'Changes were not saved.',
     onSave,
     onDiscard
   } = options;
@@ -74,7 +74,7 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
       markClean();
       setShowSaveConfirm(false);
       // Show success message
-      if (typeof window !== &apos;undefined&apos;) {
+      if (typeof window !== 'undefined') {
         alert(saveMessage);
       }
     } catch (error) {
@@ -91,7 +91,7 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
     if (onDiscard) {
       onDiscard();
     }
-    if (typeof window !== &apos;undefined&apos;) {
+    if (typeof window !== 'undefined') {
       alert(cancelMessage);
     }
   }, [onDiscard, cancelMessage]);
@@ -103,7 +103,7 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
 
   // Block browser back/forward
   useEffect(() => {
-    if (typeof window !== &apos;undefined&apos; && hasUnsavedChanges) {
+    if (typeof window !== 'undefined' && hasUnsavedChanges) {
       const handleBeforeUnload = (e: BeforeUnloadEvent) => {
         e.preventDefault();
         e.returnValue = message;
@@ -114,16 +114,16 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
         if (hasUnsavedChanges) {
           e.preventDefault();
           setShowWarning(true);
-          window.history.pushState(null, &apos;', window.location.pathname);
+          window.history.pushState(null, '', window.location.pathname);
         }
       };
 
-      window.addEventListener(&apos;beforeunload&apos;, handleBeforeUnload);
-      window.addEventListener(&apos;popstate&apos;, handlePopState);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('popstate', handlePopState);
 
       return () => {
-        window.removeEventListener(&apos;beforeunload&apos;, handleBeforeUnload);
-        window.removeEventListener(&apos;popstate&apos;, handlePopState);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('popstate', handlePopState);
       };
     }
   }, [hasUnsavedChanges, message]);
@@ -150,11 +150,11 @@ export function UnsavedChangesWarning({
   onSave,
   onDiscard,
   onStay,
-  title = &apos;Unsaved Changes&apos;,
-  message = &apos;You have unsaved changes. Would you like to save them before leaving?&apos;,
-  saveText = &apos;Save Changes&apos;,
-  discardText = &apos;Discard Changes&apos;,
-  stayText = &apos;Stay Here&apos;
+  title = 'Unsaved Changes',
+  message = 'You have unsaved changes. Would you like to save them before leaving?',
+  saveText = 'Save Changes',
+  discardText = 'Discard Changes',
+  stayText = 'Stay Here'
 }: {
   isOpen: boolean;
   onSave: () => void;
@@ -203,10 +203,10 @@ export function SaveConfirmation({
   isOpen,
   onConfirm,
   onCancel,
-  title = &apos;Save Changes&apos;,
-  message = &apos;Are you sure you want to save these changes?&apos;,
-  confirmText = &apos;Save&apos;,
-  cancelText = &apos;Cancel&apos;
+  title = 'Save Changes',
+  message = 'Are you sure you want to save these changes?',
+  confirmText = 'Save',
+  cancelText = 'Cancel'
 }: {
   isOpen: boolean;
   onConfirm: () => void;

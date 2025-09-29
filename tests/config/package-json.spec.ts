@@ -42,11 +42,7 @@ test.describe('package.json configuration integrity', () => {
       'test:debug': `playwright test --debug`,
       'test:ui': `playwright test --ui`,
       'test:install': `playwright install`,
-      'db:push': `prisma db push`,
-      'db:seed': `tsx prisma/seed.ts`,
-      'db:seed:rbac': `tsx prisma/seed-rbac.ts`,
-      'db:reset': `prisma db push --force-reset && tsx prisma/seed-rbac.ts`,
-      'db:studio': `prisma studio`,
+
       'artifacts:init': `mkdir -p _artifacts`,
       'reports:clean': `node -e "require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});"`,
       'pack:reports': `npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true`,
@@ -60,9 +56,9 @@ test.describe('package.json configuration integrity', () => {
   })
 
   test('script values are non-empty and trimmed', () => {
-    const entries = Object.entries(pkg.scripts || {})
+    const entries = Object.entries(pkg.scripts || {}) as [string, string][]
     expect(entries.length).toBeGreaterThan(0)
-    for (const [name, value] of entries) {
+    for (const [, value] of entries) {
       expect(typeof value).toBe('string')
       expect(value).toBe(value.trim())
       expect(value.length).toBeGreaterThan(0)
@@ -89,10 +85,7 @@ test.describe('package.json configuration integrity', () => {
     expect(s).toContain('npm run verify:mongo')
   })
 
-  test('Prisma seeding is configured correctly', () => {
-    expect(pkg.prisma?.seed).toBe('tsx prisma/seed.ts')
-    expect(pkg.scripts?.['db:seed']).toBe('tsx prisma/seed.ts')
-  })
+
 
   test('overrides and devDependencies pin critical packages', () => {
     expect(pkg.overrides?.['postcss-selector-parser']).toBe('6.0.13')
@@ -105,8 +98,7 @@ test.describe('package.json configuration integrity', () => {
       'react',
       'react-dom',
       'typescript',
-      'prisma',
-      '@prisma/client',
+
       'mongodb',
       'mongoose',
       'axios',

@@ -6,6 +6,7 @@ export type SessionUser = {
   id: string;
   role: Role;
   orgId: string;
+  tenantId: string;
 };
 
 export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
@@ -33,7 +34,8 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   return {
     id: payload.id,
     role: payload.role as Role,
-    orgId: payload.orgId
+    orgId: payload.orgId,
+    tenantId: payload.tenantId || payload.orgId // Use tenantId or fallback to orgId
   };
 }
 

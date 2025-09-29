@@ -1,71 +1,71 @@
-import React from &apos;react&apos;;
+import React from 'react';
 
 export default function PropertiesInspectionsPage() {
   const inspections = [
     {
-      id: &apos;INSP-001&apos;,
-      title: &apos;Monthly Safety Inspection&apos;,
-      property: &apos;Tower A&apos;,
-      inspector: &apos;Safety Team&apos;,
-      scheduledDate: &apos;2025-01-25&apos;,
+      id: 'INSP-001',
+      title: 'Monthly Safety Inspection',
+      property: 'Tower A',
+      inspector: 'Safety Team',
+      scheduledDate: '2025-01-25',
       status: 'scheduled',
-      type: &apos;Safety&apos;,
-      lastInspection: &apos;2024-12-25&apos;,
-      nextDue: &apos;2025-02-25&apos;
+      type: 'Safety',
+      lastInspection: '2024-12-25',
+      nextDue: '2025-02-25'
     },
     {
-      id: &apos;INSP-002&apos;,
-      title: &apos;Fire System Check&apos;,
-      property: &apos;Tower B&apos;,
-      inspector: &apos;Fire Safety Dept&apos;,
-      scheduledDate: &apos;2025-01-23&apos;,
-      status: &apos;in-progress&apos;,
-      type: &apos;Fire Safety&apos;,
-      lastInspection: &apos;2024-10-15&apos;,
-      nextDue: &apos;2025-04-15&apos;
+      id: 'INSP-002',
+      title: 'Fire System Check',
+      property: 'Tower B',
+      inspector: 'Fire Safety Dept',
+      scheduledDate: '2025-01-23',
+      status: 'in-progress',
+      type: 'Fire Safety',
+      lastInspection: '2024-10-15',
+      nextDue: '2025-04-15'
     },
     {
-      id: &apos;INSP-003&apos;,
-      title: &apos;HVAC System Inspection&apos;,
-      property: &apos;Villa Complex&apos;,
-      inspector: &apos;Maintenance Team&apos;,
-      scheduledDate: &apos;2025-01-20&apos;,
-      status: &apos;completed&apos;,
-      type: &apos;Mechanical&apos;,
-      lastInspection: &apos;2024-12-20&apos;,
-      nextDue: &apos;2025-02-20&apos;
+      id: 'INSP-003',
+      title: 'HVAC System Inspection',
+      property: 'Villa Complex',
+      inspector: 'Maintenance Team',
+      scheduledDate: '2025-01-20',
+      status: 'completed',
+      type: 'Mechanical',
+      lastInspection: '2024-12-20',
+      nextDue: '2025-02-20'
     },
     {
-      id: &apos;INSP-004&apos;,
-      title: &apos;Electrical Safety Audit&apos;,
-      property: &apos;Tower A&apos;,
-      inspector: &apos;Electrical Team&apos;,
-      scheduledDate: &apos;2025-01-18&apos;,
-      status: &apos;overdue&apos;,
-      type: &apos;Electrical&apos;,
-      lastInspection: &apos;2024-11-15&apos;,
-      nextDue: &apos;2025-05-15&apos;
+      id: 'INSP-004',
+      title: 'Electrical Safety Audit',
+      property: 'Tower A',
+      inspector: 'Electrical Team',
+      scheduledDate: '2025-01-18',
+      status: 'overdue',
+      type: 'Electrical',
+      lastInspection: '2024-11-15',
+      nextDue: '2025-05-15'
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case &apos;completed&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case 'scheduled&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
-      case &apos;in-progress&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      case &apos;overdue&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;cancelled&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
+      case 'cancelled': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case &apos;Safety&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
-      case &apos;Fire Safety&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;Mechanical&apos;: return &apos;bg-purple-100 text-purple-800 border-purple-200&apos;;
-      case &apos;Electrical&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'Safety': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Fire Safety': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Mechanical': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Electrical': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -239,7 +239,7 @@ export default function PropertiesInspectionsPage() {
           <button className="btn-ghost">View Calendar</button>
         </div>
         <div className="space-y-3">
-          {inspections.filter(inspection => inspection.status === 'scheduled&apos;).map(inspection => (
+          {inspections.filter(inspection => inspection.status === 'scheduled').map(inspection => (
             <div key={inspection.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="text-blue-400">📅</div>

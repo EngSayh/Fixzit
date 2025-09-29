@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Job } from '@/src/server/models/Job';
 import { generateSlug } from '@/src/lib/utils';
 import { getUserFromToken } from '@/src/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    await connectDb();
+    await connectToDatabase();
     
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
@@ -50,13 +50,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await connectDb();
+    await connectToDatabase();
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
     const userId = user?.id || 'system';
-    const orgId = user?.tenantId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    const orgId = (user as any)?.tenantId || (user as any)?.orgId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;

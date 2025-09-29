@@ -1,4 +1,4 @@
-import React from &apos;react&apos;;
+import React from 'react';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> {
   placeholder?: string;
 }
 
-export const Select: React.FC<SelectProps> = ({ className = &apos;', children, onValueChange, onChange, ...props }) => {
+export const Select: React.FC<SelectProps> = ({ className = '', children, onValueChange, onChange, ...props }) => {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (onChange) {
       onChange(e);
@@ -32,7 +32,7 @@ export const Select: React.FC<SelectProps> = ({ className = &apos;', children, o
   );
 };
 
-export const SelectContent: React.FC<SelectContentProps> = ({ className = &apos;', children, ...props }) => {
+export const SelectContent: React.FC<SelectContentProps> = ({ className = '', children, ...props }) => {
   return (
     <>
       {children}
@@ -40,7 +40,7 @@ export const SelectContent: React.FC<SelectContentProps> = ({ className = &apos;
   );
 };
 
-export const SelectItem: React.FC<SelectItemProps> = ({ className = &apos;', children, ...props }) => {
+export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children, ...props }) => {
   return (
     <option
       className={`cursor-pointer select-none py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-gray-100 ${className}`}
@@ -51,7 +51,7 @@ export const SelectItem: React.FC<SelectItemProps> = ({ className = &apos;', chi
   );
 };
 
-export const SelectTrigger: React.FC<SelectTriggerProps> = ({ className = &apos;', children, ...props }) => {
+export const SelectTrigger: React.FC<SelectTriggerProps> = ({ className = '', children, ...props }) => {
   return (
     <>
       {children}
@@ -59,7 +59,7 @@ export const SelectTrigger: React.FC<SelectTriggerProps> = ({ className = &apos;
   );
 };
 
-export const SelectValue: React.FC<SelectValueProps> = ({ className = &apos;', placeholder = &apos;', ...props }) => {
+export const SelectValue: React.FC<SelectValueProps> = ({ className = '', placeholder = '', ...props }) => {
   return (
     <option value="" disabled>
       {placeholder}

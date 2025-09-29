@@ -346,3 +346,13 @@ export async function getNativeDb(): Promise<any> {
   
   return connection.db;
 }
+
+// Export connectDb function for API route compatibility
+export async function connectDb(): Promise<DatabaseHandle> {
+  return await getDatabase();
+}
+
+// Export connectMongo for backward compatibility
+export async function connectMongo(): Promise<DatabaseHandle> {
+  return await getDatabase();
+}

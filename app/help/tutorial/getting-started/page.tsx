@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import Link from &apos;next/link&apos;;
-import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, ChevronRight, Star, Clock } from &apos;lucide-react&apos;;
+import { useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, ChevronRight, Star, Clock } from 'lucide-react';
 
 interface Step {
   id: string;
@@ -18,23 +18,23 @@ export default function GettingStartedTutorial() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const tutorial = {
-    id: &apos;getting-started&apos;,
-    title: &apos;Getting Started with Fixzit FM&apos;,
-    description: &apos;Learn the basics of facility management in Fixzit&apos;,
-    duration: &apos;15 min&apos;,
-    difficulty: &apos;Beginner&apos; as const,
+    id: 'getting-started',
+    title: 'Getting Started with Fixzit FM',
+    description: 'Learn the basics of facility management in Fixzit',
+    duration: '15 min',
+    difficulty: 'Beginner' as const,
     steps: [
       {
-        id: &apos;1',
-        title: &apos;Welcome to Fixzit Enterprise&apos;,
-        description: &apos;Overview of the platform and its capabilities&apos;,
+        id: '1',
+        title: 'Welcome to Fixzit Enterprise',
+        description: 'Overview of the platform and its capabilities',
         completed: false,
         content: `
 # Welcome to Fixzit Enterprise
 
 Fixzit Enterprise is a comprehensive facility management platform that combines property operations, maintenance workflows, and procurement into one unified solution.
 
-## What You&apos;ll Learn
+## What You'll Learn
 
 - Navigate the platform interface
 - Understand the main modules
@@ -63,15 +63,15 @@ Fixzit Enterprise is a comprehensive facility management platform that combines 
 Ready to get started? Click "Next" to begin your journey!
         `,
         tips: [
-          &apos;Take your time to explore each section&apos;,
-          &apos;Use the help widget for quick assistance&apos;,
-          &apos;Bookmark important pages for easy access&apos;
+          'Take your time to explore each section',
+          'Use the help widget for quick assistance',
+          'Bookmark important pages for easy access'
         ]
       },
       {
-        id: &apos;2',
-        title: &apos;Understanding the Dashboard&apos;,
-        description: &apos;Learn about the main dashboard and navigation&apos;,
+        id: '2',
+        title: 'Understanding the Dashboard',
+        description: 'Learn about the main dashboard and navigation',
         completed: false,
         content: `
 # Understanding the Dashboard
@@ -130,15 +130,15 @@ From the dashboard, you can:
 Continue to the next step to learn about properties!
         `,
         tips: [
-          &apos;Pin frequently used sections to your favorites&apos;,
-          &apos;Use keyboard shortcuts for faster navigation&apos;,
-          &apos;Check notifications regularly for important updates&apos;
+          'Pin frequently used sections to your favorites',
+          'Use keyboard shortcuts for faster navigation',
+          'Check notifications regularly for important updates'
         ]
       },
       {
-        id: &apos;3',
-        title: &apos;Managing Properties&apos;,
-        description: &apos;Learn how to add and manage properties&apos;,
+        id: '3',
+        title: 'Managing Properties',
+        description: 'Learn how to add and manage properties',
         completed: false,
         content: `
 # Managing Properties
@@ -215,16 +215,16 @@ After adding your properties, you'll be ready to:
 Ready to learn about work orders? Click "Next"!
         `,
         tips: [
-          &apos;Take photos of your properties for documentation&apos;,
-          &apos;Keep emergency contact information current&apos;,
-          &apos;Regularly review and update property details&apos;,
-          &apos;Use the property code for easy identification&apos;
+          'Take photos of your properties for documentation',
+          'Keep emergency contact information current',
+          'Regularly review and update property details',
+          'Use the property code for easy identification'
         ]
       },
       {
-        id: &apos;4',
-        title: &apos;Creating Work Orders&apos;,
-        description: &apos;Learn how to create and manage work orders&apos;,
+        id: '4',
+        title: 'Creating Work Orders',
+        description: 'Learn how to create and manage work orders',
         completed: false,
         content: `
 # Creating Work Orders
@@ -317,16 +317,16 @@ Work orders are the backbone of facility maintenance management in Fixzit.
 Continue to learn about vendor management!
         `,
         tips: [
-          &apos;Include photos when creating work orders&apos;,
-          &apos;Set realistic priorities based on impact&apos;,
-          &apos;Provide clear instructions to avoid confusion&apos;,
-          &apos;Follow up on important work orders regularly&apos;
+          'Include photos when creating work orders',
+          'Set realistic priorities based on impact',
+          'Provide clear instructions to avoid confusion',
+          'Follow up on important work orders regularly'
         ]
       },
       {
-        id: &apos;5',
-        title: &apos;Vendor Management&apos;,
-        description: &apos;Learn how to work with vendors and suppliers&apos;,
+        id: '5',
+        title: 'Vendor Management',
+        description: 'Learn how to work with vendors and suppliers',
         completed: false,
         content: `
 # Vendor Management
@@ -434,11 +434,11 @@ Effective vendor management is crucial for successful facility operations.
 Continue to learn about tenant relations!
         `,
         tips: [
-          &apos;Keep vendor contact information current&apos;,
-          &apos;Document all vendor interactions&apos;,
-          &apos;Rate vendors after each job completion&apos;,
-          &apos;Maintain emergency vendor contacts&apos;,
-          &apos;Regularly review vendor performance&apos;
+          'Keep vendor contact information current',
+          'Document all vendor interactions',
+          'Rate vendors after each job completion',
+          'Maintain emergency vendor contacts',
+          'Regularly review vendor performance'
         ]
       }
     ]
@@ -473,9 +473,9 @@ Continue to learn about tenant relations!
                   {tutorial.duration}
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  tutorial.difficulty === 'Beginner&apos; ? &apos;bg-green-100 text-green-800&apos; :
-                  tutorial.difficulty === &apos;Intermediate&apos; ? &apos;bg-yellow-100 text-yellow-800&apos; :
-                  &apos;bg-red-100 text-red-800&apos;
+                  tutorial.difficulty === 'Beginner' ? 'bg-green-100 text-green-800' :
+                  tutorial.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
                 }`}>
                   {tutorial.difficulty}
                 </span>
@@ -512,10 +512,10 @@ Continue to learn about tenant relations!
                     onClick={() => setCurrentStep(index)}
                     className={`w-full text-left p-3 rounded-lg border transition-colors ${
                       currentStep === index
-                        ? 'border-blue-500 bg-blue-50 text-blue-700&apos;
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
                         : completedSteps.has(index)
-                        ? &apos;border-green-500 bg-green-50 text-green-700&apos;
-                        : &apos;border-gray-200 hover:border-gray-300&apos;
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center gap-3">

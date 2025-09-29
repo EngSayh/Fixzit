@@ -1,23 +1,23 @@
 'use client';
 
-import { useState } from &apos;react&apos;;
-import useSWR from 'swr&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
-import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
-import { Separator } from &apos;@/src/components/ui/separator&apos;;
-import { Building2, Plus, Search, Filter, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from &apos;lucide-react&apos;;
+import { useState } from 'react';
+import useSWR from 'swr';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Badge } from '@/src/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Textarea } from '@/src/components/ui/textarea';
+import { Separator } from '@/src/components/ui/separator';
+import { Building2, Plus, Search, Filter, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function AssetsPage() {
-  const [search, setSearch] = useState(&apos;');
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState(&apos;');
+  const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, mutate } = useSWR(
@@ -128,11 +128,11 @@ export default function AssetsPage() {
 function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'ACTIVE&apos;:
+      case 'ACTIVE':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'MAINTENANCE&apos;:
+      case 'MAINTENANCE':
         return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-      case 'OUT_OF_SERVICE&apos;:
+      case 'OUT_OF_SERVICE':
         return <XCircle className="w-4 h-4 text-red-600" />;
       default:
         return <Settings className="w-4 h-4 text-gray-600" />;
@@ -141,14 +141,14 @@ function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) 
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE&apos;:
-        return &apos;bg-green-100 text-green-800&apos;;
-      case &apos;MAINTENANCE&apos;:
-        return &apos;bg-yellow-100 text-yellow-800&apos;;
-      case &apos;OUT_OF_SERVICE&apos;:
-        return &apos;bg-red-100 text-red-800&apos;;
+      case 'ACTIVE':
+        return 'bg-green-100 text-green-800';
+      case 'MAINTENANCE':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'OUT_OF_SERVICE':
+        return 'bg-red-100 text-red-800';
       default:
-        return &apos;bg-gray-100 text-gray-800&apos;;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -181,10 +181,10 @@ function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) 
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Criticality:</span>
             <Badge variant="outline" className={
-              asset.criticality === 'CRITICAL&apos; ? &apos;border-red-300 text-red-700&apos; :
-              asset.criticality === &apos;HIGH&apos; ? &apos;border-orange-300 text-orange-700&apos; :
-              asset.criticality === &apos;MEDIUM&apos; ? &apos;border-yellow-300 text-yellow-700&apos; :
-              &apos;border-gray-300 text-gray-700&apos;
+              asset.criticality === 'CRITICAL' ? 'border-red-300 text-red-700' :
+              asset.criticality === 'HIGH' ? 'border-orange-300 text-orange-700' :
+              asset.criticality === 'MEDIUM' ? 'border-yellow-300 text-yellow-700' :
+              'border-gray-300 text-gray-700'
             }>
               {asset.criticality}
             </Badge>
@@ -207,7 +207,7 @@ function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) 
           <span className="text-sm text-gray-600">
             Last Maintenance: {asset.maintenanceHistory?.length > 0
               ? new Date(asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date).toLocaleDateString()
-              : 'Never&apos;}
+              : 'Never'}
           </span>
           <div className="flex space-x-2">
             <Button variant="ghost" size="sm">
@@ -228,60 +228,60 @@ function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) 
 
 function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
   const [formData, setFormData] = useState({
-    name: &apos;',
+    name: '',
     description: '',
-    type: &apos;',
+    type: '',
     category: '',
-    manufacturer: &apos;',
+    manufacturer: '',
     model: '',
-    serialNumber: &apos;',
+    serialNumber: '',
     propertyId: '',
     location: {
-      building: &apos;',
+      building: '',
       floor: '',
-      room: &apos;',
+      room: '',
       coordinates: { lat: 24.7136, lng: 46.6753 } // Default to Riyadh
     },
     specs: {
       capacity: '',
-      powerRating: &apos;',
+      powerRating: '',
       voltage: '',
-      current: &apos;',
+      current: '',
       frequency: '',
-      dimensions: &apos;',
+      dimensions: '',
       weight: ''
     },
     purchase: {
-      date: &apos;',
+      date: '',
       cost: 0,
       supplier: '',
       warranty: {
         period: 12,
-        expiry: &apos;',
+        expiry: '',
         terms: ''
       }
     },
-    status: &apos;ACTIVE&apos;,
-    criticality: &apos;MEDIUM&apos;,
+    status: 'ACTIVE',
+    criticality: 'MEDIUM',
     tags: [] as string[]
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(&apos;/api/assets&apos;, {
-        method: &apos;POST&apos;,
-        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
+      const response = await fetch('/api/assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert(&apos;Failed to create asset&apos;);
+        alert('Failed to create asset');
       }
     } catch (error) {
-      alert(&apos;Error creating asset&apos;);
+      alert('Error creating asset');
     }
   };
 

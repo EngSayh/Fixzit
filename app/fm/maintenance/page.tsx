@@ -1,23 +1,23 @@
 'use client';
 
-import { useTranslation } from &apos;@/src/contexts/TranslationContext&apos;;
-import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
-import { Button } from &apos;@/src/components/ui/button&apos;;
-import { Badge } from &apos;@/src/components/ui/badge&apos;;
-import { Input } from &apos;@/src/components/ui/input&apos;;
-import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/src/components/ui/tabs&apos;;
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
+import { useTranslation } from '@/src/contexts/TranslationContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Badge } from '@/src/components/ui/badge';
+import { Input } from '@/src/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 import {
   Search, Plus, Filter, Download, Eye, Edit, Trash2,
   Wrench, Calendar, Clock, AlertTriangle, CheckCircle, XCircle
-} from &apos;lucide-react&apos;;
+} from 'lucide-react';
 
 interface MaintenanceTask {
   id: string;
   title: string;
   asset: string;
-  priority: &apos;Low&apos; | &apos;Medium&apos; | &apos;High&apos; | &apos;Urgent&apos;;
-  status: &apos;Scheduled&apos; | &apos;In Progress&apos; | &apos;Completed&apos; | &apos;Overdue&apos;;
+  priority: 'Low' | 'Medium' | 'High' | 'Urgent';
+  status: 'Scheduled' | 'In Progress' | 'Completed' | 'Overdue';
   dueDate: string;
   assignedTo: string;
   description: string;
@@ -28,63 +28,63 @@ export default function MaintenancePage() {
 
   const tasks: MaintenanceTask[] = [
     {
-      id: &apos;MT-001&apos;,
-      title: &apos;AC Unit Maintenance - Tower A&apos;,
-      asset: &apos;AC-001&apos;,
-      priority: &apos;Medium&apos;,
-      status: &apos;Scheduled&apos;,
-      dueDate: &apos;2025-10-15&apos;,
-      assignedTo: &apos;John Smith&apos;,
-      description: &apos;Quarterly maintenance check for AC unit in Tower A lobby&apos;
+      id: 'MT-001',
+      title: 'AC Unit Maintenance - Tower A',
+      asset: 'AC-001',
+      priority: 'Medium',
+      status: 'Scheduled',
+      dueDate: '2025-10-15',
+      assignedTo: 'John Smith',
+      description: 'Quarterly maintenance check for AC unit in Tower A lobby'
     },
     {
-      id: &apos;MT-002&apos;,
-      title: &apos;Elevator Inspection - Building 1&apos;,
-      asset: &apos;ELV-001&apos;,
-      priority: &apos;High&apos;,
-      status: &apos;In Progress&apos;,
-      dueDate: &apos;2025-09-25&apos;,
-      assignedTo: &apos;Mike Johnson&apos;,
-      description: &apos;Annual elevator safety inspection and certification&apos;
+      id: 'MT-002',
+      title: 'Elevator Inspection - Building 1',
+      asset: 'ELV-001',
+      priority: 'High',
+      status: 'In Progress',
+      dueDate: '2025-09-25',
+      assignedTo: 'Mike Johnson',
+      description: 'Annual elevator safety inspection and certification'
     },
     {
-      id: &apos;MT-003&apos;,
-      title: &apos;Fire Alarm System Test&apos;,
-      asset: &apos;FA-001&apos;,
-      priority: &apos;Urgent&apos;,
-      status: &apos;Overdue&apos;,
-      dueDate: &apos;2025-09-20&apos;,
-      assignedTo: &apos;Sarah Wilson&apos;,
-      description: &apos;Monthly fire alarm system test and battery replacement&apos;
+      id: 'MT-003',
+      title: 'Fire Alarm System Test',
+      asset: 'FA-001',
+      priority: 'Urgent',
+      status: 'Overdue',
+      dueDate: '2025-09-20',
+      assignedTo: 'Sarah Wilson',
+      description: 'Monthly fire alarm system test and battery replacement'
     }
   ];
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
-      case &apos;urgent&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      case &apos;high&apos;: return &apos;bg-orange-100 text-orange-800 border-orange-200&apos;;
-      case &apos;medium&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
-      case &apos;low&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case &apos;completed&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
-      case &apos;in progress&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
-      case 'scheduled&apos;: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
-      case &apos;overdue&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
-      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'scheduled': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case &apos;completed&apos;: return <CheckCircle className="h-4 w-4" />;
-      case 'in progress&apos;: return <Clock className="h-4 w-4" />;
-      case 'scheduled&apos;: return <Calendar className="h-4 w-4" />;
-      case 'overdue&apos;: return <AlertTriangle className="h-4 w-4" />;
+      case 'completed': return <CheckCircle className="h-4 w-4" />;
+      case 'in progress': return <Clock className="h-4 w-4" />;
+      case 'scheduled': return <Calendar className="h-4 w-4" />;
+      case 'overdue': return <AlertTriangle className="h-4 w-4" />;
       default: return <Wrench className="h-4 w-4" />;
     }
   };
@@ -93,8 +93,8 @@ export default function MaintenancePage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.maintenance&apos;, &apos;Maintenance&apos;)}</h1>
-        <p className="text-gray-600">{t('maintenance.description&apos;, &apos;Manage equipment maintenance schedules and tasks&apos;)}</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.maintenance', 'Maintenance')}</h1>
+        <p className="text-gray-600">{t('maintenance.description', 'Manage equipment maintenance schedules and tasks')}</p>
       </div>
 
       {/* Summary Cards */}
@@ -161,7 +161,7 @@ export default function MaintenancePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wrench className="h-5 w-5" />
-            {t('maintenance.tasks&apos;, &apos;Maintenance Tasks&apos;)}
+            {t('maintenance.tasks', 'Maintenance Tasks')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -183,15 +183,15 @@ export default function MaintenancePage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="font-medium">{t('maintenance.asset&apos;, &apos;Asset&apos;)}:</span>
+                        <span className="font-medium">{t('maintenance.asset', 'Asset')}:</span>
                         {task.asset}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
-                        {t('maintenance.due&apos;, &apos;Due&apos;)}: {new Date(task.dueDate).toLocaleDateString()}
+                        {t('maintenance.due', 'Due')}: {new Date(task.dueDate).toLocaleDateString()}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="font-medium">{t('maintenance.assigned&apos;, &apos;Assigned to&apos;)}:</span>
+                        <span className="font-medium">{t('maintenance.assigned', 'Assigned to')}:</span>
                         {task.assignedTo}
                       </div>
                     </div>
@@ -202,15 +202,15 @@ export default function MaintenancePage() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-2" />
-                      {t('common.view&apos;, &apos;View&apos;)}
+                      {t('common.view', 'View')}
                     </Button>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-2" />
-                      {t('common.edit&apos;, &apos;Edit&apos;)}
+                      {t('common.edit', 'Edit')}
                     </Button>
                     <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                       <Trash2 className="h-4 w-4 mr-2" />
-                      {t(&apos;common.delete&apos;, &apos;Delete&apos;)}
+                      {t('common.delete', 'Delete')}
                     </Button>
                   </div>
                 </div>

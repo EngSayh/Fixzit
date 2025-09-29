@@ -1,7 +1,7 @@
-'use client&apos;;
+'use client';
 
-import { FormEvent, useState } from &apos;react&apos;;
-import { useRouter } from &apos;next/navigation&apos;;
+import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface CheckoutFormProps {
   cartId: string;
@@ -11,9 +11,9 @@ interface CheckoutFormProps {
 
 export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
   const router = useRouter();
-  const [address, setAddress] = useState(&apos;Riyadh HQ, King Fahd Rd&apos;);
-  const [contact, setContact] = useState(&apos;Facilities Control Room&apos;);
-  const [phone, setPhone] = useState(&apos;+966 11 000 0000&apos;);
+  const [address, setAddress] = useState('Riyadh HQ, King Fahd Rd');
+  const [contact, setContact] = useState('Facilities Control Room');
+  const [phone, setPhone] = useState('+966 11 000 0000');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -23,9 +23,9 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
     setLoading(true);
     setError(null);
 
-    const response = await fetch(&apos;/api/marketplace/checkout&apos;, {
-      method: &apos;POST&apos;,
-      headers: { &apos;Content-Type&apos;: &apos;application/json&apos; },
+    const response = await fetch('/api/marketplace/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         shipTo: {
           address,
@@ -39,12 +39,12 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      setError(payload.error ?? &apos;Checkout failed&apos;);
+      setError(payload.error ?? 'Checkout failed');
       return;
     }
 
     setSuccess(true);
-    router.push(&apos;/marketplace/orders&apos;);
+    router.push('/marketplace/orders');
   };
 
   return (
@@ -108,7 +108,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
         disabled={loading}
         className="w-full rounded-full bg-[#FFB400] px-6 py-3 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
       >
-        {loading ? &apos;Submitting…&apos; : &apos;Submit for approval&apos;}
+        {loading ? 'Submitting…' : 'Submit for approval'}
       </button>
     </form>
   );

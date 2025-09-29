@@ -202,6 +202,7 @@ export interface AuthToken {
   email: string;
   role: string;
   orgId: string;
+  tenantId?: string;
   name?: string;
 }
 

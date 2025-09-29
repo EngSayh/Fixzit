@@ -82,7 +82,6 @@ export async function POST(req: NextRequest) {
   } finally {
     await redis.quit();
   }
-  }
 
   // Determine tenant scope and dedupe within that scope only
   const tenantScope = sessionUser?.orgId || req.headers.get('x-org-id') || req.headers.get('x-org') || null;

@@ -1,13 +1,13 @@
-'use client&apos;;
+'use client';
 
-import React, { useEffect, useMemo, useState } from &apos;react&apos;;
-import { AutoFixAgent } from &apos;@/src/qa/AutoFixAgent&apos;;
-import { ErrorBoundary } from &apos;@/src/qa/ErrorBoundary&apos;;
+import React, { useEffect, useMemo, useState } from 'react';
+import { AutoFixAgent } from '@/src/qa/AutoFixAgent';
+import { ErrorBoundary } from '@/src/qa/ErrorBoundary';
 
 type Props = {
   children: React.ReactNode;
   enabled?: boolean;
-  role: &apos;Super Admin&apos;|'Admin&apos;|'Corporate Owner&apos;|'Team Member&apos;|'Technician&apos;|'Property Manager&apos;|'Tenant&apos;|'Vendor&apos;|'Guest&apos;|string;
+  role: 'Super Admin'|'Admin'|'Corporate Owner'|'Team Member'|'Technician'|'Property Manager'|'Tenant'|'Vendor'|'Guest'|string;
   orgId: string;
 };
 
@@ -15,7 +15,7 @@ export const QAContext = React.createContext<{
   enabled: boolean;
   role: string;
   orgId: string;
-}>({ enabled: false, role: &apos;Guest&apos;, orgId: &apos;unknown&apos; });
+}>({ enabled: false, role: 'Guest', orgId: 'unknown' });
 
 export function QAProvider({ children, enabled = false, role, orgId }: Props) {
   const value = useMemo(() => ({ enabled, role, orgId }), [enabled, role, orgId]);

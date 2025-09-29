@@ -1,10 +1,10 @@
-'use client&apos;;
+'use client';
 
-import { useState } from &apos;react&apos;;
-import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from &apos;lucide-react&apos;;
-import clsx from &apos;clsx&apos;;
-import { useCurrency } from &apos;@/src/contexts/CurrencyContext&apos;;
-import { addProductToCart } from &apos;@/src/lib/marketplace/cartClient&apos;;
+import { useState } from 'react';
+import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from 'lucide-react';
+import clsx from 'clsx';
+import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { addProductToCart } from '@/src/lib/marketplace/cartClient';
 
 interface PDPBuyBoxProps {
   product: {
@@ -20,7 +20,7 @@ interface PDPBuyBoxProps {
 
 function formatCurrency(value: number, currency: string) {
   try {
-    return new Intl.NumberFormat(&apos;en-US&apos;, { style: &apos;currency&apos;, currency }).format(value);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
   } catch (error) {
     return `${currency} ${value.toFixed(2)}`;
   }
@@ -44,9 +44,9 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
       await addProductToCart(product._id, effectiveQuantity);
       onAddToCart?.(effectiveQuantity);
     } catch (error) {
-      console.error(&apos;Failed to add product to cart&apos;, error);
-      if (typeof window !== &apos;undefined&apos;) {
-        const message = error instanceof Error ? error.message : &apos;Unable to add to cart&apos;;
+      console.error('Failed to add product to cart', error);
+      if (typeof window !== 'undefined') {
+        const message = error instanceof Error ? error.message : 'Unable to add to cart';
         window.alert?.(`Unable to add to cart: ${message}`);
       }
     } finally {
@@ -72,8 +72,8 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
         )}
       </div>
 
-      <div className={clsx(&apos;rounded-xl border px-4 py-3 text-sm&apos;, available > 0 ? &apos;border-[#00A859]/40 bg-[#00A859]/10 text-[#004728]&apos; : &apos;border-red-200 bg-red-50 text-red-700&apos;)}>
-        <p className="font-semibold">{available > 0 ? &apos;Available for immediate fulfilment&apos; : &apos;Currently out of stock&apos;}</p>
+      <div className={clsx('rounded-xl border px-4 py-3 text-sm', available > 0 ? 'border-[#00A859]/40 bg-[#00A859]/10 text-[#004728]' : 'border-red-200 bg-red-50 text-red-700')}>
+        <p className="font-semibold">{available > 0 ? 'Available for immediate fulfilment' : 'Currently out of stock'}</p>
         {product.stock?.location && <p className="text-xs opacity-80">Location: {product.stock.location}</p>}
       </div>
 
@@ -100,7 +100,7 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
           className="flex items-center justify-center gap-2 rounded-full bg-[#FFB400] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          {submitting ? &apos;Adding…&apos; : &apos;Add to Cart&apos;}
+          {submitting ? 'Adding…' : 'Add to Cart'}
         </button>
         <button
           type="button"
