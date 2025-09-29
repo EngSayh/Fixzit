@@ -103,8 +103,7 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const purchaseOrders = PURCHASE_ORDERS;
-  const serviceOrders = SERVICE_ORDERS;
+  // Remove unnecessary intermediate variables
 
   const filteredPurchaseOrders = useMemo(() => {
     return purchaseOrders.filter(order => {

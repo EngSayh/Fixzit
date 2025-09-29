@@ -185,9 +185,7 @@ export default function FMPage() {
     markDirty(); // Mark as dirty when filter changes
   };
 
-  const vendors = VENDORS;
-  const rfqs = RFQS;
-  const orders = PURCHASE_ORDERS;
+  // Removed intermediate variables - using constants directly
 
   // Filter data based on search and status
   const filteredVendors = useMemo(() => {
