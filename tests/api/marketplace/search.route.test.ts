@@ -23,11 +23,11 @@ describe('GET /api/marketplace/search', () => {
     console.error = originalConsoleError;
   });
 
-  const makeReq = (q?: string, locale?: string, tenantId?: string) => {
+  const makeReq = (q?: string, locale?: string, orgId?: string) => {
     const params = new URLSearchParams();
     if (q !== undefined) params.set('q', q);
     if (locale !== undefined) params.set('locale', locale);
-    if (tenantId !== undefined) params.set('tenantId', tenantId);
+    if (orgId !== undefined) params.set('orgId', orgId);
     const qs = params.toString();
     const url = `http://localhost/api/marketplace/search${qs ? '?' + qs : ''}`;
     // The handler only uses req.url; a minimal shim suffices.
@@ -52,7 +52,7 @@ describe('GET /api/marketplace/search', () => {
 
     expect(globalThis.__mp_find_calls__.length).toBe(1);
     const [filter] = globalThis.__mp_find_calls__[0];
-    expect(filter.tenantId).toBe('demo-tenant');
+    expect(filter.orgId).toBe('demo-org');
     expect(Array.isArray(filter.$or)).toBe(true);
     expect(filter.$or).toHaveLength(3);
     // $text search should equal original q when no synonyms
@@ -73,13 +73,13 @@ describe('GET /api/marketplace/search', () => {
     expect(json).toEqual({ items: [{ _id: 'p1' }, { _id: 'p2' }] });
   });
 
-  it('uses provided locale and tenantId from query params', async () => {
+  it('uses provided locale and orgId from query params', async () => {
     const res = await GET(makeReq('Phone', 'ES', 'tenant-123')); // locale should be lowercased
     const json = await (res as Response).json();
 
     expect(globalThis.__mp_find_calls__.length).toBeGreaterThan(0);
     const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
-    expect(filter.tenantId).toBe('tenant-123');
+    expect(filter.orgId).toBe('tenant-123');
     expect(filter.$or[0].$text.$search).toBe('Phone');
     expect(json.items).toEqual([{ _id: 'p1' }, { _id: 'p2' }]);
   });

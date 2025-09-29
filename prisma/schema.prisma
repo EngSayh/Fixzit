@@ -29,6 +29,7 @@ model User {
   name         String
   role         Role
   phone        String?
+  password     String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   // Work order relations

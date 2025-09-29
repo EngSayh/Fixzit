@@ -1,22 +1,22 @@
 import { verifyToken } from '@/src/lib/auth';
 
-export type AuthContext = { tenantId: string | null; role: string | null };
+export type AuthContext = { orgId: string | null; role: string | null };
 
 type RequestLike = {
   cookies?: { get?: (name: string) => { value?: string } | undefined };
   headers?: { get?: (name: string) => string | undefined };
 };
 
-type TokenPayload = { tenantId?: string; role?: string } | null | undefined;
+type TokenPayload = { orgId?: string; role?: string } | null | undefined;
 
 export function getAuthFromRequest(req: RequestLike): AuthContext {
   try {
     const token = req?.cookies?.get?.('fixzit_auth')?.value || req?.headers?.get?.('x-auth-token');
-    if (!token) return { tenantId: null, role: null };
+    if (!token) return { orgId: null, role: null };
     const payload = verifyToken(token) as TokenPayload;
-    return { tenantId: payload?.tenantId ?? null, role: payload?.role ?? null };
+    return { orgId: payload?.orgId ?? null, role: payload?.role ?? null };
   } catch {
-    return { tenantId: null, role: null };
+    return { orgId: null, role: null };
   }
 }
 

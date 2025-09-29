@@ -1,8 +1,8 @@
-import { getDatabase } from "@/lib/mongodb";
-import { cookies, headers } from 'next/headers';
-import { verifyToken } from '@/src/lib/auth';
+import { connectDb } from "@/src/lib/mongo";
+import { HelpArticle } from "@/src/server/models/HelpArticle";
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/src/lib/markdown';
+import { headers } from 'next/headers';
 
 export const revalidate = 60;
 
@@ -17,22 +17,9 @@ type Article = { slug: string; title: string; content: string; category?: string
  * @returns JSX for the help article page or a fallback message when the article is unavailable.
  */
 export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
-  // Extract auth token from cookies or headers to determine tenantId
-  const cookieStore = cookies();
-  const cookieToken = cookieStore.get('fixzit_auth')?.value;
-  const authHeader = headers().get('authorization') || '';
-  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-  const token = cookieToken || bearer;
-  const payload = token ? verifyToken(token) : null;
-
-  const db = await getDatabase();
-  const coll = db.collection<Article>('helparticles');
-  type TenantScope = { $or: Array<{ tenantId: string } | { tenantId: { $exists: boolean } } | { tenantId: null }> };
-  const tenantScope: TenantScope = payload?.tenantId
-    ? { $or: [ { tenantId: payload.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] }
-    : { $or: [ { tenantId: { $exists: false } }, { tenantId: null } ] };
-  const a = await coll.findOne({ slug: params.slug, status: 'PUBLISHED', ...tenantScope });
-  if (!a){
+  await connectDb();
+  const a = await (HelpArticle as any).findOne({ slug: params.slug });
+  if (!a || a.status!=="PUBLISHED"){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }
   // Derive dir from Accept-Language (simple heuristic); ClientLayout will enforce on client
@@ -46,7 +33,7 @@ export default async function HelpArticlePage({ params }:{ params:{ slug:string 
           <div className="flex items-center gap-2 text-sm mb-2 opacity-90">
             <Link href="/help" className="hover:underline">Help Center</Link>
             <span>/</span>
-            <span>{a.category || 'General'}</span>
+            <span>{a.category || 'General&apos;}</span>
           </div>
           <h1 className="text-3xl font-bold">{a.title}</h1>
         </div>

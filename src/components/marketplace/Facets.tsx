@@ -1,7 +1,7 @@
-'use client';
+'use client&apos;;
 
-import { useState } from 'react';
-import clsx from 'clsx';
+import { useState } from &apos;react&apos;;
+import clsx from &apos;clsx&apos;;
 
 export interface MarketplaceFacets {
   categories: { slug: string; name: string }[];
@@ -20,12 +20,12 @@ interface FacetsProps {
     minPrice?: number;
     maxPrice?: number;
   };
-  onChange: (next: Partial<FacetsProps['selected']>) => void;
+  onChange: (next: Partial<FacetsProps['selected&apos;]>) => void;
 }
 
 export default function Facets({ facets, selected, onChange }: FacetsProps) {
-  const [priceMin, setPriceMin] = useState(selected.minPrice?.toString() ?? '');
-  const [priceMax, setPriceMax] = useState(selected.maxPrice?.toString() ?? '');
+  const [priceMin, setPriceMin] = useState(selected.minPrice?.toString() ?? &apos;');
+  const [priceMax, setPriceMax] = useState(selected.maxPrice?.toString() ?? &apos;');
 
   return (
     <aside className="w-full max-w-xs space-y-6">
@@ -38,8 +38,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ category: category.slug })}
                 className={clsx(
-                  'w-full rounded-md px-3 py-2 text-left transition',
-                  selected.category === category.slug ? 'bg-[#0061A8] text-white' : 'hover:bg-gray-100'
+                  &apos;w-full rounded-md px-3 py-2 text-left transition&apos;,
+                  selected.category === category.slug ? &apos;bg-[#0061A8] text-white&apos; : &apos;hover:bg-gray-100&apos;
                 )}
               >
                 {category.name}
@@ -58,8 +58,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ brand })}
                 className={clsx(
-                  'w-full rounded-md px-3 py-2 text-left transition',
-                  selected.brand === brand ? 'bg-[#0061A8] text-white' : 'hover:bg-gray-100'
+                  &apos;w-full rounded-md px-3 py-2 text-left transition&apos;,
+                  selected.brand === brand ? &apos;bg-[#0061A8] text-white&apos; : &apos;hover:bg-gray-100&apos;
                 )}
               >
                 {brand}
@@ -78,8 +78,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ standard })}
                 className={clsx(
-                  'w-full rounded-md px-3 py-2 text-left transition',
-                  selected.standard === standard ? 'bg-[#0061A8] text-white' : 'hover:bg-gray-100'
+                  &apos;w-full rounded-md px-3 py-2 text-left transition&apos;,
+                  selected.standard === standard ? &apos;bg-[#0061A8] text-white&apos; : &apos;hover:bg-gray-100&apos;
                 )}
               >
                 {standard}

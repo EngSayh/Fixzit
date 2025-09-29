@@ -1,46 +1,46 @@
-import React from 'react';
+import React from &apos;react&apos;;
 
 export default function PreventiveMaintenancePage() {
   const pmSchedules = [
     {
-      id: 'PM-001',
-      title: 'Monthly AC Maintenance',
-      property: 'Tower A',
-      frequency: 'Monthly',
-      lastDone: '2025-01-15',
-      nextDue: '2025-02-15',
+      id: &apos;PM-001&apos;,
+      title: &apos;Monthly AC Maintenance&apos;,
+      property: &apos;Tower A&apos;,
+      frequency: &apos;Monthly&apos;,
+      lastDone: &apos;2025-01-15&apos;,
+      nextDue: &apos;2025-02-15&apos;,
       status: 'scheduled',
-      assigned: 'Ahmed Al-Rashid'
+      assigned: &apos;Ahmed Al-Rashid&apos;
     },
     {
-      id: 'PM-002',
-      title: 'Quarterly Elevator Inspection',
-      property: 'Tower B',
-      frequency: 'Quarterly',
-      lastDone: '2025-01-01',
-      nextDue: '2025-04-01',
-      status: 'due',
-      assigned: 'Mohammed Al-Saud'
+      id: &apos;PM-002&apos;,
+      title: &apos;Quarterly Elevator Inspection&apos;,
+      property: &apos;Tower B&apos;,
+      frequency: &apos;Quarterly&apos;,
+      lastDone: &apos;2025-01-01&apos;,
+      nextDue: &apos;2025-04-01&apos;,
+      status: &apos;due&apos;,
+      assigned: &apos;Mohammed Al-Saud&apos;
     },
     {
-      id: 'PM-003',
-      title: 'Annual Fire System Check',
-      property: 'Villa Complex',
-      frequency: 'Annual',
-      lastDone: '2024-12-01',
-      nextDue: '2025-12-01',
-      status: 'overdue',
-      assigned: 'Omar Al-Fahad'
+      id: &apos;PM-003&apos;,
+      title: &apos;Annual Fire System Check&apos;,
+      property: &apos;Villa Complex&apos;,
+      frequency: &apos;Annual&apos;,
+      lastDone: &apos;2024-12-01&apos;,
+      nextDue: &apos;2025-12-01&apos;,
+      status: &apos;overdue&apos;,
+      assigned: &apos;Omar Al-Fahad&apos;
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'due': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'scheduled&apos;: return &apos;bg-blue-100 text-blue-800 border-blue-200&apos;;
+      case &apos;due&apos;: return &apos;bg-yellow-100 text-yellow-800 border-yellow-200&apos;;
+      case &apos;overdue&apos;: return &apos;bg-red-100 text-red-800 border-red-200&apos;;
+      case &apos;completed&apos;: return &apos;bg-green-100 text-green-800 border-green-200&apos;;
+      default: return &apos;bg-gray-100 text-gray-800 border-gray-200&apos;;
     }
   };
 

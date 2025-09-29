@@ -1,19 +1,19 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import TopBarAmazon from &apos;@/src/components/marketplace/TopBarAmazon&apos;;
+import { serverFetchJsonWithTenant } from &apos;@/src/lib/marketplace/serverFetch&apos;;
 
 const STATUS_BADGES: Record<string, string> = {
-  APPROVAL: 'bg-amber-100 text-amber-700',
-  PENDING: 'bg-blue-100 text-blue-700',
-  CONFIRMED: 'bg-indigo-100 text-indigo-700',
-  FULFILLED: 'bg-teal-100 text-teal-700',
-  DELIVERED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-red-100 text-red-700'
+  APPROVAL: &apos;bg-amber-100 text-amber-700&apos;,
+  PENDING: &apos;bg-blue-100 text-blue-700&apos;,
+  CONFIRMED: &apos;bg-indigo-100 text-indigo-700&apos;,
+  FULFILLED: &apos;bg-teal-100 text-teal-700&apos;,
+  DELIVERED: &apos;bg-green-100 text-green-700&apos;,
+  CANCELLED: &apos;bg-red-100 text-red-700&apos;
 };
 
 export default async function OrdersPage() {
   const [categoriesResponse, ordersResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/orders')
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/categories&apos;),
+    serverFetchJsonWithTenant<any>(&apos;/api/marketplace/orders&apos;)
   ]);
 
   const departments = (categoriesResponse.data as any[]).map(category => ({
@@ -40,13 +40,13 @@ export default async function OrdersPage() {
                     <p className="text-sm text-gray-600">Submitted {new Date(order.createdAt).toLocaleString()}</p>
                   </div>
                   <div className="space-y-2 text-right text-sm">
-                    <span className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_BADGES[order.status] ?? 'bg-gray-200 text-gray-700'}`}>
+                    <span className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_BADGES[order.status] ?? 'bg-gray-200 text-gray-700&apos;}`}>
                       {order.status}
                     </span>
                     <p className="font-semibold text-[#0061A8]">
                       {order.totals.grand.toFixed(2)} {order.currency}
                     </p>
-                    <p className="text-xs text-gray-500">Approval: {order.approvals?.status ?? 'N/A'}</p>
+                    <p className="text-xs text-gray-500">Approval: {order.approvals?.status ?? 'N/A&apos;}</p>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 text-sm text-gray-700 md:grid-cols-2">
