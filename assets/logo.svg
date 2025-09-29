@@ -1,0 +1,7 @@
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="44" height="44" rx="8" fill="#F6851F"/>
+  <path d="M12 15h20v2H12v-2zm0 6h20v2H12v-2zm0 6h14v2H12v-2z" fill="white"/>
+  <path d="M30 25l-3 3 3 3v-6z" fill="white"/>
+  <circle cx="15" cy="12" r="2" fill="white"/>
+  <text x="22" y="38" font-family="Arial, sans-serif" font-size="8" fill="#023047" text-anchor="middle" font-weight="bold">FIXZIT</text>
+</svg>

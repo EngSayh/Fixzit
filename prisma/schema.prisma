@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  users        User[]
+  properties   Property[]
+  vendors      Vendor[]
+  workOrders   WorkOrder[]
+  invoices     Invoice[]
+  auditLogs    AuditLog[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  email        String   @unique
+  name         String
+  role         Role
+  phone        String?
+  password     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  // Work order relations
+  requestedWOs WorkOrder[] @relation("wo_requester")
+  assignedWOs  WorkOrder[] @relation("wo_assignee")
+  createdInvoices Invoice[] @relation("invoice_creator")
+  auditLogs    AuditLog[]
+}
+
+enum Role {
+  SUPER_ADMIN
+  CORPORATE_ADMIN
+  FINANCE
+  HR
+  ADMIN
+  CRM
+  FM_MANAGER
+  TECHNICIAN
+  VENDOR
+  TENANT
+  OWNER
+  SUPPORT
+  PROCUREMENT
+  AUDITOR
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  code        String   @unique
+  address     String?
+  lat         Float?
+  lng         Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workOrders  WorkOrder[]
+}
+
+model Vendor {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  crNumber    String?
+  vatNumber   String?
+  contactName String?
+  contactEmail String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WorkOrder {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  code        String   @unique
+  title       String
+  description String
+  status      WOStatus @default(NEW)
+  priority    WOPriority @default(MEDIUM)
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id])
+  requesterId String?
+  assigneeId  String?
+  requester   User?    @relation("wo_requester", fields: [requesterId], references: [id])
+  assignee    User?    @relation("wo_assignee", fields: [assigneeId], references: [id])
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  slaHours    Int       @default(72)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum WOStatus { 
+  NEW 
+  ASSIGNED 
+  IN_PROGRESS 
+  ON_HOLD 
+  COMPLETED 
+  CANCELLED 
+}
+
+enum WOPriority { 
+  LOW 
+  MEDIUM 
+  HIGH 
+  CRITICAL 
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  number      String   @unique
+  customerRef String?  // tenant/vendor/owner id reference string
+  issueDate   DateTime
+  dueDate     DateTime
+  total       Decimal  @db.Decimal(14,2)
+  vatAmount   Decimal  @db.Decimal(14,2)
+  status      InvoiceStatus @default(DRAFT)
+  currency    String   @default("SAR")
+  createdById String?
+  createdBy   User?    @relation("invoice_creator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lines       InvoiceLine[]
+  meta        Json?
+}
+
+enum InvoiceStatus { 
+  DRAFT 
+  POSTED 
+  PAID 
+  VOID 
+}
+
+model InvoiceLine {
+  id         String  @id @default(cuid())
+  invoiceId  String
+  invoice    Invoice @relation(fields: [invoiceId], references: [id])
+  sku        String?
+  description String
+  qty        Decimal @db.Decimal(12,2)
+  unitPrice  Decimal @db.Decimal(12,2)
+  vatRate    Decimal @db.Decimal(5,2) // e.g., 15.00
+  total      Decimal @db.Decimal(14,2)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String
+  entity    String   // e.g., "workOrder:WO-000123"
+  payload   Json?
+  createdAt DateTime @default(now())
+  ip        String?
+}
+

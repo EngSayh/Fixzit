@@ -1,0 +1,388 @@
+'use client';
+
+import { useState } from &apos;react&apos;;
+import useSWR from 'swr&apos;;
+import { Button } from &apos;@/src/components/ui/button&apos;;
+import { Input } from &apos;@/src/components/ui/input&apos;;
+import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
+import { Badge } from &apos;@/src/components/ui/badge&apos;;
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
+import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
+import { Separator } from &apos;@/src/components/ui/separator&apos;;
+import { Users, Plus, Search, Filter, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from &apos;lucide-react&apos;;
+
+const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
+
+export default function TenantsPage() {
+  const [search, setSearch] = useState(&apos;');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const { data, mutate } = useSWR(
+    `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}`,
+    fetcher
+  );
+
+  const tenants = data?.items || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Tenant Management</h1>
+          <p className="text-gray-600">Customer relationship and lease management</p>
+        </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-purple-600 hover:bg-purple-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Tenant
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Add New Tenant</DialogTitle>
+            </DialogHeader>
+            <CreateTenantForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search tenants..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Tenant Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                <SelectItem value="COMPANY">Company</SelectItem>
+                <SelectItem value="GOVERNMENT">Government</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tenants Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {tenants.map((tenant: any) => (
+          <TenantCard key={tenant._id} tenant={tenant} onUpdated={mutate} />
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {tenants.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="w-12 h-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Tenants Found</h3>
+            <p className="text-gray-600 mb-4">Get started by adding your first tenant.</p>
+            <Button onClick={() => setCreateOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Tenant
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void }) {
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'INDIVIDUAL&apos;:
+        return <User className="w-5 h-5" />;
+      case 'COMPANY&apos;:
+        return <Building className="w-5 h-5" />;
+      case 'GOVERNMENT&apos;:
+        return <Shield className="w-5 h-5" />;
+      default:
+        return <User className="w-5 h-5" />;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'INDIVIDUAL&apos;:
+        return &apos;bg-blue-100 text-blue-800&apos;;
+      case &apos;COMPANY&apos;:
+        return &apos;bg-green-100 text-green-800&apos;;
+      case &apos;GOVERNMENT&apos;:
+        return &apos;bg-red-100 text-red-800&apos;;
+      default:
+        return &apos;bg-gray-100 text-gray-800&apos;;
+    }
+  };
+
+  const activeProperties = tenant.properties?.filter((p: any) => p.occupancy?.status === &apos;ACTIVE&apos;).length || 0;
+  const totalProperties = tenant.properties?.length || 0;
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-2">
+            {getTypeIcon(tenant.type)}
+            <div className="flex-1">
+              <CardTitle className="text-lg">{tenant.name}</CardTitle>
+              <p className="text-sm text-gray-600">{tenant.code}</p>
+            </div>
+          </div>
+          <Badge className={getTypeColor(tenant.type)}>
+            {tenant.type.toLowerCase()}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center text-sm text-gray-600">
+          <Mail className="w-4 h-4 mr-1" />
+          <span>{tenant.contact?.primary?.email}</span>
+        </div>
+
+        {tenant.contact?.primary?.phone && (
+          <div className="flex items-center text-sm text-gray-600">
+            <Phone className="w-4 h-4 mr-1" />
+            <span>{tenant.contact.primary.phone}</span>
+          </div>
+        )}
+
+        <div className="flex items-center text-sm text-gray-600">
+          <MapPin className="w-4 h-4 mr-1" />
+          <span>{tenant.address?.current?.city}, {tenant.address?.current?.region}</span>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-600">Properties:</span>
+            <span className="text-sm font-medium">{activeProperties}/{totalProperties}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-600">Lease Status:</span>
+            <Badge variant="outline" className="text-green-700 border-green-300">
+              {activeProperties > 0 ? 'Active&apos; : &apos;No Active Leases&apos;}
+            </Badge>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-600">Outstanding Balance:</span>
+            <span className="text-sm font-medium">
+              {tenant.financial?.outstandingBalance?.toLocaleString() || &apos;0'} SAR
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 pt-2">
+          <Button variant="ghost" size="sm">
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm">
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
+  const [formData, setFormData] = useState({
+    name: &apos;',
+    type: '',
+    contact: {
+      primary: {
+        name: &apos;',
+        title: '',
+        email: &apos;',
+        phone: '',
+        mobile: &apos;'
+      },
+      secondary: {
+        name: '',
+        email: &apos;',
+        phone: ''
+      },
+      emergency: {
+        name: &apos;',
+        relationship: '',
+        phone: &apos;'
+      }
+    },
+    identification: {
+      nationalId: '',
+      companyRegistration: &apos;',
+      taxId: '',
+      licenseNumber: &apos;'
+    },
+    address: {
+      current: {
+        street: '',
+        city: &apos;',
+        region: '',
+        postalCode: &apos;'
+      },
+      permanent: {
+        street: '',
+        city: &apos;',
+        region: '',
+        postalCode: &apos;'
+      }
+    },
+    preferences: {
+      communication: {
+        email: true,
+        sms: false,
+        phone: false,
+        app: false
+      },
+      notifications: {
+        maintenance: true,
+        rent: true,
+        events: false,
+        announcements: false
+      },
+      language: &apos;ar&apos;,
+      timezone: &apos;Asia/Riyadh&apos;
+    },
+    tags: [] as string[]
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(&apos;/api/tenants&apos;, {
+        method: &apos;POST&apos;,
+        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        onCreated();
+      } else {
+        alert(&apos;Failed to create tenant&apos;);
+      }
+    } catch (error) {
+      alert(&apos;Error creating tenant&apos;);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Tenant Name *</label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Type *</label>
+          <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+              <SelectItem value="COMPANY">Company</SelectItem>
+              <SelectItem value="GOVERNMENT">Government</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Primary Contact Name *</label>
+          <Input
+            value={formData.contact.primary.name}
+            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, name: e.target.value}}})}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Email *</label>
+          <Input
+            type="email"
+            value={formData.contact.primary.email}
+            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, email: e.target.value}}})}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Phone</label>
+          <Input
+            value={formData.contact.primary.phone}
+            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, phone: e.target.value}}})}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Mobile</label>
+          <Input
+            value={formData.contact.primary.mobile}
+            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, mobile: e.target.value}}})}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">City *</label>
+          <Input
+            value={formData.address.current.city}
+            onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, city: e.target.value}}})}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Region *</label>
+          <Input
+            value={formData.address.current.region}
+            onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, region: e.target.value}}})}
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Street Address *</label>
+        <Input
+          value={formData.address.current.street}
+          onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, street: e.target.value}}})}
+          required
+        />
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+          Create Tenant
+        </Button>
+      </div>
+    </form>
+  );
+}

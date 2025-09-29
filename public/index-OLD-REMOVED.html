@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="htmlRoot">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIXZIT SOUQ - Complete Property Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0061A8;
+            --primary-dark: #023047;
+            --accent: #F6851F;
+            --success: #00A859;
+            --warning: #FFB400;
+            --danger: #E74C3C;
+            --sidebar-width: 250px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* RTL Support */
+        html[dir="rtl"] body {
+            font-family: 'Noto Sans Arabic', 'Segoe UI Arabic', Arial, sans-serif;
+        }
+
+        html[dir="rtl"] .sidebar {
+            right: 0;
+            left: auto;
+            border-right: none;
+            border-left: 1px solid #e0e0e0;
+        }
+
+        html[dir="rtl"] .menu-item {
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+
+        html[dir="rtl"] .menu-item.active {
+            border-left: none;
+            border-right: 3px solid var(--primary);
+        }
+
+        html[dir="rtl"] .content-area {
+            margin-left: 0;
+            margin-right: var(--sidebar-width);
+        }
+
+        /* Global Language Toggle - ALWAYS VISIBLE */
+        .language-toggle-global {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 99999;
+            background: white;
+            border: 2px solid var(--primary);
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--primary);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .language-toggle-global:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        html[dir="rtl"] .language-toggle-global {
+            left: 20px;
+            right: auto;
+        }
+
+        /* Landing Page */
+        .view-container {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .view-container.active {
+            display: block;
+        }
+
+        #landingPage {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            padding: 80px 20px 40px;
+        }
+
+        .landing-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .logo-main {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 2rem;
+        }
+
+        .main-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 3rem auto;
+        }
+
+        .main-btn {
+            padding: 2.5rem;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .main-btn:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-yellow {
+            background: linear-gradient(135deg, #FFB400, #F6851F);
+            color: white;
+        }
+
+        .btn-white {
+            background: white;
+            color: #333;
+        }
+
+        .btn-blue {
+            background: linear-gradient(135deg, #0061A8, #023047);
+            color: white;
+        }
+
+        /* Login Page */
+        #loginPage {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+        }
+
+        .login-card {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Main Application */
+        #mainApp {
+            background: #f5f6fa;
+        }
+
+        .topbar {
+            height: 60px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 60px;
+            width: var(--sidebar-width);
+            height: calc(100vh - 60px);
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .menu-item:hover {
+            background: #f8f9fa;
+            color: var(--primary);
+        }
+
+        .menu-item.active {
+            background: rgba(0, 97, 168, 0.1);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
+        }
+
+        .content-area {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: calc(100vh - 60px);
+            transition: all 0.3s ease;
+        }
+
+        .content-area.expanded {
+            margin-left: 60px;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Marketplace Grid */
+        .marketplace-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-image {
+            height: 200px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .product-details {
+            padding: 15px;
+        }
+
+        /* Aqar Souq Map */
+        .aqar-map {
+            height: 500px;
+            background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Properties Grid */
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .property-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .property-image {
+            height: 200px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+        }
+
+        .property-info {
+            padding: 20px;
+        }
+
+        /* IoT Sensors */
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .sensor-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .sensor-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .sensor-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Work Orders Kanban */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .kanban-column {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .kanban-header {
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .kanban-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .kanban-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Footer */
+        .app-footer {
+            background: white;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 40px;
+        }
+
+        /* Back Button */
+        .back-btn {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                width: 100%;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .content-area {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Global Language Toggle - Always Visible -->
+    <button class="language-toggle-global" onclick="toggleLanguage()">
+        <span>🌐</span>
+        <span id="langBtnText">العربية</span>
+    </button>
+
+    <!-- Landing Page -->
+    <div id="landingPage" class="view-container active">
+        <div class="landing-container">
+            <div class="logo-main">FZ</div>
+            <h1 style="color: white; font-size: 4rem; margin-bottom: 1rem;">FIXZIT SOUQ</h1>
+            <p style="color: #a0c4ff; font-size: 1.8rem;" class="lang-text" data-en="Integrated Property Management System" data-ar="نظام إدارة الممتلكات المتكامل">Integrated Property Management System</p>
+            <p style="color: #c0d8ff; font-size: 1.2rem;" class="lang-text" data-en="World's Most Advanced Platform" data-ar="المنصة الأكثر تقدماً في العالم">World's Most Advanced Platform</p>
+            
+            <div class="main-buttons">
+                <button class="main-btn btn-yellow" onclick="switchToArabic()">
+                    <div style="font-size: 3rem;">🌍</div>
+                    <h3 class="lang-text" data-en="Arabic System" data-ar="النظام بالعربية">النظام بالعربية</h3>
+                    <p class="lang-text" data-en="Full Arabic Interface" data-ar="واجهة عربية كاملة">Full Arabic Interface</p>
+                </button>
+                
+                <button class="main-btn btn-white" onclick="showMarketplace()">
+                    <div style="font-size: 3rem;">🛒</div>
+                    <h3 class="lang-text" data-en="Marketplace" data-ar="السوق">السوق</h3>
+                    <p class="lang-text" data-en="Products & Services" data-ar="المنتجات والخدمات">Products & Services</p>
+                </button>
+                
+                <button class="main-btn btn-blue" onclick="showLogin()">
+                    <div style="font-size: 3rem;">🔐</div>
+                    <h3 class="lang-text" data-en="Access System" data-ar="دخول النظام">Access System</h3>
+                    <p class="lang-text" data-en="Login to Dashboard" data-ar="تسجيل الدخول">Login to Dashboard</p>
+                </button>
+            </div>
+            
+            <!-- Quick Links -->
+            <div style="margin-top: 3rem;">
+                <h2 style="color: white; margin-bottom: 2rem;" class="lang-text" data-en="Quick Access" data-ar="وصول سريع">Quick Access</h2>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="directToAqar()" style="padding: 12px 24px; background: #00A859; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                        🗺️ <span class="lang-text" data-en="Aqar Souq" data-ar="السوق العقاري">Aqar Souq</span>
+                    </button>
+                    <button onclick="directToDashboard()" style="padding: 12px 24px; background: #0061A8; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                        📊 <span class="lang-text" data-en="Dashboard" data-ar="لوحة التحكم">Dashboard</span>
+                    </button>
+                    <button onclick="directToIoT()" style="padding: 12px 24px; background: #F6851F; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                        📡 <span class="lang-text" data-en="IoT Sensors" data-ar="المستشعرات">IoT Sensors</span>
+                    </button>
+                    <button onclick="directToProperties()" style="padding: 12px 24px; background: #764ba2; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                        🏢 <span class="lang-text" data-en="Properties" data-ar="العقارات">Properties</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="loginPage" class="view-container">
+        <button class="back-btn" onclick="showLanding()">← Back</button>
+        <div class="login-card">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #0061A8, #023047); border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 36px; font-weight: bold; margin-bottom: 1rem;">FZ</div>
+                <h2>FIXZIT SOUQ</h2>
+                <p style="color: #666;" class="lang-text" data-en="Sign in to continue" data-ar="تسجيل الدخول للمتابعة">Sign in to continue</p>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button onclick="setMode('corporate')" style="flex: 1; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Corporate</button>
+                <button onclick="setMode('individual')" style="flex: 1; padding: 10px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; cursor: pointer;">Individual</button>
+                <button onclick="setMode('admin')" style="flex: 1; padding: 10px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; cursor: pointer;">Admin</button>
+            </div>
+            
+            <input type="text" placeholder="Username" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #e0e0e0; border-radius: 8px;">
+            <input type="password" placeholder="Password" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #e0e0e0; border-radius: 8px;">
+            
+            <button onclick="login()" style="width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                <span class="lang-text" data-en="Sign In" data-ar="تسجيل الدخول">Sign In</span>
+            </button>
+            
+            <div style="margin-top: 20px;">
+                <button style="width: 100%; padding: 12px; background: black; color: white; border: none; border-radius: 8px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                    Continue with Apple
+                </button>
+                <button style="width: 100%; padding: 12px; background: white; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continue with Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="view-container">
+        <div class="topbar">
+            <button onclick="toggleSidebar()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; margin-right: 20px;">☰</button>
+            <div style="font-size: 20px; font-weight: bold;">FIXZIT SOUQ</div>
+            <div style="margin-left: auto; display: flex; gap: 15px; align-items: center;">
+                <span id="currentModuleName" style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px;">Dashboard</span>
+                <button style="background: none; border: none; color: white; padding: 8px; cursor: pointer;">🔔</button>
+                <button style="background: none; border: none; color: white; padding: 8px; cursor: pointer;">❓</button>
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 8px;">
+                    <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">SA</div>
+                    <span>Sultan Admin</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar" id="sidebar">
+            <div style="padding: 20px 0;">
+                <a href="#" class="menu-item active" onclick="loadModule('dashboard', this)">
+                    <span>📊</span>
+                    <span class="lang-text" data-en="Dashboard" data-ar="لوحة التحكم">Dashboard</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('workorders', this)">
+                    <span>🔧</span>
+                    <span class="lang-text" data-en="Work Orders" data-ar="أوامر العمل">Work Orders</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('properties', this)">
+                    <span>🏢</span>
+                    <span class="lang-text" data-en="Properties" data-ar="العقارات">Properties</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('finance', this)">
+                    <span>💰</span>
+                    <span class="lang-text" data-en="Finance" data-ar="المالية">Finance</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('hr', this)">
+                    <span>👥</span>
+                    <span class="lang-text" data-en="HR" data-ar="الموارد البشرية">HR</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('marketplace', this)">
+                    <span>🛒</span>
+                    <span class="lang-text" data-en="Marketplace" data-ar="السوق">Marketplace</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('aqar', this)">
+                    <span>🗺️</span>
+                    <span class="lang-text" data-en="Aqar Souq" data-ar="السوق العقاري">Aqar Souq</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('iot', this)">
+                    <span>📡</span>
+                    <span class="lang-text" data-en="IoT" data-ar="المستشعرات">IoT</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('compliance', this)">
+                    <span>📋</span>
+                    <span class="lang-text" data-en="Compliance" data-ar="الامتثال">Compliance</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('crm', this)">
+                    <span>🤝</span>
+                    <span class="lang-text" data-en="CRM" data-ar="إدارة العملاء">CRM</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('admin', this)">
+                    <span>⚙️</span>
+                    <span class="lang-text" data-en="Admin" data-ar="الإدارة">Admin</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('analytics', this)">
+                    <span>📈</span>
+                    <span class="lang-text" data-en="Analytics" data-ar="التحليلات">Analytics</span>
+                </a>
+                <a href="#" class="menu-item" onclick="loadModule('support', this)">
+                    <span>🎧</span>
+                    <span class="lang-text" data-en="Support" data-ar="الدعم">Support</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="content-area" id="contentArea">
+            <!-- Dynamic content loads here -->
+        </div>
+        
+        <div class="app-footer">
+            <div style="background: white; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0; margin-top: 40px;">
+                <p style="color: #666;">© 2025 FIXZIT SOUQ Enterprise | Version 4.0.0 | Aligned with Saudi Vision 2030</p>
+                <p style="color: #888; margin-top: 5px;">Powered by Advanced AI & IoT | Complete Property & Marketplace Management</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLanguage = 'en';
+        
+        // Language switching
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+            const html = document.getElementById('htmlRoot');
+            
+            if (currentLanguage === 'ar') {
+                html.setAttribute('dir', 'rtl');
+                html.setAttribute('lang', 'ar');
+                document.getElementById('langBtnText').textContent = 'English';
+            } else {
+                html.setAttribute('dir', 'ltr');
+                html.setAttribute('lang', 'en');
+                document.getElementById('langBtnText').textContent = 'العربية';
+            }
+            
+            updateTexts();
+        }
+        
+        function updateTexts() {
+            document.querySelectorAll('.lang-text').forEach(element => {
+                const text = currentLanguage === 'ar' ? element.getAttribute('data-ar') : element.getAttribute('data-en');
+                if (text) {
+                    element.textContent = text;
+                }
+            });
+        }
+        
+        // Navigation functions
+        function showView(viewId) {
+            document.querySelectorAll('.view-container').forEach(view => {
+                view.classList.remove('active');
+            });
+            document.getElementById(viewId).classList.add('active');
+        }
+        
+        function showLanding() {
+            showView('landingPage');
+        }
+        
+        function showLogin() {
+            showView('loginPage');
+        }
+        
+        function showMainApp() {
+            showView('mainApp');
+            loadDashboard();
+        }
+        
+        function switchToArabic() {
+            currentLanguage = 'ar';
+            const html = document.getElementById('htmlRoot');
+            html.setAttribute('dir', 'rtl');
+            html.setAttribute('lang', 'ar');
+            document.getElementById('langBtnText').textContent = 'English';
+            updateTexts();
+            showMainApp();
+        }
+        
+        function showMarketplace() {
+            showMainApp();
+            loadMarketplace();
+        }
+        
+        function directToAqar() {
+            showMainApp();
+            loadAqarSouq();
+        }
+        
+        function directToDashboard() {
+            showMainApp();
+            loadDashboard();
+        }
+        
+        function directToIoT() {
+            showMainApp();
+            loadIoT();
+        }
+        
+        function directToProperties() {
+            showMainApp();
+            loadProperties();
+        }
+        
+        function login() {
+            showMainApp();
+        }
+        
+        function loadModule(module, element) {
+            // Update active menu item
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            // Update current module name
+            const moduleName = element.querySelector('.lang-text').textContent;
+            document.getElementById('currentModuleName').textContent = moduleName;
+            
+            // Load appropriate module
+            switch(module) {
+                case 'dashboard': loadDashboard(); break;
+                case 'workorders': loadWorkOrders(); break;
+                case 'properties': loadProperties(); break;
+                case 'finance': loadFinance(); break;
+                case 'hr': loadHR(); break;
+                case 'marketplace': loadMarketplace(); break;
+                case 'aqar': loadAqarSouq(); break;
+                case 'iot': loadIoT(); break;
+                case 'compliance': loadCompliance(); break;
+                case 'crm': loadCRM(); break;
+                case 'admin': loadAdmin(); break;
+                case 'analytics': loadAnalytics(); break;
+                case 'support': loadSupport(); break;
+            }
+        }
+        
+        function loadDashboard() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Executive Dashboard" data-ar="لوحة التحكم التنفيذية">Executive Dashboard</h1>
+                <p class="lang-text" data-en="Comprehensive overview of your property portfolio" data-ar="نظرة شاملة على محفظة العقارات الخاصة بك">Comprehensive overview of your property portfolio</p>
+                
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Active Properties" data-ar="العقارات النشطة">Active Properties</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--primary);">247</p>
+                        <p style="color: var(--success); font-size: 14px;">↑ 12 this month</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Total Revenue" data-ar="إجمالي الإيرادات">Total Revenue</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--success);">SAR 4.8M</p>
+                        <p style="color: var(--success); font-size: 14px;">↑ 18% YoY</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Occupancy Rate" data-ar="معدل الإشغال">Occupancy Rate</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--primary);">94.2%</p>
+                        <p style="color: var(--success); font-size: 14px;">↑ 3.1%</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Maintenance Requests" data-ar="طلبات الصيانة">Maintenance Requests</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--warning);">42</p>
+                        <p style="color: var(--danger); font-size: 14px;">8 urgent</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="IoT Sensors" data-ar="مستشعرات IoT">IoT Sensors</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--accent);">1,234</p>
+                        <p style="color: var(--success); font-size: 14px;">98.7% online</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Energy Efficiency" data-ar="كفاءة الطاقة">Energy Efficiency</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--success);">A+</p>
+                        <p style="color: var(--success); font-size: 14px;">15% savings</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 class="lang-text" data-en="Recent Activity" data-ar="النشاط الأخير">Recent Activity</h3>
+                    <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
+                        <div style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                            <div style="font-weight: 600;">New Lease Signed - Al Olaya Tower</div>
+                            <div style="color: #666; font-size: 14px;">2 hours ago</div>
+                        </div>
+                        <div style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                            <div style="font-weight: 600;">Maintenance Completed - HVAC Unit B3</div>
+                            <div style="color: #666; font-size: 14px;">4 hours ago</div>
+                        </div>
+                        <div style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                            <div style="font-weight: 600;">Payment Received - SAR 125,000</div>
+                            <div style="color: #666; font-size: 14px;">6 hours ago</div>
+                        </div>
+                        <div style="padding: 10px 0;">
+                            <div style="font-weight: 600;">IoT Alert Resolved - Temperature Normalized</div>
+                            <div style="color: #666; font-size: 14px;">8 hours ago</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadWorkOrders() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Work Order Management" data-ar="إدارة أوامر العمل">Work Order Management</h1>
+                <p class="lang-text" data-en="Track and manage all maintenance requests" data-ar="تتبع وإدارة جميع طلبات الصيانة">Track and manage all maintenance requests</p>
+                
+                <div class="kanban-board">
+                    <div class="kanban-column">
+                        <div class="kanban-header" style="color: var(--primary);">
+                            <span class="lang-text" data-en="New Requests" data-ar="طلبات جديدة">New Requests</span> (12)
+                        </div>
+                        <div class="kanban-card">
+                            <h4>HVAC Maintenance</h4>
+                            <p style="color: #666;">Al Olaya Tower - Floor 15</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                                <span style="background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px;">HIGH</span>
+                                <span style="color: #666;">2h ago</span>
+                            </div>
+                        </div>
+                        <div class="kanban-card">
+                            <h4>Plumbing Issue</h4>
+                            <p style="color: #666;">Residential Complex B</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                                <span style="background: var(--warning); color: white; padding: 2px 8px; border-radius: 4px;">MEDIUM</span>
+                                <span style="color: #666;">4h ago</span>
+                            </div>
+                        </div>
+                        <div class="kanban-card">
+                            <h4>Electrical Inspection</h4>
+                            <p style="color: #666;">Commercial Plaza A</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                                <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px;">LOW</span>
+                                <span style="color: #666;">1d ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="kanban-column">
+                        <div class="kanban-header" style="color: var(--accent);">
+                            <span class="lang-text" data-en="In Progress" data-ar="قيد التنفيذ">In Progress</span> (8)
+                        </div>
+                        <div class="kanban-card">
+                            <h4>Elevator Maintenance</h4>
+                            <p style="color: #666;">Main Building</p>
+                            <div style="background: #f0f0f0; border-radius: 4px; height: 6px; margin: 10px 0;">
+                                <div style="background: var(--accent); height: 100%; width: 60%; border-radius: 4px;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                                <span>Ahmed Ali</span>
+                                <span>60% Complete</span>
+                            </div>
+                        </div>
+                        <div class="kanban-card">
+                            <h4>Fire Safety Check</h4>
+                            <p style="color: #666;">Building C - All Floors</p>
+                            <div style="background: #f0f0f0; border-radius: 4px; height: 6px; margin: 10px 0;">
+                                <div style="background: var(--accent); height: 100%; width: 30%; border-radius: 4px;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                                <span>Sarah Ahmad</span>
+                                <span>30% Complete</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="kanban-column">
+                        <div class="kanban-header" style="color: var(--success);">
+                            <span class="lang-text" data-en="Completed" data-ar="مكتملة">Completed</span> (24)
+                        </div>
+                        <div class="kanban-card">
+                            <h4>AC Filter Replacement</h4>
+                            <p style="color: #666;">Office Complex D</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                                <span style="color: var(--success);">✓ Completed</span>
+                                <span style="color: #666;">Today</span>
+                            </div>
+                        </div>
+                        <div class="kanban-card">
+                            <h4>Security System Update</h4>
+                            <p style="color: #666;">Residential Tower</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                                <span style="color: var(--success);">✓ Completed</span>
+                                <span style="color: #666;">Yesterday</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadProperties() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Property Portfolio" data-ar="محفظة العقارات">Property Portfolio</h1>
+                <p class="lang-text" data-en="Manage your complete real estate portfolio" data-ar="إدارة محفظة العقارات الكاملة">Manage your complete real estate portfolio</p>
+                
+                <div style="display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap;">
+                    <button style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">All Properties</button>
+                    <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">Residential</button>
+                    <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">Commercial</button>
+                    <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">Industrial</button>
+                </div>
+                
+                <div class="properties-grid">
+                    <div class="property-card">
+                        <div class="property-image" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                            <div>🏢</div>
+                        </div>
+                        <div class="property-info">
+                            <h3>Al Olaya Business Tower</h3>
+                            <p style="color: #666;">45 Floors • 450 Units • Prime Location</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Occupancy</p>
+                                    <p style="font-weight: bold; color: var(--success);">96.2%</p>
+                                </div>
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Monthly Revenue</p>
+                                    <p style="font-weight: bold; color: var(--primary);">SAR 890K</p>
+                                </div>
+                            </div>
+                            <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;">View Details</button>
+                        </div>
+                    </div>
+                    
+                    <div class="property-card">
+                        <div class="property-image" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                            <div>🏘️</div>
+                        </div>
+                        <div class="property-info">
+                            <h3>Green Valley Residences</h3>
+                            <p style="color: #666;">120 Villas • Gated Community • Family-Friendly</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Occupancy</p>
+                                    <p style="font-weight: bold; color: var(--success);">89.5%</p>
+                                </div>
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Monthly Revenue</p>
+                                    <p style="font-weight: bold; color: var(--primary);">SAR 640K</p>
+                                </div>
+                            </div>
+                            <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;">View Details</button>
+                        </div>
+                    </div>
+                    
+                    <div class="property-card">
+                        <div class="property-image" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                            <div>🏭</div>
+                        </div>
+                        <div class="property-info">
+                            <h3>Industrial Park Alpha</h3>
+                            <p style="color: #666;">25 Warehouses • Logistics Hub • Modern Facilities</p>
+                            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Occupancy</p>
+                                    <p style="font-weight: bold; color: var(--success);">100%</p>
+                                </div>
+                                <div>
+                                    <p style="color: #666; font-size: 12px;">Monthly Revenue</p>
+                                    <p style="font-weight: bold; color: var(--primary);">SAR 420K</p>
+                                </div>
+                            </div>
+                            <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;">View Details</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadFinance() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Financial Management" data-ar="الإدارة المالية">Financial Management</h1>
+                <p class="lang-text" data-en="Islamic finance compliant accounting and reporting" data-ar="المحاسبة والتقارير المتوافقة مع التمويل الإسلامي">Islamic finance compliant accounting and reporting</p>
+                
+                <div style="background: rgba(0, 168, 89, 0.1); padding: 20px; border-left: 4px solid var(--success); border-radius: 8px; margin: 20px 0;">
+                    <h3 class="lang-text" data-en="✓ Sharia Compliant" data-ar="✓ متوافق مع الشريعة">✓ Sharia Compliant</h3>
+                    <p style="color: #666; margin-top: 10px;" class="lang-text" data-en="All financial operations comply with Islamic finance principles" data-ar="جميع العمليات المالية متوافقة مع مبادئ التمويل الإسلامي">All financial operations comply with Islamic finance principles</p>
+                </div>
+                
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Total Assets" data-ar="إجمالي الأصول">Total Assets</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--primary);">SAR 125M</p>
+                        <p style="color: var(--success); font-size: 14px;">↑ 12.5% YoY</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Monthly Income" data-ar="الدخل الشهري">Monthly Income</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--success);">SAR 4.8M</p>
+                        <p style="color: var(--success); font-size: 14px;">↑ 8.2% MoM</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Operating Expenses" data-ar="المصروفات التشغيلية">Operating Expenses</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--warning);">SAR 1.2M</p>
+                        <p style="color: var(--success); font-size: 14px;">↓ 5.1% MoM</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;" class="lang-text" data-en="Net Profit Margin" data-ar="هامش الربح الصافي">Net Profit Margin</h3>
+                        <p style="font-size: 36px; font-weight: bold; color: var(--success);">24.8%</p>
+                        <p style="color: var(--success); font-size: 14px;">Industry Leading</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 class="lang-text" data-en="Zakat Calculation" data-ar="حساب الزكاة">Zakat Calculation</h3>
+                    <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            <div>
+                                <p style="color: #666;" class="lang-text" data-en="Zakatable Assets" data-ar="الأصول الخاضعة للزكاة">Zakatable Assets</p>
+                                <p style="font-size: 24px; font-weight: bold;">SAR 82.4M</p>
+                            </div>
+                            <div>
+                                <p style="color: #666;" class="lang-text" data-en="Nisab Threshold" data-ar="عتبة النصاب">Nisab Threshold</p>
+                                <p style="font-size: 24px; font-weight: bold; color: var(--success);">✓ Exceeded</p>
+                            </div>
+                            <div>
+                                <p style="color: #666;" class="lang-text" data-en="Annual Zakat Due" data-ar="الزكاة السنوية المستحقة">Annual Zakat Due</p>
+                                <p style="font-size: 24px; font-weight: bold; color: var(--primary);">SAR 2.06M</p>
+                            </div>
+                            <div>
+                                <p style="color: #666;" class="lang-text" data-en="Payment Status" data-ar="حالة الدفع">Payment Status</p>
+                                <p style="font-size: 18px; font-weight: bold; color: var(--success);">✓ Paid</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadMarketplace() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="FIXZIT Marketplace" data-ar="سوق فكس إت">FIXZIT Marketplace</h1>
+                <p class="lang-text" data-en="Browse products and services from verified vendors" data-ar="تصفح المنتجات والخدمات من الموردين المعتمدين">Browse products and services from verified vendors</p>
+                
+                <div style="display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap;">
+                    <button style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">All Categories</button>
+                    <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">HVAC Equipment</button>
+                    <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">Plumbing Supplies</button>
+                    <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">Electrical</button>
+                    <button style="padding: 8px 16px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">Security Systems</button>
+                </div>
+                
+                <div class="marketplace-grid">
+                    <div class="product-card">
+                        <div class="product-image" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                            <div>❄️</div>
+                        </div>
+                        <div class="product-details">
+                            <h3>Industrial AC Unit - 5 Ton</h3>
+                            <p style="color: #666; margin: 8px 0;">High-efficiency central air conditioning system</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 12,500</p>
+                                    <p style="color: #666; font-size: 12px;">Vendor: CoolTech Solutions</p>
+                                </div>
+                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-card">
+                        <div class="product-image" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white;">
+                            <div>🔧</div>
+                        </div>
+                        <div class="product-details">
+                            <h3>Professional Tool Set</h3>
+                            <p style="color: #666; margin: 8px 0;">Complete maintenance toolkit for property management</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 850</p>
+                                    <p style="color: #666; font-size: 12px;">Vendor: ProTools KSA</p>
+                                </div>
+                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-card">
+                        <div class="product-image" style="background: linear-gradient(135deg, #4facfe, #00f2fe); color: white;">
+                            <div>🔒</div>
+                        </div>
+                        <div class="product-details">
+                            <h3>Smart Security Camera System</h3>
+                            <p style="color: #666; margin: 8px 0;">4K AI-powered surveillance with night vision</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 3,200</p>
+                                    <p style="color: #666; font-size: 12px;">Vendor: SecureMax</p>
+                                </div>
+                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-card">
+                        <div class="product-image" style="background: linear-gradient(135deg, #43e97b, #38f9d7); color: white;">
+                            <div>💡</div>
+                        </div>
+                        <div class="product-details">
+                            <h3>LED Lighting Package</h3>
+                            <p style="color: #666; margin: 8px 0;">Energy-efficient LED lighting for commercial spaces</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 1,450</p>
+                                    <p style="color: #666; font-size: 12px;">Vendor: BrightLight Co.</p>
+                                </div>
+                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-card">
+                        <div class="product-image" style="background: linear-gradient(135deg, #fa709a, #fee140); color: white;">
+                            <div>🚿</div>
+                        </div>
+                        <div class="product-details">
+                            <h3>Premium Plumbing Fixtures</h3>
+                            <p style="color: #666; margin: 8px 0;">High-quality bathroom and kitchen fixtures set</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 2,800</p>
+                                    <p style="color: #666; font-size: 12px;">Vendor: AquaFlow Systems</p>
+                                </div>
+                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-card">
+                        <div class="product-image" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                            <div>🏗️</div>
+                        </div>
+                        <div class="product-details">
+                            <h3>Construction Materials Bundle</h3>
+                            <p style="color: #666; margin: 8px 0;">Complete set of premium construction materials</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <p style="font-size: 20px; font-weight: bold; color: var(--primary);">SAR 8,500</p>
+                                    <p style="color: #666; font-size: 12px;">Vendor: BuildPro Materials</p>
+                                </div>
+                                <button style="padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer;">Order</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadAqarSouq() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Aqar Souq - Real Estate Marketplace" data-ar="السوق العقاري">Aqar Souq - Real Estate Marketplace</h1>
+                <p class="lang-text" data-en="Discover properties and investment opportunities" data-ar="اكتشف العقارات وفرص الاستثمار">Discover properties and investment opportunities</p>
+                
+                <div class="aqar-map">
+                    <div style="text-align: center;">
+                        <div style="font-size: 72px; margin-bottom: 20px;">🗺️</div>
+                        <h3>Interactive Property Map</h3>
+                        <p style="color: #666;">Click to explore properties in your area</p>
+                        <button style="margin-top: 20px; padding: 12px 30px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Draw Property Boundary</button>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 30px;">Featured Properties for Sale</h3>
+                <div class="properties-grid">
+                    <div class="property-card">
+                        <div class="property-image" style="background: linear-gradient(135deg, #FF6B6B, #4ECDC4);">
+                            <div>
+                                <div style="font-size: 48px;">🏡</div>
+                                <div style="background: var(--accent); padding: 5px 15px; border-radius: 20px; display: inline-block; margin-top: 10px;">FOR SALE</div>
+                            </div>
+                        </div>
+                        <div class="property-info">
+                            <h3>Luxury Villa - Al Nakheel</h3>
+                            <p style="color: #666;">5 BR • 6 Bath • 450 m²</p>
+                            <p style="color: var(--primary); font-size: 24px; font-weight: bold; margin-top: 10px;">SAR 3,500,000</p>
+                            <button style="width: 100%; padding: 10px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">View Details</button>
+                        </div>
+                    </div>
+                    <div class="property-card">
+                        <div class="property-image" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                            <div>
+                                <div style="font-size: 48px;">🏢</div>
+                                <div style="background: var(--warning); padding: 5px 15px; border-radius: 20px; display: inline-block; margin-top: 10px;">INVESTMENT</div>
+                            </div>
+                        </div>
+                        <div class="property-info">
+                            <h3>Commercial Tower - King Fahd</h3>
+                            <p style="color: #666;">20 Floors • Prime Location</p>
+                            <p style="color: var(--primary); font-size: 24px; font-weight: bold; margin-top: 10px;">SAR 45,000,000</p>
+                            <button style="width: 100%; padding: 10px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">View Details</button>
+                        </div>
+                    </div>
+                    <div class="property-card">
+                        <div class="property-image" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                            <div>
+                                <div style="font-size: 48px;">🏘️</div>
+                                <div style="background: #6c757d; padding: 5px 15px; border-radius: 20px; display: inline-block; margin-top: 10px;">COMPOUND</div>
+                            </div>
+                        </div>
+                        <div class="property-info">
+                            <h3>Residential Compound</h3>
+                            <p style="color: #666;">50 Units • Gated Community</p>
+                            <p style="color: var(--primary); font-size: 24px; font-weight: bold; margin-top: 10px;">SAR 28,000,000</p>
+                            <button style="width: 100%; padding: 10px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">View Details</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 12px;">
+                    <h3>Market Statistics</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 15px;">
+                        <div>
+                            <p style="color: #666;">Average Price/m²</p>
+                            <p style="font-size: 24px; font-weight: bold;">SAR 3,450</p>
+                            <p style="color: var(--success);">↑ 5.2% YoY</p>
+                        </div>
+                        <div>
+                            <p style="color: #666;">Properties Listed</p>
+                            <p style="font-size: 24px; font-weight: bold;">12,847</p>
+                            <p style="color: var(--success);">↑ 8.7% QoQ</p>
+                        </div>
+                        <div>
+                            <p style="color: #666;">Average Days on Market</p>
+                            <p style="font-size: 24px; font-weight: bold;">45</p>
+                            <p style="color: var(--success);">↓ 12 days</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadIoT() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="IoT Sensor Management" data-ar="إدارة مستشعرات IoT">IoT Sensor Management</h1>
+                <p class="lang-text" data-en="Real-time monitoring and predictive maintenance" data-ar="المراقبة الفورية والصيانة التنبؤية">Real-time monitoring and predictive maintenance</p>
+                
+                <div class="sensors-grid">
+                    <div class="sensor-card">
+                        <div class="sensor-icon">🌡️</div>
+                        <div class="sensor-value">22.5°C</div>
+                        <div style="color: #666; margin-top: 10px;">Building A - Lobby</div>
+                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">Normal</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-icon">💧</div>
+                        <div class="sensor-value">48%</div>
+                        <div style="color: #666; margin-top: 10px;">Server Room Humidity</div>
+                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">Optimal</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-icon">⚡</div>
+                        <div class="sensor-value">342 kW</div>
+                        <div style="color: #666; margin-top: 10px;">Total Energy Usage</div>
+                        <div style="color: var(--warning); font-size: 12px; margin-top: 5px;">Above Average</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-icon">💨</div>
+                        <div class="sensor-value">Good</div>
+                        <div style="color: #666; margin-top: 10px;">Air Quality Index</div>
+                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">Healthy</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-icon">🚪</div>
+                        <div class="sensor-value">142</div>
+                        <div style="color: #666; margin-top: 10px;">People Count</div>
+                        <div style="color: var(--primary); font-size: 12px; margin-top: 5px;">Building A</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-icon">💦</div>
+                        <div class="sensor-value">Normal</div>
+                        <div style="color: #666; margin-top: 10px;">Water Pressure</div>
+                        <div style="color: var(--success); font-size: 12px; margin-top: 5px;">All Systems OK</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3>Predictive Maintenance Alerts</h3>
+                    <div style="background: rgba(246, 133, 31, 0.1); padding: 15px; border-left: 4px solid var(--accent); border-radius: 8px; margin-top: 15px;">
+                        <h4>⚠️ HVAC Unit B3 - Maintenance Required Soon</h4>
+                        <p style="color: #666; margin-top: 5px;">Based on sensor data, Unit B3 will likely require filter replacement within 5-7 days</p>
+                    </div>
+                    <div style="background: rgba(255, 180, 0, 0.1); padding: 15px; border-left: 4px solid var(--warning); border-radius: 8px; margin-top: 10px;">
+                        <h4>⚡ Elevator 2 - Unusual Power Consumption</h4>
+                        <p style="color: #666; margin-top: 5px;">25% higher than baseline - schedule inspection recommended</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadHR() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Human Resources" data-ar="الموارد البشرية">Human Resources</h1>
+                <p class="lang-text" data-en="Employee management and workforce analytics" data-ar="إدارة الموظفين وتحليلات القوى العاملة">Employee management and workforce analytics</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 20px;">
+                    <h3>Employee Directory</h3>
+                    <table style="width: 100%; margin-top: 15px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 10px; text-align: left;">Employee ID</th>
+                                <th style="padding: 10px; text-align: left;">Name</th>
+                                <th style="padding: 10px; text-align: left;">Department</th>
+                                <th style="padding: 10px; text-align: left;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px;">EMP-001</td>
+                                <td style="padding: 10px;">Mohammed Al-Khalid</td>
+                                <td style="padding: 10px;">Maintenance</td>
+                                <td style="padding: 10px;"><span style="color: var(--success);">Active</span></td>
+                            </tr>
+                            <tr style="background: #f8f9fa;">
+                                <td style="padding: 10px;">EMP-002</td>
+                                <td style="padding: 10px;">Fatima Al-Zahra</td>
+                                <td style="padding: 10px;">Property Management</td>
+                                <td style="padding: 10px;"><span style="color: var(--success);">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function loadCompliance() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Compliance & Legal" data-ar="الامتثال والقانون">Compliance & Legal</h1>
+                <p class="lang-text" data-en="Regulatory compliance and documentation" data-ar="الامتثال التنظيمي والوثائق">Regulatory compliance and documentation</p>
+                
+                <div style="background: rgba(0, 168, 89, 0.1); padding: 20px; border-left: 4px solid var(--success); border-radius: 8px; margin-top: 20px;">
+                    <h3>✓ ZATCA Compliance Status</h3>
+                    <p style="color: #666; margin-top: 10px;">E-invoicing Phase 2 compliant • QR codes enabled • Real-time reporting active</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 20px;">
+                    <h3>Active Permits</h3>
+                    <table style="width: 100%; margin-top: 15px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 10px; text-align: left;">Permit #</th>
+                                <th style="padding: 10px; text-align: left;">Type</th>
+                                <th style="padding: 10px; text-align: left;">Property</th>
+                                <th style="padding: 10px; text-align: left;">Expiry</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px;">PMT-2025-0142</td>
+                                <td style="padding: 10px;">Building Operation</td>
+                                <td style="padding: 10px;">Al Olaya Tower</td>
+                                <td style="padding: 10px;">2025-12-31</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function loadCRM() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Customer Relationship Management" data-ar="إدارة علاقات العملاء">Customer Relationship Management</h1>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Total Customers</h3>
+                        <p style="font-size: 36px; font-weight: bold;">1,247</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Active Leads</h3>
+                        <p style="font-size: 36px; font-weight: bold;">84</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">NPS Score</h3>
+                        <p style="font-size: 36px; font-weight: bold;">72</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadAdmin() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Administration" data-ar="الإدارة">Administration</h1>
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 20px;">
+                    <h3>System Configuration</h3>
+                    <div style="margin-top: 20px;">
+                        <h4>Brand Settings</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; color: #666;">Company Logo</label>
+                                <input type="file" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; color: #666;">Primary Color</label>
+                                <input type="color" value="#0061A8" style="width: 100%; height: 40px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 30px;">
+                        <h4>Delegation of Authority</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; color: #666;">Level 1 (Up to)</label>
+                                <input type="text" value="SAR 10,000" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; color: #666;">Level 2 (Up to)</label>
+                                <input type="text" value="SAR 50,000" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; color: #666;">Level 3 (Up to)</label>
+                                <input type="text" value="SAR 250,000" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadAnalytics() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Analytics & Reports" data-ar="التحليلات والتقارير">Analytics & Reports</h1>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Report Templates</h3>
+                        <p style="font-size: 36px; font-weight: bold;">47</p>
+                        <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">Browse</button>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Scheduled Reports</h3>
+                        <p style="font-size: 36px; font-weight: bold;">12</p>
+                        <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">Manage</button>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Custom Dashboards</h3>
+                        <p style="font-size: 36px; font-weight: bold;">8</p>
+                        <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">Create</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadSupport() {
+            document.getElementById('contentArea').innerHTML = `
+                <h1 class="lang-text" data-en="Support Center" data-ar="مركز الدعم">Support Center</h1>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Open Tickets</h3>
+                        <p style="font-size: 36px; font-weight: bold;">23</p>
+                        <p style="color: var(--danger);">↑ 3 today</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Avg Response Time</h3>
+                        <p style="font-size: 36px; font-weight: bold;">2.4h</p>
+                        <p style="color: var(--success);">↓ 30 min</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="color: #666;">Resolution Rate</h3>
+                        <p style="font-size: 36px; font-weight: bold;">94%</p>
+                        <p style="color: var(--success);">↑ 2%</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Utility functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const contentArea = document.getElementById('contentArea');
+            sidebar.classList.toggle('collapsed');
+            contentArea.classList.toggle('expanded');
+        }
+
+        function setMode(mode) {
+            // Handle login mode switching
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showLanding();
+        });
+    </script>
+</body>
+</html>
