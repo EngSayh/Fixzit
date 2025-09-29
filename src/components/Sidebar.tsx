@@ -2,7 +2,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
 import LanguageSelector from '@/src/components/i18n/LanguageSelector';
 import CurrencySelector from '@/src/components/i18n/CurrencySelector';
 import {
@@ -96,7 +96,7 @@ interface SidebarProps {
 export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { responsiveClasses, screenInfo } = useResponsive();
+  const { responsiveClasses, screenInfo } = useResponsiveLayout();
 
   // Safe translation with fallback
   let t: (key: string, fallback?: string) => string;

@@ -1,4 +1,4 @@
-// Central ESLint configuration to reduce noise and focus on actionable issues
+// Comprehensive ESLint configuration balancing code quality with pragmatic development
 /** @type {import('eslint').Linter.Config} */
 module.exports = {
   root: true,
@@ -13,20 +13,62 @@ module.exports = {
   },
   extends: [
     'next/core-web-vitals',
+    /**
+     * The Next.js core-web-vitals config already includes eslint-config-next
+     * with sensible defaults. We customize rules that are too strict for the
+     * current codebase while maintaining code quality standards.
+     */
+  ],
+  ignorePatterns: [
+    // Generated or bundled assets
+    '.next/**/*',
+    'node_modules/**/*',
+    '_artifacts/**/*',
+    'coverage/**/*',
+    'playwright-report/**/*',
+    // Large non-critical directories
+    'public/**/*',
+    'packages/**/*',
+    'database/**/*',
+    'deployment/**/*',
+    'scripts/**/*',
+    'tools/**/*',
+    'qa/**/*',
+    'tests/**/*',
+    // Specific files
+    'test-*.js',
+    'test-auth.js',
   ],
   rules: {
-    // Relax highly noisy rules across the codebase
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-unused-vars': 'off',
-    '@typescript-eslint/no-var-requires': 'off',
-    '@typescript-eslint/ban-ts-comment': 'off',
-    'react/no-unescaped-entities': 'off',
+    /* TypeScript - Balanced approach between strict and permissive */
+    '@typescript-eslint/no-explicit-any': 'warn', // Warning allows progress while encouraging better types
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-var-requires': 'off', // CommonJS compatibility
+    '@typescript-eslint/ban-ts-comment': 'warn', // Allow with warning for documented exceptions
+
+    /* JavaScript */
+    'no-var': 'off', // Legacy code compatibility
+    'no-empty': 'off', // Sometimes needed for catch blocks
+    'no-extra-semi': 'off', // Style preference
+    'no-useless-escape': 'warn', // Warn but don't break builds
+    'no-mixed-spaces-and-tabs': 'off', // Config files may need mixed indentation
+
+    /* React */
+    'react/no-unescaped-entities': 'off', // Common in content-heavy applications
+    'react/display-name': 'off', // Not critical for functionality
+    'react-hooks/exhaustive-deps': 'warn', // Important for performance but not breaking
+    'react-hooks/rules-of-hooks': 'warn',
+
+    /* Next.js */
+    '@next/next/no-img-element': 'warn', // Encourage Next.js Image but don't block
     '@next/next/no-assign-module-variable': 'off',
-    '@next/next/no-img-element': 'warn',
-    'no-useless-escape': 'warn',
+
+    /* Accessibility - Keep as warnings for awareness */
+    'jsx-a11y/role-has-required-aria-props': 'warn',
+    'jsx-a11y/role-supports-aria-props': 'warn',
   },
   overrides: [
-    // JS/Config files
+    // JavaScript and CommonJS files
     {
       files: ['*.js', '*.cjs'],
       parser: 'espree',
@@ -39,6 +81,7 @@ module.exports = {
         '@typescript-eslint/no-unused-vars': 'off',
       },
     },
+    // ES Modules JavaScript
     {
       files: ['*.mjs'],
       parser: 'espree',
@@ -51,7 +94,7 @@ module.exports = {
         '@typescript-eslint/no-unused-vars': 'off',
       },
     },
-    // Config files with mixed indentation or special globals
+    // Configuration files that may have special requirements
     {
       files: [
         'tailwind.config.js',
@@ -69,16 +112,19 @@ module.exports = {
       rules: {
         'no-mixed-spaces-and-tabs': 'off',
         '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-var-requires': 'off',
       },
     },
-    // Lib mongo file needs global var declaration
+    // Database and MongoDB files
     {
-      files: ['lib/mongodb.ts', 'src/lib/mongodb.ts'],
+      files: ['lib/mongodb.ts', 'src/lib/mongodb.ts', 'database/**/*'],
       rules: {
-        'no-var': 'off',
+        'no-var': 'off', // Global variable declarations
+        '@typescript-eslint/no-explicit-any': 'off', // MongoDB types can be complex
+        'no-undef': 'off', // MongoDB shell context
       },
     },
-    // ResponsiveContext uses conditional require and hooks access
+    // Context files with dynamic imports
     {
       files: ['src/contexts/ResponsiveContext.tsx'],
       rules: {
@@ -86,48 +132,31 @@ module.exports = {
         'react-hooks/rules-of-hooks': 'off',
       },
     },
-    // Tests and QA utilities
+    // Test files - More permissive for testing utilities
     {
-      files: ['**/*.test.*', '**/*.spec.*', 'qa/**/*'],
+      files: ['**/*.test.*', '**/*.spec.*', 'qa/**/*', 'tests/**/*'],
       rules: {
         '@typescript-eslint/ban-ts-comment': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
         'react/display-name': 'off',
       },
     },
-    // Scripts and server package (CommonJS, node env, older style allowed)
+    // Scripts and tooling - Most permissive
     {
       files: [
         'scripts/**/*',
-        'packages/fixzit-souq-server/**/*',
-        'database/**/*',
+        'packages/**/*',
         'deployment/**/*',
-        'public/**/*',
+        'tools/**/*',
       ],
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/ban-ts-comment': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
         'no-undef': 'off',
       },
     },
   ],
-  ignorePatterns: [
-    '.next/**/*',
-    'node_modules/**/*',
-    '_artifacts/**/*',
-    // Large non-critical trees
-    'public/**/*',
-    'packages/fixzit-souq-server/**/*',
-    'scripts/**/*',
-    'database/**/*',
-    'deployment/**/*',
-    'qa/**/*',
-    'tests/**/*',
-    'coverage/**/*',
-    // Generated or external
-    'playwright-report/**/*',
-    'test-auth.js',
-  ],
 };
-

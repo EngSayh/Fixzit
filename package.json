@@ -37,6 +37,7 @@
     "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
     "clean:root": "tsx scripts/janitor.ts --apply",
+    "bundle:check": "webpack --config webpack.config.js --mode=production",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js"
   },
@@ -95,7 +96,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.0",
     "webpack": "^5.101.3",
-    "webpack-cli": "^5.1.4",
+    "webpack-cli": "^6.0.1",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -110,6 +111,8 @@
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.16",
     "concurrently": "^9.2.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.15",
     "fast-glob": "^3.3.3",
     "jsdom": "^27.0.0",
     "picocolors": "^1.1.1",
