@@ -5,8 +5,8 @@ info:
     Complete OpenAPI specification for Fixzit Marketplace endpoints.
     
     This API provides comprehensive marketplace functionality including:
-    - Product search and catalog management
-    - Vendor and service provider operations  
+  - Product search and catalog management
+  - Vendor and service provider operations
     - Request for Quote (RFQ) system
     - Order management and tracking
     - Payment processing integration
@@ -65,6 +65,60 @@ paths:
           schema:
             type: string
             enum: [materials, services, equipment, labor]
+        - name: location
+          in: query
+          description: Filter by location (city, region)
+          required: false
+          schema:
+            type: string
+            example: "Riyadh"
+        - name: minPrice
+          in: query
+          description: Minimum price filter (in SAR)
+          required: false
+          schema:
+            type: number
+            minimum: 0
+        - name: maxPrice
+          in: query
+          description: Maximum price filter (in SAR)
+          required: false
+          schema:
+            type: number
+            minimum: 0
+        - name: sortBy
+          in: query
+          description: Sort results by field
+          required: false
+          schema:
+            type: string
+            enum: [relevance, price_asc, price_desc, rating, newest]
+            default: relevance
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of results per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: lang
+          in: query
+          description: Response language
+          required: false
+          schema:
+            type: string
+            enum: [en, ar]
+            default: en
       responses:
         '200':
           description: Search results retrieved successfully
@@ -72,11 +126,176 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - results
+                  - pagination
+                  - facets
                 properties:
                   results:
                     type: array
                     items:
-                      type: object
+                      $ref: '#/components/schemas/MarketplaceSearchResult'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationInfo'
+                  facets:
+                    $ref: '#/components/schemas/SearchFacets'
+                  searchMetadata:
+                    type: object
+                    properties:
+                      query:
+                        type: string
+                      executionTime:
+                        type: number
+                        description: Search execution time in milliseconds
+                      totalResults:
+                        type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /marketplace/products/{slug}:
+    get:
+      summary: Get product details by slug
+      description: |
+        Retrieve detailed information about a specific marketplace product
+        including specifications, pricing, availability, and vendor details.
+      operationId: getProductBySlug
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Product slug identifier
+          schema:
+            type: string
+            example: "portland-cement-type-1-2-50kg"
+        - name: lang
+          in: query
+          description: Response language
+          required: false
+          schema:
+            type: string
+            enum: [en, ar]
+            default: en
+      responses:
+        '200':
+          description: Product details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketplaceProduct'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /marketplace/products:
+    get:
+      summary: List marketplace products
+      description: Get paginated list of marketplace products with filtering
+      operationId: listProducts
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: brand
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MarketplaceProduct'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationInfo'
+
+  /marketplace/vendors/{vendorId}:
+    get:
+      summary: Get vendor profile and services
+      description: Retrieve detailed vendor information including services, ratings, and portfolio
+      operationId: getVendorProfile
+      tags:
+        - Vendors
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vendor profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorProfile'
+
+  /marketplace/rfq:
+    post:
+      summary: Create Request for Quote
+      description: Submit a new RFQ to the marketplace for vendor bidding
+      operationId: createRFQ
+      tags:
+        - RFQ
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRFQRequest'
+      responses:
+        '201':
+          description: RFQ created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RFQResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
 
 components:
   securitySchemes:
@@ -84,3 +303,434 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+<<<<<<< HEAD
+
+  schemas:
+    MarketplaceSearchResult:
+      type: object
+      required:
+        - id
+        - title
+        - type
+        - price
+        - vendor
+      properties:
+        id:
+          type: string
+          example: "prod_123abc"
+        title:
+          type: object
+          properties:
+            en:
+              type: string
+              example: "Portland Cement Type I/II - 50kg"
+            ar:
+              type: string
+              example: "أسمنت بورتلاند نوع I/II - 50 كجم"
+        type:
+          type: string
+          enum: [product, service]
+        category:
+          type: string
+          example: "materials"
+        price:
+          type: object
+          properties:
+            currency:
+              type: string
+              example: "SAR"
+            amount:
+              type: number
+              example: 16.5
+            formatted:
+              type: string
+              example: "16.50 ر.س"
+        vendor:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            rating:
+              type: number
+              minimum: 0
+              maximum: 5
+            verified:
+              type: boolean
+        availability:
+          type: object
+          properties:
+            inStock:
+              type: boolean
+            leadTime:
+              type: string
+              example: "2-3 days"
+        rating:
+          type: object
+          properties:
+            average:
+              type: number
+              minimum: 0
+              maximum: 5
+            count:
+              type: integer
+        image:
+          type: string
+          format: uri
+        slug:
+          type: string
+          example: "portland-cement-type-1-2-50kg"
+
+    MarketplaceProduct:
+      type: object
+      required:
+        - _id
+        - tenantId
+        - sku
+        - title
+      properties:
+        _id:
+          type: string
+          example: "60d5ecb74b24a35c8c8b4567"
+        tenantId:
+          type: string
+          example: "tenant_123"
+        sku:
+          type: string
+          example: "CEM-001-50"
+        slug:
+          type: string
+          example: "portland-cement-type-1-2-50kg"
+        title:
+          type: object
+          required:
+            - en
+          properties:
+            en:
+              type: string
+              example: "Portland Cement Type I/II - 50kg"
+            ar:
+              type: string
+              example: "أسمنت بورتلاند نوع I/II - 50 كجم"
+        description:
+          type: object
+          properties:
+            en:
+              type: string
+            ar:
+              type: string
+        brand:
+          type: string
+          example: "Fixzit Materials"
+        category:
+          type: string
+          example: "construction-materials"
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: "Standard"
+              value:
+                type: string
+                example: "ASTM C150"
+        prices:
+          type: array
+          items:
+            type: object
+            properties:
+              currency:
+                type: string
+                example: "SAR"
+              listPrice:
+                type: number
+                example: 16.5
+              salePrice:
+                type: number
+              validFrom:
+                type: string
+                format: date-time
+              validTo:
+                type: string
+                format: date-time
+        inventories:
+          type: array
+          items:
+            type: object
+            properties:
+              onHand:
+                type: integer
+                example: 200
+              leadDays:
+                type: integer
+                example: 2
+              warehouse:
+                type: string
+        rating:
+          type: object
+          properties:
+            avg:
+              type: number
+              minimum: 0
+              maximum: 5
+              example: 4.6
+            count:
+              type: integer
+              example: 123
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        specifications:
+          type: object
+        compliance:
+          type: array
+          items:
+            type: string
+        vendor:
+          $ref: '#/components/schemas/VendorInfo'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    VendorProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: object
+          properties:
+            en:
+              type: string
+            ar:
+              type: string
+        contact:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+            address:
+              type: object
+        rating:
+          type: object
+          properties:
+            average:
+              type: number
+            total:
+              type: integer
+        services:
+          type: array
+          items:
+            type: string
+        certifications:
+          type: array
+          items:
+            type: string
+        portfolio:
+          type: array
+          items:
+            type: object
+
+    VendorInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        verified:
+          type: boolean
+        rating:
+          type: number
+
+    CreateRFQRequest:
+      type: object
+      required:
+        - title
+        - description
+        - category
+        - budget
+        - deadline
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 200
+        description:
+          type: string
+          minLength: 20
+        category:
+          type: string
+        budget:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+            currency:
+              type: string
+              default: "SAR"
+        deadline:
+          type: string
+          format: date-time
+        requirements:
+          type: array
+          items:
+            type: string
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    RFQResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, closed, awarded]
+        createdAt:
+          type: string
+          format: date-time
+        deadline:
+          type: string
+          format: date-time
+
+    PaginationInfo:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - pages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+        pages:
+          type: integer
+          minimum: 0
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    SearchFacets:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+        brands:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+        priceRanges:
+          type: array
+          items:
+            type: object
+            properties:
+              min:
+                type: number
+              max:
+                type: number
+              count:
+                type: integer
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - correlationId
+      properties:
+        error:
+          type: string
+          example: "PRODUCT_NOT_FOUND"
+        message:
+          type: string
+          example: "The requested product could not be found"
+        correlationId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Marketplace Search
+    description: Search and discovery operations
+  - name: Products
+    description: Product catalog operations
+  - name: Vendors
+    description: Vendor and service provider operations
+  - name: RFQ
+    description: Request for Quote operations
+
+externalDocs:
+  description: Fixzit Developer Documentation
+  url: https://docs.fixzit.co
+=======
+>>>>>>> main

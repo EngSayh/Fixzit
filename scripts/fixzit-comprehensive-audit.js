@@ -59,8 +59,8 @@ function scanFile(filePath, relativePath) {
   // Check for authentication middleware
   if (relativePath.includes('routes/') && !relativePath.includes('auth.js')) {
     // Check if authentication is properly imported
-    const hasAuthImport = /require\(['"].*\/middleware\/(auth|enhancedAuth)['"]\)/.test(content);
-    const hasAuthMiddleware = /router\.use\((authMiddleware|authenticate)\)/.test(content);
+    const hasAuthImport = /require(['"].*\/middleware\/(auth|enhancedAuth)['"])/.test(content);
+    const hasAuthMiddleware = /router\.use((authMiddleware|authenticate))/.test(content);
     
     if (!hasAuthImport) {
       fileIssues.push({
@@ -109,7 +109,7 @@ function scanFile(filePath, relativePath) {
   }
   
   // Check for empty catch blocks
-  const emptyCatchRegex = /} catch \((\w+)\) {\s*}/g;
+  const emptyCatchRegex = /} catch ((\w+)) {\s*}/g;
   let match;
   while ((match = emptyCatchRegex.exec(content)) !== null) {
     const lineNum = content.substring(0, match.index).split('\n').length;
@@ -123,7 +123,7 @@ function scanFile(filePath, relativePath) {
   }
   
   // Check for proper error handling in catch blocks
-  const properCatchRegex = /} catch \((\w+)\) {\s*logger\.(error|warn)/g;
+  const properCatchRegex = /} catch ((\w+)) {\s*logger\.(error|warn)/g;
   while ((match = properCatchRegex.exec(content)) !== null) {
     issuesFixed++;
     fileIssues.push({
@@ -151,7 +151,7 @@ function scanFile(filePath, relativePath) {
   });
   
   // Check for console.log statements
-  const consoleLogRegex = /console\.(log|error|warn)\(/g;
+  const consoleLogRegex = /console\.(log|error|warn)(/g;
   while ((match = consoleLogRegex.exec(content)) !== null) {
     const lineNum = content.substring(0, match.index).split('\n').length;
     fileIssues.push({
@@ -164,7 +164,7 @@ function scanFile(filePath, relativePath) {
   }
   
   // Check for logger usage (fixed issues)
-  const loggerRegex = /logger\.(info|error|warn|debug)\(/g;
+  const loggerRegex = /logger\.(info|error|warn|debug)(/g;
   let loggerCount = 0;
   while ((match = loggerRegex.exec(content)) !== null) {
     loggerCount++;
@@ -213,8 +213,8 @@ function scanFile(filePath, relativePath) {
   }
   
   // Check for asyncHandler usage
-  if (/asyncHandler\(async/.test(content)) {
-    const asyncHandlerCount = (content.match(/asyncHandler\(async/g) || []).length;
+  if (/asyncHandler(async/.test(content)) {
+    const asyncHandlerCount = (content.match(/asyncHandler(async/g) || []).length;
     issuesFixed += asyncHandlerCount;
     fileIssues.push({
       type: 'improvement',
@@ -292,7 +292,7 @@ function checkModels() {
     const content = fs.readFileSync(path.join(modelsDir, file), 'utf8');
     
     // Check for indexes
-    if (/\.index\(/.test(content)) {
+    if (/\.index(/.test(content)) {
       issuesFixed++;
       auditResults.categories.improvements.push({
         file: `models/${file}`,

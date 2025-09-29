@@ -1,21 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import useSWR from 'swr';
-import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Badge } from '@/src/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
-import { Textarea } from '@/src/components/ui/textarea';
-import { Separator } from '@/src/components/ui/separator';
-import { Building2, Plus, Search, Filter, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
+import { useState } from &apos;react&apos;;
+import useSWR from 'swr&apos;;
+import { Button } from &apos;@/src/components/ui/button&apos;;
+import { Input } from &apos;@/src/components/ui/input&apos;;
+import { Card, CardContent, CardHeader, CardTitle } from &apos;@/src/components/ui/card&apos;;
+import { Badge } from &apos;@/src/components/ui/badge&apos;;
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from &apos;@/src/components/ui/dialog&apos;;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/src/components/ui/select&apos;;
+import { Textarea } from &apos;@/src/components/ui/textarea&apos;;
+import { Separator } from &apos;@/src/components/ui/separator&apos;;
+import { Building2, Plus, Search, Filter, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from &apos;lucide-react&apos;;
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function PropertiesPage() {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(&apos;');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -114,11 +114,11 @@ export default function PropertiesPage() {
 function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'RESIDENTIAL':
+      case 'RESIDENTIAL&apos;:
         return <Home className="w-5 h-5" />;
-      case 'COMMERCIAL':
+      case 'COMMERCIAL&apos;:
         return <Building className="w-5 h-5" />;
-      case 'INDUSTRIAL':
+      case 'INDUSTRIAL&apos;:
         return <Factory className="w-5 h-5" />;
       default:
         return <Building2 className="w-5 h-5" />;
@@ -127,24 +127,24 @@ function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () =>
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'RESIDENTIAL':
-        return 'bg-blue-100 text-blue-800';
-      case 'COMMERCIAL':
-        return 'bg-green-100 text-green-800';
-      case 'INDUSTRIAL':
-        return 'bg-orange-100 text-orange-800';
-      case 'MIXED_USE':
-        return 'bg-purple-100 text-purple-800';
-      case 'LAND':
-        return 'bg-yellow-100 text-yellow-800';
+      case 'RESIDENTIAL&apos;:
+        return &apos;bg-blue-100 text-blue-800&apos;;
+      case &apos;COMMERCIAL&apos;:
+        return &apos;bg-green-100 text-green-800&apos;;
+      case &apos;INDUSTRIAL&apos;:
+        return &apos;bg-orange-100 text-orange-800&apos;;
+      case &apos;MIXED_USE&apos;:
+        return &apos;bg-purple-100 text-purple-800&apos;;
+      case &apos;LAND&apos;:
+        return &apos;bg-yellow-100 text-yellow-800&apos;;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return &apos;bg-gray-100 text-gray-800&apos;;
     }
   };
 
   const occupancyRate = property.details?.occupancyRate || 0;
   const totalUnits = property.units?.length || 0;
-  const occupiedUnits = property.units?.filter((u: any) => u.status === 'OCCUPIED').length || 0;
+  const occupiedUnits = property.units?.filter((u: any) => u.status === &apos;OCCUPIED&apos;).length || 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -171,7 +171,7 @@ function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () =>
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Total Area:</span>
-            <span className="text-sm font-medium">{property.details?.totalArea || 'N/A'} sqm</span>
+            <span className="text-sm font-medium">{property.details?.totalArea || 'N/A&apos;} sqm</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Units:</span>
@@ -183,7 +183,7 @@ function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () =>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">Monthly Rent:</span>
-            <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || 'N/A'} SAR</span>
+            <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || 'N/A&apos;} SAR</span>
           </div>
         </div>
 
@@ -221,17 +221,17 @@ function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () =>
 
 function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
   const [formData, setFormData] = useState({
-    name: '',
+    name: &apos;',
     description: '',
-    type: '',
+    type: &apos;',
     subtype: '',
     address: {
-      street: '',
+      street: &apos;',
       city: '',
-      region: '',
+      region: &apos;',
       postalCode: '',
       coordinates: { lat: 24.7136, lng: 46.6753 }, // Default to Riyadh
-      nationalAddress: '',
+      nationalAddress: &apos;',
       district: ''
     },
     details: {
@@ -245,15 +245,15 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
       occupancyRate: 0
     },
     ownership: {
-      type: 'OWNED',
+      type: &apos;OWNED&apos;,
       owner: {
-        name: '',
+        name: &apos;',
         contact: '',
-        id: ''
+        id: &apos;'
       },
       lease: {
         startDate: '',
-        endDate: '',
+        endDate: &apos;',
         monthlyRent: 0,
         landlord: ''
       }
@@ -261,9 +261,9 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
     features: {
       amenities: [] as string[],
       utilities: {
-        electricity: '',
+        electricity: &apos;',
         water: '',
-        gas: '',
+        gas: &apos;',
         internet: ''
       },
       accessibility: {
@@ -278,19 +278,19 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/properties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+      const response = await fetch(&apos;/api/properties&apos;, {
+        method: &apos;POST&apos;,
+        headers: { &apos;Content-Type&apos;: &apos;application/json&apos;, &apos;x-tenant-id&apos;: &apos;demo-tenant&apos; },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create property');
+        alert(&apos;Failed to create property&apos;);
       }
     } catch (error) {
-      alert('Error creating property');
+      alert(&apos;Error creating property&apos;);
     }
   };
 
