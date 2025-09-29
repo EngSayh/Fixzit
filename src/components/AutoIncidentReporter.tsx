@@ -11,7 +11,10 @@ export default function AutoIncidentReporter(){
       window.__incidentReporter = true;
     }
     const getUser = () => {
-      try { return localStorage.getItem('x-user') ? JSON.parse(localStorage.getItem('x-user') as string) : null; } catch { return null; }
+      try {
+        const userStr = localStorage.getItem('x-user');
+        return userStr ? JSON.parse(userStr as string) : null;
+      } catch { return null; }
     };
     const buildCtx = () => ({
       url: typeof window !== 'undefined' ? window.location.href : '',

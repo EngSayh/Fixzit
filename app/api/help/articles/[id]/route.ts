@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { connectMongo } from "@/src/lib/mongo";
+import { HelpArticle } from "@/src/server/models/HelpArticle";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb";
@@ -29,9 +31,6 @@ const patchSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
   try {
     const user = await getSessionUser(req);
-    if (!["SUPER_ADMIN"].includes(user.role)){
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
     const body = await req.json().catch(() => ({}));
     const data = patchSchema.parse(body);
     const db = await getDatabase();
@@ -41,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
     })();
     // Scope updates to caller's tenant or global articles
-    const tenantScope = { $or: [ { tenantId: user.tenantId }, { tenantId: { $exists: false } }, { tenantId: null } ] } as any;
+    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] } as any;
     const filter = { ...baseFilter, ...tenantScope } as any;
 
     const update = {
@@ -58,8 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/src/kb/ingest')
       .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
-        orgId: (article as any)?.orgId ?? (user as any)?.tenantId ?? null,
-        tenantId: (article as any)?.tenantId ?? (user as any)?.tenantId ?? null,
+        orgId: (article as any)?.orgId ?? (user as any)?.orgId ?? null,
         articleId: article.slug,
         lang: 'en',
         route: `/help/${article.slug}`,
