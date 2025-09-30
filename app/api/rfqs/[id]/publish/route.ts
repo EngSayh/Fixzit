@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { RFQ } from "@/src/server/models/RFQ";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { RFQ } from "@/server/models/RFQ";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 /**
  * Publishes a draft RFQ by id for the current user's tenant.

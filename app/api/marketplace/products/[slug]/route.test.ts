@@ -7,8 +7,8 @@
 import { GET } from './route'
 
 // Mock the MarketplaceProduct model imported in the route implementation.
-// The route imports: "@/src/server/models/MarketplaceProduct"
-jest.mock('@/src/server/models/MarketplaceProduct', () => {
+// The route imports: "@/server/models/MarketplaceProduct"
+jest.mock('@/server/models/MarketplaceProduct', () => {
   return {
     MarketplaceProduct: {
       findOne: jest.fn()
@@ -16,7 +16,7 @@ jest.mock('@/src/server/models/MarketplaceProduct', () => {
   }
 })
 
-const { MarketplaceProduct } = jest.requireMock('@/src/server/models/MarketplaceProduct')
+const { MarketplaceProduct } = jest.requireMock('@/server/models/MarketplaceProduct')
 
 // Helper to read JSON body from a NextResponse (web-standard Response compatible)
 async function readJson(res: Response) {

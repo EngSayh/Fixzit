@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { Asset } from "@/src/server/models/Asset";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Asset } from "@/server/models/Asset";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const updateAssetSchema = z.object({
   name: z.string().min(1).optional(),

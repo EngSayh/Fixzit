@@ -8,7 +8,6 @@
         "ms-dotnettools.csharp",
         "ms-dotnettools.csdevkit",
         "github.copilot",
-        "coderabbit.coderabbit-vscode",
         "github.vscode-github-actions",
         "christian-kohler.npm-intellisense",
         "ms-azuretools.vscode-containers"

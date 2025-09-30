@@ -1,5 +1,5 @@
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { Job } from '@/src/server/models/Job';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Job } from '@/server/models/Job';
 
 export default async function JobDetailPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;

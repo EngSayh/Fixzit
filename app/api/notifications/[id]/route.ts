@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCollections } from "@/lib/db/collections";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
-import { createSecureResponse } from '@/src/server/security/headers';
+import { createSecureResponse } from '@/server/security/headers';
 
 const updateNotificationSchema = z.object({
   read: z.boolean().optional(),

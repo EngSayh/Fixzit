@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { findProductBySlug } from '@/src/lib/marketplace/search';
-import { db } from '@/src/lib/mongo';
-import Category from '@/src/models/marketplace/Category';
-import { serializeCategory } from '@/src/lib/marketplace/serializers';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { findProductBySlug } from '@/lib/marketplace/search';
+import { db } from '@/lib/mongo';
+import Category from '@/models/marketplace/Category';
+import { serializeCategory } from '@/lib/marketplace/serializers';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;

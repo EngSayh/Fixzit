@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { WorkOrder } from "@/src/server/models/WorkOrder";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
-import { requireAbility } from "@/src/server/middleware/withAuthRbac";
-import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
-import { WOPriority } from "@/src/server/work-orders/wo.schema";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
+import { WOPriority } from "@/server/work-orders/wo.schema";
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}) {
   const params = await props.params;
