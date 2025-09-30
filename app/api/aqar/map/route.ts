@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase, getDatabase } from '@/src/lib/mongodb-unified';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
+import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 // Constants for clustering grid cell calculation
 const MIN_CELL_SIZE_DEGREES = 0.01; // avoid excessive granularity

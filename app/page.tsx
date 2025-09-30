@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import Footer from "@/src/components/Footer";
+import Footer from "@/components/Footer";
 import { useTranslation } from "@/src/contexts/TranslationContext";
 
 export default function LandingPage(){

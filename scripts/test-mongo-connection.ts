@@ -5,7 +5,7 @@
  * Usage: tsx scripts/test-mongo-connection.ts
  */
 
-import { connectToDatabase, getDatabase } from '@/src/lib/mongodb-unified';
+import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
 
 async function testConnection() {
   console.log('🚀 MongoDB Connection Test Suite');

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { RFQ } from '@/src/server/models/RFQ';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { RFQ } from '@/server/models/RFQ';
 import { z } from 'zod';
 
 const DEFAULT_PUBLIC_STATUSES = ['PUBLISHED', 'BIDDING'];

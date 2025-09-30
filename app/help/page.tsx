@@ -25,7 +25,7 @@ interface HelpArticle {
   lastUpdated: string;
 }
 
-const AIChat = dynamic(() => import('@/src/components/AIChat'), { ssr: false });
+const AIChat = dynamic(() => import('@/components/AIChat'), { ssr: false });
 
 export default function HelpHome() {
   const [showAIChat, setShowAIChat] = useState(false);
@@ -431,3 +431,4 @@ export default function HelpHome() {
     </div>
   );
 }
+

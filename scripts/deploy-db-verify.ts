@@ -10,7 +10,7 @@
  * - Multi-tenant scoping verification
  */
 
-import { connectToDatabase, getDatabase, checkDatabaseHealth, disconnectFromDatabase } from '@/src/lib/mongodb-unified';
+import { connectToDatabase, getDatabase, checkDatabaseHealth, disconnectFromDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
 
 interface VerificationResult {

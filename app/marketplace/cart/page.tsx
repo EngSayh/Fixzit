@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function CartPage() {
   const [categoriesResponse, cartResponse] = await Promise.all([

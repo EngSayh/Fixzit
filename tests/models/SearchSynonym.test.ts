@@ -28,7 +28,7 @@ function withIsolatedModule<T>(env: Record<string, string | undefined>, mocks: {
 
 // Helper to resolve module under test.
 // Adjust path if the model file resides elsewhere; tests rely on path alias "@"
-const modulePath = path.posix.normalize("@/src/models/SearchSynonym")
+const modulePath = path.posix.normalize("@/models/SearchSynonym")
 
 describe("models/SearchSynonym - environment-based model selection", () => {
   afterEach(() => {
@@ -218,3 +218,4 @@ describe("models/SearchSynonym - negative and edge behaviors without DB", () => 
     expect(SearchSynonym).toBe(fakeModelInst)
   })
 })
+

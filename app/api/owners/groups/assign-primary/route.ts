@@ -1,7 +1,7 @@
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import OwnerGroup from '@/src/models/OwnerGroup';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import OwnerGroup from '@/models/OwnerGroup';
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromToken } from '@/src/lib/auth';
+import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';
 
 const assignPrimarySchema = z.object({
@@ -53,4 +53,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to assign owner group' }, { status: 500 });
   }
 }
+
 

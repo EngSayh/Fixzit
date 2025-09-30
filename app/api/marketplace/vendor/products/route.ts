@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import Product from '@/src/models/marketplace/Product';
-import { serializeProduct } from '@/src/lib/marketplace/serializers';
-import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import Product from '@/models/marketplace/Product';
+import { serializeProduct } from '@/lib/marketplace/serializers';
+import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
 const UpsertSchema = z.object({
   _id: z.string().optional(),
@@ -88,4 +88,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to save product' }, { status: 500 });
   }
 }
+
 

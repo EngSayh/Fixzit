@@ -12,7 +12,7 @@ import { Schema, model, models, connection, connect, disconnect } from "mongoose
 describe("CmsPage model schema", () => {
   const importCmsPageModule = async () => {
     jest.resetModules();
-    return await import("@/src/models/CmsPage");
+    return await import("@/models/CmsPage");
   };
 
     beforeAll(() => {
@@ -46,7 +46,7 @@ describe("CmsPage model schema", () => {
     });
 
     afterAll(() => {
-      jest.dontMock("@/src/lib/mongo");
+      jest.dontMock("@/lib/mongo");
     });
 
       const mod: any = await importCmsPageModule();
@@ -111,7 +111,7 @@ describe("CmsPage model schema", () => {
           await disconnect();
         }
       } catch { /* noop */ }
-      jest.dontMock("@/src/lib/mongo");
+      jest.dontMock("@/lib/mongo");
     });
 
     test("requires slug, title, and content", async () => {
@@ -188,3 +188,4 @@ describe("CmsPage model schema", () => {
     });
   });
 });
+

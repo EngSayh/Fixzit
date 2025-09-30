@@ -1,6 +1,6 @@
 
-import RFQBoard from '@/src/components/marketplace/RFQBoard';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import RFQBoard from '@/components/marketplace/RFQBoard';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function RFQPage() {
   const [categoriesResponse, rfqResponse] = await Promise.all([
@@ -25,3 +25,4 @@ export default async function RFQPage() {
     </div>
   );
 }
+

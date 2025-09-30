@@ -6,15 +6,17 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 const schema = z.object({ text:z.string().min(1) });
 
-export async function GET(req:NextRequest, {params}:{params:{id:string}}){
+export async function GET(req:NextRequest, props:{params: Promise<{id:string}>}) {
+  const params = await props.params;
   const user = await getSessionUser(req);
   await connectToDatabase();
   const wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
   return NextResponse.json(wo?.comments ?? []);
 }
 
-export async function POST(req:NextRequest, {params}:{params:{id:string}}){
-  const user = await getSessionUser(req); await connectToDatabase();
+export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+  const params = await props.params;
+  const user = await getSessionUser(req);await connectToDatabase();
   const { text } = schema.parse(await req.json());
   const wo:any = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return NextResponse.json({error:"Not found"},{status:404});

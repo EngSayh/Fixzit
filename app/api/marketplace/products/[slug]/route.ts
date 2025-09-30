@@ -6,10 +6,11 @@ import Category from '@/src/models/marketplace/Category';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
 
 interface RouteParams {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const context = await resolveMarketplaceContext(request);
     const slug = decodeURIComponent(params.slug);

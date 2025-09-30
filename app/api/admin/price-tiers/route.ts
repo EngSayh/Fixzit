@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import PriceTier from '@/src/models/PriceTier';
-import Module from '@/src/models/Module';
-import { getUserFromToken } from '@/src/lib/auth';
-import { rateLimit } from '@/src/server/security/rateLimit';
-import { createSecureResponse } from '@/src/server/security/headers';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import PriceTier from '@/models/PriceTier';
+import Module from '@/models/Module';
+import { getUserFromToken } from '@/lib/auth';
+import { rateLimit } from '@/server/security/rateLimit';
+import { createSecureResponse } from '@/server/security/headers';
 import { 
   createErrorResponse,
   zodValidationError
-} from '@/src/server/utils/errorResponses';
+} from '@/server/utils/errorResponses';
 import { z } from 'zod';
 
 const priceTierSchema = z.object({
@@ -101,4 +101,5 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+
 

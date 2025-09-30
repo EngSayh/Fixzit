@@ -1,9 +1,9 @@
-import { Home, Wrench, Banknote, Users, Settings, Building2, Store, Landmark, Factory, LifeBuoy, Contact, ShieldCheck } from "lucide-react";
+import { Home, Wrench, Banknote, Users, Settings, Building2, Store, Landmark, Factory, LifeBuoy, Contact } from "lucide-react";
 import type { Role } from "@/lib/rbac";
 
 export type ModuleKey =
   | "dashboard" | "work_orders" | "finance" | "hr" | "admin" | "crm"
-  | "properties" | "marketplace" | "aqar_souq" | "vendors" | "support" | "compliance";
+  | "properties" | "marketplace" | "aqar_souq" | "vendors" | "support";
 
 export const MODULES: Array<{
   key: ModuleKey;
@@ -22,6 +22,5 @@ export const MODULES: Array<{
   { key:"aqar_souq",   labelKey:"aqar_souq",   href:"/aqar",        icon: Landmark },
   { key:"vendors",     labelKey:"vendors",     href:"/vendors",     icon: Factory },
   { key:"support",     labelKey:"support",     href:"/support",     icon: LifeBuoy },
-  { key:"compliance",  labelKey:"compliance",  href:"/compliance",  icon: ShieldCheck },
 ];
 

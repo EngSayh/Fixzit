@@ -1,14 +1,15 @@
 
-import ProductCard from '@/src/components/marketplace/ProductCard';
-import SearchFiltersPanel from '@/src/components/marketplace/SearchFiltersPanel';
+import ProductCard from '@/components/marketplace/ProductCard';
+import SearchFiltersPanel from '@/components/marketplace/SearchFiltersPanel';
 import Link from 'next/link';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 interface SearchPageProps {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function MarketplaceSearch({ searchParams }: SearchPageProps) {
+export default async function MarketplaceSearch(props: SearchPageProps) {
+  const searchParams = await props.searchParams;
   const query = new URLSearchParams();
   for (const key of ['q', 'cat', 'brand', 'std', 'min', 'max', 'page']) {
     const value = searchParams[key];
@@ -85,3 +86,4 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
     </div>
   );
 }
+

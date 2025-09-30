@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
+import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey } from '@/src/config/topbar-modules';
 
 // Helper function to generate href based on entity type

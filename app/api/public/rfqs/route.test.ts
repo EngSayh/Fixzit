@@ -17,7 +17,7 @@ import { GET } from './route';
 // We mock the db to avoid real connections, and RFQ model methods used in the handler:
 // - RFQ.find(...).sort(...).skip(...).limit(...).lean()
 // - RFQ.countDocuments(...)
-jest.mock('@/src/lib/mongo', () => ({
+jest.mock('@/lib/mongo', () => ({
   db: Promise.resolve()
 }));
 
@@ -41,7 +41,7 @@ const RFQMock = {
   countDocuments: jest.fn()
 };
 
-jest.mock('@/src/server/models/RFQ', () => ({
+jest.mock('@/server/models/RFQ', () => ({
   RFQ: RFQMock
 }));
 

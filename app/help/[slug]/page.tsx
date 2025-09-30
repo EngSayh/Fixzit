@@ -16,14 +16,15 @@ type Article = { slug: string; title: string; content: string; category?: string
  * @param params - Route params object containing the article `slug`.
  * @returns JSX for the help article page or a fallback message when the article is unavailable.
  */
-export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
+export default async function HelpArticlePage(props:{ params: Promise<{ slug:string }>}) {
+  const params = await props.params;
   await connectToDatabase();
   const a = await (HelpArticle as any).findOne({ slug: params.slug });
   if (!a || a.status!=="PUBLISHED"){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }
   // Derive dir from Accept-Language (simple heuristic); ClientLayout will enforce on client
-  const accept = headers().get('accept-language') || '';
+  const accept = (await headers()).get('accept-language') || '';
   const isRTL = accept.toLowerCase().startsWith('ar');
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>

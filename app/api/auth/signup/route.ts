@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { User } from "@/src/server/models/User";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";

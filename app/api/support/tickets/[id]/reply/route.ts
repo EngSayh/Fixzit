@@ -6,7 +6,8 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 const schema = z.object({ text: z.string().min(1) });
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }){
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   await connectToDatabase();
   const user = await getSessionUser(req).catch(()=>null);
   const body = schema.parse(await req.json());

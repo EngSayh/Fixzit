@@ -53,7 +53,7 @@ async function resolvePOST(): Promise<void> {
 }
 
 // We will mock modules consumed by the route.
-// The route imports: generateZATCAQR from '@/lib/zatca', validateCallbackRaw from '@/src/lib/paytabs', and NextResponse from 'next/server'.
+// The route imports: generateZATCAQR from '@/lib/zatca', validateCallbackRaw from '@/lib/paytabs', and NextResponse from 'next/server'.
 // We mock generateZATCAQR and validateCallbackRaw to isolate logic.
  */
 
@@ -95,8 +95,8 @@ jest.mock('@/lib/zatca', () => ({
   generateZATCAQR: (...args: any[]) => mockGenerateZATCAQR(...args),
 }));
 
-// Mock: '@/src/lib/paytabs'
-jest.mock('@/src/lib/paytabs', () => ({
+// Mock: '@/lib/paytabs'
+jest.mock('@/lib/paytabs', () => ({
   validateCallbackRaw: (...args: any[]) => mockValidateCallbackRaw(...args),
 }));
 

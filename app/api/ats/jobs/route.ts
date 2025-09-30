@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { Job } from '@/src/server/models/Job';
-import { generateSlug } from '@/src/lib/utils';
-import { getUserFromToken } from '@/src/lib/auth';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Job } from '@/server/models/Job';
+import { generateSlug } from '@/lib/utils';
+import { getUserFromToken } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {

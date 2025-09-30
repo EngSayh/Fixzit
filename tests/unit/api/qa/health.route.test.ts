@@ -3,7 +3,7 @@
  *
  * Testing framework: Jest (ts-jest), Node test environment.
  * - We mock next/server's NextResponse.json to a simple object with { status, json() } to avoid Next runtime coupling.
- * - We mock "@/src/lib/mongo" per test using jest.doMock and reload the route to cover different branches.
+ * - We mock "@/lib/mongo" per test using jest.doMock and reload the route to cover different branches.
  * - If your project uses Vitest, replace jest.* with vi.* and adjust doMock equivalents.
  */
 
@@ -63,7 +63,7 @@ function makeMongoMock(opts: MockOptions) {
 async function loadRouteWithMocks(opts: MockOptions): Promise<RouteModule> {
   jest.resetModules();
   jest.doMock('next/server', () => mockNextServer(), { virtual: true });
-  jest.doMock('@/src/lib/mongodb-unified', () => makeMongoMock(opts), { virtual: true });
+  jest.doMock('@/lib/mongodb-unified', () => makeMongoMock(opts), { virtual: true });
 
   const candidates = [
     '../../../../src/app/api/qa/health/route',
@@ -71,7 +71,7 @@ async function loadRouteWithMocks(opts: MockOptions): Promise<RouteModule> {
     'src/app/api/qa/health/route',
     'app/api/qa/health/route',
     '@/app/api/qa/health/route',
-    '@/src/app/api/qa/health/route'
+    '@/app/api/qa/health/route'
   ];
 
   let lastErr: any;
@@ -209,3 +209,4 @@ describe('api/qa/health route - POST', () => {
     expect(String(body.details)).toContain('reconnect failed');
   });
 });
+

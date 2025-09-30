@@ -3,7 +3,8 @@ import { dbConnect } from '@/src/db/mongoose';
 import Benchmark from '@/src/db/models/Benchmark';
 import { requireSuperAdmin } from '@/src/lib/authz';
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   await dbConnect();
   await requireSuperAdmin(req);
   const body = await req.json();

@@ -47,7 +47,7 @@ let ErrorBoundary: any;
 try {
   // Try likely project paths
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  ErrorBoundary = require('@/src/components/ErrorBoundary').default;
+  ErrorBoundary = require('@/components/ErrorBoundary').default;
 } catch {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires

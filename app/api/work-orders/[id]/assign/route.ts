@@ -20,7 +20,8 @@ const schema = z.object({
  * @param params - Route params object; `params.id` is the work order `_id` to update.
  * @returns A NextResponse containing the JSON-serialized updated work order, or a 404 JSON response if not found.
  */
-export async function POST(req: NextRequest, { params }: { params: { id: string }}) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+  const params = await props.params;
   const user = await requireAbility("ASSIGN")(req);
   if (user instanceof NextResponse) return user as any;
   await connectToDatabase();
