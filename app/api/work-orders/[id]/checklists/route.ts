@@ -6,7 +6,8 @@ import { requireAbility } from "@/src/server/middleware/withAuthRbac";
 
 const schema = z.object({ title:z.string().min(2), items:z.array(z.object({label:z.string().min(1), done:z.boolean().optional()})).default([]) });
 
-export async function POST(req:NextRequest, {params}:{params:{id:string}}){
+export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+  const params = await props.params;
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as any;
   await connectToDatabase();

@@ -2,13 +2,13 @@ import 'dotenv/config';
 import path from 'path';
 import { access } from 'fs/promises';
 import { Types } from 'mongoose';
-import { dbConnect } from '@/src/db/mongoose';
-import Category from '@/src/models/marketplace/Category';
-import AttributeSet from '@/src/models/marketplace/AttributeSet';
-import Product from '@/src/models/marketplace/Product';
-import Order from '@/src/models/marketplace/Order';
-import RFQ from '@/src/models/marketplace/RFQ';
-import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
+import { dbConnect } from '@/db/mongoose';
+import Category from '@/models/marketplace/Category';
+import AttributeSet from '@/models/marketplace/AttributeSet';
+import Product from '@/models/marketplace/Product';
+import Order from '@/models/marketplace/Order';
+import RFQ from '@/models/marketplace/RFQ';
+import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
 async function ensureAssetExists(relativeUrl: string) {
   const filePath = path.join(process.cwd(), 'public', relativeUrl.replace(/^\//, ''));
@@ -153,3 +153,5 @@ run().catch((error) => {
   console.error(error);
   process.exit(1);
 });
+
+

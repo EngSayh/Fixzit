@@ -12,7 +12,7 @@ import { POST, GET } from "@/app/api/qa/alert/route";
 
 // We will mock the mongo module used by the route
 
-jest.mock('@/src/lib/mongodb-unified', () => {
+jest.mock('@/lib/mongodb-unified', () => {
   return {
     getDatabase: jest.fn(),
     connectToDatabase: jest.fn(),
@@ -50,7 +50,7 @@ describe('QA Alert Route', () => {
 
   // Pull mocked exports for type-safe updates inside tests
 
-  const mongoMod = () => require('@/src/lib/mongodb-unified') as {
+  const mongoMod = () => require('@/lib/mongodb-unified') as {
     getDatabase: ReturnType<typeof jest.fn>;
     connectToDatabase: ReturnType<typeof jest.fn>;
   };

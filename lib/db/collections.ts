@@ -1,4 +1,4 @@
-import { getDatabase } from '@/src/lib/mongodb-unified';
+import { getDatabase } from '@/lib/mongodb-unified';
 import type { 
   Tenant, User, Property, WorkOrder, Category, Vendor, 
   Product, Cart, Order, Invoice, RFQ, Review, NotificationDoc 

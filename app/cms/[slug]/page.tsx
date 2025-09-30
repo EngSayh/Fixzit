@@ -4,7 +4,9 @@ import Link from "next/link";
 
 export const revalidate = 60;
 
-export default async function CmsPageScreen({ params, searchParams }: { params:{slug:string}, searchParams:any }){
+export default async function CmsPageScreen(props: { params: Promise<{slug:string}>, searchParams: Promise<any> }) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   await connectToDatabase();
   const { slug } = params;
   const preview = searchParams?.preview === "1";

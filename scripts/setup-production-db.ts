@@ -5,7 +5,7 @@
  * Validates and applies MongoDB production configuration
  */
 
-import { connectToDatabase, disconnectFromDatabase } from '@/src/lib/mongodb-unified';
+import { connectToDatabase, disconnectFromDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
 
 async function validateProductionConfig() {

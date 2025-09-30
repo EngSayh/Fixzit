@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { Property } from "@/src/server/models/Property";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Property } from "@/server/models/Property";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const createPropertySchema = z.object({
   name: z.string().min(1),

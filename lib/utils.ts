@@ -1,19 +1,19 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+export function generateSlug(input: string): string {
+  const src = (input || "");
+  const leftTrimmed = src.replace(/^\s+/, "");
+  const rightTrimmed = src.replace(/\s+$/, "");
+  const hadLeadingHyphen = leftTrimmed.startsWith("-");
+  const hadTrailingHyphen = rightTrimmed.endsWith("-");
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-/**
- * Generate URL-friendly slug from text
- */
-export function generateSlug(text: string): string {
-  return text
+  let slug = src
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 100);
+
+  if (!hadLeadingHyphen) slug = slug.replace(/^-+/, "");
+  if (!hadTrailingHyphen) slug = slug.replace(/-+$/, "");
+  return slug;
 }

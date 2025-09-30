@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import Benchmark from '@/src/db/models/Benchmark';
-import { requireSuperAdmin } from '@/src/lib/authz';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import Benchmark from '@/db/models/Benchmark';
+import { requireSuperAdmin } from '@/lib/authz';
 
 export async function GET(req: NextRequest) {
   await connectToDatabase();
@@ -9,4 +9,5 @@ export async function GET(req: NextRequest) {
   const docs = await Benchmark.find({}).lean();
   return NextResponse.json(docs);
 }
+
 

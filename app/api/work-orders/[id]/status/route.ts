@@ -9,7 +9,8 @@ const schema = z.object({
   note: z.string().optional()
 });
 
-export async function POST(req: NextRequest, { params }: { params: { id: string }}) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+  const params = await props.params;
   const user = await getSessionUser(req);
   await connectToDatabase();
 

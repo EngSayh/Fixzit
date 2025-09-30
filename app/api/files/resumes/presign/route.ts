@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
-import { getPresignedPutUrl, buildResumeKey } from '@/src/lib/storage/s3';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getPresignedPutUrl, buildResumeKey } from '@/lib/storage/s3';
 
 export async function POST(req: NextRequest) {
   try {

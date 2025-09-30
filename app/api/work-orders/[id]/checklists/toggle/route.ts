@@ -6,8 +6,9 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
 const schema = z.object({ checklistIndex:z.number().int().nonnegative(), itemIndex:z.number().int().nonnegative(), done:z.boolean() });
 
-export async function POST(req:NextRequest, {params}:{params:{id:string}}){
-  await connectToDatabase(); const user = await getSessionUser(req);
+export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+  const params = await props.params;
+  await connectToDatabase();const user = await getSessionUser(req);
   const { checklistIndex, itemIndex, done } = schema.parse(await req.json());
   const wo:any = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return NextResponse.json({error:"Not found"},{status:404});

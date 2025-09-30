@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
+import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const createAssetSchema = z.object({
   name: z.string().min(1),
@@ -50,9 +50,9 @@ export async function POST(req: NextRequest) {
     if (process.env.ASSET_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
     }
-    const { db } = await import('@/src/lib/mongo');
+    const { db } = await import('@/lib/mongo');
     await (db as any)();
-    const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
+    const AssetMod = await import('@/server/models/Asset').catch(() => null);
     const Asset = AssetMod && (AssetMod as any).Asset;
     if (!Asset) {
       return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
@@ -80,9 +80,9 @@ export async function GET(req: NextRequest) {
     if (process.env.ASSET_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
     }
-    const { db } = await import('@/src/lib/mongo');
+    const { db } = await import('@/lib/mongo');
     await (db as any)();
-    const AssetMod = await import('@/src/server/models/Asset').catch(() => null);
+    const AssetMod = await import('@/server/models/Asset').catch(() => null);
     const Asset = AssetMod && (AssetMod as any).Asset;
     if (!Asset) {
       return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });

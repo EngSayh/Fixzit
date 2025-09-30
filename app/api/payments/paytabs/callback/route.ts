@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateZATCAQR } from '@/lib/zatca';
-import { validateCallback } from '@/src/lib/paytabs';
+import { validateCallback } from '@/lib/paytabs';
 
 /**
  * HTTP POST handler for PayTabs payment callbacks.

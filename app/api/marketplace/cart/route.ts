@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import Product from '@/src/models/marketplace/Product';
-import { rateLimit } from '@/src/server/security/rateLimit';
-import { createSecureResponse } from '@/src/server/security/headers';
-import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
-import { serializeOrder, serializeProduct } from '@/src/lib/marketplace/serializers';
-import { getOrCreateCart, recalcCartTotals } from '@/src/lib/marketplace/cart';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import Product from '@/models/marketplace/Product';
+import { rateLimit } from '@/server/security/rateLimit';
+import { createSecureResponse } from '@/server/security/headers';
+import { objectIdFrom } from '@/lib/marketplace/objectIds';
+import { serializeOrder, serializeProduct } from '@/lib/marketplace/serializers';
+import { getOrCreateCart, recalcCartTotals } from '@/lib/marketplace/cart';
 
 const AddToCartSchema = z.object({
   productId: z.string(),
@@ -99,4 +99,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to update cart' }, { status: 500 });
   }
 }
+
 

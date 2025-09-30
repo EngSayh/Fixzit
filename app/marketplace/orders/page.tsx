@@ -1,5 +1,5 @@
 
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 const STATUS_BADGES: Record<string, string> = {
   APPROVAL: 'bg-amber-100 text-amber-700',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { Job } from '@/src/server/models/Job';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Job } from '@/server/models/Job';
 
 export const dynamic = 'force-dynamic';
 

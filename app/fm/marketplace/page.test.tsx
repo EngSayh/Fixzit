@@ -42,7 +42,7 @@ jest.mock('next/dynamic', () => {
 });
 
 // Mock the dynamically imported CatalogView with a test double that surfaces props
-jest.mock('@/src/components/marketplace/CatalogView', () => {
+jest.mock('@/components/marketplace/CatalogView', () => {
   const MockCatalogView = (props: any) => {
     const { title, subtitle, context } = props || {};
     return (

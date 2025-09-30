@@ -8,7 +8,8 @@ import { getPresignedGetUrl, buildResumeKey } from '@/src/lib/storage/s3';
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
 
-export async function GET(req: NextRequest, { params }: { params: { file: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ file: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -44,7 +45,8 @@ export async function GET(req: NextRequest, { params }: { params: { file: string
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { file: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ file: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

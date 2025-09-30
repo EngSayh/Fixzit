@@ -8,10 +8,10 @@ let detectToolFromMessage: any;
 
 const tryImportCandidates = async () => {
   const candidates = [
-    "@/src/server/copilot/tools",
+    "@/server/copilot/tools",
     "@/src/tools",
-    "@/src/server/tools",
-    "@/src/lib/tools",
+    "@/server/tools",
+    "@/lib/tools",
     "../src/server/copilot/tools",
     "../src/tools",
   ];
@@ -65,7 +65,7 @@ jest.unstable_mockModule("fs", () => ({
 // db (ensure awaiting a promise)
 const dbThen = jest.fn();
 const dbPromise = Promise.resolve().then(dbThen);
-jest.unstable_mockModule("@/src/lib/mongo", () => ({
+jest.unstable_mockModule("@/lib/mongo", () => ({
   db: dbPromise,
 }));
 
@@ -76,7 +76,7 @@ const workOrderFindOneAndUpdate = jest.fn();
 
 const ownerStatementFind = jest.fn();
 
-jest.unstable_mockModule("@/src/server/models/WorkOrder", () => ({
+jest.unstable_mockModule("@/server/models/WorkOrder", () => ({
   WorkOrder: {
     create: workOrderCreate,
     find: workOrderFind,
@@ -84,7 +84,7 @@ jest.unstable_mockModule("@/src/server/models/WorkOrder", () => ({
   },
 }));
 
-jest.unstable_mockModule("@/src/server/models/OwnerStatement", () => ({
+jest.unstable_mockModule("@/server/models/OwnerStatement", () => ({
   OwnerStatement: {
     find: ownerStatementFind,
   },
@@ -472,3 +472,4 @@ describe("ownerStatements", () => {
     );
   });
 });
+

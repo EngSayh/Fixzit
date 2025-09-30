@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { getOrCreateCart, recalcCartTotals } from '@/src/lib/marketplace/cart';
-import { rateLimit } from '@/src/server/security/rateLimit';
-import { serializeOrder } from '@/src/lib/marketplace/serializers';
-import { createSecureResponse } from '@/src/server/security/headers';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { getOrCreateCart, recalcCartTotals } from '@/lib/marketplace/cart';
+import { rateLimit } from '@/server/security/rateLimit';
+import { serializeOrder } from '@/lib/marketplace/serializers';
+import { createSecureResponse } from '@/server/security/headers';
 import { 
   unauthorizedError, 
   validationError, 
   rateLimitError, 
   internalServerError,
   handleApiError 
-} from '@/src/server/utils/errorResponses';
+} from '@/server/utils/errorResponses';
 
 const CheckoutSchema = z.object({
   shipTo: z

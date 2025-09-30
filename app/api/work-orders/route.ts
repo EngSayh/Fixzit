@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
+import { connectToDatabase } from "@/lib/mongodb-unified";
 
 import { z } from "zod";
-import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
-import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
-import { WOPriority } from "@/src/server/work-orders/wo.schema";
+import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
+import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
+import { WOPriority } from "@/server/work-orders/wo.schema";
 
 const createSchema = z.object({
   title: z.string().min(3),
@@ -40,9 +40,9 @@ export async function GET(req: NextRequest) {
     if (process.env.WO_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
     }
-    const { db } = await import('@/src/lib/mongo');
+    const { db } = await import('@/lib/mongo');
     await (db as any)();
-    const WOMod = await import('@/src/server/models/WorkOrder').catch(() => null);
+    const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && (WOMod as any).WorkOrder;
     if (!WorkOrder) {
       return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
@@ -86,9 +86,9 @@ export async function POST(req: NextRequest) {
     if (process.env.WO_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
     }
-    const { db } = await import('@/src/lib/mongo');
+    const { db } = await import('@/lib/mongo');
     await (db as any)();
-    const WOMod = await import('@/src/server/models/WorkOrder').catch(() => null);
+    const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && (WOMod as any).WorkOrder;
     if (!WorkOrder) {
       return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });

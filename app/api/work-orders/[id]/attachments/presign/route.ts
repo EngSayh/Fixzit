@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 // Stub: return a fake PUT URL that your frontend will use; replace with S3/GCS logic.
-export async function POST(req:NextRequest, {params}:{params:{id:string}}){
+export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+  const params = await props.params;
   await getSessionUser(req); // Authentication check
   const body = await req.json();
   const fileName = encodeURIComponent(body?.name || "upload.bin");

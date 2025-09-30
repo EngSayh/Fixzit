@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
-import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/src/services/paytabs';
+import { dbConnect } from '@/db/mongoose';
+import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
@@ -14,3 +14,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
+

@@ -1,4 +1,4 @@
-import { getDatabase } from '@/src/lib/mongodb-unified';
+import { getDatabase } from '@/lib/mongodb-unified';
 
 async function run() {
   try {

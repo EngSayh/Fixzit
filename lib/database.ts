@@ -1,5 +1,5 @@
 // MongoDB Only Configuration
-import { connectToDatabase, getDatabase, checkDatabaseHealth as mongoHealthCheck } from '@/src/lib/mongodb-unified';
+import { connectToDatabase, getDatabase, checkDatabaseHealth as mongoHealthCheck } from '@/lib/mongodb-unified';
 
 // Re-export unified MongoDB functions
 export { connectToDatabase, getDatabase };
@@ -25,7 +25,7 @@ export async function checkDatabaseHealth(): Promise<{
 // Graceful shutdown
 const cleanup = async () => {
   try {
-    const { disconnectFromDatabase } = await import('@/src/lib/mongodb-unified');
+    const { disconnectFromDatabase } = await import('@/lib/mongodb-unified');
     await disconnectFromDatabase();
     console.log('✅ MongoDB connection closed gracefully');
   } catch (error) {

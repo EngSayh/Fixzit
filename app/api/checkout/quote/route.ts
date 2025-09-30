@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
-import { quotePrice } from '@/src/services/pricing';
+import { dbConnect } from '@/db/mongoose';
+import { quotePrice } from '@/services/pricing';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
@@ -26,3 +26,4 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(quote);
 }
+

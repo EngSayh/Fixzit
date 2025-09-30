@@ -1,13 +1,13 @@
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import ServiceContract from '@/src/models/ServiceContract';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import ServiceContract from '@/models/ServiceContract';
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromToken } from '@/src/lib/auth';
-import { rateLimit } from '@/src/server/security/rateLimit';
-import { createSecureResponse } from '@/src/server/security/headers';
+import { getUserFromToken } from '@/lib/auth';
+import { rateLimit } from '@/server/security/rateLimit';
+import { createSecureResponse } from '@/server/security/headers';
 import { 
   createErrorResponse,
   zodValidationError
-} from '@/src/server/utils/errorResponses';
+} from '@/server/utils/errorResponses';
 import { z } from 'zod';
 
 const contractSchema = z.object({
@@ -67,4 +67,5 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+
 

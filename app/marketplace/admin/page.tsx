@@ -1,5 +1,5 @@
 
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function MarketplaceAdminPage() {
   const [categoriesResponse, productsResponse, ordersResponse, rfqResponse] = await Promise.all([

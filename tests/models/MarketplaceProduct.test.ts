@@ -16,7 +16,7 @@ const loadModelWithEnv = async (env: Partial<NodeJS.ProcessEnv>) => {
     // Attempt common locations
     let loadedModule: any = null;
     const candidates = [
-      '@/src/models/MarketplaceProduct',
+      '@/models/MarketplaceProduct',
       '@/models/MarketplaceProduct',
       'src/models/MarketplaceProduct',
       'models/MarketplaceProduct',
@@ -205,3 +205,4 @@ describe('MarketplaceProduct Schema', () => {
     expect(typeof modelReal.modelName === 'string' || typeof modelReal.collection?.name === 'string').toBe(true);
   });
 });
+

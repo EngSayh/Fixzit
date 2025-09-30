@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import Customer from '@/src/models/Customer';
-import Subscription from '@/src/models/Subscription';
-import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
-import { computeQuote } from '@/src/lib/pricing';
-import { createHppRequest } from '@/src/lib/paytabs';
-import { getUserFromToken } from '@/src/lib/auth';
-import { rateLimit } from '@/src/server/security/rateLimit';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import Customer from '@/models/Customer';
+import Subscription from '@/models/Subscription';
+import SubscriptionInvoice from '@/models/SubscriptionInvoice';
+import { computeQuote } from '@/lib/pricing';
+import { createHppRequest } from '@/lib/paytabs';
+import { getUserFromToken } from '@/lib/auth';
+import { rateLimit } from '@/server/security/rateLimit';
 import { z } from 'zod';
 
 const subscriptionSchema = z.object({
@@ -128,4 +128,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
   }
 }
+
 

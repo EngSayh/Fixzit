@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPaymentPage } from '@/src/lib/paytabs';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
-import { Invoice } from '@/src/server/models/Invoice';
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
+import { createPaymentPage } from '@/lib/paytabs';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { Invoice } from '@/server/models/Invoice';
+import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from 'zod';
 
 // Utility functions for API responses

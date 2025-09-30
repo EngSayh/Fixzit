@@ -4,10 +4,11 @@ import ProductCard from '@/src/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 interface ProductPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default async function ProductDetail({ params }: ProductPageProps) {
+export default async function ProductDetail(props: ProductPageProps) {
+  const params = await props.params;
   const [categoriesResponse, productResponse] = await Promise.all([
     serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)

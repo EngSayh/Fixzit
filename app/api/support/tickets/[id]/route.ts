@@ -10,14 +10,16 @@ const patchSchema = z.object({
   priority: z.enum(["Low","Medium","High","Urgent"]).optional()
 });
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }){
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   await connectToDatabase();
   const t = await (SupportTicket as any).findById(params.id);
   if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(t);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   await connectToDatabase();
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){

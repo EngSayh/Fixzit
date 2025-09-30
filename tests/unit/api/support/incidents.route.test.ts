@@ -4,8 +4,8 @@
  *
  * We mock:
  * - next/server: NextResponse.json to return simple object with status + payload.
- * - @/src/lib/mongo: db (awaited promise) and getNativeDb().collection('error_events').insertOne
- * - @/src/server/models/SupportTicket: .create
+ * - @/lib/mongo: db (awaited promise) and getNativeDb().collection('error_events').insertOne
+ * - @/server/models/SupportTicket: .create
  *
  * Tests cover:
  * - Happy path with explicit fields
@@ -30,7 +30,7 @@ jest.mock('next/server', () => {
   };
 });
 
-jest.mock('@/src/lib/mongo', () => {
+jest.mock('@/lib/mongo', () => {
   const insertOne = jest.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
   const collection = jest.fn().mockReturnValue({ insertOne });
   const getNativeDb = jest.fn().mockResolvedValue({ collection });
@@ -38,7 +38,7 @@ jest.mock('@/src/lib/mongo', () => {
   return { db, getNativeDb };
 });
 
-jest.mock('@/src/server/models/SupportTicket', () => {
+jest.mock('@/server/models/SupportTicket', () => {
   return {
     SupportTicket: {
       create: jest.fn(async (doc: any) => ({ ...doc, code: doc.code || 'SUP-2024-99999' })),
@@ -56,7 +56,7 @@ beforeAll(async () => {
       ({ POST } = await import('app/api/support/incidents/route'));
     } catch {
       try {
-        ({ POST } = await import('@/src/app/api/support/incidents/route'));
+        ({ POST } = await import('@/app/api/support/incidents/route'));
       } catch {
         // Not found; tests will throw a clear error in cases below.
       }
@@ -65,8 +65,8 @@ beforeAll(async () => {
 });
 
 const { NextResponse } = jest.requireMock('next/server') as { NextResponse: { json: jest.Mock } };
-const { getNativeDb } = jest.requireMock('@/src/lib/mongo') as { getNativeDb: jest.Mock };
-const { SupportTicket } = jest.requireMock('@/src/server/models/SupportTicket') as { SupportTicket: { create: jest.Mock } };
+const { getNativeDb } = jest.requireMock('@/lib/mongo') as { getNativeDb: jest.Mock };
+const { SupportTicket } = jest.requireMock('@/server/models/SupportTicket') as { SupportTicket: { create: jest.Mock } };
 
 describe('POST /api/support/incidents', () => {
   const FIXED_DATE = new Date('2024-06-15T12:34:56.000Z');
@@ -266,3 +266,4 @@ describe('POST /api/support/incidents', () => {
     expect(call.messages[0].text).toBe('boom');
   });
 });
+

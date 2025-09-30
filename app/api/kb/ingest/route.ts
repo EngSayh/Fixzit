@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
-import { upsertArticleEmbeddings, deleteArticleEmbeddings } from '@/src/kb/ingest';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { upsertArticleEmbeddings, deleteArticleEmbeddings } from '@/kb/ingest';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,4 +44,5 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
   }
 }
+
 

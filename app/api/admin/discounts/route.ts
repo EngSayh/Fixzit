@@ -1,8 +1,8 @@
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import DiscountRule from '@/src/models/DiscountRule';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import DiscountRule from '@/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromToken } from '@/src/lib/auth';
-import { rateLimit } from '@/src/server/security/rateLimit';
+import { getUserFromToken } from '@/lib/auth';
+import { rateLimit } from '@/server/security/rateLimit';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -85,4 +85,5 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
 

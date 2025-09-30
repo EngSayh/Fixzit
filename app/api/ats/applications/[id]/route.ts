@@ -3,7 +3,8 @@ import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Application } from '@/src/server/models/Application';
 import { getUserFromToken } from '@/src/lib/auth';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
   await connectToDatabase();
     const application = await Application
@@ -19,10 +20,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
   await connectToDatabase();
     const body = await req.json();

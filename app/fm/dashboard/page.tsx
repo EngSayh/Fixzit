@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Button } from '@/src/components/ui/button';
-import { Badge } from '@/src/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { 
   Building2, Users, Wrench, ShoppingCart, DollarSign, 

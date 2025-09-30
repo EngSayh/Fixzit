@@ -16,7 +16,7 @@ const resetModules = async () => {
 
 // A helper to dynamically import after setting mocks
 const importCandidate = async () => {
-  const mod = await import('@/src/models/candidate'); // adjust if actual path differs
+  const mod = await import('@/models/candidate'); // adjust if actual path differs
   return mod as any;
 };
 
@@ -44,7 +44,7 @@ const baseDoc = {
   beforeEach(async () => {
     await resetModules();
 
-    jest.doMock('@/src/lib/mongo', () => ({
+    jest.doMock('@/lib/mongo', () => ({
       __esModule: true,
     }));
 
@@ -120,7 +120,7 @@ const baseDoc = {
   beforeEach(async () => {
     await resetModules();
 
-    jest.doMock('@/src/lib/mongo', () => ({
+    jest.doMock('@/lib/mongo', () => ({
       __esModule: true,
     }));
 
@@ -194,3 +194,4 @@ const baseDoc = {
     expect(doc).toBeNull();
   });
 });
+
