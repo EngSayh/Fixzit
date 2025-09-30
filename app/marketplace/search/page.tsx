@@ -1,4 +1,4 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+
 import ProductCard from '@/src/components/marketplace/ProductCard';
 import SearchFiltersPanel from '@/src/components/marketplace/SearchFiltersPanel';
 import Link from 'next/link';
@@ -52,7 +52,6 @@ export default async function MarketplaceSearch({ searchParams }: SearchPageProp
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
-      <TopBarAmazon departments={departments} loadingDepartments={!categories.length} />
       <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 lg:flex-row">
         <SearchFiltersPanel facets={facets} />
         <section className="flex-1 space-y-6">

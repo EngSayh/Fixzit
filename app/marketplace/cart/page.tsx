@@ -1,4 +1,4 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
@@ -18,7 +18,7 @@ export default async function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
-      <TopBarAmazon departments={departments} />
+      
       <main className="mx-auto max-w-7xl px-4 py-8">
         <h1 className="text-3xl font-semibold text-[#0F1111]">Shopping Cart</h1>
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">

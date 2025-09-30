@@ -1,4 +1,3 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
 import Image from 'next/image';
 import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
 import ProductCard from '@/src/components/marketplace/ProductCard';
@@ -28,7 +27,6 @@ export default async function ProductDetail({ params }: ProductPageProps) {
   const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
   return (
     <div className="min-h-screen bg-[#F5F6F8]" style={{ direction: 'ltr' }}>
-      <TopBarAmazon departments={departments} />
       <main className="mx-auto max-w-7xl px-4 py-8">
         <nav className="text-sm text-[#0061A8]">
           <a href="/marketplace" className="hover:underline">
