@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { WorkOrder } from "@/src/server/models/WorkOrder";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
-import { requireAbility } from "@/src/server/middleware/withAuthRbac";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
 
 const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:z.number().positive(), unitPrice:z.number().nonnegative(), currency:z.string().default("SAR") });
 

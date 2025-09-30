@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
 import ProductCard from '@/src/components/marketplace/ProductCard';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;

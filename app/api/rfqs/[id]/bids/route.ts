@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { RFQ } from "@/src/server/models/RFQ";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { RFQ } from "@/server/models/RFQ";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { nanoid } from "nanoid";
 
 const submitBidSchema = z.object({

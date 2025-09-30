@@ -1,0 +1,40 @@
+version: 1
+defaultMaxChars: 400000
+collapseLargeFilesOver: 8000
+stripComments: true
+tasks:
+  landing-hydration:
+    description: "Landing + layout SSR/hydration scope. No layout changes allowed."
+    files:
+      - "app/layout.{ts,tsx,js,jsx}"
+      - "app/page.{ts,tsx,js,jsx}"
+      - "components/**/*Header*.{ts,tsx,js,jsx}"
+      - "components/**/*Sidebar*.{ts,tsx,js,jsx}"
+      - "src/styles/**/*"
+      - "src/providers/**/*Theme*.{ts,tsx}"
+    includeReadme:
+      - "GOVERNANCE.md"
+    acceptance:
+      - "Single header; sidebar baseline; no hydration errors; branding tokens enforced; RTL toggle ok."
+  header-sidebar:
+    description: "Top bar + sidebar spec conformance."
+    files:
+      - "components/**/*Header*.{ts,tsx,js,jsx}"
+      - "components/**/*TopMenu*.{ts,tsx,js,jsx}"
+      - "components/**/*Sidebar*.{ts,tsx,js,jsx}"
+    acceptance:
+      - "Brand+Search+Lang+QuickActions+Notifications+UserMenu present. Sidebar modules match baseline."
+  mongo-core:
+    description: "Unify Mongo connection + org/tenant scoping."
+    files:
+      - "src/lib/db/**/*"
+      - "src/server/**/*"
+      - "app/api/**/*"
+    acceptance:
+      - "Single connection; org_id filters; indexes created; no direct MongoClient.connect() in pages."
+  branding-rtl:
+    description: "Brand tokens + language selector + currency icon rules."
+    files:
+      - "src/styles/**/*"
+      - "components/**/*Language*"
+      - "components/**/*Currency*"

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/src/db/mongoose';
 import PriceBook from '@/src/db/models/PriceBook';
-import { requireSuperAdmin } from '@/src/lib/authz';
+import { requireSuperAdmin } from '@/lib/authz';
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;

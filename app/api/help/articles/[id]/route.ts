@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { HelpArticle } from "@/src/server/models/HelpArticle";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { HelpArticle } from "@/server/models/HelpArticle";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
-import { getDatabase } from "@/src/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 
 const patchSchema = z.object({
@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const article = (res as any)?.value || null;
     if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
-    import('@/src/kb/ingest')
+    import('@/kb/ingest')
       .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
         orgId: (article as any)?.orgId ?? (user as any)?.orgId ?? null,
         articleId: article.slug,
