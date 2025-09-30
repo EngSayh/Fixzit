@@ -1,6 +1,6 @@
 'use client';
 
-import { WorkOrdersView } from '@/src/components/fm/WorkOrdersView';
+import { WorkOrdersView } from '@/components/fm/WorkOrdersView';
 
 export default function WorkOrdersPage() {
   return (

@@ -2,7 +2,7 @@
 
 import "./globals.css";
 import Providers from "@/src/providers/Providers";
-import ClientLayout from "@/src/components/ClientLayout";
+import ClientLayout from "@/components/ClientLayout";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

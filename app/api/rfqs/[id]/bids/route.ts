@@ -22,7 +22,8 @@ const submitBidSchema = z.object({
   exceptions: z.array(z.string()).optional()
 });
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();
@@ -80,7 +81,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import GoogleMap from '@/src/components/GoogleMap';
+import GoogleMap from '@/components/GoogleMap';
 
 const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
 const DEFAULT_ZOOM = 11;
@@ -49,4 +49,5 @@ export default function MapPage() {
     </div>
   );
 }
+
 

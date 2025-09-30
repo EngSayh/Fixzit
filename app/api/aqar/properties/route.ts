@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase, getDatabase } from '@/src/lib/mongodb-unified';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
+import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 // Query: /api/aqar/properties?city=&district=&type=&bedsMin=&bathsMin=&areaMin=&areaMax=&priceMin=&priceMax=&sort=&page=&pageSize=
 // sort: newest|price_asc|price_desc|area_desc

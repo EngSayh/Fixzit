@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Types } from 'mongoose';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { searchProducts } from '@/src/lib/marketplace/search';
-import Category from '@/src/models/marketplace/Category';
-import { serializeCategory } from '@/src/lib/marketplace/serializers';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { searchProducts } from '@/lib/marketplace/search';
+import Category from '@/models/marketplace/Category';
+import { serializeCategory } from '@/lib/marketplace/serializers';
+import { connectToDatabase } from '@/lib/mongodb-unified';
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -76,4 +76,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Search failed' }, { status: 500 });
   }
 }
+
 

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Input } from '@/src/components/ui/input';
-import { Button } from '@/src/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
-import { Label } from '@/src/components/ui/label';
-import { Switch } from '@/src/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Bell, Globe, Lock, User, Palette, Mail } from 'lucide-react';
 import { useTranslation } from '@/src/contexts/TranslationContext';
 
@@ -194,3 +194,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

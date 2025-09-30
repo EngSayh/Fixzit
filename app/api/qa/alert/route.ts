@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/src/lib/mongodb-unified';
+import { getDatabase } from '@/lib/mongodb-unified';
 
 export async function POST(req: NextRequest) {
   try {

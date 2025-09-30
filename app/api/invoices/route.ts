@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { Invoice } from "@/src/server/models/Invoice";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Invoice } from "@/server/models/Invoice";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
-import { generateZATCAQR } from "@/src/lib/zatca";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
 const createInvoiceSchema = z.object({

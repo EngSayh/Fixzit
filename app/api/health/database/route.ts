@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { checkDatabaseHealth, getDatabase } from '@/src/lib/mongodb-unified';
+import { checkDatabaseHealth, getDatabase } from '@/lib/mongodb-unified';
 
 export async function GET() {
   const startTime = Date.now();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
-import { createSubscriptionCheckout } from '@/src/services/checkout';
+import { dbConnect } from '@/db/mongoose';
+import { createSubscriptionCheckout } from '@/services/checkout';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
@@ -39,3 +39,4 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(result);
 }
+

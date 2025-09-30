@@ -1,7 +1,7 @@
 
-import CheckoutForm from '@/src/components/marketplace/CheckoutForm';
+import CheckoutForm from '@/components/marketplace/CheckoutForm';
 import Link from 'next/link';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function CheckoutPage() {
   const [categoriesResponse, cartResponse] = await Promise.all([
@@ -61,3 +61,4 @@ export default async function CheckoutPage() {
     </div>
   );
 }
+

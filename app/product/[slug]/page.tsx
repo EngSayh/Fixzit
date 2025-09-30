@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 import { headers } from 'next/headers';
 async function fetchPdp(slug: string) {
-  const h = headers();
+  const h = await headers();
   const cookie = h.get('cookie');
   const res = await fetch(`/api/marketplace/products/${slug}`, {
     cache: 'no-store',
@@ -13,7 +13,8 @@ async function fetchPdp(slug: string) {
   return res.json();
 }
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const data = await fetchPdp(params.slug);
   const p = data?.data?.product || data?.product;
   const bb = p

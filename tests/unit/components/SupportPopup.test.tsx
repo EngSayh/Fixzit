@@ -7,7 +7,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 // Using path mapping for cleaner imports
-import SupportPopup from "@/src/components/SupportPopup";
+import SupportPopup from "@/components/SupportPopup";
 
 // Utilities for jsdom environment
 const origAlert = window.alert;

@@ -6,7 +6,8 @@ import { requireAbility } from "@/src/server/middleware/withAuthRbac";
 
 const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:z.number().positive(), unitPrice:z.number().nonnegative(), currency:z.string().default("SAR") });
 
-export async function POST(req:NextRequest, {params}:{params:{id:string}}){
+export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+  const params = await props.params;
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as any;
   await connectToDatabase();

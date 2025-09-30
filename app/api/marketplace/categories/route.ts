@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import Category from '@/src/models/marketplace/Category';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { serializeCategory } from '@/src/lib/marketplace/serializers';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import Category from '@/models/marketplace/Category';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { serializeCategory } from '@/lib/marketplace/serializers';
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
@@ -41,4 +41,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to fetch categories' }, { status: 500 });
   }
 }
+
 

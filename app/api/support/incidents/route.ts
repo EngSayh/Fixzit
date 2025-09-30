@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/src/lib/mongodb-unified';
-import { SupportTicket } from '@/src/server/models/SupportTicket';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { SupportTicket } from '@/server/models/SupportTicket';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
 import Redis from 'ioredis';
 

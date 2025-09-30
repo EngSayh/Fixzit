@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { Vendor } from "@/src/server/models/Vendor";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const createVendorSchema = z.object({
   name: z.string().min(1),

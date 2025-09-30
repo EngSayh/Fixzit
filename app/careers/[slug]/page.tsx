@@ -1,7 +1,8 @@
 import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Job } from '@/src/server/models/Job';
 
-export default async function JobDetailPage({ params }: { params: { slug: string } }) {
+export default async function JobDetailPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   await connectToDatabase();
   const orgId = process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
   const job = await Job.findOne({ orgId, slug: params.slug, status: 'published' }).lean();

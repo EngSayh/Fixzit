@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import RFQ from '@/src/models/marketplace/RFQ';
-import { serializeRFQ } from '@/src/lib/marketplace/serializers';
-import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import RFQ from '@/models/marketplace/RFQ';
+import { serializeRFQ } from '@/lib/marketplace/serializers';
+import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
 const CreateRFQSchema = z.object({
   title: z.string().min(1),
@@ -64,4 +64,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to create RFQ' }, { status: 500 });
   }
 }
+
 

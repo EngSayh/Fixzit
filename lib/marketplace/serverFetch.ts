@@ -1,160 +1,101 @@
-import { createCorrelationContext, logWithCorrelation } from './correlation';
-import { getMarketplaceErrorMessage, type Lang } from '@/lib/i18n';
+import { cookies, headers, type UnsafeUnwrappedHeaders } from 'next/headers';
+import { randomUUID } from 'node:crypto';
 
-/**
- * Custom error class for marketplace fetch operations with i18n support
- */
-export class MarketplaceFetchError extends Error {
-  public readonly status: number;
-  public readonly correlationId: string;
-  public readonly localizedMessage: string;
-  
-  constructor(
-    message: string, 
-    status: number, 
-    correlationId: string,
-    errorType: string,
-    lang: Lang = 'en'
-  ) {
-    super(message);
-    this.name = 'MarketplaceFetchError';
-    this.status = status;
-    this.correlationId = correlationId;
-    this.localizedMessage = getMarketplaceErrorMessage(errorType, lang, message);
+function getEnvBaseUrl() {
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+  if (!envUrl) {
+    return undefined;
   }
+
+  return envUrl.replace(/\/$/, '');
 }
 
-/**
- * Server-side fetch utility for marketplace APIs with tenant isolation
- */
-export async function marketplaceServerFetch(
-  url: string, 
-  options: RequestInit & { 
-    tenantId?: string;
-    lang?: Lang;
-  } = {}
-): Promise<Response> {
-  const { tenantId, lang = 'en', ...fetchOptions } = options;
-  const correlationId = createCorrelationContext();
-  
+function getHeaderBaseUrl() {
+  let headerList: Awaited<ReturnType<typeof headers>> | undefined;
   try {
-    logWithCorrelation('marketplace-fetch', 'Initiating marketplace request', {
-      url,
-      method: fetchOptions.method || 'GET',
-      tenantId
-    });
-
-    // Prepare headers with tenant context
-    const headers = new Headers(fetchOptions.headers);
-    headers.set('X-Correlation-ID', correlationId);
-    headers.set('Content-Type', 'application/json');
-    
-    if (tenantId) {
-      headers.set('X-Tenant-ID', tenantId);
-    }
-
-    // Add language preference
-    headers.set('Accept-Language', lang);
-
-    const response = await fetch(url, {
-      ...fetchOptions,
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorType = getErrorType(response.status);
-      
-      logWithCorrelation('marketplace-fetch', 'Marketplace request failed', {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        errorType
-      });
-
-      throw new MarketplaceFetchError(
-        `HTTP ${response.status}: ${response.statusText}`,
-        response.status,
-        correlationId,
-        errorType,
-        lang
-      );
-    }
-
-    logWithCorrelation('marketplace-fetch', 'Marketplace request successful', {
-      url,
-      status: response.status
-    });
-
-    return response;
-
+    headerList = (headers() as unknown as UnsafeUnwrappedHeaders);
   } catch (error) {
-    if (error instanceof MarketplaceFetchError) {
-      throw error;
-    }
+    const correlationId = randomUUID();
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.debug('[MarketplaceFetch] headers() unavailable', { correlationId, message });
+    headerList = undefined;
+  }
+  if (!headerList) {
+    return undefined;
+  }
+  const host = headerList.get('x-forwarded-host') ?? headerList.get('host');
+  if (!host) {
+    return undefined;
+  }
 
-    logWithCorrelation('marketplace-fetch', 'Marketplace request error', {
-      url,
-      error: error instanceof Error ? error.message : String(error)
-    });
+  const protocolHeader = headerList.get('x-forwarded-proto');
+  const protocol = protocolHeader ?? (host.includes('localhost') ? 'http' : 'https');
+  return `${protocol}://${host}`;
+}
 
-    throw new MarketplaceFetchError(
-      error instanceof Error ? error.message : 'Unknown error occurred',
-      0, // Network error
+export function getMarketplaceBaseUrl() {
+  return getEnvBaseUrl() ?? getHeaderBaseUrl() ?? 'http://localhost:3000';
+}
+
+export async function serverFetchWithTenant(path: string, init?: RequestInit) {
+  const baseUrl = getMarketplaceBaseUrl();
+  const url = new URL(path, baseUrl).toString();
+  let authCookieValue: string | undefined;
+  let errorCorrelationId: string | undefined;
+  try {
+    const cookieStore = await cookies();
+    authCookieValue = cookieStore.get('fixzit_auth')?.value;
+  } catch (error) {
+    errorCorrelationId = randomUUID();
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.debug('[MarketplaceFetch] cookies() unavailable', { correlationId: errorCorrelationId, message });
+    authCookieValue = undefined;
+  }
+  const headersInit = new Headers(init?.headers ?? {});
+
+  if (authCookieValue) {
+    const existing = headersInit.get('Cookie');
+    const parsedCookies = existing
+      ? existing
+          .split(';')
+          .map((cookie) => cookie.trim())
+          .filter(Boolean)
+          .filter((cookie) => !cookie.toLowerCase().startsWith('fixzit_auth='))
+      : [];
+    parsedCookies.push(`fixzit_auth=${authCookieValue}`);
+    headersInit.set('Cookie', parsedCookies.join('; '));
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    cache: init?.cache ?? 'no-store',
+    headers: headersInit
+  });
+
+  if (!response.ok) {
+    const correlationId = errorCorrelationId ?? randomUUID();
+    const errorPayload = {
+      name: 'MarketplaceFetchError',
+      code: 'HTTP_ERROR',
+      userMessage: 'Unable to reach marketplace services. Please try again shortly.',
+      devMessage: `Request failed: ${response.status} ${response.statusText} for ${url}`,
       correlationId,
-      'network',
-      lang
-    );
+    };
+    // eslint-disable-next-line no-console
+    console.error('[MarketplaceFetch] request failed', errorPayload);
+    throw new Error(JSON.stringify(errorPayload));
   }
+
+  return response;
 }
 
-/**
- * Map HTTP status codes to error types for i18n
- */
-function getErrorType(status: number): string {
-  switch (status) {
-    case 401:
-      return 'unauthorized';
-    case 403:
-      return 'forbidden';
-    case 404:
-      return 'notFound';
-    case 408:
-      return 'timeout';
-    case 422:
-      return 'validation';
-    case 500:
-      return 'server';
-    case 503:
-      return 'database';
-    default:
-      return 'network';
-  }
-}
-
-/**
- * Helper to extract tenant ID from cookies or headers
- */
-export function extractTenantId(request: Request): string | undefined {
-  // Try header first
-  const headerTenant = request.headers.get('X-Tenant-ID');
-  if (headerTenant) return headerTenant;
-
-  // Try cookie
-  const cookieHeader = request.headers.get('cookie');
-  if (!cookieHeader) return undefined;
-
-  const tenantCookie = cookieHeader
-    .split(';')
-    .find(cookie => cookie.trim().startsWith('tenant='));
-    
-  return tenantCookie?.split('=')[1]?.trim();
-}
-
-/**
- * Helper to extract language preference
- */
-export function extractLanguage(request: Request): Lang {
-  const acceptLang = request.headers.get('Accept-Language');
-  if (acceptLang?.includes('ar')) return 'ar';
-  return 'en';
+export async function serverFetchJsonWithTenant<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await serverFetchWithTenant(path, init);
+  return response.json() as Promise<T>;
 }

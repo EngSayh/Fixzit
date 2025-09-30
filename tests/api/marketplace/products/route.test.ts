@@ -21,30 +21,30 @@ jest.mock('next/server', () => {
 });
 
 // Mock dependencies used by the current route implementation
-jest.mock('@/src/lib/marketplace/context', () => {
+jest.mock('@/lib/marketplace/context', () => {
   return {
     resolveMarketplaceContext: jest.fn()
   };
 });
 
-jest.mock('@/src/lib/marketplace/search', () => {
+jest.mock('@/lib/marketplace/search', () => {
   return {
     findProductBySlug: jest.fn()
   };
 });
 
-jest.mock('@/src/db/mongoose', () => {
+jest.mock('@/db/mongoose', () => {
   return {
     dbConnect: jest.fn()
   };
 });
 
-jest.mock('@/src/models/marketplace/Category', () => ({
+jest.mock('@/models/marketplace/Category', () => ({
   __esModule: true,
   default: { findOne: jest.fn() }
 }));
 
-jest.mock('@/src/lib/marketplace/serializers', () => {
+jest.mock('@/lib/marketplace/serializers', () => {
   return {
     serializeCategory: (doc: any) => doc
   };
@@ -52,9 +52,9 @@ jest.mock('@/src/lib/marketplace/serializers', () => {
 
 import { GET } from '../../../../app/api/marketplace/products/[slug]/route';
 
-const { resolveMarketplaceContext } = jest.requireMock('@/src/lib/marketplace/context');
-const { findProductBySlug } = jest.requireMock('@/src/lib/marketplace/search');
-const CategoryMod = jest.requireMock('@/src/models/marketplace/Category');
+const { resolveMarketplaceContext } = jest.requireMock('@/lib/marketplace/context');
+const { findProductBySlug } = jest.requireMock('@/lib/marketplace/search');
+const CategoryMod = jest.requireMock('@/models/marketplace/Category');
 
 describe('API GET /marketplace/products/[slug] (current implementation)', () => {
   const callGET = async (slug: string) => {
@@ -93,3 +93,4 @@ describe('API GET /marketplace/products/[slug] (current implementation)', () => 
     expect(res.body.data.category).toBeNull();
   });
 });
+

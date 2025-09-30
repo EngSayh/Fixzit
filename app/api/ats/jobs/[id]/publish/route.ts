@@ -3,7 +3,8 @@ import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Job } from '@/src/server/models/Job';
 import { getUserFromToken } from '@/src/lib/auth';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await connectToDatabase();
     const authHeader = req.headers.get('authorization') || '';

@@ -16,7 +16,8 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
  *  - If not found (404): { error: "RFQ not found or already published" }
  *  - On server error (500): { error: string }
  */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();

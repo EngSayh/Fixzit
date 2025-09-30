@@ -1,4 +1,4 @@
-import { cookies, headers } from 'next/headers';
+import { cookies, headers, type UnsafeUnwrappedHeaders } from 'next/headers';
 import { randomUUID } from 'node:crypto';
 
 function getEnvBaseUrl() {
@@ -15,9 +15,9 @@ function getEnvBaseUrl() {
 }
 
 function getHeaderBaseUrl() {
-  let headerList: ReturnType<typeof headers> | undefined;
+  let headerList: Awaited<ReturnType<typeof headers>> | undefined;
   try {
-    headerList = headers();
+    headerList = (headers() as unknown as UnsafeUnwrappedHeaders);
   } catch (error) {
     const correlationId = randomUUID();
     const message = error instanceof Error ? error.message : String(error);
@@ -48,7 +48,7 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   let authCookieValue: string | undefined;
   let errorCorrelationId: string | undefined;
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     authCookieValue = cookieStore.get('fixzit_auth')?.value;
   } catch (error) {
     errorCorrelationId = randomUUID();

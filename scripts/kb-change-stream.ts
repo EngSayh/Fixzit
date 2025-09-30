@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 import 'dotenv/config';
-import { embedText } from '@/src/ai/embeddings';
-import { chunkText } from '@/src/kb/chunk';
+import { embedText } from '@/ai/embeddings';
+import { chunkText } from '@/kb/chunk';
 
 async function run() {
   const uri = process.env.MONGODB_URI as string;
@@ -47,4 +47,5 @@ run().catch(err => {
   console.error(err);
   process.exit(1);
 });
+
 

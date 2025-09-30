@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import Product from '@/src/models/marketplace/Product';
-import { serializeProduct } from '@/src/lib/marketplace/serializers';
-import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
+import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import Product from '@/models/marketplace/Product';
+import { serializeProduct } from '@/lib/marketplace/serializers';
+import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'PROCUREMENT', 'ADMIN']);
 
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
     if (process.env.MARKETPLACE_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
     }
-    const { dbConnect } = await import('@/src/db/mongoose');
+    const { dbConnect } = await import('@/db/mongoose');
     await dbConnect();
-    const ProductMod = await import('@/src/models/marketplace/Product').catch(() => null);
+    const ProductMod = await import('@/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
@@ -83,9 +83,9 @@ export async function POST(request: NextRequest) {
     if (process.env.MARKETPLACE_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
     }
-    const { dbConnect } = await import('@/src/db/mongoose');
+    const { dbConnect } = await import('@/db/mongoose');
     await dbConnect();
-    const ProductMod = await import('@/src/models/marketplace/Product').catch(() => null);
+    const ProductMod = await import('@/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
@@ -121,4 +121,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to create product' }, { status: 500 });
   }
 }
+
+
 

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
-import { createSecureResponse } from '@/src/server/security/headers';
-import Subscription from '@/src/models/Subscription';
-import PaymentMethod from '@/src/models/PaymentMethod';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import SubscriptionInvoice from '@/models/SubscriptionInvoice';
+import { createSecureResponse } from '@/server/security/headers';
+import Subscription from '@/models/Subscription';
+import PaymentMethod from '@/models/PaymentMethod';
 
 export async function POST(req: NextRequest) {
   const client = await connectToDatabase();
@@ -40,4 +40,5 @@ export async function POST(req: NextRequest) {
 
   return createSecureResponse({ ok: true });
 }
+
 

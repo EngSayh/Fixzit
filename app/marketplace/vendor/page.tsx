@@ -1,6 +1,6 @@
 
-import VendorCatalogueManager from '@/src/components/marketplace/VendorCatalogueManager';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import VendorCatalogueManager from '@/components/marketplace/VendorCatalogueManager';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function VendorPortalPage() {
   const [categoriesResponse, productsResponse] = await Promise.all([
@@ -24,3 +24,4 @@ export default async function VendorPortalPage() {
     </div>
   );
 }
+

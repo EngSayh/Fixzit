@@ -1,123 +1,106 @@
-import { nanoid } from 'nanoid';
+import { randomUUID } from 'node:crypto';
+
 
 /**
- * Correlation context for request tracking
+ * Marketplace Request Correlation Utilities
+ * 
+ * Provides consistent correlation ID generation and tracking
+ * for improved debugging and error tracking across marketplace operations
  */
-interface CorrelationContext {
-  id: string;
+
+export interface CorrelationContext {
+  correlationId: string;
   timestamp: number;
-  requestId?: string;
+  operation?: string;
+  userId?: string;
+  tenantId?: string;
 }
 
-// Global correlation context store
-const correlationStore = new Map<string, CorrelationContext>();
-
 /**
- * Create a new correlation context for request tracking
+ * Generate a new correlation ID with context
  */
-export function createCorrelationContext(requestId?: string): string {
-  const correlationId = nanoid(12);
-  const context: CorrelationContext = {
-    id: correlationId,
+export function createCorrelationContext(options: {
+  operation?: string;
+  userId?: string;
+  tenantId?: string;
+} = {}): CorrelationContext {
+  return {
+    correlationId: randomUUID(),
     timestamp: Date.now(),
-    requestId
+    ...options,
   };
-  
-  correlationStore.set(correlationId, context);
-  
-  // Clean up old contexts (older than 10 minutes)
-  const cutoff = Date.now() - 10 * 60 * 1000;
-  for (const [id, ctx] of correlationStore.entries()) {
-    if (ctx.timestamp < cutoff) {
-      correlationStore.delete(id);
-    }
-  }
-  
-  return correlationId;
 }
 
 /**
- * Get correlation context by ID
+ * Create correlation headers for API requests
  */
-export function getCorrelationContext(correlationId: string): CorrelationContext | undefined {
-  return correlationStore.get(correlationId);
+export function getCorrelationHeaders(context: CorrelationContext): Record<string, string> {
+  return {
+    'X-Correlation-ID': context.correlationId,
+    'X-Request-Timestamp': context.timestamp.toString(),
+    ...(context.operation && { 'X-Operation': context.operation }),
+    ...(context.userId && { 'X-User-ID': context.userId }),
+    ...(context.tenantId && { 'X-Tenant-ID': context.tenantId }),
+  };
 }
 
 /**
- * Log with correlation ID for debugging and tracking
+ * Log with correlation context for debugging
  */
 export function logWithCorrelation(
-  event: string,
+  level: 'debug' | 'info' | 'warn' | 'error',
   message: string,
-  data?: any,
-  correlationId?: string
+  context: CorrelationContext,
+  additional?: Record<string, unknown>
 ): void {
-  const id = correlationId || createCorrelationContext();
-  const context = getCorrelationContext(id);
-  
-  const logEntry = {
-    timestamp: new Date().toISOString(),
-    correlationId: id,
-    event,
+  const logData = {
+    ...context,
     message,
-    data,
-    context: context ? {
-      requestId: context.requestId,
-      age: Date.now() - context.timestamp
-    } : undefined
+    ...additional,
   };
+  // eslint-disable-next-line no-console
+  console[level](`[MarketplaceCorrelation] ${message}`, logData);
+}
 
-  // In development, log to console
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[${event}] ${message}`, logEntry);
+/**
+ * Extract correlation ID from error or create new one
+ */
+export function getErrorCorrelationId(error?: unknown): string {
+  if (error instanceof Error) {
+    try {
+      const errorData = JSON.parse(error.message);
+      if (errorData.correlationId) {
+        return errorData.correlationId;
+      }
+    } catch {
+      // Not a JSON error, continue to generate new ID
+    }
   }
-  
-  // In production, this would typically go to a logging service
-  // For now, we'll use console.log with structured format
-  console.log(JSON.stringify(logEntry));
+  return randomUUID();
 }
 
 /**
- * Create correlation middleware for Express-like frameworks
+ * Enhance error with correlation context
  */
-export function correlationMiddleware() {
-  return function(req: any, res: any, next: any) {
-    const correlationId = req.headers['x-correlation-id'] || createCorrelationContext();
-    
-    // Attach to request
-    req.correlationId = correlationId;
-    
-    // Add to response headers
-    res.setHeader('X-Correlation-ID', correlationId);
-    
-    logWithCorrelation('request-start', `${req.method} ${req.url}`, {
-      method: req.method,
-      url: req.url,
-      userAgent: req.headers['user-agent'],
-      ip: req.ip || req.connection?.remoteAddress
-    }, correlationId);
-    
-    next();
+export function createCorrelatedError(
+  message: string,
+  context: CorrelationContext,
+  errorDetails: {
+    name?: string;
+    code?: string;
+    userMessageKey?: string;
+    userMessage?: string;
+    devMessage?: string;
+  } = {}
+): Error {
+  const errorPayload = {
+    name: errorDetails.name || 'MarketplaceError',
+    code: errorDetails.code || 'UNKNOWN_ERROR',
+    userMessageKey: errorDetails.userMessageKey || 'marketplace.errors.fetch_failed',
+    userMessage: errorDetails.userMessage || 'An error occurred',
+    devMessage: errorDetails.devMessage || message,
+    ...context,
   };
-}
-
-/**
- * Extract correlation ID from request headers
- */
-export function extractCorrelationId(request: Request): string {
-  return request.headers.get('X-Correlation-ID') || createCorrelationContext();
-}
-
-/**
- * Add correlation ID to response headers
- */
-export function addCorrelationHeaders(response: Response, correlationId: string): Response {
-  const headers = new Headers(response.headers);
-  headers.set('X-Correlation-ID', correlationId);
-  
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
+  logWithCorrelation('error', message, context, errorDetails);
+  return new Error(JSON.stringify(errorPayload));
 }

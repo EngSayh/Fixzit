@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveCopilotSession } from "@/src/server/copilot/session";
-import { getPermittedTools } from "@/src/server/copilot/policy";
+import { resolveCopilotSession } from "@/server/copilot/session";
+import { getPermittedTools } from "@/server/copilot/policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

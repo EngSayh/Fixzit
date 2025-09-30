@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { Job } from '@/src/server/models/Job';
-import { generateSlug } from '@/src/lib/utils';
-import { rateLimit } from '@/src/server/security/rateLimit';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Job } from '@/server/models/Job';
+import { generateSlug } from '@/lib/utils';
+import { rateLimit } from '@/server/security/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {

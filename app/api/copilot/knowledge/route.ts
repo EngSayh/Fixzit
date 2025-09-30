@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { upsertKnowledgeDocument } from "@/src/server/copilot/retrieval";
+import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
 
 const docSchema = z.object({
   slug: z.string(),

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from 'crypto';
-import { getDatabase } from "@/src/lib/mongodb-unified";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import Redis from 'ioredis';
 
 export const dynamic = 'force-dynamic';
@@ -131,8 +131,8 @@ export async function POST(req: NextRequest) {
     // Prefer vector search if available
     let docs: Doc[] = [];
     try {
-      const { embedText } = await import('@/src/ai/embeddings');
-      const { performKbSearch } = await import('@/src/kb/search');
+      const { embedText } = await import('@/ai/embeddings');
+      const { performKbSearch } = await import('@/kb/search');
       const qVec = await embedText(question);
       const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
       docs = (chunks || []).map((c: any) => ({
@@ -294,3 +294,4 @@ function addSecurityHeaders(response: NextResponse) {
   return response;
 }
 // Note: Next.js restricts API route exports to HTTP methods only (GET, POST, etc.)
+

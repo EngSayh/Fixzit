@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Badge } from '@/src/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/src/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
-import { Textarea } from '@/src/components/ui/textarea';
-import { Separator } from '@/src/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { 
   Briefcase, Plus, Search, Filter, Calendar, DollarSign, 
   TrendingUp, Users, Eye, Edit, Trash2, BarChart3, 

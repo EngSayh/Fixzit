@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { SupportTicket } from "@/src/server/models/SupportTicket";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import crypto from "crypto";
 
 const createSchema = z.object({

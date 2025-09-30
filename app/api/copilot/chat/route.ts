@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { resolveCopilotSession } from "@/src/server/copilot/session";
-import { evaluateMessagePolicy, describeDataClass, redactSensitiveText, getPermittedTools } from "@/src/server/copilot/policy";
-import { detectToolFromMessage, executeTool } from "@/src/server/copilot/tools";
-import { retrieveKnowledge } from "@/src/server/copilot/retrieval";
-import { generateCopilotResponse } from "@/src/server/copilot/llm";
-import { recordAudit } from "@/src/server/copilot/audit";
+import { resolveCopilotSession } from "@/server/copilot/session";
+import { evaluateMessagePolicy, describeDataClass, redactSensitiveText, getPermittedTools } from "@/server/copilot/policy";
+import { detectToolFromMessage, executeTool } from "@/server/copilot/tools";
+import { retrieveKnowledge } from "@/server/copilot/retrieval";
+import { generateCopilotResponse } from "@/server/copilot/llm";
+import { recordAudit } from "@/server/copilot/audit";
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),

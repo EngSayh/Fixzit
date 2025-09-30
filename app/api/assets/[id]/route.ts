@@ -48,7 +48,8 @@ const updateAssetSchema = z.object({
  * - 400 Invalid asset id for malformed IDs
  * - 500 Internal server error for other failures
  */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();
@@ -88,7 +89,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
  * @param params.id - The asset id to update
  * @returns The HTTP response containing the updated asset or an error payload with an appropriate status code.
  */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();
@@ -130,7 +132,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
  * - 404 when no matching asset is found for the tenant
  * - 500 with an error message for other failures
  */
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();

@@ -6,7 +6,8 @@ import { requireAbility } from "@/src/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/src/lib/sla";
 import { WOPriority } from "@/src/server/work-orders/wo.schema";
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string }}) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}) {
+  const params = await props.params;
   await connectToDatabase();
   const wo = await (WorkOrder as any).findById(params.id);
   if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -22,7 +23,8 @@ const patchSchema = z.object({
   dueAt: z.string().datetime().optional()
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string }}) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+  const params = await props.params;
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as any;
   await connectToDatabase();

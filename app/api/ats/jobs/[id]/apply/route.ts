@@ -8,7 +8,8 @@ import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } 
 import { promises as fs } from 'fs';
 import path from 'path';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await connectToDatabase();
     

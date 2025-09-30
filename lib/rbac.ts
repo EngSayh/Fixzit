@@ -1,24 +1,26 @@
 export type Role =
-  | "SUPER_ADMIN" | "CORPORATE_ADMIN" | "FINANCE" | "HR" | "ADMIN" | "CRM"
-  | "FM_MANAGER" | "TECHNICIAN" | "VENDOR" | "TENANT" | "OWNER" | "SUPPORT"
-  | "PROCUREMENT" | "AUDITOR";
+  | 'SUPER_ADMIN' | 'ADMIN' | 'CORPORATE_ADMIN' | 'FM_MANAGER'
+  | 'FINANCE' | 'HR' | 'PROCUREMENT' | 'PROPERTY_MANAGER'
+  | 'EMPLOYEE' | 'TECHNICIAN' | 'VENDOR' | 'CUSTOMER'
+  | 'OWNER' | 'AUDITOR';
 
-export const RBAC: Record<string, Role[]> = {
-  // Module -> roles allowed
-  dashboard: ["SUPER_ADMIN","CORPORATE_ADMIN","FINANCE","HR","ADMIN","CRM","FM_MANAGER","TECHNICIAN","VENDOR","TENANT","OWNER","SUPPORT","PROCUREMENT","AUDITOR"],
-  work_orders: ["SUPER_ADMIN","CORPORATE_ADMIN","FM_MANAGER","TECHNICIAN","SUPPORT","AUDITOR"],
-  finance: ["SUPER_ADMIN","CORPORATE_ADMIN","FINANCE","AUDITOR"],
-  hr: ["SUPER_ADMIN","CORPORATE_ADMIN","HR","ADMIN","AUDITOR"],
-  admin: ["SUPER_ADMIN","CORPORATE_ADMIN","ADMIN","AUDITOR"],
-  crm: ["SUPER_ADMIN","CORPORATE_ADMIN","CRM","ADMIN","AUDITOR"],
-  properties: ["SUPER_ADMIN","CORPORATE_ADMIN","FM_MANAGER","ADMIN","AUDITOR"],
-  marketplace: ["SUPER_ADMIN","CORPORATE_ADMIN","PROCUREMENT","VENDOR","AUDITOR"],
-  aqar_souq: ["SUPER_ADMIN","CORPORATE_ADMIN","OWNER","ADMIN","AUDITOR"],
-  vendors: ["SUPER_ADMIN","CORPORATE_ADMIN","PROCUREMENT","ADMIN","AUDITOR"],
-  support: ["SUPER_ADMIN","CORPORATE_ADMIN","SUPPORT","ADMIN","AUDITOR"],
+type ModuleId =
+  | 'dashboard' | 'work-orders' | 'properties' | 'finance' | 'hr'
+  | 'crm' | 'marketplace' | 'support' | 'compliance' | 'reports' | 'system';
+
+export const ACCESS: Record<Role, ModuleId[]> = {
+  SUPER_ADMIN:      ['dashboard','work-orders','properties','finance','hr','crm','marketplace','support','compliance','reports','system'],
+  ADMIN:           ['dashboard','work-orders','properties','finance','hr','crm','marketplace','support','compliance','reports','system'],
+  CORPORATE_ADMIN:  ['dashboard','work-orders','properties','finance','hr','crm','marketplace','support','compliance','reports','system'],
+  FM_MANAGER:      ['dashboard','work-orders','properties','finance','reports'],
+  FINANCE:         ['dashboard','finance','reports'],
+  HR:              ['dashboard','hr','reports'],
+  PROCUREMENT:     ['dashboard','marketplace','support','reports'],
+  PROPERTY_MANAGER: ['dashboard','properties','work-orders','support','reports'],
+  EMPLOYEE:        ['dashboard','work-orders','support','reports'],
+  TECHNICIAN:      ['dashboard','work-orders','support','reports'],
+  VENDOR:          ['dashboard','marketplace','support','reports'],
+  CUSTOMER:        ['dashboard','properties','marketplace','support','reports'],
+  OWNER:           ['dashboard','properties','work-orders','finance','reports'],
+  AUDITOR:         ['dashboard','compliance','reports']
 };
-
-export function canAccess(moduleKey: keyof typeof RBAC, role: Role) {
-  return RBAC[moduleKey]?.includes(role as Role);
-}
-

@@ -1,6 +1,6 @@
 
-import ProductCard from '@/src/components/marketplace/ProductCard';
-import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
+import ProductCard from '@/components/marketplace/ProductCard';
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 async function loadHomepageData() {
   const [categoriesResponse, featuredResponse] = await Promise.all([
@@ -102,3 +102,4 @@ export default async function MarketplaceHome() {
     </div>
   );
 }
+
