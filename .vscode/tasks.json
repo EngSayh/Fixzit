@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "Fixzit: Pack Landing", "type": "shell", "command": "npm run fixzit:pack:landing", "problemMatcher": []},
+    {"label": "Fixzit: Pack All", "type": "shell", "command": "npm run fixzit:pack", "problemMatcher": []},
+    {"label": "Fixzit: De-dupe Scan", "type": "shell", "command": "npm run fixzit:dedupe:scan", "problemMatcher": []},
+    {"label": "Fixzit: De-dupe Apply", "type": "shell", "command": "npm run fixzit:dedupe:apply", "problemMatcher": []},
+    {"label": "Fixzit: Mongo Migrate", "type": "shell", "command": "npm run fixzit:mongo:migrate", "problemMatcher": []},
+    {"label": "Fixzit: Verify", "type": "shell", "command": "npm run fixzit:verify", "problemMatcher": []}
+  ]
+}

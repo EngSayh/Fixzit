@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { WorkOrder } from "@/src/server/models/WorkOrder";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
-import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
 
 const schema = z.object({
   to: z.enum(["IN_PROGRESS","ON_HOLD","COMPLETED","VERIFIED","CLOSED","CANCELLED"]),

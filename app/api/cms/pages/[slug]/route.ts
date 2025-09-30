@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { CmsPage } from "@/src/server/models/CmsPage";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { CmsPage } from "@/server/models/CmsPage";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;

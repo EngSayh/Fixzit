@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { Application } from '@/src/server/models/Application';
-import { getUserFromToken } from '@/src/lib/auth';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Application } from '@/server/models/Application';
+import { getUserFromToken } from '@/lib/auth';
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;

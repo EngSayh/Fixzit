@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { Project } from "@/src/server/models/Project";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Project } from "@/server/models/Project";
 import { z } from "zod";
-import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),

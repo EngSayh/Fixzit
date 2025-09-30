@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
-import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
-import { getPresignedGetUrl, buildResumeKey } from '@/src/lib/storage/s3';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getPresignedGetUrl, buildResumeKey } from '@/lib/storage/s3';
 
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/src/lib/mongodb-unified';
-import { Job } from '@/src/server/models/Job';
-import { Candidate } from '@/src/server/models/Candidate';
-import { Application } from '@/src/server/models/Application';
-import { AtsSettings } from '@/src/server/models/AtsSettings';
-import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } from '@/src/lib/ats/scoring';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Job } from '@/server/models/Job';
+import { Candidate } from '@/server/models/Candidate';
+import { Application } from '@/server/models/Application';
+import { AtsSettings } from '@/server/models/AtsSettings';
+import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } from '@/lib/ats/scoring';
 import { promises as fs } from 'fs';
 import path from 'path';
 

@@ -1,7 +1,7 @@
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
-import { HelpArticle } from "@/src/server/models/HelpArticle";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { HelpArticle } from "@/server/models/HelpArticle";
 import Link from "next/link";
-import { renderMarkdownSanitized } from '@/src/lib/markdown';
+import { renderMarkdownSanitized } from '@/lib/markdown';
 import { headers } from 'next/headers';
 
 export const revalidate = 60;

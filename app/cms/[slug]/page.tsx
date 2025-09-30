@@ -1,5 +1,5 @@
-import { CmsPage } from "@/src/server/models/CmsPage";
-import { connectToDatabase } from "@/src/lib/mongodb-unified";
+import { CmsPage } from "@/server/models/CmsPage";
+import { connectToDatabase } from "@/lib/mongodb-unified";
 import Link from "next/link";
 
 export const revalidate = 60;
