@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -7,8 +7,9 @@ import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest){
-  await connectDb();
+  await connectToDatabase();
   const user = await getSessionUser(req);
   const items = await (SupportTicket as any).find({ createdByUserId: user.id }).sort({ createdAt:-1 }).limit(200);
   return NextResponse.json({ items });
 }
+

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -18,7 +18,7 @@ const createSchema = z.object({
 
 export async function POST(req: NextRequest){
   try {
-    await connectDb();
+    await connectToDatabase();
     const user = await getSessionUser(req).catch(()=>null);
     const body = createSchema.parse(await req.json());
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest){
 // Admin list with filters
 export async function GET(req: NextRequest) {
   try {
-    await connectDb();
+    await connectToDatabase();
     const user = await getSessionUser(req);
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
       return NextResponse.json({ error: "Forbidden"},{ status: 403 });
@@ -82,3 +82,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch support tickets' }, { status: 500 });
   }
 }
+

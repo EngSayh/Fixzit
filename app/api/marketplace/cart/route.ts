@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import Product from '@/src/models/marketplace/Product';
 import { rateLimit } from '@/src/server/security/rateLimit';
 import { createSecureResponse } from '@/src/server/security/headers';
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    await db;
+    await connectToDatabase();
     const cart = await getOrCreateCart(context.orgId, context.userId);
     const productIds = cart.lines.map(line => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const payload = AddToCartSchema.parse(body);
-    await db;
+    await connectToDatabase();
 
     const productId = objectIdFrom(payload.productId);
     const product = await Product.findOne({ _id: productId, orgId: context.orgId });
@@ -99,3 +99,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to update cart' }, { status: 500 });
   }
 }
+

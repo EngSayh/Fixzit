@@ -1,17 +1,16 @@
 /**
- * Unit tests for MongoDB connection
- * Production MongoDB-only implementation - no mock database functionality
+ * Unit tests for MongoDB Unified Connection
+ * Tests the new unified MongoDB connection implementation
  */
 
-describe("MongoDB Connection", () => {
-  test("MongoDB module should be available", async () => {
-    // Test that the MongoDB module can be imported without errors
-    const mongoModule = await import("../../../src/lib/mongo");
+describe("MongoDB Unified Connection", () => {
+  test("MongoDB unified module should be available", async () => {
+    // Test that the MongoDB unified module can be imported without errors
+    const mongoModule = await import("../../../src/lib/mongodb-unified");
     expect(mongoModule).toBeDefined();
     expect(typeof mongoModule.getDatabase).toBe("function");
-    expect(typeof mongoModule.getNativeDb).toBe("function");
-    expect(typeof mongoModule.connectDb).toBe("function");
-    expect(typeof mongoModule.connectMongo).toBe("function");
+    expect(typeof mongoModule.connectToDatabase).toBe("function");
+    expect(typeof mongoModule.getMongooseConnection).toBe("function");
   });
 
   test("MongoDB connection requires MONGODB_URI environment variable", () => {
@@ -28,18 +27,18 @@ describe("MongoDB Connection", () => {
     }
   });
 
-  test("MongoDB connection configuration is properly structured", async () => {
-    // Test that the MongoDB configuration is properly structured
-    const mongoModule = await import("../../../src/lib/mongo");
+  test("MongoDB unified connection configuration is properly structured", async () => {
+    // Test that the MongoDB unified configuration is properly structured
+    const mongoModule = await import("../../../src/lib/mongodb-unified");
     expect(mongoModule).toBeDefined();
     
     // Verify that the module exports the expected functions
     expect(mongoModule.getDatabase).toBeDefined();
-    expect(mongoModule.getNativeDb).toBeDefined();
+    expect(mongoModule.connectToDatabase).toBeDefined();
+    expect(mongoModule.getMongooseConnection).toBeDefined();
+    
+    // Verify legacy compatibility functions are available
     expect(mongoModule.connectDb).toBeDefined();
     expect(mongoModule.connectMongo).toBeDefined();
-    
-    // Verify isMockDB is false (production mode)
-    expect(mongoModule.isMockDB).toBe(false);
   });
 });

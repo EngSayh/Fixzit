@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { HelpArticle } from "@/src/server/models/HelpArticle";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
-import { getDatabase } from "@/lib/mongodb";
+import { getDatabase } from "@/src/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 
 const patchSchema = z.object({

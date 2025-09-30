@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
 
 export async function POST(req:NextRequest){
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as any;
-  await connectDb();
+  await connectToDatabase();
   const rows = (await req.json())?.rows as any[]; // expects parsed CSV rows from UI
   let created = 0;
   for (const r of rows ?? []){
@@ -16,3 +16,4 @@ export async function POST(req:NextRequest){
   }
   return NextResponse.json({ created });
 }
+

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { APPS, AppKey } from '@/src/config/topbar-modules';
 
 // Helper function to generate href based on entity type
@@ -26,7 +26,7 @@ function generateHref(entity: string, id: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const mongoose = await connectDb(); // Ensure database connection
+    const mongoose = await connectToDatabase(); // Ensure database connection
     const { searchParams } = new URL(req.url);
     const app = (searchParams.get('app') || 'fm') as AppKey;
     const q = (searchParams.get('q') || '').trim();
@@ -185,3 +185,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] }, { status: 500 });
   }
 }
+

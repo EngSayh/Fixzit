@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { SupportTicket } from "@/src/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -11,14 +11,14 @@ const patchSchema = z.object({
 });
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }){
-  await connectDb();
+  await connectToDatabase();
   const t = await (SupportTicket as any).findById(params.id);
   if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(t);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }){
-  await connectDb();
+  await connectToDatabase();
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Job } from '@/src/server/models/Job';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export async function GET() {
   if (process.env.ATS_ENABLED !== 'true') {
     return NextResponse.json({ success: false, error: 'ATS feeds not available in this deployment' }, { status: 501 });
   }
-  await connectDb();
+  await connectToDatabase();
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })
     .lean();
@@ -34,5 +34,6 @@ export async function GET() {
 
   return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 }
+
 
 

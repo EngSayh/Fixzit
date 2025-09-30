@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { Job } from '@/src/server/models/Job';
 import { getUserFromToken } from '@/src/lib/auth';
 
 export async function PUT(req: NextRequest) {
   try {
-    await connectDb();
+    await connectToDatabase();
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
@@ -32,5 +32,6 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to moderate job' }, { status: 500 });
   }
 }
+
 
 

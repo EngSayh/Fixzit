@@ -41,7 +41,7 @@ function makeMongoMock(opts: MockOptions) {
       ? new Promise((_, reject) => setTimeout(() => reject(opts.dbReject), 0))
       : Promise.resolve();
 
-  const getNativeDb = jest.fn(async () => ({
+  const getDatabase = jest.fn(async () => ({
     listCollections: () => ({
       toArray: async () => {
         if (opts.queryFail) {
@@ -55,15 +55,15 @@ function makeMongoMock(opts: MockOptions) {
 
   return {
     __esModule: true,
-    db,
-    getNativeDb
+    connectToDatabase: db,
+    getDatabase
   };
 }
 
 async function loadRouteWithMocks(opts: MockOptions): Promise<RouteModule> {
   jest.resetModules();
   jest.doMock('next/server', () => mockNextServer(), { virtual: true });
-  jest.doMock('@/src/lib/mongo', () => makeMongoMock(opts), { virtual: true });
+  jest.doMock('@/src/lib/mongodb-unified', () => makeMongoMock(opts), { virtual: true });
 
   const candidates = [
     '../../../../src/app/api/qa/health/route',

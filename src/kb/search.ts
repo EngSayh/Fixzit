@@ -1,4 +1,4 @@
-import { getDatabase } from '@/lib/mongodb';
+import { getDatabase } from '@/src/lib/mongodb-unified';
 
 type SearchArgs = {
   tenantId: string | null | undefined;

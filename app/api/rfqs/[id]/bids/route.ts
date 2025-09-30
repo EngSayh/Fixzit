@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { RFQ } from "@/src/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -25,7 +25,7 @@ const submitBidSchema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await connectDb();
+    await connectToDatabase();
 
     const data = submitBidSchema.parse(await req.json());
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await connectDb();
+    await connectToDatabase();
 
     const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
     

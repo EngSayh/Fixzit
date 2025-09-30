@@ -4,7 +4,7 @@
  * Core verification script to test the main functionality
  */
 
-import { db, isMockDB } from '../src/lib/mongo';
+import { connectToDatabase } from '../src/lib/mongodb-unified';
 
 async function verifyCore() {
   console.log('🔍 Verifying core functionality...');
@@ -12,9 +12,9 @@ async function verifyCore() {
   try {
     // Test 1: Database connection
     console.log('📊 Testing database connection...');
-    await db;
+    await connectToDatabase();
     console.log('✅ Database connection successful');
-    console.log(`📋 Using mock DB: ${isMockDB}`);
+    console.log('📋 Using unified MongoDB connection');
     
     // Test 2: JWT secret loading
     console.log('🔐 Testing JWT configuration...');
