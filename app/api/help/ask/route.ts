@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from 'crypto';
-import { getDatabase } from "@/lib/mongodb";
+import { getDatabase } from "@/src/lib/mongodb-unified";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 import Redis from 'ioredis';
 
@@ -286,12 +286,11 @@ async function trackMetrics(action: string, success: boolean, duration: number) 
   console.log(`Metrics: action=${action}, success=${success}, duration=${duration}ms`);
 }
 
-// Add security headers
-export async function middleware(req: NextRequest) {
-  const headers = new Headers();
-  headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('X-Frame-Options', 'DENY');
-  headers.set('X-XSS-Protection', '1; mode=block');
-  return NextResponse.next({ headers });
+// Add security headers (Note: middleware should be in middleware.ts file, not in API routes)
+function addSecurityHeaders(response: NextResponse) {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  return response;
 }
-// Note: Do not export any non-standard route fields; Next.js restricts exports to HTTP methods only.
+// Note: Next.js restricts API route exports to HTTP methods only (GET, POST, etc.)

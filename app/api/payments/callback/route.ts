@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayment, validateCallback } from '@/src/lib/paytabs';
 import { parseCartAmount } from '@/src/lib/payments/parseCartAmount';
 import { Invoice } from '@/src/server/models/Invoice';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     // Verify payment with PayTabs
     const verification = await verifyPayment(tran_ref);
 
-    await connectDb();
+    await connectToDatabase();
     const invoice = await (Invoice as any).findById(cart_id);
 
     if (!invoice) {
@@ -81,3 +81,4 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
+

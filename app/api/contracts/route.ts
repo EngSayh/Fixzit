@@ -1,4 +1,4 @@
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import ServiceContract from '@/src/models/ServiceContract';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       return createErrorResponse('Contract creation rate limit exceeded', 429, req);
     }
 
-    await db;
+    await connectToDatabase();
     const body = contractSchema.parse(await req.json());
     
     // Tenant isolation - ensure contract belongs to user's org
@@ -67,3 +67,4 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+

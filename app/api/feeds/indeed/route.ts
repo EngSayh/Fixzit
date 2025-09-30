@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Job } from '@/src/server/models/Job';
 
 export const dynamic = 'force-dynamic';
@@ -7,14 +7,25 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   // Check if ATS feeds are enabled
   if (process.env.ATS_ENABLED !== 'true') {
-    return NextResponse.json({ success: false, error: 'ATS feeds not available in this deployment' }, { status: 501 });
+    const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
+    <source>
+      <publisher>Fixzit</publisher>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers</publisherurl>
+      <error>ATS feeds not available in this deployment</error>
+    </source>`;
+    return new NextResponse(errorXml, { 
+      status: 501,
+      headers: { 'Content-Type': 'application/xml; charset=utf-8' } 
+    });
   }
-  await connectDb();
-  const jobs = await Job.find({ status: 'published', visibility: 'public' })
-    .sort({ publishedAt: -1 })
-    .lean();
+  
+  try {
+    await connectToDatabase();
+    const jobs = await Job.find({ status: 'published', visibility: 'public' })
+      .sort({ publishedAt: -1 })
+      .lean();
 
-  const items = jobs.map((j: any) => `
+    const items = jobs.map((j: any) => `
     <job>
       <title><![CDATA[${j.title}]]></title>
       <date>${new Date(j.publishedAt || j.createdAt).toUTCString()}</date>
@@ -29,14 +40,30 @@ export async function GET() {
       <category><![CDATA[${j.department || 'General'}]]></category>
     </job>`).join('');
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-  <source>
-    <publisher>Fixzit</publisher>
-    <publisherurl>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers</publisherurl>
-    ${items}
-  </source>`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    <source>
+      <publisher>Fixzit</publisher>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers</publisherurl>
+      ${items}
+    </source>`;
 
-  return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+    return new NextResponse(xml, { 
+      headers: { 'Content-Type': 'application/xml; charset=utf-8' } 
+    });
+  } catch (error) {
+    console.error('Failed to fetch jobs:', error instanceof Error ? error.message : String(error));
+    const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
+    <source>
+      <publisher>Fixzit</publisher>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers</publisherurl>
+      <error>Failed to fetch jobs</error>
+    </source>`;
+    return new NextResponse(errorXml, { 
+      status: 500,
+      headers: { 'Content-Type': 'application/xml; charset=utf-8' } 
+    });
+  }
 }
+
 
 

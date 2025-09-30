@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/src/server/middleware/withAuthRbac";
@@ -9,7 +9,7 @@ const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:
 export async function POST(req:NextRequest, {params}:{params:{id:string}}){
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as any;
-  await connectDb();
+  await connectToDatabase();
   const m = upsertSchema.parse(await req.json());
   // Validate MongoDB ObjectId format
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {

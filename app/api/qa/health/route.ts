@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -17,12 +17,12 @@ export async function GET(req: NextRequest) {
 
   // Check database connectivity
   try {
-    await connectDb();
+    await connectToDatabase();
     healthStatus.database = 'connected';
 
     // Test database query
     try {
-      const mongoose = await connectDb();
+      const mongoose = await connectToDatabase();
       const collections = await (mongoose as any).connection.db.listCollections().toArray();
       healthStatus.database = `connected (${collections.length} collections)`;
     } catch {
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   // Force database reconnection
   try {
-    await connectDb();
+    await connectToDatabase();
     return NextResponse.json({
       success: true,
       message: 'Database reconnected',
@@ -75,3 +75,4 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
+

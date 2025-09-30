@@ -1,4 +1,4 @@
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import DiscountRule from '@/src/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
@@ -32,7 +32,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     await authenticateAdmin(req);
-    await db;
+    await connectToDatabase();
     const d = await DiscountRule.findOne({ code: 'ANNUAL' });
     return NextResponse.json(d || { code:'ANNUAL', value:0, active:false });
   } catch (error: any) {
@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }
     
-    await db;
+    await connectToDatabase();
     const body = discountSchema.parse(await req.json());
     
     const d = await DiscountRule.findOneAndUpdate({ code: 'ANNUAL' },
@@ -85,3 +85,4 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

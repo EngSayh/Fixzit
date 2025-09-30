@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import { isMockDB } from '@/src/lib/mongo';
 
 // Enhanced User model definition for auth purposes
 interface UserDoc {
@@ -30,155 +29,29 @@ interface UserDoc {
   code?: string;
 }
 
-// Dynamic User model with enhanced security
+// Use real Mongoose model for production
 let User: any;
 
-if (isMockDB) {
-  // Enhanced mock model with comprehensive test users
-  User = {
-    findOne: async (query: any) => {
-      const users: UserDoc[] = [
-        {
-          _id: '1',
-          tenantId: 'demo-tenant',
-          email: 'superadmin@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // Admin@123
-          personal: { firstName: 'System', lastName: 'Administrator' },
-          professional: { role: 'SUPER_ADMIN' },
-          status: 'ACTIVE',
-          username: 'superadmin',
-          code: 'USR-001'
-        },
-        {
-          _id: '2',
-          tenantId: 'demo-tenant',
-          email: 'admin@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: { firstName: 'Admin', lastName: 'User' },
-          professional: { role: 'ADMIN' },
-          status: 'ACTIVE',
-          username: 'admin',
-          code: 'USR-002'
-        },
-        {
-          _id: '3',
-          tenantId: 'demo-tenant',
-          email: 'manager@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: { firstName: 'Property', lastName: 'Manager' },
-          professional: { role: 'PROPERTY_MANAGER' },
-          status: 'ACTIVE',
-          username: 'manager',
-          code: 'USR-003'
-        },
-        {
-          _id: '4',
-          tenantId: 'demo-tenant',
-          email: 'tenant@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: { firstName: 'Ahmed', lastName: 'Al-Rashid' },
-          professional: { role: 'TENANT' },
-          status: 'ACTIVE',
-          username: 'tenant',
-          code: 'USR-004'
-        },
-        {
-          _id: '5',
-          tenantId: 'demo-tenant',
-          email: 'vendor@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa', // password123
-          personal: { firstName: 'Mohammed', lastName: 'Al-Harbi' },
-          professional: { role: 'VENDOR' },
-          status: 'ACTIVE',
-          username: 'vendor',
-          code: 'USR-005'
-        }
-      ];
-
-      if (query.email) {
-        return users.find(user => user.email === query.email);
-      }
-      if (query.username) {
-        return users.find(user => user.username === query.username);
-      }
-      return null;
-    },
-    findById: async (id: string) => {
-      const users: UserDoc[] = [
-        {
-          _id: '1',
-          tenantId: 'demo-tenant',
-          email: 'superadmin@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa',
-          personal: { firstName: 'System', lastName: 'Administrator' },
-          professional: { role: 'SUPER_ADMIN' },
-          status: 'ACTIVE',
-          username: 'superadmin',
-          code: 'USR-001'
-        },
-        {
-          _id: '2',
-          tenantId: 'demo-tenant',
-          email: 'admin@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa',
-          personal: { firstName: 'Admin', lastName: 'User' },
-          professional: { role: 'ADMIN' },
-          status: 'ACTIVE',
-          username: 'admin',
-          code: 'USR-002'
-        },
-        {
-          _id: '3',
-          tenantId: 'demo-tenant',
-          email: 'manager@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa',
-          personal: { firstName: 'Property', lastName: 'Manager' },
-          professional: { role: 'PROPERTY_MANAGER' },
-          status: 'ACTIVE',
-          username: 'manager',
-          code: 'USR-003'
-        },
-        {
-          _id: '4',
-          tenantId: 'demo-tenant',
-          email: 'tenant@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa',
-          personal: { firstName: 'Ahmed', lastName: 'Al-Rashid' },
-          professional: { role: 'TENANT' },
-          status: 'ACTIVE',
-          username: 'tenant',
-          code: 'USR-004'
-        },
-        {
-          _id: '5',
-          tenantId: 'demo-tenant',
-          email: 'vendor@fixzit.co',
-          password: '$2b$10$kbeyZf.xR/qw4hw7qfDxT.SQon2mBoggroifO6nRhl1KUGkJHarIa',
-          personal: { firstName: 'Mohammed', lastName: 'Al-Harbi' },
-          professional: { role: 'VENDOR' },
-          status: 'ACTIVE',
-          username: 'vendor',
-          code: 'USR-005'
-        }
-      ];
-
-      return users.find(user => user._id === id);
-    }
-  };
-} else {
-  // Use real Mongoose model for production
-  try {
-    const { User: UserModel } = require('@/src/server/models/User');
-    User = UserModel;
-  } catch (error) {
-    console.warn('Could not load User model, falling back to mock implementation:', error);
-    // Fallback to same mock implementation if model loading fails
-    User = {
-      findOne: async (_query: any) => null,
-      findById: async (_id: string) => null
-    };
+try {
+  const { User: UserModel } = require('@/src/server/models/User');
+  User = UserModel;
+} catch (error) {
+  const errorMessage = `CRITICAL: Failed to load User model from @/src/server/models/User - ${error instanceof Error ? error.message : String(error)}`;
+  console.error(errorMessage);
+  
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Authentication system cannot start without User model in production');
+    process.exit(1);
   }
+  
+  console.warn('Development/test environment detected: using fallback User implementation');
+  // Lightweight fallback for development/test only
+  User = {
+    findOne: async (_query: any) => null,
+    findById: async (_id: string) => null
+  };
 }
+
 
 // AWS Secrets Manager support with fallback
 let jwtSecret: string | null = null;
@@ -214,7 +87,7 @@ async function getJWTSecret(): Promise<string> {
           const secrets = JSON.parse(response.SecretString);
           jwtSecret = secrets.JWT_SECRET;
           console.log('✅ JWT secret loaded from AWS Secrets Manager');
-          return jwtSecret;
+          return jwtSecret!;
         }
       }
     } catch (error) {

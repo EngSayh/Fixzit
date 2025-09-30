@@ -5,7 +5,7 @@ import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
 import { searchProducts } from '@/src/lib/marketplace/search';
 import Category from '@/src/models/marketplace/Category';
 import { serializeCategory } from '@/src/lib/marketplace/serializers';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
     const context = await resolveMarketplaceContext(request);
-    await db;
+    await connectToDatabase();
 
     const categoryDoc = query.cat
       ? await Category.findOne({ orgId: context.orgId, slug: query.cat }).lean()
@@ -76,3 +76,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Search failed' }, { status: 500 });
   }
 }
+

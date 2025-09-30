@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentPage } from '@/src/lib/paytabs';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { Invoice } from '@/src/server/models/Invoice';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { z } from 'zod';
 
 // Utility functions for API responses
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
     }
 
-    await connectDb();
+    await connectToDatabase();
     const invoice = await (Invoice as any).findOne({ 
       _id: invoiceId, 
       tenantId: (user as any)?.orgId 
@@ -89,3 +89,4 @@ export async function POST(req: NextRequest) {
     return internalServerError('Failed to create payment', error);
   }
 }
+

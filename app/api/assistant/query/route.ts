@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { HelpArticle } from "@/src/server/models/HelpArticle";
 import { WorkOrder } from "@/src/server/models/WorkOrder";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -36,7 +36,7 @@ function isMyTickets(question: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    await db; // ensure DB/init (real or mock)
+    await connectToDatabase(); // ensure DB/init (real or mock)
   } catch {}
 
   let user: { id: string; tenantId: string; role: string } | null = null;
@@ -126,4 +126,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ answer, citations });
 }
+
 

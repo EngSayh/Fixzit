@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Benchmark from '@/src/models/Benchmark';
 import { computeQuote } from '@/src/lib/pricing';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { z } from 'zod';
 
 const compareSchema = z.object({
@@ -14,7 +14,7 @@ const compareSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await db;
+    await connectToDatabase();
     const body = compareSchema.parse(await req.json());
     
     const ours = computeQuote({
@@ -43,3 +43,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to compare benchmarks' }, { status: 500 });
   }
 }
+

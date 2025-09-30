@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { RFQ } from '@/src/server/models/RFQ';
 import { z } from 'zod';
 
@@ -24,7 +24,7 @@ const toIsoString = (value: unknown) => {
 
 export async function GET(req: NextRequest) {
   try {
-    await db;
+    await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
     const query = QuerySchema.parse(Object.fromEntries(searchParams));
@@ -132,3 +132,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

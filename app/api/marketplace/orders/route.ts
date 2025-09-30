@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import Order from '@/src/models/marketplace/Order';
 import { serializeOrder } from '@/src/lib/marketplace/serializers';
 import { createSecureResponse } from '@/src/server/security/headers';
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
-    await db;
+    await connectToDatabase();
 
     const filter: any = { orgId: context.orgId, status: { $ne: 'CART' } };
 
@@ -48,3 +48,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to load orders' }, { status: 500 });
   }
 }
+

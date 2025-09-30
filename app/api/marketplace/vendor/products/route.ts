@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import Product from '@/src/models/marketplace/Product';
 import { serializeProduct } from '@/src/lib/marketplace/serializers';
 import { objectIdFrom } from '@/src/lib/marketplace/objectIds';
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    const client = await db;
+    const client = await connectToDatabase();
 
     const filter: any = { orgId: context.orgId };
     if (context.role === 'VENDOR') {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const payload = UpsertSchema.parse(body);
-    const client = await db;
+    const client = await connectToDatabase();
 
     const data = {
       orgId: context.orgId,
@@ -88,3 +88,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to save product' }, { status: 500 });
   }
 }
+

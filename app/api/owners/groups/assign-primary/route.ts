@@ -1,4 +1,4 @@
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import OwnerGroup from '@/src/models/OwnerGroup';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/src/lib/auth';
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions to manage owner groups' }, { status: 403 });
     }
 
-    await db;
+    await connectToDatabase();
     const body = assignPrimarySchema.parse(await req.json());
     
     // Tenant isolation - ensure group belongs to user's org
@@ -53,3 +53,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to assign owner group' }, { status: 500 });
   }
 }
+
