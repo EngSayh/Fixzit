@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, getNativeDb } from '@/src/lib/mongo';
+import { getDatabase } from '@/src/lib/mongodb-unified';
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const { event, data } = body;
 
     // Log the event to database
-    const native = await getNativeDb();
+    const native = await getDatabase();
     await native.collection('qa_logs').insertOne({
       event,
       data,
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       query = { event: eventType };
     }
 
-    const native = await getNativeDb();
+    const native = await getDatabase();
     const logs = await native.collection('qa_logs')
       .find(query)
       .sort({ timestamp: -1 })

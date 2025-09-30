@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { Job } from '@/src/server/models/Job';
 import { Candidate } from '@/src/server/models/Candidate';
 import { Application } from '@/src/server/models/Application';
@@ -10,7 +10,7 @@ import path from 'path';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await connectDb();
+    await connectToDatabase();
     
     const formData = await req.formData();
     

@@ -1,11 +1,11 @@
 import { CmsPage } from "@/src/server/models/CmsPage";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import Link from "next/link";
 
 export const revalidate = 60;
 
 export default async function CmsPageScreen({ params, searchParams }: { params:{slug:string}, searchParams:any }){
-  await connectDb();
+  await connectToDatabase();
   const { slug } = params;
   const preview = searchParams?.preview === "1";
   const page = await (CmsPage as any).findOne({ slug });

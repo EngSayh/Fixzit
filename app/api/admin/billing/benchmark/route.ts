@@ -9,3 +9,4 @@ export async function GET(req: NextRequest) {
   const docs = await Benchmark.find({}).lean();
   return NextResponse.json(docs);
 }
+

@@ -27,12 +27,12 @@ jest.mock('next/server', () => {
 
 const { NextResponse } = jest.requireMock('next/server')
 
-// Mock the database module imported as "@/lib/mongodb"
-jest.mock('@/lib/mongodb', () => ({
+// Mock the database module imported as "@/src/lib/mongodb-unified"
+jest.mock('@/src/lib/mongodb-unified', () => ({
   getDatabase: jest.fn()
 }))
 
-import { getDatabase } from '@/lib/mongodb'
+import { getDatabase } from '@/src/lib/mongodb-unified'
 
 // Import the route handler under test.
 // Try common Next.js route locations; adjust if your project structure differs.

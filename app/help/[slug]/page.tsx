@@ -1,4 +1,4 @@
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { HelpArticle } from "@/src/server/models/HelpArticle";
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/src/lib/markdown';
@@ -17,7 +17,7 @@ type Article = { slug: string; title: string; content: string; category?: string
  * @returns JSX for the help article page or a fallback message when the article is unavailable.
  */
 export default async function HelpArticlePage({ params }:{ params:{ slug:string }}){
-  await connectDb();
+  await connectToDatabase();
   const a = await (HelpArticle as any).findOne({ slug: params.slug });
   if (!a || a.status!=="PUBLISHED"){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;

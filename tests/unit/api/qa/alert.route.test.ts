@@ -12,10 +12,10 @@ import { POST, GET } from "@/app/api/qa/alert/route";
 
 // We will mock the mongo module used by the route
 
-jest.mock('@/src/lib/mongo', () => {
+jest.mock('@/src/lib/mongodb-unified', () => {
   return {
-    getNativeDb: jest.fn(),
-    db: {}, // not used directly by the route, but exported by the module
+    getDatabase: jest.fn(),
+    connectToDatabase: jest.fn(),
   };
 });
 
@@ -50,9 +50,9 @@ describe('QA Alert Route', () => {
 
   // Pull mocked exports for type-safe updates inside tests
 
-  const mongoMod = () => require('@/src/lib/mongo') as {
-    getNativeDb: ReturnType<typeof jest.fn>;
-    db: any;
+  const mongoMod = () => require('@/src/lib/mongodb-unified') as {
+    getDatabase: ReturnType<typeof jest.fn>;
+    connectToDatabase: ReturnType<typeof jest.fn>;
   };
 
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('QA Alert Route', () => {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const mod = mongoMod();
-    mod.getNativeDb.mockReset();
+    mod.getDatabase.mockReset();
   });
 
   afterEach(() => {
@@ -96,7 +96,7 @@ describe('QA Alert Route', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('🚨 QA Alert (Mock): ' + event), data);
 
       // Ensure DB is not touched in mock mode
-      expect(mod.getNativeDb).not.toHaveBeenCalled();
+      expect(mod.getDatabase).not.toHaveBeenCalled();
     });
 
     it('inserts alert into DB with forwarded IP and returns success', async () => {
@@ -106,7 +106,7 @@ describe('QA Alert Route', () => {
       const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
       const collection = jest.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection };
-      mod.getNativeDb.mockResolvedValue(nativeDb);
+      mod.getDatabase.mockResolvedValue(nativeDb);
 
       const event = 'modal_open';
       const payload = { inModal: true, ctx: 'settings' };
@@ -126,7 +126,7 @@ describe('QA Alert Route', () => {
       expect(body).toEqual({ success: true });
 
       // Verify DB interactions
-      expect(mod.getNativeDb).toHaveBeenCalledTimes(1);
+      expect(mod.getDatabase).toHaveBeenCalledTimes(1);
 
       expect(collection).toHaveBeenCalledWith('qa_alerts');
       expect(insertOne).toHaveBeenCalledTimes(1);
@@ -153,7 +153,7 @@ describe('QA Alert Route', () => {
       const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
       const collection = jest.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection };
-      mod.getNativeDb.mockResolvedValue(nativeDb);
+      mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
         json: () => Promise.resolve({ event: 'no_forwarded_for', data: { k: 'v' } }),
@@ -180,7 +180,7 @@ describe('QA Alert Route', () => {
       const insertOne = jest.fn().mockRejectedValue(new Error('insert failed'));
       const collection = jest.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection };
-      mod.getNativeDb.mockResolvedValue(nativeDb);
+      mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
         json: () => Promise.resolve({ event: 'oops', data: { foo: 'bar' } }),
@@ -211,7 +211,7 @@ describe('QA Alert Route', () => {
       expect((res as Response).status).toBe(500);
       const body = await (res as Response).json();
       expect(body).toEqual({ error: 'Failed to process alert' });
-      expect(mod.getNativeDb).not.toHaveBeenCalled();
+      expect(mod.getDatabase).not.toHaveBeenCalled();
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
   });
@@ -230,7 +230,7 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ alerts: [], mock: true });
-      expect(mod.getNativeDb).not.toHaveBeenCalled();
+      expect(mod.getDatabase).not.toHaveBeenCalled();
     });
 
     it('fetches latest 50 alerts sorted by timestamp desc from DB', async () => {
@@ -245,7 +245,7 @@ describe('QA Alert Route', () => {
       const collection = jest.fn().mockReturnValue({ find });
 
       const nativeDb = { collection };
-      mod.getNativeDb.mockResolvedValue(nativeDb);
+      mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
         json: async () => ({}),
@@ -257,7 +257,7 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ alerts: docs });
-      expect(mod.getNativeDb).toHaveBeenCalledTimes(1);
+      expect(mod.getDatabase).toHaveBeenCalledTimes(1);
 
       expect(collection).toHaveBeenCalledWith('qa_alerts');
       expect(find).toHaveBeenCalledWith({});
@@ -275,7 +275,7 @@ describe('QA Alert Route', () => {
       const find = jest.fn().mockReturnValue({ sort });
       const collection = jest.fn().mockReturnValue({ find });
       const nativeDb = { collection };
-      mod.getNativeDb.mockResolvedValue(nativeDb);
+      mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
         json: async () => ({}),

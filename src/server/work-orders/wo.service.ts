@@ -1,4 +1,4 @@
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { Schema, model, models } from 'mongoose';
 import { withIdempotency } from "@/server/security/idempotency";
 
@@ -32,7 +32,7 @@ const WorkOrderSchema = new Schema({
 const WorkOrder = models.WorkOrder || model('WorkOrder', WorkOrderSchema);
 
 export async function create(data: any, actorId: string, ip?: string) {
-  await connectDb();
+  await connectToDatabase();
   
   const key = `wo-create-${data.tenantId}-${actorId}-${Date.now()}`;
   const wo = await withIdempotency(key, async () => {
@@ -50,7 +50,7 @@ export async function create(data: any, actorId: string, ip?: string) {
 }
 
 export async function update(id: string, patch: any, tenantId: string, actorId: string, ip?: string) {
-  await connectDb();
+  await connectToDatabase();
   
   if (!id) {
     throw new Error('Work order ID required');
@@ -67,7 +67,7 @@ export async function update(id: string, patch: any, tenantId: string, actorId: 
 }
 
 export async function list(tenantId: string, q?: string, status?: string) {
-  await connectDb();
+  await connectToDatabase();
   
   const filters: any = { tenantId };
   

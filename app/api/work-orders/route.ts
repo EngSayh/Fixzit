@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/src/server/middleware/withAuthRbac";
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     if (!WorkOrder) {
       return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
     }
-  await connectDb();
+  await connectToDatabase();
   const user = await getSessionUser(req);
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     }
   const user = await requireAbility("CREATE")(req);
   if (user instanceof NextResponse) return user as any;
-  await connectDb();
+  await connectToDatabase();
 
   const body = await req.json();
   const data = createSchema.parse(body);
@@ -132,4 +132,5 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
+
 

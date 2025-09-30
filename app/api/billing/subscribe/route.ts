@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import Customer from '@/src/models/Customer';
 import Subscription from '@/src/models/Subscription';
 import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Subscription rate limit exceeded. Please wait before creating another subscription.' }, { status: 429 });
     }
 
-    await db;
+    await connectToDatabase();
     const body = subscriptionSchema.parse(await req.json());
 
     // 1) Upsert customer - ensure tenant isolation
@@ -128,3 +128,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
   }
 }
+

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import SubscriptionInvoice from '@/src/models/SubscriptionInvoice';
 import { createSecureResponse } from '@/src/server/security/headers';
 import Subscription from '@/src/models/Subscription';
 import PaymentMethod from '@/src/models/PaymentMethod';
 
 export async function POST(req: NextRequest) {
-  const client = await db;
+  const client = await connectToDatabase();
   const payload = await req.json().catch(()=>null);
   const data = payload || {}; // if using return-url (form-data), create a separate handler
   const tranRef = data.tran_ref || data.tranRef;
@@ -40,3 +40,4 @@ export async function POST(req: NextRequest) {
 
   return createSecureResponse({ ok: true });
 }
+

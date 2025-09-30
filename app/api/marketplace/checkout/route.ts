@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/src/lib/marketplace/context';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import { getOrCreateCart, recalcCartTotals } from '@/src/lib/marketplace/cart';
 import { rateLimit } from '@/src/server/security/rateLimit';
 import { serializeOrder } from '@/src/lib/marketplace/serializers';
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const payload = CheckoutSchema.parse(body ?? {});
-    await db;
+    await connectToDatabase();
 
     const cart = await getOrCreateCart(context.orgId, context.userId);
     if (!cart.lines.length) {
@@ -76,3 +76,4 @@ export async function POST(request: NextRequest) {
     return handleApiError(error);
   }
 }
+

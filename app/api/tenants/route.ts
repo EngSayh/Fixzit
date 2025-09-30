@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { Tenant } from "@/src/server/models/Tenant";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -67,7 +67,7 @@ const createTenantSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await connectDb();
+    await connectToDatabase();
     const user = await getSessionUser(req);
 
     const data = createTenantSchema.parse(await req.json());
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    await connectDb();
+    await connectToDatabase();
     let user;
     try {
       user = await getSessionUser(req);
@@ -127,3 +127,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

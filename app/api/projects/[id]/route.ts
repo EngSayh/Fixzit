@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { Project } from "@/src/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
@@ -32,7 +32,7 @@ const updateProjectSchema = z.object({
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await connectDb();
+    await connectToDatabase();
 
     const project = await Project.findOne({
       _id: params.id,
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await connectDb();
+    await connectToDatabase();
 
     const data = updateProjectSchema.parse(await req.json());
 
@@ -81,7 +81,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    await connectDb();
+    await connectToDatabase();
 
     const project = await Project.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, getNativeDb } from '@/src/lib/mongo';
+import { getDatabase } from '@/src/lib/mongodb-unified';
 import { SupportTicket } from '@/src/server/models/SupportTicket';
 import { getSessionUser } from '@/src/server/middleware/withAuthRbac';
 import { z } from 'zod';
@@ -8,8 +8,7 @@ import Redis from 'ioredis';
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
 export async function POST(req: NextRequest) {
-  await db;
-  const native = await getNativeDb();
+  const native = await getDatabase();
 
   const body = await req.json();
   const schema = z.object({

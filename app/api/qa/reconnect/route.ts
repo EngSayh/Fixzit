@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDb } from '@/src/lib/mongo';
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 
 export async function POST(req: NextRequest) {
   try {
     // Force database reconnection by accessing it
-    await connectDb();
+    await connectToDatabase();
     console.log('🔄 Database reconnected successfully');
 
     return NextResponse.json({
@@ -23,3 +23,4 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
+

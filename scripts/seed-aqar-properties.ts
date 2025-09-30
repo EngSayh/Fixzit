@@ -1,10 +1,9 @@
-import clientPromise from '@/lib/mongodb';
+import { getDatabase } from '@/src/lib/mongodb-unified';
 
 async function run() {
   try {
-    const client = await clientPromise;
-    if (!client) throw new Error('Mongo client not available');
-    const db = client.db();
+    const db = await getDatabase();
+    if (!db) throw new Error('Database connection not available');
     const col = db.collection('properties');
 
     const now = new Date();

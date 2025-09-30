@@ -5,7 +5,7 @@
  * Usage: tsx scripts/test-mongo-connection.ts
  */
 
-import { db, getDatabase, isMockDB } from '@/src/lib/mongo';
+import { connectToDatabase, getDatabase } from '@/src/lib/mongodb-unified';
 
 async function testConnection() {
   console.log('🚀 MongoDB Connection Test Suite');
@@ -13,15 +13,15 @@ async function testConnection() {
 
   try {
     console.log('🔍 Testing MongoDB connection...');
-    console.log(`📊 Mock DB mode: ${isMockDB}`);
+    console.log('📊 Using unified MongoDB connection');
 
-    // Test 1: Database connection
-    const database = await getDatabase();
+    // Test 1: Establish MongoDB connection
+    await connectToDatabase();
     console.log('✅ Database connection established');
 
     // Test 2: Get database handle
-    const dbHandle = await db;
-    console.log('✅ Database handle obtained');
+    const database = await getDatabase();
+    console.log('✅ Database handle retrieved');
 
     // Test 3: Collection operations
     const testCollection = database.collection('test');
@@ -58,7 +58,7 @@ async function testConnection() {
     // Test results summary
     const results = {
       success: true,
-      isMockDB,
+      connectionType: 'unified',
       operations: {
         insert: true,
         find: true,
@@ -79,7 +79,7 @@ async function testConnection() {
     
     const results = {
       success: false,
-      isMockDB,
+      connectionType: 'unified',
       error: error instanceof Error ? error.message : String(error),
       operations: {
         insert: false,

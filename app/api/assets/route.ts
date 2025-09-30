@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { z } from "zod";
 import { getSessionUser } from "@/src/server/middleware/withAuthRbac";
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
     }
     const user = await getSessionUser(req);
-    await connectDb();
+    await connectToDatabase();
 
     const data = createAssetSchema.parse(await req.json());
 
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    await connectDb();
+    await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -131,4 +131,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 

@@ -1,5 +1,5 @@
 import { InvoiceCreate, InvoicePost } from "./invoice.schema";
-import { connectDb } from "@/src/lib/mongo";
+import { connectToDatabase } from "@/src/lib/mongodb-unified";
 import { Invoice } from "@/src/server/models/Invoice";
 
 // Mock implementation retained for optional mock mode
@@ -56,7 +56,7 @@ const mockService = new MockInvoiceService();
 export async function create(input: unknown, actorId?: string, ip?: string) {
   const data = InvoiceCreate.parse(input);
 
-  await connectDb();
+  await connectToDatabase();
 
   const number = await nextInvoiceNumber(data.tenantId);
   const totals = computeTotals(data.lines);
@@ -93,7 +93,7 @@ export async function create(input: unknown, actorId?: string, ip?: string) {
 }
 
 export async function list(tenantId: string, q?: string, status?: string) {
-  await connectDb();
+  await connectToDatabase();
 
   const filters: Record<string, any> = { tenantId };
 
@@ -121,7 +121,7 @@ export async function list(tenantId: string, q?: string, status?: string) {
 export async function post(tenantId: string, id: string, input: unknown, actorId?: string, ip?: string) {
   const data = InvoicePost.parse(input);
 
-  await connectDb();
+  await connectToDatabase();
 
   const status = data.action === 'POST' ? 'SENT' : 'CANCELLED';
   const historyEntry = {

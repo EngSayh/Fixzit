@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/mongo';
+import { connectToDatabase } from '@/src/lib/mongodb-unified';
 import PriceTier from '@/src/models/PriceTier';
 import Module from '@/src/models/Module';
 import { getUserFromToken } from '@/src/lib/auth';
@@ -42,7 +42,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     await authenticateAdmin(req);
-    await db;
+    await connectToDatabase();
     const rows = await PriceTier.find({}).populate('moduleId','code name');
     return createSecureResponse(rows, 200, req);
   } catch (error: any) {
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       return createErrorResponse('Rate limit exceeded', 429, req);
     }
     
-    await db;
+    await connectToDatabase();
     const body = priceTierSchema.parse(await req.json());
     
     // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
@@ -101,3 +101,4 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+
