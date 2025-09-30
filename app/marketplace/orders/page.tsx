@@ -1,4 +1,4 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 const STATUS_BADGES: Record<string, string> = {
@@ -25,7 +25,7 @@ export default async function OrdersPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
-      <TopBarAmazon departments={departments} />
+      
       <main className="mx-auto max-w-7xl px-4 py-8">
         <h1 className="text-3xl font-semibold text-[#0F1111]">Orders & Approvals</h1>
         <p className="mt-2 text-sm text-gray-600">Track procurement across approval, fulfilment, and finance posting.</p>

@@ -1,4 +1,4 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+
 import ProductCard from '@/src/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
@@ -31,7 +31,7 @@ export default async function MarketplaceHome() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
-      <TopBarAmazon departments={departments} />
+      
       <main className="mx-auto max-w-7xl px-4 py-8">
         <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#0061A8] via-[#00A859] to-[#0061A8] p-10 text-white shadow-xl">

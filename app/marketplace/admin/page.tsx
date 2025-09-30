@@ -1,4 +1,4 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
 
 export default async function MarketplaceAdminPage() {
@@ -20,7 +20,7 @@ export default async function MarketplaceAdminPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
-      <TopBarAmazon departments={departments} />
+      
       <main className="mx-auto max-w-7xl space-y-8 px-4 py-8">
         <header>
           <h1 className="text-3xl font-semibold text-[#0F1111]">Marketplace Administration</h1>

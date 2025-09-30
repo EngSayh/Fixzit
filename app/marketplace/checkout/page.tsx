@@ -1,4 +1,4 @@
-import TopBarAmazon from '@/src/components/marketplace/TopBarAmazon';
+
 import CheckoutForm from '@/src/components/marketplace/CheckoutForm';
 import Link from 'next/link';
 import { serverFetchJsonWithTenant } from '@/src/lib/marketplace/serverFetch';
@@ -18,7 +18,7 @@ export default async function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
-      <TopBarAmazon departments={departments} />
+      
       <main className="mx-auto max-w-7xl px-4 py-8">
         <nav className="text-sm text-[#0061A8]">
           <Link href="/marketplace/cart" className="hover:underline">
