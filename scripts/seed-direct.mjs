@@ -329,7 +329,7 @@ async function seedUsers() {
           };
           
           await User.create(userWithHashedPassword);
-          console.log(`✅ Created user: ${userData.email} (Role: ${userData.role || 'N/A'})`);
+          console.log(`✅ Created user: ${userData.email} (Role: ${userData.professional?.role || 'N/A'})`);
         } else {
           console.log(`⏭️  User already exists: ${userData.email}`);
         }
