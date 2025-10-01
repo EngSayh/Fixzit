@@ -1,5 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import DiscountRule from '@/src/server/models/DiscountRule';
+import DiscountRule from '@/db/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';

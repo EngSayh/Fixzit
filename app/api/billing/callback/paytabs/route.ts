@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import SubscriptionInvoice from '@/models/SubscriptionInvoice';
+import SubscriptionInvoice from '@/db/models/SubscriptionInvoice';
 import { createSecureResponse } from '@/server/security/headers';
-import Subscription from '@/models/Subscription';
-import PaymentMethod from '@/models/PaymentMethod';
+import Subscription from '@/db/models/Subscription';
+import PaymentMethod from '@/db/models/PaymentMethod';
 
 export async function POST(req: NextRequest) {
   const client = await connectToDatabase();
