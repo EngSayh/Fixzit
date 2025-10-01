@@ -53,7 +53,7 @@ userSchema.index({ orgId: 1, employeeId: 1 }, { unique: true, sparse: true });
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Seed data
-const PASSWORD = 'Fixzit@123';
+const PASSWORD = 'Password123';
 
 async function seed() {
   await mongoose.connect(MONGODB_URI, { dbName: 'fixzit' });
@@ -79,32 +79,32 @@ async function seed() {
   
   const users = [
     // 1. Platform role
-    { orgId: fixzitOrg._id, email: 'superadmin@fixzit.local', employeeId: 'SA001', name: 'Super Admin', role: 'super_admin', permissions: ['*'] },
+    { orgId: fixzitOrg._id, email: 'superadmin@fixzit.co', employeeId: 'SA001', name: 'Super Admin', role: 'super_admin', permissions: ['*'] },
     
     // 2-3. Core admin roles
-    { orgId: acmeOrg._id, email: 'corp.admin@acme.local', employeeId: 'CA001', name: 'Corporate Admin', role: 'corporate_admin', permissions: ['org:*'] },
-    { orgId: acmeOrg._id, email: 'property.manager@acme.local', employeeId: 'PM001', name: 'Property Manager', role: 'property_manager', permissions: ['properties:*', 'workorders:*'] },
+    { orgId: acmeOrg._id, email: 'corp.admin@fixzit.co', employeeId: 'CA001', name: 'Corporate Admin', role: 'corporate_admin', permissions: ['org:*'] },
+    { orgId: acmeOrg._id, email: 'property.manager@fixzit.co', employeeId: 'PM001', name: 'Property Manager', role: 'property_manager', permissions: ['properties:*', 'workorders:*'] },
     
     // 4-5. Operations roles
-    { orgId: acmeOrg._id, email: 'dispatcher@acme.local', employeeId: 'DISP001', name: 'Operations Dispatcher', role: 'operations_dispatcher', permissions: ['dispatch:*'] },
-    { orgId: acmeOrg._id, email: 'supervisor@acme.local', employeeId: 'SUP001', name: 'Supervisor', role: 'supervisor', permissions: ['workorders:*', 'assets:*'] },
+    { orgId: acmeOrg._id, email: 'dispatcher@fixzit.co', employeeId: 'DISP001', name: 'Operations Dispatcher', role: 'operations_dispatcher', permissions: ['dispatch:*'] },
+    { orgId: acmeOrg._id, email: 'supervisor@fixzit.co', employeeId: 'SUP001', name: 'Supervisor', role: 'supervisor', permissions: ['workorders:*', 'assets:*'] },
     
     // 6. Technical role (internal)
-    { orgId: acmeOrg._id, email: 'technician@acme.local', employeeId: 'TECH001', name: 'Technician (Internal)', role: 'technician_internal', permissions: ['workorders:execute'] },
+    { orgId: acmeOrg._id, email: 'technician@fixzit.co', employeeId: 'TECH001', name: 'Technician (Internal)', role: 'technician_internal', permissions: ['workorders:execute'] },
     
     // 7-8. Vendor roles
-    { orgId: acmeOrg._id, email: 'vendor.admin@acme.local', employeeId: 'VEND001', name: 'Vendor Admin', role: 'vendor_admin', permissions: ['vendors:*', 'marketplace:*'] },
-    { orgId: acmeOrg._id, email: 'vendor.tech@acme.local', employeeId: 'VTECH001', name: 'Vendor Technician', role: 'vendor_technician', permissions: ['workorders:execute'] },
+    { orgId: acmeOrg._id, email: 'vendor.admin@fixzit.co', employeeId: 'VEND001', name: 'Vendor Admin', role: 'vendor_admin', permissions: ['vendors:*', 'marketplace:*'] },
+    { orgId: acmeOrg._id, email: 'vendor.tech@fixzit.co', employeeId: 'VTECH001', name: 'Vendor Technician', role: 'vendor_technician', permissions: ['workorders:execute'] },
     
     // 9-10. Customer roles
-    { orgId: acmeOrg._id, email: 'tenant@acme.local', employeeId: null, name: 'Tenant / Resident', role: 'tenant_resident', permissions: ['tenant_portal:*'] },
-    { orgId: acmeOrg._id, email: 'owner@acme.local', employeeId: 'OWN001', name: 'Owner / Landlord', role: 'owner_landlord', permissions: ['owner_portal:*'] },
+    { orgId: acmeOrg._id, email: 'tenant@fixzit.co', employeeId: null, name: 'Tenant / Resident', role: 'tenant_resident', permissions: ['tenant_portal:*'] },
+    { orgId: acmeOrg._id, email: 'owner@fixzit.co', employeeId: 'OWN001', name: 'Owner / Landlord', role: 'owner_landlord', permissions: ['owner_portal:*'] },
     
     // 11-14. Support & Management roles
-    { orgId: acmeOrg._id, email: 'finance@acme.local', employeeId: 'FIN001', name: 'Finance Manager', role: 'finance_manager', permissions: ['finance:*', 'zatca:*'] },
-    { orgId: acmeOrg._id, email: 'hr@acme.local', employeeId: 'HR001', name: 'HR Manager', role: 'hr_manager', permissions: ['hr:*'] },
-    { orgId: acmeOrg._id, email: 'helpdesk@acme.local', employeeId: 'HELP001', name: 'Helpdesk Agent', role: 'helpdesk_agent', permissions: ['support:*', 'crm:*'] },
-    { orgId: acmeOrg._id, email: 'auditor@acme.local', employeeId: 'AUD001', name: 'Auditor / Compliance', role: 'auditor_compliance', permissions: ['*:read'] },
+    { orgId: acmeOrg._id, email: 'finance@fixzit.co', employeeId: 'FIN001', name: 'Finance Manager', role: 'finance_manager', permissions: ['finance:*', 'zatca:*'] },
+    { orgId: acmeOrg._id, email: 'hr@fixzit.co', employeeId: 'HR001', name: 'HR Manager', role: 'hr_manager', permissions: ['hr:*'] },
+    { orgId: acmeOrg._id, email: 'helpdesk@fixzit.co', employeeId: 'HELP001', name: 'Helpdesk Agent', role: 'helpdesk_agent', permissions: ['support:*', 'crm:*'] },
+    { orgId: acmeOrg._id, email: 'auditor@fixzit.co', employeeId: 'AUD001', name: 'Auditor / Compliance', role: 'auditor_compliance', permissions: ['*:read'] },
   ];
 
   console.log(`\n📝 Seeding ${users.length} users...\n`);
@@ -118,7 +118,7 @@ async function seed() {
     console.log(`✅ Created: ${userData.email} (${userData.role})`);
   }
 
-  console.log(`\n✅ Seed complete! Password: Fixzit@123`);
+  console.log(`\n✅ Seed complete! Password: Password123`);
   console.log(`📊 Total users seeded: ${users.length}`);
   await mongoose.disconnect();
   process.exit(0);
