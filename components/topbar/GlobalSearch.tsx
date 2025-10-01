@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTopBar } from '@/contexts/TopBarContext';
+import { useTopBar } from '@/src/contexts/TopBarContext';
 import { Search, Command } from 'lucide-react';
 
 interface SearchResult {
