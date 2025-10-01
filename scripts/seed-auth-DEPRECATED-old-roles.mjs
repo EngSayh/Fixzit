@@ -98,8 +98,15 @@ async function seed() {
     console.log(`✅ Created: ${userData.email} (${userData.role})`);
   }
 
-  console.log('✅ Seed complete! Password: Fixzit@123');
+  const isDev = process.env.NODE_ENV === 'development' && !process.env.CI;
+  if (isDev) {
+    console.warn('⚠️  [DEPRECATED] This script uses old roles. Use seed-auth-14users.mjs instead.');
+    console.log(`✅ Seed complete! Password: ${PASSWORD} (DEV ONLY)`);
+  } else {
+    console.log('✅ Seed complete! (password redacted)');
+  }
   await mongoose.disconnect();
 }
 
 seed().catch(console.error);
+
