@@ -4,7 +4,17 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/fixzit-dev';
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error('❌ MONGO_URI environment variable not set');
+  process.exit(1);
+}
+
+const SEED_PASSWORD = process.env.SEED_PASSWORD;
+if (!SEED_PASSWORD) {
+  console.error('❌ SEED_PASSWORD environment variable not set');
+  process.exit(1);
+}
 
 const UserSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true },
@@ -100,7 +110,7 @@ const users = [
     code: 'USR-001',
     username: 'admin',
     email: 'admin@fixzit.co',
-    password: 'Admin@123',
+    password: SEED_PASSWORD,
     personal: {
       firstName: 'System',
       lastName: 'Administrator',
@@ -167,7 +177,7 @@ const users = [
     code: 'USR-002',
     username: 'tenant',
     email: 'tenant@fixzit.co',
-    password: 'Tenant@123',
+    password: SEED_PASSWORD,
     personal: {
       firstName: 'Ahmed',
       lastName: 'Al-Rashid',
@@ -234,7 +244,7 @@ const users = [
     code: 'USR-003',
     username: 'vendor',
     email: 'vendor@fixzit.co',
-    password: 'Vendor@123',
+    password: SEED_PASSWORD,
     personal: {
       firstName: 'Mohammed',
       lastName: 'Al-Harbi',

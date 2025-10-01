@@ -31,7 +31,7 @@ Branch: fix/security-and-rbac-consolidation
 ```
 Total users: 14
 All users have correct role values
-Password: Fixzit@123
+Password: [REDACTED - See .env.local.example for setup]
 ```
 
 ### 2. Security Fixes
