@@ -65,7 +65,13 @@ const User = mongoose.models.User || mongoose.model('User', userSchema);
  * - Production credentials must be generated with secure random passwords
  * - See SECURITY_POLICY.md for production credential management
  */
-const PASSWORD = process.env.SEED_PASSWORD || 'Password123';
+const PASSWORD = process.env.SEED_PASSWORD;
+
+if (!PASSWORD) {
+  console.error('❌ SEED_PASSWORD environment variable is required');
+  console.error('💡 Set it with: export SEED_PASSWORD="your-secure-password"');
+  process.exit(1);
+}
 
 async function seed() {
   await mongoose.connect(MONGODB_URI, { dbName: 'fixzit' });
@@ -132,7 +138,7 @@ async function seed() {
 
   const isDev = process.env.NODE_ENV === 'development' && !process.env.CI;
   if (isDev) {
-    console.log(`\n🔑 DEV ONLY - Password: Password123`);
+    console.log(`\n🔑 DEV ONLY - Password: ${PASSWORD}`);
     console.log('⚠️  WARNING: Never log passwords in production or CI!\n');
   } else {
     console.log('\n✅ Seed complete! Users created with secure passwords\n');
