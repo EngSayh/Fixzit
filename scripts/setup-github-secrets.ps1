@@ -31,3 +31,4 @@ foreach ($key in $secrets.Keys) {
 }
 Write-Host "`n✅ Complete! View at: Settings → Secrets and variables → Actions" -ForegroundColor Green
 gh secret list
+
