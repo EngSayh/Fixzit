@@ -37,7 +37,8 @@
     "clean:root": "tsx scripts/janitor.ts --apply",
     "bundle:check": "webpack --config webpack.config.js --mode=production",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
-    "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js"
+    "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js",
+    "replace:in-file": "tsx scripts/replace-string-in-file.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.896.0",
@@ -124,6 +125,7 @@
     "postcss": "^8.4.31",
     "postcss-selector-parser": "6.0.13",
     "recast": "^0.23.11",
+    "safe-regex2": "^5.0.0",
     "start-server-and-test": "^2.1.2",
     "tailwindcss": "^3.4.0",
     "tsconfig-paths": "^4.2.0",
