@@ -1,4 +1,4 @@
-import { CopilotAudit } from "@/server/models/CopilotAudit";
+import { CopilotAudit } from "@/db/models/CopilotAudit";
 import { CopilotSession } from "./session";
 
 export interface AuditOptions {

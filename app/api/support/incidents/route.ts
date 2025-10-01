@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
-import { SupportTicket } from '@/server/models/SupportTicket';
+import { SupportTicket } from '@/db/models/SupportTicket';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
 import Redis from 'ioredis';
