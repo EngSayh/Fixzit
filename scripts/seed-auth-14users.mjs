@@ -53,7 +53,19 @@ userSchema.index({ orgId: 1, employeeId: 1 }, { unique: true, sparse: true });
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Seed data
-const PASSWORD = 'Password123';
+/**
+ * ⚠️ DEVELOPMENT-ONLY SEED PASSWORD WARNING ⚠️
+ * 
+ * This hardcoded password is ONLY for local development and testing purposes.
+ * 
+ * CRITICAL SECURITY REQUIREMENTS:
+ * - NEVER run this script against production databases
+ * - NEVER use this password in production environments  
+ * - Users MUST be forced to change password on first login in any non-local environment
+ * - Production credentials must be generated with secure random passwords
+ * - See SECURITY_POLICY.md for production credential management
+ */
+const PASSWORD = process.env.SEED_PASSWORD || 'Password123';
 
 async function seed() {
   await mongoose.connect(MONGODB_URI, { dbName: 'fixzit' });
@@ -128,3 +140,5 @@ seed().catch((error) => {
   console.error('❌ Seed failed:', error);
   process.exit(1);
 });
+
+
