@@ -32,7 +32,7 @@ jest.mock('next/server', () => {
 }, { virtual: true })
 
 // Mock SearchSynonym model
-jest.mock('@/server/models/SearchSynonym', () => {
+jest.mock('@/db/models/SearchSynonym', () => {
   return {
     SearchSynonym: {
       findOne: (...args: any[]) => findOneMock(...args),
@@ -41,7 +41,7 @@ jest.mock('@/server/models/SearchSynonym', () => {
 }, { virtual: true })
 
 // Mock MarketplaceProduct model and its query chain
-jest.mock('@/server/models/MarketplaceProduct', () => {
+jest.mock('@/db/models/MarketplaceProduct', () => {
   return {
     MarketplaceProduct: {
       find: (...args: any[]) => productFindMock(...args),

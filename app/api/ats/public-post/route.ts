@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Job } from "@/server/models/Job";
+import { Job } from "@/db/models/Job";
 import { generateSlug } from "@/lib/utils";
 import { rateLimit } from "@/server/security/rateLimit";
 import { z } from "zod";

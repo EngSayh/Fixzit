@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { HelpArticle } from "@/server/models/HelpArticle";
-import { WorkOrder } from "@/server/models/WorkOrder";
+import { HelpArticle } from "@/db/models/HelpArticle";
+import { WorkOrder } from "@/db/models/WorkOrder";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const BodySchema = z.object({

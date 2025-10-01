@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentPage } from '@/lib/paytabs';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { Invoice } from '@/server/models/Invoice';
+import { Invoice } from '@/db/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from 'zod';
 

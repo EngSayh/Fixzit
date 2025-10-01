@@ -5,11 +5,11 @@
 */
 
 import { db } from '@/lib/mongo';
-import { Property } from '@/server/models/Property';
-import { WorkOrder } from '@/server/models/WorkOrder';
+import { Property } from '@/db/models/Property';
+import { WorkOrder } from '@/db/models/WorkOrder';
 import { computeDueAt, computeSlaMinutes } from '@/lib/sla';
-import { Invoice } from '@/server/models/Invoice';
-import { Asset } from '@/server/models/Asset';
+import { Invoice } from '@/db/models/Invoice';
+import { Asset } from '@/db/models/Asset';
 
 async function main() {
   const tenantId = 'demo-tenant';
