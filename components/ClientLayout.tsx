@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-// TopBar removed - using single layout pattern
+import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import dynamic from 'next/dynamic';
@@ -121,5 +121,4 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
 
