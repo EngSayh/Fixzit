@@ -11,7 +11,7 @@ if (!jwtSecret) {
   console.log('❌ JWT_SECRET not found');
 } else {
   results.jwtSecret = true;
-  console.log(`✅ JWT_SECRET configured (${jwtSecret.substring(0, 10)}...)`);
+  console.log('✅ JWT_SECRET configured (********)');
   if (jwtSecret.length >= 32) {
     results.jwtLength = true;
     console.log(`✅ JWT_SECRET length: ${jwtSecret.length} bytes (secure)`);
