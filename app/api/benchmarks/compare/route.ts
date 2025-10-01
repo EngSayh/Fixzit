@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Benchmark from '@/models/Benchmark';
+import Benchmark from '@/src/server/models/Benchmark';
 import { computeQuote } from '@/lib/pricing';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { z } from 'zod';
