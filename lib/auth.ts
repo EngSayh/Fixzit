@@ -33,10 +33,10 @@ interface UserDoc {
 let User: any;
 
 try {
-  const { User: UserModel } = require('@/server/models/User');
+  const { User: UserModel } = require('@/modules/users/schema');
   User = UserModel;
 } catch (error) {
-  const errorMessage = `CRITICAL: Failed to load User model from @/server/models/User - ${error instanceof Error ? error.message : String(error)}`;
+  const errorMessage = `CRITICAL: Failed to load User model from @/modules/users/schema - ${error instanceof Error ? error.message : String(error)}`;
   console.error(errorMessage);
   
   if (process.env.NODE_ENV === 'production') {
