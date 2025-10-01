@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { Menu, X } from 'lucide-react';
 
 interface ResponsiveLayoutProps {

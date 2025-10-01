@@ -12,7 +12,7 @@ import ResponsiveLayout from './ResponsiveLayout';
 const AutoIncidentReporter = dynamic(() => import('@/components/AutoIncidentReporter'), { ssr: false });
 import PreferenceBroadcast from './PreferenceBroadcast';
 // ResponsiveContext available if needed
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState('guest');

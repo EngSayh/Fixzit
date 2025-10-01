@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ThemeProvider } from '@/src/contexts/ThemeContext';
-import { TranslationProvider } from '@/src/contexts/TranslationContext';
-import { CurrencyProvider } from '@/src/contexts/CurrencyContext';
-import { ResponsiveProvider } from '@/src/contexts/ResponsiveContext';
-import { TopBarProvider } from '@/src/contexts/TopBarContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { TranslationProvider } from '@/contexts/TranslationContext';
+import { CurrencyProvider } from '@/contexts/CurrencyContext';
+import { ResponsiveProvider } from '@/contexts/ResponsiveContext';
+import { TopBarProvider } from '@/contexts/TopBarContext';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
 

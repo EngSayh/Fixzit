@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Footer from "@/components/Footer";
-import { useTranslation } from "@/src/contexts/TranslationContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 export default function LandingPage(){
   const { t } = useTranslation();

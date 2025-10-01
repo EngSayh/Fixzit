@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, ShoppingCart, Star } from 'lucide-react';
 import { useState } from 'react';
-import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { addProductToCart } from '@/lib/marketplace/cartClient';
 
 export interface MarketplaceProductCard {

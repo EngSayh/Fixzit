@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { CircleDollarSign, Search } from 'lucide-react';
-import { useCurrency, type CurrencyOption } from '@/src/contexts/CurrencyContext';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useCurrency, type CurrencyOption } from '@/contexts/CurrencyContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface CurrencySelectorProps {
   variant?: 'default' | 'compact';

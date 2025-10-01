@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Bell, Globe, Lock, User, Palette, Mail } from 'lucide-react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function SettingsPage() {
   const { t } = useTranslation();

@@ -29,7 +29,6 @@ console.log(`   - TODO/FIXME comments: ${todoComments}`);
 console.log(pc.yellow('\n2. Import Pattern Analysis:'));
 let legacySrcImports = 0;
 let modernLibImports = 0;
-let duplicateImports = 0;
 
 for (const f of files) {
   const code = fs.readFileSync(f, 'utf8');

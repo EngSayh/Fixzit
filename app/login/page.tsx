@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '../../src/components/ui/button';
-import { Input } from '../../src/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Globe,
   ChevronDown, User, Shield, Building2, Users,

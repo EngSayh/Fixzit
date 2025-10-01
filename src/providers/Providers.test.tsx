@@ -8,25 +8,25 @@ import Providers from './Providers';
 
 // Mock nested providers and ErrorBoundary to isolate Providers behavior.
 // We mock minimal render output to assert nesting and prop passing.
-jest.mock('@/src/contexts/ResponsiveContext', () => ({
+jest.mock('@/contexts/ResponsiveContext', () => ({
   ResponsiveProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-provider">{children}</div>
   ),
 }));
 
-jest.mock('@/src/contexts/TranslationContext', () => ({
+jest.mock('@/contexts/TranslationContext', () => ({
   TranslationProvider: ({ children, initialLocale }: { children: React.ReactNode; initialLocale?: string }) => (
     <div data-testid="translation-provider" data-locale={initialLocale || ''}>{children}</div>
   ),
 }));
 
-jest.mock('@/src/contexts/CurrencyContext', () => ({
+jest.mock('@/contexts/CurrencyContext', () => ({
   CurrencyProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="currency-provider">{children}</div>
   ),
 }));
 
-jest.mock('@/src/contexts/ThemeContext', () => ({
+jest.mock('@/contexts/ThemeContext', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="theme-provider">{children}</div>
   ),

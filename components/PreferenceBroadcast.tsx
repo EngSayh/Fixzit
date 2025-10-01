@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 /**
  * Broadcasts user locale/currency preferences to the page and mirrors them into DOM nodes.
