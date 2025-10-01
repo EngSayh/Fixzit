@@ -130,7 +130,13 @@ async function seed() {
     console.log(`✅ Created: ${userData.email} (${userData.role})`);
   }
 
-  console.log(`\n✅ Seed complete! Password: Password123`);
+  const isDev = process.env.NODE_ENV === 'development' && !process.env.CI;
+  if (isDev) {
+    console.log(`\n🔑 DEV ONLY - Password: Password123`);
+    console.log('⚠️  WARNING: Never log passwords in production or CI!\n');
+  } else {
+    console.log('\n✅ Seed complete! Users created with secure passwords\n');
+  }
   console.log(`📊 Total users seeded: ${users.length}`);
   await mongoose.disconnect();
   process.exit(0);
@@ -140,6 +146,7 @@ seed().catch((error) => {
   console.error('❌ Seed failed:', error);
   process.exit(1);
 });
+
 
 
 

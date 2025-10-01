@@ -14,7 +14,7 @@ if (!uri || !uri.includes('mongodb+srv')) {
   process.exit(1);
 }
 
-console.log('✓ Atlas URI detected:', uri.substring(0, 60) + '...\n');
+console.log('✓ Atlas URI detected and validated\n');
 
 async function testConnection() {
   let client;
@@ -61,3 +61,4 @@ async function testConnection() {
 }
 
 testConnection();
+
