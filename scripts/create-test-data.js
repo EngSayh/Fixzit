@@ -123,7 +123,7 @@ async function createTestData() {
 
     console.log('\n🎯 Test Credentials:');
     console.log('Email: admin@fixzit.com');
-    console.log('Password: admin123');
+    console.log('Password: [REDACTED - check .env.local]');
 
     mongoose.connection.close();
     process.exit(0);
@@ -134,3 +134,4 @@ async function createTestData() {
 }
 
 createTestData();
+

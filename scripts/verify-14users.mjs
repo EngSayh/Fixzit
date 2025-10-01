@@ -1,5 +1,8 @@
+import 'dotenv/config';
 import { MongoClient } from 'mongodb';
-const c = new MongoClient('mongodb+srv://fixzitadmin:FixzitAdmin2024@fixzit.vgfiiff.mongodb.net/fixzit');
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) { console.error('❌ MONGODB_URI not set'); process.exit(1); }
+const c = new MongoClient(MONGODB_URI);
 await c.connect();
 const db = c.db('fixzit');
 const count = await db.collection('users').countDocuments();
@@ -14,3 +17,4 @@ users.forEach((u, i) => {
 });
 await c.close();
 console.log(`\n✅ VERIFIED: ${count} users with correct 14-role structure\n`);
+
