@@ -33,10 +33,8 @@ async function testConnection() {
     
     console.log('⏳ Listing available databases...');
     const dbList = await adminDb.listDatabases();
-    console.log('✅ Available databases:');
-    dbList.databases.forEach(db => {
-      console.log(`   - ${db.name} (${(db.sizeOnDisk / 1024 / 1024).toFixed(2)} MB)`);
-    });
+    console.log(`✅ Number of available databases: ${dbList.databases.length}`);
+    // Database names not logged for security
     
     console.log('\n⏳ Checking "fixzit" database...');
     const fixzitDb = client.db('fixzit');

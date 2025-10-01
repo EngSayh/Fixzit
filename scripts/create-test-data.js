@@ -17,7 +17,7 @@ async function createTestData() {
     console.log('🚀 Creating test data...');
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASSWORD || 'SecureP@ss', 10);
     const admin = await User.findOneAndUpdate(
       { email: 'admin@fixzit.com' },
       {
@@ -134,4 +134,5 @@ async function createTestData() {
 }
 
 createTestData();
+
 
