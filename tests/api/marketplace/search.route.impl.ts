@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 
 // Mockable Mongoose-like models exposed via globals for tests
-// In real app they'd be imported from '@/server/models/...'
+// In real app they'd be imported from '@/db/models/...'
 type SynonymDoc = { synonyms?: string[] } | null;
 
 declare global {

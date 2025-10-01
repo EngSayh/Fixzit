@@ -41,7 +41,7 @@ const RFQMock = {
   countDocuments: jest.fn()
 };
 
-jest.mock('@/server/models/RFQ', () => ({
+jest.mock('@/db/models/RFQ', () => ({
   RFQ: RFQMock
 }));
 

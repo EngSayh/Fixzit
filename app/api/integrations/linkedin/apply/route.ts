@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongo';
-import { Job } from '@/server/models/Job';
-import { Candidate } from '@/server/models/Candidate';
-import { Application } from '@/server/models/Application';
+import { Job } from '@/db/models/Job';
+import { Candidate } from '@/db/models/Candidate';
+import { Application } from '@/db/models/Application';
 
 export async function POST(req: NextRequest) {
   try {

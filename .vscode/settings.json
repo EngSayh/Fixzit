@@ -125,5 +125,6 @@
     "eval": true,
     "Invoke-Expression": true,
     "iex": true
-  }
+  },
+  "codium.codeCompletion.enable": false
 }
