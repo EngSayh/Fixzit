@@ -21,14 +21,15 @@ Write-Host "Found $($secrets.Count) secrets" -ForegroundColor Green
 Write-Host "`nUploading to GitHub..." -ForegroundColor Yellow
 foreach ($key in $secrets.Keys) {
     $value = $secrets[$key]
-    $masked = if ($value.Length -gt 10) { $value.Substring(0, 10) + "..." } else { "***" }
+    # Removed masked logging for security
     try {
         $value | gh secret set $key
-        Write-Host "  ✅ $key = $masked" -ForegroundColor Green
+        Write-Host "  ✅ Set secret for '$key'" -ForegroundColor Green
     } catch {
         Write-Host "  ❌ Failed: $key" -ForegroundColor Red
     }
 }
 Write-Host "`n✅ Complete! View at: Settings → Secrets and variables → Actions" -ForegroundColor Green
 gh secret list
+
 
