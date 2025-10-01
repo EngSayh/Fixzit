@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Category from '@/models/marketplace/Category';
+import Category from '@/db/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
