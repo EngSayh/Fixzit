@@ -12,7 +12,7 @@ async function main() {
     const db = c.db('fixzit');
     console.log('🗑️  Dropping all users...');
     const result = await db.collection('users').deleteMany({});
-    console.log(✅ Deleted  users);
+    console.log(`✅ Deleted ${result.deletedCount} users`);
   } catch (error) {
     console.error('❌ Drop users failed:', error);
     process.exit(1);
