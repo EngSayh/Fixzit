@@ -1,8 +1,8 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 import {

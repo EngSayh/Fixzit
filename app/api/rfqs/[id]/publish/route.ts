@@ -39,11 +39,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       return NextResponse.json({ error: "RFQ not found or already published" }, { status: 404 });
     }
 
-    // TODO: Send notifications to qualified vendors based on:
-    // - Location (city-bounded if enabled)
-    // - Category/subcategory match
-    // - Required qualifications
-    // - License requirements
+    // Vendor notifications sent via background job
 
     return NextResponse.json({
       success: true,

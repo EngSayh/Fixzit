@@ -16,7 +16,7 @@ foreach ($file in $files) {
     $content = $content -replace '@/src/models/', '@/models/'
     
     if ($content -ne $originalContent) {
-        Set-Content -Path $file.FullName -Value $content -NoNewline
+        Set-Content -Path $file.FullName -Value $content
         $count++
         Write-Host "  ✓ Fixed: $($file.Name)" -ForegroundColor Green
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useUnsavedChanges, UnsavedChangesWarning, SaveConfirmation } from '@/hooks/useUnsavedChanges';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
