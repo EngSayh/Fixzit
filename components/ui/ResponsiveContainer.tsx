@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;

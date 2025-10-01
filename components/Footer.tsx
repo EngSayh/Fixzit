@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Home } from "lucide-react";
 import SupportPopup from "@/components/SupportPopup";
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 

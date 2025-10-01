@@ -1,11 +1,11 @@
 "use client";
 import useSWR from "swr";
 import { useState } from "react";
-import { Button } from "../../src/components/ui/button";
-import { Card, CardContent } from "../../src/components/ui/card";
-import { Input } from "../../src/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../src/components/ui/dialog";
-import { Separator } from "../../src/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id":"demo-tenant" }}).then(r=>r.json());
 

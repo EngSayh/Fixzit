@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Globe, Search } from 'lucide-react';
-import { useTranslation } from '@/src/contexts/TranslationContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { LANGUAGE_OPTIONS, type LanguageOption, type LanguageCode } from '@/data/language-options';
 
 interface LanguageSelectorProps {

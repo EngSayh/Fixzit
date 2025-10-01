@@ -1,7 +1,7 @@
 'use client';
 
-import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useResponsiveLayout } from '@/src/contexts/ResponsiveContext';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { ResponsiveContainer, ResponsiveText } from '@/components/ui/ResponsiveContainer';
 
 export default function RTLTestPage() {

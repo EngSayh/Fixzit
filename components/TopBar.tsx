@@ -9,8 +9,8 @@ import GlobalSearch from './topbar/GlobalSearch';
 import QuickActions from './topbar/QuickActions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslation } from '@/src/contexts/TranslationContext';
-import { useResponsive } from '@/src/contexts/ResponsiveContext';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {

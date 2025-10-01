@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from 'lucide-react';
 import clsx from 'clsx';
-import { useCurrency } from '@/src/contexts/CurrencyContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { addProductToCart } from '@/lib/marketplace/cartClient';
 
 interface PDPBuyBoxProps {
