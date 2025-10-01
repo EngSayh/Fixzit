@@ -220,7 +220,7 @@ describe('auth lib - authenticateUser', () => {
 
   it('fails when account is not active', async () => {
     mockIsMockDB = false;
-    jest.doMock('@/server/models/User', () => {
+    jest.doMock('@/modules/users/schema', () => {
       const inactive = Object.assign(makeUser({ status: 'SUSPENDED', email: 'inactive@x.com' }));
       return {
         __esModule: true,
@@ -268,7 +268,7 @@ describe('auth lib - getUserFromToken', () => {
     (global as any).mockIsMockDB = false;
     mockIsMockDB = false;
 
-    jest.doMock('@/server/models/User', () => {
+    jest.doMock('@/modules/users/schema', () => {
       return {
         __esModule: true,
         User: {
@@ -294,7 +294,7 @@ describe('auth lib - getUserFromToken', () => {
   it('returns null when user is not ACTIVE', async () => {
     mockIsMockDB = false;
 
-    jest.doMock('@/server/models/User', () => {
+    jest.doMock('@/modules/users/schema', () => {
       return {
         __esModule: true,
         User: {
@@ -325,7 +325,7 @@ describe('auth lib - getUserFromToken', () => {
   it('returns trimmed public user object for ACTIVE users', async () => {
     mockIsMockDB = false;
 
-    jest.doMock('@/server/models/User', () => {
+    jest.doMock('@/modules/users/schema', () => {
       return {
         __esModule: true,
         User: {
