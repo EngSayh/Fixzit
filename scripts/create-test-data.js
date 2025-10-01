@@ -17,7 +17,14 @@ async function createTestData() {
     console.log('🚀 Creating test data...');
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASSWORD || 'SecureP@ss', 10);
+    const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
+    if (!DEFAULT_PASSWORD) {
+      console.error('❌ DEFAULT_PASSWORD environment variable is required');
+      console.error('💡 Set it with: export DEFAULT_PASSWORD="your-secure-password"');
+      process.exit(1);
+    }
+
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
     const admin = await User.findOneAndUpdate(
       { email: 'admin@fixzit.com' },
       {
