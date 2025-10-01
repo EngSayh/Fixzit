@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import PriceTier from '@/models/PriceTier';
-import Module from '@/models/Module';
+import PriceTier from '@/src/server/models/PriceTier';
+import Module from '@/src/server/models/Module';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
 import { createSecureResponse } from '@/server/security/headers';
