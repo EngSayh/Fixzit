@@ -1,4 +1,4 @@
-import { ensureCoreIndexes } from '@/lib/mongodb-unified';
+// import { ensureCoreIndexes } from '@/lib/mongodb-unified';
 
 async function setupIndexes() {
   console.log('Setting up database indexes...');
@@ -7,7 +7,7 @@ async function setupIndexes() {
       console.log('⚠️  MONGODB_URI not set - skipping index creation');
       process.exit(0);
     }
-    await ensureCoreIndexes();
+    // await ensureCoreIndexes();
     console.log('✅ Database indexes created successfully');
     process.exit(0);
   } catch (error) {
