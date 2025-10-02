@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Category from '@/db/models/marketplace/Category';
+import Category from '@/server/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
@@ -41,5 +41,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to fetch categories' }, { status: 500 });
   }
 }
+
 
 

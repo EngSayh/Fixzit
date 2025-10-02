@@ -1,5 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import ServiceContract from '@/db/models/ServiceContract';
+import ServiceContract from '@/server/models/ServiceContract';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
@@ -67,5 +67,6 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+
 
 

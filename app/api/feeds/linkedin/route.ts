@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { Job } from '@/db/models/Job';
+import { Job } from '@/server/models/Job';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +34,7 @@ export async function GET() {
 
   return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 }
+
 
 
 

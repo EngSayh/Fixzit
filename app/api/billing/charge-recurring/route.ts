@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Subscription from '@/db/models/Subscription';
+import Subscription from '@/server/models/Subscription';
 import { createSecureResponse } from '@/server/security/headers';
-import SubscriptionInvoice from '@/db/models/SubscriptionInvoice';
-import PaymentMethod from '@/db/models/PaymentMethod';
+import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
+import PaymentMethod from '@/server/models/PaymentMethod';
 
 // POST with secret header from cron – for each sub due this day: charge recurring via token
 export async function POST(req: NextRequest) {
@@ -40,5 +40,6 @@ export async function POST(req: NextRequest) {
 
   return createSecureResponse({ ok: true, count: dueSubs.length });
 }
+
 
 
