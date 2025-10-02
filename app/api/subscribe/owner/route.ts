@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { createSubscriptionCheckout } from '@/services/checkout';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 export async function POST(req: NextRequest) {
-  await dbConnect();
-  const body = await req.json();
+  try {
+    // Authentication and authorization
+    const user = await getSessionUser(req);
+    
+    await dbConnect();
+    const body = await req.json();
+    
+    // Authorization: must be admin or subscribing for self
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user.role);
+    const isSelf = body.ownerUserId === user.id;
+    
+    if (!isAdmin && !isSelf) {
+      return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    }
 
   if (!body.ownerUserId) {
     return NextResponse.json({ error: 'OWNER_REQUIRED' }, { status: 400 });
@@ -24,19 +37,25 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await createSubscriptionCheckout({
-    subscriberType: 'OWNER',
-    ownerUserId: body.ownerUserId,
-    modules: body.modules,
-    seats,
-    billingCycle: body.billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY',
-    currency: body.currency ?? 'USD',
-    customer: body.customer,
-    priceBookId: body.priceBookId,
-    metadata: {
-      ownerGroup: body.ownerGroup,
-    },
-  });
+      subscriberType: 'OWNER',
+      ownerUserId: body.ownerUserId,
+      modules: body.modules,
+      seats,
+      billingCycle: body.billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY',
+      currency: body.currency ?? 'USD',
+      customer: body.customer,
+      priceBookId: body.priceBookId,
+      metadata: {
+        ownerGroup: body.ownerGroup,
+      },
+    });
 
   return NextResponse.json(result);
+  } catch (error: any) {
+    if (error.message === 'Unauthenticated') {
+      return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    }
+    throw error;
+  }
 }
 

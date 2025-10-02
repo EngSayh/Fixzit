@@ -4,7 +4,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { ResponsiveProvider } from '@/contexts/ResponsiveContext';
-import { TopBarProvider } from '@/src/contexts/TopBarContext';
+import { TopBarProvider } from '@/contexts/TopBarContext';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
 

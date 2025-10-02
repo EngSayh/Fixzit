@@ -136,10 +136,10 @@ async function seed() {
     console.log(`✅ Created: ${userData.email} (${userData.role})`);
   }
 
-  const isDev = process.env.NODE_ENV === 'development' && !process.env.CI;
+  const isDev = process.env.NODE_ENV === 'development' && !process.env.CI && process.env.LOCAL_DEV === '1';
   if (isDev) {
-    console.log(`\n🔑 DEV ONLY - Password: ${PASSWORD}`);
-    console.log('⚠️  WARNING: Never log passwords in production or CI!\n');
+    console.log(`\n🔑 LOCAL DEV ONLY (LOCAL_DEV=1) - Password: ${PASSWORD}`);
+    console.log('⚠️  WARNING: Never log passwords in production, CI, or shared environments!\n');
   } else {
     console.log('\n✅ Seed complete! Users created with secure passwords\n');
   }

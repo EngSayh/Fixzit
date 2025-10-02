@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { createSubscriptionCheckout } from '@/services/checkout';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 export async function POST(req: NextRequest) {
-  await dbConnect();
-  const body = await req.json();
+  try {
+    // Authentication and authorization
+    const user = await getSessionUser(req);
+    
+    // Only admins can create corporate subscriptions
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+      return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    }
+    
+    await dbConnect();
+    const body = await req.json();
+    
+    // Tenant isolation: ensure tenantId matches user's tenantId (unless SUPER_ADMIN)
+    if (body.tenantId && body.tenantId !== user.tenantId && user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'FORBIDDEN_TENANT_MISMATCH' }, { status: 403 });
+    }
 
   if (!body.tenantId) {
     return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
@@ -24,17 +39,23 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await createSubscriptionCheckout({
-    subscriberType: 'CORPORATE',
-    tenantId: body.tenantId,
-    modules: body.modules,
-    seats,
-    billingCycle: body.billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY',
-    currency: body.currency ?? 'USD',
-    customer: body.customer,
-    priceBookId: body.priceBookId,
-    metadata: body.metadata,
-  });
+      subscriberType: 'CORPORATE',
+      tenantId: body.tenantId,
+      modules: body.modules,
+      seats,
+      billingCycle: body.billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY',
+      currency: body.currency ?? 'USD',
+      customer: body.customer,
+      priceBookId: body.priceBookId,
+      metadata: body.metadata,
+    });
 
   return NextResponse.json(result);
+  } catch (error: any) {
+    if (error.message === 'Unauthenticated') {
+      return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    }
+    throw error;
+  }
 }
 
