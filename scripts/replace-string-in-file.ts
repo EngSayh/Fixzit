@@ -19,9 +19,7 @@
  *   Literal whole-word match with backup and dry-run
  *   npx tsx scripts/replace-string-in-file.ts --path README.md --search "Fixzit" --replace "FixZit" --word-match --backup --dry-run
  */
-import fg from "fast-glob";
-import fs from "fs";
-import path from "path";
+import fg from "fast-glob";`nimport fs from "fs";`nimport path from "path";`nimport safeRegex from "safe-regex2";
 
 interface Options {
   paths: string[];
@@ -30,12 +28,7 @@ interface Options {
   regex: boolean;
   flags?: string;
   wordMatch: boolean;
-  encoding: BufferEncoding;
-  backup: boolean;
-  dryRun: boolean;
-  searchFile?: string;
-  replaceFile?: string;
-}
+  encoding: BufferEncoding;`n  backup: boolean;`n  dryRun: boolean;`n  searchFile?: string;`n  replaceFile?: string;`n  safeRegex: boolean;`n  includeDot: boolean;`n}
 
 interface FileResult {
   file: string;
@@ -53,10 +46,7 @@ function parseArgs(argv: string[]): Options {
     regex: false,
     flags: undefined,
     wordMatch: false,
-    encoding: "utf8",
-    backup: false,
-    dryRun: false,
-  };
+    encoding: "utf8",`n    backup: false,`n    dryRun: false,`n    safeRegex: true,`n    includeDot: false,`n  };
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -87,11 +77,7 @@ function parseArgs(argv: string[]): Options {
       case "--backup":
         opts.backup = true;
         break;
-      case "--dry-run":
-      case "--dryRun":
-        opts.dryRun = true;
-        break;
-      default:
+      case "--dry-run":`n      case "--dryRun":`n        opts.dryRun = true;`n        break;`n      case "--safe-regex":`n      case "--safeRegex":`n        opts.safeRegex = true;`n        break;`n      case "--no-safe-regex":`n      case "--noSafeRegex":`n        opts.safeRegex = false;`n        break;`n      case "--include-dot":`n      case "--includeDot":`n        opts.includeDot = true;`n        break;`n      default:
         if (arg.startsWith("--")) {
           // ignore unknown flags to be forward-compatible
         } else {
@@ -147,11 +133,7 @@ function normalizeReplacementString(str: string): string {
   return normalized;
 }
 
-function buildPattern(opts: Options): RegExp {
-  if (opts.regex) {
-    // Normalize the pattern to handle various shell escaping scenarios
-    const pattern = normalizeRegexPattern(opts.search);
-    try {
+function buildPattern(opts: Options): RegExp {`n  if (opts.regex) {`n    // Normalize the pattern to handle various shell escaping scenarios`n    const pattern = normalizeRegexPattern(opts.search);`n    `n    // ReDoS protection`n    if (opts.safeRegex && !safeRegex(pattern)) {`n      throw new Error(`n        `Potentially unsafe regex pattern detected (ReDoS risk): ${pattern}. ` +`n        `Use --no-safe-regex to bypass this check (not recommended).``n      );`n    }`n    `n    try {
       return new RegExp(pattern, opts.flags);
     } catch (err: any) {
       throw new Error(`Invalid regex pattern: ${pattern}. Original: ${opts.search}. Error: ${err.message}`);
@@ -167,10 +149,7 @@ function ensureDir(p: string) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
 }
 
-function createBackup(filePath: string): string {
-  const backupPath = `${filePath}.bak`;
-  ensureDir(backupPath);
-  fs.copyFileSync(filePath, backupPath);
+function createBackup(filePath: string): string {`n  const backupPath = `${filePath}.bak`;`n  ensureDir(backupPath);`n  // Use COPYFILE_EXCL to prevent overwriting existing backups`n  fs.copyFileSync(filePath, backupPath, fs.constants.COPYFILE_EXCL);
   return backupPath;
 }
 
@@ -191,7 +170,7 @@ async function run() {
 
   const files = new Set<string>();
   for (const p of opts.paths) {
-    const matches = await fg(p, { dot: true, onlyFiles: true, unique: true });
+    const matches = await fg(p, {`n      dot: opts.includeDot,`n      onlyFiles: true,`n      unique: true,`n      ignore: [`n        "**/node_modules/**",`n        "**/.git/**",`n        "**/.env*",`n        "**/dist/**",`n        "**/build/**",`n        "**/*.min.js",`n        "**/*.min.css",`n      ],`n    });
     for (const m of matches) files.add(m);
   }
 
@@ -232,11 +211,8 @@ async function run() {
     }
   }
 
-  const summary = {
-    success: true,
-    message: opts.dryRun
-      ? `Dry-run complete. ${totalReplacements} replacement(s) would be made across ${files.size} file(s).`
-      : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`,
+  // Check for any errors`n  const hasErrors = results.some(r => !r.matched || r.skipped);`n  `n  const summary = {`n    success: !hasErrors && totalReplacements > 0,`n    message: opts.dryRun
+      ? `Dry-run complete. ${totalReplacements} replacement(s) would be made across ${files.size} file(s).``n      : hasErrors`n      ? `Completed with errors. ${totalReplacements} replacement(s) made, but some files failed.``n      : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`,
     totalFiles: files.size,
     totalReplacements,
     dryRun: opts.dryRun,

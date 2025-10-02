@@ -43,8 +43,7 @@ async function testConnection() {
     if (collections.length === 0) {
       console.log('⚠️  "fixzit" database exists but has no collections yet');
     } else {
-      console.log('✅ "fixzit" database collections:');
-      collections.forEach(col => console.log(`   - ${col.name}`));
+      console.log(`✅ "fixzit" database contains ${collections.length} collection(s).`);
     }
     
     console.log('\n✅✅✅ PHASE 1.1 COMPLETE: MONGODB ATLAS CONNECTION VERIFIED ✅✅✅\n');

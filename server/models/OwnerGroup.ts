@@ -14,6 +14,13 @@ const OwnerGroupSchema = new Schema(
       type: Types.ObjectId, 
       ref: 'Property' 
     }],
+    // Tenant isolation - primary organization
+    orgId: { 
+      type: Types.ObjectId, 
+      ref: 'Organization',
+      required: true,
+      index: true 
+    },
   },
   { timestamps: true }
 );
