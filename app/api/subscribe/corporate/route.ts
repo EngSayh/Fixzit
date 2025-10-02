@@ -11,7 +11,11 @@ export async function POST(req: NextRequest) {
     // Only admins can create corporate subscriptions
     if (!['super_admin', 'corporate_admin'].includes(user.role)) {
       return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
-    }// Tenant isolation: ensure tenantId matches user's tenantId (unless SUPER_ADMIN)
+    }
+    
+    await dbConnect();
+    const body = await req.json();
+// Tenant isolation: ensure tenantId matches user's tenantId (unless SUPER_ADMIN)
     if (body.tenantId && body.tenantId !== user.tenantId && user.role !== 'super_admin') {
       return NextResponse.json({ error: 'FORBIDDEN_TENANT_MISMATCH' }, { status: 403 });
     }
@@ -53,5 +57,6 @@ export async function POST(req: NextRequest) {
     throw error;
   }
 }
+
 
 
