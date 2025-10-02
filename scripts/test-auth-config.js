@@ -32,7 +32,7 @@ try {
   console.log('✅ Auth module loaded');
   
   console.log('\n[4/4] Testing JWT operations...');
-  const token = generateToken({ id: '123', email: 'test@fixzit.com', role: 'Super Admin', orgId: '456' });
+  const token = generateToken({ id: '123', email: 'test@fixzit.com', role: 'super_admin', orgId: '456' });
   console.log('✅ Token generation successful');
   const decoded = verifyToken(token);
   if (decoded) console.log('✅ Token verification successful');
