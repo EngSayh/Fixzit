@@ -5,7 +5,7 @@ const KnowledgeSchema = new Schema({
   roles: { type: [String], index: true, default: [] },
   locale: { type: String, index: true, default: "en" },
   title: { type: String, required: true },
-  slug: { type: String, required: true, unique: true },
+  slug: { type: String, required: true },
   tags: { type: [String], default: [] },
   source: { type: String },
   content: { type: String, required: true },
