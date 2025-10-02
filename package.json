@@ -40,7 +40,9 @@
     "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js",
     "replace:in-file": "tsx scripts/replace-string-in-file.ts",
     "verify:imports": "node analyze-imports.js",
+    "verify:imports:py": "python3 verify-imports.py",
     "install:missing": "pwsh install-missing-packages.ps1",
+    "install:missing:py": "python3 install-missing-packages.py",
     "test:tool": "bash verify-final.sh"
   },
   "dependencies": {
