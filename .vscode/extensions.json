@@ -1,13 +1,10 @@
 {
     "recommendations": [
-        "ms-vscode.remote-explorer",
         "ms-vscode.powershell",
         "github.codespaces",
-        "ms-vscode.remote-server",
         "ms-dotnettools.csdevkit",
         "github.copilot",
         "github.vscode-github-actions",
-        "christian-kohler.npm-intellisense",
-        "codium.codium"
+        "christian-kohler.npm-intellisense"
     ]
 }

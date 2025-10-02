@@ -9,14 +9,14 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req);
     
     // Only admins can create corporate subscriptions
-    if (!['super_admin', 'corporate_admin'].includes(user.role)) {
+    if (!['SUPER_ADMIN', 'CORPORATE_ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
     }
     
     await dbConnect();
     const body = await req.json();
 // Tenant isolation: ensure tenantId matches user's tenantId (unless SUPER_ADMIN)
-    if (body.tenantId && body.tenantId !== user.tenantId && user.role !== 'super_admin') {
+    if (body.tenantId && body.tenantId !== user.tenantId && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'FORBIDDEN_TENANT_MISMATCH' }, { status: 403 });
     }
 

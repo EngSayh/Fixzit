@@ -83,6 +83,8 @@ describe('auth lib - JWT generation and verification', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.JWT_SECRET;
+    // @ts-expect-error - Mocking NODE_ENV for test
+    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     mockIsMockDB = true; // keep mock DB for model stubbing in module
   });
@@ -125,6 +127,8 @@ describe('auth lib - JWT generation and verification', () => {
 
   it('uses ephemeral secret when JWT_SECRET is unset (non-production) and warns once on module init', async () => {
     delete process.env.JWT_SECRET;
+    // @ts-expect-error - Mocking NODE_ENV for test
+    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'development';
     const beforeWarns = consoleWarnSpy.mock.calls.length;
     await loadAuthModule();
@@ -137,6 +141,8 @@ describe('auth lib - JWT generation and verification', () => {
 
   it('throws on module init if in production without JWT_SECRET', async () => {
     delete process.env.JWT_SECRET;
+    // @ts-expect-error - Mocking NODE_ENV for test
+    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'production';
     await expect(loadAuthModule()).rejects.toThrow(
       'JWT_SECRET environment variable must be configured in production environments.'
@@ -144,6 +150,8 @@ describe('auth lib - JWT generation and verification', () => {
   });
 
   it('uses provided JWT_SECRET when set', async () => {
+    // @ts-expect-error - Mocking NODE_ENV for test
+    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     process.env.JWT_SECRET = 'fixed-secret';
     await loadAuthModule();
@@ -165,6 +173,8 @@ describe('auth lib - authenticateUser', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Ensure stable env and mock DB to use inline mock User model path
+    // @ts-expect-error - Mocking NODE_ENV for test
+    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     delete process.env.JWT_SECRET;
     mockIsMockDB = true;
@@ -248,6 +258,8 @@ describe('auth lib - authenticateUser', () => {
 describe('auth lib - getUserFromToken', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // @ts-expect-error - Mocking NODE_ENV for test
+    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     delete process.env.JWT_SECRET;
   });
