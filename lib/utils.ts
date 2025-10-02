@@ -1,3 +1,10 @@
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 export function generateSlug(input: string): string {
   const src = (input || "");
   const leftTrimmed = src.replace(/^\s+/, "");
