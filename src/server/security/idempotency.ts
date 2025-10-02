@@ -52,3 +52,4 @@ function stableStringify(value: unknown): string {
   const keys = Object.keys(obj).sort();
   return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(',')}}`;
 }
+

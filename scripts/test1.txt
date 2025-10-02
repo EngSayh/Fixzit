@@ -1,0 +1,5 @@
+Simple: hello world
+Medium: getData() returns value
+Complex: function foo(123, "test") { return bar(456); }
+Email: user@example.com
+Version: 1.2.3

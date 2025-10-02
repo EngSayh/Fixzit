@@ -7,19 +7,13 @@
  * - Supports glob patterns for --path (repeatable)
  * - Optional word boundary matching for literal search
  * - Optional backup creation and dry-run mode
- * - Reports per-file and total replacements
- *
- * Usage examples:
- *   Literal search (global) across a glob
- *   npx tsx scripts/replace-string-in-file.ts --path "src/star-star/star.ts" --search "old()" --replace "new()"
- *
- *   Regex search with flags
- *   npx tsx scripts/replace-string-in-file.ts --path "src/star-star/star.ts" --regex --flags "gi" --search "foo\\(\\d+\\)" --replace "bar($1)"
- *
- *   Literal whole-word match with backup and dry-run
- *   npx tsx scripts/replace-string-in-file.ts --path README.md --search "Fixzit" --replace "FixZit" --word-match --backup --dry-run
+ * - Reports per-file and total replacements, success=false if nothing changed
+ * - Optional auto-unescape for regex patterns to mitigate shell escaping
  */
-import fg from "fast-glob";`nimport fs from "fs";`nimport path from "path";`nimport safeRegex from "safe-regex2";
+
+import fg from "fast-glob";
+import fs from "fs";
+import path from "path";
 
 interface Options {
   paths: string[];
@@ -28,14 +22,19 @@ interface Options {
   regex: boolean;
   flags?: string;
   wordMatch: boolean;
-  encoding: BufferEncoding;`n  backup: boolean;`n  dryRun: boolean;`n  searchFile?: string;`n  replaceFile?: string;`n  safeRegex: boolean;`n  includeDot: boolean;`n}
+  encoding: BufferEncoding;
+  backup: boolean;
+  dryRun: boolean;
+  includeDot: boolean;
+  autoUnescape: boolean; // auto-unescape double-escaped regex sequences
+}
 
 interface FileResult {
   file: string;
-  matched: boolean;
-  replaced: number;
-  skipped?: string;
-  backupPath?: string;
+  matched: boolean; // pattern compiled and file processed
+  replaced: number; // number of replacements in this file
+  skipped?: string; // reason if skipped
+  backupPath?: string; // path to backup if created
 }
 
 function parseArgs(argv: string[]): Options {
@@ -46,7 +45,12 @@ function parseArgs(argv: string[]): Options {
     regex: false,
     flags: undefined,
     wordMatch: false,
-    encoding: "utf8",`n    backup: false,`n    dryRun: false,`n    safeRegex: true,`n    includeDot: false,`n  };
+    encoding: "utf8",
+    backup: false,
+    dryRun: false,
+    includeDot: false,
+    autoUnescape: true,
+  };
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -77,7 +81,19 @@ function parseArgs(argv: string[]): Options {
       case "--backup":
         opts.backup = true;
         break;
-      case "--dry-run":`n      case "--dryRun":`n        opts.dryRun = true;`n        break;`n      case "--safe-regex":`n      case "--safeRegex":`n        opts.safeRegex = true;`n        break;`n      case "--no-safe-regex":`n      case "--noSafeRegex":`n        opts.safeRegex = false;`n        break;`n      case "--include-dot":`n      case "--includeDot":`n        opts.includeDot = true;`n        break;`n      default:
+      case "--dry-run":
+      case "--dryRun":
+        opts.dryRun = true;
+        break;
+      case "--include-dot":
+      case "--includeDot":
+        opts.includeDot = true;
+        break;
+      case "--no-auto-unescape":
+      case "--noAutoUnescape":
+        opts.autoUnescape = false;
+        break;
+      default:
         if (arg.startsWith("--")) {
           // ignore unknown flags to be forward-compatible
         } else {
@@ -105,38 +121,20 @@ function escapeRegExp(literal: string) {
   return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function normalizeRegexPattern(str: string): string {
-  // Intelligently handle shell escaping for regex patterns
-  // The goal: make it work regardless of how the user escapes it
-  
-  // If the pattern has double backslashes (shell escaped), convert to single
-  // \\d -> \d, \\( -> \(, etc.
-  let normalized = str.replace(/\\\\([dDwWsSnrtfvbB0])/g, '\\$1');  // Character classes
-  normalized = normalized.replace(/\\\\([()[\]{}.*+?^$|\\])/g, '\\$1');  // Special chars
-  
-  // Handle cases where user might have typed literal backslash-backslash
-  // If we see \\\\ (4 backslashes), it should become \\ (2 backslashes)
-  normalized = normalized.replace(/\\\\\\\\/g, '\\\\');
-  
-  return normalized;
+function autoUnescapeRegex(str: string): string {
+  // Convert common double-escaped sequences to single escaped.
+  // Example: "foo\\(\\d+\\)" -> "foo\(\d+\)"
+  // We only touch sequences starting with \\ followed by typical regex escape letters/symbols.
+  return str.replace(/\\\\([dDwWsSnrtfvbB0(){}[\].+*?^$|\\])/g, "\\$1");
 }
 
-function normalizeReplacementString(str: string): string {
-  // Handle replacement string escaping
-  // The replacement string should preserve $1, $2, etc. for capture groups
-  // Only unescape if the user double-escaped it
-  
-  // If we see \\$1 (escaped dollar), convert to $1
-  // But $1 should stay as $1 (it's already correct for capture groups)
-  let normalized = str.replace(/\\\\\\\\\$/g, '$');  // \\\\\$ -> $
-  
-  return normalized;
-}
-
-function buildPattern(opts: Options): RegExp {`n  if (opts.regex) {`n    // Normalize the pattern to handle various shell escaping scenarios`n    const pattern = normalizeRegexPattern(opts.search);`n    `n    // ReDoS protection`n    if (opts.safeRegex && !safeRegex(pattern)) {`n      throw new Error(`n        `Potentially unsafe regex pattern detected (ReDoS risk): ${pattern}. ` +`n        `Use --no-safe-regex to bypass this check (not recommended).``n      );`n    }`n    `n    try {
-      return new RegExp(pattern, opts.flags);
+function buildPattern(opts: Options): RegExp {
+  if (opts.regex) {
+    const source = opts.autoUnescape ? autoUnescapeRegex(opts.search) : opts.search;
+    try {
+      return new RegExp(source, opts.flags);
     } catch (err: any) {
-      throw new Error(`Invalid regex pattern: ${pattern}. Original: ${opts.search}. Error: ${err.message}`);
+      throw new Error(`Invalid regex pattern: ${source}. Original: ${opts.search}. Error: ${err.message}`);
     }
   }
   const base = escapeRegExp(opts.search);
@@ -145,11 +143,17 @@ function buildPattern(opts: Options): RegExp {`n  if (opts.regex) {`n    // Norm
   return new RegExp(src, flags);
 }
 
-function ensureDir(p: string) {
-  fs.mkdirSync(path.dirname(p), { recursive: true });
+function ensureParentDir(filePath: string) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
 }
 
-function createBackup(filePath: string): string {`n  const backupPath = `${filePath}.bak`;`n  ensureDir(backupPath);`n  // Use COPYFILE_EXCL to prevent overwriting existing backups`n  fs.copyFileSync(filePath, backupPath, fs.constants.COPYFILE_EXCL);
+function createBackup(filePath: string): string {
+  const backupPath = `${filePath}.bak`;
+  ensureParentDir(backupPath);
+  // Do not overwrite an existing backup
+  if (!fs.existsSync(backupPath)) {
+    fs.copyFileSync(filePath, backupPath);
+  }
   return backupPath;
 }
 
@@ -164,13 +168,21 @@ function replaceInContent(content: string, pattern: RegExp, replacement: string)
 async function run() {
   const opts = parseArgs(process.argv);
   const pattern = buildPattern(opts);
-  
-  // Normalize replacement string if using regex mode
-  const replacement = opts.regex ? normalizeReplacementString(opts.replace) : opts.replace;
 
   const files = new Set<string>();
   for (const p of opts.paths) {
-    const matches = await fg(p, {`n      dot: opts.includeDot,`n      onlyFiles: true,`n      unique: true,`n      ignore: [`n        "**/node_modules/**",`n        "**/.git/**",`n        "**/.env*",`n        "**/dist/**",`n        "**/build/**",`n        "**/*.min.js",`n        "**/*.min.css",`n      ],`n    });
+    const matches = await fg(p, {
+      dot: opts.includeDot,
+      onlyFiles: true,
+      unique: true,
+      ignore: [
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/.next/**",
+        "**/dist/**",
+        "**/build/**",
+      ],
+    });
     for (const m of matches) files.add(m);
   }
 
@@ -184,11 +196,12 @@ async function run() {
 
   const results: FileResult[] = [];
   let totalReplacements = 0;
+  let fileErrors = 0;
 
   for (const file of files) {
     try {
       const original = fs.readFileSync(file, { encoding: opts.encoding });
-      const { result, count } = replaceInContent(original, pattern, replacement);
+      const { result, count } = replaceInContent(original, pattern, opts.replace);
 
       if (count === 0) {
         results.push({ file, matched: true, replaced: 0, skipped: "no matches" });
@@ -207,22 +220,34 @@ async function run() {
       totalReplacements += count;
       results.push({ file, matched: true, replaced: count, ...(backupPath ? { backupPath } : {}) });
     } catch (err: any) {
+      fileErrors++;
       results.push({ file, matched: false, replaced: 0, skipped: err?.message || String(err) });
     }
   }
 
-  // Check for any errors`n  const hasErrors = results.some(r => !r.matched || r.skipped);`n  `n  const summary = {`n    success: !hasErrors && totalReplacements > 0,`n    message: opts.dryRun
-      ? `Dry-run complete. ${totalReplacements} replacement(s) would be made across ${files.size} file(s).``n      : hasErrors`n      ? `Completed with errors. ${totalReplacements} replacement(s) made, but some files failed.``n      : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`,
+  const success = totalReplacements > 0 && fileErrors === 0;
+  const message = opts.dryRun
+    ? `Dry-run complete. ${totalReplacements} replacement(s) would be made across ${files.size} file(s).`
+    : totalReplacements === 0
+    ? `No matches found. 0 replacements across ${files.size} file(s).`
+    : fileErrors > 0
+    ? `Completed with ${totalReplacements} replacement(s), but ${fileErrors} file(s) had errors.`
+    : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`;
+
+  const summary = {
+    success,
+    message,
     totalFiles: files.size,
     totalReplacements,
     dryRun: opts.dryRun,
     backup: opts.backup,
     regex: opts.regex,
     wordMatch: opts.wordMatch,
+    includeDot: opts.includeDot,
+    autoUnescape: opts.autoUnescape,
     details: results,
   };
 
-  // Print as JSON for machine readability
   console.log(JSON.stringify(summary, null, 2));
 }
 

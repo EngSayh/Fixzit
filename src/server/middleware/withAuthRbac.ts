@@ -55,3 +55,4 @@ export function requireAbility(ability: Parameters<typeof can>[1]) {
     }
   };
 }
+

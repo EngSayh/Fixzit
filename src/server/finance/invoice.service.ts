@@ -1,6 +1,6 @@
 import { InvoiceCreate, InvoicePost } from "./invoice.schema";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Invoice } from "@/db/models/Invoice";
+import { Invoice } from "@/server/models/Invoice";
 
 // Mock implementation retained for optional mock mode
 class MockInvoiceService {
@@ -190,4 +190,5 @@ function computeTotals(lines: Array<{ qty: number; unitPrice: number; vatRate: n
 function round(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
+
 

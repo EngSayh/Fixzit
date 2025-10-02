@@ -14,3 +14,4 @@ export function rateLimit(key: string, limit = 60, windowMs = 60_000) {
   return { allowed: true, remaining: limit - entry.count };
 }
 
+

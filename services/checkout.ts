@@ -1,5 +1,5 @@
-import PriceBook from '../db/models/PriceBook';
-import Subscription from '../db/models/Subscription';
+import PriceBook from '@/server/models/PriceBook';
+import Subscription from '@/server/models/Subscription';
 import { quotePrice, BillingCycle, QuoteResult } from './pricing';
 
 type QuoteSuccess = Extract<QuoteResult, { requiresQuote: false }>;
@@ -149,3 +149,4 @@ export async function createSubscriptionCheckout(
     quote,
   };
 }
+
