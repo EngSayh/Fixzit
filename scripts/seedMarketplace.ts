@@ -3,11 +3,11 @@ import path from 'path';
 import { access } from 'fs/promises';
 import { Types } from 'mongoose';
 import { dbConnect } from '@/db/mongoose';
-import Category from '@/models/marketplace/Category';
-import AttributeSet from '@/models/marketplace/AttributeSet';
-import Product from '@/models/marketplace/Product';
-import Order from '@/models/marketplace/Order';
-import RFQ from '@/models/marketplace/RFQ';
+import Category from '@/server/models/marketplace/Category';
+import AttributeSet from '@/server/models/marketplace/AttributeSet';
+import Product from '@/server/models/marketplace/Product';
+import Order from '@/server/models/marketplace/Order';
+import RFQ from '@/server/models/marketplace/RFQ';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
 async function ensureAssetExists(relativeUrl: string) {

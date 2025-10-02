@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
     const body = invoiceCreateSchema.parse(await req.json());
     
-    const data = await svc.create({ ...body, orgId: user.orgId }, user.id, req.ip ?? "");
+    const data = await svc.create({ ...body, orgId: user.orgId }, user.id, req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown");
     return NextResponse.json({ data }, { status:201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
