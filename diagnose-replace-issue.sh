@@ -1,4 +1,4 @@
-the dual #!/bin/bash
+#!/bin/bash
 # Diagnostic script for replace-string-in-file issues
 # Run this on the system where the tool is failing
 
