@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     const app = await Application.findById(applicationId).lean();
     if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
 
-    // Verify org authorization (only admin can access cross-org)
-    if (app.orgId !== user.orgId && user.role !== 'ADMIN' as any) {
+    // Verify org authorization (only super_admin can access cross-org)
+    if (app.orgId !== user.orgId && user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
