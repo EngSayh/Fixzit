@@ -39,6 +39,7 @@
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js",
     "replace:in-file": "tsx scripts/replace-string-in-file.ts",
+    "replace:in-file:verbose": "tsx scripts/replace-string-in-file-verbose.ts",
     "verify:imports": "node analyze-imports.js",
     "verify:imports:py": "python3 verify-imports.py",
     "install:missing": "pwsh install-missing-packages.ps1",
