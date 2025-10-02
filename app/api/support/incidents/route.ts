@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   let sessionUser: { id: string; role: string; orgId: string } | null = null;
   try {
     const user = await getSessionUser(req);
-    sessionUser = { id: user.id, role: user.role, orgId: (user as any)?.orgId } as any;
+    sessionUser = { id: user.id, role: user.role, orgId: user.orgId } as any;
   } catch {
     sessionUser = null;
   }

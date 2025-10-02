@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   let tenantId: string;
   try {
     const user = await getSessionUser(req);
-    tenantId = (user as any)?.orgId;
+    tenantId = user.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

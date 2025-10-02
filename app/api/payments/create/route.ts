@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     const invoice = await (Invoice as any).findOne({ 
       _id: invoiceId, 
-      tenantId: (user as any)?.orgId 
+      tenantId: user.orgId 
     });
 
     if (!invoice) {
