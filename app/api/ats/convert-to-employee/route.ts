@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     // Check user permissions (admin or HR role can convert applications)
     // Check if user has permission to convert applications
-    const canConvertApplications = ['corporate_admin', 'hr_manager'].includes(user.role);
+    const canConvertApplications = ['CORPORATE_ADMIN', 'HR'].includes(user.role);
     
     if (!canConvertApplications) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
 
     // Verify org authorization (only super_admin can access cross-org)
-    if (app.orgId !== user.orgId && user.role !== 'super_admin') {
+    if (app.orgId !== user.orgId && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
