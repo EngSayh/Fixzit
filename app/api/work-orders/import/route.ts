@@ -11,7 +11,7 @@ export async function POST(req:NextRequest){
   let created = 0;
   for (const r of rows ?? []){
     const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-    await (WorkOrder as any).create({ tenantId:(user as any)?.orgId, code, title:r.title, description:r.description, priority:r.priority||"MEDIUM", createdBy:user.id, status:"SUBMITTED", statusHistory:[{from:"DRAFT",to:"SUBMITTED",byUserId:user.id,at:new Date()}] });
+    await (WorkOrder as any).create({ tenantId:user.orgId, code, title:r.title, description:r.description, priority:r.priority||"MEDIUM", createdBy:user.id, status:"SUBMITTED", statusHistory:[{from:"DRAFT",to:"SUBMITTED",byUserId:user.id,at:new Date()}] });
     created++;
   }
   return NextResponse.json({ created });

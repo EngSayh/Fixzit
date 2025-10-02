@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   let orgId: string;
   try {
     const user = await getSessionUser(req);
-    orgId = (user as any)?.orgId;
+    orgId = user.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   let orgId: string;
   try {
     const user = await getSessionUser(req);
-    orgId = (user as any)?.orgId;
+    orgId = user.orgId;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

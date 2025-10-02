@@ -96,12 +96,18 @@ const createSLASchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
+  if (!user?.orgId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      { status: 401 }
+    );
+  }
     await connectToDatabase();
 
     const data = createSLASchema.parse(await req.json());
 
     const sla = await (SLA as any).create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -117,6 +123,12 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
+  if (!user?.orgId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      { status: 401 }
+    );
+  }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -127,7 +139,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (priority) match.priority = priority;

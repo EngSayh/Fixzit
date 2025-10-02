@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
     // Enforce tenant isolation; allow global articles with no orgId
     const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
-    if ((user as any)?.orgId) orClauses.unshift({ orgId: (user as any).orgId });
+    if (user.orgId) orClauses.unshift({ orgId: (user as any).orgId });
     const tenantScope = { $or: orClauses } as any;
     const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       const { embedText } = await import('@/ai/embeddings');
       const { performKbSearch } = await import('@/kb/search');
       const qVec = await embedText(question);
-      const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
+      const chunks = await performKbSearch({ tenantId: user.tenantId, query: qVec, q: question, lang, role, route, limit });
       docs = (chunks || []).map((c: any) => ({
         slug: c.slug || c.articleId || '',
         title: c.title || '',

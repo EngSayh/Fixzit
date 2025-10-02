@@ -62,7 +62,7 @@ export async function GET(req: NextRequest){
 
     // Enforce tenant isolation; allow global articles with no orgId
     const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
-    if ((user as any)?.orgId) orClauses.unshift({ orgId: (user as any).orgId });
+    if (user.orgId) orClauses.unshift({ orgId: (user as any).orgId });
     const tenantScope = { $or: orClauses } as any;
     const filter: any = { ...tenantScope };
     if (status && status !== 'ALL') filter.status = status;
