@@ -2,8 +2,15 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
+// Validate required environment variables
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI environment variable is required');
+  console.error('💡 Set it in your .env.local file');
+  process.exit(1);
+}
+
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzitsouq');
+mongoose.connect(process.env.MONGODB_URI);
 
 // Import models
 const User = require('./models/User');

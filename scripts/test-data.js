@@ -1,8 +1,21 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
+// Validate required environment variables
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI environment variable is required');
+  console.error('💡 Set it in your .env.local file');
+  process.exit(1);
+}
+
+const SEED_PASSWORD = process.env.SEED_PASSWORD || 'Password123';
+if (!process.env.SEED_PASSWORD) {
+  console.warn('⚠️  SEED_PASSWORD not set, using default (not for production!)');
+}
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/fixzitsouq', {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -14,8 +27,10 @@ const WorkOrder = require('./models/WorkOrder');
 
 async function createTestData() {
   try {
+    console.log('🚀 Creating test data...');
+
     // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash(SEED_PASSWORD, 10);
     const admin = await User.findOneAndUpdate(
       { email: 'admin@fixzit.co' },
       {
@@ -50,31 +65,32 @@ async function createTestData() {
       { workOrderNumber: 'WO-001' },
       {
         workOrderNumber: 'WO-001',
-        title: 'Fix AC Unit',
-        description: 'AC not cooling properly',
+        title: 'AC Maintenance',
+        description: 'Regular AC maintenance required',
         property: property._id,
         tenantId: admin._id,
         status: 'open',
-        priority: 'high',
-        category: 'maintenance'
+        priority: 'medium'
       },
       { upsert: true, new: true }
     );
     console.log('✅ Test work order created:', workOrder.workOrderNumber);
 
-    // Count totals
-    const userCount = await User.countDocuments();
-    const propertyCount = await Property.countDocuments();
-    const workOrderCount = await WorkOrder.countDocuments();
+    const isDev = process.env.NODE_ENV === 'development' && !process.env.CI;
+    console.log('\n✅ Test data created successfully!');
+    console.log('\nTest credentials:');
+    console.log('Email: admin@fixzit.co');
+    if (isDev) {
+      console.log(`Password: ${SEED_PASSWORD} (DEV ONLY)`);
+    } else {
+      console.log('Password: [REDACTED - check SEED_PASSWORD env var]');
+    }
 
-    console.log('\n📊 Database Status:');
-    console.log(`- Users: ${userCount}`);
-    console.log(`- Properties: ${propertyCount}`);
-    console.log(`- Work Orders: ${workOrderCount}`);
-
+    mongoose.connection.close();
     process.exit(0);
   } catch (error) {
-    console.error('Error creating test data:', error);
+    console.error('❌ Error creating test data:', error);
+    await mongoose.connection.close();
     process.exit(1);
   }
 }

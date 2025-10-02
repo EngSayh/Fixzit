@@ -1,8 +1,21 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
 
-// MongoDB URI from environment or default
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit';
+// Validate required environment variables
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI environment variable is required');
+  console.error('💡 Set it in your .env.local file');
+  process.exit(1);
+}
+
+const SEED_PASSWORD = process.env.SEED_PASSWORD || 'Password123';
+if (!process.env.SEED_PASSWORD) {
+  console.warn('⚠️  SEED_PASSWORD not set, using default (not for production!)');
+}
+
+// MongoDB URI from environment
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Define schemas
 const userSchema = new mongoose.Schema({
@@ -85,7 +98,7 @@ async function seedDatabase() {
 
     // Create users
     console.log('Creating users...');
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    const hashedPassword = await bcrypt.hash(SEED_PASSWORD, 10);
     
     const adminUser = await User.create({
       email: 'admin@fixzit.co',
@@ -291,10 +304,17 @@ async function seedDatabase() {
     await Product.create(products);
 
     console.log('✅ Database seeded successfully!');
+    
+    const isDev = process.env.NODE_ENV === 'development' && !process.env.CI;
     console.log('\nTest credentials:');
-    console.log('- Admin: admin@fixzit.co / password123');
-    console.log('- Vendor: vendor@fixzit.co / password123');
-    console.log('- Customer: customer@fixzit.co / password123');
+    console.log('- Admin: admin@fixzit.co');
+    console.log('- Vendor: vendor@fixzit.co');
+    console.log('- Customer: customer@fixzit.co');
+    if (isDev) {
+      console.log(`Password: ${SEED_PASSWORD} (DEV ONLY)`);
+    } else {
+      console.log('Password: [REDACTED - check SEED_PASSWORD env var]');
+    }
 
   } catch (error) {
     console.error('Error seeding database:', error);
