@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { APPS, AppKey, detectAppFromPath } from '@/src/config/topbar-modules';
+import { APPS, AppKey, detectAppFromPath } from '@/config/topbar-modules';
 
 interface TopBarState {
   app: AppKey;

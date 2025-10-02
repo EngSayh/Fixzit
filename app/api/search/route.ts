@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { APPS, AppKey } from '@/src/config/topbar-modules';
+import { APPS, AppKey } from '@/config/topbar-modules';
 
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {

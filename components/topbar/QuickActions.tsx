@@ -1,6 +1,6 @@
 'use client';
 
-import { useTopBar } from '@/src/contexts/TopBarContext';
+import { useTopBar } from '@/contexts/TopBarContext';
 import { useState } from 'react';
 import { Plus, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
