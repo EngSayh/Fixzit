@@ -9,12 +9,14 @@ export async function GET() {
   if (process.env.ATS_ENABLED !== 'true') {
     return NextResponse.json({ success: false, error: 'ATS feeds not available in this deployment' }, { status: 501 });
   }
-  await connectToDatabase();
-  const jobs = await Job.find({ status: 'published', visibility: 'public' })
-    .sort({ publishedAt: -1 })
-    .lean();
+  
+  try {
+    await connectToDatabase();
+    const jobs = await Job.find({ status: 'published', visibility: 'public' })
+      .sort({ publishedAt: -1 })
+      .lean();
 
-  const items = jobs.map((j: any) => `
+    const items = jobs.map((j: any) => `
     <job>
       <id>${j.slug}</id>
       <title><![CDATA[${j.title}]]></title>
@@ -32,7 +34,14 @@ export async function GET() {
     ${items}
   </jobs>`;
 
-  return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+    return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+  } catch (error) {
+    console.error('LinkedIn feed generation failed:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to generate job feed' },
+      { status: 500 }
+    );
+  }
 }
 
 

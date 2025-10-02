@@ -5,8 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function generateSlug(input: string): string {
-  const src = (input || "");
+export function generateSlug(input: string = ""): string {
+  if (input == null) return "";
+  const src = input || "";
   const leftTrimmed = src.replace(/^\s+/, "");
   const rightTrimmed = src.replace(/\s+$/, "");
   const hadLeadingHyphen = leftTrimmed.startsWith("-");
