@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
     const userId = user?.id || 'system';
-    const orgId = user.tenantId || user.orgId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    const orgId = user?.orgId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
