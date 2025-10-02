@@ -26,8 +26,23 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await getUserFromToken(token);
+
     if (!user) {
+
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+
+    }
+
+    if (!user?.orgId) {
+
+      return NextResponse.json(
+
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+
+        { status: 401 }
+
+      );
+
     }
 
     // Role-based access control - only finance roles can view invoices
@@ -38,7 +53,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || undefined;
     const status = searchParams.get("status") || undefined;
-    const data = await svc.list((user as any)?.orgId, q, status);
+    const data = await svc.list(user.orgId, q, status);
     return NextResponse.json({ data });
   } catch (error) {
     console.error('Invoice list failed:', error);
@@ -55,8 +70,23 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await getUserFromToken(token);
+
     if (!user) {
+
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+
+    }
+
+    if (!user?.orgId) {
+
+      return NextResponse.json(
+
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+
+        { status: 401 }
+
+      );
+
     }
 
     // Role-based access control - only finance roles can create invoices
@@ -64,13 +94,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions to create invoices' }, { status: 403 });
     }
 
-    const key = `inv:${(user as any)?.orgId}:${user.id}`;
+    const key = `inv:${user.orgId}:${user.id}`;
     const rl = rateLimit(key, 20, 60_000);
     if (!rl.allowed) return NextResponse.json({ error:"Rate limit exceeded" }, { status:429 });
 
     const body = invoiceCreateSchema.parse(await req.json());
     
-    const data = await svc.create({ ...body, orgId: (user as any)?.orgId }, user.id, req.ip ?? "");
+    const data = await svc.create({ ...body, orgId: user.orgId }, user.id, req.ip ?? "");
     return NextResponse.json({ data }, { status:201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -80,4 +110,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Failed to create invoice' }, { status: 400 });
   }
 }
+
 

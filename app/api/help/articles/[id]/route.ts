@@ -58,7 +58,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/kb/ingest')
       .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
-        orgId: (article as any)?.orgId ?? (user as any)?.orgId ?? null,
+        orgId: article?.orgId ?? user?.orgId ?? null,
         articleId: article.slug,
         lang: 'en',
         route: `/help/${article.slug}`,
