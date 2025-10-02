@@ -3,7 +3,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { HelpArticle } from "@/server/models/HelpArticle";
 import { WorkOrder } from "@/server/models/WorkOrder";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionUser, type SessionUser } from "@/server/middleware/withAuthRbac";
 
 const BodySchema = z.object({
   question: z.string().min(1),
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase(); // ensure DB/init (real or mock)
   } catch {}
 
-  let user: { id: string; email: string; orgId: string; tenantId: string; role: string; permissions?: string[] } | null = null;
+  let user: SessionUser | null = null;
   try {
     user = await getSessionUser(req);
   } catch {
