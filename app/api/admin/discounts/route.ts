@@ -1,5 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import DiscountRule from '@/db/models/DiscountRule';
+import DiscountRule from '@/server/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
@@ -85,5 +85,6 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
 
 
