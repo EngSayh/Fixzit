@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
     const { dbConnect } = await import('@/db/mongoose');
     await dbConnect();
-    const ProductMod = await import('@/models/marketplace/Product').catch(() => null);
+    const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
     const { dbConnect } = await import('@/db/mongoose');
     await dbConnect();
-    const ProductMod = await import('@/models/marketplace/Product').catch(() => null);
+    const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });

@@ -4,14 +4,14 @@ import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
 import { Job } from '@/server/models/Job';
 import { Employee } from '@/server/models/Employee';
-import { getUserFromToken } from '@/lib/auth';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const user = token ? await getUserFromToken(token) : null;
+    const user = await getSessionUser(req);
+    
+    
 
     // Verify user authentication
     if (!user) {
