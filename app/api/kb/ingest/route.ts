@@ -5,7 +5,7 @@ import { upsertArticleEmbeddings, deleteArticleEmbeddings } from '@/kb/ingest';
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user || !['SUPER_ADMIN','ADMIN'].includes((user as any).role)) {
+    if (!user || !['SUPER_ADMIN','ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const body = await req.json().catch(() => ({} as any));
@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing articleId or content' }, { status: 400 });
     }
     await upsertArticleEmbeddings({
-      orgId: user.tenantId || null,
-      tenantId: user.tenantId || null,
+      orgId: user.orgId || null,
+      tenantId: user.orgId || null,
       articleId,
       lang: typeof lang === 'string' ? lang : undefined,
       roleScopes: Array.isArray(roleScopes) ? roleScopes : undefined,
@@ -32,13 +32,13 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user || !['SUPER_ADMIN','ADMIN'].includes((user as any).role)) {
+    if (!user || !['SUPER_ADMIN','ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const url = new URL(req.url);
     const articleId = url.searchParams.get('articleId');
     if (!articleId) return NextResponse.json({ error: 'Missing articleId' }, { status: 400 });
-    await deleteArticleEmbeddings(articleId, user.tenantId || null);
+    await deleteArticleEmbeddings(articleId, user.orgId || null);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });

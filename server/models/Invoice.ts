@@ -7,7 +7,7 @@ const InvoiceSchema = new Schema({
   tenantId: { type: String, required: true, index: true },
 
   // Basic Information
-  number: { type: String, required: true, unique: true },
+  number: { type: String, required: true }, // Uniqueness enforced by compound index with tenantId
   type: { type: String, enum: InvoiceType, required: true, index: true },
   status: { type: String, enum: InvoiceStatus, default: "DRAFT", index: true },
 

@@ -100,7 +100,7 @@ export default async function ProductDetail(props: ProductPageProps) {
                       <ul className="mt-2 space-y-2 text-sm text-[#0F1111]">
                         {attachments.map((file: any) => (
                           <li key={file.url}>
-                            <a href={file.url} className="hover:underline" target="_blank">
+                            <a href={file.url} className="hover:underline" target="_blank" rel="noopener noreferrer">
                               {file.role === 'MSDS' ? 'Material Safety Data Sheet' : 'Certificate of Analysis'}
                             </a>
                           </li>

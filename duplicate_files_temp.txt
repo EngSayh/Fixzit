@@ -1,0 +1,492 @@
+_app.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/pages/_app.js
+/workspaces/Fixzit/node_modules/next/dist/pages/_app.js
+
+_document.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/pages/_document.js
+/workspaces/Fixzit/node_modules/next/dist/pages/_document.js
+
+_error.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/pages/_error.d.ts
+/workspaces/Fixzit/node_modules/next/dist/server/route-modules/pages/builtin/_error.d.ts
+
+_error.js (Count: 4)
+/workspaces/Fixzit/node_modules/next/dist/esm/pages/_error.js
+/workspaces/Fixzit/node_modules/next/dist/esm/server/route-modules/pages/builtin/_error.js
+/workspaces/Fixzit/node_modules/next/dist/pages/_error.js
+/workspaces/Fixzit/node_modules/next/dist/server/route-modules/pages/builtin/_error.js
+
+_set.js (Count: 2)
+/workspaces/Fixzit/node_modules/@swc/helpers/esm/_set.js
+/workspaces/Fixzit/node_modules/lodash/_Set.js
+
+_util.js (Count: 2)
+/workspaces/Fixzit/node_modules/lodash/fp/_util.js
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv-keywords/dist/definitions/_util.js
+
+2019.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/2019.d.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/2019.d.ts
+
+2019.js (Count: 3)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/2019.js
+/workspaces/Fixzit/node_modules/es-abstract/operations/2019.js
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/2019.js
+
+2019.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/lib/2019.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/lib/2019.ts
+
+2020.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/2020.d.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/2020.d.ts
+
+2020.js (Count: 3)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/2020.js
+/workspaces/Fixzit/node_modules/es-abstract/operations/2020.js
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/2020.js
+
+2020.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/lib/2020.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/lib/2020.ts
+
+a.js (Count: 3)
+/workspaces/Fixzit/node_modules/eslint-plugin-jsx-a11y/lib/util/implicitRoles/a.js
+/workspaces/Fixzit/node_modules/eslint-plugin-react/node_modules/resolve/test/resolver/browser_field/a.js
+/workspaces/Fixzit/node_modules/resolve/test/resolver/browser_field/a.js
+
+aaa.js (Count: 2)
+/workspaces/Fixzit/node_modules/eslint-plugin-react/node_modules/resolve/test/precedence/aaa.js
+/workspaces/Fixzit/node_modules/resolve/test/precedence/aaa.js
+
+abort-handler.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@smithy/types/dist-types/ts3.4/abort-handler.d.ts
+/workspaces/Fixzit/node_modules/@smithy/types/dist-types/abort-handler.d.ts
+
+abort-handler.js (Count: 2)
+/workspaces/Fixzit/node_modules/@smithy/types/dist-cjs/abort-handler.js
+/workspaces/Fixzit/node_modules/@smithy/types/dist-es/abort-handler.js
+
+abort.d.ts (Count: 4)
+/workspaces/Fixzit/node_modules/@aws-sdk/types/dist-types/ts3.4/abort.d.ts
+/workspaces/Fixzit/node_modules/@aws-sdk/types/dist-types/abort.d.ts
+/workspaces/Fixzit/node_modules/@smithy/types/dist-types/ts3.4/abort.d.ts
+/workspaces/Fixzit/node_modules/@smithy/types/dist-types/abort.d.ts
+
+abort.js (Count: 4)
+/workspaces/Fixzit/node_modules/@aws-sdk/types/dist-es/abort.js
+/workspaces/Fixzit/node_modules/@smithy/types/dist-cjs/abort.js
+/workspaces/Fixzit/node_modules/@smithy/types/dist-es/abort.js
+/workspaces/Fixzit/node_modules/asynckit/lib/abort.js
+
+AbortController.d.ts (Count: 3)
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-types/ts3.4/AbortController.d.ts
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-types/AbortController.d.ts
+/workspaces/Fixzit/node_modules/@types/node/web-globals/abortcontroller.d.ts
+
+AbortController.js (Count: 4)
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-cjs/AbortController.js
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-es/AbortController.js
+/workspaces/Fixzit/node_modules/caniuse-lite/data/features/abortcontroller.js
+/workspaces/Fixzit/node_modules/jsdom/lib/jsdom/living/generated/AbortController.js
+
+AbortMultipartUploadCommand.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@aws-sdk/client-s3/dist-types/commands/AbortMultipartUploadCommand.d.ts
+/workspaces/Fixzit/node_modules/@aws-sdk/client-s3/dist-types/ts3.4/commands/AbortMultipartUploadCommand.d.ts
+
+AbortSignal.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-types/ts3.4/AbortSignal.d.ts
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-types/AbortSignal.d.ts
+
+AbortSignal.js (Count: 3)
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-cjs/AbortSignal.js
+/workspaces/Fixzit/node_modules/@smithy/abort-controller/dist-es/AbortSignal.js
+/workspaces/Fixzit/node_modules/jsdom/lib/jsdom/living/generated/AbortSignal.js
+
+abs.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/math-intrinsics/abs.d.ts
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/math-intrinsics/abs.d.ts
+
+abs.js (Count: 14)
+/workspaces/Fixzit/node_modules/es-abstract/2015/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2016/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2017/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2018/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2019/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2020/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2021/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2022/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2023/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2024/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/2025/abs.js
+/workspaces/Fixzit/node_modules/es-abstract/5/abs.js
+/workspaces/Fixzit/node_modules/math-intrinsics/abs.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/math-intrinsics/abs.js
+
+absolute-filename-normalizer.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/normalizers/absolute-filename-normalizer.js
+/workspaces/Fixzit/node_modules/next/dist/server/normalizers/absolute-filename-normalizer.js
+
+absolute-path-to-page.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/shared/lib/page-path/absolute-path-to-page.js
+/workspaces/Fixzit/node_modules/next/dist/shared/lib/page-path/absolute-path-to-page.js
+
+abstract_cursor.js (Count: 4)
+/workspaces/Fixzit/node_modules/mongodb/lib/cursor/abstract_cursor.js
+/workspaces/Fixzit/node_modules/mongoose/node_modules/mongodb/lib/cursor/abstract_cursor.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongodb/lib/cursor/abstract_cursor.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongoose/node_modules/mongodb/lib/cursor/abstract_cursor.js
+
+abstract_cursor.ts (Count: 4)
+/workspaces/Fixzit/node_modules/mongodb/src/cursor/abstract_cursor.ts
+/workspaces/Fixzit/node_modules/mongoose/node_modules/mongodb/src/cursor/abstract_cursor.ts
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongodb/src/cursor/abstract_cursor.ts
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongoose/node_modules/mongodb/src/cursor/abstract_cursor.ts
+
+AbstractEqualityComparison.js (Count: 8)
+/workspaces/Fixzit/node_modules/es-abstract/2015/AbstractEqualityComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2016/AbstractEqualityComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2017/AbstractEqualityComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2018/AbstractEqualityComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2019/AbstractEqualityComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2020/AbstractEqualityComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2021/AbstractEqualityComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/5/AbstractEqualityComparison.js
+
+AbstractRelationalComparison.js (Count: 8)
+/workspaces/Fixzit/node_modules/es-abstract/2015/AbstractRelationalComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2016/AbstractRelationalComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2017/AbstractRelationalComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2018/AbstractRelationalComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2019/AbstractRelationalComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2020/AbstractRelationalComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/2021/AbstractRelationalComparison.js
+/workspaces/Fixzit/node_modules/es-abstract/5/AbstractRelationalComparison.js
+
+accept-header.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/accept-header.js
+/workspaces/Fixzit/node_modules/next/dist/server/accept-header.js
+
+acceptance.ts (Count: 2)
+/workspaces/Fixzit/qa/acceptance.ts
+/workspaces/Fixzit/src/qa/acceptance.ts
+
+access-error-styles.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/client/components/styles/access-error-styles.js
+/workspaces/Fixzit/node_modules/next/dist/esm/client/components/styles/access-error-styles.js
+
+Accessibility.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Accessibility.d.ts
+/workspaces/Fixzit/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/Accessibility.d.ts
+
+accessibility.js (Count: 5)
+/workspaces/Fixzit/node_modules/lucide-react/dist/esm/icons/accessibility.js
+/workspaces/Fixzit/node_modules/playwright-core/lib/client/accessibility.js
+/workspaces/Fixzit/node_modules/playwright-core/lib/server/accessibility.js
+/workspaces/Fixzit/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Accessibility.js
+/workspaces/Fixzit/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/Accessibility.js
+
+AccessibilityManager.js (Count: 2)
+/workspaces/Fixzit/node_modules/recharts/es6/chart/AccessibilityManager.js
+/workspaces/Fixzit/node_modules/recharts/lib/chart/AccessibilityManager.js
+
+accessible-description.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@testing-library/jest-dom/node_modules/dom-accessibility-api/dist/accessible-description.d.ts
+/workspaces/Fixzit/node_modules/dom-accessibility-api/dist/accessible-description.d.ts
+
+accessible-description.js (Count: 2)
+/workspaces/Fixzit/node_modules/@testing-library/jest-dom/node_modules/dom-accessibility-api/dist/accessible-description.js
+/workspaces/Fixzit/node_modules/dom-accessibility-api/dist/accessible-description.js
+
+accessible-name-and-description.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@testing-library/jest-dom/node_modules/dom-accessibility-api/dist/accessible-name-and-description.d.ts
+/workspaces/Fixzit/node_modules/dom-accessibility-api/dist/accessible-name-and-description.d.ts
+
+accessible-name-and-description.js (Count: 2)
+/workspaces/Fixzit/node_modules/@testing-library/jest-dom/node_modules/dom-accessibility-api/dist/accessible-name-and-description.js
+/workspaces/Fixzit/node_modules/dom-accessibility-api/dist/accessible-name-and-description.js
+
+accessible-name.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@testing-library/jest-dom/node_modules/dom-accessibility-api/dist/accessible-name.d.ts
+/workspaces/Fixzit/node_modules/dom-accessibility-api/dist/accessible-name.d.ts
+
+accessible-name.js (Count: 2)
+/workspaces/Fixzit/node_modules/@testing-library/jest-dom/node_modules/dom-accessibility-api/dist/accessible-name.js
+/workspaces/Fixzit/node_modules/dom-accessibility-api/dist/accessible-name.js
+
+accessor.js (Count: 2)
+/workspaces/Fixzit/node_modules/has-proto/test/accessor.js
+/workspaces/Fixzit/node_modules/has-proto/accessor.js
+
+AccountIdEndpointModeConfigResolver.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@aws-sdk/core/dist-types/submodules/account-id-endpoint/AccountIdEndpointModeConfigResolver.d.ts
+/workspaces/Fixzit/node_modules/@aws-sdk/core/dist-types/ts3.4/submodules/account-id-endpoint/AccountIdEndpointModeConfigResolver.d.ts
+
+AccountIdEndpointModeConstants.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/@aws-sdk/core/dist-types/submodules/account-id-endpoint/AccountIdEndpointModeConstants.d.ts
+/workspaces/Fixzit/node_modules/@aws-sdk/core/dist-types/ts3.4/submodules/account-id-endpoint/AccountIdEndpointModeConstants.d.ts
+
+acorn.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/acorn/dist/acorn.d.ts
+/workspaces/Fixzit/node_modules/recast/parsers/acorn.d.ts
+
+acorn.js (Count: 3)
+/workspaces/Fixzit/node_modules/acorn/dist/acorn.js
+/workspaces/Fixzit/node_modules/next/dist/compiled/acorn/acorn.js
+/workspaces/Fixzit/node_modules/recast/parsers/acorn.js
+
+action-async-storage-instance.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/app-render/action-async-storage-instance.js
+/workspaces/Fixzit/node_modules/next/dist/server/app-render/action-async-storage-instance.js
+
+action-async-storage.external.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/app-render/action-async-storage.external.js
+/workspaces/Fixzit/node_modules/next/dist/server/app-render/action-async-storage.external.js
+
+action-client-wrapper.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js
+/workspaces/Fixzit/node_modules/next/dist/esm/build/webpack/loaders/next-flight-loader/action-client-wrapper.js
+
+action-handler.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/app-render/action-handler.js
+/workspaces/Fixzit/node_modules/next/dist/server/app-render/action-handler.js
+
+action-utils.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/app-render/action-utils.js
+/workspaces/Fixzit/node_modules/next/dist/server/app-render/action-utils.js
+
+action-validate.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-validate.js
+/workspaces/Fixzit/node_modules/next/dist/esm/build/webpack/loaders/next-flight-loader/action-validate.js
+
+Action.js (Count: 3)
+/workspaces/Fixzit/node_modules/rxjs/dist/cjs/internal/scheduler/Action.js
+/workspaces/Fixzit/node_modules/rxjs/dist/esm/internal/scheduler/Action.js
+/workspaces/Fixzit/node_modules/rxjs/dist/esm5/internal/scheduler/Action.js
+
+ActionDispatcher.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/cjs/bidiMapper/modules/input/ActionDispatcher.d.ts
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/esm/bidiMapper/modules/input/ActionDispatcher.d.ts
+
+ActionDispatcher.js (Count: 2)
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/cjs/bidiMapper/modules/input/ActionDispatcher.js
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/esm/bidiMapper/modules/input/ActionDispatcher.js
+
+ActionOption.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/cjs/bidiMapper/modules/input/ActionOption.d.ts
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/esm/bidiMapper/modules/input/ActionOption.d.ts
+
+ActionOption.js (Count: 2)
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/cjs/bidiMapper/modules/input/ActionOption.js
+/workspaces/Fixzit/node_modules/chromium-bidi/lib/esm/bidiMapper/modules/input/ActionOption.js
+
+activeElement.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/dom-helpers/cjs/activeElement.d.ts
+/workspaces/Fixzit/node_modules/dom-helpers/esm/activeElement.d.ts
+
+activeElement.js (Count: 2)
+/workspaces/Fixzit/node_modules/dom-helpers/cjs/activeElement.js
+/workspaces/Fixzit/node_modules/dom-helpers/esm/activeElement.js
+
+ActiveShapeUtils.js (Count: 2)
+/workspaces/Fixzit/node_modules/recharts/es6/util/ActiveShapeUtils.js
+/workspaces/Fixzit/node_modules/recharts/lib/util/ActiveShapeUtils.js
+
+actualApply.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/call-bind-apply-helpers/actualApply.d.ts
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/call-bind-apply-helpers/actualApply.d.ts
+
+actualApply.js (Count: 2)
+/workspaces/Fixzit/node_modules/call-bind-apply-helpers/actualApply.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/call-bind-apply-helpers/actualApply.js
+
+adapter.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/web/adapter.js
+/workspaces/Fixzit/node_modules/next/dist/server/web/adapter.js
+
+adapters.js (Count: 3)
+/workspaces/Fixzit/node_modules/axios/lib/adapters/adapters.js
+/workspaces/Fixzit/node_modules/next/dist/esm/shared/lib/router/adapters.js
+/workspaces/Fixzit/node_modules/next/dist/shared/lib/router/adapters.js
+
+AdaptiveRetryStrategy.d.ts (Count: 4)
+/workspaces/Fixzit/node_modules/@smithy/middleware-retry/dist-types/ts3.4/AdaptiveRetryStrategy.d.ts
+/workspaces/Fixzit/node_modules/@smithy/middleware-retry/dist-types/AdaptiveRetryStrategy.d.ts
+/workspaces/Fixzit/node_modules/@smithy/util-retry/dist-types/ts3.4/AdaptiveRetryStrategy.d.ts
+/workspaces/Fixzit/node_modules/@smithy/util-retry/dist-types/AdaptiveRetryStrategy.d.ts
+
+AdaptiveRetryStrategy.js (Count: 3)
+/workspaces/Fixzit/node_modules/@smithy/middleware-retry/dist-es/AdaptiveRetryStrategy.js
+/workspaces/Fixzit/node_modules/@smithy/util-retry/dist-cjs/AdaptiveRetryStrategy.js
+/workspaces/Fixzit/node_modules/@smithy/util-retry/dist-es/AdaptiveRetryStrategy.js
+
+add-base-path.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/client/add-base-path.js
+/workspaces/Fixzit/node_modules/next/dist/esm/client/add-base-path.js
+
+add-locale.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/client/add-locale.d.ts
+/workspaces/Fixzit/node_modules/next/dist/shared/lib/router/utils/add-locale.d.ts
+
+add-locale.js (Count: 4)
+/workspaces/Fixzit/node_modules/next/dist/client/add-locale.js
+/workspaces/Fixzit/node_modules/next/dist/esm/client/add-locale.js
+/workspaces/Fixzit/node_modules/next/dist/esm/shared/lib/router/utils/add-locale.js
+/workspaces/Fixzit/node_modules/next/dist/shared/lib/router/utils/add-locale.js
+
+add-path-prefix.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/shared/lib/router/utils/add-path-prefix.js
+/workspaces/Fixzit/node_modules/next/dist/shared/lib/router/utils/add-path-prefix.js
+
+add-path-suffix.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/shared/lib/router/utils/add-path-suffix.js
+/workspaces/Fixzit/node_modules/next/dist/shared/lib/router/utils/add-path-suffix.js
+
+add.js (Count: 15)
+/workspaces/Fixzit/node_modules/es-abstract/2020/BigInt/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2020/Number/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2021/BigInt/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2021/Number/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2022/BigInt/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2022/Number/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2023/BigInt/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2023/Number/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2024/BigInt/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2024/Number/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2025/BigInt/add.js
+/workspaces/Fixzit/node_modules/es-abstract/2025/Number/add.js
+/workspaces/Fixzit/node_modules/lodash/fp/add.js
+/workspaces/Fixzit/node_modules/lodash/add.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/nodemon/lib/rules/add.js
+
+addAutoId.js (Count: 2)
+/workspaces/Fixzit/node_modules/mongoose/lib/helpers/schema/addAutoId.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongoose/lib/helpers/schema/addAutoId.js
+
+addClass.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/dom-helpers/cjs/addClass.d.ts
+/workspaces/Fixzit/node_modules/dom-helpers/esm/addClass.d.ts
+
+addClass.js (Count: 2)
+/workspaces/Fixzit/node_modules/dom-helpers/cjs/addClass.js
+/workspaces/Fixzit/node_modules/dom-helpers/esm/addClass.js
+
+AddEntriesFromIterable.js (Count: 7)
+/workspaces/Fixzit/node_modules/es-abstract/2019/AddEntriesFromIterable.js
+/workspaces/Fixzit/node_modules/es-abstract/2020/AddEntriesFromIterable.js
+/workspaces/Fixzit/node_modules/es-abstract/2021/AddEntriesFromIterable.js
+/workspaces/Fixzit/node_modules/es-abstract/2022/AddEntriesFromIterable.js
+/workspaces/Fixzit/node_modules/es-abstract/2023/AddEntriesFromIterable.js
+/workspaces/Fixzit/node_modules/es-abstract/2024/AddEntriesFromIterable.js
+/workspaces/Fixzit/node_modules/es-abstract/2025/AddEntriesFromIterable.js
+
+addEventListener.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/dom-helpers/cjs/addEventListener.d.ts
+/workspaces/Fixzit/node_modules/dom-helpers/esm/addEventListener.d.ts
+
+addeventlistener.js (Count: 3)
+/workspaces/Fixzit/node_modules/caniuse-lite/data/features/addeventlistener.js
+/workspaces/Fixzit/node_modules/dom-helpers/cjs/addEventListener.js
+/workspaces/Fixzit/node_modules/dom-helpers/esm/addEventListener.js
+
+additionalItems.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/vocabularies/applicator/additionalItems.d.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/vocabularies/applicator/additionalItems.d.ts
+
+additionalItems.js (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
+
+additionalItems.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/lib/vocabularies/applicator/additionalItems.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/lib/vocabularies/applicator/additionalItems.ts
+
+additionalProperties.d.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.d.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.d.ts
+
+additionalProperties.js (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
+
+additionalProperties.ts (Count: 2)
+/workspaces/Fixzit/node_modules/ajv-formats/node_modules/ajv/lib/vocabularies/applicator/additionalProperties.ts
+/workspaces/Fixzit/node_modules/schema-utils/node_modules/ajv/lib/vocabularies/applicator/additionalProperties.ts
+
+addPairToJSMap.js (Count: 2)
+/workspaces/Fixzit/node_modules/yaml/browser/dist/nodes/addPairToJSMap.js
+/workspaces/Fixzit/node_modules/yaml/dist/nodes/addPairToJSMap.js
+
+AddToKeptObjects.js (Count: 5)
+/workspaces/Fixzit/node_modules/es-abstract/2021/AddToKeptObjects.js
+/workspaces/Fixzit/node_modules/es-abstract/2022/AddToKeptObjects.js
+/workspaces/Fixzit/node_modules/es-abstract/2023/AddToKeptObjects.js
+/workspaces/Fixzit/node_modules/es-abstract/2024/AddToKeptObjects.js
+/workspaces/Fixzit/node_modules/es-abstract/2025/AddToKeptObjects.js
+
+AddValueToKeyedGroup.js (Count: 2)
+/workspaces/Fixzit/node_modules/es-abstract/2024/AddValueToKeyedGroup.js
+/workspaces/Fixzit/node_modules/es-abstract/2025/AddValueToKeyedGroup.js
+
+Adlam.js (Count: 2)
+/workspaces/Fixzit/node_modules/regenerate-unicode-properties/Script/Adlam.js
+/workspaces/Fixzit/node_modules/regenerate-unicode-properties/Script_Extensions/Adlam.js
+
+admin.js (Count: 5)
+/workspaces/Fixzit/node_modules/mongodb/lib/admin.js
+/workspaces/Fixzit/node_modules/mongoose/node_modules/mongodb/lib/admin.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongodb/lib/admin.js
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongoose/node_modules/mongodb/lib/admin.js
+/workspaces/Fixzit/packages/fixzit-souq-server/routes/admin.js
+
+admin.ts (Count: 4)
+/workspaces/Fixzit/node_modules/mongodb/src/admin.ts
+/workspaces/Fixzit/node_modules/mongoose/node_modules/mongodb/src/admin.ts
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongodb/src/admin.ts
+/workspaces/Fixzit/packages/fixzit-souq-server/node_modules/mongoose/node_modules/mongodb/src/admin.ts
+
+AdvanceStringIndex.js (Count: 11)
+/workspaces/Fixzit/node_modules/es-abstract/2015/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2016/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2017/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2018/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2019/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2020/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2021/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2022/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2023/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2024/AdvanceStringIndex.js
+/workspaces/Fixzit/node_modules/es-abstract/2025/AdvanceStringIndex.js
+
+aesgcmkw.js (Count: 3)
+/workspaces/Fixzit/node_modules/jose/dist/browser/lib/aesgcmkw.js
+/workspaces/Fixzit/node_modules/jose/dist/node/cjs/lib/aesgcmkw.js
+/workspaces/Fixzit/node_modules/jose/dist/node/esm/lib/aesgcmkw.js
+
+aeskw.js (Count: 3)
+/workspaces/Fixzit/node_modules/jose/dist/browser/runtime/aeskw.js
+/workspaces/Fixzit/node_modules/jose/dist/node/cjs/runtime/aeskw.js
+/workspaces/Fixzit/node_modules/jose/dist/node/esm/runtime/aeskw.js
+
+after-context.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/after/after-context.js
+/workspaces/Fixzit/node_modules/next/dist/server/after/after-context.js
+
+after-production-compile.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/build/after-production-compile.js
+/workspaces/Fixzit/node_modules/next/dist/esm/build/after-production-compile.js
+
+after-task-async-storage-instance.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/app-render/after-task-async-storage-instance.js
+/workspaces/Fixzit/node_modules/next/dist/server/app-render/after-task-async-storage-instance.js
+
+after-task-async-storage.external.js (Count: 2)
+/workspaces/Fixzit/node_modules/next/dist/esm/server/app-render/after-task-async-storage.external.js
+/workspaces/Fixzit/node_modules/next/dist/server/app-render/after-task-async-storage.external.js
+
+after.js (Count: 4)
+/workspaces/Fixzit/node_modules/lodash/fp/after.js
+/workspaces/Fixzit/node_modules/lodash/after.js
+/workspaces/Fixzit/node_modules/next/dist/esm/server/after/after.js
+/workspaces/Fixzit/node_modules/next/dist/server/after/after.js
+
