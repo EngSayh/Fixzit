@@ -1,4 +1,3 @@
-import { Role } from '@/lib/models/index';
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Application } from '@/server/models/Application';
