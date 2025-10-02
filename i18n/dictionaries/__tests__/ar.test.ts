@@ -11,7 +11,7 @@ async function loadArabicDict(): Promise<Dict> {
   } catch (_e) {
     // Fallback: the PR provided ar.test.ts containing the dictionary content
     try {
-      const mod2 = await import('../ar.test');
+      const mod2 = await import('../ar');
       return (mod2 as any).default ?? mod2;
     } catch (e2) {
       throw new Error(
