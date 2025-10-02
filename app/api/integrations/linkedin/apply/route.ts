@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
     if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
 
-    let candidate = await (Candidate as any).findByEmail((job as any).orgId, profile.email);
+    let candidate = await (Candidate as any).findByEmail(job.orgId, profile.email);
     if (!candidate) {
       candidate = await Candidate.create({
-        orgId: (job as any).orgId,
+        orgId: job.orgId,
         firstName: profile.firstName,
         lastName: profile.lastName || 'NA',
         email: profile.email,
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const orgId = (job as any).orgId;
+    const orgId = job.orgId;
     const jobId = (job as any)._id;
     
     const dup = await Application.findOne({ orgId, jobId, candidateId: candidate._id });
