@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({} as any));
     const { fileName, contentType } = body || {};
     if (!fileName || !contentType) return NextResponse.json({ error: 'Missing fileName or contentType' }, { status: 400 });
-    const key = buildResumeKey((user as any).tenantId, String(fileName));
+    const key = buildResumeKey(user.tenantId, String(fileName));
     const url = await getPresignedPutUrl(key, String(contentType), 300);
     return NextResponse.json({ url, key });
   } catch (err) {

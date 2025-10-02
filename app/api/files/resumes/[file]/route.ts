@@ -23,13 +23,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ file: str
     if (!token || !Number.isFinite(exp)) return NextResponse.json({ error: 'Missing token' }, { status: 400 });
     if (Date.now() > exp) return NextResponse.json({ error: 'Token expired' }, { status: 403 });
     const safeName = path.basename(params.file);
-    const tenant = String((user as any).tenantId || 'global');
+    const tenant = String(user.tenantId || 'global');
     const expected = generateToken(`${tenant}:${safeName}`, exp, String((user as any).id || ''), tenant);
     if (!timingSafeEqual(expected, token)) return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
 
     // Prefer S3 if configured; else local fallback
     if (process.env.AWS_S3_BUCKET) {
-      const key = buildResumeKey((user as any).tenantId, safeName);
+      const key = buildResumeKey(user.tenantId, safeName);
       const urlSigned = await getPresignedGetUrl(key, 300);
       return NextResponse.redirect(urlSigned, { status: 302 });
     }
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ file: st
     if (!allowed.has((user as any).role || '')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
     const safeName = path.basename(params.file);
-    const tenant = String((user as any).tenantId || 'global');
+    const tenant = String(user.tenantId || 'global');
     const token = generateToken(`${tenant}:${safeName}`, expires, String((user as any).id || ''), tenant);
     return NextResponse.json({ url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(safeName)}?token=${encodeURIComponent(token)}&exp=${expires}` });
   } catch {

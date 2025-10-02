@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing articleId or content' }, { status: 400 });
     }
     await upsertArticleEmbeddings({
-      orgId: (user as any).tenantId || null,
-      tenantId: (user as any).tenantId || null,
+      orgId: user.tenantId || null,
+      tenantId: user.tenantId || null,
       articleId,
       lang: typeof lang === 'string' ? lang : undefined,
       roleScopes: Array.isArray(roleScopes) ? roleScopes : undefined,
@@ -38,7 +38,7 @@ export async function DELETE(req: NextRequest) {
     const url = new URL(req.url);
     const articleId = url.searchParams.get('articleId');
     if (!articleId) return NextResponse.json({ error: 'Missing articleId' }, { status: 400 });
-    await deleteArticleEmbeddings(articleId, (user as any).tenantId || null);
+    await deleteArticleEmbeddings(articleId, user.tenantId || null);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
