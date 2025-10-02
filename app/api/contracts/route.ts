@@ -34,13 +34,18 @@ export async function POST(req: NextRequest) {
       return createErrorResponse('Invalid token', 401, req);
     }
 
+    // Ensure user has tenant context
+    if (!user.orgId) {
+      return createErrorResponse('User organization not found', 400, req);
+    }
+
     // Role-based access control - only admins can create contracts
     if (!['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role)) {
       return createErrorResponse('Insufficient permissions', 403, req);
     }
 
     // Rate limiting for contract operations
-    const key = `contracts:${(user as any)?.orgId}:${user.id}`;
+    const key = `contracts:${user.orgId}:${user.id}`;
     const rl = rateLimit(key, 10, 60_000); // 10 contracts per minute
     if (!rl.allowed) {
       return createErrorResponse('Contract creation rate limit exceeded', 429, req);
@@ -52,7 +57,7 @@ export async function POST(req: NextRequest) {
     // Tenant isolation - ensure contract belongs to user's org
     const contractData = {
       ...body,
-      orgId: (user as any)?.orgId,
+      orgId: user.orgId,
       createdBy: user.id,
       createdAt: new Date()
     };
@@ -67,6 +72,7 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+
 
 
 
