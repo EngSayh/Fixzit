@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import DiscountRule from '@/db/models/DiscountRule';
+import DiscountRule from '@/server/models/DiscountRule';
 import { requireSuperAdmin } from '@/lib/authz';
 
 export async function PATCH(req: NextRequest) {
@@ -16,4 +16,5 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ ok: true, discount: doc.percentage });
 }
+
 
