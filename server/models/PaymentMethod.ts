@@ -4,7 +4,7 @@ const PaymentMethodSchema = new Schema(
   {
     org_id: { 
       type: Types.ObjectId, 
-      ref: 'Tenant'
+      ref: 'Organization'
       // Note: required conditionally in validation - see validate hook below
     },
     owner_user_id: { 
@@ -21,3 +21,4 @@ const PaymentMethodSchema = new Schema(
 );
 
 export default models.PaymentMethod || model('PaymentMethod', PaymentMethodSchema);
+
