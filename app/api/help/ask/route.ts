@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
     // Enforce tenant isolation; allow global articles with no orgId
     const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
-    if (user.orgId) orClauses.unshift({ orgId: (user as any).orgId });
+    if (user.orgId) orClauses.unshift({ orgId: user.orgId });
     const tenantScope = { $or: orClauses } as any;
     const filter: any = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
