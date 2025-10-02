@@ -85,12 +85,18 @@ const createRFQSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
+  if (!user?.orgId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      { status: 401 }
+    );
+  }
     await connectToDatabase();
 
     const data = createRFQSchema.parse(await req.json());
 
     const rfq = await RFQ.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -113,6 +119,12 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
+  if (!user?.orgId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      { status: 401 }
+    );
+  }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -123,7 +135,7 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (category) match.category = category;

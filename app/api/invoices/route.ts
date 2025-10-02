@@ -66,6 +66,12 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
 
     const data = createInvoiceSchema.parse(await req.json());
 
@@ -101,7 +107,7 @@ export async function POST(req: NextRequest) {
     // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
     const { value } = await (Invoice as any).db.collection("invoice_counters").findOneAndUpdate(
-      { tenantId: (user as any)?.orgId, year },
+      { tenantId: user.orgId, year },
       { $inc: { sequence: 1 } },
       { upsert: true, returnDocument: "after" }
     );
@@ -117,7 +123,7 @@ export async function POST(req: NextRequest) {
     });
 
     const invoice = await Invoice.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       number,
       ...data,
       subtotal,
@@ -149,6 +155,12 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -157,7 +169,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (type) match.type = type;

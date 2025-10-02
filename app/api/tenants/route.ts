@@ -69,11 +69,17 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
 
     const data = createTenantSchema.parse(await req.json());
 
     const tenant = await Tenant.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `TEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -101,7 +107,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (search) {
