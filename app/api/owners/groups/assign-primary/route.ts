@@ -1,5 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import OwnerGroup from '@/db/models/OwnerGroup';
+import OwnerGroup from '@/server/models/OwnerGroup';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';
@@ -53,5 +53,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to assign owner group' }, { status: 500 });
   }
 }
+
 
 

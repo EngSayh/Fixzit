@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Product from '@/db/models/marketplace/Product';
+import Product from '@/server/models/marketplace/Product';
 import { serializeProduct } from '@/lib/marketplace/serializers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
@@ -88,5 +88,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unable to save product' }, { status: 500 });
   }
 }
+
 
 

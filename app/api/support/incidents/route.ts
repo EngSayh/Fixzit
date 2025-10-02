@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
-import { SupportTicket } from '@/db/models/SupportTicket';
+import { SupportTicket } from '@/server/models/SupportTicket';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
 import Redis from 'ioredis';
@@ -158,4 +158,5 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return new NextResponse(null, { status: 405 });
 }
+
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import Subscription from '@/db/models/Subscription';
+import Subscription from '@/server/models/Subscription';
 import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
 
 export async function POST(req: NextRequest) {
@@ -29,4 +29,5 @@ export async function POST(req: NextRequest) {
     subscription,
   });
 }
+
 

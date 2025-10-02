@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { RFQ } from '@/db/models/RFQ';
+import { RFQ } from '@/server/models/RFQ';
 import { z } from 'zod';
 
 const DEFAULT_PUBLIC_STATUSES = ['PUBLISHED', 'BIDDING'];
@@ -132,4 +132,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
 
