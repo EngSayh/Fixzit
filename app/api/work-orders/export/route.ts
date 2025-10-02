@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { WorkOrder } from "@/db/models/WorkOrder";
+import { WorkOrder } from "@/server/models/WorkOrder";
 import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
 
 export async function GET(req:NextRequest){
@@ -15,4 +15,5 @@ export async function GET(req:NextRequest){
   const csv = lines.join("\n");
   return new NextResponse(csv, { status:200, headers: { "content-type":"text/csv; charset=utf-8", "content-disposition":"attachment; filename=work-orders.csv" }});
 }
+
 

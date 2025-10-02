@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Job } from "@/db/models/Job";
+import { Job } from "@/server/models/Job";
 import { generateSlug } from "@/lib/utils";
 import { rateLimit } from "@/server/security/rateLimit";
 import { z } from "zod";
@@ -78,3 +78,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Failed to submit job" }, { status: 500 });
   }
 }
+

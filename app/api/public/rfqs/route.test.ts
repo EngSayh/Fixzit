@@ -41,7 +41,7 @@ const RFQMock = {
   countDocuments: jest.fn()
 };
 
-jest.mock('@/db/models/RFQ', () => ({
+jest.mock('@/server/models/RFQ', () => ({
   RFQ: RFQMock
 }));
 
@@ -328,3 +328,4 @@ describe('GET /api/public/rfqs', () => {
     expect(json.error).toBe('Internal server error');
   });
 });
+
