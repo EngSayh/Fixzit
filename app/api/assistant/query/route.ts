@@ -39,9 +39,9 @@ export async function POST(req: NextRequest) {
     await connectToDatabase(); // ensure DB/init (real or mock)
   } catch {}
 
-  let user: { id: string; tenantId: string; role: string } | null = null;
+  let user: { id: string; email: string; orgId: string; tenantId: string; role: string; permissions?: string[] } | null = null;
   try {
-    user = await getSessionUser(req) as any;
+    user = await getSessionUser(req);
   } catch {
     user = null; // allow public help queries without actions
   }
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       const seq = Math.floor((Date.now() / 1000) % 100000);
       const code = `WO-${new Date().getFullYear()}-${seq}`;
       const wo = await (WorkOrder as any).create({
-        tenantId: user.orgId,
+        tenantId: user.tenantId || user.orgId,
         code,
         title: createArgs.title,
         description: createArgs.description,
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
     }
-    const items = await (WorkOrder as any).find({ tenantId: user.orgId, createdBy: user.id })
+    const items = await (WorkOrder as any).find({ tenantId: user.tenantId || user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
       .limit?.(5) || [];
     const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
