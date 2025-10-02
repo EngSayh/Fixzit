@@ -164,3 +164,4 @@ export function duplicateKeyError(resource = 'Resource'): Response {
 export function tenantIsolationError(): Response {
   return forbiddenError('Access denied: cross-tenant operation not allowed');
 }
+

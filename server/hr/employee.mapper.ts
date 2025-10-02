@@ -1,4 +1,4 @@
-import type { EmployeeDoc } from '@/db/models/Employee';
+import type { EmployeeDoc } from '@/server/models/Employee';
 import { toUiEmployeeStatus, toDbEmployeeStatus, type EmployeeStatusDB } from './employeeStatus';
 
 export function toUIEmployee(doc: EmployeeDoc) {

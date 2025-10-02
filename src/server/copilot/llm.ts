@@ -70,3 +70,4 @@ export async function generateCopilotResponse(options: ChatCompletionOptions): P
   const reply = json.choices?.[0]?.message?.content || "";
   return redactSensitiveText(reply.trim());
 }
+

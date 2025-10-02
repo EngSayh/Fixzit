@@ -38,3 +38,4 @@ export function toUiEmployeeStatus(db: unknown): EmployeeStatusUI {
   throw new Error(`Unsupported employee status: ${db}`);
 }
 
+

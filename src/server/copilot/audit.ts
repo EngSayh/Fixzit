@@ -1,4 +1,4 @@
-import { CopilotAudit } from "@/db/models/CopilotAudit";
+import { CopilotAudit } from "@/server/models/CopilotAudit";
 import { CopilotSession } from "./session";
 
 export interface AuditOptions {
@@ -31,4 +31,5 @@ export async function recordAudit(options: AuditOptions) {
     console.error("Failed to record copilot audit", error);
   }
 }
+
 

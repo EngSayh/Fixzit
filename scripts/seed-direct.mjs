@@ -4,9 +4,9 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 
-const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) {
-  console.error('❌ MONGO_URI environment variable not set');
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('❌ MONGODB_URI environment variable not set');
   process.exit(1);
 }
 
@@ -312,7 +312,7 @@ const users = [
 async function seedUsers() {
   try {
     console.log('🔌 Connecting to MongoDB...');
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
     
     console.log('🌱 Seeding users...');
