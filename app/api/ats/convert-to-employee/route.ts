@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
+import { Role } from '@/lib/models';
 import { Job } from '@/server/models/Job';
 import { Employee } from '@/server/models/Employee';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';

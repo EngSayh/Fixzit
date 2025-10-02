@@ -84,7 +84,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
     id: doc.slug,
     title: doc.title,
     content: doc.content,
-    source: doc.source,
+    source: doc.source ?? undefined,
     score: cosineSimilarity(embedding, doc.embedding || [])
   }));
 
@@ -107,7 +107,7 @@ export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slu
         roles: doc.roles ?? [],
         locale: doc.locale ?? "en",
         tags: doc.tags ?? [],
-        source: doc.source,
+        source: doc.source ?? undefined,
         embedding,
         checksum: doc.checksum
       }
