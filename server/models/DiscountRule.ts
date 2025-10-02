@@ -4,7 +4,6 @@ const DiscountRuleSchema = new Schema(
   {
     key: { 
       type: String, 
-      unique: true, 
       required: true,
       trim: true 
     },
@@ -18,7 +17,7 @@ const DiscountRuleSchema = new Schema(
     // Tenant isolation
     tenantId: { 
       type: Types.ObjectId, 
-      ref: ''Organization'',
+      ref: 'Organization',
       required: true,
       index: true 
     },
@@ -27,3 +26,4 @@ const DiscountRuleSchema = new Schema(
 );
 
 export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
+

@@ -19,7 +19,7 @@ const BenchmarkSchema = new Schema(
     // Tenant isolation
     tenantId: { 
       type: Types.ObjectId, 
-      ref: ''Organization'',
+      ref: 'Organization',
       required: true,
       index: true 
     },
@@ -28,3 +28,4 @@ const BenchmarkSchema = new Schema(
 );
 
 export default models.Benchmark || model('Benchmark', BenchmarkSchema);
+
