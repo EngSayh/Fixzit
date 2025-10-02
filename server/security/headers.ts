@@ -47,13 +47,16 @@ export function withCORS(request: NextRequest, response: NextResponse): NextResp
 
   if (origin && allowedOrigins.includes(origin)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
   } else if (process.env.NODE_ENV === 'development') {
-    response.headers.set('Access-Control-Allow-Origin', '*');
+    // In development, use first allowed origin instead of '*' to avoid CORS violation
+    // when Access-Control-Allow-Credentials is 'true'
+    response.headers.set('Access-Control-Allow-Origin', 'http://localhost:3000');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
 
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
 
   return response;
