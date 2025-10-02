@@ -1,4 +1,4 @@
-import { ensureCoreIndexes } from '@/lib/db/index';
+import { ensureCoreIndexes } from '@/lib/mongodb-unified';
 
 async function setupIndexes() {
   console.log('Setting up database indexes...');

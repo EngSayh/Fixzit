@@ -1,5 +1,5 @@
 import PaymentMethod from '../db/models/PaymentMethod';
-import Subscription from '../db/models/Subscription';
+import Subscription from '@/server/models/Subscription';
 import OwnerGroup from '../db/models/OwnerGroup';
 import { provisionSubscriber } from './provision';
 
