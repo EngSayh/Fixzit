@@ -44,7 +44,15 @@
     "verify:imports:py": "python3 verify-imports.py",
     "install:missing": "pwsh install-missing-packages.ps1",
     "install:missing:py": "python3 install-missing-packages.py",
-    "test:tool": "bash verify-final.sh"
+    "test:tool": "bash verify-final.sh",
+    "consolidate:dry": "tsx scripts/dedup/consolidate.ts --dry",
+    "consolidate:apply": "tsx scripts/dedup/consolidate.ts",
+    "ui:freeze:check": "tsx scripts/ui/ui_freeze_check.ts",
+    "sidebar:snapshot": "tsx scripts/sidebar/snapshot_check.ts",
+    "i18n:check": "tsx scripts/i18n/check_language_selector.ts",
+    "mongo:normalize": "tsx scripts/mongo/normalize_org_ids.ts",
+    "mongo:normalize:apply": "tsx scripts/mongo/normalize_org_ids.ts --apply",
+    "guardrails:all": "npm run sidebar:snapshot && npm run ui:freeze:check && npm run i18n:check && npm run consolidate:dry"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.896.0",
@@ -145,3 +153,4 @@
     "postcss-selector-parser": "6.0.13"
   }
 }
+
