@@ -24,3 +24,4 @@ export function can(role: Role, ability: Ability) {
   return ROLE_ABILITIES[role]?.includes(ability) ?? false;
 }
 
+

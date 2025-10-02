@@ -1,5 +1,5 @@
-import PriceBook from '../db/models/PriceBook';
-import DiscountRule from '../db/models/DiscountRule';
+import PriceBook from '@/server/models/PriceBook';
+import DiscountRule from '@/server/models/DiscountRule';
 
 export type BillingCycle = 'MONTHLY' | 'ANNUAL';
 
@@ -72,3 +72,4 @@ export async function quotePrice(opts: {
   const total = Math.round(subtotalMonthly * 100) / 100;
   return { requiresQuote: false, total, lines };
 }
+

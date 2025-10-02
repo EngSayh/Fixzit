@@ -1,6 +1,6 @@
-import PaymentMethod from '../db/models/PaymentMethod';
-import Subscription from '../db/models/Subscription';
-import OwnerGroup from '../db/models/OwnerGroup';
+import PaymentMethod from '@/server/models/PaymentMethod';
+import Subscription from '@/server/models/Subscription';
+import OwnerGroup from '@/server/models/OwnerGroup';
 import { provisionSubscriber } from './provision';
 
 export interface NormalizedPayTabsPayload {
@@ -102,3 +102,4 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
 
   return { ok: true, subscription };
 }
+
