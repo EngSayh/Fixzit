@@ -42,14 +42,19 @@ const createProjectSchema = z.object({
  * @returns A NextResponse containing the created project (201) or an error object with an appropriate status code.
  */
 export async function POST(req: NextRequest) {
-  try {
-    const user = await getSessionUser(req);
+  try {    const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const data = createProjectSchema.parse(await req.json());
 
     const project = await Project.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `PRJ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "PLANNING",
@@ -70,11 +75,15 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
-
-export async function GET(req: NextRequest) {
+}export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -84,7 +93,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;
@@ -111,5 +120,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 
