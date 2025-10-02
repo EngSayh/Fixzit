@@ -58,12 +58,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
     }
     const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const data = createAssetSchema.parse(await req.json());
 
     const asset = await (Asset as any).create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -92,6 +101,12 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -102,7 +117,7 @@ export async function GET(req: NextRequest) {
     const propertyId = searchParams.get("propertyId");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;
@@ -131,6 +146,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
 
 
 
