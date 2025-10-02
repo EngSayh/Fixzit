@@ -155,7 +155,8 @@ async function nextInvoiceNumber(tenantId: string) {
     .select('number')
     .lean();
 
-  const match = latest?.number?.match(/INV-(\d+)/);
+  const latestNumber = Array.isArray(latest) ? latest[0]?.number : latest?.number;
+  const match = latestNumber?.match(/INV-(\d+)/);
   const next = match ? parseInt(match[1], 10) + 1 : 1;
   return `INV-${String(next).padStart(6, '0')}`;
 }
