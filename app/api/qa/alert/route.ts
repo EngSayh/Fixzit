@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       event,
       data,
       timestamp: new Date(),
-      ip: req.headers.get('x-forwarded-for') || req.ip,
+      ip: req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown',
       userAgent: req.headers.get('user-agent'),
     });
 

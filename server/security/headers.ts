@@ -76,7 +76,7 @@ export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10
 export function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
-  const ip = forwarded?.split(',')[0] || realIP || request.ip || 'unknown';
+  const ip = forwarded?.split(',')[0] || realIP || 'unknown';
   return ip.trim();
 }
 
