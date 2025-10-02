@@ -41,11 +41,11 @@ const verifySpy = jest.fn((token: string, _secret: string) => {
 jest.mock('jsonwebtoken', () => ({
   __esModule: true,
   default: {
-    sign: (...args: any[]) => signSpy(...args),
-    verify: (...args: any[]) => verifySpy(...args),
+    sign: (...args: any[]) => signSpy.apply(null, args),
+    verify: (...args: any[]) => verifySpy.apply(null, args),
   },
-  sign: (...args: any[]) => signSpy(...args),
-  verify: (...args: any[]) => verifySpy(...args),
+  sign: (...args: any[]) => signSpy.apply(null, args),
+  verify: (...args: any[]) => verifySpy.apply(null, args),
 }));
 
 // Mock mongo layer to control isMockDB and db connection behavior
@@ -155,6 +155,7 @@ describe('auth lib - JWT generation and verification', () => {
       email: 'e@x.com',
       role: 'USER',
       tenantId: 't',
+      orgId: "org-1",
     };
     auth.generateToken(payload);
     expect(signSpy).toHaveBeenCalledWith(payload, 'fixed-secret', expect.any(Object));
@@ -200,7 +201,7 @@ describe('auth lib - authenticateUser', () => {
   it('authenticates with corporate login (username) path', async () => {
     const auth = await loadAuthModule();
     const res = await auth.authenticateUser('superadmin', 'Admin@123', 'corporate');
-    expect(res.user.username).toBeUndefined(); // public shape excludes username
+    expect((res.user as any).username).toBeUndefined(); // public shape excludes username
     expect(res.user.email).toBe('superadmin@fixzit.co');
   });
 

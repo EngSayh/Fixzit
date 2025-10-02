@@ -126,7 +126,7 @@
     "Invoke-Expression": true,
     "iex": true
   },
-  "codium.codeCompletion.enable": false,
+  "codium.codeCompletion.enable": true,
   "chat.agent.maxRequests": 250,
   "chat.agentSessionsViewLocation": "view",
   "chat.checkpoints.showFileChanges": true,

@@ -54,11 +54,11 @@ try {
     git branch $backupBranch
 
     # Switch to main and update
-    Write-Log "Switching to main branch" -Level "INFO"
-    git checkout main
-    git pull origin main
+    Write-Log "Switching to $TARGET_BRANCH branch" -Level "INFO"
+    git checkout $TARGET_BRANCH
+    git pull origin $TARGET_BRANCH
 
-    Write-Log "Merging $SOURCE_BRANCH into main" -Level "INFO"
+    Write-Log "Merging $SOURCE_BRANCH into $TARGET_BRANCH" -Level "INFO"
     
     # Attempt merge
     $mergeMessage = "Merge Aqar Real Estate Features: Tenant-scoped APIs and Map Integration
@@ -111,7 +111,7 @@ Delivers complete real estate platform functionality with enterprise-grade secur
 
     # Push the changes
     Write-Log "Pushing merged changes to remote..." -Level "INFO"
-    git push origin main
+    git push origin $TARGET_BRANCH
 
     if ($LASTEXITCODE -eq 0) {
         Write-Log "Successfully pushed merged changes" -Level "SUCCESS"

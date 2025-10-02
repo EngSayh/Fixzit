@@ -145,7 +145,7 @@ describe('Providers', () => {
 
   test('passes initialLocale through to TranslationProvider', () => {
     render(
-      <Providers initialLocale={'fr' as any}>
+      <Providers initialLocale="fr">
         <Child />
       </Providers>
     );

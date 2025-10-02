@@ -50,7 +50,7 @@ function TestI18nProvider({
 
 describe('useI18n', () => {
   it('throws if used without I18nProvider', () => {
-    const { result } = renderHook(() => useI18n());
+    const { result } = (renderHook(() => useI18n()) as any);
     expect(result.error).toBeInstanceOf(Error);
     expect(result.error?.message).toBe('useI18n must be used within <I18nProvider />');
   });
@@ -187,7 +187,7 @@ describe('useI18n', () => {
       );
 
     const { result, rerender } = renderHook(() => useI18n(), {
-      wrapper: (p) => React.createElement(Wrapper, p),
+      wrapper: ((p: any) => React.createElement(Wrapper, p)) as any,
       initialProps: { dict: initialDict },
     });
 

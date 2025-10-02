@@ -79,6 +79,6 @@
     "qa/tests",
     "vitest.config.ts",
     "vitest.setup.ts"
-    ,"src"
+    ,"src/**/*"
   ]
 }

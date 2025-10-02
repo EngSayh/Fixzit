@@ -44,7 +44,7 @@ describe('withIdempotency', () => {
     expect(exec).toHaveBeenCalledTimes(1);
     expect(p1).toBe(p2);
 
-    resolveFn(42);
+    resolveFn!(42);
     await expect(p1).resolves.toBe(42);
     await expect(p2).resolves.toBe(42);
   });
@@ -79,7 +79,7 @@ describe('withIdempotency', () => {
 
     // With ttl clamped to 0, setTimeout should be scheduled with 0 delay
     expect(setTimeout).toHaveBeenCalled();
-    const lastCall = (setTimeout as jest.Mock).mock.calls.pop();
+    const lastCall = (setTimeout as any as jest.Mock).mock.calls.pop();
     expect(lastCall?.[1]).toBe(0);
 
     // After timers run, subsequent call should execute again (no cache)

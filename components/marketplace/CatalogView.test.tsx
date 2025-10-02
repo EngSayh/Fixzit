@@ -215,7 +215,7 @@ describe('CatalogView - loading and empty states', () => {
 describe('CatalogView - product rendering and formatting', () => {
   it('renders a product card with price, unit, stock, category, rating, verified vendor, and description fallback', () => {
     const product = makeProduct()
-    product.images = undefined // to show "Image not provided"
+    product.images = undefined as any // to show "Image not provided"
     setSWRProducts({ data: makeCatalog([product]) })
     render(<CatalogView />)
 

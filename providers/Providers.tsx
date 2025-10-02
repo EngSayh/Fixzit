@@ -17,7 +17,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
  * @param {React.ReactNode} children - The React node(s) to render inside the provider tree; these are not mounted during SSR and will only be rendered client-side after the component sets the client flag.
  * @returns {JSX.Element} The provider tree wrapper or a loading indicator.
  */
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({ children, initialLocale }: { children: React.ReactNode; initialLocale?: string }) {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ResponsiveProvider>
       <I18nProvider>
-        <TranslationProvider>
+        <TranslationProvider initialLocale={initialLocale}>
           <CurrencyProvider>
             <ThemeProvider>
               <TopBarProvider>

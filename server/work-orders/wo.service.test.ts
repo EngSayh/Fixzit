@@ -1,4 +1,6 @@
 import * as svc from "./wo.service";
+import * as repo from "./wo.repo";
+import { audit } from "../utils/audit";
 // Removed references to deleted modules - tests need updating
 import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
 import { WoCreate, WoUpdate } from "./wo.schema";

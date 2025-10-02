@@ -1568,7 +1568,7 @@ const translations: Record<Language, Record<string, string>> = {
 
 const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS[0];
 
-export function TranslationProvider({ children }: { children: ReactNode }) {
+export function TranslationProvider({ children, initialLocale }: { children: ReactNode; initialLocale?: string }) {
   const [currentOption, setCurrentOption] = useState<LanguageOption>(DEFAULT_LANGUAGE_OPTION);
   const [isClient, setIsClient] = useState(false);
 

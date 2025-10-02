@@ -38,7 +38,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     const req = {} as any // Minimal NextRequest stub
     const res = await GET(req, { params })
 
-    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: params.slug })
+    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: "non-existent" })
     expect(res.status).toBe(404)
     await expect(readJson(res as any)).resolves.toEqual({ error: 'Not found' })
   })
@@ -57,7 +57,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     const req = {} as any
     const res = await GET(req, { params })
 
-    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: params.slug })
+    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: "non-existent" })
     expect(res.status).toBe(200)
 
     const body = await readJson(res as any)
