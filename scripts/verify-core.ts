@@ -4,7 +4,7 @@
  * Core verification script to test the main functionality
  */
 
-import { connectToDatabase } from '../src/lib/mongodb-unified';
+import { connectToDatabase } from '../lib/mongodb-unified';
 
 async function verifyCore() {
   console.log('🔍 Verifying core functionality...');
@@ -18,7 +18,7 @@ async function verifyCore() {
     
     // Test 2: JWT secret loading
     console.log('🔐 Testing JWT configuration...');
-    const authModule = await import('../src/lib/auth');
+    const authModule = await import('../lib/auth');
     console.log('✅ JWT auth module loaded successfully');
     
     // Test 3: Tenant isolation models

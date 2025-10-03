@@ -1,7 +1,7 @@
 'use client';
 
 import "./globals.css";
-import Providers from "@/src/providers/Providers";
+import Providers from "@/providers/Providers";
 import ClientLayout from "@/components/ClientLayout";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
