@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
+import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs-subscription';
 
 export async function POST(req: NextRequest) {
   await dbConnect();

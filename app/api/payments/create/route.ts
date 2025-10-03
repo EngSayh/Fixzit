@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPaymentPage } from '@/lib/paytabs';
+import { createPaymentPage } from '@/lib/paytabs-gateway';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { Invoice } from '@/server/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
