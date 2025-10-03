@@ -1,7 +1,7 @@
 // Unified currency formatting utilities for consistent USD/AED handling
 // Consolidates payment parsing logic across the application
 
-import { parseCartAmount, parseCartAmountOrThrow } from './parseCartAmount';
+import { parseCartAmount, parseCartAmountOrThrow } from '@/lib/payments/parseCartAmount';
 
 export type SupportedCurrency = 'USD' | 'AED' | 'SAR' | 'EUR' | 'GBP';
 
