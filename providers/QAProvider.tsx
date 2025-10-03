@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { AutoFixAgent } from '@/src/qa/AutoFixAgent';
+import { AutoFixAgent } from '@/qa/AutoFixAgent';
 import { ErrorBoundary } from '@/src/qa/ErrorBoundary';
 
 type Props = {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseCartAmount } from '../../src/lib/payments/parseCartAmount';
+import { parseCartAmount } from '../../lib/payments/parseCartAmount';
 
 test('accepts numeric input', () => {
   assert.equal(parseCartAmount(249.99), 249.99);

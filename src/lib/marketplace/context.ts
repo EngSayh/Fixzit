@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { Types } from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { objectIdFrom } from './objectIds';
+import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
 export interface MarketplaceRequestContext {
   tenantKey: string;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
+import { dbConnect } from '@/db/mongoose';
 import Benchmark from '@/server/models/Benchmark';
 import { requireSuperAdmin } from '@/lib/authz';
 
