@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey } from '@/config/topbar-modules';
+import { getSessionUser } from '@/lib/auth-utils';
+import * as crypto from 'crypto';
 
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
@@ -26,7 +28,15 @@ function generateHref(entity: string, id: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const mongoose = await connectToDatabase(); // Ensure database connection
+    const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Tenant context required', correlationId: crypto.randomUUID() },
+        { status: 401 }
+      );
+    }
+
+    const mongoose = await connectToDatabase();
     const { searchParams } = new URL(req.url);
     const app = (searchParams.get('app') || 'fm') as AppKey;
     const q = (searchParams.get('q') || '').trim();
@@ -44,11 +54,15 @@ export async function GET(req: NextRequest) {
     const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
     const results: any[] = [];
 
-    // Search across different entity types based on app
+    // Search across different entity types based on app with tenant isolation
     for (const entity of searchEntities) {
       try {
         let collection: any;
-        let searchQuery: any = { $text: { $search: q } };
+        let searchQuery: any = {
+          orgId: user.orgId,
+          $text: { $search: q },
+          deletedAt: { $exists: false }
+        };
         let projection: any = { score: { $meta: 'textScore' } };
 
         const mdb = (mongoose as any).connection?.db;
@@ -57,94 +71,42 @@ export async function GET(req: NextRequest) {
         switch (entity) {
           case 'work_orders':
             collection = mdb.collection('work_orders');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'properties':
             collection = mdb.collection('properties');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'units':
             collection = mdb.collection('units');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'tenants':
             collection = mdb.collection('tenants');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'vendors':
             collection = mdb.collection('vendors');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'invoices':
             collection = mdb.collection('invoices');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'products':
             collection = mdb.collection('products');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'services':
             collection = mdb.collection('services');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'rfqs':
             collection = mdb.collection('rfqs');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'orders':
             collection = mdb.collection('orders');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'listings':
             collection = mdb.collection('listings');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'projects':
             collection = mdb.collection('projects');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           case 'agents':
             collection = mdb.collection('agents');
-            searchQuery = { 
-              $text: { $search: q },
-              deletedAt: { $exists: false }
-            };
             break;
           default:
             continue;
@@ -172,7 +134,6 @@ export async function GET(req: NextRequest) {
         }
       } catch (error) {
         console.warn(`Search failed for entity ${entity}:`, error);
-        // Continue with other entities
       }
     }
 
@@ -182,7 +143,9 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     console.error('Search API error:', error);
-    return NextResponse.json({ results: [] }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Search failed', correlationId: crypto.randomUUID() },
+      { status: 500 }
+    );
   }
 }
-
