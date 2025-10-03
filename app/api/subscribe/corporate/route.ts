@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     await dbConnect();
     const body = await req.json();
 // Tenant isolation: ensure tenantId matches user's tenantId (unless SUPER_ADMIN)
-    if (body.tenantId && body.tenantId !== user.tenantId && user.role !== 'SUPER_ADMIN') {
+    if (body.tenantId && body.tenantId !== user.orgId && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'FORBIDDEN_TENANT_MISMATCH' }, { status: 403 });
     }
 
