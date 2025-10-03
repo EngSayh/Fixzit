@@ -34,12 +34,12 @@ async function verifyCore() {
     // Test 4: Work order functionality
     console.log('⚙️ Testing work order functionality...');
     // wo.repo module was removed, using service instead
-    const woService = await import('../src/server/work-orders/wo.service');
+    const woService = await import('../server/work-orders/wo.service');
     console.log('✅ Work order repository loaded');
     
     // Test 5: Idempotency system
     console.log('🔄 Testing idempotency system...');
-    const { withIdempotency, createIdempotencyKey } = await import('../src/server/security/idempotency');
+    const { withIdempotency, createIdempotencyKey } = await import('../server/security/idempotency');
     const testKey = createIdempotencyKey('test', { data: 'test' });
     console.log(`✅ Idempotency key generated: ${testKey.substring(0, 20)}...`);
     
