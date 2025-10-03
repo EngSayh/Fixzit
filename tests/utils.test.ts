@@ -4,7 +4,7 @@
  * Style: Node-only tests (no browser fixture).
  */
 import { test, expect } from '@playwright/test';
-import { generateSlug } from '../src/lib/utils';
+import { generateSlug } from '../lib/utils';
 
 test.describe('generateSlug', () => {
   test('returns empty string for empty input', () => {
