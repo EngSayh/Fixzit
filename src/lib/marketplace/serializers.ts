@@ -1,8 +1,8 @@
 import { Types } from 'mongoose';
-import { MarketplaceCategory } from '@/src/server/models/marketplace/Category';
-import { MarketplaceProduct } from '@/src/server/models/marketplace/Product';
-import { MarketplaceOrder } from '@/src/server/models/marketplace/Order';
-import { MarketplaceRFQ } from '@/src/server/models/marketplace/RFQ';
+import { MarketplaceCategory } from '@/server/models/marketplace/Category';
+import { MarketplaceProduct } from '@/server/models/marketplace/Product';
+import { MarketplaceOrder } from '@/server/models/marketplace/Order';
+import { MarketplaceRFQ } from '@/server/models/marketplace/RFQ';
 
 function normalizeId(id: Types.ObjectId | string | undefined | null) {
   if (!id) return undefined;

@@ -23,9 +23,9 @@ async function verifyCore() {
     
     // Test 3: Tenant isolation models
     console.log('🏢 Testing tenant isolation models...');
-    const { HelpArticle } = await import('../src/server/models/HelpArticle');
-    const { CmsPage } = await import('../src/server/models/CmsPage');
-    const { SupportTicket } = await import('../src/server/models/SupportTicket');
+    const { HelpArticle } = await import('../server/models/HelpArticle');
+    const { CmsPage } = await import('../server/models/CmsPage');
+    const { SupportTicket } = await import('../server/models/SupportTicket');
     
     console.log('✅ HelpArticle model loaded');
     console.log('✅ CmsPage model loaded');  

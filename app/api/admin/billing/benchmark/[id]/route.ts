@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/src/db/mongoose';
-import Benchmark from '@/src/db/models/Benchmark';
+import Benchmark from '@/server/models/Benchmark';
 import { requireSuperAdmin } from '@/lib/authz';
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {

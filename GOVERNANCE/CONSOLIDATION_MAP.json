@@ -1,0 +1,1746 @@
+{
+  "generatedAt": "2025-10-03T11:29:13.290Z",
+  "mode": "scan",
+  "totalDuplicateGroups": 188,
+  "decisions": [
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/_not-found/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/aqar/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/careers/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/dashboard/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/forgot-password/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/help/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/login/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/logout/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/profile/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/reports/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/settings/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/signup/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/souq/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/system/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/test-rtl/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/admin/cms/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/aqar/map/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/maintenance/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/marketplace/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/orders/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/support/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/system/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/help/ai-chat/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/help/support-ticket/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/properties/[id]/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/souq/catalog/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/souq/vendors/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/vendor/dashboard/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/admin/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/compliance/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/crm/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/hr/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/properties/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/support/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/test/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/test-cms/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/vendors/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/admin/billing/annual-discount/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/admin/billing/benchmark/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/admin/billing/pricebooks/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/ats/applications/[id]/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/rfqs/[id]/publish/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/support/tickets/my/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/admin/billing/benchmark/[id]/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/admin/billing/pricebooks/[id]/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/ats/jobs/[id]/publish/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/work-orders/[id]/attachments/presign/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/admin/discounts/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/admin/price-tiers/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/billing/subscribe/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/aqar/map/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/aqar/properties/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/ats/convert-to-employee/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/ats/jobs/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/ats/moderation/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/auth/login/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/auth/me/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/copilot/profile/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/help/articles/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/kb/ingest/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/kb/search/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/subscribe/corporate/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/subscribe/owner/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/assets/[id]/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/notifications/[id]/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/notifications/bulk/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/payments/create/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/support/tickets/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/tenants/[id]/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/assistant/query/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/copilot/chat/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/auth/logout/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/billing/charge-recurring/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/billing/quote/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/careers/apply/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/checkout/complete/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/checkout/quote/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/checkout/session/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/feeds/indeed/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/feeds/linkedin/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/health/database/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/payments/callback/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/paytabs/callback/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/paytabs/return/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/qa/alert/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/qa/health/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/qa/log/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/qa/reconnect/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/benchmarks/compare/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/copilot/knowledge/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/payments/paytabs/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/public/rfqs/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/support/welcome-email/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/billing/callback/paytabs/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/integrations/linkedin/apply/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/cms/pages/[slug]/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/owners/groups/assign-primary/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/rfqs/[id]/bids/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/support/tickets/[id]/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/files/resumes/[file]/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/files/resumes/presign/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/i18n/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/search/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/marketplace/cart/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/marketplace/checkout/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/marketplace/orders/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/marketplace/rfq/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/notifications/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/rfqs/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/slas/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/tenants/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/work-orders/[id]/assign/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/work-orders/[id]/checklists/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/work-orders/[id]/comments/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/work-orders/[id]/materials/route.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/api/work-orders/[id]/status/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/api/work-orders/export/route.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/api/work-orders/import/route.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/careers/[slug]/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/cms/[slug]/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/compliance/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/crm/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/finance/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/hr/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/reports/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/properties/documents/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/properties/inspections/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/properties/leases/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/properties/units/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/finance/budgets/new/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/finance/expenses/new/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/finance/invoices/new/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/finance/payments/new/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/finance/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/notifications/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/fm/assets/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/fm/dashboard/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/invoices/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/projects/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/properties/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/rfqs/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/tenants/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/vendors/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/fm/work-orders/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/support/my-tickets/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/fm/properties/[id]/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/fm/support/tickets/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/server/app/help/[slug]/page.js.nft.json",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/server/app/marketplace/admin/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/marketplace/checkout/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/marketplace/orders/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/marketplace/rfq/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/marketplace/vendor/page.js.nft.json",
+        "/workspaces/Fixzit/.next/server/app/product/[slug]/page.js.nft.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/static/chunks/app/api/admin/billing/benchmark/[id]/route-aa7c6890e28aef2e.js",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/static/chunks/app/api/admin/billing/pricebooks/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/ats/jobs/[id]/apply/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/ats/jobs/[id]/publish/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/support/tickets/[id]/reply/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/attachments/presign/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/checklists/toggle/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/admin/billing/annual-discount/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/admin/billing/benchmark/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/admin/billing/pricebooks/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/ats/applications/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/billing/callback/paytabs/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/cms/pages/[slug]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/files/resumes/[file]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/files/resumes/presign/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/finance/invoices/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/help/articles/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/integrations/linkedin/apply/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/products/[slug]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/vendor/products/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/owners/groups/assign-primary/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/payments/paytabs/callback/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/rfqs/[id]/bids/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/rfqs/[id]/publish/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/support/tickets/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/support/tickets/my/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/assign/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/checklists/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/comments/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/materials/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/status/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/admin/discounts/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/admin/price-tiers/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/aqar/map/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/aqar/properties/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/assets/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/assistant/query/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/ats/convert-to-employee/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/ats/jobs/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/ats/moderation/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/ats/public-post/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/auth/login/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/auth/logout/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/auth/me/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/auth/signup/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/benchmarks/compare/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/billing/charge-recurring/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/billing/quote/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/billing/subscribe/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/careers/apply/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/checkout/complete/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/checkout/quote/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/checkout/session/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/copilot/chat/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/copilot/knowledge/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/copilot/profile/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/feeds/indeed/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/feeds/linkedin/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/finance/invoices/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/health/database/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/help/articles/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/help/ask/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/invoices/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/kb/ingest/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/kb/search/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/cart/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/categories/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/checkout/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/orders/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/products/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/rfq/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/marketplace/search/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/notifications/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/notifications/bulk/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/payments/callback/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/payments/create/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/payments/paytabs/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/paytabs/callback/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/paytabs/return/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/projects/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/properties/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/public/rfqs/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/qa/alert/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/qa/health/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/qa/log/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/qa/reconnect/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/subscribe/corporate/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/subscribe/owner/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/support/incidents/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/support/tickets/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/support/welcome-email/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/tenants/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/vendors/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/[id]/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/export/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/import/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/finance/budgets/new/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/finance/expenses/new/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/finance/invoices/new/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/finance/payments/new/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/assets/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/contracts/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/i18n/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/invoices/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/notifications/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/projects/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/properties/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/rfqs/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/search/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/slas/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/tenants/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/vendors/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/api/work-orders/route-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/careers/[slug]/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/fm/compliance/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/fm/crm/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/fm/finance/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/fm/hr/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/fm/reports/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/marketplace/admin/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/marketplace/orders/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/properties/documents/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/properties/inspections/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/properties/leases/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/properties/units/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/_not-found/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/admin/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/aqar/layout-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/compliance/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/crm/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/hr/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/marketplace/layout-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/properties/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/souq/layout-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/support/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/test/page-aa7c6890e28aef2e.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/vendors/page-aa7c6890e28aef2e.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.next/static/chunks/app/cms/[slug]/page-da5c1c1eabbf6651.js",
+      "duplicates": [
+        "/workspaces/Fixzit/.next/static/chunks/app/help/[slug]/page-da5c1c1eabbf6651.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/product/[slug]/page-da5c1c1eabbf6651.js",
+        "/workspaces/Fixzit/.next/static/chunks/app/test-cms/page-da5c1c1eabbf6651.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.trash/src/config/sidebarModules.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/config/sidebarModules.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.trash/src/config/topbar-modules.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/config/topbar-modules.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.trash/src/contexts/ThemeContext.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/contexts/ThemeContext.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/.venv/lib/python3.12/site-packages/pip-25.2.dist-info/licenses/src/pip/_vendor/idna/LICENSE.md",
+      "duplicates": [
+        "/workspaces/Fixzit/.venv/lib/python3.12/site-packages/idna-3.10.dist-info/LICENSE.md"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Benchmark.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/Benchmark.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/DiscountRule.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/DiscountRule.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Module.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/Module.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/OwnerGroup.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/OwnerGroup.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/PaymentMethod.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/PaymentMethod.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/PriceBook.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/PriceBook.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/ServiceAgreement.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/ServiceAgreement.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Subscription.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/db-models-old/Subscription.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/Benchmark.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/Benchmark.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/Customer.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/Customer.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/DiscountRule.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/DiscountRule.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/MarketplaceProduct.d.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/MarketplaceProduct.d.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/MarketplaceProduct.js",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/MarketplaceProduct.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/MarketplaceProduct.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/MarketplaceProduct.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/Module.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/Module.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/Organization.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/Organization.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/OwnerGroup.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/OwnerGroup.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/PaymentMethod.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/PaymentMethod.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/PriceTier.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/PriceTier.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/SearchSynonym.d.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/SearchSynonym.d.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/SearchSynonym.js",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/SearchSynonym.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/SearchSynonym.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/models-old/SearchSynonym.ts",
+        "/workspaces/Fixzit/server/models/SearchSynonym.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/ServiceContract.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/ServiceContract.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/Subscription.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/Subscription.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/SubscriptionInvoice.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/SubscriptionInvoice.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/marketplace/AttributeSet.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/marketplace/AttributeSet.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/marketplace/Category.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/marketplace/Category.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/marketplace/Order.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/marketplace/Order.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/marketplace/Product.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/marketplace/Product.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/marketplace/RFQ.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/marketplace/RFQ.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/_deprecated/models-old/utils/collectionNames.js",
+      "duplicates": [
+        "/workspaces/Fixzit/_deprecated/src-models-old/utils/collectionNames.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/ai/embeddings.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/ai/embeddings.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/app/api/marketplace/products/[slug]/route.test.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/src/utils/format.test.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/aiops/2018-05-10/waiters-2.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/amplifyuibuilder/2021-08-11/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/appfabric/2023-05-19/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/apptest/2022-12-06/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/arc-zonal-shift/2022-10-30/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/artifact/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/backupsearch/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bcm-dashboards/2025-08-18/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bcm-pricing-calculator/2024-06-19/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bcm-recommended-actions/2024-11-14/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bedrock-agent/2023-06-05/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bedrock-agent-runtime/2023-07-26/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bedrock-agentcore/2024-02-28/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/billing/2023-09-07/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cleanrooms/2022-02-17/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cleanroomsml/2023-09-06/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/codecatalyst/2022-09-28/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/codeguru-security/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/controlcatalog/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cost-optimization-hub/2022-07-26/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/dataexchange/2017-07-25/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/evs/2023-07-27/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/freetier/2023-09-07/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/internetmonitor/2021-06-03/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/invoicing/2024-12-01/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iotfleetwise/2021-06-17/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iottwinmaker/2021-11-29/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ivs-realtime/2020-07-14/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ivschat/2020-07-14/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kafkaconnect/2021-09-14/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/license-manager-user-subscriptions/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/mailmanager/2023-10-17/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/managedblockchain-query/2023-05-04/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/marketplace-reporting/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/medical-imaging/2023-07-19/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/migrationhuborchestrator/2021-08-28/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/mpa/2022-07-26/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/networkflowmonitor/2023-04-19/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/networkmonitor/2023-08-01/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/notifications/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/notificationscontacts/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/observabilityadmin/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/odb/2024-08-20/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/opensearchserverless/2021-11-01/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/partnercentral-selling/2022-07-26/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/payment-cryptography/2021-09-14/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/payment-cryptography-data/2022-02-03/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pca-connector-scep/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pcs/2023-02-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pinpoint-sms-voice-v2/2022-03-31/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pipes/2015-10-07/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pricing/2017-10-15/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/qapps/2023-11-27/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/qbusiness/2023-11-27/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/qconnect/2020-10-19/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/s3tables/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/s3vectors/2025-07-15/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/security-ir/2018-05-10/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sso-admin/2020-07-20/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/verifiedpermissions/2021-12-01/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/workspaces-instances/2022-07-26/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/workspaces-web/2020-07-08/waiters-2.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/apigateway/2015-07-09/completions-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/application-autoscaling/2016-02-06/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/budgets/2016-10-20/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ce/2017-10-25/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cloudfront/2020-05-31/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cloudsearchdomain/2013-01-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cognito-identity/2014-06-30/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cognito-idp/2016-04-18/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/connect/2017-08-08/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/datapipeline/2012-10-29/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/dlm/2018-01-12/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/eks/2017-11-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/glacier/2012-06-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/glue/2017-03-31/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iot-data/2015-05-28/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iot-jobs-data/2017-09-29/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-archived-media/2017-09-30/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-media/2017-09-30/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lex-models/2017-04-19/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lex-runtime/2016-11-28/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lightsail/2016-11-28/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/marketplace-entitlement/2017-01-11/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/marketplacecommerceanalytics/2015-07-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/mediastore/2017-09-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/meteringmarketplace/2016-01-14/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pi/2018-02-27/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pinpoint/2016-12-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/resourcegroupstaggingapi/2017-01-26/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/s3/2006-03-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sagemaker-runtime/2017-05-13/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/secretsmanager/2017-10-17/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sts/2011-06-15/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/swf/2012-01-25/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/translate/2017-07-01/completions-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/xray/2016-04-12/completions-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/apigateway/2015-07-09/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/apigatewayv2/2018-11-29/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/apigatewaymanagementapi/2018-11-29/paginators-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/appconfigdata/2021-11-11/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/appflow/2020-08-23/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/application-insights/2018-11-25/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/apprunner/2020-05-15/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/auditmanager/2017-07-25/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bedrock-data-automation-runtime/2024-06-13/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/chime-sdk-identity/2021-04-20/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/chime-sdk-media-pipelines/2021-07-15/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/chime-sdk-meetings/2021-07-15/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/chime-sdk-messaging/2021-05-15/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cloudsearch/2013-01-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cloudsearchdomain/2013-01-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cloudtrail-data/2021-08-11/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/codeconnections/2023-12-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/codestar-connections/2019-12-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/cognito-sync/2014-06-30/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/comprehendmedical/2018-10-30/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/connect-contact-lens/2020-08-21/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/connectparticipant/2018-09-07/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/detective/2018-10-26/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/dlm/2018-01-12/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/dynamodbstreams/2012-08-10/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ebs/2019-11-02/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ec2-instance-connect/2018-04-02/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/eks-auth/2023-11-26/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/firehose/2015-08-04/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/forecastquery/2018-06-26/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/frauddetector/2019-11-15/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/geo-maps/2020-11-19/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/geo-places/2020-11-19/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/geo-routes/2020-11-19/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/healthlake/2017-07-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/inspector-scan/2023-08-08/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iot-jobs-data/2017-09-29/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iotdeviceadvisor/2020-09-18/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iotevents/2018-07-27/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iotevents-data/2018-10-23/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iotsecuretunneling/2018-10-05/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iottwinmaker/2021-11-29/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/iotwireless/2020-11-22/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ivschat/2020-07-14/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kendra/2019-02-03/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kendra-ranking/2022-10-19/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-media/2017-09-30/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-signaling/2019-12-04/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-webrtc-storage/2018-05-10/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesisanalytics/2015-08-14/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lex-runtime/2016-11-28/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lexv2-models/2020-08-07/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lexv2-runtime/2020-08-07/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lookoutequipment/2020-12-15/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/lookoutmetrics/2017-07-25/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/marketplace-agreement/2020-03-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/marketplace-deployment/2023-01-25/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/marketplace-reporting/2018-05-10/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/marketplacecommerceanalytics/2015-07-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/meteringmarketplace/2016-01-14/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/migrationhub-config/2019-06-30/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/neptunedata/2023-08-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/opensearchserverless/2021-11-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/panorama/2019-07-24/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/payment-cryptography-data/2022-02-03/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/personalize-events/2018-03-22/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/personalize-runtime/2018-05-22/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pi/2018-02-27/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/qldb/2019-01-02/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/qldb-session/2019-07-11/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/rds-data/2018-08-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sagemaker-edge/2020-09-23/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sagemaker-featurestore-runtime/2020-07-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sagemaker-metrics/2022-09-30/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sagemaker-runtime/2017-05-13/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/savingsplans/2019-06-28/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/simspaceweaver/2022-10-28/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ssm-guiconnect/2021-05-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sso-oidc/2019-06-10/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/sts/2011-06-15/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/support-app/2021-08-20/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/synthetics/2017-10-11/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/timestream-write/2018-11-01/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/transcribe/2017-10-26/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/waf-regional/2016-11-28/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/wafv2/2019-07-29/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/wellarchitected/2020-03-31/paginators-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/workmailmessageflow/2019-05-01/paginators-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bedrock/2023-04-20/waiters-2.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/bedrock-runtime/2023-09-30/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/eks-auth/2023-11-26/waiters-2.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/keyspaces/2022-02-10/waiters-2.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/docdb/2014-10-31/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/neptune/2014-10-31/endpoint-rule-set-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/rds/2014-10-31/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/docdb/2014-10-31/service-2.sdk-extras.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/neptune/2014-10-31/service-2.sdk-extras.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/docdb/2014-10-31/waiters-2.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/neptune/2014-10-31/waiters-2.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/elb/2012-06-01/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/elbv2/2015-12-01/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/es/2015-01-01/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/opensearch/2021-01-01/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/greengrass/2017-06-07/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/greengrassv2/2020-11-30/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-archived-media/2017-09-30/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-media/2017-09-30/endpoint-rule-set-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesis-video-signaling/2019-12-04/endpoint-rule-set-1.json",
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesisvideo/2017-09-30/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesisanalytics/2015-08-14/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/kinesisanalyticsv2/2018-05-23/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/aws/dist/awscli/botocore/data/pinpoint-email/2018-07-26/endpoint-rule-set-1.json",
+      "duplicates": [
+        "/workspaces/Fixzit/aws/dist/awscli/botocore/data/ses/2010-12-01/endpoint-rule-set-1.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/client/woClient.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/client/woClient.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/config/modules.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/config/modules.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/contexts/CurrencyContext.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/contexts/CurrencyContext.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/contexts/ResponsiveContext.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/contexts/ResponsiveContext.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/core/ArchitectureGuard.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/core/ArchitectureGuard.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/core/DuplicatePrevention.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/core/DuplicatePrevention.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/core/RuntimeMonitor.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/core/RuntimeMonitor.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/data/language-options.test.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/data/language-options.test.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/data/language-options.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/data/language-options.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/mongoose.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/db/mongoose.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/hooks/useScreenSize.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/hooks/useScreenSize.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/hooks/useUnsavedChanges.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/hooks/useUnsavedChanges.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/I18nProvider.test.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/I18nProvider.test.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/I18nProvider.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/I18nProvider.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/config.test.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/config.test.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/config.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/config.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/dictionaries/ar.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/dictionaries/ar.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/dictionaries/en.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/dictionaries/en.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/useI18n.test.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/useI18n.test.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/i18n/useI18n.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/i18n/useI18n.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/jobs/recurring-charge.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/jobs/recurring-charge.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/kb/chunk.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/kb/chunk.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/kb/ingest.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/kb/ingest.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/kb/search.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/kb/search.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/AutoFixManager.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/AutoFixManager.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/ats/scoring.test.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/ats/scoring.test.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/ats/scoring.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/ats/scoring.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/auth.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/auth.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/authz.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/authz.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/aws-secrets.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/aws-secrets.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/markdown.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/markdown.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/marketplace/cartClient.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/marketplace/cartClient.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/marketplace/context.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/marketplace/context.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/marketplace/correlation.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/marketplace/correlation.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/marketplace/objectIds.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/marketplace/objectIds.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/marketplace/security.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/marketplace/security.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/marketplace/serverFetch.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/marketplace/serverFetch.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/mongo.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/mongo.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/mongodb-unified.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/mongodb-unified.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/mongoose-typed.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/mongoose-typed.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/payments/currencyUtils.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/payments/currencyUtils.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/payments/parseCartAmount.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/payments/parseCartAmount.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/paytabs/callback.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/paytabs/callback.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/paytabs.config.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/paytabs.config.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/paytabs.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/paytabs.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/pricing.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/pricing.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/rbac.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/rbac.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/regex.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/regex.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/sla.spec.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/sla.spec.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/sla.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/sla.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/storage/s3.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/storage/s3.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/lib/zatca.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/lib/zatca.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/nav/registry.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/nav/registry.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/providers/Providers.test.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/providers/Providers.test.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/providers/QAProvider.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/providers/QAProvider.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/app-fixed.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/app-fixed.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/app.css",
+      "duplicates": [
+        "/workspaces/Fixzit/public/app.css"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/app.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/app.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/arabic-support.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/arabic-support.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/js/hijri-calendar-mobile.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/js/hijri-calendar-mobile.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/js/saudi-mobile-optimizations.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/js/saudi-mobile-optimizations.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/js/secure-utils.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/js/secure-utils.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/manifest.json",
+      "duplicates": [
+        "/workspaces/Fixzit/public/manifest.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/prayer-times.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/prayer-times.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/script.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/script.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/simple-app.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/simple-app.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/styles.css",
+      "duplicates": [
+        "/workspaces/Fixzit/public/styles.css"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/sw.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/sw.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/public/public/ui-bootstrap.js",
+      "duplicates": [
+        "/workspaces/Fixzit/public/ui-bootstrap.js"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/qa/AutoFixAgent.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/qa/AutoFixAgent.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/qa/ErrorBoundary.tsx",
+      "duplicates": [
+        "/workspaces/Fixzit/qa/ErrorBoundary.tsx"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/qa/acceptance.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/qa/acceptance.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/qa/consoleHijack.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/qa/consoleHijack.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/qa/domPath.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/qa/domPath.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/qa/qa/artifacts/.last-run.json",
+      "duplicates": [
+        "/workspaces/Fixzit/test-results/.last-run.json"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/qa/qaPatterns.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/qa/qaPatterns.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Application.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Application.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Asset.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Asset.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/AtsSettings.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/AtsSettings.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Candidate.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Candidate.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/CmsPage.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/CmsPage.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/CopilotAudit.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/CopilotAudit.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/CopilotKnowledge.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/CopilotKnowledge.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/Customer.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Customer.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Employee.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Employee.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/HelpArticle.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/HelpArticle.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Job.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Job.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Organization.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Organization.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/OwnerStatement.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/OwnerStatement.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Project.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Project.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/RFQ.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/RFQ.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/SLA.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/SLA.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/ServiceContract.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/ServiceContract.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/SupportTicket.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/SupportTicket.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Tenant.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Tenant.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/db/models/Vendor.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/Vendor.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/__tests__/Candidate.test.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/__tests__/Candidate.test.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/marketplace/AttributeSet.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/marketplace/AttributeSet.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/marketplace/Category.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/marketplace/Category.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/marketplace/Order.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/marketplace/Order.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/marketplace/Product.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/marketplace/Product.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/server/models/marketplace/RFQ.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/server/models/marketplace/RFQ.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/sla.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/sla.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/styles/tokens.css",
+      "duplicates": [
+        "/workspaces/Fixzit/styles/tokens.css"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/types/jest-dom.d.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/types/jest-dom.d.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/types/properties.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/types/properties.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/types/work-orders.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/types/work-orders.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/utils/format.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/utils/format.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    },
+    {
+      "canonical": "/workspaces/Fixzit/src/utils/rbac.ts",
+      "duplicates": [
+        "/workspaces/Fixzit/utils/rbac.ts"
+      ],
+      "reason": "Selected by: TypeScript preference + path depth"
+    }
+  ]
+}
