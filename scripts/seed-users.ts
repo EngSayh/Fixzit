@@ -1,5 +1,5 @@
 import { db } from '../src/lib/mongo';
-import { User } from '../src/server/models/User';
+import { User } from '../server/models/User';
 import { hashPassword } from '../src/lib/auth';
 
 const initialUsers = [
