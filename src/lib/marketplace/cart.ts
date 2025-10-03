@@ -1,4 +1,4 @@
-import Order from '@/models/marketplace/Order';
+import Order from '@/src/server/models/marketplace/Order';
 import { Types } from 'mongoose';
 
 export async function getOrCreateCart(orgId: Types.ObjectId, buyerUserId: Types.ObjectId) {

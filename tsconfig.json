@@ -79,5 +79,7 @@
     "qa/tests",
     "vitest.config.ts",
     "vitest.setup.ts"
+  ,
+    "__legacy"
   ]
 }

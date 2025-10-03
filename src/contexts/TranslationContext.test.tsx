@@ -53,7 +53,7 @@ jest.mock('@/i18n/config', () => {
   };
 });
 
-import { TranslationProvider, useTranslation } from './TranslationContext';
+import { TranslationProvider, useTranslation } from '@/contexts/TranslationContext';
 
 function HookProbe({
   probe,
@@ -77,7 +77,7 @@ describe('TranslationProvider', () => {
 
   it('renders children and passes through the provided initialLocale', () => {
     render(
-      <TranslationProvider initialLocale="ar">
+      <TranslationProvider>
         <div data-testid="child">child</div>
       </TranslationProvider>
     );
@@ -112,7 +112,7 @@ describe('useTranslation', () => {
 
   function renderWithProvider(probe: (v: ReturnType<typeof useTranslation>) => void) {
     render(
-      <TranslationProvider initialLocale="en">
+      <TranslationProvider>
         <HookProbe probe={probe} />
       </TranslationProvider>
     );

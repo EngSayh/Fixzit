@@ -48,7 +48,7 @@ describe('Candidate model - findByEmail', () => {
       // Mock MockModel to capture interactions
       class FakeMockModel {
         public storeName: string;
-        static find: Mock<any, any> = jest.fn();
+        static find: jest.MockedFunction<any> = jest.fn();
         constructor(name: string) {
           this.storeName = name;
         }
@@ -83,7 +83,7 @@ describe('Candidate model - findByEmail', () => {
     });
 
     test('returns the first element when MockModel.find resolves to an array', async () => {
-      const { Candidate } = await import('../Candidate');
+      const { Candidate } = await import('./Candidate');
 
       // Arrange
       const orgId = 'org-1';
@@ -94,7 +94,7 @@ describe('Candidate model - findByEmail', () => {
       // We set the mock to resolve to array
       // We need access to the mocked find. Locate via Candidate since we did not export it, but we can rely on our mock captured function.
       // As we mocked MockModel to return an instance where find is a jest.fn, we can retrieve it by spying on (Candidate as any).find
-      const findFn = (Candidate as any).find as Mock;
+      const findFn = (Candidate as any).find as jest.MockedFunction<any>;
 
       findFn.mockResolvedValueOnce([first, second]);
 
@@ -107,13 +107,13 @@ describe('Candidate model - findByEmail', () => {
     });
 
     test('returns the value when MockModel.find resolves to a non-array', async () => {
-      const { Candidate } = await import('../Candidate');
+      const { Candidate } = await import('./Candidate');
 
       const orgId = 'org-2';
       const email = 'solo@example.com';
       const lone = { id: 'only-1', orgId, email, marker: 'single' };
 
-      const findFn = (Candidate as any).find as Mock;
+      const findFn = (Candidate as any).find as jest.MockedFunction<any>;
       findFn.mockResolvedValueOnce(lone);
 
       const result = await (Candidate as any).findByEmail(orgId, email);
@@ -124,7 +124,7 @@ describe('Candidate model - findByEmail', () => {
   });
 
   describe('when isMockDB = false', () => {
-    let findOneSpy: Mock;
+    let findOneSpy: jest.MockedFunction<any>;
 
     beforeEach(async () => {
       await resetModules();
@@ -161,7 +161,7 @@ describe('Candidate model - findByEmail', () => {
     });
 
     test('delegates to RealCandidate.findOne with correct filter', async () => {
-      const { Candidate } = await import('../Candidate');
+      const { Candidate } = await import('./Candidate');
 
       const orgId = 'org-3';
       const email = 'real@example.com';
@@ -221,7 +221,7 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
   });
 
   test('applies defaults for skills [] and experience 0 on create', async () => {
-    const mod = await import('../Candidate');
+    const mod = await import('./Candidate');
 
     // Access RealCandidate via constructor path: with our mock, RealCandidate is the result of model(),
     // which we do not export; but we can exercise via our mocked model create by importing the module again with a tailored mock.
@@ -256,7 +256,7 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
         InferSchemaType: {} as any,
       }), { virtual: true });
 
-      await import('../Candidate');
+      await import('./Candidate');
 
       // Simulate creating a minimal doc (orgId is required, so include it)
       const RealCandidateLike = (await import('mongoose')) as any;

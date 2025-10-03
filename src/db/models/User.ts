@@ -1,6 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
-import { auditPlugin } from "../plugins/auditPlugin";
+import { tenantIsolationPlugin } from "@/src/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/src/server/plugins/auditPlugin";
 
 // User roles enum - comprehensive RBAC matrix
 export const UserRole = {

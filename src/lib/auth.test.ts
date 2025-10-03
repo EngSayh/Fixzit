@@ -41,11 +41,11 @@ const verifySpy = jest.fn((token: string, _secret: string) => {
 jest.mock('jsonwebtoken', () => ({
   __esModule: true,
   default: {
-    sign: (...args: any[]) => signSpy(...args),
-    verify: (...args: any[]) => verifySpy(...args),
+    sign: (payload: any, secret: any, opts?: any) => signSpy(payload, secret, opts),
+    verify: (token: any, secret: any) => verifySpy(token, secret),
   },
-  sign: (...args: any[]) => signSpy(...args),
-  verify: (...args: any[]) => verifySpy(...args),
+  sign: (payload: any, secret: any, opts?: any) => signSpy(payload, secret, opts),
+  verify: (token: any, secret: any) => verifySpy(token, secret),
 }));
 
 // Mock mongo layer to control isMockDB and db connection behavior
@@ -83,7 +83,6 @@ describe('auth lib - JWT generation and verification', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.JWT_SECRET;
-    // @ts-expect-error - Mocking NODE_ENV for test
     // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     mockIsMockDB = true; // keep mock DB for model stubbing in module
@@ -128,7 +127,6 @@ describe('auth lib - JWT generation and verification', () => {
   it('uses ephemeral secret when JWT_SECRET is unset (non-production) and warns once on module init', async () => {
     delete process.env.JWT_SECRET;
     // @ts-expect-error - Mocking NODE_ENV for test
-    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'development';
     const beforeWarns = consoleWarnSpy.mock.calls.length;
     await loadAuthModule();
@@ -142,7 +140,6 @@ describe('auth lib - JWT generation and verification', () => {
   it('throws on module init if in production without JWT_SECRET', async () => {
     delete process.env.JWT_SECRET;
     // @ts-expect-error - Mocking NODE_ENV for test
-    // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'production';
     await expect(loadAuthModule()).rejects.toThrow(
       'JWT_SECRET environment variable must be configured in production environments.'
@@ -150,7 +147,6 @@ describe('auth lib - JWT generation and verification', () => {
   });
 
   it('uses provided JWT_SECRET when set', async () => {
-    // @ts-expect-error - Mocking NODE_ENV for test
     // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     process.env.JWT_SECRET = 'fixed-secret';
@@ -163,6 +159,7 @@ describe('auth lib - JWT generation and verification', () => {
       email: 'e@x.com',
       role: 'USER',
       tenantId: 't',
+      orgId: 'org-1',
     };
     auth.generateToken(payload);
     expect(signSpy).toHaveBeenCalledWith(payload, 'fixed-secret', expect.any(Object));
@@ -173,7 +170,6 @@ describe('auth lib - authenticateUser', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Ensure stable env and mock DB to use inline mock User model path
-    // @ts-expect-error - Mocking NODE_ENV for test
     // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     delete process.env.JWT_SECRET;
@@ -210,6 +206,7 @@ describe('auth lib - authenticateUser', () => {
   it('authenticates with corporate login (username) path', async () => {
     const auth = await loadAuthModule();
     const res = await auth.authenticateUser('superadmin', 'Admin@123', 'corporate');
+    // @ts-expect-error - checking that username does not exist in public shape
     expect(res.user.username).toBeUndefined(); // public shape excludes username
     expect(res.user.email).toBe('superadmin@fixzit.co');
   });
@@ -258,7 +255,6 @@ describe('auth lib - authenticateUser', () => {
 describe('auth lib - getUserFromToken', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error - Mocking NODE_ENV for test
     // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     delete process.env.JWT_SECRET;

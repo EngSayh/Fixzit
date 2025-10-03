@@ -61,7 +61,6 @@ describe('generateSlug', () => {
 
   // Failure/robustness scenarios at runtime (TS type is string; simulate bad inputs)
   it('handles undefined or null at runtime safely by treating as empty string', () => {
-    // @ts-expect-error Testing runtime robustness against undefined
     expect(generateSlug(undefined)).toBe('');
     // @ts-expect-error Testing runtime robustness against null
     expect(generateSlug(null)).toBe('');

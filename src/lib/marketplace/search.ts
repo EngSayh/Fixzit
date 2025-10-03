@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { MarketplaceProduct } from '@/models/marketplace/Product';
+import { MarketplaceProduct } from '@/src/server/models/marketplace/Product';
 import { Types } from 'mongoose';
-import Product from '@/models/marketplace/Product';
+import Product from '@/src/server/models/marketplace/Product';
 import { db } from '@/lib/mongo';
 import { serializeProduct } from './serializers';
 
