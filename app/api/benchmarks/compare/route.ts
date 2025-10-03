@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Benchmark from '@/server/models/Benchmark';
-import { computeQuote } from '@/lib/pricing';
+import { computeQuote } from '@/lib/pricing-utils';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { z } from 'zod';
 

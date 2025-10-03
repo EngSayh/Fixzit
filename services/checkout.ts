@@ -1,6 +1,6 @@
 import PriceBook from '@/server/models/PriceBook';
 import Subscription from '@/server/models/Subscription';
-import { quotePrice, BillingCycle, QuoteResult } from './pricing';
+import { quotePrice, BillingCycle, QuoteResult } from './subscription-pricing';
 
 type QuoteSuccess = Extract<QuoteResult, { requiresQuote: false }>;
 

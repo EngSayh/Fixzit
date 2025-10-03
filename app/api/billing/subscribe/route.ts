@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import Customer from '@/server/models/Customer';
 import Subscription from '@/server/models/Subscription';
 import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
-import { computeQuote } from '@/lib/pricing';
+import { computeQuote } from '@/lib/pricing-utils';
 import { createHppRequest } from '@/lib/paytabs-gateway';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
