@@ -4,7 +4,7 @@ import Customer from '@/server/models/Customer';
 import Subscription from '@/server/models/Subscription';
 import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
 import { computeQuote } from '@/lib/pricing';
-import { createHppRequest } from '@/lib/paytabs';
+import { createHppRequest } from '@/lib/paytabs-gateway';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
 import { z } from 'zod';

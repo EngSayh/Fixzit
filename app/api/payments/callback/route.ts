@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPayment, validateCallback } from '@/lib/paytabs';
+import { verifyPayment, validateCallback } from '@/lib/paytabs-gateway';
 import { parseCartAmount } from '@/lib/payments/parseCartAmount';
 import { Invoice } from '@/server/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
