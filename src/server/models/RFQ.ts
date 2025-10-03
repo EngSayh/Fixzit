@@ -7,7 +7,7 @@ const RFQSchema = new Schema({
   tenantId: { type: String, required: true, index: true },
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  code: { type: String, required: true }, // Uniqueness enforced by compound index with tenantId
   title: { type: String, required: true },
   description: { type: String, required: true },
 
@@ -93,7 +93,7 @@ const RFQSchema = new Schema({
 
   // Bids
   bids: [{
-    bidId: { type: String, unique: true },
+    bidId: { type: String }, // Uniqueness enforced by compound index (tenantId, bidId)
     vendorId: String,
     vendorName: String,
     submitted: Date,
@@ -191,6 +191,7 @@ const RFQSchema = new Schema({
 });
 
 // Indexes for performance
+RFQSchema.index({ tenantId: 1, code: 1 }, { unique: true }); // Ensure unique code per tenant
 RFQSchema.index({ tenantId: 1, status: 1 });
 RFQSchema.index({ tenantId: 1, category: 1 });
 RFQSchema.index({ tenantId: 1, 'timeline.bidDeadline': 1 });
