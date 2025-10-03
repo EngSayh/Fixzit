@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey } from '@/config/topbar-modules';
-import { getSessionUser } from '@/lib/auth-utils';
+import { getSessionUser } from '@/lib/auth-middleware';
 import * as crypto from 'crypto';
 
 // Helper function to generate href based on entity type

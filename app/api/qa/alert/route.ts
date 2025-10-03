@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
-import { getSessionUser } from '@/lib/auth-utils';
+import { getSessionUser } from '@/lib/auth-middleware';
 import * as crypto from 'crypto';
 
 export async function POST(req: NextRequest) {

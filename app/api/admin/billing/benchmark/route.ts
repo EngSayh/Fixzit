@@ -6,7 +6,7 @@ import { requireSuperAdmin } from '@/lib/authz';
 export async function GET(req: NextRequest) {
   await connectToDatabase();
   const user = await requireSuperAdmin(req);
-  const query = user.role === 'SUPER_ADMIN' ? {} : { tenantId: user.orgId };
+  const query = user.role === 'SUPER_ADMIN' ? {} : { tenantId: user.tenantId };
   const docs = await Benchmark.find(query).lean();
   return NextResponse.json(docs);
 }
