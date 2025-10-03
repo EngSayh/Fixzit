@@ -52,7 +52,14 @@
     "i18n:check": "tsx scripts/i18n/check_language_selector.ts",
     "mongo:normalize": "tsx scripts/mongo/normalize_org_ids.ts",
     "mongo:normalize:apply": "tsx scripts/mongo/normalize_org_ids.ts --apply",
-    "guardrails:all": "npm run sidebar:snapshot && npm run ui:freeze:check && npm run i18n:check && npm run consolidate:dry"
+    "guardrails:all": "npm run sidebar:snapshot && npm run ui:freeze:check && npm run i18n:check && npm run consolidate:dry",
+    "progress:start": "node scripts/progress-reporter.mjs start",
+    "progress:step": "node scripts/progress-reporter.mjs step",
+    "agent:loop": "node scripts/agent-loop.mjs",
+    "consolidate:scan": "node scripts/consolidate.mjs",
+    "consolidate:archive": "node scripts/consolidate.mjs --apply",
+    "verify:checklist": "node scripts/verify-checklist.mjs",
+    "qa:governance": "npm run consolidate:scan && npm run verify:checklist"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.896.0",

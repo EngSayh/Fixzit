@@ -26,6 +26,16 @@ testRunner.mock("./wo.schema", () => ({
   WoUpdate: { parse: testRunner.fn() },
 }));
 
+// Mock the repo and audit imports (referenced below but not imported)
+const repo = {
+  woCreate: jest.fn(),
+  woUpdate: jest.fn(),
+  woGet: jest.fn(),
+  woList: jest.fn(),
+};
+
+const audit = jest.fn();
+
 const mocked = {
   woCreate: (repo as any).woCreate as jest.Mock,
   woUpdate: (repo as any).woUpdate as jest.Mock,

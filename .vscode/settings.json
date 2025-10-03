@@ -1,41 +1,58 @@
 {
-  "files.exclude": {
-    "**/_archive": true,
-    "**/_artifacts": true,
-    "**/coverage": true,
-    "**/playwright-report": true,
-    "**/*.zip": true,
-    "**/*.tar.gz": true,
-    "**/*.log": true,
-    "**/*.bak": true
+  // Turn on Agent mode features
+  "chat.agent.enabled": true,
+
+  // Auto-approve file edits for your code, but block sensitive files
+  "chat.tools.edits.autoApprove": {
+    "**/*": true,
+    "**/.vscode/*.json": false,
+    "**/.env*": false
   },
-  "files.watcherExclude": {
-    "**/node_modules/**": true,
-    "**/.git/**": true,
-    "**/.next/**": true,
-    "**/dist/**": true,
-    "**/out/**": true,
-    "**/build/**": true,
-    "**/.turbo/**": true,
-    "**/.cache/**": true
+
+  // Whitelist terminal commands the agent can run without asking
+  "chat.tools.terminal.autoApprove": {
+    "/^npm (install|run\\b.*)$/": true,
+    "/^pnpm (install|run\\b.*)$/": true,
+    "/^yarn (install|run\\b.*)$/": true,
+    "/^git (status|pull|show|diff|log|branch|checkout|add|commit|push)\\b/": true,
+    "/^npx tsc\\b/": true,
+    "/^grep\\b/": true,
+    "/^find\\b/": true,
+    "/^cat\\b/": true,
+    "/^ls\\b/": true,
+    "/^mkdir\\b/": true,
+    "/^cp\\b/": true,
+    "/^mv\\b/": true,
+    "/^sed\\b/": true,
+    "/^python3?\\b/": true,
+    "/^node\\b/": true,
+    "/^echo\\b/": true,
+    "/^timeout\\b/": true,
+    "/^head\\b/": true,
+    "/^tail\\b/": true,
+    "/^wc\\b/": true,
+    "/^sort\\b/": true,
+    "/^uniq\\b/": true,
+
+    // Always require approval for destructive stuff
+    "rm": false,
+    "rmdir": false,
+    "del": false,
+    "/^Remove-Item\\b/i": false,
+    "/^git reset --hard/": false,
+    "/^git push -f/": false
   },
-  "search.exclude": {
-    "**/_archive/**": true,
-    "**/_artifacts/**": true,
-    "**/node_modules": true,
-    "**/.git": true,
-    "**/.next": true,
-    "**/dist": true,
-    "**/out": true,
-    "**/build": true,
-    "**/.turbo": true,
-    "**/.cache": true
-  },
-  "typescript.tsserver.maxTsServerMemory": 4096,
-  "git.autofetch": false,
-  "git.postCommitCommand": "none",
-  "editor.formatOnSave": false,
-  "editor.codeActionsOnSave": {},
-  "remote.SSH.serverAliveInterval": 30,
-  "remote.SSH.serverAliveCountMax": 120
+
+  // Accept edit suggestions automatically after 2 seconds
+  "chat.editing.autoAcceptDelay": 2,
+
+  // Let agent run defined workspace tasks (build/dev) when needed
+  "github.copilot.chat.agent.runTasks": true,
+
+  // Enable chat checkpoints for rollback capability
+  "chat.checkpoints.enabled": true,
+
+  // TypeScript settings
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
 }

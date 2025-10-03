@@ -36,7 +36,7 @@ describe('withIdempotency', () => {
 
   test('returns same promise for concurrent calls with same key before first resolves', async () => {
     const key = 'K1';
-    let resolveFn: (v: number) => void;
+    let resolveFn!: (v: number) => void;
     const exec = jest.fn(() => new Promise<number>(res => { resolveFn = res; }));
     const p1 = withIdempotency(key, exec);
     const p2 = withIdempotency(key, exec);
@@ -79,7 +79,7 @@ describe('withIdempotency', () => {
 
     // With ttl clamped to 0, setTimeout should be scheduled with 0 delay
     expect(setTimeout).toHaveBeenCalled();
-    const lastCall = (setTimeout as jest.Mock).mock.calls.pop();
+    const lastCall = (setTimeout as unknown as jest.MockedFunction<any>).mock.calls.pop();
     expect(lastCall?.[1]).toBe(0);
 
     // After timers run, subsequent call should execute again (no cache)

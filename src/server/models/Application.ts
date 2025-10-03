@@ -85,7 +85,7 @@ ApplicationSchema.pre('save', function() {
     this.score = this.score || 0;
     this.source = this.source || 'careers';
     if (!this.history || this.history.length === 0) {
-      this.history = [{ action: 'applied', by: 'candidate', at: new Date() }];
+      this.history = [{ action: 'applied', by: 'candidate', at: new Date() }] as any;
     }
   }
 });

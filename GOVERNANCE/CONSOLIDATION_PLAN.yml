@@ -1,0 +1,44 @@
+# Consolidation Plan - Fixzit
+
+phases:
+  - id: 0
+    name: "Governance Setup"
+    status: "complete"
+    
+  - id: 1
+    name: "Duplicate Detection"
+    status: "pending"
+    
+  - id: 2
+    name: "TypeScript Error Elimination"
+    status: "in-progress"
+    progress: "56%"
+    
+  - id: 3
+    name: "Duplicate Consolidation"
+    status: "pending"
+    
+  - id: 4
+    name: "Halt-Fix-Verify Testing"
+    status: "pending"
+    
+  - id: 5
+    name: "Quality Gates"
+    status: "pending"
+    
+  - id: 6
+    name: "PR Creation"
+    status: "pending"
+
+branding:
+  primary: "#0061A8"
+  secondary: "#00A859"
+  accent: "#FFB400"
+
+global_elements:
+  - language_selector
+  - currency_selector
+  - rtl_ltr_support
+  - back_to_home
+
+stuck_timer_minutes: 2

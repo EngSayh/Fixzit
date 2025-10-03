@@ -4,11 +4,11 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 
-function ensureDir(dir) {
+function ensureDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-function writeFile(filePath, content) {
+function writeFile(filePath: string, content: string) {
   const dir = path.dirname(filePath);
   ensureDir(dir);
   fs.writeFileSync(filePath, content, "utf8");
