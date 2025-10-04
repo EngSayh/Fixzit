@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { HelpCircle, MessageSquare, BookOpen, X, ChevronUp, ChevronDown } from 'lucide-react';
 

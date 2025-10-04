@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 declare global { interface Window { __incidentReporter?: boolean; __incidentLastAt?: number; } }
 
