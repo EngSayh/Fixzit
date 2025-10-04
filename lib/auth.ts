@@ -35,7 +35,7 @@ interface UserDoc {
 let User: any;
 
 try {
-  const { User: UserModel } = require('@/modules/users/schema');
+  const { User: UserModel } = require('../server/models/User');
   User = UserModel;
 } catch (error) {
   const errorMessage = `CRITICAL: Failed to load User model from @/modules/users/schema - ${error instanceof Error ? error.message : String(error)}`;
