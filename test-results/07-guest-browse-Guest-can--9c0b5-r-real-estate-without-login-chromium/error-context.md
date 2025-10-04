@@ -1,0 +1,99 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - banner [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: FIXZIT ENTERPRISE
+        - button "Switch application" [ref=e17] [cursor=pointer]:
+          - img [ref=e18] [cursor=pointer]
+          - generic [ref=e20] [cursor=pointer]: Aqar Souq
+          - img [ref=e21] [cursor=pointer]
+      - generic [ref=e25]:
+        - img [ref=e26]
+        - textbox "Global search" [ref=e29]
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - generic [ref=e33]: K
+      - generic [ref=e34]:
+        - button "Quick actions" [ref=e36] [cursor=pointer]:
+          - img [ref=e37] [cursor=pointer]
+          - generic [ref=e38] [cursor=pointer]: Quick Actions
+          - img [ref=e39] [cursor=pointer]
+        - generic [ref=e41]:
+          - button "Select language English (EN)" [ref=e43] [cursor=pointer]:
+            - img [ref=e44] [cursor=pointer]
+            - generic [ref=e47] [cursor=pointer]:
+              - generic [ref=e48] [cursor=pointer]: 🇺🇸
+              - generic [ref=e49] [cursor=pointer]: EN
+          - button "Select currency SAR" [ref=e51] [cursor=pointer]:
+            - img [ref=e52] [cursor=pointer]
+            - generic [ref=e55] [cursor=pointer]:
+              - generic [ref=e56] [cursor=pointer]: 🇸🇦
+              - generic [ref=e57] [cursor=pointer]: SAR
+        - button "Toggle notifications" [ref=e59] [cursor=pointer]:
+          - img [ref=e60] [cursor=pointer]
+        - button [ref=e65] [cursor=pointer]:
+          - img [ref=e66] [cursor=pointer]
+          - img [ref=e69] [cursor=pointer]
+    - main [ref=e72]:
+      - paragraph [ref=e77]: Loading...
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]: Fixzit
+          - link "Back to Home" [ref=e82] [cursor=pointer]:
+            - /url: /
+            - img [ref=e83] [cursor=pointer]
+            - generic [ref=e86] [cursor=pointer]: Back to Home
+          - generic [ref=e87]:
+            - button "Select language English (EN)" [ref=e89] [cursor=pointer]:
+              - img [ref=e90] [cursor=pointer]
+              - generic [ref=e93] [cursor=pointer]:
+                - generic [ref=e94] [cursor=pointer]: 🇺🇸
+                - generic [ref=e95] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e97] [cursor=pointer]:
+              - img [ref=e98] [cursor=pointer]
+              - generic [ref=e101] [cursor=pointer]:
+                - generic [ref=e102] [cursor=pointer]: 🇸🇦
+                - generic [ref=e103] [cursor=pointer]: SAR
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - generic [ref=e106]: Company
+            - list [ref=e107]:
+              - listitem [ref=e108]:
+                - link "About" [ref=e109] [cursor=pointer]:
+                  - /url: /cms/about
+              - listitem [ref=e110]:
+                - link "Careers" [ref=e111] [cursor=pointer]:
+                  - /url: /careers
+          - generic [ref=e112]:
+            - generic [ref=e113]: Legal
+            - list [ref=e114]:
+              - listitem [ref=e115]:
+                - link "Privacy" [ref=e116] [cursor=pointer]:
+                  - /url: /cms/privacy
+              - listitem [ref=e117]:
+                - link "Terms" [ref=e118] [cursor=pointer]:
+                  - /url: /cms/terms
+          - generic [ref=e119]:
+            - generic [ref=e120]: Support
+            - list [ref=e121]:
+              - listitem [ref=e122]:
+                - link "Help Center" [ref=e123] [cursor=pointer]:
+                  - /url: /help
+              - listitem [ref=e124]:
+                - button "Open a ticket" [ref=e125] [cursor=pointer]
+        - generic [ref=e126]:
+          - generic [ref=e127]: © 2025 Fixzit. All rights reserved.
+          - generic [ref=e128]:
+            - link "Privacy" [ref=e129] [cursor=pointer]:
+              - /url: /cms/privacy
+            - link "Terms" [ref=e130] [cursor=pointer]:
+              - /url: /cms/terms
+            - link "Support" [ref=e131] [cursor=pointer]:
+              - /url: /support
+```
