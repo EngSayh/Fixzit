@@ -1,5 +1,4 @@
 /**
-import { vi } from 'vitest';
  * Tests for app/marketplace/rfq/page.tsx (MarketplaceRFQPage)
  * Framework: Jest
  * Libraries: @testing-library/react, @testing-library/jest-dom
@@ -9,25 +8,25 @@ import { render, screen, waitFor, within, fireEvent } from '@testing-library/rea
 import '@testing-library/jest-dom'
 
 // Mock useSWR to fully control data/loading/error states
-vi.mock('swr', () => ({
+jest.mock('swr', () => ({
   __esModule: true,
-  default: vi.fn()
+  default: jest.fn()
 }))
 
 // Mock child UI components to keep tests focused on logic and surface text
-vi.mock('@/components/ui/card', () => ({
+jest.mock('@/components/ui/card', () => ({
   Card: ({ children, className }: any) => <div data-testid="Card" className={className}>{children}</div>,
   CardContent: ({ children, className }: any) => <div data-testid="CardContent" className={className}>{children}</div>,
   CardHeader: ({ children, className }: any) => <div data-testid="CardHeader" className={className}>{children}</div>,
   CardTitle: ({ children, className }: any) => <div data-testid="CardTitle" className={className}>{children}</div>,
 }))
-vi.mock('@/components/ui/badge', () => ({
+jest.mock('@/components/ui/badge', () => ({
   Badge: ({ children, className, variant }: any) => <span data-testid="Badge" data-variant={variant} className={className}>{children}</span>,
 }))
-vi.mock('@/components/ui/button', () => ({
+jest.mock('@/components/ui/button', () => ({
   Button: ({ children, className, onClick, variant }: any) => <button data-testid="Button" data-variant={variant} className={className} onClick={onClick}>{children}</button>,
 }))
-vi.mock('@/components/ui/input', () => ({
+jest.mock('@/components/ui/input', () => ({
   Input: ({ value, onChange, placeholder, className }: any) => (
     <input
       data-testid="Input"
@@ -38,7 +37,7 @@ vi.mock('@/components/ui/input', () => ({
     />
   ),
 }))
-vi.mock('@/components/ui/select', () => ({
+jest.mock('@/components/ui/select', () => ({
   Select: ({ value, onValueChange, children }: any) => (
     <select data-testid="Select" value={value} onChange={(e) => onValueChange?.(e.target.value)}>
       {children}
@@ -47,19 +46,19 @@ vi.mock('@/components/ui/select', () => ({
   SelectContent: ({ children }: any) => <>{children}</>,
   SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
 }))
-vi.mock('@/components/ui/dialog', () => ({
+jest.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, open, onOpenChange }: any) => (open ? <div data-testid="Dialog" onClick={() => onOpenChange?.(false)}>{children}</div> : null),
   DialogContent: ({ children, className }: any) => <div data-testid="DialogContent" className={className}>{children}</div>,
   DialogHeader: ({ children }: any) => <div data-testid="DialogHeader">{children}</div>,
   DialogTitle: ({ children, className }: any) => <div data-testid="DialogTitle" className={className}>{children}</div>,
 }))
-vi.mock('@/components/LoginPrompt', () => ({
+jest.mock('@/components/LoginPrompt', () => ({
   __esModule: true,
   default: ({ isOpen }: any) => (isOpen ? <div data-testid="LoginPrompt">Login Prompt</div> : null),
 }))
 
 // Lucide icons - harmless to render, but we can stub as spans to simplify
-vi.mock('lucide-react', () => new Proxy({}, {
+jest.mock('lucide-react', () => new Proxy({}, {
   get: (_target, prop: string) => (props: any) => <span data-icon={prop} {...props} />
 }))
 
@@ -88,7 +87,7 @@ type RFQResponse = {
   };
 }
 
-const mockedUseSWR = useSWR as unknown as ReturnType<typeof vi.fn>
+const mockedUseSWR = useSWR as unknown as jest.Mock
 
 const makeResponse = (items: RFQItem[] = []): RFQResponse => ({
   items,
@@ -133,7 +132,7 @@ const sampleRFQs: RFQItem[] = [
 ]
 
 beforeEach(() => {
-  vi.resetModules()
+  jest.resetModules()
   mockedUseSWR.mockReset()
   // Default mock returns loaded state with data
   mockedUseSWR.mockReturnValue({

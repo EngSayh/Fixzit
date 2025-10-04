@@ -1,5 +1,6 @@
 // Global test setup for Vitest with Jest compatibility
-import '@testing-library/jest-dom/vitest';
+// The global test functions are already available through @types/jest
+// No need to redeclare them to avoid type conflicts
 
 // Using real MongoDB for all tests
 

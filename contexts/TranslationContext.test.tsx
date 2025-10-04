@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 /**
  * Tests for TranslationProvider and useTranslation
  *
@@ -18,7 +17,7 @@ import { render, screen } from '@testing-library/react';
 
 // We will mock both I18nProvider (to assert the initialLocale prop and children render)
 // and useI18n (to simulate locale/dir/t/setLocale behavior used by the hook).
-vi.mock('@/i18n/I18nProvider', () => {
+jest.mock('@/i18n/I18nProvider', () => {
   // A pass-through component that exposes initialLocale for assertions.
   return {
     I18nProvider: ({ initialLocale, children }: { initialLocale?: any; children: ReactNode }) => (
@@ -32,10 +31,10 @@ vi.mock('@/i18n/I18nProvider', () => {
 // Provide mutable test doubles for the hook values so each test can customize.
 let mockLocale: 'en' | 'ar' = 'en';
 let mockDir: 'ltr' | 'rtl' = 'ltr';
-const mockSetLocale = vi.fn();
+const mockSetLocale = jest.fn();
 let mockTranslateImpl: (key: string) => string = (k) => 'translated:' + k;
 
-vi.mock('@/i18n/useI18n', () => {
+jest.mock('@/i18n/useI18n', () => {
   return {
     useI18n: () => ({
       locale: mockLocale,
@@ -48,7 +47,7 @@ vi.mock('@/i18n/useI18n', () => {
 
 // For DEFAULT_LOCALE used by TranslationProvider default prop,
 // we set a stable value so the test can assert it deterministically.
-vi.mock('@/i18n/config', () => {
+jest.mock('@/i18n/config', () => {
   return {
     DEFAULT_LOCALE: 'en',
   };
@@ -69,7 +68,7 @@ function HookProbe({
 
 describe('TranslationProvider', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // Default hook state
     mockLocale = 'en';
     mockDir = 'ltr';
@@ -105,7 +104,7 @@ describe('TranslationProvider', () => {
 
 describe('useTranslation', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     mockLocale = 'en';
     mockDir = 'ltr';
     mockTranslateImpl = (k) => 'translated:' + k;
@@ -178,7 +177,7 @@ describe('useTranslation', () => {
     });
 
     it('normalizes non-arabic or unknown to "en"', () => {
-      vi.clearAllMocks();
+      jest.clearAllMocks();
       let captured: ReturnType<typeof useTranslation> | null = null;
       renderWithProvider((v) => (captured = v));
 

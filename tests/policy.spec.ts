@@ -3,7 +3,7 @@
   If your project uses Vitest, these tests are compatible with minimal changes (e.g., expect/vi).
 */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from '@jest/globals'
 
 /*
   We import from the module under test. Adjust the import path below to match your repository structure.

@@ -1,10 +1,6 @@
 {
   // Turn on Agent mode features
   "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 250,
-  
-  // *** NUCLEAR OPTION: Auto-approve ALL tools & commands ***
-  "chat.tools.global.autoApprove": true,
 
   // Auto-approve file edits for your code, but block sensitive files
   "chat.tools.edits.autoApprove": {
@@ -45,34 +41,18 @@
     "/^Remove-Item\\b/i": false,
     "/^git reset --hard/": false,
     "/^git push -f/": false
-    ,"/^git push.*\\b(origin\\s+)?(main|master)\\b/": false
   },
 
   // Accept edit suggestions automatically after 2 seconds
-  "chat.editing.autoAccept": 2000,
+  "chat.editing.autoAcceptDelay": 2,
 
   // Let agent run defined workspace tasks (build/dev) when needed
   "github.copilot.chat.agent.runTasks": true,
 
   // Enable chat checkpoints for rollback capability
   "chat.checkpoints.enabled": true,
-  
-  // Git branch protection (prevent accidental commits to main)
-  "git.branchProtection": ["main", "master", "release/*"],
-  "git.branchProtectionPrompt": "always",
-  
-  // Reduce other confirmation prompts
-  "files.autoSave": "afterDelay",
-  "files.autoSaveDelay": 500,
-  "explorer.confirmDelete": false,
-  "explorer.confirmDragAndDrop": false,
-  "window.confirmBeforeClose": "never",
 
   // TypeScript settings
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
-  "github-actions.workflows.pinned.workflows": [
-    ".github/workflows/webpack.yml"
-  ],
-  "codium.codeCompletion.enable": true
+  "typescript.enablePromptUseWorkspaceTsdk": true
 }

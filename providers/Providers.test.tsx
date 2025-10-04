@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 /**
  * Test framework: Jest with React Testing Library (RTL) + JSDOM
  * If this project uses Vitest, replace jest import aliases with vitest and keep RTL usage.
@@ -9,25 +8,25 @@ import Providers from './Providers';
 
 // Mock nested providers and ErrorBoundary to isolate Providers behavior.
 // We mock minimal render output to assert nesting and prop passing.
-vi.mock('@/contexts/ResponsiveContext', () => ({
+jest.mock('@/contexts/ResponsiveContext', () => ({
   ResponsiveProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-provider">{children}</div>
   ),
 }));
 
-vi.mock('@/contexts/TranslationContext', () => ({
+jest.mock('@/contexts/TranslationContext', () => ({
   TranslationProvider: ({ children, initialLocale }: { children: React.ReactNode; initialLocale?: string }) => (
     <div data-testid="translation-provider" data-locale={initialLocale || ''}>{children}</div>
   ),
 }));
 
-vi.mock('@/contexts/CurrencyContext', () => ({
+jest.mock('@/contexts/CurrencyContext', () => ({
   CurrencyProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="currency-provider">{children}</div>
   ),
 }));
 
-vi.mock('@/contexts/ThemeContext', () => ({
+jest.mock('@/contexts/ThemeContext', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="theme-provider">{children}</div>
   ),
@@ -49,7 +48,7 @@ afterAll(() => {
   console.error = ConsoleError;
 });
 
-vi.mock('@/components/ErrorBoundary', () => {
+jest.mock('@/components/ErrorBoundary', () => {
   const React = require('react');
   const Fallback = ({ error }: { error?: Error }) => (
     <div role="alert" data-testid="error-fallback">
@@ -88,11 +87,11 @@ describe('Providers', () => {
   // In RTL with JSDOM and Jest fake timers, we can advance effects to move past initial non-client render.
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
   afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   test('renders loading UI before client hydration', () => {
@@ -106,7 +105,7 @@ describe('Providers', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
 
     // After running effects, loading UI should disappear
-    vi.runAllTimers();
+    jest.runAllTimers();
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
 
@@ -117,7 +116,7 @@ describe('Providers', () => {
       </Providers>
     );
     // Advance effects to flip isClient
-    vi.runAllTimers();
+    jest.runAllTimers();
 
     // Children rendered
     expect(screen.getByTestId('child')).toHaveTextContent('Happy child');
@@ -150,7 +149,7 @@ describe('Providers', () => {
         <Child />
       </Providers>
     );
-    vi.runAllTimers();
+    jest.runAllTimers();
 
     const translation = screen.getByTestId('translation-provider');
     expect(translation).toHaveAttribute('data-locale', 'fr');
@@ -162,7 +161,7 @@ describe('Providers', () => {
         <Child />
       </Providers>
     );
-    vi.runAllTimers();
+    jest.runAllTimers();
 
     const translation = screen.getByTestId('translation-provider');
     // Our mock sets empty string when undefined
@@ -175,7 +174,7 @@ describe('Providers', () => {
         <Child shouldThrow />
       </Providers>
     );
-    vi.runAllTimers();
+    jest.runAllTimers();
 
     // Our mocked ErrorBoundary renders role="alert" with error message
     const alert = screen.getByRole('alert');

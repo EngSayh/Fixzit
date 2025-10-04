@@ -1,5 +1,4 @@
 /**
-import { vi } from 'vitest';
  * Tests for ProductPage and fetchPdp (as per diff).
  *
  * Framework: Jest + @testing-library/react (or Vitest with compatible APIs).
@@ -15,7 +14,7 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 
 // Mock next/link to a passthrough anchor for test querying
-vi.mock('next/link', () => ({
+jest.mock('next/link', () => ({
   __esModule: true,
   default: ({ href, className, children }: any) => React.createElement('a', { href, className }, children),
 }));
@@ -102,12 +101,12 @@ async function renderServerComponent(Comp: any, props: any) {
 
 describe('ProductPage (server component) and fetchPdp', () => {
   const originalEnv = process.env;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let fetchSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    vi.resetModules();
+    jest.resetModules();
     process.env = { ...originalEnv };
-    fetchSpy = vi.spyOn(global, 'fetch' as any);
+    fetchSpy = jest.spyOn(global, 'fetch' as any);
   });
 
   afterEach(() => {

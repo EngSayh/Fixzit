@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 /* 
   Tests for CmsPage model.
   Assumed framework: Jest (TypeScript). 
@@ -12,12 +11,12 @@ import { Schema, model, models, connection, connect, disconnect } from "mongoose
 
 describe("CmsPage model schema", () => {
   const importCmsPageModule = async () => {
-    vi.resetModules();
+    jest.resetModules();
     return await import("@/models/CmsPage");
   };
 
     beforeAll(() => {
-      vi.resetModules();
+      jest.resetModules();
       // We avoid introducing new deps; we only ensure constructor signature compatibility.
           collection: string;
           static data: any[] = [];
@@ -47,7 +46,7 @@ describe("CmsPage model schema", () => {
     });
 
     afterAll(() => {
-      vi.doUnmock("@/lib/mongo");
+      jest.dontMock("@/lib/mongo");
     });
 
       const mod: any = await importCmsPageModule();
@@ -83,7 +82,7 @@ describe("CmsPage model schema", () => {
     let CmsPage: any;
 
     beforeAll(async () => {
-      vi.resetModules();
+      jest.resetModules();
       // We need the actual module under test. If it references models.CmsPage || model(...),
       // new-ing the model should be fine without a DB connection for validation purposes.
       const mod: any = await importCmsPageModule();
@@ -112,7 +111,7 @@ describe("CmsPage model schema", () => {
           await disconnect();
         }
       } catch { /* noop */ }
-      vi.doUnmock("@/lib/mongo");
+      jest.dontMock("@/lib/mongo");
     });
 
     test("requires slug, title, and content", async () => {

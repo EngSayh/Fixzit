@@ -48,29 +48,3 @@ node_modules
 
 # Ignore Next build outputs
 .next/
-.env.local
-
-# Python cache (disk space optimization)
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.venv/
-venv/
-ENV/
-env/
-
-# AWS distributions (disk space optimization)
-aws/dist/
-
-# Cache directories (disk space optimization)
-.cache/
-.npm/
-.pnpm-store/
-node_modules/.cache/
-
-# Test artifacts
-test-results/
-.nyc_output/
-

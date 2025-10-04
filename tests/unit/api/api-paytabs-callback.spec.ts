@@ -1,5 +1,4 @@
 /**
-import { vi } from 'vitest';
  * Tests for PayTabs callback API route.
  *
  * Framework: Jest-style (describe/it/expect). If using Vitest, replace jest.fn with vi.fn and adjust mocks accordingly.
@@ -58,17 +57,17 @@ async function resolvePOST(): Promise<void> {
 // We mock generateZATCAQR and validateCallbackRaw to isolate logic.
  */
 
-import { describe, test, it, expect, jest, beforeEach, beforeAll, afterEach } from 'vitest';
+import { describe, test, it, expect, jest, beforeEach, beforeAll, afterEach } from '@jest/globals';
 
 // We partially mock next/server to intercept NextResponse.json calls.
 
-const mockGenerateZATCAQR = vi.fn(async () => ({ base64: 'mock-qr-base64' }));
-const mockValidateCallbackRaw = vi.fn(() => true);
+const mockGenerateZATCAQR = jest.fn(async () => ({ base64: 'mock-qr-base64' }));
+const mockValidateCallbackRaw = jest.fn(() => true);
 
 // Partial mock for NextResponse.json to capture body and options
 type JsonCall = { body: any; init?: ResponseInit };
 const jsonCalls: JsonCall[] = [];
-const mockNextResponseJson = vi.fn((body: any, init?: ResponseInit) => {
+const mockNextResponseJson = jest.fn((body: any, init?: ResponseInit) => {
   jsonCalls.push({ body, init });
   // Construct a real Response to keep behavior consistent
   const status = init?.status ?? 200;
@@ -79,7 +78,7 @@ const mockNextResponseJson = vi.fn((body: any, init?: ResponseInit) => {
 });
 
 // Mock: next/server
-vi.mock('next/server', () => {
+jest.mock('next/server', () => {
   // Return actual NextRequest for type compatibility but override NextResponse.json
   const actual = jest.requireActual('next/server');
   return {
@@ -92,12 +91,12 @@ vi.mock('next/server', () => {
 });
 
 // Mock: '@/lib/zatca'
-vi.mock('@/lib/zatca', () => ({
+jest.mock('@/lib/zatca', () => ({
   generateZATCAQR: (...args: any[]) => mockGenerateZATCAQR(...args),
 }));
 
 // Mock: '@/lib/paytabs'
-vi.mock('@/lib/paytabs', () => ({
+jest.mock('@/lib/paytabs', () => ({
   validateCallbackRaw: (...args: any[]) => mockValidateCallbackRaw(...args),
 }));
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, LogIn, UserPlus, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 

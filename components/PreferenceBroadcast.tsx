@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 

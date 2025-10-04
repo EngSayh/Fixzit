@@ -11,7 +11,7 @@ let MarketplaceProduct: any;
 const loadModelWithEnv = async (env: Partial<NodeJS.ProcessEnv>) => {
   const originalEnv = { ...process.env };
   Object.assign(process.env, env);
-  vi.resetModules();
+  jest.resetModules();
   try {
     // Attempt common locations
     let loadedModule: any = null;

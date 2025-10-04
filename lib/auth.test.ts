@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 /**
  * Note: Testing framework used: This test file is designed for Jest-style APIs
  * (describe/it/expect/jest.mock). If this repository uses Vitest, replace jest.*
@@ -11,27 +10,27 @@ import type { AuthToken } from './auth';
 // Defer module import to control env and mocks per test
 const loadAuthModule = async () => {
   // Clear module cache to re-evaluate JWT secret resolution each time
-  vi.resetModules();
+  jest.resetModules();
   return await import('./auth');
 };
 
 // Mock bcryptjs
-vi.mock('bcryptjs', () => ({
+jest.mock('bcryptjs', () => ({
   __esModule: true,
   default: {
-    hash: vi.fn(async (pwd: string, _rounds: number) => `hashed:${pwd}`),
-    compare: vi.fn(async (pwd: string, hashed: string) => hashed === `hashed:${pwd}`),
+    hash: jest.fn(async (pwd: string, _rounds: number) => `hashed:${pwd}`),
+    compare: jest.fn(async (pwd: string, hashed: string) => hashed === `hashed:${pwd}`),
   },
-  hash: vi.fn(async (pwd: string, _rounds: number) => `hashed:${pwd}`),
-  compare: vi.fn(async (pwd: string, hashed: string) => hashed === `hashed:${pwd}`),
+  hash: jest.fn(async (pwd: string, _rounds: number) => `hashed:${pwd}`),
+  compare: jest.fn(async (pwd: string, hashed: string) => hashed === `hashed:${pwd}`),
 }));
 
 // Capture jsonwebtoken sign/verify; allow verifying signature-less for unit focus
-const signSpy = vi.fn((payload: object, _secret: string, _opts?: any) => {
+const signSpy = jest.fn((payload: object, _secret: string, _opts?: any) => {
   // Encode minimal token representation
   return `token:${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
 });
-const verifySpy = vi.fn((token: string, _secret: string) => {
+const verifySpy = jest.fn((token: string, _secret: string) => {
   if (!token.startsWith('token:')) {
     throw new Error('invalid token format');
   }
@@ -39,7 +38,7 @@ const verifySpy = vi.fn((token: string, _secret: string) => {
   const json = Buffer.from(b64, 'base64').toString('utf8');
   return JSON.parse(json);
 });
-vi.mock('jsonwebtoken', () => ({
+jest.mock('jsonwebtoken', () => ({
   __esModule: true,
   default: {
     sign: (payload: any, secret: any, opts?: any) => signSpy(payload, secret, opts),
@@ -52,8 +51,8 @@ vi.mock('jsonwebtoken', () => ({
 // Mock mongo layer to control isMockDB and db connection behavior
 // We expose a mutable stub to vary isMockDB between tests if needed.
 let mockIsMockDB = true;
-const dbConnectSpy = vi.fn(async () => Promise.resolve());
-vi.mock('@/lib/mongo', () => ({
+const dbConnectSpy = jest.fn(async () => Promise.resolve());
+jest.mock('@/lib/mongo', () => ({
   __esModule: true,
   get isMockDB() {
     return mockIsMockDB;
@@ -62,11 +61,11 @@ vi.mock('@/lib/mongo', () => ({
 }));
 
 // Helper to replace console.warn so we can assert ephemeral secret warnings
-const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
 describe('auth lib - crypto and password helpers', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('hashPassword hashes with bcrypt and verifyPassword validates correctly (happy path)', async () => {
@@ -82,7 +81,7 @@ describe('auth lib - crypto and password helpers', () => {
 
 describe('auth lib - JWT generation and verification', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     delete process.env.JWT_SECRET;
     // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
@@ -90,7 +89,7 @@ describe('auth lib - JWT generation and verification', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('generateToken uses jsonwebtoken.sign and verifyToken returns payload on valid token', async () => {
@@ -169,7 +168,7 @@ describe('auth lib - JWT generation and verification', () => {
 
 describe('auth lib - authenticateUser', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // Ensure stable env and mock DB to use inline mock User model path
     // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
@@ -228,17 +227,17 @@ describe('auth lib - authenticateUser', () => {
 
   it('fails when account is not active', async () => {
     mockIsMockDB = false;
-    vi.doMock('@/modules/users/schema', () => {
+    jest.doMock('@/modules/users/schema', () => {
       const inactive = Object.assign(makeUser({ status: 'SUSPENDED', email: 'inactive@x.com' }));
       return {
         __esModule: true,
         User: {
-          findOne: vi.fn(async (q: any) => {
+          findOne: jest.fn(async (q: any) => {
             if (q.email === 'inactive@x.com') return inactive;
             if (q.username === 'inactive') return inactive;
             return null;
           }),
-          findById: vi.fn(),
+          findById: jest.fn(),
         },
       };
     });
@@ -255,7 +254,7 @@ describe('auth lib - authenticateUser', () => {
 
 describe('auth lib - getUserFromToken', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // @ts-expect-error - Mocking NODE_ENV for test
     process.env.NODE_ENV = 'test';
     delete process.env.JWT_SECRET;
@@ -277,11 +276,11 @@ describe('auth lib - getUserFromToken', () => {
     (global as any).mockIsMockDB = false;
     mockIsMockDB = false;
 
-    vi.doMock('@/modules/users/schema', () => {
+    jest.doMock('@/modules/users/schema', () => {
       return {
         __esModule: true,
         User: {
-          findById: vi.fn(async () => null),
+          findById: jest.fn(async () => null),
         },
       };
     });
@@ -303,11 +302,11 @@ describe('auth lib - getUserFromToken', () => {
   it('returns null when user is not ACTIVE', async () => {
     mockIsMockDB = false;
 
-    vi.doMock('@/modules/users/schema', () => {
+    jest.doMock('@/modules/users/schema', () => {
       return {
         __esModule: true,
         User: {
-          findById: vi.fn(async () => ({
+          findById: jest.fn(async () => ({
             _id: '1',
             email: 'blocked@x.com',
             personal: { firstName: 'Blocked', lastName: 'User' },
@@ -334,11 +333,11 @@ describe('auth lib - getUserFromToken', () => {
   it('returns trimmed public user object for ACTIVE users', async () => {
     mockIsMockDB = false;
 
-    vi.doMock('@/modules/users/schema', () => {
+    jest.doMock('@/modules/users/schema', () => {
       return {
         __esModule: true,
         User: {
-          findById: vi.fn(async () => ({
+          findById: jest.fn(async () => ({
             _id: '42',
             email: 'ok@x.com',
             personal: { firstName: 'Ok', lastName: 'User' },

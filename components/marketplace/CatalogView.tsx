@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { Search, ShoppingCart, Star, Store, PackageSearch, Loader2, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';

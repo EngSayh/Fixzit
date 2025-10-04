@@ -1,5 +1,4 @@
 /**
-import { vi } from 'vitest';
  * Tests for app/api/public/rfqs/route.ts GET handler
  *
  * Testing library/framework note:
@@ -18,7 +17,7 @@ import { GET } from './route';
 // We mock the db to avoid real connections, and RFQ model methods used in the handler:
 // - RFQ.find(...).sort(...).skip(...).limit(...).lean()
 // - RFQ.countDocuments(...)
-vi.mock('@/lib/mongo', () => ({
+jest.mock('@/lib/mongo', () => ({
   db: Promise.resolve()
 }));
 
@@ -27,10 +26,10 @@ type RFQDoc = Record<string, any>;
 const findExecChain = () => {
   // Build a chainable mock for Mongoose-like query:
   const chain: any = {
-    sort: vi.fn().mockReturnThis(),
-    skip: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    lean: vi.fn()
+    sort: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    lean: jest.fn()
   };
   return chain;
 };
@@ -38,11 +37,11 @@ const findExecChain = () => {
 const mockFindChain = findExecChain();
 
 const RFQMock = {
-  find: vi.fn(() => mockFindChain),
-  countDocuments: vi.fn()
+  find: jest.fn(() => mockFindChain),
+  countDocuments: jest.fn()
 };
 
-vi.mock('@/server/models/RFQ', () => ({
+jest.mock('@/server/models/RFQ', () => ({
   RFQ: RFQMock
 }));
 
@@ -67,15 +66,15 @@ describe('GET /api/public/rfqs', () => {
   const OLD_ENV = process.env;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     process.env = { ...OLD_ENV };
     delete process.env.NEXT_PUBLIC_MARKETPLACE_TENANT;
 
     // Reset chain methods for each test
-    vi.mocked(mockFindChain.sort).mockReturnValue(mockFindChain);
-    vi.mocked(mockFindChain.skip).mockReturnValue(mockFindChain);
-    vi.mocked(mockFindChain.limit).mockReturnValue(mockFindChain);
-    vi.mocked(mockFindChain.lean).mockResolvedValue([]);
+    (mockFindChain.sort as jest.Mock).mockReturnValue(mockFindChain);
+    (mockFindChain.skip as jest.Mock).mockReturnValue(mockFindChain);
+    (mockFindChain.limit as jest.Mock).mockReturnValue(mockFindChain);
+    (mockFindChain.lean as jest.Mock).mockResolvedValue([]);
     RFQMock.countDocuments.mockResolvedValue(0);
   });
 
@@ -228,7 +227,7 @@ describe('GET /api/public/rfqs', () => {
       updatedAt: '2023-01-03T11:22:33.000Z'
     };
 
-    vi.mocked(mockFindChain.lean).mockResolvedValue([sample]);
+    (mockFindChain.lean as jest.Mock).mockResolvedValue([sample]);
     RFQMock.countDocuments.mockResolvedValue(1);
 
     const req = makeRequest({});
@@ -299,7 +298,7 @@ describe('GET /api/public/rfqs', () => {
       updatedAt: undefined
     };
 
-    vi.mocked(mockFindChain.lean).mockResolvedValue([sample]);
+    (mockFindChain.lean as jest.Mock).mockResolvedValue([sample]);
     RFQMock.countDocuments.mockResolvedValue(1);
 
     const req = makeRequest({});
@@ -320,7 +319,7 @@ describe('GET /api/public/rfqs', () => {
   });
 
   it('returns 500 on unexpected errors', async () => {
-    vi.mocked(mockFindChain.lean).mockRejectedValue(new Error('db down'));
+    (mockFindChain.lean as jest.Mock).mockRejectedValue(new Error('db down'));
 
     const req = makeRequest({});
     const res = await GET(req);

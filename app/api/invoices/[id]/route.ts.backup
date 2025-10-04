@@ -1,0 +1,291 @@
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Invoice } from "@/server/models/Invoice";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { ZodError } from "zod";
+import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
+
+const updateInvoiceSchema = z.object({
+  status: z.enum(["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"]).optional(),
+  payment: z.object({
+    date: z.string(),
+    amount: z.number().positive("Payment amount must be positive"),
+    method: z.string(),
+    reference: z.string().optional(),
+    notes: z.string().optional()
+  }).optional(),
+  approval: z.object({
+    approved: z.boolean(),
+    comments: z.string().optional()
+  }).optional()
+});
+
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  try {
+    const user = await getSessionUser(req);
+    await connectToDatabase();
+
+    const invoice = await (Invoice as any).findOne({
+      _id: params.id,
+      tenantId: user.tenantId
+    });
+
+    if (!invoice) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(invoice);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  try {
+    const user = await getSessionUser(req);
+    await connectToDatabase();
+
+    const invoice = await (Invoice as any).findOne({
+      _id: params.id,
+      tenantId: user.tenantId
+    });
+
+    if (!invoice) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    if (invoice.status === "SENT" && user.id === invoice.recipient?.customerId) {
+      invoice.status = "VIEWED";
+      invoice.history = invoice.history || [];
+      invoice.history.push({
+        action: "VIEWED",
+        performedBy: user.id,
+        performedAt: new Date(),
+        details: "Invoice viewed by recipient"
+      });
+      await invoice.save();
+    }
+
+    return NextResponse.json(invoice);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  try {
+    const user = await getSessionUser(req);
+    await connectToDatabase();
+
+    const data = updateInvoiceSchema.parse(await req.json());
+
+    const invoice = await (Invoice as any).findOne({
+      _id: params.id,
+      tenantId: user.tenantId
+    });
+
+    if (!invoice) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    invoice.history = invoice.history || [];
+    invoice.payments = invoice.payments || [];
+
+    if (data.status) {
+      invoice.status = data.status;
+      invoice.history.push({
+        action: data.status,
+        performedBy: user.id,
+        performedAt: new Date(),
+        details: `Invoice status changed to ${data.status}`
+      });
+
+      if (data.status === "SENT") {
+        try {
+          if (!invoice.zatca) {
+            invoice.zatca = {
+              status: "PENDING",
+              uuid: crypto.randomUUID(),
+              hash: "",
+              qrCode: "",
+              tlv: "",
+              xmlContent: "",
+              submittedAt: null,
+              clearanceResponse: null,
+              generatedAt: null
+            };
+          }
+
+          // Generate real ZATCA TLV and QR code
+          const zatcaData = {
+            sellerName: invoice.seller?.name || invoice.from?.name || "Unknown Seller",
+            vatNumber: invoice.seller?.vatNumber || invoice.from?.taxId || "000000000000000",
+            timestamp: invoice.issueDate || new Date().toISOString(),
+            total: invoice.total || 0,
+            vatAmount: invoice.tax || 0
+          };
+
+          const tlv = await generateZATCATLV(zatcaData);
+          const qrCode = await generateZATCAQR(zatcaData);
+
+          invoice.zatca.tlv = tlv;
+          invoice.zatca.qrCode = qrCode;
+          invoice.zatca.generatedAt = new Date();
+          invoice.zatca.status = "GENERATED";
+        } catch (zatcaError: any) {
+          console.error("ZATCA generation failed:", zatcaError);
+          invoice.zatca.status = "FAILED";
+          invoice.zatca.error = zatcaError.message;
+        }
+      }
+    }
+
+    if (data.payment) {
+      const totalPaid = invoice.payments.reduce((sum: number, p: any) => 
+        p.status === "COMPLETED" ? sum + (p.amount || 0) : sum, 0
+      );
+      
+      const remainingBalance = (invoice.total || 0) - totalPaid;
+      
+      if (data.payment.amount > remainingBalance) {
+        return NextResponse.json({ 
+          error: "Payment amount exceeds remaining balance",
+          details: {
+            total: invoice.total,
+            paid: totalPaid,
+            remaining: remainingBalance,
+            attempted: data.payment.amount
+          }
+        }, { status: 400 });
+      }
+
+      invoice.payments.push({
+        ...data.payment,
+        status: "COMPLETED",
+        transactionId: `TXN-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`
+      });
+
+      const newTotalPaid = invoice.payments.reduce((sum: number, p: any) => 
+        p.status === "COMPLETED" ? sum + (p.amount || 0) : sum, 0
+      );
+
+      if (newTotalPaid >= (invoice.total || 0)) {
+        invoice.status = "PAID";
+        invoice.history.push({
+          action: "PAID",
+          performedBy: user.id,
+          performedAt: new Date(),
+          details: "Invoice fully paid"
+        });
+      }
+    }
+
+    if (data.approval) {
+      if (!invoice.approval) {
+        invoice.approval = {
+          required: false,
+          levels: [],
+          finalApprover: null,
+          finalApprovedAt: null,
+          rejectionReason: null
+        };
+      }
+
+      if (!invoice.approval.levels || !Array.isArray(invoice.approval.levels) || invoice.approval.levels.length === 0) {
+        return NextResponse.json({ 
+          error: "No approval levels configured for this invoice" 
+        }, { status: 400 });
+      }
+
+      const level = invoice.approval.levels.find((l: any) => 
+        l.approver === user.id && l.status === "PENDING"
+      );
+
+      if (!level) {
+        return NextResponse.json({ 
+          error: "You are not authorized to approve this invoice or it has already been processed" 
+        }, { status: 403 });
+      }
+
+      level.status = data.approval.approved ? "APPROVED" : "REJECTED";
+      level.approvedAt = new Date();
+      level.comments = data.approval.comments;
+
+      const allApproved = invoice.approval.levels.every((l: any) => 
+        l.status === "APPROVED"
+      );
+
+      if (allApproved) {
+        invoice.status = "APPROVED";
+        invoice.approval.finalApprover = user.id;
+        invoice.approval.finalApprovedAt = new Date();
+      } else if (!data.approval.approved) {
+        invoice.status = "REJECTED";
+        invoice.approval.rejectionReason = data.approval.comments || "No reason provided";
+      }
+
+      invoice.history.push({
+        action: data.approval.approved ? "APPROVED" : "REJECTED",
+        performedBy: user.id,
+        performedAt: new Date(),
+        details: data.approval.comments || `Invoice ${data.approval.approved ? "approved" : "rejected"}`
+      });
+    }
+
+    invoice.updatedBy = user.id;
+    await invoice.save();
+
+    return NextResponse.json(invoice);
+  } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ 
+        error: "Validation failed", 
+        details: error.format() 
+      }, { status: 400 });
+    }
+    
+    if (error.name === "CastError" || error.message?.includes("not found")) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    console.error("Invoice PATCH error:", error);
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  try {
+    const user = await getSessionUser(req);
+    await connectToDatabase();
+
+    const invoice = await (Invoice as any).findOne({
+      _id: params.id,
+      tenantId: user.tenantId,
+      status: "DRAFT"
+    });
+
+    if (!invoice) {
+      return NextResponse.json({ error: "Invoice not found or cannot be deleted" }, { status: 404 });
+    }
+
+    invoice.status = "CANCELLED";
+    invoice.history = invoice.history || [];
+    invoice.history.push({
+      action: "CANCELLED",
+      performedBy: user.id,
+      performedAt: new Date(),
+      details: "Invoice cancelled"
+    });
+    invoice.updatedBy = user.id;
+    await invoice.save();
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

@@ -28,24 +28,24 @@ testRunner.mock("./wo.schema", () => ({
 
 // Mock the repo and audit imports (referenced below but not imported)
 const repo = {
-  woCreate: vi.fn(),
-  woUpdate: vi.fn(),
-  woGet: vi.fn(),
-  woList: vi.fn(),
+  woCreate: jest.fn(),
+  woUpdate: jest.fn(),
+  woGet: jest.fn(),
+  woList: jest.fn(),
 };
 
-const audit = vi.fn();
+const audit = jest.fn();
 
 const mocked = {
-  woCreate: (repo as any).woCreate as ReturnType<typeof vi.fn>,
-  woUpdate: (repo as any).woUpdate as ReturnType<typeof vi.fn>,
-  woGet: (repo as any).woGet as ReturnType<typeof vi.fn>,
-  woList: (repo as any).woList as ReturnType<typeof vi.fn>,
-  audit: audit as unknown as ReturnType<typeof vi.fn>,
-  withIdempotency: withIdempotency as unknown as ReturnType<typeof vi.fn>,
-  createIdempotencyKey: createIdempotencyKey as unknown as ReturnType<typeof vi.fn>,
-  WoCreateParse: (WoCreate as any).parse as ReturnType<typeof vi.fn>,
-  WoUpdateParse: (WoUpdate as any).parse as ReturnType<typeof vi.fn>,
+  woCreate: (repo as any).woCreate as jest.Mock,
+  woUpdate: (repo as any).woUpdate as jest.Mock,
+  woGet: (repo as any).woGet as jest.Mock,
+  woList: (repo as any).woList as jest.Mock,
+  audit: audit as unknown as jest.Mock,
+  withIdempotency: withIdempotency as unknown as jest.Mock,
+  createIdempotencyKey: createIdempotencyKey as unknown as jest.Mock,
+  WoCreateParse: (WoCreate as any).parse as jest.Mock,
+  WoUpdateParse: (WoUpdate as any).parse as jest.Mock,
 };
 
 describe("wo.service", () => {

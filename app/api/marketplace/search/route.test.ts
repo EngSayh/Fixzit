@@ -1,5 +1,4 @@
 /**
-import { vi } from 'vitest';
  * Testing library/framework:
  * - Jest with TypeScript (ts-jest or next/jest) conventions.
  * - If the project uses Vitest, replace jest.* with vi.* and adjust mocks accordingly.
@@ -13,15 +12,15 @@ import { vi } from 'vitest';
 
 /* eslint-disable @typescript-eslint/no-explicit-any, no-unused-vars */
 
-const jsonMock = vi.fn()
-const findOneMock = vi.fn()
-const productFindMock = vi.fn()
-const productSortMock = vi.fn()
-const productLimitMock = vi.fn()
-const productLeanMock = vi.fn()
+const jsonMock = jest.fn()
+const findOneMock = jest.fn()
+const productFindMock = jest.fn()
+const productSortMock = jest.fn()
+const productLimitMock = jest.fn()
+const productLeanMock = jest.fn()
 
 // Mock minimal next/server surface
-vi.mock('next/server', () => {
+jest.mock('next/server', () => {
   return {
     NextResponse: {
       json: (body: any, init?: any) => {
@@ -33,7 +32,7 @@ vi.mock('next/server', () => {
 }, { virtual: true })
 
 // Mock SearchSynonym model
-vi.mock('@/server/models/SearchSynonym', () => {
+jest.mock('@/server/models/SearchSynonym', () => {
   return {
     SearchSynonym: {
       findOne: (...args: any[]) => findOneMock(...args),
@@ -42,7 +41,7 @@ vi.mock('@/server/models/SearchSynonym', () => {
 }, { virtual: true })
 
 // Mock MarketplaceProduct model and its query chain
-vi.mock('@/server/models/MarketplaceProduct', () => {
+jest.mock('@/server/models/MarketplaceProduct', () => {
   return {
     MarketplaceProduct: {
       find: (...args: any[]) => productFindMock(...args),
@@ -62,7 +61,7 @@ function makeReq(url: string): any {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  jest.clearAllMocks()
 
   // Reset chain for each test
   productFindMock.mockImplementation(() => ({

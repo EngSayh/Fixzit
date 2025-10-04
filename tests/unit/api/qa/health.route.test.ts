@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 /**
  * Unit tests for api/qa/health route.
  *
@@ -42,7 +41,7 @@ function makeMongoMock(opts: MockOptions) {
       ? new Promise((_, reject) => setTimeout(() => reject(opts.dbReject), 0))
       : Promise.resolve();
 
-  const getDatabase = vi.fn(async () => ({
+  const getDatabase = jest.fn(async () => ({
     listCollections: () => ({
       toArray: async () => {
         if (opts.queryFail) {
@@ -62,9 +61,9 @@ function makeMongoMock(opts: MockOptions) {
 }
 
 async function loadRouteWithMocks(opts: MockOptions): Promise<RouteModule> {
-  vi.resetModules();
-  vi.doMock('next/server', () => mockNextServer(), { virtual: true });
-  vi.doMock('@/lib/mongodb-unified', () => makeMongoMock(opts), { virtual: true });
+  jest.resetModules();
+  jest.doMock('next/server', () => mockNextServer(), { virtual: true });
+  jest.doMock('@/lib/mongodb-unified', () => makeMongoMock(opts), { virtual: true });
 
   const candidates = [
     '../../../../src/app/api/qa/health/route',
@@ -92,16 +91,16 @@ async function loadRouteWithMocks(opts: MockOptions): Promise<RouteModule> {
 
 describe('api/qa/health route - GET', () => {
   afterEach(() => {
-    vi.clearAllMocks();
-    vi.restoreAllMocks();
-    vi.resetModules();
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    jest.resetModules();
     delete (process as any).env.npm_package_version;
   });
 
     const version = '9.9.9-test';
     (process as any).env.npm_package_version = version;
 
-    const memSpy = vi.spyOn(process, 'memoryUsage').mockReturnValue({
+    const memSpy = jest.spyOn(process, 'memoryUsage').mockReturnValue({
       rss: 100 * 1024 * 1024,
       heapUsed: 50 * 1024 * 1024
       // other fields are not used by the code under test
@@ -149,7 +148,7 @@ describe('api/qa/health route - GET', () => {
 
   it('returns critical (503) when DB connection fails', async () => {
     const err = new Error('DB down');
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const res = await GET({} as any);
 
@@ -163,7 +162,7 @@ describe('api/qa/health route - GET', () => {
   });
 
   it('handles memory usage retrieval failures gracefully', async () => {
-    const memSpy = vi.spyOn(process, 'memoryUsage').mockImplementation(() => {
+    const memSpy = jest.spyOn(process, 'memoryUsage').mockImplementation(() => {
       throw new Error('memory unavailable');
     });
 
@@ -178,9 +177,9 @@ describe('api/qa/health route - GET', () => {
 
 describe('api/qa/health route - POST', () => {
   afterEach(() => {
-    vi.clearAllMocks();
-    vi.restoreAllMocks();
-    vi.resetModules();
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    jest.resetModules();
   });
 
     const res = await POST({} as any);

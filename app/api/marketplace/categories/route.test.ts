@@ -1,24 +1,23 @@
 import { GET } from './route';
-import { vi } from 'vitest';
 import { z } from 'zod';
 
 // We will mock the database collections module.
 // Adjust mock syntax if using Vitest (vi.mock) instead of Jest.
-vi.mock('@/lib/db/collections', () => ({
-  getCollections: vi.fn(),
+jest.mock('@/lib/db/collections', () => ({
+  getCollections: jest.fn(),
 }));
 
 import { getCollections } from '@/lib/db/collections';
 
-type ProductsCollection = { distinct: ReturnType<typeof vi.fn> };
+type ProductsCollection = { distinct: jest.Mock };
 
 const makeCollections = (distinctValues: unknown[] = [], categoryDocs: any[] = []) => {
-  const toArray = vi.fn().mockResolvedValue(categoryDocs);
-  const sort = vi.fn().mockReturnValue({ toArray });
-  const find = vi.fn().mockReturnValue({ sort });
+  const toArray = jest.fn().mockResolvedValue(categoryDocs);
+  const sort = jest.fn().mockReturnValue({ toArray });
+  const find = jest.fn().mockReturnValue({ sort });
 
   const products: ProductsCollection = {
-    distinct: vi.fn().mockResolvedValue(distinctValues),
+    distinct: jest.fn().mockResolvedValue(distinctValues),
   };
 
   return {
@@ -33,7 +32,7 @@ describe('GET /api/marketplace/categories', () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    vi.resetAllMocks();
+    jest.resetAllMocks();
     // Clone env to avoid leakage between tests
     process.env = { ...ORIGINAL_ENV };
   });
@@ -51,7 +50,7 @@ describe('GET /api/marketplace/categories', () => {
       { _id: { toString: () => '42' }, name: 'Gamma', slug: 'gamma', parentId: undefined, icon: undefined },
     ];
     const { mocks, value } = makeCollections(distinctValues, categoryDocs);
-    vi.mocked(getCollections).mockResolvedValue(value);
+    (getCollections as jest.Mock).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as any;
     const res = await GET(req);
@@ -78,7 +77,7 @@ describe('GET /api/marketplace/categories', () => {
 
   test('uses provided tenantId from query params', async () => {
     const { mocks, value } = makeCollections(['x', 'y'], []);
-    vi.mocked(getCollections).mockResolvedValue(value);
+    (getCollections as jest.Mock).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories?tenantId=my-tenant' } as any;
     const res = await GET(req);
@@ -96,7 +95,7 @@ describe('GET /api/marketplace/categories', () => {
       { _id: { toString: () => 'b' }, name: 'B', slug: 'b', parentId: 'p', icon: 'icon-b.png' },
     ];
     const { mocks, value } = makeCollections([], categoryDocs);
-    vi.mocked(getCollections).mockResolvedValue(value);
+    (getCollections as jest.Mock).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as any;
     const res = await GET(req);
@@ -112,7 +111,7 @@ describe('GET /api/marketplace/categories', () => {
   });
 
   test('handles internal errors from getCollections with 500', async () => {
-    vi.mocked(getCollections).mockRejectedValue(new Error('DB unavailable'));
+    (getCollections as jest.Mock).mockRejectedValue(new Error('DB unavailable'));
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as any;
     const res = await GET(req);
@@ -124,7 +123,7 @@ describe('GET /api/marketplace/categories', () => {
 
   test('responds with 400 on Zod validation error (mocked)', async () => {
     // Spy on ZodObject.parse to throw a ZodError for this invocation
-    const parseSpy = vi.spyOn((z as any).ZodObject.prototype, 'parse').mockImplementation(() => {
+    const parseSpy = jest.spyOn((z as any).ZodObject.prototype, 'parse').mockImplementation(() => {
       throw new z.ZodError([
         {
           code: 'custom',
@@ -156,7 +155,7 @@ describe('GET /api/marketplace/categories', () => {
       { _id: 12345 as any, name: 'NameC', slug: 'slug-c', parentId: undefined, icon: 'c.svg' },
     ];
     const { value } = makeCollections(distinctValues, categoryDocs);
-    vi.mocked(getCollections).mockResolvedValue(value);
+    (getCollections as jest.Mock).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as any;
     const res = await GET(req);

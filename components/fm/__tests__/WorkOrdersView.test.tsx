@@ -1,25 +1,24 @@
 import React from 'react';
-import { vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Import the component from its actual location
 import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView';
 
-vi.mock('swr', () => {
+jest.mock('swr', () => {
   // We'll provide a helper to control return values per test.
-  let current: any = { data: undefined, error: undefined, isLoading: false, mutate: vi.fn(), isValidating: false };
+  let current: any = { data: undefined, error: undefined, isLoading: false, mutate: jest.fn(), isValidating: false };
   const useSWR = () => current;
   (useSWR as any).__set = (next: any) => { current = { ...current, ...next }; };
-  (useSWR as any).__reset = () => { current = { data: undefined, error: undefined, isLoading: false, mutate: vi.fn(), isValidating: false }; };
+  (useSWR as any).__reset = () => { current = { data: undefined, error: undefined, isLoading: false, mutate: jest.fn(), isValidating: false }; };
   return useSWR;
 });
 
-vi.mock('date-fns', () => {
-  const actual = vi.importActual('date-fns');
+jest.mock('date-fns', () => {
+  const actual = jest.requireActual('date-fns');
   return {
     ...actual,
-    formatDistanceToNowStrict: vi.fn((date: Date) => {
+    formatDistanceToNowStrict: jest.fn((date: Date) => {
       // Provide a deterministic label for tests based on timestamp relation to "now"
       const now = Date.now();
       const diffMs = date.getTime() - now;
@@ -32,16 +31,16 @@ vi.mock('date-fns', () => {
 
 // JSDOM has localStorage; ensure clean state
 beforeEach(() => {
-  vi.useFakeTimers();
-  (global as any).fetch = vi.fn();
+  jest.useFakeTimers();
+  (global as any).fetch = jest.fn();
   (window.localStorage as any).clear();
-  (window as any).alert = vi.fn();
+  (window as any).alert = jest.fn();
   (require('swr') as any).__reset();
 });
 
 afterEach(() => {
-  vi.useRealTimers();
-  vi.clearAllMocks();
+  jest.useRealTimers();
+  jest.clearAllMocks();
 });
 
 const makeApiResponse = (items: any[], page = 1, limit = 10, total?: number) => ({
@@ -51,7 +50,7 @@ const makeApiResponse = (items: any[], page = 1, limit = 10, total?: number) => 
 describe('WorkOrdersView', () => {
   test('renders default heading and description', () => {
     const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse([]), isLoading: false, error: undefined, isValidating: false, mutate: vi.fn() });
+    useSWR.__set({ data: makeApiResponse([]), isLoading: false, error: undefined, isValidating: false, mutate: jest.fn() });
 
     render(<WorkOrdersViewDefault />);
     expect(screen.getByRole('heading', { name: /Work Orders/i })).toBeInTheDocument();
@@ -93,7 +92,7 @@ describe('WorkOrdersView', () => {
 
   test('renders list items with badges and computed meta including overdue styling', () => {
     const now = Date.now();
-    vi.spyOn(Date, 'now').mockReturnValue(now);
+    jest.spyOn(Date, 'now').mockReturnValue(now);
 
     const past = new Date(now - 60 * 60 * 1000).toISOString(); // 1h ago
     const future = new Date(now + 60 * 60 * 1000).toISOString(); // in 1h
@@ -170,7 +169,7 @@ describe('WorkOrdersView', () => {
   });
 
   test('refresh button calls mutate', async () => {
-    const mutate = vi.fn();
+    const mutate = jest.fn();
     const useSWR = require('swr');
     useSWR.__set({ data: makeApiResponse([]), isValidating: false, mutate });
 
@@ -183,14 +182,14 @@ describe('WorkOrdersView', () => {
   test('status and priority filters update query (via SWR key) when changed', async () => {
     // We'll not assert the URL directly since we mock useSWR; instead, we track state changes by ensuring SWR receives new key.
     // To do this, temporarily un-mock useSWR and spy on global.fetch to capture requested URL.
-    vi.resetModules();
+    jest.resetModules();
 
     // Replace module with a wrapper that exposes last key
     let lastKey: any = null;
-    vi.doMock('swr', () => {
+    jest.doMock('swr', () => {
       return (key: any) => {
         lastKey = key;
-        return { data: { items: [], page: 1, limit: 10, total: 0 }, isLoading: false, error: undefined, mutate: vi.fn(), isValidating: false };
+        return { data: { items: [], page: 1, limit: 10, total: 0 }, isLoading: false, error: undefined, mutate: jest.fn(), isValidating: false };
       };
     });
 
@@ -216,12 +215,12 @@ describe('WorkOrdersView', () => {
   });
 
   test('search input debounces and updates query only after 350ms', async () => {
-    vi.resetModules();
+    jest.resetModules();
     let lastKey: any = null;
-    vi.doMock('swr', () => {
+    jest.doMock('swr', () => {
       return (key: any) => {
         lastKey = key;
-        return { data: { items: [], page: 1, limit: 10, total: 0 }, isLoading: false, error: undefined, mutate: vi.fn(), isValidating: false };
+        return { data: { items: [], page: 1, limit: 10, total: 0 }, isLoading: false, error: undefined, mutate: jest.fn(), isValidating: false };
       };
     });
     const { default: Component } = require('../WorkOrdersView.test');
@@ -235,21 +234,21 @@ describe('WorkOrdersView', () => {
     expect(lastKey).toMatch(/\/api\/work-orders\?limit=10&page=1$/);
 
     // Advance time by 349ms => still not updated
-    await act(async () => { vi.advanceTimersByTime(349); });
+    await act(async () => { jest.advanceTimersByTime(349); });
     expect(lastKey).toMatch(/\/api\/work-orders\?limit=10&page=1$/);
 
     // Advance to 350ms => update should include q=leak
-    await act(async () => { vi.advanceTimersByTime(1); });
+    await act(async () => { jest.advanceTimersByTime(1); });
     expect(lastKey).toMatch(/q=leak/);
   });
 
   test('POST create: success closes dialog, resets form, and calls onCreated (via mutate)', async () => {
     const useSWR = require('swr');
-    const mutate = vi.fn();
+    const mutate = jest.fn();
     useSWR.__set({ data: makeApiResponse([]), isLoading: false, mutate });
 
     // Mock fetch for POST success
-    vi.mocked(global.fetch).mockImplementation(async (url: string, init?: RequestInit) => {
+    (global.fetch as jest.Mock).mockImplementation(async (url: string, init?: RequestInit) => {
       if (typeof url === 'string' && url.startsWith('/api/work-orders') && init?.method === 'POST') {
         return new Response('{}', { status: 200 });
       }
@@ -279,9 +278,9 @@ describe('WorkOrdersView', () => {
 
   test('POST create: failure shows alert with error message', async () => {
     const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse([]), isLoading: false, mutate: vi.fn() });
+    useSWR.__set({ data: makeApiResponse([]), isLoading: false, mutate: jest.fn() });
 
-    vi.mocked(global.fetch).mockImplementation(async (url: string, init?: RequestInit) => {
+    (global.fetch as jest.Mock).mockImplementation(async (url: string, init?: RequestInit) => {
       if (typeof url === 'string' && url.startsWith('/api/work-orders') && init?.method === 'POST') {
         return new Response('Bad Request: Missing stuff', { status: 400 });
       }
@@ -302,24 +301,24 @@ describe('WorkOrdersView', () => {
 
   test('fetch headers include Authorization when token present and x-user is set', async () => {
     const useSWR = require('swr');
-    useSWR.__set({ data: undefined, isLoading: true, mutate: vi.fn() });
+    useSWR.__set({ data: undefined, isLoading: true, mutate: jest.fn() });
 
     window.localStorage.setItem('fixzit_token', 'tkn-123');
     window.localStorage.setItem('x-user', JSON.stringify({ id: 'u1', role: 'ADMIN', tenantId: 'demo-tenant' }));
 
-    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify(makeApiResponse([])), { status: 200 }));
+    (global.fetch as jest.Mock).mockResolvedValue(new Response(JSON.stringify(makeApiResponse([])), { status: 200 }));
 
     render(<WorkOrdersViewDefault />);
 
     // Allow initial effect to set clientReady and SWR to trigger fetch
     await act(async () => {
-      vi.advanceTimersByTime(0);
+      jest.advanceTimersByTime(0);
       await Promise.resolve();
     });
 
     // Verify fetch called with headers containing Authorization and x-user
     expect(global.fetch).toHaveBeenCalled();
-    const lastCall = vi.mocked(global.fetch).mock.calls.pop();
+    const lastCall = (global.fetch as jest.Mock).mock.calls.pop();
     expect(lastCall).toBeTruthy();
     const options = lastCall[1] as RequestInit;
     const headers = (options?.headers ?? {}) as Record<string, string>;

@@ -1,5 +1,4 @@
 /**
-import { vi } from 'vitest';
  * Test framework: Jest (with ts-jest for TypeScript).
  * If using a different runner (e.g., Vitest), adapt the mock and assertion APIs accordingly.
  */
@@ -61,12 +60,12 @@ class InMemoryMockDatabase {
 
 // Capture console output
 
-let consoleSpy: ReturnType<typeof vi.spyOn>
+let consoleSpy: jest.SpyInstance
 
 beforeEach(() => {
   // Reset the singleton state between tests
   InMemoryMockDatabase.getInstance().reset()
-  consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
 })
 
 afterEach(() => {
@@ -131,7 +130,7 @@ describe('seed-marketplace script', () => {
 
     try {
       const t0 = Date.now()
-      vi.spyOn(Date, 'now').mockReturnValue(t0 + 5_000)
+      jest.spyOn(Date, 'now').mockReturnValue(t0 + 5_000)
 
       const updated = mod.upsert(
         'searchsynonyms',

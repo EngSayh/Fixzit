@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 /**
  * Tests for scripts/seed-marketplace.ts
  *
@@ -26,12 +25,12 @@ const makeCollections = () => ({
 
 let collections = makeCollections();
 
-const mockGetCollection = vi.fn((name: string) => {
+const mockGetCollection = jest.fn((name: string) => {
   // Always return by reference so mutations are visible
   return collections[name as keyof typeof collections] ?? (collections[name as keyof typeof collections] = []);
 });
 
-const mockSetCollection = vi.fn((name: string, data: AnyRec[]) => {
+const mockSetCollection = jest.fn((name: string, data: AnyRec[]) => {
   collections[name as keyof typeof collections] = data;
 });
 
@@ -50,7 +49,7 @@ const deterministicRandom = () => {
 };
 
 // Console spy
-const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+const consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
 
   class MockDatabase {
     static instance: any;
@@ -77,20 +76,20 @@ beforeEach(() => {
   mockSetCollection.mockClear();
   consoleLogSpy.mockClear();
   // Control Date and Math.random
-  vi.useFakeTimers().setSystemTime(FIXED_DATE);
+  jest.useFakeTimers().setSystemTime(FIXED_DATE);
   Math.random = deterministicRandom;
   randomCounter = 0;
 });
 
 afterEach(() => {
-  vi.useRealTimers();
+  jest.useRealTimers();
   Math.random = originalMathRandom;
 });
 
 async function importSeedScriptFresh() {
   // Clear previously cached module to re-run top-level main()
   const modulePath = getSeedModulePath();
-  vi.resetModules();
+  jest.resetModules();
   return import(modulePath);
 }
 
@@ -164,7 +163,7 @@ describe("scripts/seed-marketplace.ts - seeding behavior", () => {
 
     // Advance time to verify updatedAt changes on update
     const LATER_DATE = new Date("2025-01-03T03:04:05.000Z");
-    vi.setSystemTime(LATER_DATE);
+    jest.setSystemTime(LATER_DATE);
 
     // Second run should update in place (no new docs with same predicate)
     await importSeedScriptFresh();

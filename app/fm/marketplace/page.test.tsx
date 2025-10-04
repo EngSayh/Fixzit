@@ -1,5 +1,4 @@
 /**
-import { vi } from 'vitest';
  * Test framework: Jest + React Testing Library
  * These tests validate:
  *  - Dynamic import usage with ssr: false via mocking next/dynamic
@@ -18,7 +17,7 @@ import { render, screen } from '@testing-library/react';
 const dynamicCalls: Array<{ loader: Function; options?: any }> = [];
 
 // Mock next/dynamic to record calls and return a simple wrapper component
-vi.mock('next/dynamic', () => {
+jest.mock('next/dynamic', () => {
   return (loader: Function, options?: any) => {
     dynamicCalls.push({ loader, options });
     // Simulate a "loaded" component by immediately using the mocked module
@@ -43,7 +42,7 @@ vi.mock('next/dynamic', () => {
 });
 
 // Mock the dynamically imported CatalogView with a test double that surfaces props
-vi.mock('@/components/marketplace/CatalogView', () => {
+jest.mock('@/components/marketplace/CatalogView', () => {
   const MockCatalogView = (props: any) => {
     const { title, subtitle, context } = props || {};
     return (

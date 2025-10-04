@@ -1,13 +1,12 @@
 /**
-import { vi } from 'vitest';
  * Tests for PayTabs payment page creation route handler (POST).
  * Framework: Jest (TypeScript). If using Vitest, replace jest.* with vi.* equivalents.
  */
-import { describe, test, expect, jest, beforeEach, beforeAll, afterEach } from 'vitest';
+import { describe, test, expect, jest, beforeEach, beforeAll, afterEach } from '@jest/globals';
 import type { NextRequest } from 'next/server'
 
 // Mock next/server to isolate NextResponse and avoid runtime coupling
-vi.mock('next/server', () => {
+jest.mock('next/server', () => {
   const actual = jest.requireActual('next/server')
   // Provide a minimal NextResponse.json that returns a standard Response-like object
   return {
@@ -63,7 +62,7 @@ describe('PayTabs POST route', () => {
     process.env.PAYTABS_PROFILE_ID = '85119'
     // Provide default server key unless tests override
     process.env.PAYTABS_API_SERVER_KEY = 'server-key'
-    fetchSpy = vi.spyOn(globalThis, 'fetch' as any)
+    fetchSpy = jest.spyOn(globalThis, 'fetch' as any)
   })
 
   afterEach(() => {
