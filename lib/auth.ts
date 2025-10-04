@@ -1,3 +1,5 @@
+import { User } from '../server/models/User';
+
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
