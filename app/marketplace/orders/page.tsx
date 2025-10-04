@@ -1,68 +1,66 @@
 
+import Link from 'next/link';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
-const STATUS_BADGES: Record<string, string> = {
-  APPROVAL: 'bg-amber-100 text-amber-700',
-  PENDING: 'bg-blue-100 text-blue-700',
-  CONFIRMED: 'bg-indigo-100 text-indigo-700',
-  FULFILLED: 'bg-teal-100 text-teal-700',
-  DELIVERED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-red-100 text-red-700'
-};
+async function loadOrdersData() {
+  try {
+    const [categoriesResponse, ordersResponse] = await Promise.all([
+      serverFetchJsonWithTenant<any>('/api/marketplace/categories').catch(err => {
+        console.error('Failed to fetch categories for orders:', err);
+        return { data: [] };
+      }),
+      serverFetchJsonWithTenant<any>('/api/marketplace/orders').catch(err => {
+        console.error('Failed to fetch orders:', err);
+        return { data: [] };
+      })
+    ]);
+
+    const departments = ((categoriesResponse.data || []) as any[]).map(category => ({
+      slug: category.slug,
+      name: category.name?.en ?? category.slug
+    }));
+
+    const orders = (ordersResponse.data || []) as any[];
+
+    return { departments, orders };
+  } catch (error) {
+    console.error('Failed to load orders page data:', error);
+    return { departments: [], orders: [] };
+  }
+}
 
 export default async function OrdersPage() {
-  const [categoriesResponse, ordersResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/orders')
-  ]);
-
-  const departments = (categoriesResponse.data as any[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
-
-  const orders = ordersResponse.data as any[];
+  const { departments, orders } = await loadOrdersData();
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <h1 className="text-3xl font-semibold text-[#0F1111]">Orders & Approvals</h1>
-        <p className="mt-2 text-sm text-gray-600">Track procurement across approval, fulfilment, and finance posting.</p>
+        <h1 className="text-3xl font-semibold text-[#0F1111]">My Orders</h1>
         <div className="mt-6 space-y-4">
-          {orders.length ? (
-            orders.map(order => (
+          {orders.length > 0 ? (
+            orders.map((order: any) => (
               <article key={order._id} className="rounded-3xl bg-white p-6 shadow">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-[#0061A8]">Order #{order._id.slice(-6).toUpperCase()}</p>
-                    <h2 className="text-lg font-semibold text-[#0F1111]">{order.lines.length} item(s)</h2>
-                    <p className="text-sm text-gray-600">Submitted {new Date(order.createdAt).toLocaleString()}</p>
+                    <h2 className="text-lg font-semibold text-[#0F1111]">Order #{order.orderNumber}</h2>
+                    <p className="text-sm text-gray-600">Status: {order.status}</p>
                   </div>
-                  <div className="space-y-2 text-right text-sm">
-                    <span className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_BADGES[order.status] ?? 'bg-gray-200 text-gray-700'}`}>
-                      {order.status}
-                    </span>
-                    <p className="font-semibold text-[#0061A8]">
-                      {order.totals.grand.toFixed(2)} {order.currency}
-                    </p>
-                    <p className="text-xs text-gray-500">Approval: {order.approvals?.status ?? 'N/A'}</p>
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-3 text-sm text-gray-700 md:grid-cols-2">
-                  {order.lines.map((line: any) => (
-                    <div key={line.productId} className="rounded-2xl border border-gray-100 bg-[#F8FBFF] p-3">
-                      <p className="font-semibold text-[#0F1111]">{line.productId}</p>
-                      <p className="text-xs text-gray-500">{line.qty} × {line.price} {line.currency}</p>
-                    </div>
-                  ))}
+                  <Link
+                    href={`/marketplace/orders/${order._id}`}
+                    className="text-[#0061A8] hover:underline font-semibold"
+                  >
+                    View Details
+                  </Link>
                 </div>
               </article>
             ))
           ) : (
-            <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-white p-10 text-center text-gray-600">
-              <p className="text-lg font-semibold text-[#0F1111]">No orders yet</p>
-              <p className="mt-2 text-sm">Place an order via the marketplace to see approval routing.</p>
+            <div className="rounded-3xl bg-white p-10 text-center text-gray-600">
+              <p className="text-lg font-semibold">No orders yet</p>
+              <Link href="/marketplace" className="mt-4 inline-block text-[#0061A8] hover:underline">
+                Start shopping
+              </Link>
             </div>
           )}
         </div>
@@ -70,3 +68,4 @@ export default async function OrdersPage() {
     </div>
   );
 }
+

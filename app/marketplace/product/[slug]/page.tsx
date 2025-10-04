@@ -7,20 +7,51 @@ interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
+async function loadProductData(slug: string) {
+  try {
+    const [categoriesResponse, productResponse] = await Promise.all([
+      serverFetchJsonWithTenant<any>('/api/marketplace/categories').catch(err => {
+        console.error('Failed to fetch categories for product detail:', err);
+        return { data: [] };
+      }),
+      serverFetchJsonWithTenant<any>(`/api/marketplace/products/${slug}`).catch(err => {
+        console.error(`Failed to fetch product ${slug}:`, err);
+        return { data: { product: null, category: null } };
+      })
+    ]);
+
+    const departments = ((categoriesResponse.data || []) as any[]).map(category => ({
+      slug: category.slug,
+      name: category.name?.en ?? category.slug
+    }));
+
+    const product = productResponse.data?.product || null;
+    const category = productResponse.data?.category || null;
+
+    return { departments, product, category };
+  } catch (error) {
+    console.error('Failed to load product detail page data:', error);
+    return { departments: [], product: null, category: null };
+  }
+}
+
 export default async function ProductDetail(props: ProductPageProps) {
   const params = await props.params;
-  const [categoriesResponse, productResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)
-  ]);
+  const { departments, product, category } = await loadProductData(params.slug);
 
-  const departments = (categoriesResponse.data as any[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
-
-  const product = productResponse.data.product;
-  const category = productResponse.data.category;
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-[#F5F6F8] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-[#0F1111]">Product not found</h1>
+          <p className="mt-2 text-gray-600">The product you're looking for doesn't exist or has been removed.</p>
+          <a href="/marketplace" className="mt-4 inline-block text-[#0061A8] hover:underline">
+            Return to Marketplace
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   const attachments = product.media?.filter((file: any) => file.role === 'MSDS' || file.role === 'COA') ?? [];
   const gallery = product.media?.filter((file: any) => file.role === 'GALLERY') ?? [];
@@ -40,7 +71,7 @@ export default async function ProductDetail(props: ProductPageProps) {
             </a>
           )}
           <span className="mx-2 text-gray-400">/</span>
-          <span className="text-gray-600" style={{ color: FIXZIT_COLORS.primary }}>{product.title.en}</span>
+          <span className="text-gray-600" style={{ color: FIXZIT_COLORS.primary }}>{product.title?.en ?? 'Product'}</span>
         </nav>
 
         <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -49,59 +80,45 @@ export default async function ProductDetail(props: ProductPageProps) {
               <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                 <div className="space-y-4">
                   <div className="relative overflow-hidden rounded-2xl bg-gray-100 h-96">
-                    <Image
-                      src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg'}
-                      alt={product.title.en}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex gap-3 overflow-x-auto">
-                    {gallery.map((image: any) => (
-                      <div key={image.url} className="relative h-16 w-16 rounded-xl border border-gray-200 overflow-hidden">
-                        <Image
-                          src={image.url}
-                          alt={product.title.en}
-                          fill
-                          sizes="64px"
-                          className="object-cover"
-                        />
+                    {gallery.length > 0 ? (
+                      <Image
+                        src={gallery[0].url}
+                        alt={product.title?.en ?? 'Product image'}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 60vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-400">
+                        No image available
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <h1 className="text-3xl font-semibold text-[#0F1111]">{product.title.en}</h1>
-                  {product.summary && <p className="text-sm text-gray-600">{product.summary}</p>}
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p><span className="font-semibold">SKU:</span> {product.sku}</p>
-                    {product.brand && <p><span className="font-semibold">Brand:</span> {product.brand}</p>}
-                    {product.standards?.length ? (
-                      <p>
-                        <span className="font-semibold">Standards:</span> {product.standards.join(', ')}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="rounded-2xl bg-[#F8FBFF] p-4">
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Key specifications</h2>
-                    <ul className="mt-2 space-y-1 text-sm text-gray-700">
-                      {Object.entries(product.specs || {}).map(([key, value]) => (
-                        <li key={key} className="flex justify-between gap-4">
-                          <span className="font-medium capitalize text-gray-500">{key.replace(/_/g, ' ')}</span>
-                          <span>{String(value)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+
+                <div>
+                  <h1 className="text-2xl font-bold text-[#0F1111]">{product.title?.en ?? 'Product'}</h1>
+                  {product.rating && (
+                    <div className="mt-2 flex items-center gap-2 text-sm">
+                      <span className="text-[#FFB400]">★★★★★</span>
+                      <span className="text-gray-600">
+                        {product.rating.avg} ({product.rating.count} reviews)
+                      </span>
+                    </div>
+                  )}
+
+                  {product.description?.en && (
+                    <p className="mt-4 text-gray-700">{product.description.en}</p>
+                  )}
+
                   {attachments.length > 0 && (
-                    <div className="rounded-2xl border border-[#0061A8]/30 bg-white p-4">
-                      <h3 className="text-sm font-semibold text-[#0061A8]">Compliance documents</h3>
-                      <ul className="mt-2 space-y-2 text-sm text-[#0F1111]">
-                        {attachments.map((file: any) => (
-                          <li key={file.url}>
-                            <a href={file.url} className="hover:underline" target="_blank" rel="noopener noreferrer">
-                              {file.role === 'MSDS' ? 'Material Safety Data Sheet' : 'Certificate of Analysis'}
+                    <div className="mt-6">
+                      <h2 className="text-sm font-semibold text-[#0F1111]">Documents</h2>
+                      <ul className="mt-2 space-y-1 text-sm">
+                        {attachments.map((file: any, idx: number) => (
+                          <li key={idx}>
+                            <a href={file.url} className="text-[#0061A8] hover:underline" target="_blank" rel="noopener noreferrer">
+                              {file.role} - {file.filename || 'Download'}
                             </a>
                           </li>
                         ))}
@@ -111,17 +128,6 @@ export default async function ProductDetail(props: ProductPageProps) {
                 </div>
               </div>
             </div>
-
-            <section className="rounded-3xl bg-white p-6 shadow-lg">
-              <h2 className="text-xl font-semibold text-[#0F1111]">Related items</h2>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {product.related?.length ? (
-                  product.related.map((related: any) => <ProductCard key={related._id} product={related} />)
-                ) : (
-                  <p className="text-sm text-gray-600">Additional items will appear as catalogue grows.</p>
-                )}
-              </div>
-            </section>
           </div>
 
           <PDPBuyBox product={product} />
@@ -130,3 +136,4 @@ export default async function ProductDetail(props: ProductPageProps) {
     </div>
   );
 }
+

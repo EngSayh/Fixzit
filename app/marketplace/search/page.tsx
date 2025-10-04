@@ -8,48 +8,69 @@ interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+async function loadSearchData(searchParams: Record<string, string | string[] | undefined>) {
+  try {
+    const query = new URLSearchParams();
+    for (const key of ['q', 'cat', 'brand', 'std', 'min', 'max', 'page']) {
+      const value = searchParams[key];
+      if (typeof value === 'string' && value.length) {
+        query.set(key, value);
+      }
+    }
+
+    const [categoriesResponse, searchResponse] = await Promise.all([
+      serverFetchJsonWithTenant<any>('/api/marketplace/categories').catch(err => {
+        console.error('Failed to fetch categories for search:', err);
+        return { data: [] };
+      }),
+      serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`).catch(err => {
+        console.error('Failed to fetch search results:', err);
+        return { data: { items: [], facets: {}, pagination: { total: 0 } } };
+      })
+    ]);
+
+    const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
+    const searchData = (searchResponse.data ?? {}) as {
+      items?: any[];
+      facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
+      pagination?: { total?: number };
+    };
+
+    const items = Array.isArray(searchData.items) ? searchData.items : [];
+    const facetsData = searchData.facets ?? {};
+    const pagination = searchData.pagination ?? { total: items.length };
+
+    const facets = {
+      categories: Array.isArray(facetsData.categories) ? facetsData.categories : [],
+      brands: Array.isArray(facetsData.brands) ? facetsData.brands : [],
+      standards: Array.isArray(facetsData.standards) ? facetsData.standards : []
+    };
+
+    const departments = categories.map((category: any) => ({
+      slug: category.slug,
+      name: category.name?.en ?? category.slug
+    }));
+
+    return { items, facets, departments, pagination };
+  } catch (error) {
+    console.error('Failed to load marketplace search data:', error);
+    return {
+      items: [],
+      facets: { categories: [], brands: [], standards: [] },
+      departments: [],
+      pagination: { total: 0 }
+    };
+  }
+}
+
 export default async function MarketplaceSearch(props: SearchPageProps) {
   const searchParams = await props.searchParams;
-  const query = new URLSearchParams();
-  for (const key of ['q', 'cat', 'brand', 'std', 'min', 'max', 'page']) {
-    const value = searchParams[key];
-    if (typeof value === 'string' && value.length) {
-      query.set(key, value);
-    }
-  }
-
-  const [categoriesResponse, searchResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`)
-  ]);
-
-  const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
-  const searchData = (searchResponse.data ?? {}) as {
-    items?: any[];
-    facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
-    pagination?: { total?: number };
-  };
-
-  const items = Array.isArray(searchData.items) ? searchData.items : [];
-  const facetsData = searchData.facets ?? {};
-  const pagination = searchData.pagination ?? { total: items.length };
-
-  const facets = {
-    categories: Array.isArray(facetsData.categories) ? facetsData.categories : [],
-    brands: Array.isArray(facetsData.brands) ? facetsData.brands : [],
-    standards: Array.isArray(facetsData.standards) ? facetsData.standards : []
-  };
-
-  const departments = categories.map((category: any) => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
+  const { items, facets, departments, pagination } = await loadSearchData(searchParams);
 
   const rawQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
   const queryLabel = rawQuery && rawQuery.trim().length > 0 ? rawQuery : 'All products';
   const totalResults = typeof pagination.total === 'number' ? pagination.total : items.length;
-  const heading = `${totalResults} result(s) for ‘${queryLabel}’`;
-
+  const heading = `${totalResults} result(s) for '${queryLabel}'`;
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">

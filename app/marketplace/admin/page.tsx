@@ -1,95 +1,60 @@
 
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
-export default async function MarketplaceAdminPage() {
-  const [categoriesResponse, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=50'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/orders'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/rfq')
-  ]);
+async function loadAdminData() {
+  try {
+    const [categoriesResponse, statsResponse] = await Promise.all([
+      serverFetchJsonWithTenant<any>('/api/marketplace/categories').catch(err => {
+        console.error('Failed to fetch categories for admin:', err);
+        return { data: [] };
+      }),
+      serverFetchJsonWithTenant<any>('/api/marketplace/admin/stats').catch(err => {
+        console.error('Failed to fetch admin stats:', err);
+        return { data: { totalProducts: 0, totalOrders: 0, totalRevenue: 0 } };
+      })
+    ]);
 
-  const departments = (categoriesResponse.data as any[]).map((category: any) => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
+    const departments = ((categoriesResponse.data || []) as any[]).map(category => ({
+      slug: category.slug,
+      name: category.name?.en ?? category.slug
+    }));
 
-  const products = productsResponse.data.items as any[];
-  const orders = ordersResponse.data as any[];
-  const rfqs = rfqResponse.data as any[];
+    const stats = statsResponse.data || { totalProducts: 0, totalOrders: 0, totalRevenue: 0 };
+
+    return { departments, stats };
+  } catch (error) {
+    console.error('Failed to load admin page data:', error);
+    return {
+      departments: [],
+      stats: { totalProducts: 0, totalOrders: 0, totalRevenue: 0 }
+    };
+  }
+}
+
+export default async function AdminPage() {
+  const { departments, stats } = await loadAdminData();
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       
-      <main className="mx-auto max-w-7xl space-y-8 px-4 py-8">
-        <header>
-          <h1 className="text-3xl font-semibold text-[#0F1111]">Marketplace Administration</h1>
-          <p className="text-sm text-gray-600">Monitor catalogue health, approvals, and vendor performance.</p>
-        </header>
-
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <h1 className="text-3xl font-semibold text-[#0F1111]">Marketplace Admin</h1>
+        <div className="mt-6 grid gap-6 md:grid-cols-3">
           <div className="rounded-3xl bg-white p-6 shadow">
-            <p className="text-xs uppercase tracking-wide text-[#0061A8]">Active products</p>
-            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{products.length}</p>
+            <h2 className="text-lg font-semibold text-[#0F1111]">Total Products</h2>
+            <p className="mt-2 text-3xl font-bold text-[#0061A8]">{stats.totalProducts}</p>
           </div>
           <div className="rounded-3xl bg-white p-6 shadow">
-            <p className="text-xs uppercase tracking-wide text-[#0061A8]">Pending approvals</p>
-            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{orders.filter(order => order.status === 'APPROVAL').length}</p>
+            <h2 className="text-lg font-semibold text-[#0F1111]">Total Orders</h2>
+            <p className="mt-2 text-3xl font-bold text-[#00A859]">{stats.totalOrders}</p>
           </div>
           <div className="rounded-3xl bg-white p-6 shadow">
-            <p className="text-xs uppercase tracking-wide text-[#0061A8]">Delivered orders</p>
-            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{orders.filter(order => order.status === 'DELIVERED').length}</p>
+            <h2 className="text-lg font-semibold text-[#0F1111]">Total Revenue</h2>
+            <p className="mt-2 text-3xl font-bold text-[#FFB400]">{stats.totalRevenue} SAR</p>
           </div>
-          <div className="rounded-3xl bg-white p-6 shadow">
-            <p className="text-xs uppercase tracking-wide text-[#0061A8]">Open RFQs</p>
-            <p className="mt-2 text-3xl font-bold text-[#0F1111]">{rfqs.filter(rfq => rfq.status === 'OPEN').length}</p>
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white p-6 shadow">
-          <h2 className="text-lg font-semibold text-[#0F1111]">Catalogue snapshot</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {products.slice(0, 6).map(product => (
-              <div key={product._id} className="rounded-2xl border border-gray-100 bg-[#F8FBFF] p-4">
-                <p className="text-sm font-semibold text-[#0F1111]">{product.title.en}</p>
-                <p className="text-xs text-gray-600">SKU {product.sku}</p>
-                <p className="text-xs text-gray-600">
-                  {product.buy.price} {product.buy.currency} / {product.buy.uom}
-                </p>
-                <p className="mt-2 text-xs text-gray-500">Standards: {product.standards?.join(', ') || 'N/A'}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white p-6 shadow">
-          <h2 className="text-lg font-semibold text-[#0F1111]">Approval queue</h2>
-          <table className="mt-4 w-full table-fixed text-left text-sm text-gray-700">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-gray-500">
-                <th className="py-2">Order</th>
-                <th className="py-2">Total</th>
-                <th className="py-2">Status</th>
-                <th className="py-2">Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders
-                .filter(order => order.status === 'APPROVAL')
-                .map(order => (
-                  <tr key={order._id} className="border-t border-gray-100">
-                    <td className="py-2">{order._id.slice(-6).toUpperCase()}</td>
-                    <td className="py-2">
-                      {order.totals.grand.toFixed(2)} {order.currency}
-                    </td>
-                    <td className="py-2">{order.approvals?.status}</td>
-                    <td className="py-2">{new Date(order.createdAt).toLocaleString()}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </section>
+        </div>
       </main>
     </div>
   );
 }
+

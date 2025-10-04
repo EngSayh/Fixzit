@@ -3,18 +3,38 @@ import CheckoutForm from '@/components/marketplace/CheckoutForm';
 import Link from 'next/link';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
+async function loadCheckoutData() {
+  try {
+    const [categoriesResponse, cartResponse] = await Promise.all([
+      serverFetchJsonWithTenant<any>('/api/marketplace/categories').catch(err => {
+        console.error('Failed to fetch categories for checkout:', err);
+        return { data: [] };
+      }),
+      serverFetchJsonWithTenant<any>('/api/marketplace/cart').catch(err => {
+        console.error('Failed to fetch cart for checkout:', err);
+        return { data: { _id: null, lines: [], totals: { grand: 0 }, currency: 'SAR' } };
+      })
+    ]);
+
+    const departments = ((categoriesResponse.data || []) as any[]).map(category => ({
+      slug: category.slug,
+      name: category.name?.en ?? category.slug
+    }));
+
+    const cart = cartResponse.data || { _id: null, lines: [], totals: { grand: 0 }, currency: 'SAR' };
+
+    return { departments, cart };
+  } catch (error) {
+    console.error('Failed to load checkout page data:', error);
+    return {
+      departments: [],
+      cart: { _id: null, lines: [], totals: { grand: 0 }, currency: 'SAR' }
+    };
+  }
+}
+
 export default async function CheckoutPage() {
-  const [categoriesResponse, cartResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/cart')
-  ]);
-
-  const departments = (categoriesResponse.data as any[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
-
-  const cart = cartResponse.data;
+  const { departments, cart } = await loadCheckoutData();
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
@@ -37,22 +57,16 @@ export default async function CheckoutPage() {
             <div className="rounded-3xl bg-white p-6 shadow">
               <h2 className="text-lg font-semibold text-[#0F1111]">Order contents</h2>
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
-                {cart.lines.map((line: any) => (
-                  <li key={line.productId} className="flex justify-between">
-                    <span>{line.product?.title?.en ?? line.productId}</span>
-                    <span>
-                      {line.qty} × {line.price} {line.currency}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-3xl border border-[#0061A8]/30 bg-white p-6 shadow">
-              <h3 className="text-sm font-semibold text-[#0061A8]">Finance automation</h3>
-              <ul className="mt-2 space-y-2 text-sm text-gray-600">
-                <li>• Finance posting triggered automatically on delivery.</li>
-                <li>• VAT buckets are calculated from catalogue attributes.</li>
-                <li>• Work order linkage maintained for downstream audits.</li>
+                {cart.lines && cart.lines.length > 0 ? (
+                  cart.lines.map((line: any) => (
+                    <li key={line.productId} className="flex justify-between">
+                      <span>{line.product?.title?.en ?? 'Item'} × {line.qty}</span>
+                      <span>{line.total} {line.currency}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No items in cart</li>
+                )}
               </ul>
             </div>
           </aside>
