@@ -17,7 +17,8 @@ test.describe('Login & Sidebar (@smoke)', () => {
 
     // single header and presence of language/currency/back-to-home (at least language)
     await expect(page.locator('header')).toHaveCount(1);
-    await expect(page.getByRole('button', { name: /EN|AR|العربية/i })).toBeVisible();
+    // More specific selector: filter by aria-label containing "Select language"
+    await expect(page.locator('header').getByRole('button', { name: /Select language.*\(EN|AR\)/i })).toBeVisible();
 
     // Sidebar modules baseline (presence, no duplicates)
     for (const mod of cfg.modules) {
