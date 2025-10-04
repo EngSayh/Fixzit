@@ -52,10 +52,20 @@ export async function POST(req: NextRequest) {
     }
     const { db } = await import('@/lib/mongo');
     await (db as any)();
-    const AssetMod = await import('@/server/models/Asset').catch(() => null);
-    const Asset = AssetMod && (AssetMod as any).Asset;
+    const AssetModOrError = await import('@/server/models/Asset').catch((err) => err);
+    if (AssetModOrError instanceof Error) {
+      console.error('Failed to import Asset model:', AssetModOrError);
+      return NextResponse.json(
+        { success: false, error: `Failed to import Asset model: ${AssetModOrError.message}` },
+        { status: 501 }
+      );
+    }
+    const Asset = AssetModOrError && (AssetModOrError as any).Asset;
     if (!Asset) {
-      return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
+      return NextResponse.json(
+        { success: false, error: 'Asset model is missing from the imported module.' },
+        { status: 501 }
+      );
     }
     const user = await getSessionUser(req);
     if (!user) {
