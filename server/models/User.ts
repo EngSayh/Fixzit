@@ -2,25 +2,29 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
-// User roles enum - comprehensive RBAC matrix
+// User roles enum - comprehensive RBAC matrix (14 roles, snake_case)
+// Aligned with database schema and seed-auth-14users.mjs
+// Removed: ADMIN, VIEWER (not in 14-role system)
+// Renamed: FM_MANAGER → operations_dispatcher, TECHNICIAN → technician_internal, etc.
 export const UserRole = {
-  SUPER_ADMIN: "SUPER_ADMIN",
-  CORPORATE_ADMIN: "CORPORATE_ADMIN", 
-  ADMIN: "ADMIN",
-  FM_MANAGER: "FM_MANAGER",
-  PROPERTY_MANAGER: "PROPERTY_MANAGER",
-  FINANCE: "FINANCE",
-  HR: "HR",
-  PROCUREMENT: "PROCUREMENT",
-  TECHNICIAN: "TECHNICIAN",
-  EMPLOYEE: "EMPLOYEE",
-  OWNER: "OWNER",
-  TENANT: "TENANT",
-  VENDOR: "VENDOR",
-  CUSTOMER: "CUSTOMER",
-  AUDITOR: "AUDITOR",
-  VIEWER: "VIEWER"
+  super_admin: "super_admin",
+  corporate_admin: "corporate_admin",
+  property_manager: "property_manager",
+  operations_dispatcher: "operations_dispatcher",
+  supervisor: "supervisor",
+  technician_internal: "technician_internal",
+  vendor_admin: "vendor_admin",
+  vendor_technician: "vendor_technician",
+  tenant_resident: "tenant_resident",
+  owner_landlord: "owner_landlord",
+  finance_manager: "finance_manager",
+  hr_manager: "hr_manager",
+  helpdesk_agent: "helpdesk_agent",
+  auditor_compliance: "auditor_compliance"
 } as const;
+
+// Type helper for UserRole values
+export type UserRoleType = typeof UserRole[keyof typeof UserRole];
 const UserStatus = ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"] as const;
 
 const UserSchema = new Schema({
