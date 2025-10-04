@@ -77,7 +77,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     };
 
     fetchUserRole();
-  }, []);
+  }, [pathname]); // Re-fetch role when pathname changes (e.g., after login navigation)
 
   // Show loading state while fetching user data
   if (loading) {
@@ -103,13 +103,16 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
   const CopilotWidget = dynamic(() => import('./CopilotWidget'), { ssr: false });
 
+  // Only render sidebar if user has a valid role (not guest) and not on landing page
+  const shouldShowSidebar = !isLandingPage && role !== 'guest';
+
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <AutoFixInitializer />
       <ResponsiveLayout
         header={<TopBar role={role} />}
-        sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
-        showSidebarToggle={!isLandingPage}
+        sidebar={shouldShowSidebar ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+        showSidebarToggle={shouldShowSidebar}
         footer={<Footer />}
       >
         {children}

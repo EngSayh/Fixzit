@@ -10,8 +10,69 @@ import {
   ShoppingBag, Headphones, Shield, BarChart3, Cog, FileText, CheckCircle, Bell
 } from 'lucide-react';
 
-// Role-based module permissions
+// Role-based module permissions - UPDATED TO MATCH DATABASE (snake_case) AND 14 ROLES
 const ROLE_PERMISSIONS = {
+  // 1. Platform super admin - full access
+  super_admin: [
+    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'administration',
+    'crm', 'marketplace', 'support', 'compliance', 'reports', 'system'
+  ],
+  // 2. Corporate admin - org-wide access
+  corporate_admin: [
+    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'compliance', 'reports'
+  ],
+  // 3. Property manager - property operations
+  property_manager: [
+    'dashboard', 'properties', 'assets', 'tenants', 'work-orders', 'maintenance', 'reports'
+  ],
+  // 4. Operations dispatcher - dispatch & assignment
+  operations_dispatcher: [
+    'dashboard', 'work-orders', 'dispatch', 'properties', 'assets', 'vendors', 'reports'
+  ],
+  // 5. Supervisor - field operations oversight
+  supervisor: [
+    'dashboard', 'work-orders', 'assets', 'tenants', 'vendors', 'reports'
+  ],
+  // 6. Internal technician - execute work
+  technician_internal: [
+    'dashboard', 'work-orders', 'assets', 'support'
+  ],
+  // 7. Vendor admin - vendor management
+  vendor_admin: [
+    'dashboard', 'marketplace', 'vendors', 'work-orders', 'support', 'reports'
+  ],
+  // 8. Vendor technician - vendor work execution
+  vendor_technician: [
+    'dashboard', 'work-orders', 'support'
+  ],
+  // 9. Tenant/resident - tenant portal
+  tenant_resident: [
+    'dashboard', 'properties', 'tenants', 'work-orders', 'support', 'marketplace'
+  ],
+  // 10. Owner/landlord - owner portal
+  owner_landlord: [
+    'dashboard', 'properties', 'tenants', 'work-orders', 'finance', 'reports'
+  ],
+  // 11. Finance manager - financial operations
+  finance_manager: [
+    'dashboard', 'finance', 'invoices', 'properties', 'reports'
+  ],
+  // 12. HR manager - human resources
+  hr_manager: [
+    'dashboard', 'hr', 'reports'
+  ],
+  // 13. Helpdesk agent - support & CRM
+  helpdesk_agent: [
+    'dashboard', 'support', 'crm', 'work-orders'
+  ],
+  // 14. Auditor/compliance - read-only oversight
+  auditor_compliance: [
+    'dashboard', 'compliance', 'reports', 'finance', 'hr'
+  ],
+  
+  // Legacy role mappings for backward compatibility (uppercase → snake_case)
   SUPER_ADMIN: [
     'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
     'projects', 'rfqs', 'invoices', 'finance', 'hr', 'administration',
@@ -19,35 +80,10 @@ const ROLE_PERMISSIONS = {
   ],
   CORPORATE_ADMIN: [
     'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'
-  ],
-  FM_MANAGER: [
-    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'support'
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'compliance', 'reports'
   ],
   PROPERTY_MANAGER: [
-    'dashboard', 'properties', 'tenants', 'maintenance', 'reports'
-  ],
-  TENANT: [
-    'dashboard', 'properties', 'tenants', 'support'
-  ],
-  VENDOR: [
-    'dashboard', 'marketplace', 'orders', 'support'
-  ],
-  SUPPORT: [
-    'dashboard', 'support', 'tickets'
-  ],
-  AUDITOR: [
-    'dashboard', 'compliance', 'reports', 'audit'
-  ],
-  PROCUREMENT: [
-    'dashboard', 'vendors', 'rfqs', 'orders', 'procurement'
-  ],
-  EMPLOYEE: [
-    'dashboard', 'hr', 'support'
-  ],
-  CUSTOMER: [
-    'marketplace', 'orders', 'support'
+    'dashboard', 'properties', 'assets', 'tenants', 'work-orders', 'maintenance', 'reports'
   ]
 };
 
@@ -160,7 +196,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         {role !== 'guest' && (
           <div className="mb-4 p-3 bg-[#0061A8] rounded-lg">
             <div className="text-xs text-white/80 mb-1">Role</div>
-            <div className="text-sm font-medium text-white">{role.replace('_', ' ')}</div>
+            <div className="text-sm font-medium text-white">{role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
             <div className="text-xs text-white/80 mt-1">Plan: {subscription}</div>
           </div>
         )}
@@ -246,3 +282,4 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
     </aside>
   );
 }
+
