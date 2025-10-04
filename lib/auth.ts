@@ -159,6 +159,7 @@ export function verifyToken(token: string): AuthToken | null {
   } catch (error) {
     return null;
   }
+}
 
 export async function authenticateUser(emailOrEmployeeNumber: string, password: string, loginType: 'personal' | 'corporate' = 'personal') {
   await connectToDatabase();
