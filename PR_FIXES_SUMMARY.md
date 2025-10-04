@@ -58,7 +58,7 @@
    - Added try/catch/finally block
    - Added error logging with exit code 1
 
-### �� Configuration Security
+### 🔒 Configuration Security
 
 10. **.env.local.example** ✅ FIXED
     - **Before**: Had placeholder values that looked real
@@ -110,7 +110,7 @@
 
 Test the fixes locally:
 
-```ash
+```bash
 # 1. Verify JWT_SECRET is masked
 node scripts/test-auth-config.js
 # Should show: ✅ JWT_SECRET configured (********)
@@ -162,6 +162,6 @@ All **critical security blockers** have been resolved. The PR is now ready for:
 
 ---
 
-**Commit**: \59fcd3d0\  
+**Commit**: 59fcd3d0  
 **Branch**: \ix/security-and-rbac-consolidation\  
 **Status**: ✅ All critical security fixes complete
