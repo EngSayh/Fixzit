@@ -1,3 +1,6 @@
+import './mongo'; // Ensure MongoDB connection is initialized
+
+import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '../server/models/User';
 
 import jwt from 'jsonwebtoken';
@@ -156,9 +159,11 @@ export function verifyToken(token: string): AuthToken | null {
   } catch (error) {
     return null;
   }
-}
+  await connectToDatabase();
 
 export async function authenticateUser(emailOrEmployeeNumber: string, password: string, loginType: 'personal' | 'corporate' = 'personal') {
+  await connectToDatabase();
+
   // Database connection handled by model layer
 
   let user;
@@ -203,6 +208,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 }
 
 export async function getUserFromToken(token: string) {
+  await connectToDatabase();
   const payload = verifyToken(token);
 
   if (!payload) {
