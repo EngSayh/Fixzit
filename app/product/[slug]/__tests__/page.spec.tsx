@@ -1,4 +1,5 @@
 /**
+import { vi } from 'vitest';
  * Testing library/framework: Jest + @testing-library/react.
  * If the repo uses Vitest instead, these tests should be compatible with minor adjustments (e.g., vi instead of jest).
  */
@@ -10,7 +11,7 @@ import { render, screen, within } from '@testing-library/react'
 import ProductPage from '../page'
 
 // Mock next/link to render simple anchor for test environment
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, className, children }: any) => <a href={href} className={className}>{children}</a>;
   MockLink.displayName = 'MockLink';
   return MockLink;
@@ -53,7 +54,7 @@ describe('ProductPage', () => {
 
   test('renders Not found when product is missing', async () => {
     // Mock fetch to return data without product
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => ({ buyBox: { price: 1, currency: 'USD', inStock: false, leadDays: 10 } }),
     });
 
@@ -69,7 +70,7 @@ describe('ProductPage', () => {
   });
 
   test('renders title, attributes (max 6), price/currency, stock status, lead days, and action links', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => makeData(),
     });
 
@@ -111,7 +112,7 @@ describe('ProductPage', () => {
   });
 
   test('uses NEXT_PUBLIC_FRONTEND_URL if set when fetching PDP', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => makeData(),
     });
 
@@ -127,7 +128,7 @@ describe('ProductPage', () => {
 
   test('renders Backorder when not in stock and shows correct lead days', async () => {
 
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => makeData({ buyBox: { price: 99, currency: 'EUR', inStock: false, leadDays: 9 } }),
     });
 
@@ -143,7 +144,7 @@ describe('ProductPage', () => {
 
   test('handles empty attributes array gracefully', async () => {
 
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => ({
         product: { title: 'No Attrs', attributes: [] },
         buyBox: { price: 10, currency: 'USD', inStock: true, leadDays: 1 }
@@ -161,7 +162,7 @@ describe('ProductPage', () => {
 
   test('tolerates missing buyBox gracefully (optional chaining)', async () => {
 
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => ({
         product: { title: 'No BuyBox', attributes: [{ key: 'A', value: 'B' }] },
         buyBox: undefined

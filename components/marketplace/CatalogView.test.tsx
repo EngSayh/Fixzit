@@ -47,7 +47,7 @@ type SWRProductsState = {
   data?: any
   error?: any
   isLoading?: boolean
-  mutate?: jest.Mock | ((...args: any[]) => any)
+  mutate?: ReturnType<typeof vi.fn> | ((...args: any[]) => any)
 }
 type SWRCategoriesState = {
   data?: any

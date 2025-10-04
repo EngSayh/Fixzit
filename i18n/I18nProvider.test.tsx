@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Testing library and framework:
  * - This test suite uses React Testing Library with Jest in a jsdom environment.
@@ -10,7 +11,7 @@ import { render, screen, waitFor, cleanup, act } from '@testing-library/react';
  * Mock config and dictionaries BEFORE importing the module under test
  * to ensure DICTIONARIES and meta are built from predictable values.
  */
-jest.mock('./config', () => ({
+vi.mock('./config', () => ({
   __esModule: true,
   DEFAULT_LOCALE: 'en',
   SUPPORTED_LOCALES: ['en', 'ar'],
@@ -20,12 +21,12 @@ jest.mock('./config', () => ({
   },
 }));
 
-jest.mock('./dictionaries/en', () => ({
+vi.mock('./dictionaries/en', () => ({
   __esModule: true,
   default: { greeting: 'Hello', code: 'en' },
 }));
 
-jest.mock('./dictionaries/ar', () => ({
+vi.mock('./dictionaries/ar', () => ({
   __esModule: true,
   default: { greeting: 'مرحبا', code: 'ar' },
 }));
@@ -44,9 +45,9 @@ beforeEach(() => {
   cleanup();
   localStorage.clear();
   resetCookies();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Provide a default fetch mock
-  (global as any).fetch = jest.fn().mockResolvedValue({ ok: true });
+  (global as any).fetch = vi.fn().mockResolvedValue({ ok: true });
 });
 
 afterEach(() => {
@@ -144,7 +145,7 @@ describe('I18nProvider', () => {
     });
 
     // Document updates + event dispatch
-    const handler = jest.fn();
+    const handler = vi.fn();
     window.addEventListener('fixzit:language-change', handler);
     await act(async () => {
       ctxRef.setLocale('en');
@@ -176,7 +177,7 @@ describe('I18nProvider', () => {
     // Ensure clean baseline for cookies and storage
     localStorage.clear();
     resetCookies();
-    (global as any).fetch = jest.fn().mockResolvedValue({ ok: true });
+    (global as any).fetch = vi.fn().mockResolvedValue({ ok: true });
 
     await act(async () => {
       ctxRef.setLocale('ar', { persist: false });
@@ -207,7 +208,7 @@ describe('I18nProvider', () => {
 
   test('gracefully ignores storage errors while keeping state changes', async () => {
     // Make localStorage.setItem throw
-    const spy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('storage-fail');
     });
 

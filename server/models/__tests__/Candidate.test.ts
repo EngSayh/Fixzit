@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Test framework: Jest (TypeScript via ts-jest if configured).
  *
@@ -16,7 +17,7 @@ import type { Mock } from 'jest-mock';
 
 // Helper to reset module registry between branch toggles
 const resetModules = async () => {
-  jest.resetModules();
+  vi.resetModules();
 };
 
 describe('Candidate model - findByEmail', () => {
@@ -25,7 +26,7 @@ describe('Candidate model - findByEmail', () => {
       await resetModules();
 
       // Mock isMockDB = true
-      jest.doMock('@/lib/mongo', () => ({ isMockDB: true }), { virtual: true });
+      vi.doMock('@/lib/mongo', () => ({ isMockDB: true }), { virtual: true });
 
       // Provide a lightweight mongoose mock sufficient for schema creation
       const SchemaCtor = class {
@@ -34,12 +35,12 @@ describe('Candidate model - findByEmail', () => {
         constructor(..._args: any[]) {}
       };
 
-      jest.doMock('mongoose', () => {
+      vi.doMock('mongoose', () => {
         return {
           Schema: SchemaCtor,
           // Candidate.ts references these but won't use in mock path:
           models: {},
-          model: jest.fn((_name: string, _schema: unknown) => ({ findOne: jest.fn() })),
+          model: vi.fn((_name: string, _schema: unknown) => ({ findOne: vi.fn() })),
           // Export type helper symbol, unused at runtime:
           InferSchemaType: {} as any,
         };
@@ -48,7 +49,7 @@ describe('Candidate model - findByEmail', () => {
       // Mock MockModel to capture interactions
       class FakeMockModel {
         public storeName: string;
-        static find: jest.MockedFunction<any> = jest.fn();
+        static find: ReturnType<typeof vi.fn<any>> = vi.fn();
         constructor(name: string) {
           this.storeName = name;
         }
@@ -68,18 +69,18 @@ describe('Candidate model - findByEmail', () => {
 
       (FakeMockModel as any).default = instanceFactory;
 
-      jest.doMock('@/lib/mockDb', () => {
+      vi.doMock('@/lib/mockDb', () => {
         return {
-          MockModel: jest.fn().mockImplementation(instanceFactory),
+          MockModel: vi.fn().mockImplementation(instanceFactory),
         };
       }, { virtual: true });
     });
 
     afterEach(() => {
-      jest.dontMock('@/lib/mongo');
-      jest.dontMock('mongoose');
-      jest.dontMock('@/lib/mockDb');
-      jest.clearAllMocks();
+      vi.doUnmock('@/lib/mongo');
+      vi.doUnmock('mongoose');
+      vi.doUnmock('@/lib/mockDb');
+      vi.clearAllMocks();
     });
 
     test('returns the first element when MockModel.find resolves to an array', async () => {
@@ -94,7 +95,7 @@ describe('Candidate model - findByEmail', () => {
       // We set the mock to resolve to array
       // We need access to the mocked find. Locate via Candidate since we did not export it, but we can rely on our mock captured function.
       // As we mocked MockModel to return an instance where find is a jest.fn, we can retrieve it by spying on (Candidate as any).find
-      const findFn = (Candidate as any).find as jest.MockedFunction<any>;
+      const findFn = (Candidate as any).find as ReturnType<typeof vi.fn>edFunction<any>;
 
       findFn.mockResolvedValueOnce([first, second]);
 
@@ -113,7 +114,7 @@ describe('Candidate model - findByEmail', () => {
       const email = 'solo@example.com';
       const lone = { id: 'only-1', orgId, email, marker: 'single' };
 
-      const findFn = (Candidate as any).find as jest.MockedFunction<any>;
+      const findFn = (Candidate as any).find as ReturnType<typeof vi.fn>edFunction<any>;
       findFn.mockResolvedValueOnce(lone);
 
       const result = await (Candidate as any).findByEmail(orgId, email);
@@ -124,27 +125,27 @@ describe('Candidate model - findByEmail', () => {
   });
 
   describe('when isMockDB = false', () => {
-    let findOneSpy: jest.MockedFunction<any>;
+    let findOneSpy: ReturnType<typeof vi.fn<any>>;
 
     beforeEach(async () => {
       await resetModules();
 
       // Mock isMockDB = false
-      jest.doMock('@/lib/mongo', () => ({ isMockDB: false }), { virtual: true });
+      vi.doMock('@/lib/mongo', () => ({ isMockDB: false }), { virtual: true });
 
       const SchemaCtor = class {
         static Types = { Mixed: class Mixed{} };
         constructor(..._args: any[]) {}
       };
 
-      findOneSpy = jest.fn();
+      findOneSpy = vi.fn();
 
       // The module under test will set:
       // const RealCandidate = models.Candidate || model('Candidate', CandidateSchema);
       // We choose models.Candidate undefined so it uses model(...).
-      const modelMock = jest.fn((_name: string, _schema: unknown) => ({ findOne: findOneSpy }));
+      const modelMock = vi.fn((_name: string, _schema: unknown) => ({ findOne: findOneSpy }));
 
-      jest.doMock('mongoose', () => {
+      vi.doMock('mongoose', () => {
         return {
           Schema: SchemaCtor,
           models: {},       // Ensure models.Candidate is falsy to trigger model(...)
@@ -155,9 +156,9 @@ describe('Candidate model - findByEmail', () => {
     });
 
     afterEach(() => {
-      jest.dontMock('@/lib/mongo');
-      jest.dontMock('mongoose');
-      jest.clearAllMocks();
+      vi.doUnmock('@/lib/mongo');
+      vi.doUnmock('mongoose');
+      vi.clearAllMocks();
     });
 
     test('delegates to RealCandidate.findOne with correct filter', async () => {
@@ -180,10 +181,10 @@ describe('Candidate model - findByEmail', () => {
 describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
   beforeEach(async () => {
     await (async () => {
-      jest.resetModules();
+      vi.resetModules();
 
       // Keep branch independent; we only want to verify that constructing a model doesn't explode
-      jest.doMock('@/lib/mongo', () => ({ isMockDB: false }), { virtual: true });
+      vi.doMock('@/lib/mongo', () => ({ isMockDB: false }), { virtual: true });
 
       const SchemaCtor = class {
         static Types = { Mixed: class Mixed{} };
@@ -191,9 +192,9 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
       };
 
       // Simulate a simple in-memory doc creation applying defaults
-      const modelMock = jest.fn((_name: string, _schema: unknown) => {
+      const modelMock = vi.fn((_name: string, _schema: unknown) => {
         return {
-          create: jest.fn((doc: any) => {
+          create: vi.fn((doc: any) => {
             return {
               skills: [],
               experience: 0,
@@ -203,7 +204,7 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
         };
       });
 
-      jest.doMock('mongoose', () => {
+      vi.doMock('mongoose', () => {
         return {
           Schema: SchemaCtor,
           models: {},
@@ -215,9 +216,9 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
   });
 
   afterEach(() => {
-    jest.dontMock('mongoose');
-    jest.dontMock('@/lib/mongo');
-    jest.clearAllMocks();
+    vi.doUnmock('mongoose');
+    vi.doUnmock('@/lib/mongo');
+    vi.clearAllMocks();
   });
 
   test('applies defaults for skills [] and experience 0 on create', async () => {
@@ -228,28 +229,28 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
     // Instead, just assert our mocked create behavior holds to demonstrate schema default intent.
     // We'll recreate a module instance with a model that we can capture.
 
-    await jest.isolateModulesAsync(async () => {
-      jest.resetModules();
+    await vi.isolateModulesAsync(async () => {
+      vi.resetModules();
 
-      jest.doMock('@/lib/mongo', () => ({ isMockDB: false }), { virtual: true });
+      vi.doMock('@/lib/mongo', () => ({ isMockDB: false }), { virtual: true });
 
       const SchemaCtor = class {
         static Types = { Mixed: class Mixed{} };
         constructor(..._args: any[]) {}
       };
 
-      const createSpy = jest.fn((doc: any) => ({
+      const createSpy = vi.fn((doc: any) => ({
         skills: [],
         experience: 0,
         ...doc,
       }));
 
-      const modelMock = jest.fn((_name: string, _schema: unknown) => ({
+      const modelMock = vi.fn((_name: string, _schema: unknown) => ({
         create: createSpy,
-        findOne: jest.fn(),
+        findOne: vi.fn(),
       }));
 
-      jest.doMock('mongoose', () => ({
+      vi.doMock('mongoose', () => ({
         Schema: SchemaCtor,
         models: {},
         model: modelMock,

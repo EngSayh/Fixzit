@@ -42,20 +42,20 @@ beforeAll(async () => {
 
 // Mocks for external dependencies used by the module
 // crypto.randomUUID
-jest.unstable_mockModule("crypto", () => ({
+vi.unstable_mockModule("crypto", () => ({
   randomUUID: jest.fn(() => "uuid-1234"),
 }));
 
 // path
 const pathJoin = jest.fn((...parts: string[]) => parts.join("/"));
-jest.unstable_mockModule("path", () => ({
+vi.unstable_mockModule("path", () => ({
   default: { join: pathJoin },
 }));
 
 // fs promises
 const mkdirMock = jest.fn().mockResolvedValue(undefined);
 const writeFileMock = jest.fn().mockResolvedValue(undefined);
-jest.unstable_mockModule("fs", () => ({
+vi.unstable_mockModule("fs", () => ({
   promises: {
     mkdir: mkdirMock,
     writeFile: writeFileMock,
@@ -65,7 +65,7 @@ jest.unstable_mockModule("fs", () => ({
 // db (ensure awaiting a promise)
 const dbThen = jest.fn();
 const dbPromise = Promise.resolve().then(dbThen);
-jest.unstable_mockModule("@/lib/mongo", () => ({
+vi.unstable_mockModule("@/lib/mongo", () => ({
   db: dbPromise,
 }));
 
@@ -76,7 +76,7 @@ const workOrderFindOneAndUpdate = jest.fn();
 
 const ownerStatementFind = jest.fn();
 
-jest.unstable_mockModule("@/server/models/WorkOrder", () => ({
+vi.unstable_mockModule("@/server/models/WorkOrder", () => ({
   WorkOrder: {
     create: workOrderCreate,
     find: workOrderFind,
@@ -84,7 +84,7 @@ jest.unstable_mockModule("@/server/models/WorkOrder", () => ({
   },
 }));
 
-jest.unstable_mockModule("@/server/models/OwnerStatement", () => ({
+vi.unstable_mockModule("@/server/models/OwnerStatement", () => ({
   OwnerStatement: {
     find: ownerStatementFind,
   },
@@ -92,7 +92,7 @@ jest.unstable_mockModule("@/server/models/OwnerStatement", () => ({
 
 // Policy
 const getPermittedTools = jest.fn();
-jest.unstable_mockModule("./policy", () => ({
+vi.unstable_mockModule("./policy", () => ({
   getPermittedTools,
 }));
 

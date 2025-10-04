@@ -3,7 +3,6 @@
         "ms-vscode.powershell",
         "github.codespaces",
         "ms-dotnettools.csdevkit",
-        "github.copilot",
         "github.vscode-github-actions",
         "christian-kohler.npm-intellisense"
     ]

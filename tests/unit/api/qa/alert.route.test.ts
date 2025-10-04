@@ -1,10 +1,11 @@
 /**
+import { vi } from 'vitest';
  * Note on testing framework:
  * These tests are written for Vitest (https://@jest/globals.dev) using Node-like runtime with global fetch/Response.
- * If your repository uses Jest instead, replace @jest/globals imports with @jest/globals and adapt vi to jest.fn/jest.spyOn.
+ * If your repository uses Jest instead, replace @jest/globals imports with @jest/globals and adapt vi to jest.fn/vi.spyOn.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Import route handlers
 // Adjust the path if your route file lives elsewhere (e.g., src/app/api/qa/alert/route.ts).
@@ -12,10 +13,10 @@ import { POST, GET } from "@/app/api/qa/alert/route";
 
 // We will mock the mongo module used by the route
 
-jest.mock('@/lib/mongodb-unified', () => {
+vi.mock('@/lib/mongodb-unified', () => {
   return {
-    getDatabase: jest.fn(),
-    connectToDatabase: jest.fn(),
+    getDatabase: vi.fn(),
+    connectToDatabase: vi.fn(),
   };
 });
 
@@ -45,8 +46,8 @@ const buildHeaders = (map: Record<string, string | undefined>) => {
 };
 
 describe('QA Alert Route', () => {
-  let consoleWarnSpy: ReturnType<typeof jest.spyOn>;
-  let consoleErrorSpy: ReturnType<typeof jest.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   // Pull mocked exports for type-safe updates inside tests
 
@@ -56,12 +57,12 @@ describe('QA Alert Route', () => {
   };
 
   beforeEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
 
     // Spy on console
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const mod = mongoMod();
     mod.getDatabase.mockReset();
@@ -103,8 +104,8 @@ describe('QA Alert Route', () => {
       const mod = mongoMod();
 
       // Setup the chained collection/find/insertOne mock structure
-      const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
-      const collection = jest.fn().mockReturnValue({ insertOne });
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection };
       mod.getDatabase.mockResolvedValue(nativeDb);
 
@@ -150,8 +151,8 @@ describe('QA Alert Route', () => {
     it('uses req.ip when x-forwarded-for header is missing', async () => {
       const mod = mongoMod();
 
-      const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
-      const collection = jest.fn().mockReturnValue({ insertOne });
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+      const collection = vi.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection };
       mod.getDatabase.mockResolvedValue(nativeDb);
 
@@ -177,8 +178,8 @@ describe('QA Alert Route', () => {
     it('returns 500 on DB insertion error', async () => {
       const mod = mongoMod();
 
-      const insertOne = jest.fn().mockRejectedValue(new Error('insert failed'));
-      const collection = jest.fn().mockReturnValue({ insertOne });
+      const insertOne = vi.fn().mockRejectedValue(new Error('insert failed'));
+      const collection = vi.fn().mockReturnValue({ insertOne });
       const nativeDb = { collection };
       mod.getDatabase.mockResolvedValue(nativeDb);
 
@@ -238,11 +239,11 @@ describe('QA Alert Route', () => {
 
       const docs = [{ event: 'e1' }, { event: 'e2' }];
 
-      const toArray = jest.fn().mockResolvedValue(docs);
-      const limit = jest.fn().mockReturnValue({ toArray });
-      const sort = jest.fn().mockReturnValue({ limit });
-      const find = jest.fn().mockReturnValue({ sort });
-      const collection = jest.fn().mockReturnValue({ find });
+      const toArray = vi.fn().mockResolvedValue(docs);
+      const limit = vi.fn().mockReturnValue({ toArray });
+      const sort = vi.fn().mockReturnValue({ limit });
+      const find = vi.fn().mockReturnValue({ sort });
+      const collection = vi.fn().mockReturnValue({ find });
 
       const nativeDb = { collection };
       mod.getDatabase.mockResolvedValue(nativeDb);
@@ -269,11 +270,11 @@ describe('QA Alert Route', () => {
     it('returns 500 when DB query fails', async () => {
       const mod = mongoMod();
 
-      const toArray = jest.fn().mockRejectedValue(new Error('query failed'));
-      const limit = jest.fn().mockReturnValue({ toArray });
-      const sort = jest.fn().mockReturnValue({ limit });
-      const find = jest.fn().mockReturnValue({ sort });
-      const collection = jest.fn().mockReturnValue({ find });
+      const toArray = vi.fn().mockRejectedValue(new Error('query failed'));
+      const limit = vi.fn().mockReturnValue({ toArray });
+      const sort = vi.fn().mockReturnValue({ limit });
+      const find = vi.fn().mockReturnValue({ sort });
+      const collection = vi.fn().mockReturnValue({ find });
       const nativeDb = { collection };
       mod.getDatabase.mockResolvedValue(nativeDb);
 

@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // If the import path for AIChatPage is different in your repo, update the dynamic import block below accordingly.
 
 /**
@@ -8,7 +9,6 @@
 
 import React from 'react'
 import { render, screen, fireEvent, act, within } from '@testing-library/react'
-import '@testing-library/jest-dom/extend-expect'
 
 // Attempt common locations. Update the import below to match actual file location if different.
 let AIChatPage: any
@@ -60,19 +60,19 @@ describe('AIChatPage', () => {
   const origClose = (window as any).close
 
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     // Mock fetch by default to a successful response
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => ({ answer: 'This is a helpful response.' }),
     }) as any
     // Mock window.close to avoid errors in jsdom
-    ;(window as any).close = jest.fn()
+    ;(window as any).close = vi.fn()
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-    jest.clearAllMocks()
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+    vi.clearAllMocks()
     global.fetch = origFetch
     ;(window as any).close = origClose
   })
@@ -159,7 +159,7 @@ describe('AIChatPage', () => {
   test('disables input and button while loading', async () => {
     const Page = requireAIChat()
     // Slow fetch to keep loading state
-    ;(global.fetch as jest.Mock).mockImplementation(
+    ;vi.mocked(global.fetch).mockImplementation(
       () =>
         new Promise((resolve) => {
           setTimeout(() => resolve({ json: async () => ({ answer: 'Delayed' }) }), 1000)
@@ -177,7 +177,7 @@ describe('AIChatPage', () => {
 
     // Fast-forward timers to resolve
     await act(async () => {
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
     })
     await flushPromises()
 
@@ -189,7 +189,7 @@ describe('AIChatPage', () => {
 
   test('handles API returning missing answer with fallback message', async () => {
     const Page = requireAIChat()
-    ;(global.fetch as jest.Mock).mockResolvedValue({
+    ;vi.mocked(global.fetch).mockResolvedValue({
       json: async () => ({}), // no answer
     })
     render(<Page />)
@@ -207,7 +207,7 @@ describe('AIChatPage', () => {
 
   test('shows error message when fetch throws', async () => {
     const Page = requireAIChat()
-    ;(global.fetch as jest.Mock).mockRejectedValue(new Error('network'))
+    ;vi.mocked(global.fetch).mockRejectedValue(new Error('network'))
     render(<Page />)
 
     const input = screen.getByPlaceholderText(/Ask me anything about Fixzit/i) as HTMLInputElement

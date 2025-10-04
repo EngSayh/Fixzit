@@ -1,4 +1,5 @@
 // Tests for GET handler in search route
+import { vi } from 'vitest';
 // Framework: Jest (TypeScript)
 // These tests mock Mongoose-like models and Next.js Response behavior.
 
@@ -16,7 +17,7 @@ describe('GET /api/marketplace/search', () => {
 
   beforeAll(() => {
     // Silence expected error logs in error-path tests
-    console.error = jest.fn();
+    console.error = vi.fn();
   });
 
   afterAll(() => {

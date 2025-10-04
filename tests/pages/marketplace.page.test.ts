@@ -1,4 +1,5 @@
 /**
+import { vi } from 'vitest';
  * Tests for MarketplacePage
  *
  * Assumed framework: Jest + @testing-library/react + TypeScript
@@ -11,7 +12,7 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 
 // Mock next/link to avoid Next.js runtime during tests
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, className, children }: any) =>
     React.createElement(
       'a',
@@ -38,7 +39,7 @@ type Product = {
 const originalEnv = { ...process.env };
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   process.env = { ...originalEnv };
   // Default FRONTEND_URL for building the fetch URL
   delete process.env.NEXT_PUBLIC_FRONTEND_URL;
@@ -50,7 +51,7 @@ afterAll(() => {
 
 function mockFetchOk(data: any) {
   // @ts-expect-error
-  global.fetch = jest.fn().mockResolvedValue({
+  global.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => data,
   });
@@ -58,7 +59,7 @@ function mockFetchOk(data: any) {
 
 function mockFetchFail(status: number = 500) {
   // @ts-expect-error
-  global.fetch = jest.fn().mockResolvedValue({
+  global.fetch = vi.fn().mockResolvedValue({
     ok: false,
     status,
     json: async () => ({ error: 'failed' }),
@@ -168,7 +169,7 @@ describe('MarketplacePage', () => {
 
     // Verify fetch called with expected URL
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+    expectvi.mocked((global.fetch).mock.calls[0][0]).toBe(
       'https://example.com/api/marketplace/search?q=cement'
     );
   });
@@ -181,7 +182,7 @@ describe('MarketplacePage', () => {
     render(ui as React.ReactElement);
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+    expectvi.mocked((global.fetch).mock.calls[0][0]).toBe(
       'http://localhost:3000/api/marketplace/search?q=cement'
     );
   });
