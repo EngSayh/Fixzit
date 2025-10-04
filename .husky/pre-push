@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Block direct pushes to protected branches
+# This enforces PR-only workflow locally
+
+set -euo pipefail
+
+protected_branches="^(main|master|release/.*)$"
+
+# Get the current branch being pushed
+while read -r local_ref local_sha remote_ref remote_sha; do
+  branch="${remote_ref#refs/heads/}"
+  
+  if [[ "$branch" =~ $protected_branches ]]; then
+    echo "❌ BLOCKED: Direct pushes to '$branch' are not allowed."
+    echo "   → Please create a Pull Request instead."
+    echo "   → Use: bash scripts/publish-pr.sh \"Your PR title\""
+    exit 1
+  fi
+done
+
+exit 0
