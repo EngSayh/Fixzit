@@ -3,25 +3,44 @@ import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 async function loadHomepageData() {
-  const [categoriesResponse, featuredResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8')
-  ]);
+  try {
+    const [categoriesResponse, featuredResponse] = await Promise.all([
+      serverFetchJsonWithTenant<any>('/api/marketplace/categories').catch(err => {
+        console.error('Failed to fetch marketplace categories:', err);
+        return { data: [] };
+      }),
+      serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8').catch(err => {
+        console.error('Failed to fetch featured products:', err);
+        return { data: { items: [] } };
+      })
+    ]);
 
-  const categories = categoriesResponse.data as any[];
-  const featured = featuredResponse.data.items as any[];
+    const categories = (categoriesResponse.data || []) as any[];
+    const featured = (featuredResponse.data?.items || []) as any[];
 
-  const carousels = await Promise.all(
-    categories.slice(0, 4).map(async category => {
-      const response = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
-      return {
-        category,
-        items: response.data.items as any[]
-      };
-    })
-  );
+    const carousels = await Promise.all(
+      categories.slice(0, 4).map(async category => {
+        try {
+          const response = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+          return {
+            category,
+            items: (response.data?.items || []) as any[]
+          };
+        } catch (err) {
+          console.error(`Failed to fetch carousel for category ${category.slug}:`, err);
+          return {
+            category,
+            items: []
+          };
+        }
+      })
+    );
 
-  return { categories, featured, carousels };
+    return { categories, featured, carousels };
+  } catch (error) {
+    console.error('Failed to load marketplace homepage data:', error);
+    return { categories: [], featured: [], carousels: [] };
+  }
 }
 
 export default async function MarketplaceHome() {
@@ -36,7 +55,7 @@ export default async function MarketplaceHome() {
         <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#0061A8] via-[#00A859] to-[#0061A8] p-10 text-white shadow-xl">
             <p className="text-sm uppercase tracking-[0.3em] text-white/70">Fixzit Souq</p>
-            <h1 className="mt-4 text-4xl font-bold">Facilities, MRO & Construction Marketplace</h1>
+            <h1 className="mt-4 text-4xl font-bold">Fixzit Marketplace</h1>
             <p className="mt-3 max-w-xl text-lg text-white/80">
               Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.
             </p>
@@ -73,30 +92,38 @@ export default async function MarketplaceHome() {
             </a>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {featured.map(product => (
-              <ProductCard key={product._id} product={product} />
-            ))}
+            {featured.length > 0 ? (
+              featured.map(product => (
+                <ProductCard key={product._id} product={product} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500">
+                No featured products available
+              </div>
+            )}
           </div>
         </section>
 
         {carousels.map(carousel => (
-          <section key={carousel.category.slug} className="mt-12 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-[#0F1111]">{carousel.category.name?.en ?? carousel.category.slug}</h3>
-              <a
-                href={`/marketplace/search?cat=${carousel.category.slug}`}
-                className="text-sm font-semibold hover:underline"
-                style={{ color: FIXZIT_COLORS.primary }}
-              >
-                Explore all
-              </a>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {carousel.items.map((product: any) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          </section>
+          carousel.items.length > 0 && (
+            <section key={carousel.category.slug} className="mt-12 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-[#0F1111]">{carousel.category.name?.en ?? carousel.category.slug}</h3>
+                <a
+                  href={`/marketplace/search?cat=${carousel.category.slug}`}
+                  className="text-sm font-semibold hover:underline"
+                  style={{ color: FIXZIT_COLORS.primary }}
+                >
+                  Explore all
+                </a>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {carousel.items.map((product: any) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            </section>
+          )
         ))}
       </main>
     </div>
