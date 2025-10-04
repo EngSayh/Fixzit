@@ -5,7 +5,7 @@ async function login(page: any){
   await page.goto('/login');
   await page.getByPlaceholder(/email/i).fill(cfg.users.admin.email);
   await page.getByPlaceholder(/password/i).fill(cfg.users.admin.password);
-  await page.getByRole('button', { name: /sign in|login/i }).click();
+  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await page.waitForLoadState('networkidle');
 }
 
