@@ -163,10 +163,10 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 
   let user;
   if (loginType === 'personal') {
-    user = await User.findOne({ email: emailOrEmployeeNumber });
+    user = await User.findOne({ email: emailOrEmployeeNumber }).select('+password');
   } else {
     // For corporate login, search by employee number (username field)
-    user = await User.findOne({ username: emailOrEmployeeNumber });
+    user = await User.findOne({ username: emailOrEmployeeNumber }).select('+password');
   }
 
   if (!user) {

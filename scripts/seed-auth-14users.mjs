@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
   orgId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
   email: { type: String, required: true, lowercase: true },
   employeeId: { type: String, sparse: true },
-  passwordHash: { type: String, required: true, select: false },
+  password: { type: String, required: true, select: false },
   name: { type: String, required: true },
   role: { type: String, required: true, enum: [
     'super_admin', 'corporate_admin', 'property_manager', 'operations_dispatcher',
@@ -93,7 +93,7 @@ async function seed() {
   console.log('✅ Organizations created');
 
   // Create users - ALL 14 ROLES
-  const passwordHash = await bcrypt.hash(PASSWORD, 12);
+  const hashedPassword = await bcrypt.hash(PASSWORD, 12);
   
   const users = [
     // 1. Platform role
@@ -141,7 +141,7 @@ async function seed() {
   for (const userData of users) {
     await User.findOneAndUpdate(
       { orgId: userData.orgId, email: userData.email },
-      { ...userData, passwordHash, isActive: true, emailVerifiedAt: new Date() },
+      { ...userData, password: hashedPassword, isActive: true, emailVerifiedAt: new Date() },
       { upsert: true, new: true }
     );
     console.log(`✅ Created: ${userData.email} (${userData.role})`);
