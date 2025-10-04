@@ -13,20 +13,6 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
-const LANGUAGES: Lang[] = [
-  { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-  { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'fr', native: 'Français', flag: '🇫🇷', dir: 'ltr' },
-  { code: 'es', native: 'Español', flag: '🇪🇸', dir: 'ltr' },
-];
-
-const CURRENCIES = [
-  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-];
 
 const USER_TYPES = [
   { value: 'personal', label: 'Personal Account', description: 'For individual users' },
@@ -53,42 +39,9 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<Lang>(LANGUAGES[1]); // Default EN
-  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]); // Default SAR
 
   const router = useRouter();
 
-  // Load saved preferences
-  useEffect(() => {
-    const savedLang = localStorage.getItem('fxz.lang');
-    const savedCurrency = localStorage.getItem('fixzit-currency');
-
-    if (savedLang) {
-      const found = LANGUAGES.find(l => l.code === savedLang);
-      if (found) setSelectedLang(found);
-    }
-    if (savedCurrency) {
-      const found = CURRENCIES.find(c => c.code === savedCurrency);
-      if (found) setSelectedCurrency(found);
-    }
-  }, []);
-
-  // Handle language change
-  const handleLanguageChange = (lang: Lang) => {
-    setSelectedLang(lang);
-    localStorage.setItem('fxz.lang', lang.code);
-    document.documentElement.dir = lang.dir;
-    document.documentElement.lang = lang.code;
-    setShowLangDropdown(false);
-  };
-
-  // Handle currency change
-  const handleCurrencyChange = (currency: typeof CURRENCIES[0]) => {
-    setSelectedCurrency(currency);
-    localStorage.setItem('fixzit-currency', currency.code);
-    setShowCurrencyDropdown(false);
   };
 
   // Handle input changes
@@ -240,82 +193,6 @@ export default function SignupPage() {
       {/* Right Panel - Signup Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Top Bar with Language and Currency */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLangDropdown(!showLangDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="text-lg">{selectedLang.flag}</span>
-                  <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showLangDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                    {LANGUAGES.map(lang => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang)}
-                        className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 ${
-                          lang.code === selectedLang.code ? 'bg-[#0061A8]/10' : ''
-                        }`}
-                      >
-                        <span className="text-xl">{lang.flag}</span>
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">{lang.native}</div>
-                          <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
-                        </div>
-                        {lang.code === selectedLang.code && (
-                          <div className="w-2 h-2 rounded-full bg-[#0061A8]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Currency Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="font-medium">{selectedCurrency.symbol}</span>
-                  <span className="text-sm">{selectedCurrency.code}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showCurrencyDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                    {CURRENCIES.map(currency => (
-                      <button
-                        key={currency.code}
-                        onClick={() => handleCurrencyChange(currency)}
-                        className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 text-gray-900 text-sm ${
-                          currency.code === selectedCurrency.code ? 'bg-[#0061A8]/10' : ''
-                        }`}
-                      >
-                        <span className="font-medium">{currency.symbol}</span>
-                        <span>{currency.code}</span>
-                        <span className="text-gray-500 text-xs ml-auto">{currency.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Link href="/login" className="text-white/80 hover:text-white text-sm flex items-center gap-1">
-              <ArrowLeft size={14} />
-              Back to Login
-            </Link>
-          </div>
-
-          {/* Signup Form */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Your Account</h2>

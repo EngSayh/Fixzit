@@ -14,71 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { memo, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 // Memoized components for better performance
-const LanguageSelector = memo(({ 
-  selectedLang, 
-  showDropdown, 
-  onToggle, 
-  onChange 
-}: {
-  selectedLang: Lang;
-  showDropdown: boolean;
-  onToggle: () => void;
-  onChange: (lang: Lang) => void;
-}) => (
-  <div className="relative">
-    <button
-      onClick={onToggle}
-      className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-all duration-200 backdrop-blur-sm"
-      aria-label="Language selector"
-      aria-expanded={showDropdown}
-    >
-      <span className="text-lg">{selectedLang.flag}</span>
-      <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
-      <ChevronDown size={14} className={cn(
-        "transition-transform duration-200",
-        showDropdown && "rotate-180"
-      )} />
-    </button>
-
-    <AnimatePresence>
-      {showDropdown && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 overflow-hidden"
-        >
-          {LANGUAGES.map(lang => (
-            <button
-              key={lang.code}
-              onClick={() => onChange(lang)}
-              className={cn(
-                "w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 transition-colors",
-                lang.code === selectedLang.code && "bg-[#0061A8]/10"
-              )}
-            >
-              <span className="text-xl">{lang.flag}</span>
-              <div className="flex-1 text-left">
-                <div className="font-medium">{lang.native}</div>
-                <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
-              </div>
-              {lang.code === selectedLang.code && (
-                <motion.div 
-                  layoutId="selected-lang"
-                  className="w-2 h-2 rounded-full bg-[#0061A8]" 
-                />
-              )}
-            </button>
-          ))}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-));
-
-LanguageSelector.displayName = 'LanguageSelector';
-
-// Extract form validation logic
 const useFormValidation = (loginMethod: string, email: string, employeeNumber: string, password: string) => {
   return useMemo(() => {
     const errors: Record<string, string> = {};
@@ -113,22 +48,6 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   
   return debouncedValue;
 };
-type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
-const LANGUAGES: Lang[] = [
-  { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-  { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'fr', native: 'Français', flag: '🇫🇷', dir: 'ltr' },
-  { code: 'es', native: 'Español', flag: '🇪🇸', dir: 'ltr' },
-  { code: 'de', native: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
-];
-
-const CURRENCIES = [
-  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' }
-];
-
 const DEMO_CREDENTIALS = [
   {
     role: 'Super Admin',
@@ -198,43 +117,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<Lang>(LANGUAGES[1]); // Default EN
-  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]); // Default SAR
   const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
   const router = useRouter();
-
-  // Load saved preferences
-  useEffect(() => {
-    const savedLang = localStorage.getItem('fxz.lang');
-    const savedCurrency = localStorage.getItem('fixzit-currency');
-
-    if (savedLang) {
-      const found = LANGUAGES.find(l => l.code === savedLang);
-      if (found) setSelectedLang(found);
-    }
-    if (savedCurrency) {
-      const found = CURRENCIES.find(c => c.code === savedCurrency);
-      if (found) setSelectedCurrency(found);
-    }
-  }, []);
-
-  // Handle language change
-  const handleLanguageChange = (lang: Lang) => {
-    setSelectedLang(lang);
-    localStorage.setItem('fxz.lang', lang.code);
-    document.documentElement.dir = lang.dir;
-    document.documentElement.lang = lang.code;
-    setShowLangDropdown(false);
-  };
-
-  // Handle currency change
-  const handleCurrencyChange = (currency: typeof CURRENCIES[0]) => {
-    setSelectedCurrency(currency);
-    localStorage.setItem('fixzit-currency', currency.code);
-    setShowCurrencyDropdown(false);
-  };
 
   // Quick login with demo credentials
   const quickLogin = (credential: typeof DEMO_CREDENTIALS[0] | typeof CORPORATE_CREDENTIALS[0]) => {
@@ -348,75 +232,8 @@ export default function LoginPage() {
       {/* Right Panel - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Top Bar with Language and Currency */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLangDropdown(!showLangDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="text-lg">{selectedLang.flag}</span>
-                  <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showLangDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                    {LANGUAGES.map(lang => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang)}
-                        className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 ${
-                          lang.code === selectedLang.code ? 'bg-[#0061A8]/10' : ''
-                        }`}
-                      >
-                        <span className="text-xl">{lang.flag}</span>
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">{lang.native}</div>
-                          <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
-                        </div>
-                        {lang.code === selectedLang.code && (
-                          <div className="w-2 h-2 rounded-full bg-[#0061A8]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Currency Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="font-medium">{selectedCurrency.symbol}</span>
-                  <span className="text-sm">{selectedCurrency.code}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showCurrencyDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                    {CURRENCIES.map(currency => (
-                      <button
-                        key={currency.code}
-                        onClick={() => handleCurrencyChange(currency)}
-                        className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 text-gray-900 text-sm ${
-                          currency.code === selectedCurrency.code ? 'bg-[#0061A8]/10' : ''
-                        }`}
-                      >
-                        <span className="font-medium">{currency.symbol}</span>
-                        <span>{currency.code}</span>
-                        <span className="text-gray-500 text-xs ml-auto">{currency.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
+          {/* Back to Home Link */}
+          <div className="flex items-center justify-end mb-8">
             <Link href="/" className="text-white/80 hover:text-white text-sm">
               ← Back to Home
             </Link>
