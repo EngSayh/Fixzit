@@ -144,6 +144,15 @@ const nextConfig = {
 
   // Output configuration for deployment
   output: 'standalone',
+  
+  // Increase build timeout for CI/CD
+  staticPageGenerationTimeout: 180,
+  
+  // Optimize for CI/CD environment
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
 }
 
 module.exports = nextConfig
