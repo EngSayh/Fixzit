@@ -125,6 +125,17 @@ async function seed() {
     { orgId: acmeOrg._id, email: 'auditor@fixzit.co', employeeId: 'AUD001', name: 'Auditor / Compliance', role: 'auditor_compliance', permissions: ['*:read'] },
   ];
 
+  // Add test alias for backward compatibility
+  const testAliasUser = {
+    orgId: fixzitOrg._id,
+    email: 'admin@fixzit.co',
+    employeeId: 'SA001-TEST',
+    name: 'Admin (Test Alias)',
+    role: 'super_admin',
+    permissions: ['*']
+  };
+  users.push(testAliasUser);
+
   console.log(`\n📝 Seeding ${users.length} users...\n`);
 
   for (const userData of users) {
