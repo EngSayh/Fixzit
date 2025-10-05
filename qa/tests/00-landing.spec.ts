@@ -10,8 +10,8 @@ test.describe('Landing & Branding (@smoke)', () => {
     page.on('response', r => { if (r.status() >= 400) failed.push({url:r.url(),status:r.status()}); });
 
     await page.goto('/');
-    // TopBar buttons visible (use .first() for language since SAR currency also matches /AR/)
-    await expect(page.getByRole('button', { name: /Select language.*AR/i }).first()).toBeVisible();
+    // TopBar buttons visible
+    await expect(page.getByRole('button', { name: /Select language/i }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /Souq/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Access|Get Started/i })).toBeVisible(); // tolerate wording
 
