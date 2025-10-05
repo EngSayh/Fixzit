@@ -188,7 +188,7 @@ describe('useI18n', () => {
       );
 
     const { result, rerender } = renderHook(() => useI18n(), {
-      wrapper: (p) => React.createElement(Wrapper, p),
+      wrapper: (p: any) => React.createElement(Wrapper, p),
       initialProps: { dict: initialDict },
     });
 

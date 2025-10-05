@@ -48,7 +48,7 @@ describe('Candidate model - findByEmail', () => {
       // Mock MockModel to capture interactions
       class FakeMockModel {
         public storeName: string;
-        static find: Mock<any, any> = jest.fn();
+        static find: any = jest.fn();
         constructor(name: string) {
           this.storeName = name;
         }
@@ -124,7 +124,7 @@ describe('Candidate model - findByEmail', () => {
   });
 
   describe('when isMockDB = false', () => {
-    let findOneSpy: Mock;
+    let findOneSpy: any;
 
     beforeEach(async () => {
       await resetModules();
@@ -137,7 +137,7 @@ describe('Candidate model - findByEmail', () => {
         constructor(..._args: any[]) {}
       };
 
-      findOneSpy = jest.fn() as jest.Mock;
+      findOneSpy = jest.fn() as any;
 
       // The module under test will set:
       // const RealCandidate = models.Candidate || model('Candidate', CandidateSchema);
@@ -165,7 +165,7 @@ describe('Candidate model - findByEmail', () => {
 
       const orgId = 'org-3';
       const email = 'real@example.com';
-      const doc = { id: 'db-1', orgId, email };
+      const doc: any = { id: 'db-1', orgId, email };
 
       findOneSpy.mockResolvedValueOnce(doc);
 

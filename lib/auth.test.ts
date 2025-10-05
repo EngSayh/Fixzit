@@ -41,11 +41,11 @@ const verifySpy = jest.fn((token: string, _secret: string) => {
 jest.mock('jsonwebtoken', () => ({
   __esModule: true,
   default: {
-    sign: (...args: any[]) => signSpy(...args),
-    verify: (...args: any[]) => verifySpy(...args),
+    sign: jest.fn((...args: Parameters<typeof signSpy>) => signSpy(...args)),
+    verify: jest.fn((...args: Parameters<typeof verifySpy>) => verifySpy(...args)),
   },
-  sign: (...args: any[]) => signSpy(...args),
-  verify: (...args: any[]) => verifySpy(...args),
+  sign: jest.fn((...args: Parameters<typeof signSpy>) => signSpy(...args)),
+  verify: jest.fn((...args: Parameters<typeof verifySpy>) => verifySpy(...args)),
 }));
 
 // Mock mongo layer to control isMockDB and db connection behavior
@@ -155,6 +155,7 @@ describe('auth lib - JWT generation and verification', () => {
       email: 'e@x.com',
       role: 'USER',
       tenantId: 't',
+      orgId: 't',
     };
     auth.generateToken(payload);
     expect(signSpy).toHaveBeenCalledWith(payload, 'fixed-secret', expect.any(Object));
