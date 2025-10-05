@@ -17,7 +17,7 @@ function parseNewTicket(question: string) {
   if (!isSlash && !isNatural) return null;
 
   const get = (key: string) => {
-    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^\s]+))`, "i"));
+    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^\\s]+))`, "i"));
     if (!m) return undefined;
     return (m[2] || m[3])?.trim();
   };
