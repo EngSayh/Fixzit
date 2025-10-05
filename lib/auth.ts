@@ -191,7 +191,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
   const token = generateToken({
     id: user._id.toString(),
     email: user.email,
-    role: user.professionalInfo?.role || user.role,
+    role: user.professional?.role || user.role,
     orgId: user.orgId
   });
 
@@ -200,8 +200,8 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     user: {
       id: user._id.toString(),
       email: user.email,
-      name: `${user.personalInfo?.firstName} ${user.personalInfo?.lastName}`,
-      role: user.professionalInfo?.role || user.role,
+      name: `${user.personal?.firstName} ${user.personal?.lastName}`,
+      role: user.professional?.role || user.role,
       orgId: user.orgId
     }
   };
@@ -225,8 +225,8 @@ export async function getUserFromToken(token: string) {
   return {
     id: user._id.toString(),
     email: user.email,
-    name: `${user.personalInfo?.firstName} ${user.personalInfo?.lastName}`,
-    role: user.professionalInfo?.role || user.role,
+    name: `${user.personal?.firstName} ${user.personal?.lastName}`,
+    role: user.professional?.role || user.role,
     orgId: user.orgId
   };
 }

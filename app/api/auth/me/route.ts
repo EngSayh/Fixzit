@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         id: '1',
         email: 'admin@fixzit.co',
         name: 'System Administrator',
-        role: 'SUPER_ADMIN',
+        role: 'super_admin',
         tenantId: 'demo-tenant'
       }
     });
