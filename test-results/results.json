@@ -192,13 +192,39 @@
   "suites": [],
   "errors": [
     {
-      "message": "Error: Timed out waiting 120000ms from config.webServer.",
-      "stack": "Error: Timed out waiting 120000ms from config.webServer."
+      "message": "ReferenceError: jest is not defined",
+      "stack": "ReferenceError: jest is not defined\n    at Object.<anonymous> (/workspaces/Fixzit/qa/tests/api-paytabs-callback.spec.ts:60:29)",
+      "location": {
+        "file": "/workspaces/Fixzit/qa/tests/api-paytabs-callback.spec.ts",
+        "column": 29,
+        "line": 60
+      },
+      "snippet": "\u001b[90m   at \u001b[39mapi-paytabs-callback.spec.ts:60\n\n  58 | // We partially mock next/server to intercept NextResponse.json calls.\n  59 |\n> 60 | const mockGenerateZATCAQR = jest.fn(async () => ({ base64: 'mock-qr-base64' }));\n     |                             ^\n  61 | const mockValidateCallbackRaw = jest.fn(() => true);\n  62 |\n  63 | // Partial mock for NextResponse.json to capture body and options"
+    },
+    {
+      "message": "Error: Cannot find module '../../src/i18n/dictionaries/en'\nRequire stack:\n- /workspaces/Fixzit/qa/tests/i18n-en.unit.spec.ts\n- /workspaces/Fixzit/node_modules/playwright/lib/transform/transform.js\n- /workspaces/Fixzit/node_modules/playwright/lib/common/configLoader.js\n- /workspaces/Fixzit/node_modules/playwright/lib/program.js\n- /workspaces/Fixzit/node_modules/@playwright/test/cli.js",
+      "stack": "Error: Cannot find module '../../src/i18n/dictionaries/en'\nRequire stack:\n- /workspaces/Fixzit/qa/tests/i18n-en.unit.spec.ts\n- /workspaces/Fixzit/node_modules/playwright/lib/transform/transform.js\n- /workspaces/Fixzit/node_modules/playwright/lib/common/configLoader.js\n- /workspaces/Fixzit/node_modules/playwright/lib/program.js\n- /workspaces/Fixzit/node_modules/@playwright/test/cli.js\n    at Object.<anonymous> (/workspaces/Fixzit/qa/tests/i18n-en.unit.spec.ts:8:1)",
+      "location": {
+        "file": "/workspaces/Fixzit/qa/tests/i18n-en.unit.spec.ts",
+        "column": 1,
+        "line": 8
+      },
+      "snippet": "\u001b[90m   at \u001b[39mi18n-en.unit.spec.ts:8\n\n   6 |\n   7 | import { test, expect } from '@playwright/test';\n>  8 | import en from '../../src/i18n/dictionaries/en';\n     | ^\n   9 |\n  10 | type Dict = Record<string, any>;\n  11 | type Leaf = string | number | boolean | null | undefined;"
+    },
+    {
+      "message": "ReferenceError: beforeAll is not defined",
+      "stack": "ReferenceError: beforeAll is not defined\n    at Object.<anonymous> (/workspaces/Fixzit/qa/tests/lib-paytabs.spec.ts:30:1)",
+      "location": {
+        "file": "/workspaces/Fixzit/qa/tests/lib-paytabs.spec.ts",
+        "column": 1,
+        "line": 30
+      },
+      "snippet": "\u001b[90m   at \u001b[39mlib-paytabs.spec.ts:30\n\n  28 |\n  29 | // Lazy-load once for all tests\n> 30 | beforeAll(() => {\n     | ^\n  31 |   lib = loadModule();\n  32 | });\n  33 |"
     }
   ],
   "stats": {
-    "startTime": "2025-10-05T09:32:12.268Z",
-    "duration": 120450.41399999999,
+    "startTime": "2025-10-05T09:45:21.578Z",
+    "duration": 26643.926,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,
