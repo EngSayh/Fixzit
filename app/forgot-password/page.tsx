@@ -26,7 +26,7 @@ export default function ForgotPassword() {
       }
       
       setSuccess(true);
-    } catch (err) {
+    } catch {
       setError(err instanceof Error ? err.message : 'Failed to send reset email');
     } finally {
       setLoading(false);

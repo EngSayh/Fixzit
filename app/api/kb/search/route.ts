@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ results });
-  } catch (err) {
+  } catch {
     console.error('kb/search error', err);
     return NextResponse.json({ error: 'Search failed' }, { status: 500 });
   }
