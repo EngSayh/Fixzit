@@ -12,7 +12,7 @@ const API_PATH = "/api/projects";
 
 const rand = () => Math.random().toString(36).slice(2, 10);
 const newTenantId = () => `tenant-${Date.now()}-${rand()}`;
-const newUser = (tenantId = newTenantId()) => ({ id: `u-${rand()}`, tenantId });
+const newUser = (tenantId = newTenantId()) => ({ id: `u-${rand()}`, tenantId, orgId: tenantId, role: 'admin' });
 
 async function newAuthedRequest(playwright: any, baseURL: string | undefined, user = newUser()) {
   const ctx = await playwright.request.newContext({
@@ -123,11 +123,11 @@ test.describe("Projects API - POST /api/projects", () => {
 });
 
 test.describe("Projects API - GET /api/projects", () => {
-  test("returns 500 when unauthenticated (getSessionUser throws)", async ({ playwright }, testInfo) => {
+  test("returns 401 when unauthenticated", async ({ playwright }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const anon = await playwright.request.newContext({ baseURL });
     const res = await anon.get(API_PATH);
-    expect(res.status()).toBe(500);
+    expect(res.status()).toBe(401);
     const body = await res.json();
     expect(body).toHaveProperty("error");
     await anon.dispose();
