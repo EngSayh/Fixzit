@@ -1,6 +1,6 @@
 import Image from 'next/image';
-import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
-import ProductCard from '@/src/components/marketplace/ProductCard';
+import PDPBuyBox from '@/components/marketplace/PDPBuyBox';
+import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 interface ProductPageProps {
