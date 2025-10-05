@@ -16,12 +16,12 @@ const loadModelWithEnv = async (env: Partial<NodeJS.ProcessEnv>) => {
     // Attempt common locations
     let loadedModule: any = null;
     const candidates = [
+      '../server/models/MarketplaceProduct',
+      '@/server/models/MarketplaceProduct',
+      'server/models/MarketplaceProduct',
+      path.posix.join(process.cwd(), 'server/models/MarketplaceProduct'),
       '@/models/MarketplaceProduct',
-      '@/models/MarketplaceProduct',
-      'src/models/MarketplaceProduct',
       'models/MarketplaceProduct',
-      path.posix.join(process.cwd(), 'src/models/MarketplaceProduct'),
-      path.posix.join(process.cwd(), 'models/MarketplaceProduct'),
     ];
     let lastError: any = null;
     for (const c of candidates) {

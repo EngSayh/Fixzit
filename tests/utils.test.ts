@@ -1,12 +1,12 @@
 /**
  * Unit tests for generateSlug.
- * Framework: @playwright/test (root playwright.config.ts -> testDir: './tests')
- * Style: Node-only tests (no browser fixture).
+ * Framework: Vitest
+ * Style: Node-only tests.
  */
-import { test, expect } from '@playwright/test';
+import { describe, test, expect } from 'vitest';
 import { generateSlug } from '@/lib/utils';
 
-test.describe('generateSlug', () => {
+describe('generateSlug', () => {
   test('returns empty string for empty input', () => {
     expect(generateSlug('')).toBe('');
   });
