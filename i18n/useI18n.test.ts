@@ -50,9 +50,10 @@ function TestI18nProvider({
 
 describe('useI18n', () => {
   it('throws if used without I18nProvider', () => {
-    const { result } = renderHook(() => useI18n());
-    expect(result.error).toBeInstanceOf(Error);
-    expect(result.error?.message).toBe('useI18n must be used within <I18nProvider />');
+    // Suppress console error from React error boundary
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => renderHook(() => useI18n())).toThrow('useI18n must be used within <I18nProvider />');
+    spy.mockRestore();
   });
 
   it('returns provided dict via context and a t function', () => {

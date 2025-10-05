@@ -19,9 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check user permissions (admin or HR role can convert applications)
-    // Check if user has permission to convert applications
-    const canConvertApplications = ['admin', 'hr'].includes(user.role) || 
-                     user.permissions?.includes('convert_application');
+    const canConvertApplications = ['admin', 'hr'].includes(user.role);
     
     if (!canConvertApplications) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });

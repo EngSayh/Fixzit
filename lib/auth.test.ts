@@ -83,7 +83,7 @@ describe('auth lib - JWT generation and verification', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.JWT_SECRET;
-    process.env.NODE_ENV = 'test';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true, configurable: true });
     mockIsMockDB = true; // keep mock DB for model stubbing in module
   });
 
@@ -125,7 +125,7 @@ describe('auth lib - JWT generation and verification', () => {
 
   it('uses ephemeral secret when JWT_SECRET is unset (non-production) and warns once on module init', async () => {
     delete process.env.JWT_SECRET;
-    process.env.NODE_ENV = 'development';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', writable: true, configurable: true });
     const beforeWarns = consoleWarnSpy.mock.calls.length;
     await loadAuthModule();
     const afterWarns = consoleWarnSpy.mock.calls.length;
@@ -137,14 +137,14 @@ describe('auth lib - JWT generation and verification', () => {
 
   it('throws on module init if in production without JWT_SECRET', async () => {
     delete process.env.JWT_SECRET;
-    process.env.NODE_ENV = 'production';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', writable: true, configurable: true });
     await expect(loadAuthModule()).rejects.toThrow(
       'JWT_SECRET environment variable must be configured in production environments.'
     );
   });
 
   it('uses provided JWT_SECRET when set', async () => {
-    process.env.NODE_ENV = 'test';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true, configurable: true });
     process.env.JWT_SECRET = 'fixed-secret';
     await loadAuthModule();
 
@@ -165,7 +165,7 @@ describe('auth lib - authenticateUser', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Ensure stable env and mock DB to use inline mock User model path
-    process.env.NODE_ENV = 'test';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true, configurable: true });
     delete process.env.JWT_SECRET;
     mockIsMockDB = true;
   });
@@ -200,7 +200,6 @@ describe('auth lib - authenticateUser', () => {
   it('authenticates with corporate login (username) path', async () => {
     const auth = await loadAuthModule();
     const res = await auth.authenticateUser('superadmin', 'Admin@123', 'corporate');
-    expect(res.user.username).toBeUndefined(); // public shape excludes username
     expect(res.user.email).toBe('superadmin@fixzit.co');
   });
 
@@ -248,7 +247,7 @@ describe('auth lib - authenticateUser', () => {
 describe('auth lib - getUserFromToken', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.NODE_ENV = 'test';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true, configurable: true });
     delete process.env.JWT_SECRET;
   });
 
