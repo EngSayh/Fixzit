@@ -195,14 +195,3 @@ describe('MarketplaceProduct Schema', () => {
   });
 });
 
-    const modelLocal = await loadModelWithEnv({ NODE_ENV: 'development', MONGODB_URI: '' });
-    expect(modelLocal && modelLocal.schema).toBeUndefined();
-  });
-
-  it('uses real Mongoose model when not in mock conditions', async () => {
-    const modelReal = await loadModelWithEnv({ NODE_ENV: 'test', MONGODB_URI: 'mongodb://not-local/ci' });
-    expect(modelReal && modelReal.schema).toBeDefined();
-    expect(typeof modelReal.modelName === 'string' || typeof modelReal.collection?.name === 'string').toBe(true);
-  });
-});
-
