@@ -78,7 +78,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: { slug: 'no-currency' } })
+    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-currency' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.currency).toBe('SAR')
@@ -95,7 +95,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: { slug: 'no-prices' } })
+    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-prices' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.price).toBeNull()
@@ -112,7 +112,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: { slug: 'empty-prices' } })
+    const res = await GET({} as any, { params: Promise.resolve({ slug: 'empty-prices' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.price).toBeNull()
@@ -129,7 +129,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: { slug: 'out-of-stock' } })
+    const res = await GET({} as any, { params: Promise.resolve({ slug: 'out-of-stock' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.inStock).toBe(false)
@@ -145,7 +145,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: { slug: 'no-inventories' } })
+    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-inventories' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.price).toBe(99.99)
@@ -162,7 +162,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: { slug: 'no-leaddays' } })
+    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-leaddays' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.leadDays).toBe(3)
@@ -172,7 +172,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   test('handles errors from data layer by returning 500', async () => {
     (MarketplaceProduct.findOne as jest.Mock).mockRejectedValueOnce(new Error('DB failure'))
 
-    const res = await GET({} as any, { params: { slug: 'boom' } })
+    const res = await GET({} as any, { params: Promise.resolve({ slug: 'boom' }) })
 
     expect(res.status).toBe(500)
     await expect(readJson(res as any)).resolves.toEqual({ error: 'Server error' })

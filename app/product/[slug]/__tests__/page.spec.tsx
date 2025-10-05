@@ -57,7 +57,7 @@ describe('ProductPage', () => {
       json: async () => ({ buyBox: { price: 1, currency: 'USD', inStock: false, leadDays: 10 } }),
     });
 
-    const res = await ProductPage({ params: { slug: 'missing' } });
+    const res = await ProductPage({ params: Promise.resolve({ slug: 'missing' }) });
     render(res as any);
 
     expect(screen.getByText('Not found')).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('ProductPage', () => {
       json: async () => makeData(),
     });
 
-    const res = await ProductPage({ params: { slug: 'acme-widget' } });
+    const res = await ProductPage({ params: Promise.resolve({ slug: 'acme-widget' }) });
     render(res as any);
 
     // Title
@@ -116,7 +116,7 @@ describe('ProductPage', () => {
     });
 
     await withEnv('NEXT_PUBLIC_FRONTEND_URL', 'https://example.com', async () => {
-      const res = await ProductPage({ params: { slug: 'env-based' } });
+      const res = await ProductPage({ params: Promise.resolve({ slug: 'env-based' }) });
       render(res as any);
       expect(global.fetch).toHaveBeenCalledWith(
         'https://example.com/api/marketplace/products/env-based',
@@ -131,7 +131,7 @@ describe('ProductPage', () => {
       json: async () => makeData({ buyBox: { price: 99, currency: 'EUR', inStock: false, leadDays: 9 } }),
     });
 
-    const res = await ProductPage({ params: { slug: 'backorder' } });
+    const res = await ProductPage({ params: Promise.resolve({ slug: 'backorder' }) });
     render(res as any);
 
     expect(screen.getByText(/Backorder/)).toBeInTheDocument();
@@ -150,7 +150,7 @@ describe('ProductPage', () => {
       }),
     });
 
-    const res = await ProductPage({ params: { slug: 'no-attrs' } });
+    const res = await ProductPage({ params: Promise.resolve({ slug: 'no-attrs' }) });
     render(res as any);
 
     expect(screen.getByRole('heading', { name: 'No Attrs' })).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('ProductPage', () => {
       }),
     });
 
-    const res = await ProductPage({ params: { slug: 'no-bb' } });
+    const res = await ProductPage({ params: Promise.resolve({ slug: 'no-bb' }) });
     render(res as any);
 
     // Should still render title and attributes; price/currency text may be incomplete due to undefined

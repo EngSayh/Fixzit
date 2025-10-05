@@ -7,8 +7,7 @@ import { describe, it, expect } from 'vitest'; // If Jest is used, its globals p
 // If your test runner doesn't auto-inject globals, keep the import above for Vitest. Jest users can ignore it.
 
 import { fmtNumber, fmtDate } from './format';
-
-type Locale = 'en' | 'ar' | (string & {}); // Align with project's Locale type (imported in impl). For tests, this is sufficient.
+import type { Locale } from '@/i18n/config';
 
 const isArabicIndicDigits = (s: string) => /^[\u0660-\u0669\s\u066B\u066C\u200f\u200e\u061C\u2212\-,./()+:]+$/.test(s);
 // Notes:

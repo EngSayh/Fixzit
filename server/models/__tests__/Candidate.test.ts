@@ -94,7 +94,7 @@ describe('Candidate model - findByEmail', () => {
       // We set the mock to resolve to array
       // We need access to the mocked find. Locate via Candidate since we did not export it, but we can rely on our mock captured function.
       // As we mocked MockModel to return an instance where find is a jest.fn, we can retrieve it by spying on (Candidate as any).find
-      const findFn = (Candidate as any).find as Mock;
+      const findFn = (Candidate as any).find as jest.Mock;
 
       findFn.mockResolvedValueOnce([first, second]);
 
@@ -113,7 +113,7 @@ describe('Candidate model - findByEmail', () => {
       const email = 'solo@example.com';
       const lone = { id: 'only-1', orgId, email, marker: 'single' };
 
-      const findFn = (Candidate as any).find as Mock;
+      const findFn = (Candidate as any).find as jest.Mock;
       findFn.mockResolvedValueOnce(lone);
 
       const result = await (Candidate as any).findByEmail(orgId, email);
