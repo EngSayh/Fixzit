@@ -34,7 +34,7 @@ export default function ResponsiveLayout({
   const showSidebar = sidebar && (screenInfo.isDesktop || screenInfo.isLarge || sidebarOpen);
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>
+    <div className={`min-h-screen bg-gray-50 ${className}`} data-screen-size={screenInfo.size} data-is-desktop={screenInfo.isDesktop} data-is-large={screenInfo.isLarge} data-show-sidebar={showSidebar}>
       {/* Header */}
       {header && (
         <div className="sticky top-0 z-40">

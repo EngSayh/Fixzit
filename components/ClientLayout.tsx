@@ -58,7 +58,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           const data = await response.json();
           if (data.user && data.user.role) {
             const userRole = data.user.role;
+        console.log("📊 [ClientLayout] Fetched user from API:", data.user);
             setRole(userRole);
+            console.log("✅ [ClientLayout] Setting role to:", userRole);
             // Cache the role in localStorage
             localStorage.setItem('fixzit-role', userRole);
           }
@@ -105,6 +107,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
   // Only render sidebar if user has a valid role (not guest) and not on landing page
   const shouldShowSidebar = !isLandingPage && role !== 'guest';
+  console.log("🎯 [ClientLayout] shouldShowSidebar:", shouldShowSidebar, "| role:", role, "| isLandingPage:", isLandingPage);
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">

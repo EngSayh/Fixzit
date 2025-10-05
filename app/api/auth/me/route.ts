@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await getUserFromToken(token);
+    console.log("[API /auth/me] getUserFromToken returned:", JSON.stringify(user));
 
     if (!user) {
       return NextResponse.json(

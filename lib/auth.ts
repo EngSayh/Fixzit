@@ -208,6 +208,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 }
 
 export async function getUserFromToken(token: string) {
+  console.log("[getUserFromToken] Starting...");
   await connectToDatabase();
   const payload = verifyToken(token);
 
@@ -217,6 +218,7 @@ export async function getUserFromToken(token: string) {
 
   // Database connection handled by model layer
   const user = await User.findById(payload.id);
+  console.log("[getUserFromToken] User found:", !!user, "role:", user?.role, "professional.role:", user?.professional?.role);
 
   if (!user || user.status !== 'ACTIVE') {
     return null;

@@ -144,10 +144,10 @@ const OrganizationSchema = new Schema({
       requireApproval: { type: Boolean, default: true },
       defaultPriority: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "URGENT"], default: "MEDIUM" },
       slaDefaults: {
-        low: { hours: 72 },
-        medium: { hours: 48 },
-        high: { hours: 24 },
-        urgent: { hours: 4 }
+        low: { hours: { type: Number, default: 72 } },
+        medium: { hours: { type: Number, default: 48 } },
+        high: { hours: { type: Number, default: 24 } },
+        urgent: { hours: { type: Number, default: 4 } }
       },
       notifications: {
         email: { type: Boolean, default: true },
