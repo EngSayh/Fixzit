@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import PriceBook from '@/db/models/PriceBook';
+import PriceBook from '@/server/models/PriceBook';
 import { requireSuperAdmin } from '@/lib/authz';
 
 export async function POST(req: NextRequest) {

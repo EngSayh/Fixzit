@@ -1,7 +1,7 @@
 'use client';
 
 import { useTopBar } from '@/contexts/TopBarContext';
-import { APPS } from '@/src/config/topbar-modules';
+import { APPS } from '@/config/topbar-modules';
 import Link from 'next/link';
 import { ChevronDown, Building2, Store, Landmark } from 'lucide-react';
 import { useState } from 'react';

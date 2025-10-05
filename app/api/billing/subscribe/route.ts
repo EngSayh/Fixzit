@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Customer from '@/db/models/Customer';
-import Subscription from '@/db/models/Subscription';
-import SubscriptionInvoice from '@/db/models/SubscriptionInvoice';
+import Customer from '@/server/models/Customer';
+import Subscription from '@/server/models/Subscription';
+import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
 import { computeQuote } from '@/lib/pricing';
 import { createHppRequest } from '@/lib/paytabs';
 import { getUserFromToken } from '@/lib/auth';

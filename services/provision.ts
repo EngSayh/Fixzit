@@ -1,4 +1,4 @@
-import Subscription from '../db/models/Subscription';
+import Subscription from '@/server/models/Subscription';
 
 export async function provisionSubscriber(cartIdOrSubscriptionId: string) {
   const subscription = await Subscription.findOne({

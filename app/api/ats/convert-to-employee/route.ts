@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Application } from '@/db/models/Application';
-import { Candidate } from '@/db/models/Candidate';
-import { Job } from '@/db/models/Job';
-import { Employee } from '@/db/models/Employee';
+import { Application } from '@/server/models/Application';
+import { Candidate } from '@/server/models/Candidate';
+import { Job } from '@/server/models/Job';
+import { Employee } from '@/server/models/Employee';
 import { getUserFromToken } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {

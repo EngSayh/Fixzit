@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Types } from 'mongoose';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { searchProducts } from '@/lib/marketplace/search';
-import Category from '@/db/models/marketplace/Category';
+import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 
