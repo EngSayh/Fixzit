@@ -5,3 +5,13 @@ approval_rules:
 # SAFE_DENY (optional): uncomment to block obviously destructive ops
 #  - pattern: "rm -rf /(?!workspaces|workspace|home|root|var|usr).*"
 #    auto_approve: false
+
+run_permissions:
+  - pattern: ".*"
+    allow: true
+  - pattern: "npm (run|test|build|start|install)"
+    allow: true
+  - pattern: "bash (scripts|tools)/"
+    allow: true
+  - pattern: "git (add|commit|push|status|diff)"
+    allow: true

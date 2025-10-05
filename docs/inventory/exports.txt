@@ -1,0 +1,1146 @@
+src/contexts/TopBarContext.tsx:22:export function TopBarProvider({ children }: { children: React.ReactNode }) {
+src/contexts/TopBarContext.tsx:65:export function useTopBar() {
+src/contexts/CurrencyContext.tsx:5:export type CurrencyCode = 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED';
+src/contexts/CurrencyContext.tsx:7:export type CurrencyOption = {
+src/contexts/CurrencyContext.tsx:14:export const CURRENCY_OPTIONS = [
+src/contexts/CurrencyContext.tsx:41:export function CurrencyProvider({ children }: { children: React.ReactNode }) {
+src/contexts/CurrencyContext.tsx:139:export function useCurrency() {
+src/contexts/ThemeContext.tsx:8:export function ThemeProvider({ children }: { children: React.ReactNode }) {
+src/contexts/ThemeContext.tsx:22:export const useThemeCtx = () => {
+src/contexts/ResponsiveContext.tsx:17:export function ResponsiveProvider({ children }: { children: ReactNode }) {
+src/contexts/ResponsiveContext.tsx:38:export function useResponsiveContext() {
+src/contexts/ResponsiveContext.tsx:47:export function useResponsiveLayout() {
+src/contexts/ResponsiveContext.tsx:88:export const useResponsive = useResponsiveLayout;
+src/types/properties.ts:3:export type PropertyType =
+src/types/properties.ts:11:export type PropertyStatus =
+src/types/properties.ts:19:export type UnitStatus =
+src/types/properties.ts:27:export type TenantStatus = 'active' | 'inactive' | 'delinquent' | 'prospect';
+src/types/properties.ts:29:export interface PropertyWorkOrderSummary {
+src/types/properties.ts:39:export interface Unit {
+src/types/properties.ts:65:export interface Tenant {
+src/types/properties.ts:88:export type DocumentCategory =
+src/types/properties.ts:100:export interface PropertyDocument {
+src/types/properties.ts:120:export interface Lease {
+src/types/properties.ts:137:export interface Property {
+src/types/properties.ts:183:export interface PropertyStats {
+src/types/properties.ts:197:export interface PropertyFilters {
+src/types/properties.ts:214:export const PROPERTY_TYPE_CONFIG: Record<PropertyType, { label: string; icon: string; color: string; description: string }> = {
+src/types/properties.ts:253:export const UNIT_STATUS_CONFIG: Record<UnitStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+src/types/properties.ts:298:export const TENANT_STATUS_CONFIG: Record<TenantStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+src/types/properties.ts:329:export const DOCUMENT_CATEGORY_CONFIG: Record<DocumentCategory, { label: string; icon: string }> = {
+src/types/properties.ts:342:export const VIEW_MODES = ['grid', 'table', 'map'] as const;
+src/types/properties.ts:343:export type ViewMode = (typeof VIEW_MODES)[number];
+src/types/properties.ts:345:export const PROPERTY_SORT_OPTIONS = [
+src/types/properties.ts:354:export type PropertySortOption = (typeof PROPERTY_SORT_OPTIONS)[number]['value'];
+src/types/work-orders.ts:3:export type WorkOrderStatus =
+src/types/work-orders.ts:15:export type WorkOrderPriority = 'low' | 'medium' | 'high' | 'urgent' | 'emergency';
+src/types/work-orders.ts:17:export type WorkOrderCategory =
+src/types/work-orders.ts:30:export interface WorkOrderUser {
+src/types/work-orders.ts:40:export interface WorkOrderPhoto {
+src/types/work-orders.ts:49:export interface WorkOrderComment {
+src/types/work-orders.ts:58:export interface WorkOrderTimeline {
+src/types/work-orders.ts:79:export interface WorkOrderProperty {
+src/types/work-orders.ts:90:export interface WorkOrderUnit {
+src/types/work-orders.ts:97:export interface WorkOrder {
+src/types/work-orders.ts:121:export interface WorkOrderFormData {
+src/types/work-orders.ts:136:export interface WorkOrderFilters {
+src/types/work-orders.ts:149:export interface WorkOrderStats {
+src/types/work-orders.ts:162:export const CATEGORY_CONFIG: Record<WorkOrderCategory, { label: string; icon: string; color: string; description: string }> = {
+src/types/work-orders.ts:231:export const PRIORITY_CONFIG: Record<WorkOrderPriority, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+src/types/work-orders.ts:269:export const STATUS_CONFIG: Record<WorkOrderStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+src/types/work-orders.ts:342:export const SORT_OPTIONS = [
+src/types/work-orders.ts:351:export type SortOption = (typeof SORT_OPTIONS)[number]['value'];
+src/types/work-orders.ts:353:export const VIEW_MODES = ['grid', 'table', 'kanban'] as const;
+src/types/work-orders.ts:354:export type ViewMode = (typeof VIEW_MODES)[number];
+contexts/TopBarContext.tsx:22:export function TopBarProvider({ children }: { children: React.ReactNode }) {
+contexts/TopBarContext.tsx:65:export function useTopBar() {
+contexts/CurrencyContext.tsx:5:export type CurrencyCode = 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED';
+contexts/CurrencyContext.tsx:7:export type CurrencyOption = {
+contexts/CurrencyContext.tsx:14:export const CURRENCY_OPTIONS = [
+contexts/CurrencyContext.tsx:41:export function CurrencyProvider({ children }: { children: React.ReactNode }) {
+contexts/CurrencyContext.tsx:139:export function useCurrency() {
+src/i18n/config.ts:1:export type Locale = 'en' | 'ar';
+src/i18n/config.ts:3:export const DEFAULT_LOCALE: Locale = 'en';
+src/i18n/config.ts:4:export const SUPPORTED_LOCALES: Locale[] = ['en', 'ar'];
+src/i18n/config.ts:6:export const LOCALE_META: Record<Locale, {
+src/i18n/useI18n.ts:14:export function useI18n() {
+src/i18n/useI18n.ts:41:export type UseI18nReturn = ReturnType<typeof useI18n>;
+contexts/ThemeContext.tsx:8:export function ThemeProvider({ children }: { children: React.ReactNode }) {
+contexts/ThemeContext.tsx:22:export const useThemeCtx = () => {
+contexts/ResponsiveContext.tsx:17:export function ResponsiveProvider({ children }: { children: ReactNode }) {
+contexts/ResponsiveContext.tsx:38:export function useResponsiveContext() {
+contexts/ResponsiveContext.tsx:47:export function useResponsiveLayout() {
+contexts/ResponsiveContext.tsx:88:export const useResponsive = useResponsiveLayout;
+src/i18n/I18nProvider.tsx:20:export const I18nContext = createContext<ContextValue | null>(null);
+src/i18n/I18nProvider.tsx:34:export const I18nProvider: React.FC<{
+contexts/TranslationContext.tsx:12:export type Language = LanguageCode;
+contexts/TranslationContext.tsx:1571:export function TranslationProvider({ children }: { children: ReactNode }) {
+contexts/TranslationContext.tsx:1663:export function useTranslation() {
+src/i18n/dictionaries/ar.ts:161:export default ar;
+src/i18n/dictionaries/en.ts:161:export default en;
+src/server/finance/invoice.schema.ts:3:export const InvoiceLine = z.object({
+src/server/finance/invoice.schema.ts:11:export const InvoiceCreate = z.object({
+src/server/finance/invoice.schema.ts:20:export const InvoicePost = z.object({
+src/server/hr/employeeStatus.ts:1:export type EmployeeStatusDB = 'ACTIVE'|'INACTIVE'|'ON_LEAVE';
+src/server/hr/employeeStatus.ts:2:export type EmployeeStatusUI = 'Active'|'Inactive'|'On Leave';
+src/server/hr/employeeStatus.ts:18:export function toDbEmployeeStatus(input: unknown): EmployeeStatusDB {
+src/server/hr/employeeStatus.ts:30:export function toUiEmployeeStatus(db: unknown): EmployeeStatusUI {
+src/server/hr/employee.mapper.ts:4:export function toUIEmployee(doc: EmployeeDoc) {
+src/server/hr/employee.mapper.ts:9:export function normalizeEmployeeInput<T extends { status?: unknown }>(p: T) {
+src/server/plugins/tenantIsolation.ts:4:export interface TenantContext {
+src/server/plugins/tenantIsolation.ts:13:export function setTenantContext(context: TenantContext) {
+src/server/plugins/tenantIsolation.ts:18:export function getTenantContext(): TenantContext {
+src/server/plugins/tenantIsolation.ts:23:export function clearTenantContext() {
+src/server/plugins/tenantIsolation.ts:28:export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?: string[] } = {}) {
+src/server/plugins/auditPlugin.ts:4:export interface AuditInfo {
+src/server/plugins/auditPlugin.ts:16:export function setAuditContext(context: AuditInfo) {
+src/server/plugins/auditPlugin.ts:21:export function getAuditContext(): AuditInfo {
+src/server/plugins/auditPlugin.ts:26:export function clearAuditContext() {
+src/server/plugins/auditPlugin.ts:31:export interface AuditPluginOptions {
+src/server/plugins/auditPlugin.ts:38:export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
+src/server/plugins/auditPlugin.ts:271:export function createAuditContextFromRequest(req: any, userId?: string): AuditInfo {
+src/server/copilot/session.ts:4:export type CopilotRole =
+src/server/copilot/session.ts:10:export interface CopilotSession {
+src/server/copilot/retrieval.ts:55:export interface RetrievedDoc {
+src/server/copilot/audit.ts:4:export interface AuditOptions {
+src/server/copilot/policy.ts:3:export type DataClass = "PUBLIC" | "TENANT_SCOPED" | "OWNER_SCOPED" | "FINANCE" | "HR" | "INTERNAL" | "SENSITIVE";
+src/server/copilot/policy.ts:5:export interface PolicyDecision {
+src/server/copilot/policy.ts:38:export function evaluateMessagePolicy(session: CopilotSession, text: string): PolicyDecision {
+src/server/copilot/policy.ts:75:export function getPermittedTools(role: CopilotRole): string[] {
+src/server/copilot/policy.ts:83:export function redactSensitiveText(input: string): string {
+src/server/copilot/policy.ts:90:export function describeDataClass(dataClass?: DataClass) {
+src/server/copilot/llm.ts:13:export interface ChatCompletionOptions {
+src/server/copilot/tools.ts:10:export interface ToolExecutionResult {
+src/server/copilot/tools.ts:17:export interface UploadPayload {
+src/server/copilot/tools.ts:320:export function detectToolFromMessage(message: string): { name: string; args: Record<string, any> } | null {
+src/server/security/idempotency.ts:11:export function withIdempotency<T>(key: string, exec: () => Promise<T>, ttlMs: number = DEFAULT_TTL_MS): Promise<T> {
+src/server/security/idempotency.ts:42:export function createIdempotencyKey(prefix: string, payload: unknown): string {
+src/server/security/rateLimit.ts:5:export function rateLimit(key: string, limit = 60, windowMs = 60_000) {
+src/server/security/headers.ts:6:export function withSecurityHeaders(response: NextResponse): NextResponse {
+src/server/security/headers.ts:36:export function withCORS(request: NextRequest, response: NextResponse): NextResponse {
+src/server/security/headers.ts:65:export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10 * 1024 * 1024): boolean {
+src/server/security/headers.ts:76:export function getClientIP(request: NextRequest): string {
+src/server/security/headers.ts:86:export function createSecureResponse(data: any, status: number = 200, request?: NextRequest): NextResponse {
+src/server/work-orders/wo.schema.ts:3:export const WOPriority = z.enum(["LOW","MEDIUM","HIGH","CRITICAL"]);
+src/server/work-orders/wo.schema.ts:4:export const WOStatus   = z.enum(["NEW","ASSIGNED","IN_PROGRESS","ON_HOLD","COMPLETED","CANCELLED"]);
+src/server/work-orders/wo.schema.ts:6:export const WoCreate = z.object({
+src/server/work-orders/wo.schema.ts:16:export const WoUpdate = z.object({
+src/server/work-orders/wo.schema.ts:28:export type WoCreateInput = z.infer<typeof WoCreate>;
+src/server/work-orders/wo.schema.ts:29:export type WoUpdateInput = z.infer<typeof WoUpdate>;
+src/server/rbac/workOrdersPolicy.ts:1:export type Role =
+src/server/rbac/workOrdersPolicy.ts:6:export type Ability =
+src/server/rbac/workOrdersPolicy.ts:23:export function can(role: Role, ability: Ability) {
+src/server/middleware/withAuthRbac.ts:5:export type SessionUser = {
+src/server/middleware/withAuthRbac.ts:42:export function requireAbility(ability: Parameters<typeof can>[1]) {
+src/server/utils/errorResponses.ts:5:export interface ErrorResponse {
+src/server/utils/errorResponses.ts:14:export class ApiError extends Error {
+src/server/utils/errorResponses.ts:29:export function createErrorResponse(
+src/server/utils/errorResponses.ts:45:export function unauthorizedError(message = 'Authentication required'): Response {
+src/server/utils/errorResponses.ts:52:export function forbiddenError(message = 'Insufficient permissions'): Response {
+src/server/utils/errorResponses.ts:59:export function notFoundError(resource = 'Resource'): Response {
+src/server/utils/errorResponses.ts:66:export function validationError(message = 'Invalid input', details?: any): Response {
+src/server/utils/errorResponses.ts:73:export function zodValidationError(error: ZodError, req?: any): Response {
+src/server/utils/errorResponses.ts:88:export function rateLimitError(message = 'Too many requests'): Response {
+src/server/utils/errorResponses.ts:95:export function internalServerError(
+src/server/utils/errorResponses.ts:115:export function handleZodError(error: ZodError): Response {
+src/server/utils/errorResponses.ts:128:export function handleApiError(error: unknown): Response {
+src/server/utils/errorResponses.ts:157:export function duplicateKeyError(resource = 'Resource'): Response {
+src/server/utils/errorResponses.ts:164:export function tenantIsolationError(): Response {
+src/server/utils/tenant.ts:3:export type AuthContext = { orgId: string | null; role: string | null };
+src/server/utils/tenant.ts:12:export function getAuthFromRequest(req: RequestLike): AuthContext {
+src/server/utils/tenant.ts:23:export function requireMarketplaceReadRole(role: string | null): boolean {
+src/kb/chunk.ts:1:export type TextChunk = {
+src/kb/chunk.ts:7:export function chunkText(input: string, chunkSize = 1000, overlap = 200): TextChunk[] {
+src/core/ArchitectureGuard.ts:7:export class ArchitectureGuard {
+src/core/ArchitectureGuard.ts:36:export const architectureGuard = ArchitectureGuard.getInstance();
+src/core/DuplicatePrevention.ts:1:export class DuplicatePreventionSystem { async runScan() { return { duplicates: [], report: "No duplicates found", passed: true }; } } export default DuplicatePreventionSystem;
+src/core/RuntimeMonitor.tsx:1:import * as React from "react"; export function ArchitectureMonitoringDashboard() { return React.createElement("div", null, "Architecture Monitor"); } export default ArchitectureMonitoringDashboard;
+src/client/woClient.ts:1:export const asUserHeader = () => ({ "x-user": localStorage.getItem("x-user") || "" });
+src/hooks/useUnsavedChanges.tsx:14:export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
+src/hooks/useUnsavedChanges.tsx:148:export function UnsavedChangesWarning({
+src/hooks/useUnsavedChanges.tsx:202:export function SaveConfirmation({
+src/hooks/useScreenSize.ts:5:export type ScreenSize = 'mobile' | 'tablet' | 'desktop' | 'large';
+src/hooks/useScreenSize.ts:7:export interface ScreenInfo {
+src/hooks/useScreenSize.ts:54:export function useScreenSize() {
+src/hooks/useScreenSize.ts:88:export function getResponsiveClasses(screenInfo: ScreenInfo) {
+src/hooks/useScreenSize.ts:136:export function useResponsiveLegacy() {
+src/hooks/useScreenSize.ts:153:export const useResponsive = useResponsiveLegacy;
+src/ai/embeddings.ts:6:export type OpenAIEmbeddingModel = 'text-embedding-3-small' | 'text-embedding-3-large';
+src/db/models/Property.ts:189:export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
+src/db/models/Property.ts:196:export const Property = models.Property || model("Property", PropertySchema);
+src/db/models/DiscountRule.ts:12:export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
+src/db/models/HelpArticle.ts:21:export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
+src/db/models/HelpArticle.ts:24:export const HelpArticle = models.HelpArticle || model("HelpArticle", HelpArticleSchema);
+src/db/models/CmsPage.ts:16:export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
+src/db/models/CmsPage.ts:19:export const CmsPage = models.CmsPage || model("CmsPage", CmsPageSchema);
+src/db/models/Asset.ts:161:export type AssetDoc = InferSchemaType<typeof AssetSchema>;
+src/db/models/Asset.ts:163:export const Asset = models.Asset || model("Asset", AssetSchema);
+src/db/models/MarketplaceProduct.ts:3:export const MarketplaceProduct = ProductModel as any;
+src/db/models/CopilotKnowledge.ts:24:export type KnowledgeDoc = InferSchemaType<typeof KnowledgeSchema>;
+src/db/models/CopilotKnowledge.ts:26:export const CopilotKnowledge = models.CopilotKnowledge || model("CopilotKnowledge", KnowledgeSchema);
+src/db/models/Tenant.ts:184:export type TenantDoc = InferSchemaType<typeof TenantSchema>;
+src/db/models/Tenant.ts:187:export const Tenant = models.Tenant || model("Tenant", TenantSchema);
+src/db/models/User.ts:6:export const UserRole = {
+src/db/models/User.ts:227:export type UserDoc = InferSchemaType<typeof UserSchema>;
+src/db/models/User.ts:229:export const User = models.User || model("User", UserSchema);
+src/db/models/Benchmark.ts:23:export default models.Benchmark || model('Benchmark', VendorSchema);
+src/db/models/Job.ts:47:export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
+src/db/models/Job.ts:59:export interface JobModel extends Model<JobDoc> {}
+src/db/models/Job.ts:71:export const Job: JobModel = models.Job || model<JobDoc>('Job', JobSchema);
+src/db/models/Job.ts:73:export type { JobStatus };
+src/db/models/WorkOrder.ts:479:export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
+src/db/models/WorkOrder.ts:481:export const WorkOrder = models.WorkOrder || model("WorkOrder", WorkOrderSchema);
+src/db/models/Candidate.ts:33:export type CandidateDoc = InferSchemaType<typeof CandidateSchema> & Document;
+src/db/models/Candidate.ts:35:export interface CandidateModel extends Model<CandidateDoc> {
+src/db/models/Candidate.ts:60:export const Candidate: CandidateModel = existingCandidateModel || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema);
+src/db/models/SearchSynonym.ts:12:export type SearchSynonymDoc = InferSchemaType<typeof SearchSynonymSchema>;
+src/db/models/SearchSynonym.ts:14:export const SearchSynonym = (models.SearchSynonym || model("SearchSynonym", SearchSynonymSchema));
+src/db/models/ServiceAgreement.ts:21:export default models.ServiceAgreement || model('ServiceAgreement', ServiceAgreementSchema);
+src/db/models/OwnerStatement.ts:26:export type OwnerStatementDoc = InferSchemaType<typeof OwnerStatementSchema>;
+src/db/models/OwnerStatement.ts:28:export const OwnerStatement = models.OwnerStatement || model("OwnerStatement", OwnerStatementSchema);
+src/db/models/OwnerGroup.ts:15:export default models.OwnerGroup || model('OwnerGroup', OwnerGroupSchema);
+src/db/models/Application.ts:65:export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Document;
+src/db/models/Application.ts:67:export interface ApplicationModel extends Model<ApplicationDoc> {}
+src/db/models/Application.ts:113:export const Application: ApplicationModel = existingApplication || model<ApplicationDoc, ApplicationModel>('Application', ApplicationSchema);
+src/db/models/Application.ts:115:export type { AutoRejectResult, KnockoutInput, ApplicationStage };
+src/db/models/Invoice.ts:188:export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
+src/db/models/Invoice.ts:190:export const Invoice = models.Invoice || model("Invoice", InvoiceSchema);
+src/db/models/SupportTicket.ts:35:export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
+src/db/models/SupportTicket.ts:38:export const SupportTicket = models.SupportTicket || model("SupportTicket", SupportTicketSchema);
+src/db/models/SLA.ts:170:export type SLADoc = InferSchemaType<typeof SLASchema>;
+src/db/models/SLA.ts:173:export const SLA = models.SLA || model("SLA", SLASchema);
+src/db/models/RFQ.ts:200:export type RFQDoc = InferSchemaType<typeof RFQSchema>;
+src/db/models/RFQ.ts:203:export const RFQ = models.RFQ || model("RFQ", RFQSchema);
+src/db/models/Employee.ts:23:export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
+src/db/models/Employee.ts:25:export const Employee = models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema);
+src/db/models/Subscription.ts:37:export default models.Subscription || model('Subscription', SubscriptionSchema);
+src/db/models/Project.ts:239:export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
+src/db/models/Project.ts:242:export const Project = models.Project || model("Project", ProjectSchema);
+src/db/models/PriceBook.ts:33:export default models.PriceBook || model('PriceBook', PriceBookSchema);
+src/db/models/AtsSettings.ts:30:export type AtsSettingsDoc = (InferSchemaType<typeof AtsSettingsSchema> & Document) & {
+src/db/models/AtsSettings.ts:34:export interface AtsSettingsModel extends Model<AtsSettingsDoc> {
+src/db/models/AtsSettings.ts:78:export const AtsSettings: AtsSettingsModel = existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema);
+src/db/models/AtsSettings.ts:80:export type { AutoRejectOptions, AutoRejectDecision };
+src/db/models/PaymentMethod.ts:15:export default models.PaymentMethod || model('PaymentMethod', PaymentMethodSchema);
+src/db/models/Organization.ts:319:export type OrganizationDoc = InferSchemaType<typeof OrganizationSchema>;
+src/db/models/Organization.ts:321:export const Organization = models.Organization || model("Organization", OrganizationSchema);
+src/db/models/Vendor.ts:206:export type VendorDoc = InferSchemaType<typeof VendorSchema>;
+src/db/models/Vendor.ts:209:export const Vendor = models.Vendor || model("Vendor", VendorSchema);
+src/db/models/CopilotAudit.ts:18:export type CopilotAuditDoc = InferSchemaType<typeof AuditSchema>;
+src/db/models/CopilotAudit.ts:20:export const CopilotAudit = models.CopilotAudit || model("CopilotAudit", AuditSchema);
+src/db/models/Module.ts:3:export type ModuleKey =
+src/db/models/Module.ts:22:export default models.Module || model('Module', ModuleSchema);
+src/db/mongoose.ts:19:export function getMongoose() {
+src/qa/consoleHijack.ts:1:export type ConsoleRecord = { level:'error'|'warn'|'info', args:any[], time:number };
+src/qa/consoleHijack.ts:2:export function hijackConsole(onRecord:(rec:ConsoleRecord)=>void) {
+src/qa/ErrorBoundary.tsx:6:export class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State> {
+src/qa/acceptance.ts:1:export type GateSummary = {
+src/qa/acceptance.ts:7:export function passesStrict(summary: GateSummary) {
+src/qa/AutoFixAgent.tsx:24:export function AutoFixAgent() {
+src/qa/domPath.ts:1:export function getDomPath(el: Element): string {
+src/qa/qaPatterns.ts:1:export type Heuristic = {
+src/qa/qaPatterns.ts:13:export const heuristics: Heuristic[] = [
+src/data/language-options.ts:1:export type LanguageOption = {
+src/data/language-options.ts:15:export type LanguageCode = 'en' | 'ar' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+src/data/language-options.ts:17:export const LANGUAGE_OPTIONS: LanguageOption[] = [
+src/data/language-options.ts:44:export const DEFAULT_LANGUAGE = LANGUAGE_OPTIONS[0];
+src/data/language-options.ts:47:export const findLanguageByCode = (code: string): LanguageOption | undefined => {
+src/data/language-options.ts:51:export const findLanguageByLocale = (locale: string): LanguageOption | undefined => {
+src/sla.ts:1:export function computeSlaMinutes(priority: string): number {
+src/sla.ts:11:export function computeDueAt(createdAt: Date | string | number, slaMinutes: number): Date {
+src/providers/Providers.tsx:20:export default function Providers({ children }: { children: React.ReactNode }) {
+src/providers/QAProvider.tsx:14:export const QAContext = React.createContext<{
+src/providers/QAProvider.tsx:20:export function QAProvider({ children, enabled = false, role, orgId }: Props) {
+src/services/pricing.ts:4:export type BillingCycle = 'MONTHLY' | 'ANNUAL';
+src/services/pricing.ts:6:export type QuoteLine = {
+src/services/pricing.ts:12:export type QuoteResult =
+src/services/paytabs.ts:6:export interface NormalizedPayTabsPayload {
+src/services/paytabs.ts:17:export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
+src/lib/mongoose-typed.ts:3:export function typedModel<T>(name: string, schema: Schema<T>, makeModel: typeof model = model): Model<T> {
+src/lib/regex.ts:1:export function escapeRegex(input: string): string {
+src/lib/pricing.ts:7:export interface PriceCalculation {
+src/lib/pricing.ts:18:export interface PricingTier {
+src/lib/pricing.ts:28:export function calculateDiscountedPrice(
+src/lib/pricing.ts:48:export function calculatePriceWithTax(
+src/lib/pricing.ts:65:export function getApplicableTier(
+src/lib/pricing.ts:79:export function calculateBulkPricing(
+src/lib/pricing.ts:97:export function formatPrice(
+src/lib/pricing.ts:113:export function comparePrices(
+src/lib/pricing.ts:136:export function calculatePaymentTermsDiscount(
+src/lib/pricing.ts:152:export interface SubscriptionQuote {
+src/lib/pricing.ts:169:export function computeQuote(params: {
+src/lib/pricing.ts:223:export default pricingUtils;
+src/lib/rbac.ts:1:export type Role =
+src/lib/rbac.ts:11:export const ACCESS: Record<Role, ModuleId[]> = {
+src/lib/paytabs.ts:8:export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
+src/lib/paytabs.ts:22:export type SimplePaymentRequest = {
+src/lib/paytabs.ts:34:export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
+src/lib/paytabs.ts:129:export function validateCallback(payload: any, signature: string): boolean {
+src/lib/paytabs.ts:143:export const PAYMENT_METHODS = {
+src/lib/paytabs.ts:154:export const CURRENCIES = {
+src/lib/paytabs.ts:161:export interface PaymentMethod {
+src/lib/paytabs.ts:168:export const getAvailablePaymentMethods = (): PaymentMethod[] => {
+src/lib/mongodb-unified.ts:104:export const connectDb = connectToDatabase;
+src/lib/mongodb-unified.ts:105:export const dbConnect = connectToDatabase;
+src/lib/mongodb-unified.ts:106:export const connectMongo = connectToDatabase; // Fix for connectMongo import error
+src/lib/mongodb-unified.ts:108:export default connectToDatabase;
+src/lib/authz.ts:4:export interface AuthContext {
+src/lib/marketplace/serializers.ts:12:export function serializeCategory(doc: MarketplaceCategory | any) {
+src/lib/marketplace/serializers.ts:23:export function serializeProduct(doc: MarketplaceProduct | any) {
+src/lib/marketplace/serializers.ts:34:export function serializeOrder(doc: MarketplaceOrder | any) {
+src/lib/marketplace/serializers.ts:49:export function serializeRFQ(doc: MarketplaceRFQ | any) {
+src/lib/marketplace/correlation.ts:11:export interface CorrelationContext {
+src/lib/marketplace/correlation.ts:22:export function createCorrelationContext(options: {
+src/lib/marketplace/correlation.ts:37:export function getCorrelationHeaders(context: CorrelationContext): Record<string, string> {
+src/lib/marketplace/correlation.ts:50:export function logWithCorrelation(
+src/lib/marketplace/correlation.ts:68:export function getErrorCorrelationId(error?: unknown): string {
+src/lib/marketplace/correlation.ts:85:export function createCorrelatedError(
+src/lib/marketplace/search.ts:49:export interface MarketplaceSearchFilters {
+src/lib/marketplace/security.ts:7:export interface SecurityHeadersConfig {
+src/lib/marketplace/security.ts:59:  export function applySecurityHeaders(
+src/lib/marketplace/security.ts:112:  export function createSecureResponse(
+src/lib/marketplace/security.ts:124:  export function handleCORSPreflight(config?: SecurityHeadersConfig): NextResponse {
+src/lib/marketplace/security.ts:132:  export function withSecurityHeaders<T extends any[]>(
+src/lib/marketplace/objectIds.ts:4:export function objectIdFrom(input: string | Types.ObjectId | undefined | null): Types.ObjectId {
+src/lib/marketplace/cartClient.ts:1:export const CART_UPDATED_EVENT = 'fixzit-marketplace-cart-updated';
+src/lib/marketplace/cartClient.ts:3:export type MarketplaceCartLine = { qty?: number };
+src/lib/marketplace/cartClient.ts:4:export type MarketplaceCartLike = { lines?: MarketplaceCartLine[] } | null | undefined;
+src/lib/marketplace/cartClient.ts:6:export function computeCartCount(cart: MarketplaceCartLike) {
+src/lib/marketplace/cartClient.ts:13:export function broadcastCartUpdate(cart: MarketplaceCartLike) {
+src/lib/marketplace/serverFetch.ts:41:export function getMarketplaceBaseUrl() {
+src/lib/marketplace/cart.ts:19:export function recalcCartTotals(cart: any) {
+src/lib/marketplace/context.ts:8:export interface MarketplaceRequestContext {
+src/lib/ats/scoring.ts:1:export interface ScoreApplicationInput {
+src/lib/ats/scoring.ts:8:export interface ScoringWeights {
+src/lib/ats/scoring.ts:29:export function scoreApplication(
+src/lib/ats/scoring.ts:103:export function extractSkillsFromText(text: string): string[] {
+src/lib/ats/scoring.ts:120:export function calculateExperienceFromText(text: string): number {
+src/lib/zatca.ts:19:export function generateZATCATLV(data: ZATCAData): string {
+src/lib/zatca.ts:48:export function validateZATCAData(data: ZATCAData): boolean {
+middleware.ts:247:export const config = {
+src/lib/payments/parseCartAmount.ts:1:export function parseCartAmount(value: unknown, fallback = 0): number {
+src/lib/payments/parseCartAmount.ts:39:export function parseCartAmountOrThrow(value: unknown, message = 'Invalid cart amount'): number {
+types/properties.ts:3:export type PropertyType =
+types/properties.ts:11:export type PropertyStatus =
+types/properties.ts:19:export type UnitStatus =
+types/properties.ts:27:export type TenantStatus = 'active' | 'inactive' | 'delinquent' | 'prospect';
+types/properties.ts:29:export interface PropertyWorkOrderSummary {
+types/properties.ts:39:export interface Unit {
+types/properties.ts:65:export interface Tenant {
+types/properties.ts:88:export type DocumentCategory =
+types/properties.ts:100:export interface PropertyDocument {
+types/properties.ts:120:export interface Lease {
+types/properties.ts:137:export interface Property {
+types/properties.ts:183:export interface PropertyStats {
+types/properties.ts:197:export interface PropertyFilters {
+types/properties.ts:214:export const PROPERTY_TYPE_CONFIG: Record<PropertyType, { label: string; icon: string; color: string; description: string }> = {
+types/properties.ts:253:export const UNIT_STATUS_CONFIG: Record<UnitStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+types/properties.ts:298:export const TENANT_STATUS_CONFIG: Record<TenantStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+types/properties.ts:329:export const DOCUMENT_CATEGORY_CONFIG: Record<DocumentCategory, { label: string; icon: string }> = {
+types/properties.ts:342:export const VIEW_MODES = ['grid', 'table', 'map'] as const;
+types/properties.ts:343:export type ViewMode = (typeof VIEW_MODES)[number];
+types/properties.ts:345:export const PROPERTY_SORT_OPTIONS = [
+types/properties.ts:354:export type PropertySortOption = (typeof PROPERTY_SORT_OPTIONS)[number]['value'];
+src/lib/payments/currencyUtils.ts:6:export type SupportedCurrency = 'USD' | 'AED' | 'SAR' | 'EUR' | 'GBP';
+src/lib/payments/currencyUtils.ts:8:export interface CurrencyConfig {
+src/lib/payments/currencyUtils.ts:19:export const CURRENCY_CONFIGS: Record<SupportedCurrency, CurrencyConfig> = {
+src/lib/payments/currencyUtils.ts:70:export function formatCurrency(
+src/lib/payments/currencyUtils.ts:143:export function parseAndFormatCurrency(
+src/lib/payments/currencyUtils.ts:154:export function convertCurrency(
+src/lib/payments/currencyUtils.ts:203:export function getCurrencySymbol(currency: SupportedCurrency): string {
+src/lib/payments/currencyUtils.ts:210:export function isCurrencyRTL(currency: SupportedCurrency): boolean {
+src/lib/payments/currencyUtils.ts:218:export function validateCurrencyAmount(
+src/lib/payments/currencyUtils.ts:266:export default {
+types/work-orders.ts:3:export type WorkOrderStatus =
+types/work-orders.ts:15:export type WorkOrderPriority = 'low' | 'medium' | 'high' | 'urgent' | 'emergency';
+types/work-orders.ts:17:export type WorkOrderCategory =
+types/work-orders.ts:30:export interface WorkOrderUser {
+types/work-orders.ts:40:export interface WorkOrderPhoto {
+types/work-orders.ts:49:export interface WorkOrderComment {
+types/work-orders.ts:58:export interface WorkOrderTimeline {
+types/work-orders.ts:79:export interface WorkOrderProperty {
+types/work-orders.ts:90:export interface WorkOrderUnit {
+types/work-orders.ts:97:export interface WorkOrder {
+types/work-orders.ts:121:export interface WorkOrderFormData {
+types/work-orders.ts:136:export interface WorkOrderFilters {
+types/work-orders.ts:149:export interface WorkOrderStats {
+types/work-orders.ts:162:export const CATEGORY_CONFIG: Record<WorkOrderCategory, { label: string; icon: string; color: string; description: string }> = {
+types/work-orders.ts:231:export const PRIORITY_CONFIG: Record<WorkOrderPriority, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+types/work-orders.ts:269:export const STATUS_CONFIG: Record<WorkOrderStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+types/work-orders.ts:342:export const SORT_OPTIONS = [
+types/work-orders.ts:351:export type SortOption = (typeof SORT_OPTIONS)[number]['value'];
+types/work-orders.ts:353:export const VIEW_MODES = ['grid', 'table', 'kanban'] as const;
+types/work-orders.ts:354:export type ViewMode = (typeof VIEW_MODES)[number];
+src/lib/db/index.ts:29:export function withOrg<T extends Document>(query: Partial<T>, orgId?: string): Partial<T> {
+src/lib/sla.ts:3:export type WorkOrderPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+src/lib/sla.ts:17:export function computeSlaMinutes(priority: WorkOrderPriority): number {
+src/lib/sla.ts:25:export function computeDueAt(start: Date, slaMinutes: number): Date {
+src/lib/sla.ts:35:export function resolveSlaTarget(priority: WorkOrderPriority, start: Date = new Date()) {
+i18n/config.ts:1:export type Locale = 'en' | 'ar';
+i18n/config.ts:3:export const DEFAULT_LOCALE: Locale = 'en';
+i18n/config.ts:4:export const SUPPORTED_LOCALES: Locale[] = ['en', 'ar'];
+i18n/config.ts:6:export const LOCALE_META: Record<Locale, {
+src/lib/auth.ts:130:export interface AuthToken {
+src/lib/auth.ts:147:export function generateToken(payload: AuthToken): string {
+src/lib/auth.ts:151:export function verifyToken(token: string): AuthToken | null {
+src/lib/paytabs.config.ts:2:export const PAYTABS_CONFIG = {
+src/lib/aws-secrets.ts:76:export default AWSSecretsManager;
+i18n/useI18n.ts:14:export function useI18n() {
+i18n/useI18n.ts:41:export type UseI18nReturn = ReturnType<typeof useI18n>;
+src/lib/paytabs/callback.ts:6:export const parseCartAmount = parsePaymentCartAmount;
+src/lib/paytabs/callback.ts:8:export function normalizePaytabsString(value: unknown): string | null {
+src/lib/paytabs/callback.ts:16:export function normalizePaytabsStatus(value: unknown): string {
+src/lib/storage/s3.ts:7:export function getS3Client() {
+src/lib/storage/s3.ts:31:export function buildResumeKey(tenantId: string | undefined | null, fileName: string) {
+src/lib/utils.ts:1:export function generateSlug(input: string): string {
+src/lib/AutoFixManager.ts:3:export interface SystemCheck {
+src/lib/AutoFixManager.ts:13:export interface FixResult {
+src/lib/AutoFixManager.ts:22:export class AutoFixManager {
+src/lib/AutoFixManager.ts:392:export const autoFixManager = new AutoFixManager();
+src/lib/mongo.ts:33:export const isMockDB = false; // Always use real MongoDB
+src/lib/mongo.ts:59:export const db = conn;
+src/config/sidebarModules.ts:6:export const SIDEBAR_ITEMS = [
+src/config/topbar-modules.ts:2:export type AppKey = 'fm' | 'souq' | 'aqar';
+src/config/topbar-modules.ts:3:export type ModuleKey = 'dashboard' | 'work_orders' | 'properties' | 'finance' | 'hr' | 'admin' | 'crm' | 'marketplace' | 'aqar_souq' | 'vendors' | 'support' | 'compliance';
+src/config/topbar-modules.ts:4:export type SearchEntity = 'work_orders' | 'properties' | 'units' | 'tenants' | 'vendors' | 'invoices' | 'products' | 'services' | 'rfqs' | 'orders' | 'listings' | 'projects' | 'agents';
+src/config/topbar-modules.ts:6:export interface AppConfig {
+src/config/topbar-modules.ts:20:export const APPS: Record<AppKey, AppConfig> = {
+src/config/topbar-modules.ts:58:export function detectAppFromPath(pathname: string): AppKey {
+src/config/topbar-modules.ts:64:export function getModuleFromPath(pathname: string): ModuleKey {
+src/config/modules.ts:4:export type ModuleKey =
+src/config/modules.ts:8:export const MODULES: Array<{
+i18n/I18nProvider.tsx:20:export const I18nContext = createContext<ContextValue | null>(null);
+i18n/I18nProvider.tsx:34:export const I18nProvider: React.FC<{
+src/utils/rbac.ts:1:export const ROLES = {
+src/utils/rbac.ts:15:export const MODULES = [
+src/utils/rbac.ts:22:export const ROLE_MODULES: Record<string, Set<string>> = {
+src/utils/rbac.ts:36:export function filterModulesByRole(role: string, available: string[] = MODULES as unknown as string[]) {
+src/utils/format.ts:3:export const fmtNumber = (value: number, locale: Locale) =>
+src/utils/format.ts:6:export const fmtDate = (
+i18n/dictionaries/ar.ts:161:export default ar;
+i18n/dictionaries/en.ts:161:export default en;
+src/nav/registry.ts:8:export type Role =
+src/nav/registry.ts:12:export type QuickAction = { id: string; label: string; path: string; roles?: Role[] };
+src/nav/registry.ts:14:export type ModuleDef = {
+src/nav/registry.ts:24:export const modules: ModuleDef[] = [
+playwright.config.ts:7:export default defineConfig({
+merge-pr-68.ps1:274:export const isMockDB = USE_MOCK_DB;
+merge-pr-68.ps1:311:export const db = conn;
+config/sidebarModules.ts:6:export const SIDEBAR_ITEMS = [
+config/topbar-modules.ts:2:export type AppKey = 'fm' | 'souq' | 'aqar';
+config/topbar-modules.ts:3:export type ModuleKey = 'dashboard' | 'work_orders' | 'properties' | 'finance' | 'hr' | 'admin' | 'crm' | 'marketplace' | 'aqar_souq' | 'vendors' | 'support' | 'compliance';
+config/topbar-modules.ts:4:export type SearchEntity = 'work_orders' | 'properties' | 'units' | 'tenants' | 'vendors' | 'invoices' | 'products' | 'services' | 'rfqs' | 'orders' | 'listings' | 'projects' | 'agents';
+config/topbar-modules.ts:6:export interface AppConfig {
+config/topbar-modules.ts:20:export const APPS: Record<AppKey, AppConfig> = {
+config/topbar-modules.ts:58:export function detectAppFromPath(pathname: string): AppKey {
+config/topbar-modules.ts:64:export function getModuleFromPath(pathname: string): ModuleKey {
+config/modules.ts:4:export type ModuleKey =
+config/modules.ts:8:export const MODULES: Array<{
+tests/api/marketplace/search.route.impl.ts:25:export const SearchSynonym = {
+tests/api/marketplace/search.route.impl.ts:41:export const MarketplaceProduct = {
+components/TopBar.tsx:61:export default function TopBar({ role = 'guest' }: TopBarProps) {
+components/AutoFixInitializer.tsx:7:export default function AutoFixInitializer() {
+components/topbar/QuickActions.tsx:8:export default function QuickActions() {
+components/topbar/GlobalSearch.tsx:15:export default function GlobalSearch() {
+components/topbar/AppSwitcher.tsx:15:export default function AppSwitcher() {
+tests/unit/api/api-paytabs-callback.spec.ts:24:  // Pages Router example path (export default handler)
+tests/unit/api/api-paytabs-callback.spec.ts:40:      // Some pages/api may export default handler(req, res). Not applicable here, but left for completeness.
+components/i18n/CurrencySelector.tsx:23:export default function CurrencySelector({ variant = 'default' }: CurrencySelectorProps) {
+components/i18n/LanguageSelector.tsx:20:export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
+components/SystemVerifier.tsx:14:export default function SystemVerifier() {
+components/SupportPopup.tsx:11:export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>void, errorDetails?: any }){
+components/FlagIcon.tsx:16:export const FlagIcon: React.FC<FlagIconProps> = ({ code, className, title }) => {
+components/ui/label.tsx:5:export const Label: React.FC<LabelProps> = ({ className = '', ...props }) => {
+components/ui/button.tsx:8:export const Button: React.FC<ButtonProps> = ({
+components/ui/switch.tsx:8:export const Switch: React.FC<SwitchProps> = ({ 
+components/ui/dialog.tsx:16:export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
+components/ui/dialog.tsx:27:export const DialogContent: React.FC<DialogContentProps> = ({ className = '', ...props }) => {
+components/ui/dialog.tsx:36:export const DialogHeader: React.FC<DialogHeaderProps> = ({ className = '', ...props }) => {
+components/ui/dialog.tsx:45:export const DialogTitle: React.FC<DialogTitleProps> = ({ className = '', ...props }) => {
+components/ui/dialog.tsx:54:export const DialogTrigger: React.FC<DialogTriggerProps> = ({ children, onClick, asChild, ...props }) => {
+components/ui/input.tsx:5:export const Input: React.FC<InputProps> = ({ className = '', ...props }) => {
+components/ui/select.tsx:14:export const Select: React.FC<SelectProps> = ({ className = '', children, onValueChange, onChange, ...props }) => {
+components/ui/select.tsx:35:export const SelectContent: React.FC<SelectContentProps> = ({ className = '', children, ...props }) => {
+components/ui/select.tsx:43:export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children, ...props }) => {
+components/ui/select.tsx:54:export const SelectTrigger: React.FC<SelectTriggerProps> = ({ className = '', children, ...props }) => {
+components/ui/select.tsx:62:export const SelectValue: React.FC<SelectValueProps> = ({ className = '', placeholder = '', ...props }) => {
+components/ui/badge.tsx:7:export const Badge: React.FC<BadgeProps> = ({
+components/ui/separator.tsx:7:export const Separator: React.FC<SeparatorProps> = ({
+components/ui/ResponsiveContainer.tsx:14:export function ResponsiveContainer({
+components/ui/ResponsiveContainer.tsx:69:export function ResponsiveGrid({
+components/ui/ResponsiveContainer.tsx:114:export function ResponsiveText({
+components/ui/ResponsiveContainer.tsx:168:export function ResponsiveSpacing({
+components/ui/textarea.tsx:5:export const Textarea: React.FC<TextareaProps> = ({ className = '', ...props }) => {
+components/ui/card.tsx:8:export const Card: React.FC<CardProps> = ({ className = '', ...props }) => {
+components/ui/card.tsx:17:export const CardHeader: React.FC<CardHeaderProps> = ({ className = '', ...props }) => {
+components/ui/card.tsx:26:export const CardTitle: React.FC<CardTitleProps> = ({ className = '', ...props }) => {
+components/ui/card.tsx:35:export const CardContent: React.FC<CardContentProps> = ({ className = '', ...props }) => {
+components/ui/tabs.tsx:20:export const Tabs: React.FC<TabsProps & { defaultValue?: string }> = ({ 
+components/ui/tabs.tsx:37:export const TabsList: React.FC<TabsListProps> = ({ className = '', ...props }) => {
+components/ui/tabs.tsx:46:export const TabsTrigger: React.FC<TabsTriggerProps> = ({ 
+components/ui/tabs.tsx:70:export const TabsContent: React.FC<TabsContentProps> = ({ 
+components/marketplace/CheckoutForm.tsx:12:export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
+components/marketplace/CatalogView.tsx:95:export default function CatalogView({
+components/marketplace/SearchFiltersPanel.tsx:10:export default function SearchFiltersPanel({ facets }: SearchFiltersPanelProps) {
+server/finance/invoice.schema.ts:3:export const InvoiceLine = z.object({
+server/finance/invoice.schema.ts:11:export const InvoiceCreate = z.object({
+server/finance/invoice.schema.ts:20:export const InvoicePost = z.object({
+components/marketplace/PDPBuyBox.tsx:29:export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuyBoxProps) {
+components/marketplace/VendorCatalogueManager.tsx:18:export default function VendorCatalogueManager({ categories, initialProducts }: VendorCatalogueManagerProps) {
+components/marketplace/ProductCard.tsx:10:export interface MarketplaceProductCard {
+components/marketplace/ProductCard.tsx:39:export default function ProductCard({ product, onAddToCart, isRTL }: ProductCardProps) {
+components/marketplace/Facets.tsx:6:export interface MarketplaceFacets {
+components/marketplace/Facets.tsx:26:export default function Facets({ facets, selected, onChange }: FacetsProps) {
+components/marketplace/RFQBoard.tsx:28:export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
+server/models/Property.ts:189:export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
+server/models/Property.ts:196:export const Property = models.Property || model("Property", PropertySchema);
+components/Footer.tsx:21:export default function Footer() {
+server/models/HelpArticle.ts:21:export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
+server/models/HelpArticle.ts:24:export const HelpArticle = models.HelpArticle || model("HelpArticle", HelpArticleSchema);
+server/models/CmsPage.ts:16:export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
+server/models/CmsPage.ts:19:export const CmsPage = models.CmsPage || model("CmsPage", CmsPageSchema);
+server/models/Asset.ts:161:export type AssetDoc = InferSchemaType<typeof AssetSchema>;
+server/models/Asset.ts:163:export const Asset = models.Asset || model("Asset", AssetSchema);
+components/fm/WorkOrdersView.tsx:112:export type WorkOrdersViewProps = {
+components/fm/WorkOrdersView.tsx:117:export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage and track work orders across all properties' }: WorkOrdersViewProps) {
+components/fm/WorkOrdersView.tsx:477:export default WorkOrdersView;
+server/models/MarketplaceProduct.ts:3:export const MarketplaceProduct = ProductModel as any;
+server/models/CopilotKnowledge.ts:24:export type KnowledgeDoc = InferSchemaType<typeof KnowledgeSchema>;
+server/models/CopilotKnowledge.ts:26:export const CopilotKnowledge = models.CopilotKnowledge || model("CopilotKnowledge", KnowledgeSchema);
+server/models/Tenant.ts:184:export type TenantDoc = InferSchemaType<typeof TenantSchema>;
+server/models/Tenant.ts:187:export const Tenant = models.Tenant || model("Tenant", TenantSchema);
+components/Sidebar.tsx:96:export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
+server/models/User.ts:6:export const UserRole = {
+server/models/User.ts:227:export type UserDoc = InferSchemaType<typeof UserSchema>;
+server/models/User.ts:229:export const User = models.User || model("User", UserSchema);
+components/CopilotWidget.tsx:137:export default function CopilotWidget({ autoOpen = false, embedded = false }: CopilotWidgetProps) {
+server/models/Job.ts:47:export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
+server/models/Job.ts:59:export interface JobModel extends Model<JobDoc> {}
+server/models/Job.ts:71:export const Job: JobModel = models.Job || model<JobDoc>('Job', JobSchema);
+server/models/Job.ts:73:export type { JobStatus };
+components/AutoIncidentReporter.tsx:6:export default function AutoIncidentReporter(){
+server/models/WorkOrder.ts:479:export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
+server/models/WorkOrder.ts:481:export const WorkOrder = models.WorkOrder || model("WorkOrder", WorkOrderSchema);
+components/GoogleMap.tsx:18:export default function GoogleMap({ 
+server/models/Candidate.ts:33:export type CandidateDoc = InferSchemaType<typeof CandidateSchema> & Document;
+server/models/Candidate.ts:35:export interface CandidateModel extends Model<CandidateDoc> {
+server/models/Candidate.ts:60:export const Candidate: CandidateModel = existingCandidateModel || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema);
+components/ClientLayout.tsx:17:export default function ClientLayout({ children }: { children: ReactNode }) {
+server/models/SearchSynonym.ts:12:export type SearchSynonymDoc = InferSchemaType<typeof SearchSynonymSchema>;
+server/models/SearchSynonym.ts:14:export const SearchSynonym = (models.SearchSynonym || model("SearchSynonym", SearchSynonymSchema));
+server/models/OwnerStatement.ts:26:export type OwnerStatementDoc = InferSchemaType<typeof OwnerStatementSchema>;
+server/models/OwnerStatement.ts:28:export const OwnerStatement = models.OwnerStatement || model("OwnerStatement", OwnerStatementSchema);
+server/models/Application.ts:65:export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Document;
+server/models/Application.ts:67:export interface ApplicationModel extends Model<ApplicationDoc> {}
+server/models/Application.ts:113:export const Application: ApplicationModel = existingApplication || model<ApplicationDoc, ApplicationModel>('Application', ApplicationSchema);
+server/models/Application.ts:115:export type { AutoRejectResult, KnockoutInput, ApplicationStage };
+server/models/Invoice.ts:188:export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
+server/models/Invoice.ts:190:export const Invoice = models.Invoice || model("Invoice", InvoiceSchema);
+server/models/SupportTicket.ts:35:export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
+server/models/SupportTicket.ts:38:export const SupportTicket = models.SupportTicket || model("SupportTicket", SupportTicketSchema);
+server/models/SLA.ts:170:export type SLADoc = InferSchemaType<typeof SLASchema>;
+server/models/SLA.ts:173:export const SLA = models.SLA || model("SLA", SLASchema);
+server/models/RFQ.ts:200:export type RFQDoc = InferSchemaType<typeof RFQSchema>;
+server/models/RFQ.ts:203:export const RFQ = models.RFQ || model("RFQ", RFQSchema);
+server/models/Employee.ts:23:export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
+server/models/Employee.ts:25:export const Employee = models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema);
+server/models/Project.ts:239:export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
+server/models/Project.ts:242:export const Project = models.Project || model("Project", ProjectSchema);
+server/models/AtsSettings.ts:30:export type AtsSettingsDoc = (InferSchemaType<typeof AtsSettingsSchema> & Document) & {
+server/models/AtsSettings.ts:34:export interface AtsSettingsModel extends Model<AtsSettingsDoc> {
+server/models/AtsSettings.ts:78:export const AtsSettings: AtsSettingsModel = existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema);
+server/models/AtsSettings.ts:80:export type { AutoRejectOptions, AutoRejectDecision };
+server/models/Organization.ts:319:export type OrganizationDoc = InferSchemaType<typeof OrganizationSchema>;
+server/models/Organization.ts:321:export const Organization = models.Organization || model("Organization", OrganizationSchema);
+server/models/Vendor.ts:206:export type VendorDoc = InferSchemaType<typeof VendorSchema>;
+server/models/Vendor.ts:209:export const Vendor = models.Vendor || model("Vendor", VendorSchema);
+server/models/CopilotAudit.ts:18:export type CopilotAuditDoc = InferSchemaType<typeof AuditSchema>;
+server/models/CopilotAudit.ts:20:export const CopilotAudit = models.CopilotAudit || model("CopilotAudit", AuditSchema);
+components/ErrorBoundary.tsx:28:export default class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorState> {
+components/ErrorTest.tsx:5:export default function ErrorTest() {
+components/LoginPrompt.tsx:16:export default function LoginPrompt({
+components/ResponsiveLayout.tsx:16:export default function ResponsiveLayout({
+components/ResponsiveLayout.tsx:105:export function ResponsiveCard({
+components/ResponsiveLayout.tsx:145:export function ResponsiveButton({
+components/AIChat.tsx:13:export default function AIChat({ onClose }: { onClose: () => void }) {
+components/PreferenceBroadcast.tsx:17:export default function PreferenceBroadcast() {
+components/HelpWidget.tsx:9:export default function HelpWidget() {
+server/hr/employeeStatus.ts:1:export type EmployeeStatusDB = 'ACTIVE'|'INACTIVE'|'ON_LEAVE';
+server/hr/employeeStatus.ts:2:export type EmployeeStatusUI = 'Active'|'Inactive'|'On Leave';
+server/hr/employeeStatus.ts:18:export function toDbEmployeeStatus(input: unknown): EmployeeStatusDB {
+server/hr/employeeStatus.ts:30:export function toUiEmployeeStatus(db: unknown): EmployeeStatusUI {
+server/hr/employee.mapper.ts:4:export function toUIEmployee(doc: EmployeeDoc) {
+server/hr/employee.mapper.ts:9:export function normalizeEmployeeInput<T extends { status?: unknown }>(p: T) {
+docs/AUTHORITATIVE_NAVIGATION_FIXES.md:43:export interface NavItem {
+docs/404_FIXES_SUMMARY.md:57:export default function ModulePage() {
+server/plugins/tenantIsolation.ts:4:export interface TenantContext {
+server/plugins/tenantIsolation.ts:13:export function setTenantContext(context: TenantContext) {
+server/plugins/tenantIsolation.ts:18:export function getTenantContext(): TenantContext {
+server/plugins/tenantIsolation.ts:23:export function clearTenantContext() {
+server/plugins/tenantIsolation.ts:28:export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?: string[] } = {}) {
+server/plugins/auditPlugin.ts:4:export interface AuditInfo {
+server/plugins/auditPlugin.ts:16:export function setAuditContext(context: AuditInfo) {
+server/plugins/auditPlugin.ts:21:export function getAuditContext(): AuditInfo {
+server/plugins/auditPlugin.ts:26:export function clearAuditContext() {
+server/plugins/auditPlugin.ts:31:export interface AuditPluginOptions {
+server/plugins/auditPlugin.ts:38:export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
+server/plugins/auditPlugin.ts:271:export function createAuditContextFromRequest(req: any, userId?: string): AuditInfo {
+server/copilot/session.ts:4:export type CopilotRole =
+server/copilot/session.ts:10:export interface CopilotSession {
+server/copilot/retrieval.ts:55:export interface RetrievedDoc {
+server/copilot/audit.ts:4:export interface AuditOptions {
+server/copilot/policy.ts:3:export type DataClass = "PUBLIC" | "TENANT_SCOPED" | "OWNER_SCOPED" | "FINANCE" | "HR" | "INTERNAL" | "SENSITIVE";
+server/copilot/policy.ts:5:export interface PolicyDecision {
+server/copilot/policy.ts:38:export function evaluateMessagePolicy(session: CopilotSession, text: string): PolicyDecision {
+server/copilot/policy.ts:75:export function getPermittedTools(role: CopilotRole): string[] {
+server/copilot/policy.ts:83:export function redactSensitiveText(input: string): string {
+server/copilot/policy.ts:90:export function describeDataClass(dataClass?: DataClass) {
+server/copilot/llm.ts:13:export interface ChatCompletionOptions {
+server/copilot/tools.ts:10:export interface ToolExecutionResult {
+server/copilot/tools.ts:17:export interface UploadPayload {
+server/copilot/tools.ts:320:export function detectToolFromMessage(message: string): { name: string; args: Record<string, any> } | null {
+utils/rbac.ts:1:export const ROLES = {
+utils/rbac.ts:15:export const MODULES = [
+utils/rbac.ts:22:export const ROLE_MODULES: Record<string, Set<string>> = {
+utils/rbac.ts:36:export function filterModulesByRole(role: string, available: string[] = MODULES as unknown as string[]) {
+utils/format.ts:3:export const fmtNumber = (value: number, locale: Locale) =>
+utils/format.ts:6:export const fmtDate = (
+server/security/idempotency.ts:11:export function withIdempotency<T>(key: string, exec: () => Promise<T>, ttlMs: number = DEFAULT_TTL_MS): Promise<T> {
+server/security/idempotency.ts:42:export function createIdempotencyKey(prefix: string, payload: unknown): string {
+server/security/rateLimit.ts:5:export function rateLimit(key: string, limit = 60, windowMs = 60_000) {
+modules/users/validator.ts:5:export const createUserSchema = z.object({
+modules/users/validator.ts:15:export const updateUserSchema = z.object({
+modules/users/validator.ts:24:export const queryUsersSchema = z.object({
+modules/users/validator.ts:34:export type CreateUserInput = z.infer<typeof createUserSchema>;
+modules/users/validator.ts:35:export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+modules/users/validator.ts:36:export type QueryUsersInput = z.infer<typeof queryUsersSchema>;
+modules/users/schema.ts:3:export interface IUser extends Document {
+modules/users/schema.ts:48:export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+modules/users/service.ts:6:export class UserService {
+modules/organizations/validator.ts:3:export const createOrganizationSchema = z.object({
+modules/organizations/validator.ts:28:export const updateOrganizationSchema = createOrganizationSchema.partial();
+modules/organizations/validator.ts:30:export const queryOrganizationsSchema = z.object({
+modules/organizations/validator.ts:40:export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
+modules/organizations/validator.ts:41:export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
+modules/organizations/validator.ts:42:export type QueryOrganizationsInput = z.infer<typeof queryOrganizationsSchema>;
+modules/organizations/schema.ts:8:export interface IOrganization extends Document {
+modules/organizations/schema.ts:96:export default mongoose.models.Organization || mongoose.model<IOrganization>('Organization', OrganizationSchema);
+modules/organizations/service.ts:5:export class OrganizationService {
+merge-pr-74.ps1:122:export interface CorrelationContext {
+merge-pr-74.ps1:133:export function createCorrelationContext(options: {
+merge-pr-74.ps1:148:export function getCorrelationHeaders(context: CorrelationContext): Record<string, string> {
+merge-pr-74.ps1:161:export function getErrorCorrelationId(error?: unknown): string {
+merge-pr-74.ps1:190:export interface SecurityHeadersConfig {
+merge-pr-74.ps1:204:export function applySecurityHeaders(
+merge-pr-74.ps1:230:export function createSecureResponse(
+merge-pr-74.ps1:242:export function handleCORSPreflight(config?: SecurityHeadersConfig): NextResponse {
+merge-pr-74.ps1:255:export default defineConfig({
+server/security/headers.ts:6:export function withSecurityHeaders(response: NextResponse): NextResponse {
+server/security/headers.ts:36:export function withCORS(request: NextRequest, response: NextResponse): NextResponse {
+server/security/headers.ts:65:export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10 * 1024 * 1024): boolean {
+server/security/headers.ts:76:export function getClientIP(request: NextRequest): string {
+server/security/headers.ts:86:export function createSecureResponse(data: any, status: number = 200, request?: NextRequest): NextResponse {
+nav/registry.ts:8:export type Role =
+nav/registry.ts:12:export type QuickAction = { id: string; label: string; path: string; roles?: Role[] };
+nav/registry.ts:14:export type ModuleDef = {
+nav/registry.ts:24:export const modules: ModuleDef[] = [
+sla.ts:1:export function computeSlaMinutes(priority: string): number {
+sla.ts:11:export function computeDueAt(createdAt: Date | string | number, slaMinutes: number): Date {
+server/work-orders/wo.schema.ts:3:export const WOPriority = z.enum(["LOW","MEDIUM","HIGH","CRITICAL"]);
+server/work-orders/wo.schema.ts:4:export const WOStatus   = z.enum(["NEW","ASSIGNED","IN_PROGRESS","ON_HOLD","COMPLETED","CANCELLED"]);
+server/work-orders/wo.schema.ts:6:export const WoCreate = z.object({
+server/work-orders/wo.schema.ts:16:export const WoUpdate = z.object({
+server/work-orders/wo.schema.ts:28:export type WoCreateInput = z.infer<typeof WoCreate>;
+server/work-orders/wo.schema.ts:29:export type WoUpdateInput = z.infer<typeof WoUpdate>;
+server/rbac/workOrdersPolicy.ts:1:export type Role =
+server/rbac/workOrdersPolicy.ts:6:export type Ability =
+server/rbac/workOrdersPolicy.ts:23:export function can(role: Role, ability: Ability) {
+vitest.config.ts:4:export default defineConfig({
+server/middleware/withAuthRbac.ts:5:export type SessionUser = {
+server/middleware/withAuthRbac.ts:42:export function requireAbility(ability: Parameters<typeof can>[1]) {
+server/utils/errorResponses.ts:5:export interface ErrorResponse {
+server/utils/errorResponses.ts:14:export class ApiError extends Error {
+server/utils/errorResponses.ts:29:export function createErrorResponse(
+server/utils/errorResponses.ts:45:export function unauthorizedError(message = 'Authentication required'): Response {
+server/utils/errorResponses.ts:52:export function forbiddenError(message = 'Insufficient permissions'): Response {
+server/utils/errorResponses.ts:59:export function notFoundError(resource = 'Resource'): Response {
+server/utils/errorResponses.ts:66:export function validationError(message = 'Invalid input', details?: any): Response {
+server/utils/errorResponses.ts:73:export function zodValidationError(error: ZodError, req?: any): Response {
+server/utils/errorResponses.ts:88:export function rateLimitError(message = 'Too many requests'): Response {
+server/utils/errorResponses.ts:95:export function internalServerError(
+server/utils/errorResponses.ts:115:export function handleZodError(error: ZodError): Response {
+server/utils/errorResponses.ts:128:export function handleApiError(error: unknown): Response {
+server/utils/errorResponses.ts:157:export function duplicateKeyError(resource = 'Resource'): Response {
+server/utils/errorResponses.ts:164:export function tenantIsolationError(): Response {
+providers/Providers.tsx:20:export default function Providers({ children }: { children: React.ReactNode }) {
+providers/QAProvider.tsx:14:export const QAContext = React.createContext<{
+providers/QAProvider.tsx:20:export function QAProvider({ children, enabled = false, role, orgId }: Props) {
+server/utils/tenant.ts:3:export type AuthContext = { orgId: string | null; role: string | null };
+server/utils/tenant.ts:12:export function getAuthFromRequest(req: RequestLike): AuthContext {
+server/utils/tenant.ts:23:export function requireMarketplaceReadRole(role: string | null): boolean {
+merge-pr-65.ps1:1108:export const options = {
+merge-pr-65.ps1:1119:export default function () {
+merge-pr-65.ps1:1154:export function handleSummary(data) {
+services/pricing.ts:4:export type BillingCycle = 'MONTHLY' | 'ANNUAL';
+services/pricing.ts:6:export type QuoteLine = {
+services/pricing.ts:12:export type QuoteResult =
+services/paytabs.ts:6:export interface NormalizedPayTabsPayload {
+services/paytabs.ts:17:export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
+lib/mongoose-typed.ts:3:export function typedModel<T>(name: string, schema: Schema<T>, makeModel: typeof model = model): Model<T> {
+lib/regex.ts:1:export function escapeRegex(input: string): string {
+lib/auth-middleware.ts:4:export interface AuthenticatedUser {
+lib/auth-middleware.ts:41:export function requireAbility(action: string) {
+lib/pricing.ts:7:export interface PriceCalculation {
+lib/pricing.ts:18:export interface PricingTier {
+lib/pricing.ts:28:export function calculateDiscountedPrice(
+lib/pricing.ts:48:export function calculatePriceWithTax(
+lib/pricing.ts:65:export function getApplicableTier(
+lib/pricing.ts:79:export function calculateBulkPricing(
+lib/pricing.ts:97:export function formatPrice(
+lib/pricing.ts:113:export function comparePrices(
+lib/pricing.ts:136:export function calculatePaymentTermsDiscount(
+lib/pricing.ts:152:export interface SubscriptionQuote {
+lib/pricing.ts:169:export function computeQuote(params: {
+lib/pricing.ts:223:export default pricingUtils;
+lib/rbac.ts:1:export type Role =
+lib/rbac.ts:11:export const ACCESS: Record<Role, ModuleId[]> = {
+lib/mongodb.ts:26:export default clientPromise as Promise<MongoClient> | undefined;
+lib/models/index.ts:4:export interface Tenant {
+lib/models/index.ts:12:export interface User {
+lib/models/index.ts:43:export interface Property {
+lib/models/index.ts:55:export interface WorkOrder {
+lib/models/index.ts:91:export interface Category {
+lib/models/index.ts:101:export interface Vendor {
+lib/models/index.ts:117:export interface Product {
+lib/models/index.ts:137:export interface CartItem {
+lib/models/index.ts:143:export interface Cart {
+lib/models/index.ts:154:export interface Order {
+lib/models/index.ts:173:export interface OrderItem {
+lib/models/index.ts:182:export interface Address {
+lib/models/index.ts:201:export interface Invoice {
+lib/models/index.ts:222:export interface InvoiceLine {
+lib/models/index.ts:237:export interface RFQ {
+lib/models/index.ts:253:export interface Bid {
+lib/models/index.ts:271:export interface Review {
+lib/models/index.ts:284:export interface NotificationDoc {
+lib/paytabs.ts:8:export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
+lib/paytabs.ts:22:export type SimplePaymentRequest = {
+lib/paytabs.ts:34:export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
+lib/paytabs.ts:129:export function validateCallback(payload: any, signature: string): boolean {
+lib/paytabs.ts:143:export const PAYMENT_METHODS = {
+lib/paytabs.ts:154:export const CURRENCIES = {
+lib/paytabs.ts:161:export interface PaymentMethod {
+lib/paytabs.ts:168:export const getAvailablePaymentMethods = (): PaymentMethod[] => {
+lib/mongodb-unified.ts:104:export const connectDb = connectToDatabase;
+lib/mongodb-unified.ts:105:export const dbConnect = connectToDatabase;
+lib/mongodb-unified.ts:106:export const connectMongo = connectToDatabase; // Fix for connectMongo import error
+lib/mongodb-unified.ts:108:export default connectToDatabase;
+lib/authz.ts:4:export interface AuthContext {
+lib/marketplace/serializers.ts:12:export function serializeCategory(doc: MarketplaceCategory | any) {
+lib/marketplace/serializers.ts:23:export function serializeProduct(doc: MarketplaceProduct | any) {
+lib/marketplace/serializers.ts:34:export function serializeOrder(doc: MarketplaceOrder | any) {
+lib/marketplace/serializers.ts:49:export function serializeRFQ(doc: MarketplaceRFQ | any) {
+lib/marketplace/correlation.ts:11:export interface CorrelationContext {
+lib/marketplace/correlation.ts:22:export function createCorrelationContext(options: {
+lib/marketplace/correlation.ts:37:export function getCorrelationHeaders(context: CorrelationContext): Record<string, string> {
+lib/marketplace/correlation.ts:50:export function logWithCorrelation(
+lib/marketplace/correlation.ts:68:export function getErrorCorrelationId(error?: unknown): string {
+lib/marketplace/correlation.ts:85:export function createCorrelatedError(
+lib/marketplace/search.ts:49:export interface MarketplaceSearchFilters {
+lib/marketplace/security.ts:7:export interface SecurityHeadersConfig {
+lib/marketplace/security.ts:59:  export function applySecurityHeaders(
+lib/marketplace/security.ts:112:  export function createSecureResponse(
+lib/marketplace/security.ts:124:  export function handleCORSPreflight(config?: SecurityHeadersConfig): NextResponse {
+lib/marketplace/security.ts:132:  export function withSecurityHeaders<T extends any[]>(
+lib/marketplace/objectIds.ts:4:export function objectIdFrom(input: string | Types.ObjectId | undefined | null): Types.ObjectId {
+lib/marketplace/cartClient.ts:1:export const CART_UPDATED_EVENT = 'fixzit-marketplace-cart-updated';
+lib/marketplace/cartClient.ts:3:export type MarketplaceCartLine = { qty?: number };
+lib/marketplace/cartClient.ts:4:export type MarketplaceCartLike = { lines?: MarketplaceCartLine[] } | null | undefined;
+lib/marketplace/cartClient.ts:6:export function computeCartCount(cart: MarketplaceCartLike) {
+lib/marketplace/cartClient.ts:13:export function broadcastCartUpdate(cart: MarketplaceCartLike) {
+lib/marketplace/serverFetch.ts:41:export function getMarketplaceBaseUrl() {
+lib/marketplace/cart.ts:19:export function recalcCartTotals(cart: any) {
+lib/marketplace/context.ts:8:export interface MarketplaceRequestContext {
+lib/ats/scoring.ts:1:export interface ScoreApplicationInput {
+lib/ats/scoring.ts:8:export interface ScoringWeights {
+lib/ats/scoring.ts:29:export function scoreApplication(
+lib/ats/scoring.ts:103:export function extractSkillsFromText(text: string): string[] {
+lib/ats/scoring.ts:120:export function calculateExperienceFromText(text: string): number {
+lib/edge-auth-middleware.ts:4:export interface EdgeAuthenticatedUser {
+lib/edge-auth-middleware.ts:13:export interface AuthResult {
+lib/edge-auth-middleware.ts:78:export function hasPermission(
+lib/edge-auth-middleware.ts:95:export function hasRole(
+lib/edge-auth-middleware.ts:102:export function hasAnyRole(
+lib/edge-auth-middleware.ts:109:export function getUserPermissions(user: EdgeAuthenticatedUser): string[] {
+lib/edge-auth-middleware.ts:114:export function isAdmin(user: EdgeAuthenticatedUser): boolean {
+lib/edge-auth-middleware.ts:118:export function isManager(user: EdgeAuthenticatedUser): boolean {
+lib/edge-auth-middleware.ts:122:export function isTenant(user: EdgeAuthenticatedUser): boolean {
+lib/zatca.ts:19:export function generateZATCATLV(data: ZATCAData): string {
+lib/zatca.ts:48:export function validateZATCAData(data: ZATCAData): boolean {
+lib/payments/parseCartAmount.ts:1:export function parseCartAmount(value: unknown, fallback = 0): number {
+lib/payments/parseCartAmount.ts:39:export function parseCartAmountOrThrow(value: unknown, message = 'Invalid cart amount'): number {
+lib/payments/currencyUtils.ts:6:export type SupportedCurrency = 'USD' | 'AED' | 'SAR' | 'EUR' | 'GBP';
+lib/payments/currencyUtils.ts:8:export interface CurrencyConfig {
+lib/payments/currencyUtils.ts:19:export const CURRENCY_CONFIGS: Record<SupportedCurrency, CurrencyConfig> = {
+lib/payments/currencyUtils.ts:70:export function formatCurrency(
+lib/payments/currencyUtils.ts:143:export function parseAndFormatCurrency(
+lib/payments/currencyUtils.ts:154:export function convertCurrency(
+lib/payments/currencyUtils.ts:203:export function getCurrencySymbol(currency: SupportedCurrency): string {
+lib/payments/currencyUtils.ts:210:export function isCurrencyRTL(currency: SupportedCurrency): boolean {
+lib/payments/currencyUtils.ts:218:export function validateCurrencyAmount(
+lib/payments/currencyUtils.ts:266:export default {
+lib/db/collections.ts:9:export const COLLECTIONS = {
+lib/qa/models.ts:13:export const QaEvent = models.QaEvent || model('QaEvent', QaEventSchema);
+lib/sla.ts:3:export type WorkOrderPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+lib/sla.ts:17:export function computeSlaMinutes(priority: WorkOrderPriority): number {
+lib/sla.ts:25:export function computeDueAt(start: Date, slaMinutes: number): Date {
+lib/sla.ts:35:export function resolveSlaTarget(priority: WorkOrderPriority, start: Date = new Date()) {
+lib/auth.ts:130:export interface AuthToken {
+lib/auth.ts:147:export function generateToken(payload: AuthToken): string {
+lib/auth.ts:151:export function verifyToken(token: string): AuthToken | null {
+lib/paytabs.config.ts:2:export const PAYTABS_CONFIG = {
+lib/aws-secrets.ts:76:export default AWSSecretsManager;
+lib/paytabs/callback.ts:6:export const parseCartAmount = parsePaymentCartAmount;
+lib/paytabs/callback.ts:8:export function normalizePaytabsString(value: unknown): string | null {
+lib/paytabs/callback.ts:16:export function normalizePaytabsStatus(value: unknown): string {
+lib/storage/s3.ts:7:export function getS3Client() {
+lib/storage/s3.ts:31:export function buildResumeKey(tenantId: string | undefined | null, fileName: string) {
+lib/utils.ts:1:export function generateSlug(input: string): string {
+lib/utils/timestamp.ts:8:export function validateTimestamp(value: unknown): Date | null {
+lib/utils/timestamp.ts:49:export function isValidDate(date: Date): boolean {
+lib/utils/timestamp.ts:56:export function createSafeTimestamp(value?: unknown): Date {
+lib/utils/timestamp.ts:64:export function sanitizeTimestamps<T extends Record<string, any>>(
+lib/utils/timestamp.ts:83:export function validateCollection<T extends Record<string, any>>(
+lib/utils/timestamp.ts:97:export function addTimestamps<T extends Record<string, any>>(
+lib/utils/timestamp.ts:113:export function updateTimestamp<T extends Record<string, any>>(obj: T): T & { updatedAt: Date } {
+lib/utils/timestamp.ts:123:export function formatTimestamp(
+lib/utils/timestamp.ts:145:export function getRelativeTime(
+lib/AutoFixManager.ts:3:export interface SystemCheck {
+lib/AutoFixManager.ts:13:export interface FixResult {
+lib/AutoFixManager.ts:22:export class AutoFixManager {
+lib/AutoFixManager.ts:392:export const autoFixManager = new AutoFixManager();
+lib/mongo.ts:33:export const isMockDB = false; // Always use real MongoDB
+lib/mongo.ts:59:export const db = conn;
+lib/i18n.ts:1:export type Lang = 'en' | 'ar';
+lib/i18n.ts:3:export const dict: Record<Lang, Record<string, string>> = {
+lib/i18n.ts:142:export function applyHtmlLang(lang: Lang) {
+lib/i18n.ts:152:export function t(key: string, lang: Lang = 'en'): string {
+lib/i18n.ts:159:export function getMarketplaceErrorMessage(
+POWERSHELL_HEREDOC_CONFIGURED.md:103:export default function MyComponent({ title }: Props) {
+tailwind.config.ts:26:export default config;
+kb/chunk.ts:1:export type TextChunk = {
+kb/chunk.ts:7:export function chunkText(input: string, chunkSize = 1000, overlap = 200): TextChunk[] {
+app/finance/budgets/new/page.tsx:3:export default function NewBudgetPage() {
+app/finance/payments/new/page.tsx:3:export default function NewPaymentPage() {
+app/finance/page.tsx:12:export default function FinancePage() {
+core/ArchitectureGuard.ts:7:export class ArchitectureGuard {
+core/ArchitectureGuard.ts:36:export const architectureGuard = ArchitectureGuard.getInstance();
+core/DuplicatePrevention.ts:1:export class DuplicatePreventionSystem { async runScan() { return { duplicates: [], report: "No duplicates found", passed: true }; } } export default DuplicatePreventionSystem;
+core/RuntimeMonitor.tsx:1:import * as React from "react"; export function ArchitectureMonitoringDashboard() { return React.createElement("div", null, "Architecture Monitor"); } export default ArchitectureMonitoringDashboard;
+app/finance/invoices/new/page.tsx:3:export default function NewInvoicePage() {
+client/woClient.ts:1:export const asUserHeader = () => ({ "x-user": localStorage.getItem("x-user") || "" });
+app/finance/expenses/new/page.tsx:3:export default function NewExpensePage() {
+app/help/tutorial/getting-started/page.tsx:16:export default function GettingStartedTutorial() {
+app/help/[slug]/page.tsx:7:export const revalidate = 60;
+app/help/[slug]/page.tsx:19:export default async function HelpArticlePage(props:{ params: Promise<{ slug:string }>}) {
+app/help/support-ticket/page.tsx:16:export default function SupportTicketPage() {
+app/help/page.tsx:30:export default function HelpHome() {
+app/help/ai-chat/page.tsx:6:export default function AIChatPage() {
+app/test/page.tsx:1:export default function TestPage() {
+app/support/page.tsx:1:export default function Page() {
+app/support/my-tickets/page.tsx:12:export default function MyTicketsPage() {
+app/api/help/ask/route.ts:7:export const dynamic = 'force-dynamic';
+app/api/help/articles/route.ts:6:export const dynamic = 'force-dynamic';
+app/api/feeds/indeed/route.ts:5:export const dynamic = 'force-dynamic';
+app/api/feeds/linkedin/route.ts:5:export const dynamic = 'force-dynamic';
+app/api/support/tickets/my/route.ts:7:export const dynamic = 'force-dynamic';
+app/api/marketplace/categories/route.ts:7:export const dynamic = 'force-dynamic';
+app/api/marketplace/search/route.ts:21:export const dynamic = 'force-dynamic';
+app/api/marketplace/orders/route.ts:13:export const dynamic = 'force-dynamic';
+app/api/qa/health/route.ts:5:export const dynamic = 'force-dynamic';
+app/api/copilot/chat/route.ts:25:export const runtime = "nodejs";
+app/api/copilot/chat/route.ts:26:export const dynamic = "force-dynamic";
+app/api/copilot/profile/route.ts:5:export const runtime = "nodejs";
+app/api/copilot/profile/route.ts:6:export const dynamic = "force-dynamic";
+app/api/copilot/knowledge/route.ts:21:export const runtime = "nodejs";
+app/api/auth/me/route.ts:5:export const dynamic = 'force-dynamic';
+app/api/search/queryHelpers.ts:3:export type QueryChain<T> = {
+app/api/search/queryHelpers.ts:9:export type QueryableModel<T> = {
+app/api/search/queryHelpers.ts:13:export function makeQueryableModel<T>(model: any): QueryableModel<T> {
+app/api/admin/discounts/route.ts:8:export const dynamic = 'force-dynamic';
+app/test-rtl/page.tsx:7:export default function RTLTestPage() {
+app/careers/[slug]/page.tsx:4:export default async function JobDetailPage(props: { params: Promise<{ slug: string }> }) {
+app/careers/page.tsx:33:export default function CareersPage() {
+app/not-found.tsx:6:export default function NotFound() {
+app/login/page.tsx:194:export default function LoginPage() {
+app/notifications/page.tsx:17:export default function NotificationsPage() {
+app/aqar/map/page.tsx:10:export default function MapPage() {
+app/aqar/properties/page.tsx:19:export default function AqarPropertiesPage() {
+app/aqar/layout.tsx:1:export default function AqarLayout({ children }: { children: React.ReactNode }) {
+app/aqar/page.tsx:57:export default function AqarPage() {
+app/dashboard/page.tsx:5:export default function DashboardPage() {
+app/test-cms/page.tsx:3:export default function TestCMS() {
+app/system/page.tsx:5:export default function SystemPage() {
+app/reports/page.tsx:5:export default function Reports() {
+app/souq/vendors/page.tsx:3:export default function VendorsPage() {
+app/souq/layout.tsx:1:export default function SouqLayout({ children }: { children: React.ReactNode }) {
+app/souq/page.tsx:45:export default function SouqPage() {
+app/souq/catalog/page.tsx:100:export default function CatalogPage() {
+app/marketplace/rfq/page.tsx:5:export default async function RFQPage() {
+app/marketplace/vendor/page.tsx:5:export default async function VendorPortalPage() {
+app/marketplace/layout.tsx:4:export default async function MarketplaceLayout({ children }: { children: ReactNode }) {
+app/marketplace/search/page.tsx:11:export default async function MarketplaceSearch(props: SearchPageProps) {
+app/marketplace/cart/page.tsx:6:export default async function CartPage() {
+app/marketplace/page.tsx:27:export default async function MarketplaceHome() {
+app/marketplace/product/[slug]/page.tsx:10:export default async function ProductDetail(props: ProductPageProps) {
+app/marketplace/checkout/page.tsx:6:export default async function CheckoutPage() {
+app/marketplace/orders/page.tsx:13:export default async function OrdersPage() {
+app/marketplace/admin/page.tsx:4:export default async function MarketplaceAdminPage() {
+app/logout/page.tsx:6:export default function LogoutPage() {
+app/hr/ats/jobs/new/page.tsx:9:export default function NewJobPage() {
+app/hr/page.tsx:1:export default function Page() {
+app/fm/finance/page.tsx:1:export default function FinancePage() {
+app/fm/support/tickets/page.tsx:16:export default function SupportTicketsPage() {
+app/fm/support/page.tsx:5:export default function SupportPage() {
+app/fm/dashboard/page.tsx:22:export default function DashboardPage() {
+app/fm/rfqs/page.tsx:21:export default function RFQsPage() {
+app/fm/system/page.tsx:3:export default function SystemPage() {
+app/fm/reports/page.tsx:1:export default function ReportsPage() {
+app/fm/marketplace/page.tsx:5:export default function MarketplacePage() {
+app/fm/hr/page.tsx:1:export default function HRPage() {
+app/fm/projects/page.tsx:21:export default function ProjectsPage() {
+app/fm/compliance/page.tsx:1:export default function CompliancePage() {
+app/fm/assets/page.tsx:17:export default function AssetsPage() {
+app/fm/properties/page.tsx:17:export default function PropertiesPage() {
+app/fm/properties/[id]/page.tsx:20:export default function PropertyDetailsPage() {
+app/fm/vendors/page.tsx:17:export default function VendorsPage() {
+app/fm/crm/page.tsx:1:export default function CRMPage() {
+app/fm/work-orders/page.tsx:5:export default function WorkOrdersPage() {
+app/fm/page.tsx:145:export default function FMPage() {
+app/fm/invoices/page.tsx:21:export default function InvoicesPage() {
+app/fm/tenants/page.tsx:17:export default function TenantsPage() {
+app/fm/maintenance/page.tsx:26:export default function MaintenancePage() {
+app/fm/orders/page.tsx:101:export default function OrdersPage() {
+app/compliance/page.tsx:1:export default function Page() {
+app/vendor/dashboard/page.tsx:6:export default function VendorDashboard() {
+app/cms/[slug]/page.tsx:5:export const revalidate = 60;
+app/cms/[slug]/page.tsx:7:export default async function CmsPageScreen(props: { params: Promise<{slug:string}>, searchParams: Promise<any> }) {
+app/properties/inspections/page.tsx:3:export default function PropertiesInspectionsPage() {
+app/properties/units/page.tsx:3:export default function PropertiesUnitsPage() {
+app/properties/documents/page.tsx:3:export default function PropertiesDocumentsPage() {
+app/properties/page.tsx:9:export default function Page() {
+app/properties/leases/page.tsx:3:export default function PropertiesLeasesPage() {
+app/properties/[id]/page.tsx:14:export default function PropertyDetailPage() {
+app/vendors/page.tsx:1:export default function Page() {
+app/crm/page.tsx:1:export default function Page() {
+app/forgot-password/page.tsx:9:export default function ForgotPassword() {
+aws/dist/awscli/botocore/data/glue/2017-03-31/service-2.json:10490:          "documentation":"<p>Specifies the export type for DynamoDB data extraction. This parameter determines how data is exported from the DynamoDB table during the ELT process.</p>"
+app/layout.tsx:7:export default function RootLayout({ children }: { children: React.ReactNode }) {
+app/work-orders/pm/page.tsx:3:export default function PreventiveMaintenancePage() {
+app/work-orders/history/page.tsx:3:export default function ServiceHistoryPage() {
+app/work-orders/board/page.tsx:3:export default function WorkOrdersBoardPage() {
+app/work-orders/approvals/page.tsx:3:export default function WorkOrderApprovalsPage() {
+app/work-orders/page.tsx:5:export default function WorkOrdersPage() {
+app/work-orders/[id]/parts/page.tsx:7:export default function WorkOrderPartsPage() {
+app/work-orders/new/page.tsx:3:export default function NewWorkOrderPage() {
+app/page.tsx:7:export default function LandingPage(){
+app/profile/page.tsx:7:export default function ProfilePage() {
+app/settings/page.tsx:14:export default function SettingsPage() {
+app/product/[slug]/page.tsx:16:export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
+app/signup/page.tsx:37:export default function SignupPage() {
+app/(root)/layout.tsx:5:export const metadata: Metadata = {
+app/(root)/layout.tsx:10:export default function RootLayout({ children }: { children: ReactNode }) {
+app/admin/cms/page.tsx:18:export default function AdminCMS(){
+app/admin/page.tsx:1:export default function Page() {
+scripts/test-system.mjs:169:export default testSystem;
+scripts/seed-marketplace.mjs:32:export const upsert = createUpsert(db);
+scripts/seed-marketplace.mjs:80:export default main;
+scripts/generate-fixzit-postgresql.sh:735:export default api;
+scripts/run-fixzit-superadmin-tests.sh:60:export default defineConfig({
+scripts/run-fixzit-superadmin-tests.sh:97:export interface LoginResponse {
+scripts/run-fixzit-superadmin-tests.sh:167:export const FIXZIT_MODULES = {
+scripts/run-fixzit-superadmin-tests.sh:366:export const USER_ROLES = [
+scripts/seed-users.ts:270:export default seedUsers;
+scripts/load/smoke.js:4:export const options = { vus: 1, iterations: 5 };
+scripts/load/smoke.js:6:export default function () {
+scripts/generate-complete-fixzit.sh:90:export const { Organization, User, Property, Unit, WorkOrder } = models;
+scripts/generate-complete-fixzit.sh:659:export default function RootLayout({
+scripts/generate-complete-fixzit.sh:896:export default api;
+scripts/generate-complete-fixzit.sh:929:export default function ${module^}Page() {
+scripts/generate-complete-fixzit.sh:1061:export default function ${page^}Page() {
+scripts/generate-complete-fixzit.sh:1159:export default function HomePage() {
+scripts/_shared/marketplace.js:15:export function getProjectRoot() {
+scripts/_shared/marketplace.js:22:export function resolvePath(...paths) {
+scripts/_shared/marketplace.js:57:export function generateMarketplaceData() {
+scripts/_shared/marketplace.js:154:export function validateMarketplaceData(data) {
+scripts/_shared/marketplace.js:197:export function log(level, message, ...args) {
+scripts/_shared/marketplace.js:229:export default {
+scripts/seed-marketplace.ts:46:export const upsert = createUpsert(db);
+scripts/seed-marketplace.ts:75:export default main;
+hooks/useUnsavedChanges.tsx:14:export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
+hooks/useUnsavedChanges.tsx:148:export function UnsavedChangesWarning({
+hooks/useUnsavedChanges.tsx:202:export function SaveConfirmation({
+hooks/useScreenSize.ts:5:export type ScreenSize = 'mobile' | 'tablet' | 'desktop' | 'large';
+hooks/useScreenSize.ts:7:export interface ScreenInfo {
+hooks/useScreenSize.ts:54:export function useScreenSize() {
+hooks/useScreenSize.ts:88:export function getResponsiveClasses(screenInfo: ScreenInfo) {
+hooks/useScreenSize.ts:136:export function useResponsiveLegacy() {
+hooks/useScreenSize.ts:153:export const useResponsive = useResponsiveLegacy;
+merge-pr-66.ps1:147:export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
+merge-pr-66.ps1:149:export const HelpArticle = isMockDB 
+merge-pr-66.ps1:179:export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
+merge-pr-66.ps1:181:export const CmsPage = isMockDB 
+merge-pr-66.ps1:232:export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
+merge-pr-66.ps1:234:export const SupportTicket = isMockDB 
+merge-pr-66.ps1:718:export type UserDoc = InferSchemaType<typeof UserSchema>;
+merge-pr-66.ps1:748:export function generateSecureToken(length: number = 32): string {
+merge-pr-66.ps1:772:export function validateTenantAccess(userTenantId: string, resourceTenantId: string): boolean {
+merge-pr-66.ps1:780:export const authConfig = {
+merge-pr-66.ps1:962:export default defineConfig({
+_deprecated/models-old/ServiceContract.ts:12:export default models.ServiceContract || model('ServiceContract', ServiceContractSchema);
+_deprecated/models-old/DiscountRule.ts:18:export type DiscountRuleDocument = {
+_deprecated/models-old/DiscountRule.ts:28:export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
+_deprecated/models-old/PriceTier.ts:3:export interface IPriceTier extends Document {
+_deprecated/models-old/PriceTier.ts:49:export const PriceTier = models.PriceTier || model<IPriceTier>('PriceTier', priceTierSchema);
+_deprecated/models-old/PriceTier.ts:50:export default PriceTier;
+_deprecated/models-old/MarketplaceProduct.ts:3:export const MarketplaceProduct = ProductModel as any;
+_deprecated/models-old/marketplace/Order.ts:3:export type MarketplaceOrderStatus =
+_deprecated/models-old/marketplace/Order.ts:12:export interface MarketplaceOrderLine {
+_deprecated/models-old/marketplace/Order.ts:21:export interface MarketplaceOrderTotals {
+_deprecated/models-old/marketplace/Order.ts:27:export interface MarketplaceShipTo {
+_deprecated/models-old/marketplace/Order.ts:33:export interface MarketplaceOrderSource {
+_deprecated/models-old/marketplace/Order.ts:37:export interface MarketplaceOrder {
+_deprecated/models-old/marketplace/Order.ts:107:export default OrderModel;
+_deprecated/models-old/marketplace/AttributeSet.ts:3:export interface MarketplaceAttributeDefinition {
+_deprecated/models-old/marketplace/AttributeSet.ts:13:export interface MarketplaceAttributeSet {
+_deprecated/models-old/marketplace/AttributeSet.ts:45:export default AttributeSetModel;
+_deprecated/models-old/marketplace/RFQ.ts:3:export interface MarketplaceRFQBid {
+_deprecated/models-old/marketplace/RFQ.ts:11:export interface MarketplaceRFQ {
+_deprecated/models-old/marketplace/RFQ.ts:59:export default RFQModel;
+_deprecated/models-old/marketplace/Product.ts:3:export type MarketplaceMediaRole = 'GALLERY' | 'MSDS' | 'COA';
+_deprecated/models-old/marketplace/Product.ts:5:export interface MarketplaceMedia {
+_deprecated/models-old/marketplace/Product.ts:11:export interface MarketplaceBuyDetail {
+_deprecated/models-old/marketplace/Product.ts:19:export interface MarketplaceStockInfo {
+_deprecated/models-old/marketplace/Product.ts:25:export interface MarketplaceRating {
+_deprecated/models-old/marketplace/Product.ts:30:export interface MarketplaceProduct {
+_deprecated/models-old/marketplace/Product.ts:103:export default ProductModel;
+_deprecated/models-old/marketplace/Category.ts:3:export interface MarketplaceCategory {
+_deprecated/models-old/marketplace/Category.ts:37:export default CategoryModel;
+_deprecated/models-old/MarketplaceProduct.d.ts:4:export default MarketplaceProduct;
+_deprecated/models-old/MarketplaceProduct.d.ts:6:export const MarketplaceProductSchema: import("mongoose").Schema<any, any>;
+_deprecated/models-old/Benchmark.ts:3:export interface IBenchmark extends Document {
+_deprecated/models-old/Benchmark.ts:138:export const Benchmark = models.Benchmark || model<IBenchmark>('Benchmark', benchmarkSchema);
+_deprecated/models-old/Benchmark.ts:139:export default Benchmark;
+_deprecated/models-old/SearchSynonym.ts:12:export type SearchSynonymDoc = InferSchemaType<typeof SearchSynonymSchema>;
+_deprecated/models-old/SearchSynonym.ts:14:export const SearchSynonym = (models.SearchSynonym || model("SearchSynonym", SearchSynonymSchema));
+_deprecated/models-old/SearchSynonym.d.ts:4:export default SearchSynonym;
+_deprecated/models-old/SearchSynonym.d.ts:6:export const SearchSynonymSchema: import("mongoose").Schema<any, any>;
+_deprecated/models-old/OwnerGroup.ts:4:export interface IOwnerGroup extends Document {
+_deprecated/models-old/OwnerGroup.ts:30:export default OwnerGroup;
+_deprecated/models-old/SubscriptionInvoice.ts:3:export interface ISubscriptionInvoice extends Document {
+_deprecated/models-old/SubscriptionInvoice.ts:43:export const SubscriptionInvoice = mongoose.models.SubscriptionInvoice || mongoose.model<ISubscriptionInvoice>('SubscriptionInvoice', subscriptionInvoiceSchema);
+_deprecated/models-old/SubscriptionInvoice.ts:44:export default SubscriptionInvoice;
+_deprecated/models-old/Subscription.ts:3:export interface ISubscription extends Document {
+_deprecated/models-old/Subscription.ts:51:export const Subscription = mongoose.models.Subscription || mongoose.model<ISubscription>('Subscription', subscriptionSchema);
+_deprecated/models-old/Subscription.ts:52:export default Subscription;
+_deprecated/models-old/PaymentMethod.ts:3:export interface IPaymentMethod extends Document {
+_deprecated/models-old/PaymentMethod.ts:53:export const PaymentMethod = mongoose.models.PaymentMethod || mongoose.model<IPaymentMethod>('PaymentMethod', paymentMethodSchema);
+_deprecated/models-old/PaymentMethod.ts:54:export default PaymentMethod;
+_deprecated/models-old/Organization.ts:3:export interface IOrganization extends Document {
+_deprecated/models-old/Organization.ts:61:export default mongoose.models.Organization || mongoose.model<IOrganization>('Organization', OrganizationSchema);
+_deprecated/models-old/Module.ts:3:export interface IModule extends Document {
+_deprecated/models-old/Module.ts:69:export const Module = models.Module || model<IModule>('Module', moduleSchema);
+_deprecated/models-old/Module.ts:70:export default Module;
+_deprecated/models-old/Customer.ts:3:export interface ICustomer extends Document {
+_deprecated/models-old/Customer.ts:65:export default Customer;
+_deprecated/db-models-old/DiscountRule.ts:12:export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
+_deprecated/db-models-old/Benchmark.ts:23:export default models.Benchmark || model('Benchmark', VendorSchema);
+_deprecated/db-models-old/ServiceAgreement.ts:21:export default models.ServiceAgreement || model('ServiceAgreement', ServiceAgreementSchema);
+_deprecated/db-models-old/OwnerGroup.ts:15:export default models.OwnerGroup || model('OwnerGroup', OwnerGroupSchema);
+_deprecated/db-models-old/Subscription.ts:37:export default models.Subscription || model('Subscription', SubscriptionSchema);
+_deprecated/db-models-old/PriceBook.ts:33:export default models.PriceBook || model('PriceBook', PriceBookSchema);
+_deprecated/db-models-old/PaymentMethod.ts:15:export default models.PaymentMethod || model('PaymentMethod', PaymentMethodSchema);
+_deprecated/db-models-old/Module.ts:3:export type ModuleKey =
+_deprecated/db-models-old/Module.ts:22:export default models.Module || model('Module', ModuleSchema);
+_deprecated/src-models-old/ServiceContract.ts:12:export default models.ServiceContract || model('ServiceContract', ServiceContractSchema);
+_deprecated/src-models-old/DiscountRule.ts:18:export type DiscountRuleDocument = {
+_deprecated/src-models-old/DiscountRule.ts:28:export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
+_deprecated/src-models-old/PriceTier.ts:3:export interface IPriceTier extends Document {
+_deprecated/src-models-old/PriceTier.ts:49:export const PriceTier = models.PriceTier || model<IPriceTier>('PriceTier', priceTierSchema);
+_deprecated/src-models-old/PriceTier.ts:50:export default PriceTier;
+_deprecated/src-models-old/marketplace/Order.ts:3:export type MarketplaceOrderStatus =
+_deprecated/src-models-old/marketplace/Order.ts:12:export interface MarketplaceOrderLine {
+_deprecated/src-models-old/marketplace/Order.ts:21:export interface MarketplaceOrderTotals {
+_deprecated/src-models-old/marketplace/Order.ts:27:export interface MarketplaceShipTo {
+_deprecated/src-models-old/marketplace/Order.ts:33:export interface MarketplaceOrderSource {
+_deprecated/src-models-old/marketplace/Order.ts:37:export interface MarketplaceOrder {
+_deprecated/src-models-old/marketplace/Order.ts:107:export default OrderModel;
+_deprecated/src-models-old/marketplace/AttributeSet.ts:3:export interface MarketplaceAttributeDefinition {
+_deprecated/src-models-old/marketplace/AttributeSet.ts:13:export interface MarketplaceAttributeSet {
+_deprecated/src-models-old/marketplace/AttributeSet.ts:45:export default AttributeSetModel;
+_deprecated/src-models-old/marketplace/RFQ.ts:3:export interface MarketplaceRFQBid {
+_deprecated/src-models-old/marketplace/RFQ.ts:11:export interface MarketplaceRFQ {
+_deprecated/src-models-old/marketplace/RFQ.ts:59:export default RFQModel;
+_deprecated/src-models-old/marketplace/Product.ts:3:export type MarketplaceMediaRole = 'GALLERY' | 'MSDS' | 'COA';
+_deprecated/src-models-old/marketplace/Product.ts:5:export interface MarketplaceMedia {
+_deprecated/src-models-old/marketplace/Product.ts:11:export interface MarketplaceBuyDetail {
+_deprecated/src-models-old/marketplace/Product.ts:19:export interface MarketplaceStockInfo {
+_deprecated/src-models-old/marketplace/Product.ts:25:export interface MarketplaceRating {
+_deprecated/src-models-old/marketplace/Product.ts:30:export interface MarketplaceProduct {
+_deprecated/src-models-old/marketplace/Product.ts:103:export default ProductModel;
+_deprecated/src-models-old/marketplace/Category.ts:3:export interface MarketplaceCategory {
+_deprecated/src-models-old/marketplace/Category.ts:37:export default CategoryModel;
+_deprecated/src-models-old/MarketplaceProduct.d.ts:4:export default MarketplaceProduct;
+_deprecated/src-models-old/MarketplaceProduct.d.ts:6:export const MarketplaceProductSchema: import("mongoose").Schema<any, any>;
+_deprecated/src-models-old/Benchmark.ts:3:export interface IBenchmark extends Document {
+_deprecated/src-models-old/Benchmark.ts:138:export const Benchmark = models.Benchmark || model<IBenchmark>('Benchmark', benchmarkSchema);
+_deprecated/src-models-old/Benchmark.ts:139:export default Benchmark;
+_deprecated/src-models-old/SearchSynonym.d.ts:4:export default SearchSynonym;
+_deprecated/src-models-old/SearchSynonym.d.ts:6:export const SearchSynonymSchema: import("mongoose").Schema<any, any>;
+_deprecated/src-models-old/OwnerGroup.ts:4:export interface IOwnerGroup extends Document {
+_deprecated/src-models-old/OwnerGroup.ts:30:export default OwnerGroup;
+_deprecated/src-models-old/SubscriptionInvoice.ts:3:export interface ISubscriptionInvoice extends Document {
+_deprecated/src-models-old/SubscriptionInvoice.ts:43:export const SubscriptionInvoice = mongoose.models.SubscriptionInvoice || mongoose.model<ISubscriptionInvoice>('SubscriptionInvoice', subscriptionInvoiceSchema);
+_deprecated/src-models-old/SubscriptionInvoice.ts:44:export default SubscriptionInvoice;
+_deprecated/src-models-old/Subscription.ts:3:export interface ISubscription extends Document {
+_deprecated/src-models-old/Subscription.ts:51:export const Subscription = mongoose.models.Subscription || mongoose.model<ISubscription>('Subscription', subscriptionSchema);
+_deprecated/src-models-old/Subscription.ts:52:export default Subscription;
+_deprecated/src-models-old/PaymentMethod.ts:3:export interface IPaymentMethod extends Document {
+_deprecated/src-models-old/PaymentMethod.ts:53:export const PaymentMethod = mongoose.models.PaymentMethod || mongoose.model<IPaymentMethod>('PaymentMethod', paymentMethodSchema);
+_deprecated/src-models-old/PaymentMethod.ts:54:export default PaymentMethod;
+_deprecated/src-models-old/Organization.ts:3:export interface IOrganization extends Document {
+_deprecated/src-models-old/Organization.ts:61:export default mongoose.models.Organization || mongoose.model<IOrganization>('Organization', OrganizationSchema);
+_deprecated/src-models-old/Module.ts:3:export interface IModule extends Document {
+_deprecated/src-models-old/Module.ts:69:export const Module = models.Module || model<IModule>('Module', moduleSchema);
+_deprecated/src-models-old/Module.ts:70:export default Module;
+_deprecated/src-models-old/Customer.ts:3:export interface ICustomer extends Document {
+_deprecated/src-models-old/Customer.ts:65:export default Customer;
+ai/embeddings.ts:6:export type OpenAIEmbeddingModel = 'text-embedding-3-small' | 'text-embedding-3-large';
+db/mongoose.ts:19:export function getMongoose() {
+qa/playwright.config.ts:3:export default defineConfig({
+qa/tests/api-paytabs-callback.spec.ts:24:  // Pages Router example path (export default handler)
+qa/tests/api-paytabs-callback.spec.ts:40:      // Some pages/api may export default handler(req, res). Not applicable here, but left for completeness.
+qa/consoleHijack.ts:1:export type ConsoleRecord = { level:'error'|'warn'|'info', args:any[], time:number };
+qa/consoleHijack.ts:2:export function hijackConsole(onRecord:(rec:ConsoleRecord)=>void) {
+qa/config.js:1:export const cfg = {
+qa/ErrorBoundary.tsx:6:export class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State> {
+qa/acceptance.ts:1:export type GateSummary = {
+qa/acceptance.ts:7:export function passesStrict(summary: GateSummary) {
+qa/AutoFixAgent.tsx:24:export function AutoFixAgent() {
+qa/domPath.ts:1:export function getDomPath(el: Element): string {
+qa/qaPatterns.ts:1:export type Heuristic = {
+qa/qaPatterns.ts:13:export const heuristics: Heuristic[] = [
+data/language-options.ts:1:export type LanguageOption = {
+data/language-options.ts:15:export type LanguageCode = 'en' | 'ar' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+data/language-options.ts:17:export const LANGUAGE_OPTIONS: LanguageOption[] = [
+data/language-options.ts:44:export const DEFAULT_LANGUAGE = LANGUAGE_OPTIONS[0];
+data/language-options.ts:47:export const findLanguageByCode = (code: string): LanguageOption | undefined => {
+data/language-options.ts:51:export const findLanguageByLocale = (locale: string): LanguageOption | undefined => {
+aws/dist/awscli/examples/codebuild/update-report-group.rst:3:The following ``update-report-group`` example changes the export type of the report group to "NO_EXPORT". ::
+cleanup-mockdb.ps1:75:        # Pattern 1: export const ModelName = isMockDB ? new MockModel('name') : (models.Model || model(...))
+cleanup-mockdb.ps1:76:        $pattern1 = 'export const (\w+) = isMockDB\s*\?\s*new MockModel\([^)]+\)[^:]*:\s*\(([^)]+)\)'
+cleanup-mockdb.ps1:80:            $replacement = "export const $modelName = $mongoModel"
+cleanup-mockdb.ps1:84:        # Pattern 2: export const ModelName = isMockDB ? new MockModel('name') as any : (models.Model || model(...))
+cleanup-mockdb.ps1:85:        $pattern2 = 'export const (\w+) = isMockDB\s*\?\s*new MockModel\([^)]+\)\s*as any\s*:\s*\(([^)]+)\)'
+cleanup-mockdb.ps1:89:            $replacement = "export const $modelName = $mongoModel"
+tailwind.config.js:327:export default config;

@@ -1,43 +1,42 @@
 # Agent Live Progress Tracker
 
-**Last Updated:** Not started
+**Last Updated:** $(date -Iseconds)
 
-## Current Phase: IDLE
+## Current Phase: MERGE (PayTabs Consolidation)
 
 ### Progress Log
 
-No activity yet. Agent will update this file every 20 seconds during operations.
-
----
-
-## Status Format
 ```json
 {
-  "ts": "ISO8601 timestamp",
-  "phase": "SEARCH|PLAN|MERGE|VERIFY|SHIP",
-  "scope": "files or paths being worked on",
-  "status": "ok|blocked|halted",
-  "note": "brief status message"
+  "ts": "$(date -Iseconds)",
+  "phase": "MERGE",
+  "scope": "lib/paytabs.ts, services/paytabs.ts, lib/paytabs.config.ts duplicates",
+  "status": "in-progress",
+  "note": "Consolidating PayTabs duplicates: lib/ vs src/lib/ and services/ vs src/services/"
 }
 ```
 
-## Phase Definitions
-- **SEARCH**: Scanning repo for duplicates, existing implementations, prior PRs
-- **PLAN**: Creating task plan with scope, risks, rollback strategy
-- **MERGE**: Consolidating duplicates into canonical files
-- **VERIFY**: Running STRICT gates (console, build, network, runtime, tests)
-- **SHIP**: Committing with RCA, opening PR with evidence
+## Consolidation Plan
 
-## Heartbeat Requirement
-Agent must update this file at least every 20 seconds during active work.
+### Identified Duplicates
+1. **lib/paytabs.ts** ↔ **src/lib/paytabs.ts** (208 lines, identical)
+2. **lib/paytabs.config.ts** ↔ **src/lib/paytabs.config.ts** (7 lines, identical)
+3. **services/paytabs.ts** ↔ **src/services/paytabs.ts** (104 lines, identical)
 
-## Stall Detection
-If no update for >30 seconds:
-1. HALT current operation
-2. Diagnose root cause
-3. Fix environment/tool issue
-4. Resume with clean state
+### Canonical Locations (Target)
+- **lib/paytabs/core.ts** - Gateway primitives (createPaymentPage, verifyPayment, validateCallback)
+- **lib/paytabs/config.ts** - Configuration
+- **lib/paytabs/subscription.ts** - Business logic (normalizePayload, finalizeTransaction)
+- **lib/paytabs/index.ts** - Public API exports
+
+### Steps
+1. ✅ Scan completed - 1091 duplicate filenames found
+2. ✅ PayTabs duplicates analyzed
+3. 🔄 Create canonical structure under lib/paytabs/
+4. ⏳ Update all imports across codebase
+5. ⏳ Run tests to verify
+6. ⏳ Delete old duplicates after verification
 
 ---
 
-**Monitor this file to track agent progress in real-time.**
+**Next heartbeat in 20 seconds...**
