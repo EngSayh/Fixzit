@@ -9,7 +9,7 @@
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
-    "maxFailures": 0,
+    "maxFailures": 1,
     "metadata": {
       "actualWorkers": 1
     },
@@ -214,20 +214,20 @@
   },
   "suites": [
     {
-      "title": "lib-paytabs.base-and-hpp.spec.ts",
-      "file": "lib-paytabs.base-and-hpp.spec.ts",
+      "title": "api-projects.spec.ts",
+      "file": "api-projects.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "lib/paytabs - paytabsBase & createHppRequest",
-          "file": "lib-paytabs.base-and-hpp.spec.ts",
-          "line": 4,
+          "title": "Projects API - POST /api/projects",
+          "file": "api-projects.spec.ts",
+          "line": 49,
           "column": 6,
           "specs": [
             {
-              "title": "paytabsBase resolves region URLs and falls back to GLOBAL",
+              "title": "creates project successfully with defaults and server fields",
               "ok": false,
               "tags": [],
               "tests": [
@@ -242,198 +242,166 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 24,
+                      "duration": 318,
                       "error": {
-                        "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts",
-                        "stack": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m401\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n    at /workspaces/Fixzit/qa/tests/api-projects.spec.ts:79:26",
+                        "location": {
+                          "file": "/workspaces/Fixzit/qa/tests/api-projects.spec.ts",
+                          "column": 26,
+                          "line": 79
+                        },
+                        "snippet": "  77 |     const payload = validProjectPayload({ budget: { total: 1000 } }); // omit currency -> default \"SAR\"\n  78 |     const res = await ctx.post(API_PATH, { data: payload });\n> 79 |     expect(res.status()).toBe(201);\n     |                          ^\n  80 |     const project = await res.json();\n  81 |\n  82 |     expect(project).toMatchObject({"
                       },
                       "errors": [
                         {
-                          "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
+                          "location": {
+                            "file": "/workspaces/Fixzit/qa/tests/api-projects.spec.ts",
+                            "column": 26,
+                            "line": 79
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n\n  77 |     const payload = validProjectPayload({ budget: { total: 1000 } }); // omit currency -> default \"SAR\"\n  78 |     const res = await ctx.post(API_PATH, { data: payload });\n> 79 |     expect(res.status()).toBe(201);\n     |                          ^\n  80 |     const project = await res.json();\n  81 |\n  82 |     expect(project).toMatchObject({\n    at /workspaces/Fixzit/qa/tests/api-projects.spec.ts:79:26"
                         }
                       ],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-05T10:59:25.265Z",
+                      "startTime": "2025-10-05T11:22:24.376Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "/workspaces/Fixzit/qa/tests/api-projects.spec.ts",
+                        "column": 26,
+                        "line": 79
+                      }
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "9285e08c8738885aaef5-6e2439412c2baa3e49f5",
-              "file": "lib-paytabs.base-and-hpp.spec.ts",
-              "line": 5,
+              "id": "28d3d863e6cb8f363634-06910e554bcc04329ff6",
+              "file": "api-projects.spec.ts",
+              "line": 74,
               "column": 7
             },
             {
-              "title": "createHppRequest posts to correct endpoint with authorization header",
-              "ok": false,
+              "title": "creates project successfully with defaults and server fields",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 24,
-                      "error": {
-                        "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts",
-                        "stack": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                      },
-                      "errors": [
-                        {
-                          "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-05T10:59:27.735Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "unexpected"
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
                 }
               ],
-              "id": "9285e08c8738885aaef5-9ccf647b1b0219144fb6",
-              "file": "lib-paytabs.base-and-hpp.spec.ts",
-              "line": 25,
+              "id": "28d3d863e6cb8f363634-9ba595fdc506be473f88",
+              "file": "api-projects.spec.ts",
+              "line": 74,
               "column": 7
             },
             {
-              "title": "createHppRequest falls back to GLOBAL when region is undefined",
-              "ok": false,
+              "title": "creates project successfully with defaults and server fields",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 2,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 20,
-                      "error": {
-                        "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts",
-                        "stack": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                      },
-                      "errors": [
-                        {
-                          "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-05T10:59:29.134Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "unexpected"
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
                 }
               ],
-              "id": "9285e08c8738885aaef5-1af1f0fa79775311b803",
-              "file": "lib-paytabs.base-and-hpp.spec.ts",
-              "line": 58,
+              "id": "28d3d863e6cb8f363634-680a6448e87b5fd37cdd",
+              "file": "api-projects.spec.ts",
+              "line": 74,
               "column": 7
             },
             {
-              "title": "createHppRequest propagates fetch rejections",
-              "ok": false,
+              "title": "creates project successfully with defaults and server fields",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 20,
-                      "error": {
-                        "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts",
-                        "stack": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                      },
-                      "errors": [
-                        {
-                          "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-05T10:59:30.464Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "unexpected"
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
                 }
               ],
-              "id": "9285e08c8738885aaef5-407380a91bb4c49a029d",
-              "file": "lib-paytabs.base-and-hpp.spec.ts",
-              "line": 78,
+              "id": "28d3d863e6cb8f363634-bfd5763504f3bccb971d",
+              "file": "api-projects.spec.ts",
+              "line": 74,
               "column": 7
             },
             {
-              "title": "createHppRequest uses undefined header when PAYTABS_SERVER_KEY is absent",
-              "ok": false,
+              "title": "creates project successfully with defaults and server fields",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 4,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 12,
-                      "error": {
-                        "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts",
-                        "stack": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                      },
-                      "errors": [
-                        {
-                          "message": "Error: Cannot find module '/workspaces/Fixzit/src/lib/paytabs' imported from /workspaces/Fixzit/qa/tests/lib-paytabs.base-and-hpp.spec.ts"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-05T10:59:31.569Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "unexpected"
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
                 }
               ],
-              "id": "9285e08c8738885aaef5-1a594a0387a95b668560",
-              "file": "lib-paytabs.base-and-hpp.spec.ts",
-              "line": 95,
+              "id": "28d3d863e6cb8f363634-836fd0284384a6a1c207",
+              "file": "api-projects.spec.ts",
+              "line": 74,
+              "column": 7
+            },
+            {
+              "title": "creates project successfully with defaults and server fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "28d3d863e6cb8f363634-f5bc7832c7303f84bb22",
+              "file": "api-projects.spec.ts",
+              "line": 74,
+              "column": 7
+            },
+            {
+              "title": "creates project successfully with defaults and server fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "28d3d863e6cb8f363634-a018198635a95d310d31",
+              "file": "api-projects.spec.ts",
+              "line": 74,
               "column": 7
             }
           ]
@@ -441,13 +409,17 @@
       ]
     }
   ],
-  "errors": [],
+  "errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ],
   "stats": {
-    "startTime": "2025-10-05T10:59:00.348Z",
-    "duration": 31421.53,
+    "startTime": "2025-10-05T11:22:01.094Z",
+    "duration": 23880.104,
     "expected": 0,
-    "skipped": 0,
-    "unexpected": 5,
+    "skipped": 6,
+    "unexpected": 1,
     "flaky": 0
   }
 }

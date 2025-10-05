@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req);
     
     // If no user or missing required fields, return 401
-    if (!user || !(user as any)?.orgId) {
+    if (!user || !user.orgId) {
+      console.error('POST /api/projects: Auth failed', { user, hasOrgId: !!user?.orgId });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
