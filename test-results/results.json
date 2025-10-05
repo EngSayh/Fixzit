@@ -9,10 +9,8 @@
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
-    "maxFailures": 1,
-    "metadata": {
-      "actualWorkers": 1
-    },
+    "maxFailures": 0,
+    "metadata": {},
     "preserveOutput": "always",
     "reporter": [
       [
@@ -42,9 +40,7 @@
         "outputDir": "/workspaces/Fixzit/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "chromium",
         "name": "chromium",
         "testDir": "/workspaces/Fixzit/qa/tests",
@@ -65,9 +61,7 @@
         "outputDir": "/workspaces/Fixzit/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "firefox",
         "name": "firefox",
         "testDir": "/workspaces/Fixzit/qa/tests",
@@ -88,9 +82,7 @@
         "outputDir": "/workspaces/Fixzit/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "webkit",
         "name": "webkit",
         "testDir": "/workspaces/Fixzit/qa/tests",
@@ -111,9 +103,7 @@
         "outputDir": "/workspaces/Fixzit/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "Mobile Chrome",
         "name": "Mobile Chrome",
         "testDir": "/workspaces/Fixzit/qa/tests",
@@ -134,9 +124,7 @@
         "outputDir": "/workspaces/Fixzit/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "Mobile Safari",
         "name": "Mobile Safari",
         "testDir": "/workspaces/Fixzit/qa/tests",
@@ -157,9 +145,7 @@
         "outputDir": "/workspaces/Fixzit/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "Microsoft Edge",
         "name": "Microsoft Edge",
         "testDir": "/workspaces/Fixzit/qa/tests",
@@ -180,9 +166,7 @@
         "outputDir": "/workspaces/Fixzit/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "Google Chrome",
         "name": "Google Chrome",
         "testDir": "/workspaces/Fixzit/qa/tests",
@@ -212,214 +196,14 @@
       "timeout": 120000
     }
   },
-  "suites": [
-    {
-      "title": "api-projects.spec.ts",
-      "file": "api-projects.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Projects API - POST /api/projects",
-          "file": "api-projects.spec.ts",
-          "line": 49,
-          "column": 6,
-          "specs": [
-            {
-              "title": "creates project successfully with defaults and server fields",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 318,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m401\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n    at /workspaces/Fixzit/qa/tests/api-projects.spec.ts:79:26",
-                        "location": {
-                          "file": "/workspaces/Fixzit/qa/tests/api-projects.spec.ts",
-                          "column": 26,
-                          "line": 79
-                        },
-                        "snippet": "  77 |     const payload = validProjectPayload({ budget: { total: 1000 } }); // omit currency -> default \"SAR\"\n  78 |     const res = await ctx.post(API_PATH, { data: payload });\n> 79 |     expect(res.status()).toBe(201);\n     |                          ^\n  80 |     const project = await res.json();\n  81 |\n  82 |     expect(project).toMatchObject({"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/workspaces/Fixzit/qa/tests/api-projects.spec.ts",
-                            "column": 26,
-                            "line": 79
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n\n  77 |     const payload = validProjectPayload({ budget: { total: 1000 } }); // omit currency -> default \"SAR\"\n  78 |     const res = await ctx.post(API_PATH, { data: payload });\n> 79 |     expect(res.status()).toBe(201);\n     |                          ^\n  80 |     const project = await res.json();\n  81 |\n  82 |     expect(project).toMatchObject({\n    at /workspaces/Fixzit/qa/tests/api-projects.spec.ts:79:26"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-05T11:22:24.376Z",
-                      "annotations": [],
-                      "attachments": [],
-                      "errorLocation": {
-                        "file": "/workspaces/Fixzit/qa/tests/api-projects.spec.ts",
-                        "column": 26,
-                        "line": 79
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "28d3d863e6cb8f363634-06910e554bcc04329ff6",
-              "file": "api-projects.spec.ts",
-              "line": 74,
-              "column": 7
-            },
-            {
-              "title": "creates project successfully with defaults and server fields",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "28d3d863e6cb8f363634-9ba595fdc506be473f88",
-              "file": "api-projects.spec.ts",
-              "line": 74,
-              "column": 7
-            },
-            {
-              "title": "creates project successfully with defaults and server fields",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "28d3d863e6cb8f363634-680a6448e87b5fd37cdd",
-              "file": "api-projects.spec.ts",
-              "line": 74,
-              "column": 7
-            },
-            {
-              "title": "creates project successfully with defaults and server fields",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "Mobile Chrome",
-                  "projectName": "Mobile Chrome",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "28d3d863e6cb8f363634-bfd5763504f3bccb971d",
-              "file": "api-projects.spec.ts",
-              "line": 74,
-              "column": 7
-            },
-            {
-              "title": "creates project successfully with defaults and server fields",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "Mobile Safari",
-                  "projectName": "Mobile Safari",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "28d3d863e6cb8f363634-836fd0284384a6a1c207",
-              "file": "api-projects.spec.ts",
-              "line": 74,
-              "column": 7
-            },
-            {
-              "title": "creates project successfully with defaults and server fields",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "Microsoft Edge",
-                  "projectName": "Microsoft Edge",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "28d3d863e6cb8f363634-f5bc7832c7303f84bb22",
-              "file": "api-projects.spec.ts",
-              "line": 74,
-              "column": 7
-            },
-            {
-              "title": "creates project successfully with defaults and server fields",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "Google Chrome",
-                  "projectName": "Google Chrome",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "28d3d863e6cb8f363634-a018198635a95d310d31",
-              "file": "api-projects.spec.ts",
-              "line": 74,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "errors": [
-    {
-      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
-    }
-  ],
+  "suites": [],
+  "errors": [],
   "stats": {
-    "startTime": "2025-10-05T11:22:01.094Z",
-    "duration": 23880.104,
+    "startTime": "2025-10-05T11:29:58.857Z",
+    "duration": 48438.183,
     "expected": 0,
-    "skipped": 6,
-    "unexpected": 1,
+    "skipped": 0,
+    "unexpected": 0,
     "flaky": 0
   }
 }
