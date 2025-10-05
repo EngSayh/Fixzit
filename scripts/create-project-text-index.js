@@ -17,6 +17,15 @@ async function createTextIndex() {
     const db = client.db();
     const collection = db.collection('projects');
     
+    // Check if collection exists
+    const collections = await db.listCollections({ name: 'projects' }).toArray();
+    
+    if (collections.length === 0) {
+      console.log('⚠ Projects collection does not exist yet - will be created on first insert');
+      console.log('✓ Index will be created automatically when collection is populated');
+      return;
+    }
+    
     // Check if text index already exists
     const indexes = await collection.indexes();
     const hasTextIndex = indexes.some(idx => 
