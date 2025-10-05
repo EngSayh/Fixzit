@@ -7,7 +7,7 @@ test.describe('lib/paytabs - custom base URL via env', () => {
     process.env.PAYTABS_PROFILE_ID = 'custom-profile';
     process.env.PAYTABS_SERVER_KEY = 'custom-key';
 
-    const { createPaymentPage } = await import('../../src/lib/paytabs');
+    const { createPaymentPage } = await import('../../lib/paytabs');
 
     const originalFetch = globalThis.fetch;
     const calls: any[] = [];
@@ -35,7 +35,7 @@ test.describe('lib/paytabs - custom base URL via env', () => {
     process.env.PAYTABS_PROFILE_ID = 'profile-123';
     process.env.PAYTABS_SERVER_KEY = 'server-123';
 
-    const { verifyPayment } = await import('../../src/lib/paytabs');
+    const { verifyPayment } = await import('../../lib/paytabs');
 
     const originalFetch = globalThis.fetch;
     const calls: any[] = [];
@@ -63,7 +63,7 @@ test.describe('lib/paytabs - custom base URL via env', () => {
     process.env.PAYTABS_BASE_URL = 'https://api.paytabs.test';
     process.env.PAYTABS_PROFILE_ID = 'profile-123';
     process.env.PAYTABS_SERVER_KEY = 'server-123';
-    const { verifyPayment } = await import('../../src/lib/paytabs');
+    const { verifyPayment } = await import('../../lib/paytabs');
 
     // Stub console.error
     const originalConsoleError = console.error;

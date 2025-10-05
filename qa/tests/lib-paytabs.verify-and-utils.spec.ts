@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
   test('validateCallback: signature equals generated value (placeholder empty string)', async () => {
-    const { validateCallback } = await import('../../src/lib/paytabs');
+    const { validateCallback } = await import('../../lib/paytabs');
 
     // Placeholder generateSignature returns ''
     expect(validateCallback({}, '')).toBe(true);
@@ -15,7 +15,7 @@ test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
   });
 
   test('PAYMENT_METHODS and CURRENCIES have expected mappings', async () => {
-    const { PAYMENT_METHODS, CURRENCIES } = await import('../../src/lib/paytabs');
+    const { PAYMENT_METHODS, CURRENCIES } = await import('../../lib/paytabs');
 
     expect(PAYMENT_METHODS).toMatchObject({
       MADA: 'mada',
@@ -36,7 +36,7 @@ test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
   });
 
   test('getAvailablePaymentMethods returns 6 enabled methods with correct shapes and excludes Tabby', async () => {
-    const { getAvailablePaymentMethods, PAYMENT_METHODS } = await import('../../src/lib/paytabs');
+    const { getAvailablePaymentMethods, PAYMENT_METHODS } = await import('../../lib/paytabs');
 
     const methods = getAvailablePaymentMethods();
     expect(Array.isArray(methods)).toBe(true);
