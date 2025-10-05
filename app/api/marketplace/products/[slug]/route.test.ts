@@ -34,9 +34,8 @@ describe('GET /api/marketplace/products/[slug]', () => {
   test('returns 404 when product is not found', async () => {
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(null)
 
-    const params = { slug: 'non-existent' }
     const req = {} as any // Minimal NextRequest stub
-    const res = await GET(req, { params })
+    const res = await GET(req, { params: Promise.resolve({ slug: 'non-existent' }) })
 
     expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: params.slug })
     expect(res.status).toBe(404)
@@ -53,11 +52,10 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const params = { slug: 'test-product' }
     const req = {} as any
-    const res = await GET(req, { params })
+    const res = await GET(req, { params: Promise.resolve({ slug: 'test-product' }) })
 
-    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: params.slug })
+    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: 'test-product' })
     expect(res.status).toBe(200)
 
     const body = await readJson(res as any)
@@ -182,8 +180,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     const doc: any = { slug: 'unique-slug', prices: [], inventories: [] };
     (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
 
-    const params = { slug: 'unique-slug' }
-    await GET({} as any, { params })
+    await GET({} as any, { params: Promise.resolve({ slug: 'unique-slug' }) })
 
     expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: 'unique-slug' })
   })

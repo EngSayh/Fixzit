@@ -137,7 +137,7 @@ describe('Candidate model - findByEmail', () => {
         constructor(..._args: any[]) {}
       };
 
-      findOneSpy = jest.fn();
+      findOneSpy = jest.fn() as jest.Mock;
 
       // The module under test will set:
       // const RealCandidate = models.Candidate || model('Candidate', CandidateSchema);
