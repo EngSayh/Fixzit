@@ -86,7 +86,7 @@ async function runIsolatedImport(env: Record<string, string | undefined>) {
   }
 }
  
-test.describe("HelpArticle model - MongoDB only", () => {
+describe("HelpArticle model - MongoDB only", () => {
   test("uses MongoDB connection when URI is present", async () => {
     const result = await runIsolatedImport({
       MONGODB_URI: "mongodb://localhost:27017/test",
@@ -101,7 +101,7 @@ test.describe("HelpArticle model - MongoDB only", () => {
   });
 });
  
-test.describe("HelpArticle model - schema shape", () => {
+describe("HelpArticle model - schema shape", () => {
   test("defines required fields, defaults, enums, and text indexes", async () => {
     const result = await runIsolatedImport({
       MONGODB_URI: "mongodb://localhost:27017/test",
@@ -142,10 +142,7 @@ test.describe("HelpArticle model - schema shape", () => {
   });
 });
  
-test.describe("HelpArticle source integrity checks", () => {
-    const src = await fs.readFile(modelPath, "utf8");
-  });
- 
+describe("HelpArticle source integrity checks", () => {
   test("schema contains the expected fields", async () => {
     const src = await fs.readFile(modelPath, "utf8");
     for (const key of ["slug", "title", "content", "category", "tags", "status", "routeHints", "updatedBy", "updatedAt"]) {
