@@ -112,6 +112,7 @@ const MODULES = [
   { id:'compliance',   name:'nav.compliance',   icon:Shield,          path:'/fm/compliance', category:'compliance' },
   { id:'reports',      name:'nav.reports',icon:BarChart3,       path:'/fm/reports', category:'reporting' },
   { id:'system',       name:'nav.system',  icon:Cog,             path:'/fm/system', category:'admin' },
+  { id:'administration', name:'nav.administration', icon:Settings, path:'/fm/admin/subscriptions', category:'admin' },
   { id:'maintenance',  name:'nav.maintenance',        icon:Settings,        path:'/fm/maintenance', category:'fm' },
   { id:'orders',       name:'nav.orders',             icon:ClipboardList,   path:'/fm/orders', category:'procurement' }
 ];

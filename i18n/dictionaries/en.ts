@@ -41,6 +41,7 @@ const en = {
     compliance: 'Compliance',
     reports: 'Reports',
     system: 'System Management',
+    administration: 'Administration',
     maintenance: 'Maintenance',
     orders: 'Orders',
     profile: 'Profile',
