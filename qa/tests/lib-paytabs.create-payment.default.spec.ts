@@ -1,13 +1,12 @@
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
+import { createPaymentPage } from '../../lib/paytabs';
 
 test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
   test('creates payment page successfully and posts correct payload', async () => {
     delete process.env.PAYTABS_BASE_URL; // force default to GLOBAL
     process.env.PAYTABS_PROFILE_ID = 'test-profile-id';
     process.env.PAYTABS_SERVER_KEY = 'test-server-key';
-
-    const { createPaymentPage } = await import('../../lib/paytabs');
 
     const validRequest = {
       amount: 150.5,
@@ -96,8 +95,6 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     process.env.PAYTABS_PROFILE_ID = 'id';
     process.env.PAYTABS_SERVER_KEY = 'key';
 
-    const { createPaymentPage } = await import('../../lib/paytabs');
-
     const originalFetch = globalThis.fetch;
     const captured: string[] = [];
     globalThis.fetch = ((...args: any[]) => {
@@ -172,8 +169,6 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     process.env.PAYTABS_PROFILE_ID = 'id';
     process.env.PAYTABS_SERVER_KEY = 'key';
 
-    const { createPaymentPage } = await import('../../lib/paytabs');
-
     const originalFetch = globalThis.fetch;
 
     // Case: { message: 'Invalid payment details' }
@@ -210,8 +205,6 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     process.env.PAYTABS_PROFILE_ID = 'id';
     process.env.PAYTABS_SERVER_KEY = 'key';
 
-    const { createPaymentPage } = await import('../../lib/paytabs');
-
     const originalFetch = globalThis.fetch;
     globalThis.fetch = ((..._args: any[]) => Promise.reject('string error')) as any;
 
@@ -231,8 +224,6 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     delete process.env.PAYTABS_BASE_URL;
     process.env.PAYTABS_PROFILE_ID = 'id';
     process.env.PAYTABS_SERVER_KEY = 'key';
-
-    const { createPaymentPage } = await import('../../lib/paytabs');
 
     const originalFetch = globalThis.fetch;
     let bodyObj: any;
