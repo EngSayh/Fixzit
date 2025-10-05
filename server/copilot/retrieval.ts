@@ -86,7 +86,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
     id: doc.slug,
     title: doc.title,
     content: doc.content,
-    source: doc.source,
+    source: doc.source || undefined,
     score: cosineSimilarity(embedding, doc.embedding || [])
   }));
 
