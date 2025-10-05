@@ -1,15 +1,12 @@
 /**
- * Unit tests for HelpArticle model using Playwright Test.
- * Framework: Playwright Test (@playwright/test)
+ * Unit tests for HelpArticle model.
+ * Framework: Vitest
  *
  * Focus: Validate behavior introduced/modified in the HelpArticle model.
  * - Schema: required fields, defaults, enums, indexes, timestamps.
- *
- * Notes:
- * - We control branches by spawning isolated Node processes with tsx loader.
  */
  
-import { test, expect } from "@playwright/test";
+import { describe, test, expect } from "vitest";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import fs from "node:fs/promises";

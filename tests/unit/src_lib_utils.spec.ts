@@ -1,27 +1,12 @@
 /**
- * Testing library/framework: Playwright Test (@playwright/test)
- * This suite validates generateSlug from src/lib/utils (primary) or src/lib/utils.test (fallback),
- * covering happy paths, edge cases, and failure-like conditions based on the PR diff focus.
+ * Testing library/framework: Vitest
+ * This suite validates generateSlug from lib/utils,
+ * covering happy paths, edge cases, and failure-like conditions.
  */
-import { test, expect } from "@playwright/test";
+import { describe, test, expect } from "vitest";
+import { generateSlug } from "@/lib/utils";
 
-// Dynamically load from canonical source if present, else fallback to the PR snippet file.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const mod: { generateSlug: (input: string) => string } = (() => {
-  try {
-    // Prefer canonical source location
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require("../../src/lib/utils");
-  } catch {
-    // Fallback to file mentioned in PR snippet
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require("../../src/lib/utils.test");
-  }
-})();
-
-const { generateSlug } = mod;
-
-test.describe("generateSlug", () => {
+describe("generateSlug", () => {
   test("lowercases and hyphenates a basic phrase", () => {
     expect(generateSlug("HELLO WORLD")).toBe("hello-world");
   });
