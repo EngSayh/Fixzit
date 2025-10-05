@@ -44,11 +44,11 @@ const app = {
     },
     
     showArabic() {
-        alert('Arabic Version - النسخة العربية\nFull RTL support with Arabic interface coming soon!');
+        window.location.href = '/?lang=ar';
     },
     
     showMarketplace() {
-        alert('Fixzit Souq Marketplace\nIntegrated vendor management and procurement platform coming soon!');
+        window.location.href = '/marketplace';
     },
     
     login() {

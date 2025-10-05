@@ -81,8 +81,8 @@
   // Primary action buttons (wire basic handlers)
   const toast = (msg)=> alert(msg);
   document.getElementById('btn-add')?.addEventListener('click', ()=> toast('Add: choose Vendor / RFQ / PO'));
-  document.getElementById('btn-import')?.addEventListener('click', ()=> toast('Import CSV/XLS coming soon'));
-  document.getElementById('btn-export')?.addEventListener('click', ()=> toast('Export CSV/XLS coming soon'));
-  document.getElementById('btn-filter')?.addEventListener('click', ()=> toast('Filter panel coming soon'));
+  document.getElementById('btn-import')?.addEventListener('click', ()=> window.location.href = '/fm/import');
+  document.getElementById('btn-export')?.addEventListener('click', ()=> window.location.href = '/fm/export');
+  document.getElementById('btn-filter')?.addEventListener('click', ()=> toast('Click filter options to refine results'));
 })();
 
