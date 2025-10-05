@@ -1,6 +1,6 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import ServiceContract from '@/server/models/ServiceContract';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
 import { createSecureResponse } from '@/server/security/headers';
