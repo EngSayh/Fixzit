@@ -1,6 +1,6 @@
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
-import { paytabsBase, createHppRequest } from '../../lib/paytabs';
+import { paytabsBase, createHppRequest } from '../../lib/paytabs.js';
 
 test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
   test('paytabsBase resolves region URLs and falls back to GLOBAL', async () => {

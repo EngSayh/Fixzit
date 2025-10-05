@@ -1,6 +1,6 @@
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
-import { validateCallback, PAYMENT_METHODS, CURRENCIES, getAvailablePaymentMethods } from '../../lib/paytabs';
+import { validateCallback, PAYMENT_METHODS, CURRENCIES, getAvailablePaymentMethods } from '../../lib/paytabs.js';
 
 test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
   test('validateCallback: signature equals generated value (placeholder empty string)', async () => {

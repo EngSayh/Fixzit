@@ -1,6 +1,6 @@
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
-import { createPaymentPage } from '../../lib/paytabs';
+import { createPaymentPage } from '../../lib/paytabs.js';
 
 test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
   test('creates payment page successfully and posts correct payload', async () => {

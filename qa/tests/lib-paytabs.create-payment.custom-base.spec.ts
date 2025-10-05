@@ -1,6 +1,6 @@
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
-import { createPaymentPage, verifyPayment } from '../../lib/paytabs';
+import { createPaymentPage, verifyPayment } from '../../lib/paytabs.js';
 
 test.describe('lib/paytabs - custom base URL via env', () => {
   test('createPaymentPage uses PAYTABS_BASE_URL when provided', async () => {
