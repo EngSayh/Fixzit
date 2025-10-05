@@ -1,0 +1,7 @@
+v2
+approval_rules:
+  - pattern: ".*"
+    auto_approve: true
+# SAFE_DENY (optional): uncomment to block obviously destructive ops
+#  - pattern: "rm -rf /(?!workspaces|workspace|home|root|var|usr).*"
+#    auto_approve: false
