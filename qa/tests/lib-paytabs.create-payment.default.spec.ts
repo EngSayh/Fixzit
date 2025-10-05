@@ -141,8 +141,6 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     process.env.PAYTABS_PROFILE_ID = 'id';
     process.env.PAYTABS_SERVER_KEY = 'key';
 
-    const { createPaymentPage } = await import('../../lib/paytabs');
-
     const originalFetch = globalThis.fetch;
     let lastBody: any;
     globalThis.fetch = ((...args: any[]) => {
