@@ -76,7 +76,7 @@ const workOrderFindOneAndUpdate = jest.fn();
 
 const ownerStatementFind = jest.fn();
 
-jest.unstable_mockModule("@/db/models/WorkOrder", () => ({
+jest.unstable_mockModule("@/server/models/WorkOrder", () => ({
   WorkOrder: {
     create: workOrderCreate,
     find: workOrderFind,
@@ -84,7 +84,7 @@ jest.unstable_mockModule("@/db/models/WorkOrder", () => ({
   },
 }));
 
-jest.unstable_mockModule("@/db/models/OwnerStatement", () => ({
+jest.unstable_mockModule("@/server/models/OwnerStatement", () => ({
   OwnerStatement: {
     find: ownerStatementFind,
   },

@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { db } from "@/lib/mongo";
-import { CopilotKnowledge, KnowledgeDoc } from "@/db/models/CopilotKnowledge";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import type { SessionUser } from "@/server/middleware/withAuthRbac";
+import { CopilotKnowledge, KnowledgeDoc } from "@/server/models/CopilotKnowledge";
 import { CopilotSession } from "./session";
 
 const EMBEDDING_MODEL = process.env.COPILOT_EMBEDDING_MODEL || "text-embedding-3-small";

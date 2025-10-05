@@ -5,7 +5,7 @@
  * We mock:
  * - next/server: NextResponse.json to return simple object with status + payload.
  * - @/lib/mongo: db (awaited promise) and getNativeDb().collection('error_events').insertOne
- * - @/db/models/SupportTicket: .create
+ * - @/server/models/SupportTicket: .create
  *
  * Tests cover:
  * - Happy path with explicit fields
@@ -38,7 +38,7 @@ jest.mock('@/lib/mongo', () => {
   return { db, getNativeDb };
 });
 
-jest.mock('@/db/models/SupportTicket', () => {
+jest.mock('@/server/models/SupportTicket', () => {
   return {
     SupportTicket: {
       create: jest.fn(async (doc: any) => ({ ...doc, code: doc.code || 'SUP-2024-99999' })),
@@ -66,7 +66,7 @@ beforeAll(async () => {
 
 const { NextResponse } = jest.requireMock('next/server') as { NextResponse: { json: jest.Mock } };
 const { getNativeDb } = jest.requireMock('@/lib/mongo') as { getNativeDb: jest.Mock };
-const { SupportTicket } = jest.requireMock('@/db/models/SupportTicket') as { SupportTicket: { create: jest.Mock } };
+const { SupportTicket } = jest.requireMock('@/server/models/SupportTicket') as { SupportTicket: { create: jest.Mock } };
 
 describe('POST /api/support/incidents', () => {
   const FIXED_DATE = new Date('2024-06-15T12:34:56.000Z');

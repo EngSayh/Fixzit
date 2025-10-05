@@ -2,8 +2,12 @@ import { randomUUID } from "crypto";
 import path from "path";
 import { promises as fs } from "fs";
 import { db } from "@/lib/mongo";
-import { WorkOrder } from "@/db/models/WorkOrder";
-import { OwnerStatement } from "@/db/models/OwnerStatement";
+import { NextRequest } from "next/server";
+import type { SessionUser } from "@/server/middleware/withAuthRbac";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import type { ITenantCopilotSettings, ITenantOrgSettings } from "@/types";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { OwnerStatement } from "@/server/models/OwnerStatement";
 import { CopilotSession } from "./session";
 import { getPermittedTools } from "./policy";
 
