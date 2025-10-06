@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // Determine import path to the implementation under test.
 // Adjust this path if the actual file differs. We search common locations.

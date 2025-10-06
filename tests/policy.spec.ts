@@ -1,9 +1,8 @@
 /* 
-  Test framework: Jest (ts-jest or Babel-jest as configured by the repo).
-  If your project uses Vitest, these tests are compatible with minimal changes (e.g., expect/vi).
+  Test framework: Vitest
 */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 
 /*
   We import from the module under test. Adjust the import path below to match your repository structure.
