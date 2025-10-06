@@ -5,38 +5,9 @@
 import { describe, it, expect } from 'vitest'
 
 /*
-  We import from the module under test. Adjust the import path below to match your repository structure.
-  Common locations:
-    - src/policy
-    - lib/policy
-    - app/policy
-  The functions and types are inferred from the diff-provided snippet.
+  Import the policy module from its actual location
 */
-let mod: any
-try {
-  // Try common module paths in order; the test will dynamically resolve whichever exists at runtime
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  mod = require('../src/policy')
-} catch {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    mod = require('../lib/policy')
-  } catch {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      mod = require('../policy')
-    } catch {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        mod = require('./policy') // co-located for monorepos
-      } catch {
-        // Last resort: relative from tests to parent
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        mod = require('policy')
-      }
-    }
-  }
-}
+import * as mod from '@/server/copilot/policy';
 
 const {
   evaluateMessagePolicy,
