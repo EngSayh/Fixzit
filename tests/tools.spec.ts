@@ -26,11 +26,6 @@ const tryImportCandidates = async () => {
       // continue
     }
   }
-  // As a fallback, attempt relative to tests file if using ts-jest path mapping off
-  try {
-    const m = await import("../src/server/copilot/tools");
-    if (m.executeTool && m.detectToolFromMessage) return m;
-  } catch(_) {}
   throw new Error("Could not resolve tools module. Please update import candidates to actual file path exporting executeTool and detectToolFromMessage.");
 };
 
