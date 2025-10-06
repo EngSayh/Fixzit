@@ -3,7 +3,6 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import User from "@/modules/users/schema";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),

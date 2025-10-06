@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { HelpArticle } from "@/server/models/HelpArticle";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
