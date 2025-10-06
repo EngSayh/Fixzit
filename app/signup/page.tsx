@@ -156,7 +156,7 @@ export default function SignupPage() {
           router.push('/login');
         }, 2000);
       }
-    } catch {
+    } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {
       setLoading(false);

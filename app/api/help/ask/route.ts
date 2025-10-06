@@ -218,7 +218,7 @@ if (process.env.REDIS_URL) {
       connectTimeout: 5000,
       commandTimeout: 5000,
     });
-  } catch {
+  } catch (err) {
     console.error('Failed to initialize Redis client:', err);
   }
 }

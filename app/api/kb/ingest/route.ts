@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       content
     });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
     console.error('kb/ingest error', err);
     return NextResponse.json({ error: 'Ingest failed' }, { status: 500 });
   }
