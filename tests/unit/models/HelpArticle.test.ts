@@ -13,8 +13,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import crypto from "node:crypto";
  
-const projectRoot = path.resolve(__dirname, "../../../..");
-const modelPath = path.resolve(projectRoot, "src/server/models/HelpArticle.ts");
+const projectRoot = path.resolve(__dirname, "../../..");
+const modelPath = path.resolve(projectRoot, "server/models/HelpArticle.ts");
  
 /**
  * Helper: create a temporary test module that imports the model after setting env,
