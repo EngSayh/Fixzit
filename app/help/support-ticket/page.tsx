@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 /**
  * Renders a support ticket submission form and handles creating tickets via the app API.
