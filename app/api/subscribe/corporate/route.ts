@@ -15,14 +15,15 @@ export async function POST(req: NextRequest) {
     
     await dbConnect();
     const body = await req.json();
-// Tenant isolation: ensure tenantId matches user's tenantId (unless SUPER_ADMIN)
-    if (body.tenantId && body.tenantId !== user.tenantId && user.role !== 'super_admin') {
+    
+    // Tenant isolation: ensure tenantId matches user's orgId (unless SUPER_ADMIN)
+    if (body.tenantId && body.tenantId !== user.orgId && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'FORBIDDEN_TENANT_MISMATCH' }, { status: 403 });
     }
 
-  if (!body.tenantId) {
-    return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
-  }
+    if (!body.tenantId) {
+      return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
+    }
 
   if (!Array.isArray(body.modules) || body.modules.length === 0) {
     return NextResponse.json({ error: 'MODULES_REQUIRED' }, { status: 400 });
