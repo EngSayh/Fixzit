@@ -4,18 +4,88 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { Invoice } from '@/server/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from 'zod';
+import { rateLimit } from '@/server/security/rateLimit';
+import { notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
-// Utility functions for API responses
-const notFoundError = (resource: string) => NextResponse.json({ error: `${resource} not found` }, { status: 404 });
-const validationError = (message: string) => NextResponse.json({ error: message }, { status: 400 });
-const createSecureResponse = (data: any) => NextResponse.json(data);
-const handleApiError = (error: any) => NextResponse.json({ error: 'API error occurred' }, { status: 500 });
-const internalServerError = (message: string, error?: any) => NextResponse.json({ error: message }, { status: 500 });
-
+/**
+ * @openapi
+ * /api/payments/create:
+ *   post:
+ *     summary: Create payment transaction
+ *     description: Initiates a payment transaction for an invoice using PayTabs payment gateway. Generates a secure payment URL for customer checkout. Requires authentication.
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - invoiceId
+ *             properties:
+ *               invoiceId:
+ *                 type: string
+ *                 pattern: '^[a-fA-F0-9]{24}$'
+ *                 description: MongoDB ObjectId of the invoice to pay
+ *                 example: "507f1f77bcf86cd799439011"
+ *               returnUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL to redirect after successful payment
+ *                 example: "https://fixzit.co/payments/success"
+ *               cancelUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL to redirect if payment is cancelled
+ *                 example: "https://fixzit.co/payments/cancel"
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [credit_card, bank_transfer, wallet]
+ *                 description: Preferred payment method
+ *                 example: "credit_card"
+ *     responses:
+ *       200:
+ *         description: Payment page created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 paymentUrl:
+ *                   type: string
+ *                   format: uri
+ *                   description: Secure PayTabs payment page URL
+ *                   example: "https://secure.paytabs.sa/payment/page/ABC123DEF456"
+ *                 transactionId:
+ *                   type: string
+ *                   description: PayTabs transaction reference ID
+ *                   example: "TST2024010112345678"
+ *       400:
+ *         description: Validation error - Invalid invoice ID, already paid, or missing required fields
+ *       404:
+ *         description: Invoice not found in tenant scope
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error or PayTabs API failure
+ */
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting: 10 req/5min for payment creation (high sensitivity)
     const user = await getSessionUser(req);
-    
+    const rl = rateLimit(`payment-create:${user.id}`, 10, 300);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const paymentSchema = z.object({
       invoiceId: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid invoice ID'),
       returnUrl: z.string().url().optional(),
@@ -27,7 +97,7 @@ export async function POST(req: NextRequest) {
     const { invoiceId } = body;
 
     if (!invoiceId) {
-      return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
+      return validationError('Invoice ID is required');
     }
 
     await connectToDatabase();
@@ -42,7 +112,9 @@ export async function POST(req: NextRequest) {
     
     if (invoice.status === 'paid') {
       return validationError('Invoice is already paid');
-    }    // Create payment request
+    }
+
+    // Create payment request
     const paymentRequest = {
       amount: invoice.total,
       currency: invoice.currency,
@@ -78,16 +150,14 @@ export async function POST(req: NextRequest) {
         success: true,
         paymentUrl: paymentResponse.paymentUrl,
         transactionId: paymentResponse.transactionId
-      });
+      }, 200, req);
     } else {
       return validationError(paymentResponse.error || 'Payment initialization failed');
     }
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return handleApiError(error);
+      return zodValidationError(error);
     }
-    return internalServerError('Failed to create payment', error);
+    return handleApiError(error);
   }
 }
-
-
