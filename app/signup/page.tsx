@@ -42,8 +42,6 @@ export default function SignupPage() {
 
   const router = useRouter();
 
-  };
-
   // Handle input changes
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({
