@@ -3,6 +3,9 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import User from "@/modules/users/schema";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { rateLimit } from '@/server/security/rateLimit';
+import { zodValidationError, rateLimitError, duplicateKeyError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -23,13 +26,59 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
+/**
+ * @openapi
+ * /api/auth/signup:
+ *   post:
+ *     summary: User registration
+ *     description: Creates new user account for personal, corporate, or vendor types
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - email
+ *               - password
+ *               - userType
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               userType:
+ *                 type: string
+ *                 enum: [personal, corporate, vendor]
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error or duplicate user
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
   try {
-    await connectToDatabase();
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+    const rl = rateLimit(`auth-signup:${clientIp}`, 5, 900);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
+    await connectToDatabase();
     const body = signupSchema.parse(await req.json());
 
-    // Determine role based on user type
     let role = "TENANT";
     switch (body.userType) {
       case "corporate":
@@ -42,70 +91,45 @@ export async function POST(req: NextRequest) {
         role = "TENANT";
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(body.password, 12);
-
-    // Check if user already exists
     const existingUser = await User.findOne({ email: body.email });
+    
     if (existingUser) {
-      return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 400 }
-      );
+      return duplicateKeyError();
     }
 
-    // Create user in MongoDB
-    const user = await User.create({
-      email: body.email,
-      name: body.fullName,
-      role,
-      tenantId: 'demo-tenant', // Default tenant for now
-      password: hashedPassword,
+    const newUser = await User.create({
       firstName: body.firstName,
       lastName: body.lastName,
+      fullName: body.fullName || `${body.firstName} ${body.lastName}`,
+      email: body.email,
       phone: body.phone,
       companyName: body.companyName,
-      userType: body.userType,
-      newsletter: body.newsletter || false,
-      preferredLanguage: body.preferredLanguage || 'en',
-      preferredCurrency: body.preferredCurrency || 'SAR',
+      role,
+      password: hashedPassword,
       termsAccepted: body.termsAccepted,
-      isActive: true,
-      emailVerified: false,
+      newsletter: body.newsletter || false,
+      preferredLanguage: body.preferredLanguage,
+      preferredCurrency: body.preferredCurrency,
     });
 
-    // Remove password from response
-    // eslint-disable-next-line no-unused-vars
-    const { password, ...userWithoutPassword } = user.toObject();
-
-    return NextResponse.json({
+    return createSecureResponse({
       ok: true,
-      message: "Account created successfully",
-      user: userWithoutPassword
-    }, { status: 201 });
-
-  } catch (error) {
-    console.error("Signup error:", error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid input data", details: error.issues },
-        { status: 400 }
-      );
+      message: "User created successfully",
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    }, 201, req);
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return zodValidationError(error);
     }
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
-// Handle GET requests (for testing)
-export async function GET() {
-  return NextResponse.json({
-    message: "Signup endpoint is working",
-    timestamp: new Date().toISOString()
-  });
+export async function GET(req: NextRequest) {
+  return createSecureResponse({ ok: true, message: "Signup endpoint is active" }, 200, req);
 }
-

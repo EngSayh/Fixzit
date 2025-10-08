@@ -1,69 +1,100 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUser } from '@/lib/auth';
+import { z } from 'zod';
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
+const LoginSchema = z.object({
+  email: z.string().email().optional(),
+  employeeNumber: z.string().optional(),
+  password: z.string().min(1, 'Password is required'),
+  loginType: z.enum(['personal', 'corporate']).default('personal')
+}).refine(
+  (data) => data.loginType === 'personal' ? !!data.email : !!data.employeeNumber,
+  { message: 'Email required for personal login or employee number for corporate login' }
+);
+
+/**
+ * @openapi
+ * /api/auth/login:
+ *   post:
+ *     summary: User authentication
+ *     description: Authenticates users via email (personal) or employee number (corporate). Returns JWT token and sets secure HTTP-only cookie.
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "user@example.com"
+ *               employeeNumber:
+ *                 type: string
+ *                 example: "EMP001"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: "SecurePass123!"
+ *               loginType:
+ *                 type: string
+ *                 enum: [personal, corporate]
+ *                 default: personal
+ *     responses:
+ *       200:
+ *         description: Authentication successful
+ *       401:
+ *         description: Invalid credentials
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+    const rl = rateLimit(`auth-login:${clientIp}`, 5, 900);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const body = await req.json();
-    const { email, employeeNumber, password, loginType = 'personal' } = body;
+    const validatedData = LoginSchema.parse(body);
 
-    if (!password) {
-      return NextResponse.json(
-        { error: 'Password is required' },
-        { status: 400 }
-      );
-    }
-
-    if (loginType === 'personal' && !email) {
-      return NextResponse.json(
-        { error: 'Email is required for personal login' },
-        { status: 400 }
-      );
-    }
-
-    if (loginType === 'corporate' && !employeeNumber) {
-      return NextResponse.json(
-        { error: 'Employee number is required for corporate login' },
-        { status: 400 }
-      );
-    }
-
-    // Authenticate user
     const result = await authenticateUser(
-      loginType === 'personal' ? email : employeeNumber,
-      password,
-      loginType
+      validatedData.loginType === 'corporate' ? validatedData.employeeNumber! : validatedData.email!,
+      validatedData.password,
+      validatedData.loginType
     );
-    
-    // Create response
-    const response = NextResponse.json({
+
+    if (!result.success) {
+      return unauthorizedError(result.error || 'Invalid credentials');
+    }
+
+    const response = createSecureResponse({
       ok: true,
       token: result.token,
       user: result.user
-    });
-    
-    // Set secure cookie
-    response.cookies.set('fixzit_auth', result.token, {
+    }, 200, req);
+
+    response.cookies.set('fixzit_auth', result.token!, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 86400, // 24 hours
+      maxAge: 30 * 24 * 60 * 60,
       path: '/',
     });
-    
+
     return response;
   } catch (error: any) {
-    console.error('Login error:', error);
-    
-    if (error.message === 'Invalid credentials' || error.message === 'Account is not active') {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      );
+    if (error.name === 'ZodError') {
+      return zodValidationError(error);
     }
-    
-    return NextResponse.json(
-      { error: 'Authentication failed' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
