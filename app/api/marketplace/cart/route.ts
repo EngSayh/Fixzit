@@ -14,6 +14,23 @@ const AddToCartSchema = z.object({
   quantity: z.number().int().positive()
 });
 
+/**
+ * @openapi
+ * /api/marketplace/cart:
+ *   get:
+ *     summary: marketplace/cart operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);

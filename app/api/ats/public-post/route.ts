@@ -5,6 +5,10 @@ import { generateSlug } from "@/lib/utils";
 import { rateLimit } from "@/server/security/rateLimit";
 import { z } from "zod";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const publicJobSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
   department: z.string().optional(),
@@ -26,7 +30,31 @@ const publicJobSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/ats/public-post:
+ *   get:
+ *     summary: ats/public-post operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const body = await req.json();

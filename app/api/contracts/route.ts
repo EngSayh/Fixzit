@@ -21,7 +21,31 @@ const contractSchema = z.object({
   sla: z.record(z.string(), z.any()).optional()
 });
 
+/**
+ * @openapi
+ * /api/contracts:
+ *   get:
+ *     summary: contracts operations
+ *     tags: [contracts]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();

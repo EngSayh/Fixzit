@@ -4,16 +4,44 @@ import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const schema = z.object({ text: z.string().min(1) });
 
+/**
+ * @openapi
+ * /api/support/tickets/[id]/reply:
+ *   get:
+ *     summary: support/tickets/[id]/reply operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   await connectToDatabase();
   const user = await getSessionUser(req).catch(()=>null);
   const body = schema.parse(await req.json());
   // Validate MongoDB ObjectId format
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
   const t = await (SupportTicket as any).findOne({ 
     _id: params.id, 
@@ -24,15 +52,15 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       ...(user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
     ]
   });
-  if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // End user may reply only to own ticket; admins can reply to any
   const isAdmin = !!user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role);
   const isOwner = !!user && t.createdByUserId === user.id;
-  if (!isAdmin && !isOwner) return NextResponse.json({ error: "Forbidden"},{ status: 403 });
+  if (!isAdmin && !isOwner) return createSecureResponse({ error: "Forbidden"}, 403, req);
 
   t.messages.push({ byUserId: user?.id, byRole: isAdmin ? "ADMIN" : "USER", text: body.text, at: new Date() });
   if (t.status === "Waiting") t.status = "Open";
   await t.save();
-  return NextResponse.json({ ok: true });
+  return createSecureResponse({ ok: true }, 200, req);
 }

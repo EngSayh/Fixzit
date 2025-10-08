@@ -4,12 +4,40 @@ import { parseCartAmount } from '@/lib/payments/parseCartAmount';
 import { Invoice } from '@/server/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/payments/callback:
+ *   get:
+ *     summary: payments/callback operations
+ *     tags: [payments]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 10, 300);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const raw = await req.text();
     const signature = req.headers.get('signature') || '';
     if (!validateCallback(raw, signature)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+      return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
     const body = JSON.parse(raw);
 
@@ -23,13 +51,13 @@ export async function POST(req: NextRequest) {
 
     if (!invoice) {
       console.error('Invoice not found for payment callback:', cart_id);
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+      return createSecureResponse({ error: 'Invoice not found' }, 404, req);
     }
 
     // Validate amount once
     const amount = parseCartAmount(body.cart_amount, Number.NaN);
     if (!Number.isFinite(amount) || amount < 0) {
-      return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
+      return createSecureResponse({ error: 'Invalid cart amount' }, 400, req);
     }
     // Update invoice based on payment result
     if (payment_result?.response_status === 'A' && verification?.payment_result?.response_status === 'A') {
@@ -73,12 +101,12 @@ export async function POST(req: NextRequest) {
 
     await invoice.save();
 
-    return NextResponse.json({ success: true });
+    return createSecureResponse({ success: true }, 200, req);
   } catch (error: any) {
     console.error('Payment callback error:', error);
-    return NextResponse.json({ 
+    return createSecureResponse({ 
       error: 'Failed to process payment callback' 
-    }, { status: 500 });
+    }, 500, req);
   }
 }
 

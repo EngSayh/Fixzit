@@ -3,6 +3,10 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createAssetSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -45,7 +49,31 @@ const createAssetSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/assets:
+ *   get:
+ *     summary: assets operations
+ *     tags: [assets]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.ASSET_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
@@ -59,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
     const user = await getSessionUser(req);
     if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
     if (!user?.orgId) {
       return NextResponse.json(
@@ -78,13 +106,20 @@ export async function POST(req: NextRequest) {
       createdBy: user.id
     });
 
-    return NextResponse.json(asset, { status: 201 });
+    return createSecureResponse(asset, 201, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse({ error: error.message }, 400, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.ASSET_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
@@ -99,7 +134,7 @@ export async function GET(req: NextRequest) {
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
     if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
     if (!user?.orgId) {
       return NextResponse.json(
@@ -143,7 +178,7 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(result[1] / limit)
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ error: error.message }, 500, req);
   }
 }
 

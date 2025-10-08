@@ -4,6 +4,10 @@ import { Project } from "@/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createProjectSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -41,7 +45,31 @@ const createProjectSchema = z.object({
  *
  * @returns A NextResponse containing the created project (201) or an error object with an appropriate status code.
  */
+/**
+ * @openapi
+ * /api/projects:
+ *   get:
+ *     summary: projects operations
+ *     tags: [projects]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {    const user = await getSessionUser(req);
     if (!user?.orgId) {
       return NextResponse.json(
@@ -68,14 +96,21 @@ export async function POST(req: NextRequest) {
       createdBy: user.id
     });
 
-    return NextResponse.json(project, { status: 201 });
+    return createSecureResponse(project, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.flatten() }, { status: 422 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
   }
 }export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req);
     if (!user?.orgId) {
@@ -117,7 +152,7 @@ export async function POST(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ error: error.message }, 500, req);
   }
 }
 

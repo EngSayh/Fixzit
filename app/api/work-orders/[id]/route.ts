@@ -6,12 +6,33 @@ import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/work-orders/[id]:
+ *   get:
+ *     summary: work-orders/[id] operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}) {
   const params = await props.params;
   await connectToDatabase();
   const wo = await (WorkOrder as any).findById(params.id);
-  if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(wo);
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+  return createSecureResponse(wo, 200, req);
 }
 
 const patchSchema = z.object({
@@ -48,6 +69,6 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     { $set: updatePayload },
     { new: true }
   );
-  if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(wo);
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+  return createSecureResponse(wo, 200, req);
 }

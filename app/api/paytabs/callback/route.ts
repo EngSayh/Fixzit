@@ -2,16 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/paytabs/callback:
+ *   get:
+ *     summary: paytabs/callback operations
+ *     tags: [paytabs]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   await dbConnect();
   const payload = await req.json();
   const normalized = normalizePayTabsPayload(payload);
 
   try {
     const result = await finalizePayTabsTransaction(normalized);
-    return NextResponse.json(result);
+    return createSecureResponse(result, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse({ error: error.message }, 400, req);
   }
 }
 

@@ -3,6 +3,10 @@ import { dbConnect } from '@/src/db/mongoose';
 import Benchmark from '@/src/db/models/Benchmark';
 import { requireSuperAdmin } from '@/lib/authz';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await dbConnect();
@@ -11,8 +15,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
   const doc = await Benchmark.findByIdAndUpdate(params.id, body, { new: true });
   if (!doc) {
-    return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+    return createSecureResponse({ error: 'NOT_FOUND' }, 404, req);
   }
 
-  return NextResponse.json(doc);
+  return createSecureResponse(doc, 200, req);
 }

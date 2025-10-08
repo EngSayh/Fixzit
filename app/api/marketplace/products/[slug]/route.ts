@@ -5,10 +5,31 @@ import { db } from '@/lib/mongo';
 import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 interface RouteParams {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * @openapi
+ * /api/marketplace/products/[slug]:
+ *   get:
+ *     summary: marketplace/products/[slug] operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest, props: RouteParams) {
   const params = await props.params;
   try {

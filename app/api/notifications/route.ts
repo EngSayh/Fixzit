@@ -3,6 +3,10 @@ import { z } from "zod";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const notificationSchema = z.object({
   title: z.string().min(1),
   message: z.string().min(1),
@@ -16,7 +20,31 @@ const notificationSchema = z.object({
 
 const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/**
+ * @openapi
+ * /api/notifications:
+ *   get:
+ *     summary: notifications operations
+ *     tags: [notifications]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
   const category = searchParams.get("category") || "";
@@ -32,7 +60,7 @@ export async function GET(req: NextRequest) {
     const user = await getSessionUser(req);
     orgId = user.orgId;
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
   }
 
   const { notifications } = await getCollections();
@@ -65,12 +93,19 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   let orgId: string;
   try {
     const user = await getSessionUser(req);
     orgId = user.orgId;
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
   }
 
   const body = await req.json();

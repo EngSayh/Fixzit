@@ -4,6 +4,10 @@ import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const schema = z.object({
   assigneeUserId: z.string().optional(),
   assigneeVendorId: z.string().optional()
@@ -20,7 +24,31 @@ const schema = z.object({
  * @param params - Route params object; `params.id` is the work order `_id` to update.
  * @returns A NextResponse containing the JSON-serialized updated work order, or a 404 JSON response if not found.
  */
+/**
+ * @openapi
+ * /api/work-orders/[id]/assign:
+ *   get:
+ *     summary: work-orders/[id]/assign operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   const user = await requireAbility("ASSIGN")(req);
   if (user instanceof NextResponse) return user as any;
@@ -30,7 +58,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   // MongoDB-only implementation
   let wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
-  if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   wo.assigneeUserId = body.assigneeUserId;
   wo.assigneeVendorId = body.assigneeVendorId;
@@ -40,5 +68,5 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
   await wo.save();
 
-  return NextResponse.json(wo);
+  return createSecureResponse(wo, 200, req);
 }

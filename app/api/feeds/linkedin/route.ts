@@ -2,8 +2,29 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 export const dynamic = 'force-dynamic';
 
+/**
+ * @openapi
+ * /api/feeds/linkedin:
+ *   get:
+ *     summary: feeds/linkedin operations
+ *     tags: [feeds]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET() {
   // Check if ATS feeds are enabled
   if (process.env.ATS_ENABLED !== 'true') {

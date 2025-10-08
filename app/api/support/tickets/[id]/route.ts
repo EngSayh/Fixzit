@@ -4,18 +4,39 @@ import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const patchSchema = z.object({
   status: z.enum(["New","Open","Waiting","Resolved","Closed"]).optional(),
   assigneeUserId: z.string().optional(),
   priority: z.enum(["Low","Medium","High","Urgent"]).optional()
 });
 
+/**
+ * @openapi
+ * /api/support/tickets/[id]:
+ *   get:
+ *     summary: support/tickets/[id] operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await connectToDatabase();
   const t = await (SupportTicket as any).findById(params.id);
-  if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(t);
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
+  return createSecureResponse(t, 200, req);
 }
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -23,12 +44,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   await connectToDatabase();
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return createSecureResponse({ error: "Forbidden" }, 403, req);
   }
   const data = patchSchema.parse(await req.json());
   // Validate MongoDB ObjectId format
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
   const t = await (SupportTicket as any).findOne({ 
     _id: params.id, 
@@ -38,10 +59,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
     ]
   });
-  if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
   if (data.status && t.status==="New" && !t.firstResponseAt) t.firstResponseAt = new Date();
   Object.assign(t, data);
   if (data.status==="Resolved") t.resolvedAt = new Date();
   await t.save();
-  return NextResponse.json(t);
+  return createSecureResponse(t, 200, req);
 }

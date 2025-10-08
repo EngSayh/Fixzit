@@ -5,6 +5,10 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const updateInvoiceSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"]).optional(),
   payment: z.object({
@@ -20,7 +24,31 @@ const updateInvoiceSchema = z.object({
   }).optional()
 });
 
+/**
+ * @openapi
+ * /api/invoices/[id]:
+ *   get:
+ *     summary: invoices/[id] operations
+ *     tags: [invoices]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -32,7 +60,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+      return createSecureResponse({ error: "Invoice not found" }, 404, req);
     }
 
     // Add to history if viewed for first time by recipient
@@ -47,9 +75,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       await invoice.save();
     }
 
-    return NextResponse.json(invoice);
+    return createSecureResponse(invoice, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ error: error.message }, 500, req);
   }
 }
 
@@ -67,7 +95,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+      return createSecureResponse({ error: "Invoice not found" }, 404, req);
     }
 
     // Handle status update
@@ -172,13 +200,20 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     invoice.updatedBy = user.id;
     await invoice.save();
 
-    return NextResponse.json(invoice);
+    return createSecureResponse(invoice, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse({ error: error.message }, 400, req);
   }
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -191,7 +226,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found or cannot be deleted" }, { status: 404 });
+      return createSecureResponse({ error: "Invoice not found or cannot be deleted" }, 404, req);
     }
 
     invoice.status = "CANCELLED";
@@ -204,8 +239,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     invoice.updatedBy = user.id;
     await invoice.save();
 
-    return NextResponse.json({ success: true });
+    return createSecureResponse({ success: true }, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ error: error.message }, 500, req);
   }
 }

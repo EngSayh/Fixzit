@@ -5,6 +5,10 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import crypto from "crypto";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createSchema = z.object({
   subject: z.string().min(4),
   module: z.enum(["FM","Souq","Aqar","Account","Billing","Other"]),
@@ -16,7 +20,31 @@ const createSchema = z.object({
   requester: z.object({ name:z.string().min(2), email:z.string().email(), phone:z.string().optional() }).optional()
 });
 
+/**
+ * @openapi
+ * /api/support/tickets:
+ *   get:
+ *     summary: support/tickets operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest){
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req).catch(()=>null);
@@ -41,23 +69,30 @@ export async function POST(req: NextRequest){
       messages: [{ byUserId: user?.id, byRole: user ? "USER" : "GUEST", text: body.text, at: new Date() }]
     });
 
-    return NextResponse.json(ticket, { status: 201 });
+    return createSecureResponse(ticket, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
     }
     console.error('Support ticket creation failed:', error);
-    return NextResponse.json({ error: 'Failed to create support ticket' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to create support ticket' }, 500, req);
   }
 }
 
 // Admin list with filters
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
-      return NextResponse.json({ error: "Forbidden"},{ status: 403 });
+      return createSecureResponse({ error: "Forbidden"}, 403, req);
     }
     const sp = new URL(req.url).searchParams;
     const status = sp.get("status") || undefined;
@@ -79,7 +114,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ items, page, limit, total });
   } catch (error) {
     console.error('Support tickets query failed:', error);
-    return NextResponse.json({ error: 'Failed to fetch support tickets' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to fetch support tickets' }, 500, req);
   }
 }
 

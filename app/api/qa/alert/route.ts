@@ -1,7 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/qa/alert:
+ *   get:
+ *     summary: qa/alert operations
+ *     tags: [qa]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const body = await req.json();
     const { event, data } = body;
@@ -18,14 +46,21 @@ export async function POST(req: NextRequest) {
 
     console.warn(`🚨 QA Alert: ${event}`, data);
 
-    return NextResponse.json({ success: true });
+    return createSecureResponse({ success: true }, 200, req);
   } catch (error) {
     console.error('Failed to process QA alert:', error);
-    return NextResponse.json({ error: 'Failed to process alert' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to process alert' }, 500, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const native = await getDatabase();
     const alerts = await native.collection('qa_alerts')
@@ -34,9 +69,9 @@ export async function GET(req: NextRequest) {
       .limit(50)
       .toArray();
 
-    return NextResponse.json({ alerts });
+    return createSecureResponse({ alerts }, 200, req);
   } catch (error) {
     console.error('Failed to fetch QA alerts:', error);
-    return NextResponse.json({ error: 'Failed to fetch alerts' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
   }
 }

@@ -7,6 +7,10 @@ import { retrieveKnowledge } from "@/server/copilot/retrieval";
 import { generateCopilotResponse } from "@/server/copilot/llm";
 import { recordAudit } from "@/server/copilot/audit";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string()
@@ -25,7 +29,31 @@ const requestSchema = z.object({
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * @openapi
+ * /api/copilot/chat:
+ *   get:
+ *     summary: copilot/chat operations
+ *     tags: [copilot]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const session = await resolveCopilotSession(req);
 
   const contentType = req.headers.get("content-type") || "";
@@ -39,7 +67,7 @@ export async function POST(req: NextRequest) {
     const workOrderId = formData.get("workOrderId");
 
     if (!toolName) {
-      return NextResponse.json({ error: "Tool name is required" }, { status: 400 });
+      return createSecureResponse({ error: "Tool name is required" }, 400, req);
     }
 
     const args = typeof argsRaw === "string" && argsRaw ? JSON.parse(argsRaw) : {};
@@ -67,11 +95,11 @@ export async function POST(req: NextRequest) {
     if (body.tool) {
       if (!getPermittedTools(session.role).includes(body.tool.name)) {
         await recordAudit({ session, intent: body.tool.name, tool: body.tool.name, status: "DENIED", message: "Tool not allowed" });
-        return NextResponse.json({
+        return createSecureResponse({
           reply: locale === "ar"
             ? "ليست لديك الصلاحية لاستخدام هذا الإجراء."
             : "You do not have permission to run this action."
-        }, { status: 403 });
+        }, 403, req);
       }
 
       const result = await executeTool(body.tool.name, body.tool.args || {}, { ...session, locale });
@@ -92,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     const message = body.message?.trim();
     if (!message) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+      return createSecureResponse({ error: "Message is required" }, 400, req);
     }
 
     const toolFromMessage = detectToolFromMessage(message);
@@ -116,7 +144,7 @@ export async function POST(req: NextRequest) {
         ? `لا يمكنني مشاركة هذه المعلومات لأنها ${describeDataClass(policy.dataClass)} ولا يتيحها دورك.`
         : `I cannot share that because it is ${describeDataClass(policy.dataClass)} data and your role is not permitted.`;
       await recordAudit({ session, intent: "policy_denied", status: "DENIED", message: response, prompt: message, metadata: { dataClass: policy.dataClass } });
-      return NextResponse.json({ reply: response }, { status: 403 });
+      return createSecureResponse({ reply: response }, 403, req);
     }
 
     const docs = await retrieveKnowledge({ ...session, locale }, message);

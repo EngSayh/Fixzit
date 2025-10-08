@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
@@ -32,10 +36,34 @@ const COLLECTION = 'helparticles';
  *
  * On failure returns a 500 response with `{ error: 'Failed to fetch help articles' }`.
  */
+/**
+ * @openapi
+ * /api/help/articles:
+ *   get:
+ *     summary: help/articles operations
+ *     tags: [help]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest){
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const url = new URL(req.url);
     const sp = url.searchParams;
     const category = sp.get("category") || undefined;
@@ -128,6 +156,6 @@ export async function GET(req: NextRequest){
     return response;
   } catch (error) {
     console.error('Error fetching help articles:', error);
-    return NextResponse.json({ error: 'Failed to fetch help articles' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to fetch help articles' }, 500, req);
   }
 }

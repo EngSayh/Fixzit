@@ -5,27 +5,55 @@ import crypto from 'crypto';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedGetUrl, buildResumeKey } from '@/lib/storage/s3';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
 
+/**
+ * @openapi
+ * /api/files/resumes/[file]:
+ *   get:
+ *     summary: files/resumes/[file] operations
+ *     tags: [files]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest, props: { params: Promise<{ file: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
-    if (!allowed.has((user as any).role || '')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!allowed.has((user as any).role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
 
     const url = new URL(req.url);
     const token = url.searchParams.get('token') || '';
     const expParam = url.searchParams.get('exp') || '';
     const exp = Number(expParam);
-    if (!token || !Number.isFinite(exp)) return NextResponse.json({ error: 'Missing token' }, { status: 400 });
-    if (Date.now() > exp) return NextResponse.json({ error: 'Token expired' }, { status: 403 });
+    if (!token || !Number.isFinite(exp)) return createSecureResponse({ error: 'Missing token' }, 400, req);
+    if (Date.now() > exp) return createSecureResponse({ error: 'Token expired' }, 403, req);
     const safeName = path.basename(params.file);
     const tenant = String(user.tenantId || 'global');
     const expected = generateToken(`${tenant}:${safeName}`, exp, String((user as any).id || ''), tenant);
-    if (!timingSafeEqual(expected, token)) return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
+    if (!timingSafeEqual(expected, token)) return createSecureResponse({ error: 'Invalid token' }, 403, req);
 
     // Prefer S3 if configured; else local fallback
     if (process.env.AWS_S3_BUCKET) {
@@ -35,30 +63,37 @@ export async function GET(req: NextRequest, props: { params: Promise<{ file: str
     }
     const filePath = path.join(BASE_DIR, tenant, safeName);
     const data = await fs.readFile(filePath).catch(() => null);
-    if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!data) return createSecureResponse({ error: 'Not found' }, 404, req);
     const contentType = contentTypeFromName(safeName);
     const out = new Uint8Array(data.length);
     out.set(data);
     return new NextResponse(out, { status: 200, headers: { 'Content-Type': contentType, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `attachment; filename="${safeName}"` } });
   } catch (err) {
-    return NextResponse.json({ error: 'Failed to fetch file' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to fetch file' }, 500, req);
   }
 }
 
 export async function POST(req: NextRequest, props: { params: Promise<{ file: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
-    if (!allowed.has((user as any).role || '')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!allowed.has((user as any).role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
     const safeName = path.basename(params.file);
     const tenant = String(user.tenantId || 'global');
     const token = generateToken(`${tenant}:${safeName}`, expires, String((user as any).id || ''), tenant);
     return NextResponse.json({ url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(safeName)}?token=${encodeURIComponent(token)}&exp=${expires}` });
   } catch {
-    return NextResponse.json({ error: 'Failed to sign URL' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to sign URL' }, 500, req);
   }
 }
 

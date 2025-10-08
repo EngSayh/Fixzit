@@ -6,11 +6,32 @@ import Order from '@/server/models/marketplace/Order';
 import { serializeOrder } from '@/lib/marketplace/serializers';
 import { createSecureResponse } from '@/server/security/headers';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const QuerySchema = z.object({
   status: z.string().optional()
 });
 
 export const dynamic = 'force-dynamic';
+/**
+ * @openapi
+ * /api/marketplace/orders:
+ *   get:
+ *     summary: marketplace/orders operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
