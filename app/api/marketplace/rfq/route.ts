@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    const client = await connectToDatabase();
+    await connectToDatabase();
     const rfqs = await RFQ.find({ orgId: context.orgId }).sort({ createdAt: -1 }).limit(50);
     return NextResponse.json({ ok: true, data: rfqs.map(rfq => serializeRFQ(rfq)) });
   } catch (error) {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const payload = CreateRFQSchema.parse(body);
-    const client = await connectToDatabase();
+    await connectToDatabase();
 
     const rfq = await RFQ.create({
       orgId: context.orgId,

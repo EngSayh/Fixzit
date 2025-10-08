@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, props: RouteParams) {
   try {
     const context = await resolveMarketplaceContext(request);
     const slug = decodeURIComponent(params.slug);
-    const client = await db;
+    await db;
     const product = await findProductBySlug(context.orgId, slug);
 
     if (!product) {
