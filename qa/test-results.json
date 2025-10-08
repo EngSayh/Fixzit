@@ -1,0 +1,107 @@
+{
+  "config": {
+    "configFile": "/workspace/qa/playwright.config.ts",
+    "rootDir": "/workspace/qa/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/workspace/qa/qa/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/workspace/qa/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "/workspace/qa/qa/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/workspace/qa/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "/workspace/qa/qa/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "/workspace/qa/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "ReferenceError: jest is not defined",
+      "stack": "ReferenceError: jest is not defined\n    at Object.<anonymous> (/workspace/qa/tests/api-paytabs-callback.spec.ts:60:29)",
+      "location": {
+        "file": "/workspace/qa/tests/api-paytabs-callback.spec.ts",
+        "column": 29,
+        "line": 60
+      },
+      "snippet": "\u001b[90m   at \u001b[39mapi-paytabs-callback.spec.ts:60\n\n  58 | // We partially mock next/server to intercept NextResponse.json calls.\n  59 |\n> 60 | const mockGenerateZATCAQR = jest.fn(async () => ({ base64: 'mock-qr-base64' }));\n     |                             ^\n  61 | const mockValidateCallbackRaw = jest.fn(() => true);\n  62 |\n  63 | // Partial mock for NextResponse.json to capture body and options"
+    },
+    {
+      "message": "ReferenceError: beforeAll is not defined",
+      "stack": "ReferenceError: beforeAll is not defined\n    at Object.<anonymous> (/workspace/qa/tests/lib-paytabs.spec.ts:30:1)",
+      "location": {
+        "file": "/workspace/qa/tests/lib-paytabs.spec.ts",
+        "column": 1,
+        "line": 30
+      },
+      "snippet": "\u001b[90m   at \u001b[39mlib-paytabs.spec.ts:30\n\n  28 |\n  29 | // Lazy-load once for all tests\n> 30 | beforeAll(() => {\n     | ^\n  31 |   lib = loadModule();\n  32 | });\n  33 |"
+    }
+  ],
+  "stats": {
+    "startTime": "2025-10-08T05:56:05.798Z",
+    "duration": 1922.8639999999998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
