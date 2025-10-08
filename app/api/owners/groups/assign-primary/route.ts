@@ -4,28 +4,56 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const assignPrimarySchema = z.object({
   buildingId: z.string().min(1),
   ownerIds: z.array(z.string()),
   primaryContactUserId: z.string().min(1)
 });
 
+/**
+ * @openapi
+ * /api/owners/groups/assign-primary:
+ *   get:
+ *     summary: owners/groups/assign-primary operations
+ *     tags: [owners]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
 
     const user = await getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createSecureResponse({ error: 'Invalid token' }, 401, req);
     }
 
     // Role-based access control - only property admins can assign owner groups
     if (!['SUPER_ADMIN', 'ADMIN', 'PROPERTY_ADMIN', 'MANAGER'].includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to manage owner groups' }, { status: 403 });
+      return createSecureResponse({ error: 'Insufficient permissions to manage owner groups' }, 403, req);
     }
 
     await connectToDatabase();
@@ -44,13 +72,13 @@ export async function POST(req: NextRequest) {
       }, 
       { upsert: true, new: true }
     );
-    return NextResponse.json(g, { status: 201 });
+    return createSecureResponse(g, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
     }
     console.error('Owner group assignment failed:', error);
-    return NextResponse.json({ error: 'Failed to assign owner group' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to assign owner group' }, 500, req);
   }
 }
 

@@ -4,18 +4,46 @@ import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const bulkActionSchema = z.object({
   action: z.enum(["mark-read", "mark-unread", "archive", "delete"]),
   notificationIds: z.array(z.string())
 });
 
+/**
+ * @openapi
+ * /api/notifications/bulk:
+ *   get:
+ *     summary: notifications/bulk operations
+ *     tags: [notifications]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   let tenantId: string;
   try {
     const user = await getSessionUser(req);
     tenantId = user.orgId;
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
   }
 
   const body = await req.json();
@@ -29,17 +57,17 @@ export async function POST(req: NextRequest) {
   let res: any;
   if (action === 'delete') {
     res = await notifications.deleteMany(filter);
-    if (!res.deletedCount) return NextResponse.json({ error: 'No notifications found to delete' }, { status: 404 });
+    if (!res.deletedCount) return createSecureResponse({ error: 'No notifications found to delete' }, 404, req);
   } else if (action === 'archive') {
     res = await notifications.updateMany(filter, { $set: { archived: true, updatedAt: new Date() } });
-    if (!res.modifiedCount) return NextResponse.json({ error: 'No notifications found to archive' }, { status: 404 });
+    if (!res.modifiedCount) return createSecureResponse({ error: 'No notifications found to archive' }, 404, req);
   } else if (action === 'mark-read') {
     res = await notifications.updateMany(filter, { $set: { read: true, updatedAt: new Date() } });
-    if (!res.modifiedCount) return NextResponse.json({ error: 'No notifications found to mark as read' }, { status: 404 });
+    if (!res.modifiedCount) return createSecureResponse({ error: 'No notifications found to mark as read' }, 404, req);
   } else if (action === 'mark-unread') {
     res = await notifications.updateMany(filter, { $set: { read: false, updatedAt: new Date() } });
-    if (!res.modifiedCount) return NextResponse.json({ error: 'No notifications found to mark as unread' }, { status: 404 });
+    if (!res.modifiedCount) return createSecureResponse({ error: 'No notifications found to mark as unread' }, 404, req);
   }
 
-  return NextResponse.json({ ok: true });
+  return createSecureResponse({ ok: true }, 200, req);
 }

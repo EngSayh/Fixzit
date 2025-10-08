@@ -2,12 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 // Constants for clustering grid cell calculation
 const MIN_CELL_SIZE_DEGREES = 0.01; // avoid excessive granularity
 const LATITUDE_RANGE_DEGREES = 180; // -90..+90 total span
 const ZOOM_EXPONENT_BASE = 2; // each zoom level doubles resolution
 
+/**
+ * @openapi
+ * /api/aqar/map:
+ *   get:
+ *     summary: aqar/map operations
+ *     tags: [aqar]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     let user;
     try {
@@ -24,7 +52,7 @@ export async function GET(req: NextRequest) {
     const z = Math.max(1, Math.min(20, Number(searchParams.get('z') || '10')));
 
     if ([n, s, e, w].some(v => Number.isNaN(v))) {
-      return NextResponse.json({ error: 'Invalid bbox' }, { status: 400 });
+      return createSecureResponse({ error: 'Invalid bbox' }, 400, req);
     }
 
     const cell = Math.max(
@@ -72,9 +100,9 @@ export async function GET(req: NextRequest) {
       avgPrice: Math.round(r.avgPrice || 0),
     }));
 
-    return NextResponse.json({ clusters });
+    return createSecureResponse({ clusters }, 200, req);
   } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
 

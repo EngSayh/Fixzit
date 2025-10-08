@@ -29,7 +29,31 @@ async function authenticateAdmin(req: NextRequest) {
   return user;
 }
 
+/**
+ * @openapi
+ * /api/admin/discounts:
+ *   get:
+ *     summary: admin/discounts operations
+ *     tags: [admin]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 100, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await authenticateAdmin(req);
     await connectToDatabase();
@@ -37,20 +61,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(d || { code:'ANNUAL', value:0, active:false });
   } catch (error: any) {
     if (error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
     if (error.message === 'Invalid token') {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createSecureResponse({ error: 'Invalid token' }, 401, req);
     }
     if (error.message === 'Admin access required') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
     console.error('Discount fetch failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
 
 export async function PUT(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 100, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await authenticateAdmin(req);
     
@@ -58,7 +89,7 @@ export async function PUT(req: NextRequest) {
     const key = `admin:discounts:${user.id}`;
     const rl = rateLimit(key, 5, 60_000); // 5 requests per minute for discount changes
     if (!rl.allowed) {
-      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      return createSecureResponse({ error: 'Rate limit exceeded' }, 429, req);
     }
     
     await connectToDatabase();
@@ -67,22 +98,22 @@ export async function PUT(req: NextRequest) {
     const d = await DiscountRule.findOneAndUpdate({ code: 'ANNUAL' },
       { code:'ANNUAL', type: 'percent', value: body.value, active: true, updatedBy: user.id, updatedAt: new Date() }, 
       { upsert: true, new: true });
-    return NextResponse.json(d);
+    return createSecureResponse(d, 200, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
     }
     if (error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
     if (error.message === 'Invalid token') {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createSecureResponse({ error: 'Invalid token' }, 401, req);
     }
     if (error.message === 'Admin access required') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
     console.error('Discount update failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
 

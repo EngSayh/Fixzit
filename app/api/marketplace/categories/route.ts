@@ -4,7 +4,28 @@ import Category from '@/server/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 export const dynamic = 'force-dynamic';
+/**
+ * @openapi
+ * /api/marketplace/categories:
+ *   get:
+ *     summary: marketplace/categories operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);

@@ -5,6 +5,10 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { nanoid } from "nanoid";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const submitBidSchema = z.object({
   vendorId: z.string(),
   vendorName: z.string(),
@@ -22,7 +26,31 @@ const submitBidSchema = z.object({
   exceptions: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/rfqs/[id]/bids:
+ *   get:
+ *     summary: rfqs/[id]/bids operations
+ *     tags: [rfqs]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -33,22 +61,22 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
     
     if (!rfq) {
-      return NextResponse.json({ error: "RFQ not found" }, { status: 404 });
+      return createSecureResponse({ error: "RFQ not found" }, 404, req);
     }
 
     if (rfq.status !== 'PUBLISHED' && rfq.status !== 'BIDDING') {
-      return NextResponse.json({ error: "RFQ is not accepting bids" }, { status: 400 });
+      return createSecureResponse({ error: "RFQ is not accepting bids" }, 400, req);
     }
 
     // Check if vendor already submitted a bid
     const existingBid = rfq.bids.find((b: any) => b.vendorId === data.vendorId);
     if (existingBid) {
-      return NextResponse.json({ error: "Vendor has already submitted a bid" }, { status: 400 });
+      return createSecureResponse({ error: "Vendor has already submitted a bid" }, 400, req);
     }
 
     // Check bid deadline
     if (new Date() > new Date(rfq.timeline.bidDeadline)) {
-      return NextResponse.json({ error: "Bid deadline has passed" }, { status: 400 });
+      return createSecureResponse({ error: "Bid deadline has passed" }, 400, req);
     }
 
     // Add bid
@@ -75,13 +103,20 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     await rfq.save();
 
-    return NextResponse.json(bid, { status: 201 });
+    return createSecureResponse(bid, 201, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse({ error: error.message }, 400, req);
   }
 }
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -90,7 +125,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
     
     if (!rfq) {
-      return NextResponse.json({ error: "RFQ not found" }, { status: 404 });
+      return createSecureResponse({ error: "RFQ not found" }, 404, req);
     }
 
     // If anonymous bidding is enabled, hide vendor details
@@ -100,11 +135,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
         vendorId: `VENDOR-${index + 1}`,
         vendorName: `Anonymous Vendor ${index + 1}`
       }));
-      return NextResponse.json(anonymizedBids);
+      return createSecureResponse(anonymizedBids, 200, req);
     }
 
-    return NextResponse.json(rfq.bids);
+    return createSecureResponse(rfq.bids, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ error: error.message }, 500, req);
   }
 }

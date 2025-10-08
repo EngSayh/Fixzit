@@ -26,29 +26,53 @@ const subscriptionSchema = z.object({
 });
 
 // Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, paytabsRegion, returnUrl, callbackUrl}
+/**
+ * @openapi
+ * /api/billing/subscribe:
+ *   get:
+ *     summary: billing/subscribe operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 10, 300);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
 
     const user = await getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createSecureResponse({ error: 'Invalid token' }, 401, req);
     }
 
     // Role-based access control - only billing admins or org admins can subscribe
     if (!['SUPER_ADMIN', 'ADMIN', 'BILLING_ADMIN'].includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to manage subscriptions' }, { status: 403 });
+      return createSecureResponse({ error: 'Insufficient permissions to manage subscriptions' }, 403, req);
     }
 
     // Rate limiting for subscription operations
     const key = `billing:subscribe:${user.orgId}`;
     const rl = rateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
     if (!rl.allowed) {
-      return NextResponse.json({ error: 'Subscription rate limit exceeded. Please wait before creating another subscription.' }, { status: 429 });
+      return createSecureResponse({ error: 'Subscription rate limit exceeded. Please wait before creating another subscription.' }, 429, req);
     }
 
     await connectToDatabase();
@@ -125,7 +149,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
     }
     console.error('Subscription creation failed:', error);
-    return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);
   }
 }
 

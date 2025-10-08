@@ -22,6 +22,23 @@ const CheckoutSchema = z.object({
     .optional()
 });
 
+/**
+ * @openapi
+ * /api/marketplace/checkout:
+ *   get:
+ *     summary: marketplace/checkout operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);

@@ -3,6 +3,10 @@ import * as svc from "@/server/finance/invoice.service";
 import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const invoiceUpdateSchema = z.object({
   status: z.string().optional(),
   amount: z.number().optional(),
@@ -16,29 +20,29 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
 
     const user = await getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createSecureResponse({ error: 'Invalid token' }, 401, req);
     }
 
     // Role-based access control - only finance roles can modify invoices
     if (!['SUPER_ADMIN', 'ADMIN', 'FINANCE_ADMIN', 'BILLING_ADMIN'].includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to modify invoices' }, { status: 403 });
+      return createSecureResponse({ error: 'Insufficient permissions to modify invoices' }, 403, req);
     }
 
     const body = invoiceUpdateSchema.parse(await req.json());
     
     const inv = await svc.post(user.orgId, params.id, body, user.id, req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown");
-    return NextResponse.json({ data: inv });
+    return createSecureResponse({ data: inv }, 200, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
     }
     console.error('Invoice update failed:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update invoice' }, { status: 400 });
+    return createSecureResponse({ error: error.message || 'Failed to update invoice' }, 400, req);
   }
 }
 

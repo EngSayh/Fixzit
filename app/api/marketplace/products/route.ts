@@ -5,6 +5,10 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { serializeProduct } from '@/lib/marketplace/serializers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'PROCUREMENT', 'ADMIN']);
 
 const QuerySchema = z.object({
@@ -33,6 +37,23 @@ const ProductSchema = z.object({
   status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']).optional()
 });
 
+/**
+ * @openapi
+ * /api/marketplace/products:
+ *   get:
+ *     summary: marketplace/products operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     if (process.env.MARKETPLACE_ENABLED !== 'true') {

@@ -6,6 +6,10 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const patchSchema = z.object({
   title: z.string().min(2).optional(),
   content: z.string().min(1).optional(),
@@ -54,7 +58,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const res = await coll.findOneAndUpdate(filter as any, update, { returnDocument: 'after' } as any);
     const article = (res as any)?.value || null;
-    if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/kb/ingest')
       .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
@@ -77,6 +81,6 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Duplicate key (e.g., slug) exists' }, { status: 409 });
     }
     console.error('PATCH /api/help/articles/[id] failed', err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return createSecureResponse({ error: 'Internal Server Error' }, 500, req);
   }
 }

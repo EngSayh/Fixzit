@@ -3,6 +3,10 @@ import { dbConnect } from '@/db/mongoose';
 import DiscountRule from '@/server/models/DiscountRule';
 import { requireSuperAdmin } from '@/lib/authz';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 export async function PATCH(req: NextRequest) {
   await dbConnect();
   await requireSuperAdmin(req);

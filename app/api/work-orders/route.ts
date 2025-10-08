@@ -6,6 +6,10 @@ import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
@@ -35,7 +39,31 @@ const createSchema = z.object({
  *
  * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
  */
+/**
+ * @openapi
+ * /api/work-orders:
+ *   get:
+ *     summary: work-orders operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.WO_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
@@ -81,13 +109,20 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ items, page, limit, total });
   } catch (error: any) {
     console.error('Work Orders GET error:', error);
-    return NextResponse.json({ 
+    return createSecureResponse({ 
       error: 'Failed to fetch work orders' 
-    }, { status: 500 });
+    }, 500, req);
   }
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.WO_ENABLED !== 'true') {
       return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
@@ -130,12 +165,12 @@ export async function POST(req: NextRequest) {
     createdBy: user.id,
     createdAt
   });
-  return NextResponse.json(wo, { status: 201 });
+  return createSecureResponse(wo, 201, req);
   } catch (error: any) {
     console.error('Work Orders POST error:', error);
-    return NextResponse.json({ 
+    return createSecureResponse({ 
       error: 'Failed to create work order' 
-    }, { status: 500 });
+    }, 500, req);
   }
 }
 

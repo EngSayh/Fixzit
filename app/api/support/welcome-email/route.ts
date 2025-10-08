@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
   errorId: z.string(),
@@ -8,7 +12,31 @@ const welcomeEmailSchema = z.object({
   registrationLink: z.string().url()
 });
 
+/**
+ * @openapi
+ * /api/support/welcome-email:
+ *   get:
+ *     summary: support/welcome-email operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const body = welcomeEmailSchema.parse(await req.json());
 
@@ -85,11 +113,18 @@ The Fixzit Enterprise Team
 
 // GET method to check welcome email status
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const sp = new URL(req.url).searchParams;
   const email = sp.get('email');
 
   if (!email) {
-    return NextResponse.json({ error: 'Email parameter required' }, { status: 400 });
+    return createSecureResponse({ error: 'Email parameter required' }, 400, req);
   }
 
   // In a real implementation, this would check the database

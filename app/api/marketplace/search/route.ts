@@ -7,6 +7,10 @@ import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const QuerySchema = z.object({
   q: z.string().optional(),
   cat: z.string().optional(),
@@ -19,6 +23,23 @@ const QuerySchema = z.object({
 });
 
 export const dynamic = 'force-dynamic';
+/**
+ * @openapi
+ * /api/marketplace/search:
+ *   get:
+ *     summary: marketplace/search operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());

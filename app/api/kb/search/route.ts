@@ -2,17 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 /**
  * POST /api/kb/search
  * Body: { query: number[] (embedding), lang?: string, role?: string, route?: string, limit?: number }
  * Returns: top-N chunks scoped by tenantId/lang/role/route with vectorSearch or lexical fallback.
  */
+/**
+ * @openapi
+ * /api/kb/search:
+ *   get:
+ *     summary: kb/search operations
+ *     tags: [kb]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Best-effort local rate limiting
     rateLimitAssert(req);
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 
     const body = await req.json().catch(() => ({}));
     const query = body?.query as number[] | undefined;
@@ -23,7 +51,7 @@ export async function POST(req: NextRequest) {
     const limitRaw = Number(body?.limit);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(12, Math.floor(limitRaw)) : 8;
     if (!Array.isArray(query) || query.length === 0) {
-      return NextResponse.json({ error: 'Missing query embedding' }, { status: 400 });
+      return createSecureResponse({ error: 'Missing query embedding' }, 400, req);
     }
 
     const db = await getDatabase();
@@ -84,10 +112,10 @@ export async function POST(req: NextRequest) {
         .toArray();
     }
 
-    return NextResponse.json({ results });
+    return createSecureResponse({ results }, 200, req);
   } catch (err) {
     console.error('kb/search error', err);
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+    return createSecureResponse({ error: 'Search failed' }, 500, req);
   }
 }
 

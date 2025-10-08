@@ -4,16 +4,37 @@ import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const schema = z.object({ checklistIndex:z.number().int().nonnegative(), itemIndex:z.number().int().nonnegative(), done:z.boolean() });
 
+/**
+ * @openapi
+ * /api/work-orders/[id]/checklists/toggle:
+ *   get:
+ *     summary: work-orders/[id]/checklists/toggle operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
   const params = await props.params;
   await connectToDatabase();const user = await getSessionUser(req);
   const { checklistIndex, itemIndex, done } = schema.parse(await req.json());
   const wo:any = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
-  if (!wo) return NextResponse.json({error:"Not found"},{status:404});
-  if (!wo.checklists?.[checklistIndex]?.items?.[itemIndex]) return NextResponse.json({error:"Bad index"},{status:400});
+  if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
+  if (!wo.checklists?.[checklistIndex]?.items?.[itemIndex]) return createSecureResponse({error:"Bad index"}, 400, req);
   wo.checklists[checklistIndex].items[itemIndex].done = done;
   await wo.save();
-  return NextResponse.json(wo.checklists[checklistIndex]);
+  return createSecureResponse(wo.checklists[checklistIndex], 200, req);
 }

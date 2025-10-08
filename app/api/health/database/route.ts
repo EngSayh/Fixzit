@@ -1,6 +1,27 @@
 import { NextResponse } from 'next/server';
 import { checkDatabaseHealth, getDatabase } from '@/lib/mongodb-unified';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/health/database:
+ *   get:
+ *     summary: health/database operations
+ *     tags: [health]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET() {
   const startTime = Date.now();
   

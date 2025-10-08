@@ -4,6 +4,10 @@ import { Property } from "@/server/models/Property";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const updatePropertySchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
@@ -62,7 +66,31 @@ const updatePropertySchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/properties/[id]:
+ *   get:
+ *     summary: properties/[id] operations
+ *     tags: [properties]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -74,12 +102,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     });
 
     if (!property) {
-      return NextResponse.json({ error: "Property not found" }, { status: 404 });
+      return createSecureResponse({ error: "Property not found" }, 404, req);
     }
 
-    return NextResponse.json(property);
+    return createSecureResponse(property, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ error: error.message }, 500, req);
   }
 }
 
@@ -98,16 +126,23 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     );
 
     if (!property) {
-      return NextResponse.json({ error: "Property not found" }, { status: 404 });
+      return createSecureResponse({ error: "Property not found" }, 404, req);
     }
 
-    return NextResponse.json(property);
+    return createSecureResponse(property, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse({ error: error.message }, 400, req);
   }
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -121,11 +156,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     );
 
     if (!property) {
-      return NextResponse.json({ error: "Property not found" }, { status: 404 });
+      return createSecureResponse({ error: "Property not found" }, 404, req);
     }
 
-    return NextResponse.json({ success: true });
+    return createSecureResponse({ success: true }, 200, req);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ error: error.message }, 500, req);
   }
 }

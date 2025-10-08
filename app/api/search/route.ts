@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey } from '@/src/config/topbar-modules';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
   const baseRoutes: Record<string, string> = {
@@ -24,7 +28,31 @@ function generateHref(entity: string, id: string): string {
   return `${basePath}?highlight=${id}`;
 }
 
+/**
+ * @openapi
+ * /api/search:
+ *   get:
+ *     summary: search operations
+ *     tags: [search]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const mongoose = await connectToDatabase(); // Ensure database connection
     const { searchParams } = new URL(req.url);
@@ -33,12 +61,12 @@ export async function GET(req: NextRequest) {
     const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
 
     if (!q) {
-      return NextResponse.json({ results: [] });
+      return createSecureResponse({ results: [] }, 200, req);
     }
 
     const appConfig = APPS[app];
     if (!appConfig) {
-      return NextResponse.json({ results: [] });
+      return createSecureResponse({ results: [] }, 200, req);
     }
 
     const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
@@ -182,7 +210,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     console.error('Search API error:', error);
-    return NextResponse.json({ results: [] }, { status: 500 });
+    return createSecureResponse({ results: [] }, 500, req);
   }
 }
 

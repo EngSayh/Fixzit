@@ -3,6 +3,10 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { RFQ } from '@/server/models/RFQ';
 import { z } from 'zod';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const DEFAULT_PUBLIC_STATUSES = ['PUBLISHED', 'BIDDING'];
 
 const QuerySchema = z.object({
@@ -22,7 +26,31 @@ const toIsoString = (value: unknown) => {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
+/**
+ * @openapi
+ * /api/public/rfqs:
+ *   get:
+ *     summary: public/rfqs operations
+ *     tags: [public]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
 
@@ -129,7 +157,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.error('Public RFQ fetch error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
 

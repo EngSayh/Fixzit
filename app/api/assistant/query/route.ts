@@ -5,6 +5,10 @@ import { HelpArticle } from "@/server/models/HelpArticle";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { getSessionUser, type SessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const BodySchema = z.object({
   question: z.string().min(1),
 });
@@ -34,7 +38,31 @@ function isMyTickets(question: string) {
   return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work\s*orders)\b/i.test(question);
 }
 
+/**
+ * @openapi
+ * /api/assistant/query:
+ *   get:
+ *     summary: assistant/query operations
+ *     tags: [assistant]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase(); // ensure DB/init (real or mock)
   } catch {}
@@ -50,7 +78,7 @@ export async function POST(req: NextRequest) {
   try {
     body = BodySchema.parse(await req.json());
   } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return createSecureResponse({ error: "Invalid request" }, 400, req);
   }
 
   const q = body.question.trim();

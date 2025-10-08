@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const PaymentSchema = z.object({
   orderId: z.string(),
   amount: z.number().positive(),
@@ -21,7 +25,31 @@ const PaymentSchema = z.object({
  *
  * @returns A NextResponse containing a JSON object describing success or failure and appropriate HTTP status codes.
  */
+/**
+ * @openapi
+ * /api/payments/paytabs:
+ *   get:
+ *     summary: payments/paytabs operations
+ *     tags: [payments]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 10, 300);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const body = await req.json();
     const data = PaymentSchema.parse(body);

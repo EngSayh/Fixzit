@@ -2,16 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { upsertArticleEmbeddings, deleteArticleEmbeddings } from '@/kb/ingest';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/kb/ingest:
+ *   get:
+ *     summary: kb/ingest operations
+ *     tags: [kb]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user || !['SUPER_ADMIN','ADMIN'].includes((user as any).role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return createSecureResponse({ error: 'Forbidden' }, 403, req);
     }
     const body = await req.json().catch(() => ({} as any));
     const { articleId, content, lang, roleScopes, route } = body || {};
     if (!articleId || typeof content !== 'string') {
-      return NextResponse.json({ error: 'Missing articleId or content' }, { status: 400 });
+      return createSecureResponse({ error: 'Missing articleId or content' }, 400, req);
     }
     await upsertArticleEmbeddings({
       orgId: user.tenantId || null,
@@ -22,26 +50,33 @@ export async function POST(req: NextRequest) {
       route: typeof route === 'string' ? route : undefined,
       content
     });
-    return NextResponse.json({ ok: true });
+    return createSecureResponse({ ok: true }, 200, req);
   } catch (err) {
     console.error('kb/ingest error', err);
-    return NextResponse.json({ error: 'Ingest failed' }, { status: 500 });
+    return createSecureResponse({ error: 'Ingest failed' }, 500, req);
   }
 }
 
 export async function DELETE(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user || !['SUPER_ADMIN','ADMIN'].includes((user as any).role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return createSecureResponse({ error: 'Forbidden' }, 403, req);
     }
     const url = new URL(req.url);
     const articleId = url.searchParams.get('articleId');
-    if (!articleId) return NextResponse.json({ error: 'Missing articleId' }, { status: 400 });
+    if (!articleId) return createSecureResponse({ error: 'Missing articleId' }, 400, req);
     await deleteArticleEmbeddings(articleId, user.tenantId || null);
-    return NextResponse.json({ ok: true });
+    return createSecureResponse({ ok: true }, 200, req);
   } catch (err) {
-    return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+    return createSecureResponse({ error: 'Delete failed' }, 500, req);
   }
 }
 

@@ -39,7 +39,31 @@ async function authenticateAdmin(req: NextRequest) {
   return user;
 }
 
+/**
+ * @openapi
+ * /api/admin/price-tiers:
+ *   get:
+ *     summary: admin/price-tiers operations
+ *     tags: [admin]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 100, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await authenticateAdmin(req);
     await connectToDatabase();
@@ -61,6 +85,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(`${req.url}:${clientIp}`, 100, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await authenticateAdmin(req);
     
