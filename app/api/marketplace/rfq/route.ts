@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import RFQ from '@/db/models/marketplace/RFQ';
+import RFQ from '@/server/models/marketplace/RFQ';
 import { serializeRFQ } from '@/lib/marketplace/serializers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 

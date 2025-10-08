@@ -1,13 +1,13 @@
 /**
  * Tests for PayTabs payment page creation route handler (POST).
- * Framework: Jest (TypeScript). If using Vitest, replace jest.* with vi.* equivalents.
+ * Framework: Vitest
  */
-import { describe, test, expect, jest, beforeEach, beforeAll, afterEach } from '@jest/globals';
+import { describe, test, expect, vi, beforeEach, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 
 // Mock next/server to isolate NextResponse and avoid runtime coupling
-jest.mock('next/server', () => {
-  const actual = jest.requireActual('next/server')
+vi.mock('next/server', async () => {
+  const actual = await vi.importActual('next/server')
   // Provide a minimal NextResponse.json that returns a standard Response-like object
   return {
     ...actual,
@@ -32,7 +32,7 @@ jest.mock('next/server', () => {
 
 let POST: (req: NextRequest) => Promise<Response>
 beforeAll(async () => {
-  const mod = await import('../../app/api/payments/paytabs/route')
+  const mod = await import('@/app/api/payments/paytabs/route')
   POST = (mod as any).POST
 })
 
@@ -52,22 +52,22 @@ const validBody = {
 
 describe('PayTabs POST route', () => {
   const OLD_ENV = process.env
-  let fetchSpy: jest.SpyInstance
+  let fetchSpy: vi.SpyInstance
 
   beforeEach(() => {
-    jest.useFakeTimers()
-    jest.setSystemTime(new Date('2025-01-01T00:00:00.000Z'))
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'))
     process.env = { ...OLD_ENV }
     process.env.NEXTAUTH_URL = 'https://example.com'
     process.env.PAYTABS_PROFILE_ID = '85119'
     // Provide default server key unless tests override
     process.env.PAYTABS_API_SERVER_KEY = 'server-key'
-    fetchSpy = jest.spyOn(globalThis, 'fetch' as any)
+    fetchSpy = vi.spyOn(globalThis, 'fetch' as any)
   })
 
   afterEach(() => {
     fetchSpy.mockRestore()
-    jest.useRealTimers()
+    vi.useRealTimers()
     process.env = OLD_ENV
   })
 
@@ -189,7 +189,7 @@ describe('PayTabs POST route', () => {
     })
     const promise = POST(makeReq(validBody))
     // Fast-forward timers to trigger abort
-    jest.advanceTimersByTime(15001)
+    vi.advanceTimersByTime(15001)
     // The handler clears the timeout in finally, but since promise never resolves, we cannot await result.
     // Assert the signal is aborted
     expect(capturedSignal).toBeDefined()

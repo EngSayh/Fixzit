@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Project } from "@/db/models/Project";
+import { Project } from "@/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
@@ -44,6 +44,13 @@ const createProjectSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
+    
+    // If no user or missing required fields, return 401
+    if (!user || !user.orgId) {
+      console.error('POST /api/projects: Auth failed', { user, hasOrgId: !!user?.orgId });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
     await connectToDatabase();
 
     const data = createProjectSchema.parse(await req.json());
@@ -65,6 +72,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(project, { status: 201 });
   } catch (error: any) {
+    // Check if error is authentication-related
+    if (error.message?.includes('session') || error.message?.includes('auth')) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.flatten() }, { status: 422 });
     }
@@ -74,7 +85,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (authError) {
+      // Explicitly catch and normalize all auth errors to 401
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!user || !(user as any)?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -85,13 +105,22 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
 
     const match: any = { tenantId: (user as any)?.orgId };
-
     if (type) match.type = type;
     if (status) match.status = status;
     if (search) {
-      match.$text = { $search: search };
+      // Only use $text if index exists, else fallback to regex (dev only) or empty
+      const indexes = await Project.collection.indexes();
+      const hasText = indexes.some(idx => idx.name === 'name_text_description_text');
+      if (hasText) {
+        match.$text = { $search: search };
+      } else {
+        // Fallback: regex search (dev only, not for prod)
+        match.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
     }
-
     const [items, total] = await Promise.all([
       Project.find(match)
         .sort({ createdAt: -1 })
@@ -99,7 +128,6 @@ export async function GET(req: NextRequest) {
         .limit(limit),
       Project.countDocuments(match)
     ]);
-
     return NextResponse.json({
       items,
       page,
@@ -108,7 +136,11 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Normalize all auth errors to 401
+    if (error.message?.includes('session') || error.message?.includes('auth')) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 

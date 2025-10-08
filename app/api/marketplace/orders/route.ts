@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Order from '@/db/models/marketplace/Order';
+import Order from '@/server/models/marketplace/Order';
 import { serializeOrder } from '@/lib/marketplace/serializers';
 import { createSecureResponse } from '@/server/security/headers';
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Search, Filter, ShoppingCart, Heart, Star, User, LogIn } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Product {
   id: string;
@@ -208,11 +209,12 @@ export default function CatalogPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
             <div key={product.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative">
-                <img
+              <div className="relative w-full h-48">
+                <Image
                   src={product.image}
                   alt={product.name}
-                  className="w-full h-48 object-cover"
+                  fill
+                  className="object-cover"
                 />
 
                 {/* Badges */}

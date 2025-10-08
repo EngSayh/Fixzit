@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Vendor } from "@/db/models/Vendor";
+import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 

@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     }
     const { db } = await import('@/lib/mongo');
     await (db as any)();
-    const WOMod = await import('@/db/models/WorkOrder').catch(() => null);
+    const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && (WOMod as any).WorkOrder;
     if (!WorkOrder) {
       return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
     const { db } = await import('@/lib/mongo');
     await (db as any)();
-    const WOMod = await import('@/db/models/WorkOrder').catch(() => null);
+    const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && (WOMod as any).WorkOrder;
     if (!WorkOrder) {
       return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });

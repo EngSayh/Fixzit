@@ -1,0 +1,200 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e12]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - banner [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: FIXZIT ENTERPRISE
+          - button "Switch application" [ref=e20] [cursor=pointer]:
+            - img [ref=e21] [cursor=pointer]
+            - generic [ref=e29] [cursor=pointer]: Fixzit Facility Management (FM)
+            - img [ref=e30] [cursor=pointer]
+        - generic [ref=e34]:
+          - img [ref=e35]
+          - textbox "Global search" [ref=e38]
+          - generic [ref=e39]:
+            - img [ref=e40]
+            - generic [ref=e42]: K
+        - generic [ref=e43]:
+          - button "Quick actions" [ref=e45] [cursor=pointer]:
+            - img [ref=e46] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]: Quick Actions
+            - img [ref=e50] [cursor=pointer]
+          - generic [ref=e52]:
+            - button "Select language English (EN)" [ref=e54] [cursor=pointer]:
+              - img [ref=e55] [cursor=pointer]
+              - generic [ref=e59] [cursor=pointer]:
+                - generic [ref=e60] [cursor=pointer]: 🇺🇸
+                - generic [ref=e61] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e63] [cursor=pointer]:
+              - img [ref=e64] [cursor=pointer]
+              - generic [ref=e68] [cursor=pointer]:
+                - generic [ref=e69] [cursor=pointer]: 🇸🇦
+                - generic [ref=e70] [cursor=pointer]: SAR
+          - button "Toggle notifications" [ref=e72] [cursor=pointer]:
+            - img [ref=e73] [cursor=pointer]
+          - button [ref=e78] [cursor=pointer]:
+            - img [ref=e79] [cursor=pointer]
+            - img [ref=e82] [cursor=pointer]
+      - generic [ref=e84]:
+        - complementary [ref=e86]:
+          - generic [ref=e87]:
+            - generic [ref=e88]: Fixzit Enterprise
+            - navigation
+            - generic [ref=e89]:
+              - generic [ref=e90]: Account
+              - navigation [ref=e91]:
+                - button "Profile" [ref=e92] [cursor=pointer]:
+                  - img [ref=e93] [cursor=pointer]
+                  - generic [ref=e97] [cursor=pointer]: Profile
+                - button "Settings" [ref=e98] [cursor=pointer]:
+                  - img [ref=e99] [cursor=pointer]
+                  - generic [ref=e102] [cursor=pointer]: Settings
+                - button "Notifications" [ref=e103] [cursor=pointer]:
+                  - img [ref=e104] [cursor=pointer]
+                  - generic [ref=e107] [cursor=pointer]: Notifications
+            - generic [ref=e108]:
+              - generic [ref=e109]: Preferences
+              - generic [ref=e110]:
+                - button "Select language English (EN)" [ref=e112] [cursor=pointer]:
+                  - img [ref=e113] [cursor=pointer]
+                  - generic [ref=e117] [cursor=pointer]:
+                    - generic [ref=e118] [cursor=pointer]: 🇺🇸
+                    - generic [ref=e119] [cursor=pointer]: EN
+                - button "Select currency SAR" [ref=e121] [cursor=pointer]:
+                  - img [ref=e122] [cursor=pointer]
+                  - generic [ref=e126] [cursor=pointer]:
+                    - generic [ref=e127] [cursor=pointer]: 🇸🇦
+                    - generic [ref=e128] [cursor=pointer]: SAR
+            - generic [ref=e129]:
+              - generic [ref=e130]: Help
+              - button "Help Center" [ref=e131] [cursor=pointer]:
+                - img [ref=e132] [cursor=pointer]
+                - generic [ref=e134] [cursor=pointer]: Help Center
+        - main [ref=e135]:
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - heading "Dashboard" [level=1] [ref=e139]
+              - paragraph [ref=e140]: Welcome back, Eng. Sultan
+            - generic [ref=e141]:
+              - generic [ref=e143]:
+                - generic [ref=e144]:
+                  - paragraph [ref=e145]: Total Properties
+                  - paragraph [ref=e146]: "42"
+                - img [ref=e148]
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - paragraph [ref=e156]: Open Work Orders
+                  - paragraph [ref=e157]: "17"
+                - img [ref=e159]
+              - generic [ref=e163]:
+                - generic [ref=e164]:
+                  - paragraph [ref=e165]: Monthly Revenue
+                  - paragraph [ref=e166]: SAR 284,500
+                - img [ref=e168]
+              - generic [ref=e172]:
+                - generic [ref=e173]:
+                  - paragraph [ref=e174]: Occupancy Rate
+                  - paragraph [ref=e175]: 92%
+                - img [ref=e177]
+            - generic [ref=e182]:
+              - generic [ref=e183]:
+                - heading "Recent Work Orders" [level=2] [ref=e185]
+                - generic [ref=e187]:
+                  - generic [ref=e188]:
+                    - generic [ref=e189]:
+                      - paragraph [ref=e190]: WO-1001 - AC Maintenance
+                      - paragraph [ref=e191]: Property Tower A - Unit 301
+                    - generic [ref=e192]: In Progress
+                  - generic [ref=e193]:
+                    - generic [ref=e194]:
+                      - paragraph [ref=e195]: WO-1002 - AC Maintenance
+                      - paragraph [ref=e196]: Property Tower A - Unit 301
+                    - generic [ref=e197]: In Progress
+                  - generic [ref=e198]:
+                    - generic [ref=e199]:
+                      - paragraph [ref=e200]: WO-1003 - AC Maintenance
+                      - paragraph [ref=e201]: Property Tower A - Unit 301
+                    - generic [ref=e202]: In Progress
+              - generic [ref=e203]:
+                - heading "Recent Transactions" [level=2] [ref=e205]
+                - generic [ref=e207]:
+                  - generic [ref=e208]:
+                    - generic [ref=e209]:
+                      - paragraph [ref=e210]: INV-2001 - Monthly Rent
+                      - paragraph [ref=e211]: "Tenant: Acme Corp"
+                    - generic [ref=e212]: +SAR 16,000
+                  - generic [ref=e213]:
+                    - generic [ref=e214]:
+                      - paragraph [ref=e215]: INV-2002 - Monthly Rent
+                      - paragraph [ref=e216]: "Tenant: Acme Corp"
+                    - generic [ref=e217]: +SAR 17,000
+                  - generic [ref=e218]:
+                    - generic [ref=e219]:
+                      - paragraph [ref=e220]: INV-2003 - Monthly Rent
+                      - paragraph [ref=e221]: "Tenant: Acme Corp"
+                    - generic [ref=e222]: +SAR 18,000
+      - contentinfo [ref=e224]:
+        - generic [ref=e225]:
+          - generic [ref=e226]:
+            - generic [ref=e227]: Fixzit
+            - link "Back to Home" [ref=e228] [cursor=pointer]:
+              - /url: /
+              - img [ref=e229] [cursor=pointer]
+              - generic [ref=e232] [cursor=pointer]: Back to Home
+            - generic [ref=e233]:
+              - button "Select language English (EN)" [ref=e235] [cursor=pointer]:
+                - img [ref=e236] [cursor=pointer]
+                - generic [ref=e240] [cursor=pointer]:
+                  - generic [ref=e241] [cursor=pointer]: 🇺🇸
+                  - generic [ref=e242] [cursor=pointer]: EN
+              - button "Select currency SAR" [ref=e244] [cursor=pointer]:
+                - img [ref=e245] [cursor=pointer]
+                - generic [ref=e249] [cursor=pointer]:
+                  - generic [ref=e250] [cursor=pointer]: 🇸🇦
+                  - generic [ref=e251] [cursor=pointer]: SAR
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - generic [ref=e254]: Company
+              - list [ref=e255]:
+                - listitem [ref=e256]:
+                  - link "About" [ref=e257] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e258]:
+                  - link "Careers" [ref=e259] [cursor=pointer]:
+                    - /url: /careers
+            - generic [ref=e260]:
+              - generic [ref=e261]: Legal
+              - list [ref=e262]:
+                - listitem [ref=e263]:
+                  - link "Privacy" [ref=e264] [cursor=pointer]:
+                    - /url: /cms/privacy
+                - listitem [ref=e265]:
+                  - link "Terms" [ref=e266] [cursor=pointer]:
+                    - /url: /cms/terms
+            - generic [ref=e267]:
+              - generic [ref=e268]: Support
+              - list [ref=e269]:
+                - listitem [ref=e270]:
+                  - link "Help Center" [ref=e271] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e272]:
+                  - button "Open a ticket" [ref=e273] [cursor=pointer]
+          - generic [ref=e274]:
+            - generic [ref=e275]: © 2025 Fixzit. All rights reserved.
+            - generic [ref=e276]:
+              - link "Privacy" [ref=e277] [cursor=pointer]:
+                - /url: /cms/privacy
+              - link "Terms" [ref=e278] [cursor=pointer]:
+                - /url: /cms/terms
+              - link "Support" [ref=e279] [cursor=pointer]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e281] [cursor=pointer]:
+      - img [ref=e282] [cursor=pointer]
+    - button "🧪 Test Error Boundary" [ref=e289] [cursor=pointer]
+```

@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 type Theme = 'light' | 'dark' | 'auto';
 type Ctx = { theme: Theme; setTheme: (t: Theme) => void; dir: 'ltr'|'rtl'; setDir:(d:'ltr'|'rtl')=>void };

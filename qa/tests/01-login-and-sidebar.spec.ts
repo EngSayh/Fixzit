@@ -5,7 +5,8 @@ async function login(page: any){
   await page.goto('/login');
   await page.getByPlaceholder(/email/i).fill(cfg.users.admin.email);
   await page.getByPlaceholder(/password/i).fill(cfg.users.admin.password);
-  await page.getByRole('button', { name: /sign in|login/i }).click();
+  // Click the submit button (type="submit"), not the SSO Login button
+  await page.getByRole('button', { name: /^Sign In$/i }).click();
   await page.waitForLoadState('networkidle');
 }
 
@@ -15,9 +16,9 @@ test.describe('Login & Sidebar (@smoke)', () => {
     // Navigate to a core page if not redirected
     if (page.url().endsWith('/login')) await page.goto('/dashboard');
 
-    // single header and presence of language/currency/back-to-home (at least language)
+    // single header and presence of language selector (avoid matching SAR currency)
     await expect(page.locator('header')).toHaveCount(1);
-    await expect(page.getByRole('button', { name: /EN|AR|العربية/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Select language/i }).first()).toBeVisible();
 
     // Sidebar modules baseline (presence, no duplicates)
     for (const mod of cfg.modules) {

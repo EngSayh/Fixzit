@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { WorkOrder } from "@/db/models/WorkOrder";
-import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
 
 export async function POST(req:NextRequest){
   const user = await requireAbility("EDIT")(req);

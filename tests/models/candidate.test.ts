@@ -49,6 +49,7 @@ const baseDoc = {
     }));
 
     const records: any[] = [];
+    class MockCandidateRepo {
       private collection: string;
       constructor(collection: string) {
         this.collection = collection;
@@ -78,7 +79,9 @@ const baseDoc = {
       }
     }
 
+    jest.doMock('@/models/candidate', () => ({
       __esModule: true,
+      CandidateRepo: MockCandidateRepo,
     }));
   });
 

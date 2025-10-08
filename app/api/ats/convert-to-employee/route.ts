@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Application } from '@/db/models/Application';
-import { Candidate } from '@/db/models/Candidate';
-import { Job } from '@/db/models/Job';
-import { Employee } from '@/db/models/Employee';
+import { Application } from '@/server/models/Application';
+import { Candidate } from '@/server/models/Candidate';
+import { Job } from '@/server/models/Job';
+import { Employee } from '@/server/models/Employee';
 import { getUserFromToken } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
@@ -19,9 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check user permissions (admin or HR role can convert applications)
-    // Check if user has permission to convert applications
-    const canConvertApplications = ['admin', 'hr'].includes(user.role) || 
-                     user.permissions?.includes('convert_application');
+    const canConvertApplications = ['admin', 'hr'].includes(user.role);
     
     if (!canConvertApplications) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });

@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
+import { NextRequest } from 'next/server';
 import { computeQuote } from '@/lib/pricing';
 import { createSecureResponse } from '@/server/security/headers';
 

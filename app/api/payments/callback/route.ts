@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayment, validateCallback } from '@/lib/paytabs';
 import { parseCartAmount } from '@/lib/payments/parseCartAmount';
-import { Invoice } from '@/db/models/Invoice';
+import { Invoice } from '@/server/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
 export async function POST(req: NextRequest) {

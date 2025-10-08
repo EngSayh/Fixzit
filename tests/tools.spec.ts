@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // Determine import path to the implementation under test.
 // Adjust this path if the actual file differs. We search common locations.
@@ -26,11 +26,6 @@ const tryImportCandidates = async () => {
       // continue
     }
   }
-  // As a fallback, attempt relative to tests file if using ts-jest path mapping off
-  try {
-    const m = await import("../src/server/copilot/tools");
-    if (m.executeTool && m.detectToolFromMessage) return m;
-  } catch(_) {}
   throw new Error("Could not resolve tools module. Please update import candidates to actual file path exporting executeTool and detectToolFromMessage.");
 };
 
@@ -76,7 +71,7 @@ const workOrderFindOneAndUpdate = jest.fn();
 
 const ownerStatementFind = jest.fn();
 
-jest.unstable_mockModule("@/db/models/WorkOrder", () => ({
+jest.unstable_mockModule("@/server/models/WorkOrder", () => ({
   WorkOrder: {
     create: workOrderCreate,
     find: workOrderFind,
@@ -84,7 +79,7 @@ jest.unstable_mockModule("@/db/models/WorkOrder", () => ({
   },
 }));
 
-jest.unstable_mockModule("@/db/models/OwnerStatement", () => ({
+jest.unstable_mockModule("@/server/models/OwnerStatement", () => ({
   OwnerStatement: {
     find: ownerStatementFind,
   },

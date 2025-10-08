@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
 import { rateLimit } from "@/server/security/rateLimit";
 import { getUserFromToken } from '@/lib/auth';
+import { getClientIP } from '@/server/security/headers';
 import { z } from 'zod';
 
 const invoiceCreateSchema = z.object({
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     const body = invoiceCreateSchema.parse(await req.json());
     
-    const data = await svc.create({ ...body, orgId: (user as any)?.orgId }, user.id, req.ip ?? "");
+    const data = await svc.create({ ...body, orgId: (user as any)?.orgId }, user.id, getClientIP(req));
     return NextResponse.json({ data }, { status:201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
         sellerName: 'Fixzit Enterprise',
         vatNumber: '300123456789012',
         timestamp: new Date().toISOString(),
-        total,
-        vat: +(total * 0.15).toFixed(2)
+        total: total.toFixed(2),
+        vatAmount: (total * 0.15).toFixed(2)
       });
       
       // In production, save to database

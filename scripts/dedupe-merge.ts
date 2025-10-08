@@ -2,6 +2,7 @@ import fg from 'fast-glob';
 import fs from 'fs';
 import path from 'path';
 import { parse } from '@babel/parser';
+// @ts-ignore - No type declarations available
 import traverse from '@babel/traverse';
 import * as recast from 'recast';
 import pc from 'picocolors';
