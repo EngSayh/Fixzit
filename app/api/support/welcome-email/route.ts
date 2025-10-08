@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import crypto from "crypto";
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),

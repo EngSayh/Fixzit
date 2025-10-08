@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Project } from "@/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import crypto from "crypto";
 
 const createProjectSchema = z.object({
   name: z.string().min(1),
@@ -44,19 +45,12 @@ const createProjectSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    
-    // If no user or missing required fields, return 401
-    if (!user || !user.orgId) {
-      console.error('POST /api/projects: Auth failed', { user, hasOrgId: !!user?.orgId });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    
     await connectToDatabase();
 
     const data = createProjectSchema.parse(await req.json());
 
     const project = await Project.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: (user as any).orgId,
       code: `PRJ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "PLANNING",
@@ -92,9 +86,6 @@ export async function GET(req: NextRequest) {
       // Explicitly catch and normalize all auth errors to 401
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!user || !(user as any)?.orgId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -104,7 +95,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: (user as any).orgId };
     if (type) match.type = type;
     if (status) match.status = status;
     if (search) {

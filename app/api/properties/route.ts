@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Property } from "@/server/models/Property";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import crypto from "crypto";
 
 const createPropertySchema = z.object({
   name: z.string().min(1),
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
     const data = createPropertySchema.parse(await req.json());
 
     const property = await Property.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: (user as any).orgId,
       code: `PROP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -86,9 +87,6 @@ export async function GET(req: NextRequest) {
   try {
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -99,7 +97,7 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: (user as any).orgId };
 
     if (type) match.type = type;
     if (status) match['units.status'] = status;

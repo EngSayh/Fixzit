@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import crypto from "crypto";
 
 const createVendorSchema = z.object({
   name: z.string().min(1),
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     const data = createVendorSchema.parse(await req.json());
 
     const vendor = await Vendor.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: (user as any).orgId,
       code: `VEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: (user as any).orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;

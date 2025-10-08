@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SLA } from "@/server/models/SLA";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import crypto from "crypto";
 
 const createSLASchema = z.object({
   name: z.string().min(1),
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
     const data = createSLASchema.parse(await req.json());
 
     const sla = await (SLA as any).create({
-      tenantId: (user as any)?.orgId,
+      tenantId: (user as any).orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -127,7 +128,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: any = { tenantId: (user as any).orgId };
 
     if (type) match.type = type;
     if (priority) match.priority = priority;

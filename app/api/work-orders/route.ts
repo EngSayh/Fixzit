@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-
+import crypto from "crypto";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   const page = Number(searchParams.get("page") || 1);
   const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
-  const match: any = { tenantId: (user as any)?.orgId, deletedAt: { $exists: false } };
+  const match: any = { tenantId: (user as any).orgId, deletedAt: { $exists: false } };
   if (status) match.status = status;
   if (priority) match.priority = priority;
   if (q) match.$text = { $search: q };
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
   const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
   const wo = await (WorkOrder as any).create({
-    tenantId: (user as any)?.orgId,
+    tenantId: (user as any).orgId,
     code,
     title: data.title,
     description: data.description,

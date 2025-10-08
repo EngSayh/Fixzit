@@ -4,6 +4,7 @@ import { SupportTicket } from '@/server/models/SupportTicket';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
 import Redis from 'ioredis';
+import crypto from 'crypto';
 
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
