@@ -2,6 +2,12 @@ import { Schema, model, models, Types } from 'mongoose';
 
 const ServiceAgreementSchema = new Schema(
   {
+    orgId: {
+      type: Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+      index: true
+    },
     subscriber_type: { 
       type: String, 
       enum: ['CORPORATE', 'OWNER'],
@@ -15,7 +21,8 @@ const ServiceAgreementSchema = new Schema(
     modules: { type: [String], default: [] },
     seats: { 
       type: Number,
-      required: true 
+      required: true,
+      min: [1, 'Seats must be at least 1']
     },
     term: { 
       type: String, 
@@ -32,11 +39,14 @@ const ServiceAgreementSchema = new Schema(
     },
     currency: { 
       type: String,
-      required: true 
+      required: true,
+      uppercase: true,
+      match: [/^[A-Z]{3}$/, 'Currency must be a valid ISO 4217 code (e.g., USD, EUR, SAR)']
     },
     amount: { 
       type: Number,
-      required: true 
+      required: true,
+      min: [0, 'Amount cannot be negative']
     },
     status: { 
       type: String, 

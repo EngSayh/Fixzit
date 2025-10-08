@@ -1,7 +1,7 @@
 import { Schema, model, models, Document } from 'mongoose';
 
 export interface IPriceTier extends Document {
-  _id: string;
+  _id: Schema.Types.ObjectId;
   moduleId: Schema.Types.ObjectId;
   seatsMin: number;
   seatsMax: number;
@@ -23,12 +23,24 @@ const priceTierSchema = new Schema<IPriceTier>({
   seatsMin: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
+    validate: {
+      validator: function(this: IPriceTier, value: number) {
+        return !this.seatsMax || value <= this.seatsMax;
+      },
+      message: 'seatsMin must be less than or equal to seatsMax'
+    }
   },
   seatsMax: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
+    validate: {
+      validator: function(this: IPriceTier, value: number) {
+        return !this.seatsMin || value >= this.seatsMin;
+      },
+      message: 'seatsMax must be greater than or equal to seatsMin'
+    }
   },
   pricePerSeatMonthly: {
     type: Number,
@@ -42,7 +54,8 @@ const priceTierSchema = new Schema<IPriceTier>({
     type: String,
     required: true,
     default: 'USD',
-    uppercase: true
+    uppercase: true,
+    match: [/^[A-Z]{3}$/, 'Currency must be a valid ISO 4217 code (e.g., USD, EUR, SAR)']
   },
   region: {
     type: String,
