@@ -3,7 +3,6 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import User from "@/modules/users/schema";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -76,7 +75,8 @@ export async function POST(req: NextRequest) {
     });
 
     // Remove password from response
-    const { password: _pw, ...userWithoutPassword } = user.toObject();
+    // eslint-disable-next-line no-unused-vars
+    const { password, ...userWithoutPassword } = user.toObject();
 
     return NextResponse.json({
       ok: true,

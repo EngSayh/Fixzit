@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
-    const client = await connectToDatabase();
+    await connectToDatabase();
 
     const filter: any = { orgId: context.orgId };
     if (context.role === 'VENDOR') {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const payload = UpsertSchema.parse(body);
-    const client = await connectToDatabase();
+    await connectToDatabase();
 
     const data = {
       orgId: context.orgId,
