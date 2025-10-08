@@ -7,6 +7,29 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
+/**
+ * @openapi
+ * /api/admin/billing/benchmark/{id}:
+ *   patch:
+ *     summary: Update billing benchmark
+ *     description: Updates a billing benchmark by ID. Super admin only.
+ *     tags:
+ *       - Admin
+ *       - Billing
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Benchmark updated successfully
+ *       404:
+ *         description: Benchmark not found
+ */
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await dbConnect();
