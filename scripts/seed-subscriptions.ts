@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import Module from '../src/db/models/Module';
-import PriceBook from '../src/db/models/PriceBook';
-import DiscountRule from '../src/db/models/DiscountRule';
-import Benchmark from '../src/db/models/Benchmark';
+import Module from '../server/models/Module';
+import PriceBook from '../server/models/PriceBook';
+import DiscountRule from '../server/models/DiscountRule';
+import Benchmark from '../server/models/Benchmark';
 
 const USD_PRICES = [
   { module_key: 'FM_CORE', monthly_usd: 22, monthly_sar: 82 },

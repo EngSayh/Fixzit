@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { SupportTicket } from "@/db/models/SupportTicket";
+import { SupportTicket } from "@/server/models/SupportTicket";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 // Force dynamic rendering for this route

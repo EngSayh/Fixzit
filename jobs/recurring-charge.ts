@@ -1,4 +1,4 @@
-import Subscription from '../db/models/Subscription';
+import Subscription from '@/server/models/Subscription';
 
 export async function chargeDueMonthlySubs() {
   const paytabsDomain = process.env.PAYTABS_DOMAIN;

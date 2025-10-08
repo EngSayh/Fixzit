@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { HelpArticle } from "@/db/models/HelpArticle";
-import { WorkOrder } from "@/db/models/WorkOrder";
+import { HelpArticle } from "@/server/models/HelpArticle";
+import { WorkOrder } from "@/server/models/WorkOrder";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const BodySchema = z.object({
@@ -17,7 +17,7 @@ function parseNewTicket(question: string) {
   if (!isSlash && !isNatural) return null;
 
   const get = (key: string) => {
-    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^\s]+))`, "i"));
+    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^\\s]+))`, "i"));
     if (!m) return undefined;
     return (m[2] || m[3])?.trim();
   };

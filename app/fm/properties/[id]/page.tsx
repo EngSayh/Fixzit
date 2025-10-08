@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Button } from '@/src/components/ui/button';
-import { Badge } from '@/src/components/ui/badge';
-import { Separator } from '@/src/components/ui/separator';
-import GoogleMap from '@/src/components/GoogleMap';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import GoogleMap from '@/components/GoogleMap';
 import {
   Building2, MapPin, Calendar, DollarSign, Users, Home,
   Wrench, Shield, FileText, ChevronLeft, Edit, Trash2,

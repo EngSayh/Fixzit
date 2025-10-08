@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { 
-  Building2, Users, Wrench, ShoppingCart, DollarSign, 
-  ClipboardList, AlertCircle, TrendingUp, Calendar,
+  Building2, Users, Wrench, DollarSign, 
+  ClipboardList,
   ChevronRight, Plus, Search, Bell
 } from 'lucide-react';
 

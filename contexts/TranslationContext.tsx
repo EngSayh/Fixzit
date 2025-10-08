@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   LANGUAGE_OPTIONS,
   findLanguageByCode,
@@ -231,7 +231,8 @@ const translations: Record<Language, Record<string, string>> = {
       'nav.support': 'Support',
       'nav.compliance': 'Compliance',
       'nav.reports': 'Reports',
-      'nav.system': 'System Management',
+      'nav.system': 'System',
+      'nav.administration': 'Administration',
       'nav.marketplace': 'Marketplace',
       'nav.maintenance': 'Maintenance',
       'nav.orders': 'Orders',

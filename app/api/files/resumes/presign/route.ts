@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const key = buildResumeKey((user as any).tenantId, String(fileName));
     const url = await getPresignedPutUrl(key, String(contentType), 300);
     return NextResponse.json({ url, key });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to presign' }, { status: 500 });
   }
 }

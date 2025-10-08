@@ -1,9 +1,9 @@
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
+import { validateCallback, PAYMENT_METHODS, CURRENCIES, getAvailablePaymentMethods } from '../../lib/paytabs.js';
 
 test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
   test('validateCallback: signature equals generated value (placeholder empty string)', async () => {
-    const { validateCallback } = await import('../../src/lib/paytabs');
 
     // Placeholder generateSignature returns ''
     expect(validateCallback({}, '')).toBe(true);
@@ -15,8 +15,6 @@ test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
   });
 
   test('PAYMENT_METHODS and CURRENCIES have expected mappings', async () => {
-    const { PAYMENT_METHODS, CURRENCIES } = await import('../../src/lib/paytabs');
-
     expect(PAYMENT_METHODS).toMatchObject({
       MADA: 'mada',
       VISA: 'visa',
@@ -36,8 +34,6 @@ test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
   });
 
   test('getAvailablePaymentMethods returns 6 enabled methods with correct shapes and excludes Tabby', async () => {
-    const { getAvailablePaymentMethods, PAYMENT_METHODS } = await import('../../src/lib/paytabs');
-
     const methods = getAvailablePaymentMethods();
     expect(Array.isArray(methods)).toBe(true);
     expect(methods).toHaveLength(6);

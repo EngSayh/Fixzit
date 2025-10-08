@@ -31,14 +31,14 @@ async function decodeToken(token?: string | null) {
   }
 }
 
-function readHeaderValue(req: NextRequest | Request | null | undefined, key: string) {
+async function readHeaderValue(req: NextRequest | Request | null | undefined, key: string) {
   if (req) {
     const value = req.headers.get(key);
     if (value) return value;
   }
 
   try {
-    const serverHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
+    const serverHeaders = await headers();
     return serverHeaders.get(key) ?? undefined;
   } catch (error) {
     const correlationId = randomUUID();
@@ -49,14 +49,15 @@ function readHeaderValue(req: NextRequest | Request | null | undefined, key: str
   }
 }
 
-function readCookieValue(req: NextRequest | null | undefined, key: string) {
+async function readCookieValue(req: NextRequest | null | undefined, key: string) {
   if (req) {
     const cookie = req.cookies.get(key)?.value;
     if (cookie) return cookie;
   }
 
   try {
-    return (cookies() as unknown as UnsafeUnwrappedCookies).get(key)?.value;
+    const cookieStore = await cookies();
+    return cookieStore.get(key)?.value;
   } catch (error) {
     const correlationId = randomUUID();
     const message = error instanceof Error ? error.message : String(error);
@@ -67,11 +68,11 @@ function readCookieValue(req: NextRequest | null | undefined, key: string) {
 }
 
 export async function resolveMarketplaceContext(req?: NextRequest | Request | null): Promise<MarketplaceRequestContext> {
-  const headerOrg = readHeaderValue(req ?? null, 'x-org-id') || readHeaderValue(req ?? null, 'x-tenant-id');
-  const cookieOrg = readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_org')
-    || readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_tenant');
+  const headerOrg = await readHeaderValue(req ?? null, 'x-org-id') || await readHeaderValue(req ?? null, 'x-tenant-id');
+  const cookieOrg = await readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_org')
+    || await readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_tenant');
 
-  const token = readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_auth');
+  const token = await readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_auth');
   const payload: any = await decodeToken(token);
 
   const tenantKey = (headerOrg || cookieOrg || payload?.tenantId || process.env.MARKETPLACE_DEFAULT_TENANT || 'demo-tenant') as string;

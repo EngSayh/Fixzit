@@ -1,13 +1,11 @@
 /**
  * Asset model unit tests
- * Testing library/framework: Jest (ts-jest) assumed.
- * If using Vitest, replace jest.mock with vi.mock and import { describe, it, expect } from 'vitest'.
+ * Testing library/framework: Vitest
  */
 
-// Force real Mongoose model path by disabling mock DB branch in the module under test.
-
-import { Asset } from '../../../src/models/Asset';
-import type { AssetDoc } from '../../../src/models/Asset';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { Asset } from '@/server/models/Asset';
+import type { AssetDoc } from '@/server/models/Asset';
 
 type AnyObj = Record<string, any>;
 type PartialAsset = Partial<AssetDoc> & AnyObj;

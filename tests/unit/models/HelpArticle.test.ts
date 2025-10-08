@@ -1,23 +1,20 @@
 /**
- * Unit tests for HelpArticle model using Playwright Test.
- * Framework: Playwright Test (@playwright/test)
+ * Unit tests for HelpArticle model.
+ * Framework: Vitest
  *
  * Focus: Validate behavior introduced/modified in the HelpArticle model.
  * - Schema: required fields, defaults, enums, indexes, timestamps.
- *
- * Notes:
- * - We control branches by spawning isolated Node processes with tsx loader.
  */
  
-import { test, expect } from "@playwright/test";
+import { describe, test, expect } from "vitest";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import fs from "node:fs/promises";
 import os from "node:os";
 import crypto from "node:crypto";
  
-const projectRoot = path.resolve(__dirname, "../../../..");
-const modelPath = path.resolve(projectRoot, "src/server/models/HelpArticle.ts");
+const projectRoot = path.resolve(__dirname, "../../..");
+const modelPath = path.resolve(projectRoot, "server/models/HelpArticle.ts");
  
 /**
  * Helper: create a temporary test module that imports the model after setting env,
@@ -89,7 +86,7 @@ async function runIsolatedImport(env: Record<string, string | undefined>) {
   }
 }
  
-test.describe("HelpArticle model - MongoDB only", () => {
+describe("HelpArticle model - MongoDB only", () => {
   test("uses MongoDB connection when URI is present", async () => {
     const result = await runIsolatedImport({
       MONGODB_URI: "mongodb://localhost:27017/test",
@@ -104,7 +101,7 @@ test.describe("HelpArticle model - MongoDB only", () => {
   });
 });
  
-test.describe("HelpArticle model - schema shape", () => {
+describe("HelpArticle model - schema shape", () => {
   test("defines required fields, defaults, enums, and text indexes", async () => {
     const result = await runIsolatedImport({
       MONGODB_URI: "mongodb://localhost:27017/test",
@@ -145,10 +142,7 @@ test.describe("HelpArticle model - schema shape", () => {
   });
 });
  
-test.describe("HelpArticle source integrity checks", () => {
-    const src = await fs.readFile(modelPath, "utf8");
-  });
- 
+describe("HelpArticle source integrity checks", () => {
   test("schema contains the expected fields", async () => {
     const src = await fs.readFile(modelPath, "utf8");
     for (const key of ["slug", "title", "content", "category", "tags", "status", "routeHints", "updatedBy", "updatedAt"]) {

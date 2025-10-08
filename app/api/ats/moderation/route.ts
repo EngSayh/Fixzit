@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Job } from '@/db/models/Job';
+import { Job } from '@/server/models/Job';
 import { getUserFromToken } from '@/lib/auth';
 
 export async function PUT(req: NextRequest) {

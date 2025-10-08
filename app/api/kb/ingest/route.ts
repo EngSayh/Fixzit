@@ -40,7 +40,7 @@ export async function DELETE(req: NextRequest) {
     if (!articleId) return NextResponse.json({ error: 'Missing articleId' }, { status: 400 });
     await deleteArticleEmbeddings(articleId, (user as any).tenantId || null);
     return NextResponse.json({ ok: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
   }
 }

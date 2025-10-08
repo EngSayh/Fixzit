@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Product from '@/db/models/marketplace/Product';
 import { serializeProduct } from '@/lib/marketplace/serializers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
@@ -41,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
     const { dbConnect } = await import('@/db/mongoose');
     await dbConnect();
-    const ProductMod = await import('@/models/marketplace/Product').catch(() => null);
+    const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
     const { dbConnect } = await import('@/db/mongoose');
     await dbConnect();
-    const ProductMod = await import('@/models/marketplace/Product').catch(() => null);
+    const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });

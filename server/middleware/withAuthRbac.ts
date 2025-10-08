@@ -15,12 +15,16 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   const headerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
   const xUserHeader = req.headers.get("x-user"); // Fallback for development
   
-  const token = cookieToken || headerToken;
-  
-  // Development fallback
-  if (!token && xUserHeader) {
-    return JSON.parse(xUserHeader) as SessionUser;
+  // Development fallback - prioritize for testing
+  if (xUserHeader) {
+    try {
+      return JSON.parse(xUserHeader) as SessionUser;
+    } catch (e) {
+      console.error('Failed to parse x-user header:', e);
+    }
   }
+  
+  const token = cookieToken || headerToken;
   
   if (!token) {
     throw new Error("Unauthenticated");

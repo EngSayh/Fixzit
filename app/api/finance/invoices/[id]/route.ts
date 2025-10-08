@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
 import { getUserFromToken } from '@/lib/auth';
+import { getClientIP } from '@/server/security/headers';
 import { z } from 'zod';
 
 const invoiceUpdateSchema = z.object({
@@ -31,7 +32,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
 
     const body = invoiceUpdateSchema.parse(await req.json());
     
-    const inv = await svc.post(user.orgId, params.id, body, user.id, req.ip ?? "");
+    const inv = await svc.post(user.orgId, params.id, body, user.id, getClientIP(req));
     return NextResponse.json({ data: inv });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

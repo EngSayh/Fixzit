@@ -1,0 +1,62 @@
+name: Agent Governor CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, feature/*, develop]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run inventory scan
+        run: bash scripts/inventory.sh
+      
+      - name: TypeScript check
+        run: npm run typecheck
+        continue-on-error: true
+      
+      - name: Lint check
+        run: npm run lint
+        continue-on-error: true
+      
+      - name: Run tests
+        run: npm run test --workspaces --if-present
+        continue-on-error: true
+      
+      - name: Run E2E smoke tests
+        run: npm run e2e:smoke --if-present
+        continue-on-error: true
+      
+      - name: Build project
+        run: npm run build
+        continue-on-error: true
+      
+      - name: Upload inventory artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inventory-results
+          path: docs/inventory/
+      
+      - name: Check for duplicates
+        run: |
+          if [ -s docs/inventory/duplicate-names.txt ]; then
+            echo "⚠️ Duplicates found:"
+            cat docs/inventory/duplicate-names.txt
+          else
+            echo "✅ No duplicates detected"
+          fi

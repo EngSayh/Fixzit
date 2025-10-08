@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { findProductBySlug } from '@/lib/marketplace/search';
 import { db } from '@/lib/mongo';
-import Category from '@/models/marketplace/Category';
+import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
 interface RouteParams {

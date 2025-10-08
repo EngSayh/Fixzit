@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import Benchmark from '@/db/models/Benchmark';
+import Benchmark from '@/server/models/Benchmark';
 import { requireSuperAdmin } from '@/lib/authz';
 
 export async function GET(req: NextRequest) {
