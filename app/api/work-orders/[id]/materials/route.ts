@@ -25,10 +25,10 @@ const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}): Promise<NextResponse> {
   const params = await props.params;
   const user = await requireAbility("EDIT")(req);
-  if (user instanceof NextResponse) return user as unknown;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const m = upsertSchema.parse(await req.json());
   // Validate MongoDB ObjectId format

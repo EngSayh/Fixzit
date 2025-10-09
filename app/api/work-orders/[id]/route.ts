@@ -25,7 +25,7 @@ import { createSecureResponse } from '@/server/security/headers';
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   const params = await props.params;
   await connectToDatabase();
   const wo = await WorkOrder.findById(params.id);
@@ -42,10 +42,10 @@ const patchSchema = z.object({
   dueAt: z.string().datetime().optional()
 });
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   const params = await props.params;
   const user = await requireAbility("EDIT")(req);
-  if (user instanceof NextResponse) return user as unknown;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const updates = patchSchema.parse(await req.json());
   const updatePayload: Record<string, any> = { ...updates };

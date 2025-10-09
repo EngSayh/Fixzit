@@ -22,9 +22,9 @@ import { createSecureResponse } from '@/server/security/headers';
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req:NextRequest){
+export async function POST(req:NextRequest): Promise<NextResponse> {
   const user = await requireAbility("EDIT")(req);
-  if (user instanceof NextResponse) return user as unknown;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const rows = (await req.json())?.rows as any[]; // expects parsed CSV rows from UI
   let created = 0;
