@@ -359,7 +359,7 @@ Thank you for your interest in joining Fixzit Enterprise!
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#023047] via-[#0061A8] to-[#00A859] text-white py-16">
+      <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-16">{/* FIXED: was #023047 (banned) */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Join Our Team</h1>
@@ -401,7 +401,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded bg-[#023047] text-white flex items-center justify-center font-bold">FZ</div>
+                        <div className="w-8 h-8 rounded bg-[#0061A8] text-white flex items-center justify-center font-bold">FZ</div>{/* FIXED: was #023047 (banned) */}
                         <div className="flex flex-col">
                           <CardTitle className="text-xl leading-tight">{job.title}</CardTitle>
                           <div className="text-xs text-gray-500">Fixzit Enterprise</div>
