@@ -39,15 +39,13 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     const user = await getSessionUser(req);
     
-    
-
     // Verify user authentication
     if (!user) {
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
 
     // Check user permissions (admin or HR role can convert applications)
-    
+    const canConvertApplications = ['admin', 'hr'].includes(user.role);
     if (!canConvertApplications) {
       return createSecureResponse({ error: 'Forbidden: Insufficient permissions' }, 403, req);
     }

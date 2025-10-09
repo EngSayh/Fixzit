@@ -7,7 +7,8 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { createSecureResponse } from '@/server/security/headers';
 import { 
   createErrorResponse,
-  zodValidationError
+  zodValidationError,
+  rateLimitError
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
 
