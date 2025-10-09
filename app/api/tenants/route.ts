@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
     let user;
     try {
       user = await getSessionUser(req);
-    } catch (error: any) {
+    } catch {
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
 

@@ -263,7 +263,7 @@ export function validateCurrencyAmount(
 export { parseCartAmount, parseCartAmountOrThrow };
 
 // Default export for unified payments utilities
-export default {
+const currencyUtils = {
   formatCurrency,
   parseAndFormatCurrency,
   convertCurrency,
@@ -274,3 +274,5 @@ export default {
   parseCartAmountOrThrow,
   CURRENCY_CONFIGS
 };
+
+export default currencyUtils;
