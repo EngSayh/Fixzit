@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   let safe: z.infer<typeof schema>;
   try {
     safe = schema.parse(body);
-  } catch (err: any) {
+  } catch (_err: any) {
     const issues = err?.issues ?? [];
     return NextResponse.json(
       {
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
         ]
       });
       break;
-    } catch (e: any) {
+    } catch (_e: any) {
       if (e?.code === 11000) continue; // duplicate code -> retry
       throw e;
     }

@@ -16,16 +16,16 @@ type Citation = { title: string; slug: string };
 
 function parseNewTicket(question: string) {
   const isSlash = question.trim().toLowerCase().startsWith("/new-ticket");
-  const isNatural = /\b(create|open)\b.*\b(work\s*order|ticket)\b/i.test(question);
+  const isNatural = /\b(create|open)\b.*\b(work *order|ticket)\b/i.test(question);
   if (!isSlash && !isNatural) return null;
 
   const get = (key: string) => {
-    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^\s]+))`, "i"));
+    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^ ]+))`, "i"));
     if (!m) return undefined;
     return (m[2] || m[3])?.trim();
   };
 
-  const title = get("title") || question.replace(/^\s*\/new-ticket\s*/i, "").trim() || "General request";
+  const title = get("title") || question.replace(/^ *\/new-ticket */i, "").trim() || "General request";
   const description = get("desc") || get("description");
   const priority = (get("priority") || "MEDIUM").toUpperCase();
   const propertyId = get("propertyId");
@@ -34,7 +34,7 @@ function parseNewTicket(question: string) {
 }
 
 function isMyTickets(question: string) {
-  return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work\s*orders)\b/i.test(question);
+  return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work *orders)\b/i.test(question);
 }
 
 /**
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
         createdBy: user.id});
       const answer = `Created work order ${wo.code} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
-    } catch (e: any) {
+    } catch (_e: any) {
       return NextResponse.json({ answer: `Could not create work order: ${e.message || "unknown error"}`, citations: [] as Citation[] });
     }
   }

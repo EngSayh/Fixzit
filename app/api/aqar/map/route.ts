@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
       avgPrice: Math.round(r.avgPrice || 0)}));
 
     return createSecureResponse({ clusters }, 200, req);
-  } catch (err) {
+  } catch (_err) {
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

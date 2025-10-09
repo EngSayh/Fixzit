@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  const client = await connectToDatabase();
+  const _client = await connectToDatabase();
   const payload = await req.json().catch(()=>null);
   const data = payload || {}; // if using return-url (form-data), create a separate handler
   const tranRef = data.tran_ref || data.tranRef;

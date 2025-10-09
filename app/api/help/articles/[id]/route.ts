@@ -70,7 +70,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const response = NextResponse.json(article);
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
-  } catch (err: any) {
+  } catch (_err: any) {
     if (err?.name === 'ZodError') {
       return validationError('Validation failed', err.issues);
     }

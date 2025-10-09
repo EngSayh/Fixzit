@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
-    const userId = user?.id || 'system';
+    const _userId = user?.id || 'system';
     
     const job = await Job.findById(params.id);
     if (!job) return notFoundError("Job");
