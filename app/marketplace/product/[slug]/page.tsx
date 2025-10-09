@@ -22,8 +22,8 @@ export default async function ProductDetail(props: ProductPageProps) {
   const product = productResponse.data.product;
   const category = productResponse.data.category;
 
-  const attachments = product.media?.filter((file: unknown) => file.role === 'MSDS' || file.role === 'COA') ?? [];
-  const gallery = product.media?.filter((file: unknown) => file.role === 'GALLERY') ?? [];
+  const attachments = product.media?.filter((file: any) => file.role === 'MSDS' || file.role === 'COA') ?? [];
+  const gallery = product.media?.filter((file: any) => file.role === 'GALLERY') ?? [];
 
   const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
   return (
@@ -116,7 +116,7 @@ export default async function ProductDetail(props: ProductPageProps) {
               <h2 className="text-xl font-semibold text-[#0F1111]">Related items</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {product.related?.length ? (
-                  product.related.map((related: unknown) => <ProductCard key={related._id} product={related} />)
+                  product.related.map((related: any) => <ProductCard key={related._id} product={related} />)
                 ) : (
                   <p className="text-sm text-gray-600">Additional items will appear as catalogue grows.</p>
                 )}

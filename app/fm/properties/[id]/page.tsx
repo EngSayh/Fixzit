@@ -305,7 +305,7 @@ export default function PropertyDetailsPage() {
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Open Issues</p>
                   {property.maintenance.issues
-                    .filter((issue: unknown) => !issue.resolved)
+                    .filter((issue: any) => !issue.resolved)
                     .map((issue: any, index: number) => (
                       <div key={index} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${

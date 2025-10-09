@@ -14,7 +14,7 @@ export interface NormalizedPayTabsPayload {
   maskedCard?: string;
 }
 
-export function function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload {
+export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload {
   const paymentInfo = data?.payment_info || {};
   return {
     tran_ref: data?.tran_ref || data?.tranRef,

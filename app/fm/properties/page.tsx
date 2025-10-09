@@ -144,7 +144,7 @@ function PropertyCard({ property}: { property: any; onUpdated: () => void }) {
 
   const occupancyRate = property.details?.occupancyRate || 0;
   const totalUnits = property.units?.length || 0;
-  const occupiedUnits = property.units?.filter((u: unknown) => u.status === 'OCCUPIED').length || 0;
+  const occupiedUnits = property.units?.filter((u: any) => u.status === 'OCCUPIED').length || 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">

@@ -1,0 +1,60 @@
+{
+  "name": "Fixzit Development Container",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  
+  // Configure properties specific to VS Code.
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-playwright.playwright"
+      ]
+    }
+  },
+
+  // Forward ports for the application and development tools
+  "forwardPorts": [3000, 9229, 9323],
+  
+  // Configure port attributes
+  "portsAttributes": {
+    "3000": {
+      "label": "Fixzit App (Next.js)",
+      "onAutoForward": "openPreview"
+    },
+    "9229": {
+      "label": "Node Inspector",
+      "onAutoForward": "silent"
+    },
+    "9323": {
+      "label": "Playwright Report",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "postCreateCommand": "npm install",
+
+  // Set environment variables
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "PORT": "3000"
+  },
+
+  // Configure remote settings
+  "remoteEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "VSCODE_NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+
+  // Features to add to the dev container
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
+}

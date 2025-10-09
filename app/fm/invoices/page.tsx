@@ -65,7 +65,7 @@ export default function InvoicesPage() {
                 <p className="text-sm text-gray-600">Total Outstanding</p>
                 <p className="text-2xl font-bold">
                   {invoices
-                    .filter((inv: unknown) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
+                    .filter((inv: any) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
                     .reduce((sum: number, inv: any) => sum + inv.total, 0)
                     .toLocaleString()} SAR
                 </p>
@@ -81,7 +81,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {invoices.filter((inv: unknown) => inv.status === 'OVERDUE').length}
+                  {invoices.filter((inv: any) => inv.status === 'OVERDUE').length}
                 </p>
               </div>
               <AlertCircle className="w-8 h-8 text-red-600" />
@@ -95,7 +95,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {invoices.filter((inv: unknown) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
+                  {invoices.filter((inv: any) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-yellow-600" />

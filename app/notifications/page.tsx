@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import {Check, CheckCheck, Filter, Search, MoreVertical } from 'lucide-react';
 import useSWR from 'swr';
+import type { NotificationDoc } from '@/lib/models';
 
 const fetcher = (url: string) => fetch(url, {
   headers: {
@@ -22,7 +23,7 @@ export default function NotificationsPage() {
   const [selectAll, setSelectAll] = useState(false);
 
   // Fetch notifications from API
-  const { data, mutate, isLoading } = useSWR('/api/notifications', fetcher);
+  const { data, mutate, isLoading } = useSWR<{ items: NotificationDoc[] }>('/api/notifications', fetcher);
   const notificationItems = data?.items;
 
   const notifications = useMemo(() => {
@@ -60,7 +61,7 @@ export default function NotificationsPage() {
   };
 
   const filteredNotifications = useMemo(() => {
-    return notifications.filter((notif: unknown) => {
+    return notifications.filter((notif: NotificationDoc) => {
       const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
                            notif.message.toLowerCase().includes(search.toLowerCase());
 
@@ -93,7 +94,7 @@ export default function NotificationsPage() {
     if (selectAll) {
       setSelectedNotifications(new Set());
     } else {
-      setSelectedNotifications(new Set(filteredNotifications.map((n: unknown) => n.id)));
+      setSelectedNotifications(new Set(filteredNotifications.map((n: NotificationDoc) => String(n._id || ''))));
     }
     setSelectAll(!selectAll);
   };
@@ -110,15 +111,15 @@ export default function NotificationsPage() {
     setSelectAll(newSelected.size === filteredNotifications.length);
   };
 
-  const unreadCount = useMemo(() => notifications.filter((n: unknown) => !n.read).length, [notifications]);
+  const unreadCount = useMemo(() => notifications.filter((n: NotificationDoc) => !n.read).length, [notifications]);
   const urgentCount = useMemo(
-    () => notifications.filter((n: unknown) => n.priority === 'high').length,
+    () => notifications.filter((n: NotificationDoc) => n.priority === 'high').length,
     [notifications]
   );
 
   // Calculate tab counts considering current filter
   const tabCounts = useMemo(() => {
-    const allFiltered = notifications.filter((notif: unknown) => {
+    const allFiltered = notifications.filter((notif: NotificationDoc) => {
       const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
                            notif.message.toLowerCase().includes(search.toLowerCase());
       const matchesFilter = filter === 'all' || notif.category === filter ||
@@ -153,7 +154,7 @@ export default function NotificationsPage() {
 
   // Mark all notifications as read
   const markAllAsRead = async () => {
-    const unreadIds = notifications.filter((n: unknown) => !n.read).map((n: unknown) => n.id);
+    const unreadIds = notifications.filter((n: NotificationDoc) => !n.read).map((n: NotificationDoc) => String(n._id || ''));
     if (unreadIds.length > 0) {
       await fetch('/api/notifications/bulk', {
         method: 'POST',
@@ -228,9 +229,9 @@ export default function NotificationsPage() {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
       const selectedData = filteredNotifications
-        .filter((n: unknown) => selectedIds.includes(n.id))
-        .map((notif: unknown) => ({
-          id: notif.id,
+        .filter((n: NotificationDoc) => selectedIds.includes(String(n._id || '')))
+        .map((notif: NotificationDoc) => ({
+          id: String(notif._id || ''),
           title: notif.title,
           message: notif.message,
           priority: notif.priority,
@@ -289,10 +290,10 @@ export default function NotificationsPage() {
       unread: unreadCount,
       urgent: urgentCount,
       byCategory: {
-        maintenance: notifications.filter((n: unknown) => n.category === 'maintenance').length,
-        vendor: notifications.filter((n: unknown) => n.category === 'vendor').length,
-        finance: notifications.filter((n: unknown) => n.category === 'finance').length,
-        system: notifications.filter((n: unknown) => n.category === 'system').length
+        maintenance: notifications.filter((n: NotificationDoc) => n.category === 'maintenance').length,
+        vendor: notifications.filter((n: NotificationDoc) => n.category === 'vendor').length,
+        finance: notifications.filter((n: NotificationDoc) => n.category === 'finance').length,
+        system: notifications.filter((n: NotificationDoc) => n.category === 'system').length
       },
       generatedAt: new Date().toISOString()
     };
@@ -368,7 +369,7 @@ export default function NotificationsPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">High Priority</p>
               <p className="text-2xl font-bold text-orange-600">
-                {notifications.filter((n: unknown) => n.priority === 'high').length}
+                {notifications.filter((n: NotificationDoc) => n.priority === 'high').length}
               </p>
             </div>
             <div className="text-orange-400">⚠️</div>
@@ -379,7 +380,7 @@ export default function NotificationsPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">Today</p>
               <p className="text-2xl font-bold text-green-600">
-                {notifications.filter((n: unknown) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
+                {notifications.filter((n: NotificationDoc) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
             <div className="text-green-400">📅</div>
@@ -472,9 +473,9 @@ export default function NotificationsPage() {
               <p className="text-sm text-gray-500">You&apos;re all caught up!</p>
             </div>
           ) : (
-            filteredNotifications.map((notif: unknown) => (
+            filteredNotifications.map((notif: NotificationDoc) => (
               <div
-                key={notif.id}
+                key={String(notif._id || '')}
                 className={`p-4 rounded-lg border transition-all hover:shadow-md ${
                   notif.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'
                 }`}
@@ -483,8 +484,8 @@ export default function NotificationsPage() {
                   <div className="flex items-start gap-3 flex-1">
                     <input
                       type="checkbox"
-                      checked={selectedNotifications.has(notif.id)}
-                      onChange={() => handleSelectNotification(notif.id)}
+                      checked={selectedNotifications.has(String(notif._id || ''))}
+                      onChange={() => handleSelectNotification(String(notif._id || ''))}
                       className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
@@ -516,7 +517,7 @@ export default function NotificationsPage() {
                   <div className="flex items-center gap-2">
                     {!notif.read && (
                       <button
-                        onClick={() => markAsRead(notif.id)}
+                        onClick={() => markAsRead(String(notif._id || ''))}
                         className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
                         title="Mark as read"
                       >

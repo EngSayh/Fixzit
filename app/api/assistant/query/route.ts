@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     const items = await WorkOrder.find({ tenantId: user.tenantId || user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
       .limit?.(5) || [];
-    const lines = (Array.isArray(items) ? items : []).map((it: unknown) => `• ${it.code}: ${it.title} – ${it.status}`);
+    const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     } catch {}
   }
 
-  const citations: Citation[] = (docs || []).map((d: unknown) => ({ title: d.title, slug: d.slug })).slice(0, 5);
+  const citations: Citation[] = (docs || []).map((d: any) => ({ title: d.title, slug: d.slug })).slice(0, 5);
   let answer = "";
   if (docs?.length) {
     const d0 = docs[0];
