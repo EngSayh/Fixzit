@@ -32,7 +32,7 @@ export default function AqarPropertiesPage() {
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         if (!cancelled) setItems(Array.isArray(data.items) ? data.items : []);
-      } catch (e: any) {
+      } catch {
         if (!cancelled) {
           setError('Could not load properties');
           setItems([]);
