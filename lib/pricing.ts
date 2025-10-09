@@ -164,6 +164,7 @@ export interface SubscriptionQuote {
   annualTotal: number;
   annualDiscountPct: number;
   currency: string;
+  contactSales?: boolean;
 }
 
 export function computeQuote(params: {

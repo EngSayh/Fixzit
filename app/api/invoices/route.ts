@@ -134,12 +134,12 @@ export async function POST(req: NextRequest) {
 
     // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
-    const { value } = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
+    const result = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
       { tenantId: user.orgId, year },
       { $inc: { sequence: 1 } },
       { upsert: true, returnDocument: "after" }
     );
-    const number = `INV-${year}-${String((value?.sequence ?? 1)).padStart(5, '0')}`;
+    const number = `INV-${year}-${String(((result as any)?.sequence ?? 1)).padStart(5, '0')}`;
 
     // Generate ZATCA QR code
     const qrCode = await generateZATCAQR({

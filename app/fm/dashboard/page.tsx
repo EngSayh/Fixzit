@@ -12,6 +12,7 @@ import {
   ChevronRight, Plus, Bell
 } from 'lucide-react';
 import type { WorkOrder } from '@/lib/models';
+import { WOStatus } from '@/lib/models';
 
 const fetcher = (url: string) => fetch(url, {
   headers: { 
@@ -39,8 +40,8 @@ export default function DashboardPage() {
   const stats = {
     workOrders: {
       total: workOrders?.total || 0,
-      pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === 'SUBMITTED').length || 0,
-      overdue: workOrders?.items?.filter((wo: WorkOrder) => new Date(wo.dueAt) < new Date()).length || 0
+      pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW).length || 0,
+      overdue: workOrders?.items?.filter((wo: any) => wo.dueAt && new Date(wo.dueAt) < new Date()).length || 0
     },
     properties: {
       total: properties?.total || 0,

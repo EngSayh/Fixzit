@@ -7,6 +7,7 @@ export interface AuditInfo {
   ipAddress?: string;
   userAgent?: string;
   timestamp?: Date;
+  changeReason?: string;
 }
 
 // Global context for audit information
@@ -101,7 +102,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
       }
       
       // Increment version
-      this.version = (this.version || 0) + 1;
+      this.version = ((this.version as number) || 0) + 1;
 
       // Track changes if enabled
       if (enableChangeHistory && this.isModified()) {
@@ -119,7 +120,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
             continue;
           }
 
-          const oldValue = this.isNew ? undefined : this.$__.originalDoc?.[path];
+          const oldValue = this.isNew ? undefined : (this.$__ as any)?.originalDoc?.[path];
           const newValue = this.get(path);
           
           // Only track if value actually changed
@@ -147,11 +148,11 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
           if (!this.changeHistory) {
             this.changeHistory = [];
           }
-          this.changeHistory.push(changeRecord);
+          (this.changeHistory as any[]).push(changeRecord);
 
           // Limit history size
-          if (this.changeHistory.length > maxHistoryVersions) {
-            this.changeHistory = this.changeHistory.slice(-maxHistoryVersions);
+          if ((this.changeHistory as any[]).length > maxHistoryVersions) {
+            this.changeHistory = (this.changeHistory as any[]).slice(-maxHistoryVersions);
           }
         }
       }
