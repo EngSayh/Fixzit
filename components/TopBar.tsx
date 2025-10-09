@@ -84,7 +84,7 @@ export default function TopBar({ role = 'guest' }: TopBarProps) {
     if (notifOpen && notifications.length === 0) {
       fetchNotifications();
     }
-  }, [notifOpen]);
+  }, [notifOpen, notifications.length]);
 
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
