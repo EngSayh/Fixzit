@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   const toObjectId = (id: string) => { try { return new ObjectId(id); } catch { return null; } };
   const ids = notificationIds.map(toObjectId).filter(Boolean) as ObjectId[];
-  const filter = { _id: { $in: ids }, tenantId } as unknown;
+  const filter = { _id: { $in: ids }, tenantId } as any;
 
   let res: any;
   if (action === 'delete') {

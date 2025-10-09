@@ -133,12 +133,12 @@ export async function POST(req: NextRequest) {
     await rateLimitAssert(req);
     const body = await req.json().catch(() => ({} as AskRequest));
     const question = typeof body?.question === 'string' ? body.question : '';
-    const rawLimit = Number((body as unknown)?.limit);
+    const rawLimit = Number((body as any)?.limit);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(8, Math.floor(rawLimit)) : 5;
     const category = typeof body?.category === 'string' ? body.category : undefined;
-    const lang = typeof (body as unknown)?.lang === 'string' ? body.lang : 'en';
-    const role = (user as unknown)?.role || undefined;
-    const route = typeof (body as unknown)?.route === 'string' ? body.route : undefined;
+    const lang = typeof (body as any)?.lang === 'string' ? body.lang : 'en';
+    const role = (user as any)?.role || undefined;
+    const route = typeof (body as any)?.route === 'string' ? body.route : undefined;
     if (!question || !question.trim()) {
       return createSecureResponse({ error: 'Missing question' }, 400, req);
     }
@@ -150,10 +150,10 @@ export async function POST(req: NextRequest) {
     // Text index is created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no orgId
-    const orClauses: unknown[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
     if (user?.orgId) orClauses.unshift({ orgId: user.orgId });
-    const tenantScope = { $or: orClauses } as unknown;
-    const filter: Record<string, unknown> = { status: 'PUBLISHED', ...tenantScope };
+    const tenantScope = { $or: orClauses } as any;
+    const filter: Record<string, any> = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
 
     // Prefer vector search if available
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as unknown;
+        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
         docs = await coll
           .find(regexFilter, { projection: { slug: 1, title: 1, content: 1, updatedAt: 1 } })
           .sort({ updatedAt: -1 })

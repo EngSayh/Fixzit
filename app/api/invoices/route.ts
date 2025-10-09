@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: Record<string, unknown> = { tenantId: user.orgId };
+    const match: Record<string, any> = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (type) match.type = type;

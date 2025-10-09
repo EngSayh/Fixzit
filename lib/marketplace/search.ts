@@ -60,7 +60,7 @@ export interface MarketplaceSearchFilters {
 
 export async function searchProducts(filters: MarketplaceSearchFilters) {
   const client = await db;
-  const query: Record<string, unknown> = { orgId: filters.orgId, status: 'ACTIVE' };
+  const query: Record<string, any> = { orgId: filters.orgId, status: 'ACTIVE' };
 
   if (filters.q) {
     query.$text = { $search: expandQuery(filters.q) };
@@ -81,10 +81,10 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
   if (filters.minPrice != null || filters.maxPrice != null) {
     query['buy.price'] = {};
     if (filters.minPrice != null) {
-      (query['buy.price'] as unknown).$gte = filters.minPrice;
+      (query['buy.price'] as any).$gte = filters.minPrice;
     }
     if (filters.maxPrice != null) {
-      (query['buy.price'] as unknown).$lte = filters.maxPrice;
+      (query['buy.price'] as any).$lte = filters.maxPrice;
     }
   }
 

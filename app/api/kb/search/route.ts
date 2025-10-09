@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      const filter = { ...scope, text: safe } as unknown;
+      const filter = { ...scope, text: safe } as any;
       results = await coll
         .find(filter, { projection: { articleId: 1, chunkId: 1, text: 1, lang: 1, route: 1, roleScopes: 1 } })
         .limit(limit)

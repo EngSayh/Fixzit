@@ -25,8 +25,8 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
 
   const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
   const searchData = (searchResponse.data ?? {}) as {
-    items?: unknown[];
-    facets?: { categories?: unknown[]; brands?: unknown[]; standards?: unknown[] };
+    items?: any[];
+    facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
     pagination?: { total?: number };
   };
 

@@ -46,7 +46,7 @@ if (!conn) {
       connectTimeoutMS: 8000,
     }).then(m => {
       // Return the native MongoDB database object
-      return m.connection.db as unknown as DatabaseHandle;
+      return m.connection.db as any as DatabaseHandle;
     }).catch((err) => {
       console.error('ERROR: mongoose.connect() failed:', err?.message || err);
       throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);

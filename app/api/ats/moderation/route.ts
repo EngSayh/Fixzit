@@ -46,11 +46,11 @@ export async function PUT(req: NextRequest) {
     if (!job) return notFoundError("Job");
 
     if (action === 'approve') {
-      job.status = 'published' as unknown;
+      job.status = 'published' as any;
       job.publishedAt = new Date();
       await job.save();
     } else {
-      job.status = 'closed' as unknown;
+      job.status = 'closed' as any;
       await job.save();
     }
 
