@@ -44,9 +44,11 @@ concurrency:
 jobs:
   gates:
     timeout-minutes: 30  # حد أقصى للمهمة الكاملة
+    runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Install Dependencies
-        timeout-minutes: 10  # حد أقصى لكل خطوة
+        run: npm ci
 ```
 
 ### 2. **تحديث NodeJS with Webpack** (`webpack-fixed.yml`)
