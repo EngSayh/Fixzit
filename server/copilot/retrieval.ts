@@ -2,7 +2,6 @@ import crypto from "crypto";
 import { db } from "@/lib/mongo";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import type { SessionUser } from "@/server/middleware/withAuthRbac";
-    source: doc.source || undefined,
 import { CopilotKnowledge, KnowledgeDoc } from "@/server/models/CopilotKnowledge";
 import { CopilotSession } from "./session";
 

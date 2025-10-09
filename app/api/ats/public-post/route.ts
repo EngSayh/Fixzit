@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
 import { generateSlug } from "@/lib/utils";
-import { rateLimit } from "@/server/security/rateLimit";
 import { z } from "zod";
-
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
