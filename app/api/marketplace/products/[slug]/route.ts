@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { findProductBySlug } from '@/lib/marketplace/search';
-import { db } from '@/lib/mongo';
+import { connectToDatabase } from '@/lib/mongo';
 import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, props: RouteParams) {
   try {
     const context = await resolveMarketplaceContext(request);
     const slug = decodeURIComponent(params.slug);
-    await db;
+    await connectToDatabase();
     const product = await findProductBySlug(context.orgId, slug);
 
     if (!product) {

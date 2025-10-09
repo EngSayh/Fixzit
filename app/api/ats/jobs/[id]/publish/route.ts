@@ -41,14 +41,14 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const userId = user?.id || 'system';
     
     const job = await Job.findById(params.id);
-    if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
-    if (job.status === 'published') return NextResponse.json({ success: false, error: 'Job is already published' }, { status: 400 });
+    if (!job) return notFoundError("Job", req);
+    if (job.status === 'published') return validationError("Job is already published", req);
     
     await job.publish();
     return NextResponse.json({ success: true, data: job, message: 'Job published successfully' });
   } catch (error) {
     console.error('Job publish error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to publish job' }, { status: 500 });
+    return createSecureResponse({ error: "Failed to publish job" }, 500, req);
   }
 }
 

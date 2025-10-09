@@ -66,14 +66,14 @@ export async function GET(req: NextRequest) {
 
   try {
     if (process.env.WO_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
     await (db as any)();
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && (WOMod as any).WorkOrder;
     if (!WorkOrder) {
-      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Order dependencies are not available in this deployment" }, 501, req);
     }
   await connectToDatabase();
   const user = await getSessionUser(req);
@@ -125,14 +125,14 @@ export async function POST(req: NextRequest) {
 
   try {
     if (process.env.WO_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
     await (db as any)();
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && (WOMod as any).WorkOrder;
     if (!WorkOrder) {
-      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Order dependencies are not available in this deployment" }, 501, req);
     }
   const user = await requireAbility("CREATE")(req);
   if (user instanceof NextResponse) return user as any;

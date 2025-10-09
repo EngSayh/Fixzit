@@ -40,10 +40,10 @@ export async function PUT(req: NextRequest) {
     const user = token ? await getUserFromToken(token) : null;
 
     const { jobId, action } = body;
-    if (!jobId || !['approve', 'reject'].includes(action)) return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 });
+    if (!jobId || !['approve', 'reject'].includes(action)) return validationError("Invalid request", req);
 
     const job = await Job.findById(jobId);
-    if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+    if (!job) return notFoundError("Job", req);
 
     if (action === 'approve') {
       job.status = 'published' as any;

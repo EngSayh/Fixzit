@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (!jobSlug || !profile?.email) return NextResponse.json({ success: false, error: 'Missing fields' }, { status: 400 });
 
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
-    if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+    if (!job) return notFoundError("Job", req);
 
     let candidate = await (Candidate as any).findByEmail(job.orgId, profile.email);
     if (!candidate) {
