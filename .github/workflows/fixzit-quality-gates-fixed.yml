@@ -183,8 +183,10 @@ jobs:
             yarn) yarn postman:export || true ;;
             *) npm run postman:export || true ;;
           esac
-          
-          # Copy Postman collection if generated
+          # Copy Postman collection if generated (check both .artifacts and legacy _artifacts locations)
+          if [ -f .artifacts/postman/collection.json ]; then
+            cp -f .artifacts/postman/collection.json .artifacts/postman_collection.json
+          elif [ -f _artifacts/postman/collection.json ]; then
           if [ -f _artifacts/postman/collection.json ]; then
             cp -f _artifacts/postman/collection.json .artifacts/postman_collection.json
           elif [ -f postman_collection.json ]; then
