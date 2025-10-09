@@ -6,8 +6,6 @@ import { headers } from 'next/headers';
 
 export const revalidate = 60;
 
-type Article = { slug: string; title: string; content: string; category?: string; updatedAt?: string | Date };
-
 /**
  * Server component that fetches a published help article by slug and renders the article page.
  *

@@ -4,15 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, Clock } from 'lucide-react';
 
-interface Step {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  content: string;
-  tips?: string[];
-}
-
 export default function GettingStartedTutorial() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());

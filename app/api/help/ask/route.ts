@@ -284,7 +284,7 @@ async function rateLimitAssert(req: NextRequest) {
   if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
 // Add request validation middleware
-function validateRequest(body: AskRequest): { valid: boolean; error?: string } {
+function _validateRequest(body: AskRequest): { valid: boolean; error?: string } {
   if (!body.question?.trim()) {
     return { valid: false, error: 'Question is required' };
   }
