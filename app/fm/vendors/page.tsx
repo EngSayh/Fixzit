@@ -287,7 +287,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create vendor');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating vendor');
     }
   };

@@ -424,7 +424,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create invoice');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating invoice');
     }
   };
