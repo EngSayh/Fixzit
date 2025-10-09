@@ -1,6 +1,7 @@
 import fg from 'fast-glob';
 import fs from 'fs';
 import path from 'path';
+// @ts-ignore - No type declarations available
 import yaml from 'js-yaml';
 import pc from 'picocolors';
 

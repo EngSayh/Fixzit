@@ -1,9 +1,9 @@
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
+import { paytabsBase, createHppRequest } from '../../lib/paytabs.js';
 
 test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
   test('paytabsBase resolves region URLs and falls back to GLOBAL', async () => {
-    const { paytabsBase } = await import('../../src/lib/paytabs');
 
     expect(paytabsBase('KSA')).toBe('https://secure.paytabs.sa');
     expect(paytabsBase('UAE')).toBe('https://secure.paytabs.com');
@@ -24,7 +24,6 @@ test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
 
   test('createHppRequest posts to correct endpoint with authorization header', async () => {
     process.env.PAYTABS_SERVER_KEY = 'test-server-key';
-    const { createHppRequest } = await import('../../src/lib/paytabs');
 
     const payload = { amount: 100, currency: 'SAR' };
     const mockResponse = { redirect_url: 'https://payment.url', tran_ref: '12345' };
@@ -57,7 +56,6 @@ test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
 
   test('createHppRequest falls back to GLOBAL when region is undefined', async () => {
     process.env.PAYTABS_SERVER_KEY = 'key';
-    const { createHppRequest } = await import('../../src/lib/paytabs');
 
     const originalFetch = globalThis.fetch;
     const calls: any[] = [];
@@ -77,7 +75,6 @@ test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
 
   test('createHppRequest propagates fetch rejections', async () => {
     process.env.PAYTABS_SERVER_KEY = 'key';
-    const { createHppRequest } = await import('../../src/lib/paytabs');
 
     const originalFetch = globalThis.fetch;
     globalThis.fetch = ((..._args: any[]) => {
@@ -94,7 +91,6 @@ test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
 
   test('createHppRequest uses undefined header when PAYTABS_SERVER_KEY is absent', async () => {
     delete process.env.PAYTABS_SERVER_KEY;
-    const { createHppRequest } = await import('../../src/lib/paytabs');
 
     const originalFetch = globalThis.fetch;
     const calls: any[] = [];

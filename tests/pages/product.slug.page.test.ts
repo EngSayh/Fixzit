@@ -24,7 +24,7 @@ let ProductPage: any;
 
 const importPageModule = async () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const mod = await import('../../app/pages-product-under-test'); // Placeholder path, replaced below if real path is known
+  const mod = await import('@/app/marketplace/product/[slug]/page');
   return mod;
 };
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 const api = async (url: string, opts?: RequestInit) => {
   const headers: any = { "content-type": "application/json" };
@@ -164,10 +164,11 @@ We've sent a welcome email to ${email} with registration instructions and next s
           {/* Subject and Module */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Subject *
               </label>
               <input
+                id="subject"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 placeholder="Brief description of your issue"
                 value={subject}

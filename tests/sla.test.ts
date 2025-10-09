@@ -4,7 +4,7 @@
  * If your project uses Vitest, you can run them as-is in most cases, or replace jest-specific globals accordingly.
  */
 
-import { computeSlaMinutes, computeDueAt } from '../src/sla';
+import { computeSlaMinutes, computeDueAt } from '../sla';
 
 describe('computeSlaMinutes', () => {
   it('returns 240 for URGENT (case-insensitive)', () => {

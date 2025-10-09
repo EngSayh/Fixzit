@@ -1,6 +1,6 @@
-import { db } from '../src/lib/mongo';
-import { User } from '../src/server/models/User';
-import { hashPassword } from '../src/lib/auth';
+import { db } from '../lib/mongo';
+import { User } from '../server/models/User';
+import { hashPassword } from '../lib/auth';
 
 const initialUsers = [
   {

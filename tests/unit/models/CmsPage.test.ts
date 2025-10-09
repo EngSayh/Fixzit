@@ -1,18 +1,17 @@
 /* 
   Tests for CmsPage model.
-  Assumed framework: Jest (TypeScript). 
-  If repository uses a different test runner (e.g., Vitest/Mocha), adjust imports and globals accordingly.
+  Framework: Vitest
 */
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { Schema, model, models, connection, connect, disconnect } from "mongoose";
 
-// The source under test (mirroring provided snippet)
-
-// However, primary focus is on schema behavior: required fields, defaults, enums, indexes.
+// The source under test
+// Primary focus is on schema behavior: required fields, defaults, enums, indexes.
 
 describe("CmsPage model schema", () => {
   const importCmsPageModule = async () => {
-    jest.resetModules();
-    return await import("@/models/CmsPage");
+    vi.resetModules();
+    return await import("@/server/models/CmsPage");
   };
 
     beforeAll(() => {

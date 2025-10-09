@@ -1,7 +1,6 @@
 'use client';
 
 import Link from "next/link";
-import Footer from "@/components/Footer";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 export default function LandingPage(){
@@ -22,13 +21,13 @@ export default function LandingPage(){
 
           {/* CTA Buttons */}
           <div className="flex flex-wrap gap-4 justify-center mb-12">
-            <Link href="/fm" className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+            <Link href="/fm" role="button" className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
               {t('landing.hero.cta1', 'Access Fixzit FM')}
             </Link>
-            <Link href="/souq" className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
+            <Link href="/souq" role="button" className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
               {t('landing.hero.cta2', 'Fixzit Souq')}
             </Link>
-            <Link href="/aqar" className="px-8 py-4 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition-colors">
+            <Link href="/aqar" role="button" className="px-8 py-4 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition-colors">
               {t('landing.hero.cta3', 'Aqar Real Estate')}
             </Link>
           </div>
@@ -105,6 +104,7 @@ export default function LandingPage(){
           </p>
           <Link
             href="/login"
+            role="button"
             className="inline-flex px-8 py-4 bg-white hover:bg-gray-100 text-blue-600 font-semibold rounded-lg transition-colors"
           >
             Get Started Today

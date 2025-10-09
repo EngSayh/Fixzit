@@ -153,7 +153,7 @@ async function nextInvoiceNumber(tenantId: string) {
   const latest = await Invoice.findOne({ tenantId })
     .sort({ createdAt: -1 })
     .select('number')
-    .lean();
+    .lean() as { number: string } | null;
 
   const latestNumber = Array.isArray(latest) ? latest[0]?.number : latest?.number;
   const match = latestNumber?.match(/INV-(\d+)/);

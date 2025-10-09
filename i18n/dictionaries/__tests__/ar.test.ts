@@ -4,21 +4,14 @@
 type Dict = Record<string, any>;
 
 async function loadArabicDict(): Promise<Dict> {
-  // Try the conventional module first
   try {
     const mod = await import('../ar');
     return (mod as any).default ?? mod;
-  } catch (_e) {
-    // Fallback: the PR provided ar.test.ts containing the dictionary content
-    try {
-      const mod2 = await import('../ar.test');
-      return (mod2 as any).default ?? mod2;
-    } catch (e2) {
-      throw new Error(
-        'Unable to load Arabic dictionary. Tried ../ar and ../ar.test. ' +
-        'Ensure the dictionary is exported as default.'
-      );
-    }
+  } catch (e) {
+    throw new Error(
+      'Unable to load Arabic dictionary from ../ar. ' +
+      'Ensure the dictionary is exported. Error: ' + String(e)
+    );
   }
 }
 

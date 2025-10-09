@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { User, Settings, Shield, Bell } from 'lucide-react';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState({
+  const [user] = useState({
     name: 'Admin User',
     email: 'admin@fixzit.co',
     role: 'Administrator',
