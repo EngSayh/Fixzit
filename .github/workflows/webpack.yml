@@ -3,6 +3,7 @@ name: NodeJS with Webpack
 on:
   pull_request:
     branches: [ "main" ]
+  # تم إزالة push لتجنب التشغيل المزدوج لهذا الـ workflow عند فتح PR من نفس الفرع الرئيسي
 
 # منع تشغيل متعدد لنفس PR
 concurrency:
