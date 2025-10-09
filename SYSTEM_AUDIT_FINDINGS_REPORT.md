@@ -28,14 +28,14 @@
 ```typescript
 // السطر 100
 if (process.env.NODE_ENV === 'production') {
-  jwtSecret = '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
-  console.log('✅ Using production JWT secret');
+  jwtSecret = process.env.JWT_SECRET || '<REDACTED_PRODUCTION_JWT_SECRET>';
+  console.log('✅ Using production JWT secret from environment');
   return jwtSecret;
 }
 
 // السطر 121
 if (process.env.NODE_ENV === 'production') {
-  return '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
+  return process.env.JWT_SECRET || '<REDACTED_PRODUCTION_JWT_SECRET>';
 }
 ```
 
