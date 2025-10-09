@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
         content: c.text || '',
         updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
       }));
-    } catch (_e) { console.error('Vector search failed, falling back to lexical search:', _e); }
+    } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
 
     if (!docs || docs.length === 0) {
       try {
@@ -245,8 +245,8 @@ if (process.env.REDIS_URL) {
       retryStrategy: (times) => Math.min(times * 50, 2000),
       connectTimeout: 5000,
       commandTimeout: 5000});
-  } catch (_err) {
-    console.error('Failed to initialize Redis client:', _err);
+  } catch (err) {
+    console.error('Failed to initialize Redis client:', err);
   }
 }
 
