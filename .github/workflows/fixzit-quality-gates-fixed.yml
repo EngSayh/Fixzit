@@ -268,42 +268,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p .artifacts
-          [ -f scripts/load/smoke.js ] && cp -f scripts/load/smoke.js .artifacts/smoke.js || true
-
-      # ---------- Security Scorecard ----------
-      - name: Security Scorecard
-        shell: bash
-        run: |
-          mkdir -p .artifacts
-          cat > .artifacts/fixzit_scorecard.json << 'JSON'
-          {
-            "version": "1.0",
-            "total_score": 85,
-            "sections": [
-              {
-                "name": "Code Quality",
-                "score": 90,
-                "checks": ["ESLint", "TypeScript", "Test Coverage"]
-              },
-              {
-                "name": "Security",
-                "score": 88,
-                "checks": ["Dependency Audit", "JWT Security", "RBAC Matrix"]
-              },
-              {
-                "name": "Performance",
-                "score": 78,
-                "checks": ["Lighthouse CI", "Load Testing", "Bundle Analysis"]
-              }
-            ],
-            "must_pass": ["Build", "Tests", "Lint"],
-            "actions": [
-              "Review dependency audit results",
-              "Optimize Lighthouse performance scores",
-              "Enhance RBAC coverage"
-            ],
-            "final_self_score": 85
-          }
           JSON
 
       # ---------- Upload artifacts ----------
