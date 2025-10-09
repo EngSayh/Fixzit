@@ -10,8 +10,8 @@
 
 ```typescript
 // الأسطر المحددة للمراجعة:
-// السطر 100: jwtSecret = '6c042711c6357e8...'
-// السطر 121: return '6c042711c6357e8...'
+// السطر 100: jwtSecret must not be committed; value redacted in this report
+// السطر 121: return should use environment variable (e.g., process.env.JWT_SECRET); value redacted
 ```
 
 ---
