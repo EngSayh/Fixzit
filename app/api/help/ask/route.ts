@@ -105,7 +105,7 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
 /**
  * @openapi
  * /api/help/ask:
- *   get:
+ *   post:
  *     summary: help/ask operations
  *     tags: [help]
  *     security:

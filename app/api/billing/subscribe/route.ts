@@ -31,7 +31,7 @@ const subscriptionSchema = z.object({
 /**
  * @openapi
  * /api/billing/subscribe:
- *   get:
+ *   post:
  *     summary: billing/subscribe operations
  *     tags: [billing]
  *     security:
