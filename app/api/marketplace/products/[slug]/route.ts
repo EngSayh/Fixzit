@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { findProductBySlug } from '@/lib/marketplace/search';
-import { connectToDatabase } from '@/lib/mongo';
+import { db } from '@/lib/mongo';
 import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
@@ -35,11 +35,11 @@ export async function GET(request: NextRequest, props: RouteParams) {
   try {
     const context = await resolveMarketplaceContext(request);
     const slug = decodeURIComponent(params.slug);
-    await connectToDatabase();
+    await db;
     const product = await findProductBySlug(context.orgId, slug);
 
     if (!product) {
-      return NextResponse.json({ ok: false, error: 'Product not found' }, { status: 404 });
+      return notFoundError('Product');
     }
 
     const category = await Category.findOne({ _id: product.categoryId, orgId: context.orgId }).lean();
@@ -53,6 +53,6 @@ export async function GET(request: NextRequest, props: RouteParams) {
     });
   } catch (error) {
     console.error('Failed to load product details', error);
-    return NextResponse.json({ ok: false, error: 'Unable to fetch product' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to fetch product' }, 500, request);
   }
 }

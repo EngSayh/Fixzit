@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { applicationId } = await req.json();
-    if (!applicationId) return validationError("applicationId is required", req);
+    if (!applicationId) return validationError("applicationId is required");
 
     const app = await Application.findById(applicationId).lean();
-    if (!app) return notFoundError("Application", req);
+    if (!app) return notFoundError("Application");
 
     // Verify org authorization (only super_admin can access cross-org)
     if (app.orgId !== user.orgId && user.role !== 'super_admin') {

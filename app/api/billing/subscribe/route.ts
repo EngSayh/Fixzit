@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       items: body.items, seatTotal: body.seatTotal, billingCycle: body.billingCycle
     });
     if ((quote as any).contactSales) {
-      return NextResponse.json({ error: 'SEAT_LIMIT_EXCEEDED', contact: 'sales@fixzit.app' }, { status: 400 });
+      return createSecureResponse({ error: 'SEAT_LIMIT_EXCEEDED', contact: 'sales@fixzit.app' }, 400, req);
     }
 
     // 3) Create Subscription snapshot (status pending until paid)
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ subscriptionId: sub._id, invoiceId: inv._id, paytabs: resp });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Subscription creation failed:', error);
     return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);

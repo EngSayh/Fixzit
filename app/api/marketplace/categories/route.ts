@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to fetch marketplace categories', error);
-    return NextResponse.json({ ok: false, error: 'Unable to fetch categories' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to fetch categories' }, 500, request);
   }
 }
 

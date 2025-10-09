@@ -57,14 +57,14 @@ const ProductSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     if (process.env.MARKETPLACE_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace endpoint not available in this deployment' }, 501, request);
     }
     // Use unified database connection
     await connectToDatabase();
     const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
-      return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace Product dependencies are not available in this deployment' }, 501, request);
     }
     const context = await resolveMarketplaceContext(request);
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
@@ -90,31 +90,31 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     console.error('Marketplace products list failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to list products' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to list products' }, 500, request);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     if (process.env.MARKETPLACE_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace endpoint not available in this deployment' }, 501, request);
     }
     // Use unified database connection
     await connectToDatabase();
     const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
-      return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace Product dependencies are not available in this deployment' }, 501, request);
     }
     const context = await resolveMarketplaceContext(request);
     if (!context.userId) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      return unauthorizedError();
     }
     if (!context.role || !ADMIN_ROLES.has(context.role)) {
-      return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
+      return forbiddenError();
     }
     const body = await request.json();
     const payload = ProductSchema.parse(body);
@@ -130,13 +130,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: serializeProduct(product) }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid payload', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     if ((error as any).code === 11000) {
-      return NextResponse.json({ ok: false, error: 'Duplicate SKU or slug' }, { status: 409 });
+      return createSecureResponse({ error: 'Duplicate SKU or slug' }, 409, request);
     }
     console.error('Marketplace product creation failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to create product' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to create product' }, 500, request);
   }
 }
 
