@@ -18,12 +18,8 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
     }
   }
 
-  const [categoriesResponse, searchResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`)
-  ]);
+  const searchResponse = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`);
 
-  const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
   const searchData = (searchResponse.data ?? {}) as {
     items?: any[];
     facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
@@ -39,11 +35,6 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
     brands: Array.isArray(facetsData.brands) ? facetsData.brands : [],
     standards: Array.isArray(facetsData.standards) ? facetsData.standards : []
   };
-
-  const departments = categories.map((category: any) => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
 
   const rawQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
   const queryLabel = rawQuery && rawQuery.trim().length > 0 ? rawQuery : 'All products';
