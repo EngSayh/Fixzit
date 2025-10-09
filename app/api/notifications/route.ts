@@ -40,7 +40,7 @@ const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$
 export async function GET(req: NextRequest) {
   // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60);
   if (!rl.allowed) {
     return rateLimitError();
   }
