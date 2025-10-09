@@ -11,7 +11,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 // Memoized components for better performance
 const LanguageSelector = memo(({ 
@@ -78,41 +78,6 @@ const LanguageSelector = memo(({
 
 LanguageSelector.displayName = 'LanguageSelector';
 
-// Extract form validation logic
-const useFormValidation = (loginMethod: string, email: string, employeeNumber: string, password: string) => {
-  return useMemo(() => {
-    const errors: Record<string, string> = {};
-    
-    if (loginMethod === 'personal') {
-      if (!email) errors.email = 'Email is required';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errors.email = 'Invalid email format';
-      }
-    } else if (loginMethod === 'corporate') {
-      if (!employeeNumber) errors.employeeNumber = 'Employee number is required';
-      else if (!/^EMP\d{3}$/.test(employeeNumber)) {
-        errors.employeeNumber = 'Invalid employee number format';
-      }
-    }
-    
-    if (!password) errors.password = 'Password is required';
-    else if (password.length < 8) errors.password = 'Password must be at least 8 characters';
-    
-    return { isValid: Object.keys(errors).length === 0, errors };
-  }, [loginMethod, email, employeeNumber, password]);
-};
-
-// Add debounce utility
-const useDebounce = <T,>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  
-  return debouncedValue;
-};
 type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
 const LANGUAGES: Lang[] = [
   { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },

@@ -97,7 +97,7 @@ interface SidebarProps {
 export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { responsiveClasses, screenInfo } = useResponsiveLayout();
+  const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
   // Safe translation with fallback
   let t: (key: string, fallback?: string) => string;
