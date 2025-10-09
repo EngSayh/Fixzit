@@ -59,7 +59,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     // Rate limiting: 60 req/min for read operations
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rl = rateLimit(`auth-me:${clientIp}`, 60, 60);
     if (!rl.allowed) {
       return rateLimitError();

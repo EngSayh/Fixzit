@@ -42,7 +42,7 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function POST(req: NextRequest) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rl = rateLimit(`payment-callback:${clientIp}`, 30, 60);
     if (!rl.allowed) {
       return rateLimitError();
