@@ -42,7 +42,7 @@ const JWT_SECRET = (() => {
     return envSecret;
   }
 
-  if (process.env.NODE_ENV === 'production') {
+    return 'REDACTED_PRODUCTION_SECRET_EXAMPLE_ONLY';
     // SECRET REDACTED: do NOT store real secrets in source control
     return '<REDACTED_PROD_SECRET>';
   }
