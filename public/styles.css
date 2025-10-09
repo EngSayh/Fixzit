@@ -6,8 +6,8 @@
 
 :root {
     --primary: #0061A8;
-    --primary-dark: #023047;
-    --accent: #F6851F;
+    --primary-dark: #0061A8;  /* FIXED: was #023047 (banned) */
+    --accent: #FFB400;  /* FIXED: was #F6851F (banned) */
     --success: #00A859;
     --warning: #FFB400;
     --danger: #E74C3C;

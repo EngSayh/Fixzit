@@ -246,7 +246,7 @@ export function AutoFixAgent() {
     >
       <div id="fixzit-hud"
            style={{ userSelect: 'none', cursor: 'move', fontFamily: 'system-ui, sans-serif',
-                    background: '#023047', color: 'white', borderRadius: 8, padding: '6px 10px',
+                    background: '#0061A8', color: 'white', borderRadius: 8, padding: '6px 10px',  /* FIXED: was #023047 (banned) */
                     boxShadow: '0 2px 8px rgba(0,0,0,.2)', width: 180 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <strong>Fixzit QA</strong>

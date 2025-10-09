@@ -2,10 +2,11 @@
   "name": "fixzit-frontend",
   "version": "2.0.26",
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3000",
+    "start": "next start",
     "lint": "next lint",
+    "style:scan": "node scripts/scan-hex.js",
     "typecheck": "tsc -p .",
     "agent:inventory": "bash scripts/inventory.sh",
     "agent:cleanup": "bash scripts/cleanup_space.sh",

@@ -89,7 +89,7 @@ const config = {
           primary: '#0061A8',
           secondary: '#00A859',
           accent: '#FFB400',
-          dark: '#023047',
+          dark: '#0061A8',  // FIXED: was #023047 (banned)
           DEFAULT: '#0061A8'
         },
         success: '#00a859',
@@ -100,15 +100,15 @@ const config = {
           '600': '#2563eb',
           '700': '#1d4ed8'
         },
-        'fz-orange': '#F6851F',
+        'fz-orange': '#FFB400',  // FIXED: was #F6851F (banned)
         'fz-green': '#00a859',
         'fz-yellow': '#FFB400',
         'fixzit-blue': '#0061A8',
         'fixzit-green': '#00A859',
         'fixzit-yellow': '#FFB400',
-        'fixzit-dark': '#023047',
+        'fixzit-dark': '#0061A8',  // FIXED: was #023047 (banned)
         'fixzit-light-bg': '#F9FAFB',
-        'fixzit-orange': '#F6851F',
+        'fixzit-orange': '#FFB400',  // FIXED: was #F6851F (banned)
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',
