@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     // Create a mock email record in the database (optional)
     // This could be stored in MongoDB for tracking
 
-    const emailTemplate = `
+    const _emailTemplate = `
 🎉 Welcome to Fixzit Enterprise!
 
 Thank you for reporting an issue with our system. We're actively working to resolve it.

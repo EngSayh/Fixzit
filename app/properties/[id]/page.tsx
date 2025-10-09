@@ -15,7 +15,7 @@ export default function PropertyDetailPage() {
   const params = useParams();
   const propertyId = params.id;
   
-  const [property, setProperty] = useState({
+  const [property, _setProperty] = useState({
     id: propertyId,
     name: 'Al Faisaliah Tower',
     address: 'King Fahd Road, Riyadh 12211, Saudi Arabia',
