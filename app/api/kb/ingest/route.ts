@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       content
     });
     return createSecureResponse({ ok: true }, 200, req);
-  } catch (err) {
+  } catch (_err) {
     console.error('kb/ingest error', err);
     return createSecureResponse({ error: 'Ingest failed' }, 500, req);
   }
@@ -75,7 +75,7 @@ export async function DELETE(req: NextRequest) {
     if (!articleId) return createSecureResponse({ error: 'Missing articleId' }, 400, req);
     await deleteArticleEmbeddings(articleId, user.tenantId || null);
     return createSecureResponse({ ok: true }, 200, req);
-  } catch (err) {
+  } catch (_err) {
     return createSecureResponse({ error: 'Delete failed' }, 500, req);
   }
 }

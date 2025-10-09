@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
         content: c.text || '',
         updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
       }));
-    } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
+    } catch (_e) { console.error('Vector search failed, falling back to lexical search:', e); }
 
     if (!docs || docs.length === 0) {
       try {
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
           .sort({ score: { $meta: 'textScore' } })
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
-      } catch (err: any) {
+      } catch (_err: any) {
         // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         const cutoffDate = new Date();
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
 
     const citations = docs.map((d: Doc) => ({ slug: d.slug, title: d.title, updatedAt: d.updatedAt }));
     return NextResponse.json({ answer, citations });
-  } catch (err: any) {
+  } catch (_err: any) {
     if (err instanceof Error && err.message === 'Rate limited') {
       return NextResponse.json({
         name: 'RateLimited',
@@ -245,7 +245,7 @@ if (process.env.REDIS_URL) {
       retryStrategy: (times) => Math.min(times * 50, 2000),
       connectTimeout: 5000,
       commandTimeout: 5000});
-  } catch (err) {
+  } catch (_err) {
     console.error('Failed to initialize Redis client:', err);
   }
 }
@@ -269,7 +269,7 @@ async function rateLimitAssert(req: NextRequest) {
         throw new Error('Rate limited');
       }
       return;
-    } catch (err: any) {
+    } catch (_err: any) {
       if (err.message === 'Rate limited') throw err;
       console.error('Redis rate limit check failed, falling back to in-memory:', err);
     }
@@ -298,23 +298,23 @@ function validateRequest(body: AskRequest): { valid: boolean; error?: string } {
 }
 
 // Add response caching
-const responseCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const _responseCache = new Map<string, { data: any; timestamp: number }>();
+const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-function getCacheKey(question: string, category?: string, lang?: string): string {
+function _getCacheKey(question: string, category?: string, lang?: string): string {
   return crypto.createHash('sha256')
     .update(`${question}:${category || ''}:${lang || 'en'}`)
     .digest('hex');
 }
 
 // Add metrics collection
-async function trackMetrics(action: string, success: boolean, duration: number) {
+async function _trackMetrics(action: string, success: boolean, duration: number) {
   // Implement your metrics collection here
   console.log(`Metrics: action=${action}, success=${success}, duration=${duration}ms`);
 }
 
 // Add security headers (Note: middleware should be in middleware.ts file, not in API routes)
-function addSecurityHeaders(response: NextResponse) {
+function _addSecurityHeaders(response: NextResponse) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');

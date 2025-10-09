@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
 const SearchSynonymSchema = new Schema({

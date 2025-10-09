@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         }
       ];
       results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
-    } catch (e) {
+    } catch (_e) {
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       const filter = { ...scope, text: safe } as any;
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     }
 
     return createSecureResponse({ results }, 200, req);
-  } catch (err) {
+  } catch (_err) {
     console.error('kb/search error', err);
     return createSecureResponse({ error: 'Search failed' }, 500, req);
   }

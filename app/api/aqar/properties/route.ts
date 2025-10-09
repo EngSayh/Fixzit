@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     return NextResponse.json({ page, pageSize, total, items });
-  } catch (err) {
+  } catch (_err) {
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

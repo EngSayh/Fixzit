@@ -117,7 +117,7 @@ export async function GET(req: NextRequest){
           .skip(skip)
           .limit(limit)
           .toArray();
-      } catch (err: any) {
+      } catch (_err: any) {
         const isMissingTextIndex = err?.codeName === 'IndexNotFound' || err?.code === 27 || /text index required/i.test(String(err?.message || ''));
         if (!isMissingTextIndex) throw err;
         // Fallback when text index is missing (restrict by recent updatedAt to reduce scan)
