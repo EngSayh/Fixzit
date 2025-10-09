@@ -31,7 +31,7 @@ const ZOOM_EXPONENT_BASE = 2; // each zoom level doubles resolution
 export async function GET(req: NextRequest) {
   // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

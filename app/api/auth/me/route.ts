@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
   try {
     // Rate limiting: 60 req/min for read operations
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const rl = rateLimit(`auth-me:${clientIp}`, 60, 60);
+    const rl = rateLimit(`auth-me:${clientIp}`, 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
