@@ -95,7 +95,10 @@
 ```typescript
 // lib/auth.ts:100
 if (process.env.NODE_ENV === 'production') {
-  jwtSecret = '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET must be set in production');
+  }
+  jwtSecret = process.env.JWT_SECRET;
   return jwtSecret;
 }
 ```
