@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { notifications } = await getCollections();
-  const filter: Record<string, unknown> = { orgId };
+  const filter: Record<string, any> = { orgId };
   if (q) {
     const safe = escapeRegex(q);
     filter.$or = [
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     timestamp: new Date().toISOString(),
     read: false,
     archived: false
-  } as unknown;
+  } as any;
 
   const result = await notifications.insertOne(doc);
   return NextResponse.json({ ...doc, _id: result.insertedId }, { status: 201 });

@@ -11,7 +11,7 @@ let currentTenantContext: TenantContext = {};
 
 // Function to set tenant context
 export function setTenantContext(context: TenantContext) {
-  currentTenantContext = { ...context };
+  currentTenantContext = { ...(context as any) };
 }
 
 // Function to get current tenant context
@@ -46,7 +46,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
       if (context.orgId) {
         this.orgId = context.orgId;
       } else {
-        const modelName = (this.constructor as unknown).modelName;
+        const modelName = (this.constructor as any).modelName;
         if (modelName && !excludeModels.includes(modelName)) {
           return next(new Error(`orgId is required for ${modelName}`));
         }

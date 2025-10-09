@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 
 const api = async (url: string, opts?: RequestInit) => {
-  const headers: Record<string, unknown> = { "content-type": "application/json" };
+  const headers: Record<string, any> = { "content-type": "application/json" };
   const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -72,7 +72,7 @@ ${errorDetails.error?.componentStack || 'No component stack available'}
   };
 
   const submit = async()=>{
-    const payload: Record<string, unknown> = {
+    const payload: Record<string, any> = {
       subject,
       module: moduleKey,
       type,

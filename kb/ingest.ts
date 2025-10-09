@@ -18,7 +18,7 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
   const coll = db.collection('kb_embeddings');
   const { articleId, content, lang, roleScopes, route, orgId, tenantId } = args;
   const chunks = chunkText(content, 1200, 200);
-  const ops: unknown[] = [];
+  const ops: any[] = [];
   let index = 0;
   for (const chunk of chunks) {
     const embedding = await embedText(chunk.text);

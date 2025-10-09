@@ -65,12 +65,12 @@ export function sanitizeTimestamps<T extends Record<string, any>>(
   obj: T, 
   fields: (keyof T)[] = ['createdAt', 'updatedAt']
 ): T {
-  const sanitized = { ...obj };
+  const sanitized = { ...(obj as any) };
 
   for (const field of fields) {
     if (field in sanitized) {
       const validated = validateTimestamp(sanitized[field]);
-      sanitized[field] = validated || new Date() as unknown;
+      sanitized[field] = validated || new Date() as any;
     }
   }
 

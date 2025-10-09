@@ -110,7 +110,7 @@ export async function ensureCoreIndexes(): Promise<void> {
       
       for (const indexSpec of collIndexes) {
         try {
-          await coll.createIndex(indexSpec.key as unknown, {
+          await coll.createIndex(indexSpec.key as any, {
             unique: indexSpec.unique || false,
             background: true
           });

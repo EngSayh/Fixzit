@@ -48,9 +48,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
-  const doc = await notifications.findOne({ _id: _id as unknown, orgId });
+  const doc = await notifications.findOne({ _id: _id as any, orgId });
   if (!doc) return createSecureResponse({ error: 'Notification not found' }, 404, req);
-  const { _id: rawId, ...rest } = doc as unknown;
+  const { _id: rawId, ...rest } = doc as any;
   return createSecureResponse({ id: String(rawId), ...rest });
 }
 
@@ -73,8 +73,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (typeof read === 'boolean') update.$set.read = read;
   if (typeof archived === 'boolean') update.$set.archived = archived;
 
-  const updated = await notifications.findOneAndUpdate({ _id: _id as unknown, orgId }, update, { returnDocument: 'after' });
-  const value = updated as unknown;
+  const updated = await notifications.findOneAndUpdate({ _id: _id as any, orgId }, update, { returnDocument: 'after' });
+  const value = updated as any;
   if (!value) return createSecureResponse({ error: 'Notification not found' }, 404, req);
   const normalized = { id: String(value._id), ...value, _id: undefined };
   return createSecureResponse(normalized);
@@ -99,7 +99,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
-  const res = await notifications.deleteOne({ _id: _id as unknown, orgId });
+  const res = await notifications.deleteOne({ _id: _id as any, orgId });
   if (!res.deletedCount) return createSecureResponse({ error: 'Notification not found' }, 404, req);
   return createSecureResponse({ success: true });
 }

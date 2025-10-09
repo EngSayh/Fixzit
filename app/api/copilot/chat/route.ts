@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       args.workOrderId = workOrderId;
     }
 
-    body = { tool: { name: toolName, args } } as unknown;
+    body = { tool: { name: toolName, args } } as any;
   } else {
     const json = await req.json();
     body = requestSchema.parse(json);
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     }
 
     const docs = await retrieveKnowledge({ ...session, locale }, message);
-    const reply = await generateCopilotResponse({ session: { ...session, locale }, prompt: message, history: body.history as unknown, docs });
+    const reply = await generateCopilotResponse({ session: { ...session, locale }, prompt: message, history: body.history as any, docs });
 
     await recordAudit({
       session,

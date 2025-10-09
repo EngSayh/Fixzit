@@ -14,7 +14,7 @@ let currentAuditContext: AuditInfo = {};
 
 // Function to set audit context
 export function setAuditContext(context: AuditInfo) {
-  currentAuditContext = { ...context };
+  currentAuditContext = { ...(context as any) };
 }
 
 // Function to get current audit context

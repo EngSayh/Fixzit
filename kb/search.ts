@@ -65,7 +65,7 @@ export async function performKbSearch(args: SearchArgs): Promise<unknown[]> {
   } catch (_e) {
     // Fallback to lexical search on text when vector index not available
     const safe = new RegExp((q || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    const filter = { ...scope, text: safe } as unknown;
+    const filter = { ...scope, text: safe } as any;
     const results = await coll
       .find(filter, { projection: { _id: 0, articleId: 1, chunkId: 1, text: 1, lang: 1, route: 1, roleScopes: 1, slug: 1, title: 1, updatedAt: 1 } })
       .limit(limit)
