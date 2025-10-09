@@ -81,7 +81,7 @@ export default function TenantsPage() {
 
       {/* Tenants Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tenants.map((tenant: unknown) => (
+        {tenants.map((tenant: any) => (
           <TenantCard key={tenant._id} tenant={tenant} onUpdated={mutate} />
         ))}
       </div>

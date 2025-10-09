@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Knowledge retrieval from Help Articles (tenant-agnostic help)
-  let docs: unknown[] = [];
+  let docs: any[] = [];
   try {
     docs = await HelpArticle.find({ status: "PUBLISHED", $text: { $search: q } })
       .sort?.({ updatedAt: -1 })
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
         .sort?.({ updatedAt: -1 })
         .limit?.(20) || [];
       const s = q.toLowerCase();
-      docs = (docs as unknown[]).filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
+      docs = (docs as any[]).filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
     } catch {}
   }
 

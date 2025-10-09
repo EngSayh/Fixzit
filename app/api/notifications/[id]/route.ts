@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
 
-  const update: Record<string, unknown> = { $set: { updatedAt: new Date() } };
+  const update: any = { $set: { updatedAt: new Date() } };
   if (typeof read === 'boolean') update.$set.read = read;
   if (typeof archived === 'boolean') update.$set.archived = archived;
 

@@ -31,7 +31,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
     }
   }, [errorDetails]);
 
-  const generateErrorDescription = (errorDetails: unknown) => {
+  const generateErrorDescription = (errorDetails: any) => {
     return `🚨 **Automated Error Report**
 
 **Error ID:** \`${errorDetails.errorId}\`

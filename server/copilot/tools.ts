@@ -24,7 +24,7 @@ export interface UploadPayload {
 async function ensureToolAllowed(session: CopilotSession, tool: string) {
   const allowed = getPermittedTools(session.role);
   if (!allowed.includes(tool)) {
-    const error = new Error("Tool not permitted for this role");
+    const error = new Error("Tool not permitted for this role") as Error & { code: string };
     error.code = "FORBIDDEN";
     throw error;
   }
@@ -93,7 +93,7 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   await db;
 
   const filter = buildWorkOrderFilter(session);
-  const items = await WorkOrder.find(filter).then((results: unknown[]) =>
+  const items = await WorkOrder.find(filter).then((results: any[]) =>
     results
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5)
@@ -282,11 +282,11 @@ async function ownerStatements(session: CopilotSession, input: Record<string, an
     data: {
       currency: statements[0].currency,
       totals,
-      statements: statements.map((stmt: unknown) => ({
+      statements: statements.map((stmt: any) => ({
         period: stmt.period,
         year: stmt.year,
         totals: stmt.totals,
-        lineItems: stmt.lineItems?.map((item: unknown) => ({
+        lineItems: stmt.lineItems?.map((item: any) => ({
           date: item.date,
           description: item.description,
           type: item.type,

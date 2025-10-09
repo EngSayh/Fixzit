@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       items: body.items,
       seatTotal: body.seatTotal,
       billingCycle: body.billingCycle
-    }) as unknown;
+    }) as any;
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
     const rows = await Benchmark.find({});

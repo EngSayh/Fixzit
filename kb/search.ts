@@ -16,7 +16,7 @@ export async function performKbSearch(args: SearchArgs): Promise<unknown[]> {
   const db = await getDatabase();
   const coll = db.collection('kb_embeddings');
 
-  const scope: Record<string, unknown> = {
+  const scope: any = {
     $and: [
       {
         $or: [

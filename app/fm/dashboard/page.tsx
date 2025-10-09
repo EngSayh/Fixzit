@@ -160,7 +160,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {workOrders?.items?.slice(0, 5).map((wo: unknown) => (
+              {workOrders?.items?.slice(0, 5).map((wo: any) => (
                 <div key={wo._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full ${
@@ -198,7 +198,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {properties?.items?.slice(0, 5).map((property: unknown) => (
+              {properties?.items?.slice(0, 5).map((property: any) => (
                 <div key={property._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Building2 className="w-4 h-4 text-gray-400" />

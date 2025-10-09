@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     ];
 
     const rows = await col.aggregate(pipeline).toArray();
-    const clusters = rows.map((r: unknown) => ({
+    const clusters = rows.map((r: any) => ({
       id: `${r._id.gx}:${r._id.gy}`,
       lat: r.lat,
       lng: r.lng,

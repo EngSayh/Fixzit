@@ -167,7 +167,7 @@ export interface SubscriptionQuote {
 }
 
 export function computeQuote(params: {
-  items: unknown[];
+  items: any[];
   seatTotal: number;
   billingCycle: 'monthly' | 'annual';
 }): SubscriptionQuote {

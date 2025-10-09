@@ -26,7 +26,7 @@ export async function POST(req:NextRequest){
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user as unknown;
   await connectToDatabase();
-  const rows = (await req.json())?.rows as unknown[]; // expects parsed CSV rows from UI
+  const rows = (await req.json())?.rows as any[]; // expects parsed CSV rows from UI
   let created = 0;
   for (const r of rows ?? []){
     const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;

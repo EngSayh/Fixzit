@@ -132,7 +132,7 @@ export function validateCallback(payload: any, signature: string): boolean {
   return calculatedSignature === signature;
 }
 
-function generateSignature(payload: unknown): string {
+function generateSignature(payload: any): string {
   // Implement according to PayTabs signature generation algorithm
   // This is a placeholder - actual implementation depends on PayTabs docs
   return '';

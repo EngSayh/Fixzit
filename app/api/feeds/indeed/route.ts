@@ -42,7 +42,7 @@ export async function GET() {
       .sort({ publishedAt: -1 })
       .lean();
 
-    const items = jobs.map((j: unknown) => `
+    const items = jobs.map((j: any) => `
     <job>
       <title><![CDATA[${j.title}]]></title>
       <date>${new Date(j.publishedAt || j.createdAt).toUTCString()}</date>

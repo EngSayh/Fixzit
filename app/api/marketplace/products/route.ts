@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: {
-        items: items.map((item: unknown) => serializeProduct(item)),
+        items: items.map((item: any) => serializeProduct(item)),
         pagination: {
           page: query.page,
           limit: query.limit,
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, data: serializeProduct(product) }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }

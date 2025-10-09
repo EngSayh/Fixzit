@@ -204,7 +204,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     }
   ];
 
-  static getDerivedStateFromError(error: unknown): Partial<ErrorState> {
+  static getDerivedStateFromError(error: any): Partial<ErrorState> {
     const err = error as Error;
     return {
       hasError: true,
@@ -271,7 +271,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     } catch {}
   }
 
-  private logErrorToQA = (errorReport: unknown) => {
+  private logErrorToQA = (errorReport: any) => {
     fetch('/api/qa/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

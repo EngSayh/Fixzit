@@ -5,7 +5,7 @@
 /**
  * Validate and sanitize timestamp values
  */
-export function validateTimestamp(value: unknown): Date | null {
+export function validateTimestamp(value: any): Date | null {
   // Handle null/undefined
   if (value === null || value === undefined) {
     return null;

@@ -27,7 +27,7 @@ export default function InvoicesPage() {
     fetcher
   );
 
-  const invoices = (data?.data || []).map((inv: unknown) => ({
+  const invoices = (data?.data || []).map((inv: any) => ({
     ...inv,
     _id: inv.id
   }));
@@ -109,7 +109,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Paid This Month</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {invoices.filter((inv: unknown) => 
+                  {invoices.filter((inv: any) => 
                     inv.status === 'PAID' && 
                     new Date(inv.payments?.[0]?.date).getMonth() === new Date().getMonth()
                   ).length}
@@ -170,7 +170,7 @@ export default function InvoicesPage() {
 
       {/* Invoices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {invoices.map((invoice: unknown) => (
+        {invoices.map((invoice: any) => (
           <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} />
         ))}
       </div>
@@ -361,7 +361,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
     }
   });
 
-  const calculateItemTotal = (item: unknown) => {
+  const calculateItemTotal = (item: any) => {
     const subtotal = item.quantity * item.unitPrice - item.discount;
     const taxAmount = subtotal * (item.tax.rate / 100);
     return {
@@ -410,7 +410,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
               issueDate: formData.issueDate,
               dueDate: formData.dueDate,
               currency: formData.currency,
-              lines: formData.items.map((it: unknown) => ({
+              lines: formData.items.map((it: any) => ({
                 description: it.description,
                 qty: it.quantity,
                 unitPrice: it.unitPrice,

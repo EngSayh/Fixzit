@@ -165,7 +165,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     // Handle approval
     if (data.approval) {
-      const level = invoice.approval.levels.find((l: unknown) => 
+      const level = invoice.approval.levels.find((l: any) => 
         l.approver === user.id && l.status === "PENDING"
       );
 
@@ -175,7 +175,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         level.comments = data.approval.comments;
 
         // Check if all levels approved
-        const allApproved = invoice.approval.levels.every((l: unknown) => 
+        const allApproved = invoice.approval.levels.every((l: any) => 
           l.status === "APPROVED"
         );
 

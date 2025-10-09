@@ -88,7 +88,7 @@ export default function PropertiesPage() {
 
       {/* Properties Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {properties.map((property: unknown) => (
+        {properties.map((property: any) => (
           <PropertyCard key={property._id} property={property} onUpdated={mutate} />
         ))}
       </div>

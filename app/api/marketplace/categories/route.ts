@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
       parentMap.get(parentId)!.push(category);
     });
 
-    const buildTree = (parentId: string | undefined): unknown[] => {
+    const buildTree = (parentId: string | undefined): any[] => {
       const nodes = parentMap.get(parentId ?? 'root') ?? [];
-      return nodes.map(node => ({
+      return nodes.map((node: any) => ({
         ...node,
         children: buildTree(node._id)
       }));

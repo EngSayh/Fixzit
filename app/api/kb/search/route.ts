@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase();
     const coll = db.collection('kb_embeddings');
 
-    const scope: Record<string, unknown> = {
+    const scope: any = {
       $and: [
         {
           $or: [
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (role) scope.$and.push({ roleScopes: { $in: [role] } });
     if (route) scope.$and.push({ route });
 
-    let results: unknown[] = [];
+    let results: any[] = [];
     try {
       const pipe = [
         {

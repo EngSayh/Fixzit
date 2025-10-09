@@ -124,7 +124,7 @@ export function handleZodError(error: ZodError): Response {
 /**
  * Generic error handler that categorizes different error types
  */
-export function handleApiError(error: unknown): Response {
+export function handleApiError(error: any): Response {
   if (error instanceof ApiError) {
     return createErrorResponse(error.message, error.statusCode, error.details, error.code);
   }

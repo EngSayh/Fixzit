@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
       const { performKbSearch } = await import('@/kb/search');
       const qVec = await embedText(question);
       const chunks = await performKbSearch({ tenantId: user?.tenantId, query: qVec, q: question, lang, role, route, limit });
-      docs = (chunks || []).map((c: unknown) => ({
+      docs = (chunks || []).map((c: any) => ({
         slug: c.slug || c.articleId || '',
         title: c.title || '',
         content: c.text || '',

@@ -96,7 +96,7 @@ export default function VendorsPage() {
 
       {/* Vendors Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vendors.map((vendor: unknown) => (
+        {vendors.map((vendor: any) => (
           <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
         ))}
       </div>
@@ -267,7 +267,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       employees: 0,
       annualRevenue: 0,
       specializations: [] as string[],
-      certifications: [] as unknown[]
+      certifications: [] as any[]
     },
     status: 'PENDING',
     tags: [] as string[]

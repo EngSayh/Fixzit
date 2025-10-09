@@ -19,7 +19,7 @@ const QuerySchema = z.object({
   limit: z.coerce.number().default(12).refine(val => val <= 50, { message: 'Limit must be 50 or less' })
 });
 
-const toIsoString = (value: unknown) => {
+const toIsoString = (value: any) => {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
   const date = new Date(value as string);
