@@ -32,6 +32,11 @@ const dbName = process.env.MONGODB_DB || 'fixzit';
 
 export const isMockDB = false; // Always use real MongoDB
 
+// Extend globalThis for MongoDB connection caching
+declare global {
+  var _mongoose: Promise<DatabaseHandle> | undefined;
+}
+
 // Global connection promise
 let conn = global._mongoose as Promise<DatabaseHandle>;
 
@@ -72,7 +77,11 @@ export async function getDatabase(): Promise<DatabaseHandle> {
   } catch (error) {
     const correlationId = new mongoose.Types.ObjectId().toString();
     const devMessage = `Failed to get database handle: ${error}`;
-    const err = new Error(devMessage);
+    const err = new Error(devMessage) as Error & {
+      code: string;
+      userMessage: string;
+      correlationId: string;
+    };
     err.name = 'DatabaseConnectionError';
     err.code = 'DB_CONNECTION_FAILED';
     err.userMessage = 'Database connection is currently unavailable. Please try again later.';

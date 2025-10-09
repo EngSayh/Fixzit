@@ -9,7 +9,7 @@ const CLICK_BBOX_DELTA = 0.05;
 
 export default function MapPage() {
   const center = useMemo(() => DEFAULT_CENTER, []);
-  const [markers, setMarkers] = useState<unknown[]>([]);
+  const [markers, setMarkers] = useState<{ position: { lat: number; lng: number }; title?: string; info?: string }[]>([]);
 
   async function loadClusters(b: { n: number; s: number; e: number; w: number; z: number }) {
     const url = `/api/aqar/map?n=${b.n}&s=${b.s}&e=${b.e}&w=${b.w}&z=${b.z}`;
@@ -21,7 +21,7 @@ export default function MapPage() {
         position: { lat: c.lat, lng: c.lng },
         title: String(c.count),
         info: `Avg SAR ${c.avgPrice?.toLocaleString ? c.avgPrice.toLocaleString() : (typeof c.avgPrice === 'number' ? c.avgPrice.toString() : '-')}`,
-      }))
+      })) as { position: { lat: number; lng: number }; title?: string; info?: string }[]
     );
   }
 

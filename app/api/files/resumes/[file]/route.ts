@@ -97,6 +97,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ file: st
   }
 }
 
+// Extend globalThis for dev file signing secret
+declare global {
+  var __DEV_FILE_SIGN_SECRET__: string | undefined;
+}
+
 function generateToken(name: string, exp: number | undefined, userId: string, tenantId: string) {
   const raw = process.env.FILE_SIGNING_SECRET;
   let secret = typeof raw === 'string' ? raw.trim() : '';
