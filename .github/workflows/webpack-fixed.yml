@@ -1,0 +1,41 @@
+name: NodeJS with Webpack
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  # إزالة push لتجنب التشغيل المزدوج
+  # push:
+  #   branches: [ "main" ]
+
+# منع تشغيل متعدد لنفس PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20  # حد أقصى 20 دقيقة للمهمة
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+      # الحد من عدد المهام المتزامنة
+      max-parallel: 2
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'  # تفعيل الـ cache لتسريع التثبيت
+
+    - name: Install Dependencies
+      timeout-minutes: 10
+      run: npm ci  # استخدام npm ci بدلاً من npm install للحصول على تثبيت أسرع وأكثر موثوقية
+
+    - name: Build
+      timeout-minutes: 10
+      run: npm run build
