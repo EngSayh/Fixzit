@@ -4,8 +4,6 @@ import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import Order from '@/server/models/marketplace/Order';
 import { serializeOrder } from '@/lib/marketplace/serializers';
-import { createSecureResponse } from '@/server/security/headers';
-
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';

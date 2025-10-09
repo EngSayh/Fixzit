@@ -29,8 +29,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
   const params = await props.params;
   await connectToDatabase();
   const page = await (CmsPage as any).findOne({ slug: params.slug });
-  if (!page) return createSecureResponse({ error: "Not found" }, 404, req);
-  return createSecureResponse(page, 200, req);
+  if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
+  return createSecureResponse(page, 200, _req);
 }
 
 const patchSchema = z.object({
