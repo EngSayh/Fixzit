@@ -14,7 +14,7 @@ import { createSecureResponse } from '@/server/security/headers';
 /**
  * @openapi
  * /api/kb/search:
- *   get:
+ *   post:
  *     summary: kb/search operations
  *     tags: [kb]
  *     security:

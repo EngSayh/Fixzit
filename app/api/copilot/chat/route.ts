@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 /**
  * @openapi
  * /api/copilot/chat:
- *   get:
+ *   post:
  *     summary: copilot/chat operations
  *     tags: [copilot]
  *     security:

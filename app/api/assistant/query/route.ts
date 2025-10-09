@@ -40,7 +40,7 @@ function isMyTickets(question: string) {
 /**
  * @openapi
  * /api/assistant/query:
- *   get:
+ *   post:
  *     summary: assistant/query operations
  *     tags: [assistant]
  *     security:
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       const seq = Math.floor((Date.now() / 1000) % 100000);
       const code = `WO-${new Date().getFullYear()}-${seq}`;
       const wo = await WorkOrder.create({
-        tenantId: user.tenantId || user.orgId,
+        tenantId: user.orgId,
         code,
         title: createArgs.title,
         description: createArgs.description,
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
     }
-    const items = await WorkOrder.find({ tenantId: user.tenantId || user.orgId, createdBy: user.id })
+    const items = await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
       .limit?.(5) || [];
     const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
