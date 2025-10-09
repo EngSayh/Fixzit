@@ -1,4 +1,4 @@
-import { cookies, headers, type UnsafeUnwrappedCookies, type UnsafeUnwrappedHeaders } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { Types } from 'mongoose';

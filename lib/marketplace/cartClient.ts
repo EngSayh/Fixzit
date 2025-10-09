@@ -40,7 +40,7 @@ export async function addProductToCart(productId: string, quantity: number) {
   let payload: any;
   try {
     payload = await response.json();
-  } catch (error) {
+  } catch {
     payload = undefined;
   }
 

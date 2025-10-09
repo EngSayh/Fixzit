@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
 // Enhanced User model definition for auth purposes
-interface UserDoc {
+interface _UserDoc {
   _id: string;
   tenantId: string;
   email: string;
@@ -56,7 +56,7 @@ try {
 // AWS Secrets Manager support with fallback
 let jwtSecret: string | null = null;
 
-async function getJWTSecret(): Promise<string> {
+async function _getJWTSecret(): Promise<string> {
   if (jwtSecret) {
     return jwtSecret;
   }
@@ -154,7 +154,7 @@ export function generateToken(payload: AuthToken): string {
 export function verifyToken(token: string): AuthToken | null {
   try {
     return jwt.verify(token, JWT_SECRET) as AuthToken;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

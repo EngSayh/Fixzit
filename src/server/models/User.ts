@@ -224,7 +224,7 @@ UserSchema.index({ 'professional.skills.category': 1 });
 UserSchema.index({ 'workload.available': 1 });
 UserSchema.index({ 'performance.rating': -1 });
 
-export type UserDoc = InferSchemaType<typeof UserSchema>;
+export type _UserDoc = InferSchemaType<typeof UserSchema>;
 
 export const User = models.User || model("User", UserSchema);
 

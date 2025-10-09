@@ -79,7 +79,7 @@ export async function HEAD() {
         'X-Health-Status': isHealthy ? 'healthy' : 'unhealthy'
       }
     });
-  } catch (error) {
+  } catch {
     return new NextResponse(null, { 
       status: 503,
       headers: {
