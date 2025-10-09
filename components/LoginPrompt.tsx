@@ -21,7 +21,7 @@ export default function LoginPrompt({
   action = "Continue",
   redirectTo = "/"
 }: LoginPromptProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, _setIsSignUp] = useState(false);
 
   if (!isOpen) return null;
 

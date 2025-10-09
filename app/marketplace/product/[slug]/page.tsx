@@ -14,7 +14,7 @@ export default async function ProductDetail(props: ProductPageProps) {
     serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)
   ]);
 
-  const departments = (categoriesResponse.data as any[]).map(category => ({
+  const _departments = (categoriesResponse.data as any[]).map(category => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
