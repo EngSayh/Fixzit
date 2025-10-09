@@ -26,7 +26,7 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
   if (!rl.allowed) {
     return rateLimitError();

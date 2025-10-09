@@ -40,7 +40,7 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function POST(req: NextRequest) {
   // Rate limiting: 20 req/min for logout
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`auth-logout:${clientIp}`, 20, 60);
   if (!rl.allowed) {
     return rateLimitError();

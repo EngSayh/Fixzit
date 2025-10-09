@@ -70,7 +70,7 @@ const signupSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rl = rateLimit(`auth-signup:${clientIp}`, 5, 900);
     if (!rl.allowed) {
       return rateLimitError();

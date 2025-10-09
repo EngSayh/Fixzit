@@ -39,7 +39,7 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest){
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
   if (!rl.allowed) {
     return rateLimitError();
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest){
 // Admin list with filters
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`${req.url}:${clientIp}`, 60, 60);
   if (!rl.allowed) {
     return rateLimitError();
