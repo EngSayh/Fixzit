@@ -95,16 +95,17 @@ async function getJWTSecret(): Promise<string> {
     }
   }
 
-  // Production fallback - use the secure secret we know works
+  // Production environment MUST have JWT_SECRET configured
   if (process.env.NODE_ENV === 'production') {
-    jwtSecret = '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
-    console.log('✅ Using production JWT secret');
-    return jwtSecret;
+    console.error('🚨 CRITICAL: JWT_SECRET environment variable is required in production');
+    console.error('Set JWT_SECRET in your environment or AWS Secrets Manager');
+    throw new Error('JWT_SECRET is required in production environment');
   }
 
-  // Development fallback
+  // Development fallback - generate ephemeral secret
   const fallbackSecret = randomBytes(32).toString('hex');
   console.warn('⚠️ JWT_SECRET not configured. Using ephemeral secret for development.');
+  console.warn('⚠️ This secret will change on restart. Set JWT_SECRET for persistence.');
   jwtSecret = fallbackSecret;
   return jwtSecret;
 }
@@ -116,14 +117,16 @@ const JWT_SECRET = (() => {
     return envSecret;
   }
 
-  // Use the secure production secret we generated
+  // Production environment MUST have JWT_SECRET configured
   if (process.env.NODE_ENV === 'production') {
-    return '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
+    console.error('🚨 CRITICAL: JWT_SECRET environment variable is required in production');
+    throw new Error('JWT_SECRET is required in production environment');
   }
 
-  // Development fallback
+  // Development fallback - generate ephemeral secret
   const fallbackSecret = randomBytes(32).toString('hex');
   console.warn('⚠️ JWT_SECRET not set. Using ephemeral secret for development.');
+  console.warn('⚠️ Set JWT_SECRET environment variable for session persistence.');
   return fallbackSecret;
 })();
 

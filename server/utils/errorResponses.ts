@@ -136,10 +136,11 @@ export function handleApiError(error: any): NextResponse {
   
   if (error instanceof Error) {
     // Log the full error but return generic message
+    // SECURITY: Never expose stack traces or internal details to clients in production
     console.error('Unhandled API error:', {
       name: error.name,
       message: error.message,
-      stack: error.stack,
+      stack: process.env.NODE_ENV === 'production' ? '[REDACTED]' : error.stack,
       timestamp: new Date().toISOString()
     });
     
