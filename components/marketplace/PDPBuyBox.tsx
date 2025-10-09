@@ -21,7 +21,7 @@ interface PDPBuyBoxProps {
 function formatCurrency(value: number, currency: string) {
   try {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
-  } catch (_error) {
+  } catch {
     return `${currency} ${value.toFixed(2)}`;
   }
 }
