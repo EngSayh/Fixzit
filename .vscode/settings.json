@@ -13,8 +13,31 @@
     "**/_archive/**": true,
     "**/_artifacts/**": true,
     "**/node_modules/**": true,
-    "**/.next/**": true
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/out/**": true,
+    "**/build/**": true,
+    "**/.turbo/**": true,
+    "**/.cache/**": true,
+    "**/.git/**": true
   },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.git/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/out/**": true,
+    "**/build/**": true,
+    "**/.turbo/**": true,
+    "**/.cache/**": true,
+    "**/coverage/**": true,
+    "**/playwright-report/**": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "git.autofetch": false,
+  "git.postCommitCommand": "none",
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {},
   "task.quickOpen.history": 30,
   "problems.showCurrentInStatus": true,
   "terminal.integrated.profiles.linux": {
