@@ -150,7 +150,10 @@ _deprecated/db-models-old/
 ```typescript
 // السطر 5
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-// لا يوجد validation فوري
+if (!OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY is not set in environment'); // recommend explicit validation
+}
+// Validation recommended in report
 ```
 
 ### 11. server/copilot/retrieval.ts
