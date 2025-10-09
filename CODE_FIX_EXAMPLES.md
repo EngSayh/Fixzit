@@ -43,7 +43,8 @@ const JWT_SECRET = (() => {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    return '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
+    // SECRET REDACTED: do NOT store real secrets in source control
+    return '<REDACTED_PROD_SECRET>';
   }
 
   const fallbackSecret = randomBytes(32).toString('hex');
