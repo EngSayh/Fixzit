@@ -10,8 +10,8 @@ import { createSecureResponse } from '@/server/security/headers';
 /**
  * @openapi
  * /api/checkout/complete:
- *   get:
- *     summary: checkout/complete operations
+ *   post:
+ *     summary: Complete checkout and finalize payment
  *     tags: [checkout]
  *     security:
  *       - cookieAuth: []

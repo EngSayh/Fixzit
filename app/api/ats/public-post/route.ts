@@ -31,7 +31,7 @@ const publicJobSchema = z.object({
 /**
  * @openapi
  * /api/ats/public-post:
- *   get:
+ *   post:
  *     summary: ats/public-post operations
  *     tags: [ats]
  *     security:

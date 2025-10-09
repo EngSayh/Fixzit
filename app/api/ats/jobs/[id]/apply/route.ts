@@ -15,7 +15,7 @@ import { createSecureResponse } from '@/server/security/headers';
 /**
  * @openapi
  * /api/ats/jobs/[id]/apply:
- *   get:
+ *   post:
  *     summary: ats/jobs/[id]/apply operations
  *     tags: [ats]
  *     security:

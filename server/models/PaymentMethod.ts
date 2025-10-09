@@ -4,12 +4,12 @@ const PaymentMethodSchema = new Schema(
   {
     org_id: { 
       type: Types.ObjectId, 
-      ref: 'Organization'
+      ref: 'Organization',
       // Note: required conditionally in validation - see validate hook below
     },
     owner_user_id: { 
       type: Types.ObjectId, 
-      ref: 'User'
+      ref: 'User',
       // Note: required conditionally in validation - see validate hook below
     },
     gateway: { type: String, default: 'PAYTABS' },
