@@ -251,8 +251,14 @@ jobs:
               npm audit --json > .artifacts/dep-audit.json || audit_status=$?
               ;;
           esac
-          
-          if [ "${audit_status}" -ne 0 ]; then
+            # Check for high or critical vulnerabilities and fail if found
+            high_crit_count=$(jq '[.advisories[]? | select(.severity == "high" or .severity == "critical")] | length' .artifacts/dep-audit.json 2>/dev/null || echo 0)
+            if [ "$high_crit_count" -gt 0 ]; then
+              echo "::error::Dependency audit found $high_crit_count high/critical vulnerabilities. Please review .artifacts/dep-audit.json and update affected dependencies before merging."
+              exit 1
+            else
+              echo "::warning::Dependency audit detected issues (none high/critical). See .artifacts/dep-audit.json for details. Remediate as appropriate."
+            fi
             echo "::warning::Dependency audit detected issues. See .artifacts/dep-audit.json for details."
             # Don't fail the build, just warn
           fi
