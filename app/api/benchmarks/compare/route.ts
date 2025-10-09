@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Benchmark comparison failed:', error);
     return createSecureResponse({ error: 'Failed to compare benchmarks' }, 500, req);

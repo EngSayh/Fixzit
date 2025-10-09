@@ -3,7 +3,7 @@ import DiscountRule from '@/server/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
+import { rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
 

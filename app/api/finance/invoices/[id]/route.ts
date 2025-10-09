@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
     return createSecureResponse({ data: inv }, 200, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Invoice update failed:', error);
     return createSecureResponse({ error: error.message || 'Failed to update invoice' }, 400, req);

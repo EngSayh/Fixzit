@@ -73,10 +73,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return response;
   } catch (err: any) {
     if (err?.name === 'ZodError') {
-      return NextResponse.json({ error: 'Validation failed', issues: err.issues }, { status: 400 });
+      return validationError('Validation failed', err.issues);
     }
     if (err?.code === 11000) {
-      return NextResponse.json({ error: 'Duplicate key (e.g., slug) exists' }, { status: 409 });
+      return createSecureResponse({ error: 'Duplicate key (e.g., slug) exists' }, 409, req);
     }
     console.error('PATCH /api/help/articles/[id] failed', err);
     return createSecureResponse({ error: 'Internal Server Error' }, 500, req);

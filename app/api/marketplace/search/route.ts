@@ -91,10 +91,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     console.error('Marketplace search failed', error);
-    return NextResponse.json({ ok: false, error: 'Search failed' }, { status: 500 });
+    return createSecureResponse({ error: 'Search failed' }, 500, request);
   }
 }
 

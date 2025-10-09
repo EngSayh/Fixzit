@@ -36,12 +36,12 @@ export async function POST(req: NextRequest) {
   try {
     // Check if LinkedIn integration is enabled
     if (process.env.ATS_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'LinkedIn integration not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'LinkedIn integration not available in this deployment' }, 501, req);
     }
 
     await connectMongo();
     const { jobSlug, profile, answers } = await req.json();
-    if (!jobSlug || !profile?.email) return NextResponse.json({ success: false, error: 'Missing fields' }, { status: 400 });
+    if (!jobSlug || !profile?.email) return validationError('Missing fields');
 
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
     if (!job) return notFoundError("Job", req);
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: { applicationId: app._id } }, { status: 201 });
   } catch (error) {
     console.error('LinkedIn apply error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to apply with LinkedIn' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to apply with LinkedIn' }, 500, req);
   }
 }
 

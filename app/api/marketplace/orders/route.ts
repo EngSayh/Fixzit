@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
     if (!context.userId) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      return unauthorizedError();
     }
 
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
@@ -61,10 +61,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     console.error('Marketplace orders fetch failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to load orders' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to load orders' }, 500, request);
   }
 }
 

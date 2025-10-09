@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const cart = await getOrCreateCart(context.orgId, context.userId);
     if (!cart.lines.length) {
-      return NextResponse.json({ ok: false, error: 'Cart is empty' }, { status: 400 });
+      return validationError('Cart is empty');
     }
 
     recalcCartTotals(cart);

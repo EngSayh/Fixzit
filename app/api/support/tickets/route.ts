@@ -72,7 +72,7 @@ export async function POST(req: NextRequest){
     return createSecureResponse(ticket, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Support ticket creation failed:', error);
     return createSecureResponse({ error: 'Failed to create support ticket' }, 500, req);
