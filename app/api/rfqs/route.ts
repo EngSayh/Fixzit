@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(rfq, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+      return zodValidationError(error, req);
     }
     return createSecureResponse({ error: "Internal server error" }, 500, req);
   }

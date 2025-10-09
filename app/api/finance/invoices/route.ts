@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ data }, 201, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Invoice creation failed:', error);
     return createSecureResponse({ error: error.message || 'Failed to create invoice' }, 400, req);

@@ -69,12 +69,12 @@ export async function POST(req: NextRequest) {
     const validatedBody = validation.data;
 
     if (process.env.ATS_ENABLED !== "true") {
-      return NextResponse.json({ success: false, error: "Feature not available" }, { status: 501 });
+      return createSecureResponse({ error: "Feature not available" }, 501, req);
     }
     
     const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0';
     const rl = await rateLimit(`ats:public:${clientIp}`, 10, 60_000);
-    if (!rl.allowed) return NextResponse.json({ success:false, error:"Rate limit" }, { status: 429 });
+    if (!rl.allowed) return rateLimitError(req);
     const platformOrg = process.env.PLATFORM_ORG_ID || "fixzit-platform";
     
     const baseSlug = generateSlug(validatedBody.title || "job");
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     console.error("Public post error:", error);
-    return NextResponse.json({ success: false, error: "Failed to submit job" }, { status: 500 });
+    return createSecureResponse({ error: "Failed to submit job" }, 500, req);
   }
 }
 

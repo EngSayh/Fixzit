@@ -40,11 +40,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       .populate('jobId')
       .populate('candidateId')
       .lean();
-    if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (!application) return notFoundError("Application", req);
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
     console.error('Application fetch error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch application' }, { status: 500 });
+    return createSecureResponse({ error: "Failed to fetch application" }, 500, req);
   }
 }
 
@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const userId = user?.id || 'system';
     
     const application = await Application.findById(params.id);
-    if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (!application) return notFoundError("Application", req);
     
     if (body.stage && body.stage !== application.stage) {
       const oldStage = application.stage;
@@ -81,7 +81,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
     console.error('Application update error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to update application' }, { status: 500 });
+    return createSecureResponse({ error: "Failed to update application" }, 500, req);
   }
 }
 

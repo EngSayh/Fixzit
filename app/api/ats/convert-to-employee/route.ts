@@ -44,30 +44,30 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
 
-    // Check user permissions (admin or HR role can convert applications)
-    const canConvertApplications = ['admin', 'hr'].includes(user.role);
+    // Check user permissions (super_admin, corporate_admin, or HR manager can convert applications)
+    const canConvertApplications = ['super_admin', 'corporate_admin', 'hr_manager'].includes(user.role);
     if (!canConvertApplications) {
       return createSecureResponse({ error: 'Forbidden: Insufficient permissions' }, 403, req);
     }
 
     const { applicationId } = await req.json();
-    if (!applicationId) return NextResponse.json({ success: false, error: 'applicationId required' }, { status: 400 });
+    if (!applicationId) return validationError("applicationId is required", req);
 
     const app = await Application.findById(applicationId).lean();
-    if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (!app) return notFoundError("Application", req);
 
     // Verify org authorization (only super_admin can access cross-org)
     if (app.orgId !== user.orgId && user.role !== 'super_admin') {
       return createSecureResponse({ error: 'Forbidden' }, 403, req);
     }
 
-    if (app.stage !== 'hired') return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
+    if (app.stage !== 'hired') return validationError("Application status must be hired", req);
 
     const [cand, job] = await Promise.all([
       Candidate.findById(app.candidateId).lean(),
       Job.findById(app.jobId).lean()
     ]);
-    if (!cand || !job) return NextResponse.json({ success: false, error: 'Candidate or Job missing' }, { status: 400 });
+    if (!cand || !job) return validationError("Candidate or Job missing", req);
 
     const orgId = app.orgId;
     const existing = await Employee.findOne({ orgId, 'personal.email': cand.email }).lean();
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
     console.error('Convert to employee error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to convert to employee' }, { status: 500 });
+    return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }
 

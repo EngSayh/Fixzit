@@ -138,7 +138,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return createSecureResponse(asset, 200, req);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+      return zodValidationError(error, req);
     }
     if (error?.name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
