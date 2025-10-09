@@ -154,7 +154,7 @@ export default function FMPage() {
     showSaveConfirm,
     markDirty,
     markClean,
-    handleNavigation,
+    handleNavigation: _handleNavigation,
     handleSave,
     handleDiscard,
     handleStay

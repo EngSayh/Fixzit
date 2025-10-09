@@ -30,7 +30,7 @@ interface Job {
 }
 
 export default function CareersPage() {
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
