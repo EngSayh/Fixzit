@@ -8,7 +8,7 @@ export default async function VendorPortalPage() {
     serverFetchJsonWithTenant<any>('/api/marketplace/vendor/products')
   ]);
 
-  const departments = (categoriesResponse.data as any[]).map((category: any) => ({
+  const _departments = (categoriesResponse.data as any[]).map((category: any) => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
@@ -19,7 +19,7 @@ export default async function VendorPortalPage() {
     <div className="min-h-screen bg-[#F5F6F8]">
       
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <VendorCatalogueManager categories={departments} initialProducts={products} />
+        <VendorCatalogueManager categories={_departments} initialProducts={products} />
       </main>
     </div>
   );

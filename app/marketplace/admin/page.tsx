@@ -2,17 +2,12 @@
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function MarketplaceAdminPage() {
-  const [categoriesResponse, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
+  const [_categoriesResponse, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
     serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=50'),
     serverFetchJsonWithTenant<any>('/api/marketplace/orders'),
     serverFetchJsonWithTenant<any>('/api/marketplace/rfq')
   ]);
-
-  const departments = (categoriesResponse.data as any[]).map((category: any) => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
 
   const products = productsResponse.data.items as any[];
   const orders = ordersResponse.data as any[];

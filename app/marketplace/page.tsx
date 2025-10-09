@@ -25,8 +25,7 @@ async function loadHomepageData() {
 }
 
 export default async function MarketplaceHome() {
-  const { categories, featured, carousels } = await loadHomepageData();
-  const departments = categories.map(category => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
+  const { categories: _categories, featured, carousels } = await loadHomepageData();
   const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
 
   return (
