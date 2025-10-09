@@ -41,7 +41,7 @@ const schema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60);
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   const params = await props.params;
   const user = await requireAbility("ASSIGN")(req);
-  if (user instanceof NextResponse) return user as unknown;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
 
   const body = schema.parse(await req.json());

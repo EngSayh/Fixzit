@@ -25,10 +25,10 @@ const schema = z.object({ title:z.string().min(2), items:z.array(z.object({label
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}): Promise<NextResponse> {
   const params = await props.params;
   const user = await requireAbility("EDIT")(req);
-  if (user instanceof NextResponse) return user as unknown;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const data = schema.parse(await req.json());
   // Validate MongoDB ObjectId format

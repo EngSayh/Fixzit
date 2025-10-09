@@ -30,7 +30,7 @@ const schema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60);
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     CANCELLED: "STATUS"};
   const guard = need[body.to];
   const gate = await (await requireAbility(guard))(req);
-  if (gate instanceof NextResponse) return gate as unknown;
+  if (gate instanceof NextResponse) return gate;
 
   // Technician/Vendor can only move their own assignments
   if ((user.role === "TECHNICIAN" || user.role === "VENDOR") &&
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
 
   wo.statusHistory.push({ from: wo.status, to: body.to, byUserId: user.id, at: new Date(), note: body.note });
-  wo.status = body.to as unknown;
+  wo.status = body.to as any;
   await wo.save();
   return createSecureResponse(wo, 200, req);
 }

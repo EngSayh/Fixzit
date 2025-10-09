@@ -20,9 +20,9 @@ import {requireAbility } from "@/server/middleware/withAuthRbac";
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req:NextRequest){
+export async function GET(req:NextRequest): Promise<NextResponse> {
   const user = await requireAbility("EXPORT")(req);
-  if (user instanceof NextResponse) return user as unknown;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const docs = await WorkOrder.find({tenantId:user.orgId, deletedAt:{$exists:false}}).limit(2000);
   const header = ["code","title","status","priority","propertyId","assigneeUserId","createdAt","dueAt"];
