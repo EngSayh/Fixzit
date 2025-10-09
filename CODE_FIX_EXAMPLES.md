@@ -23,9 +23,8 @@ async function getJWTSecret(): Promise<string> {
 
   // ⛔ خطأ كبير: سر ثابت في الكود
   if (process.env.NODE_ENV === 'production') {
-    jwtSecret = 'REDACTED_PRODUCTION_SECRET_EXAMPLE_ONLY';
-    jwtSecret = '<REDACTED_PROD_SECRET>';
-    console.log('✅ Using production JWT secret (REDACTED)');
+    jwtSecret = 'REDACTED_HARDCODED_SECRET_EXAMPLE';
+    console.log('✅ Using production JWT secret');
     return jwtSecret;
   }
 
@@ -42,9 +41,8 @@ const JWT_SECRET = (() => {
     return envSecret;
   }
 
-    return 'REDACTED_PRODUCTION_SECRET_EXAMPLE_ONLY';
-    // SECRET REDACTED: do NOT store real secrets in source control
-    return '<REDACTED_PROD_SECRET>';
+  if (process.env.NODE_ENV === 'production') {
+    return 'REDACTED_HARDCODED_SECRET_EXAMPLE';
   }
 
   const fallbackSecret = randomBytes(32).toString('hex');
@@ -220,7 +218,8 @@ export async function getSessionUser(
     if (xUserHeader) {
       try {
         const user = JSON.parse(xUserHeader);
-        console.debug('Using x-user header for development:', user.id);
+        // ✅ Use proper logging instead of console.debug
+        // logger.debug('Using x-user header for development', { userId: user.id });
         return user as SessionUser;
       } catch (e) {
         console.error('Failed to parse x-user header:', e);

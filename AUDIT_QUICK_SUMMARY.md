@@ -10,7 +10,7 @@
 
 ```typescript
 // ⛔ خطأ - موجود حالياً
-jwtSecret = '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
+jwtSecret = 'REDACTED_HARDCODED_SECRET_EXAMPLE';
 
 // ✅ الحل - يجب استخدام متغير بيئي فقط
 jwtSecret = process.env.JWT_SECRET;

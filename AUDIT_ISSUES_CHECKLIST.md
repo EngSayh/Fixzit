@@ -94,11 +94,9 @@
 **الكود الحالي (الخطأ):**
 ```typescript
 // lib/auth.ts:100
+// ⛔ يحتوي على سر ثابت (REDACTED) - يجب إزالته فوراً
 if (process.env.NODE_ENV === 'production') {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET must be set in production');
-  }
-  jwtSecret = process.env.JWT_SECRET;
+  jwtSecret = 'REDACTED_SECRET_FOUND_IN_CODE';
   return jwtSecret;
 }
 ```
