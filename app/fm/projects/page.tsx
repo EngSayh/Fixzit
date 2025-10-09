@@ -288,7 +288,7 @@ function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create project');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating project');
     }
   };

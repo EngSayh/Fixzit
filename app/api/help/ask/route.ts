@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
           .sort({ score: { $meta: 'textScore' } })
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
-      } catch (__err: any) {
+      } catch {
         // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         const cutoffDate = new Date();

@@ -281,7 +281,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create tenant');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating tenant');
     }
   };

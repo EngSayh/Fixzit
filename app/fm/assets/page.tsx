@@ -280,7 +280,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create asset');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating asset');
     }
   };

@@ -335,7 +335,7 @@ function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create RFQ');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating RFQ');
     }
   };

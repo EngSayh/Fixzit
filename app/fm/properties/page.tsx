@@ -289,7 +289,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create property');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating property');
     }
   };
