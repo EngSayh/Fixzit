@@ -72,9 +72,9 @@ jobs:
         timeout-minutes: 5
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm lint || pnpm run eslint . || echo "Lint completed with warnings" ;;
-            yarn) yarn lint || yarn run eslint . || echo "Lint completed with warnings" ;;
-            *) npm run lint || npm run eslint . || echo "Lint completed with warnings" ;;
+            pnpm) pnpm lint || pnpm run eslint . || { echo "Lint failed" >&2; exit 1; } ;;
+            yarn) yarn lint || yarn run eslint . || { echo "Lint failed" >&2; exit 1; } ;;
+            *) npm run lint || npm run eslint . || { echo "Lint failed" >&2; exit 1; } ;;
           esac
           
       - name: Typecheck
