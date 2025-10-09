@@ -2,7 +2,6 @@ name: Fixzit Quality Gates
 
 on:
   pull_request:
-    branches: [ main, develop ]
   workflow_dispatch: {}
 
 permissions:
@@ -14,6 +13,10 @@ permissions:
 jobs:
   gates:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name || github.run_id }}
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,6 +45,10 @@ jobs:
         with:
           node-version: 20
           cache: ${{ steps.pm.outputs.cache }}
+          cache-dependency-path: |
+            package-lock.json
+            pnpm-lock.yaml
+            yarn.lock
       - run: corepack enable
 
       - name: Install Dependencies
@@ -172,8 +179,8 @@ jobs:
           esac
           
           # Copy Postman collection if generated
-          if [ -f _artifacts/postman/collection.json ]; then
-            cp -f _artifacts/postman/collection.json .artifacts/postman_collection.json
+          if [ -f .artifacts/postman/collection.json ]; then
+            cp -f .artifacts/postman/collection.json .artifacts/postman_collection.json
           elif [ -f postman_collection.json ]; then
             cp -f postman_collection.json .artifacts/postman_collection.json
           fi
