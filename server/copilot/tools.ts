@@ -25,13 +25,13 @@ async function ensureToolAllowed(session: CopilotSession, tool: string) {
   const allowed = getPermittedTools(session.role);
   if (!allowed.includes(tool)) {
     const error = new Error("Tool not permitted for this role");
-    (error as any).code = "FORBIDDEN";
+    error.code = "FORBIDDEN";
     throw error;
   }
 }
 
 function buildWorkOrderFilter(session: CopilotSession) {
-  const filter: any = { tenantId: session.tenantId, deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = { tenantId: session.tenantId, deletedAt: { $exists: false } };
   if (session.role === "TECHNICIAN") {
     filter.assigneeUserId = session.userId;
   } else if (session.role === "VENDOR") {
@@ -54,7 +54,7 @@ async function createWorkOrder(session: CopilotSession, input: Record<string, an
   const seq = Math.floor((Date.now() / 1000) % 100000);
   const code = `WO-${new Date().getFullYear()}-${seq}`;
 
-  const doc = await (WorkOrder as any).create({
+  const doc = await WorkOrder.create({
     tenantId: session.tenantId,
     code,
     title,
@@ -93,7 +93,7 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   await db;
 
   const filter = buildWorkOrderFilter(session);
-  const items = await (WorkOrder as any).find(filter).then((results: any[]) =>
+  const items = await WorkOrder.find(filter).then((results: unknown[]) =>
     results
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5)
@@ -126,7 +126,7 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
     throw new Error("workOrderId is required");
   }
 
-  const update: any = {
+  const update: Record<string, unknown> = {
     status: "DISPATCHED"
   };
 
@@ -137,7 +137,7 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
     update.assigneeVendorId = input.assigneeVendorId;
   }
 
-  const updated = await (WorkOrder as any).findOneAndUpdate(
+  const updated = await WorkOrder.findOneAndUpdate(
     { _id: workOrderId, tenantId: session.tenantId },
     { $set: update, $push: { statusHistory: { from: "SUBMITTED", to: "DISPATCHED", byUserId: session.userId, at: new Date() } } },
     { new: true }
@@ -172,7 +172,7 @@ async function scheduleVisit(session: CopilotSession, input: Record<string, any>
     throw new Error("Valid workOrderId and scheduledFor timestamp are required");
   }
 
-  const updated = await (WorkOrder as any).findOneAndUpdate(
+  const updated = await WorkOrder.findOneAndUpdate(
     { _id: workOrderId, tenantId: session.tenantId },
     { $set: { dueAt: scheduledFor }, $push: { statusHistory: { from: "DISPATCHED", to: "DISPATCHED", note: "Scheduled visit", byUserId: session.userId, at: new Date() } } },
     { new: true }
@@ -217,7 +217,7 @@ async function uploadWorkOrderPhoto(session: CopilotSession, payload: UploadPayl
     size: payload.buffer.length
   };
 
-  const updated = await (WorkOrder as any).findOneAndUpdate(
+  const updated = await WorkOrder.findOneAndUpdate(
     { _id: payload.workOrderId, tenantId: session.tenantId },
     { $push: { attachments: attachment } },
     { new: true }
@@ -248,7 +248,7 @@ async function ownerStatements(session: CopilotSession, input: Record<string, an
   const year = Number(input.year) || new Date().getFullYear();
   const period = input.period || "YTD";
 
-  const statements = await (OwnerStatement as any).find({
+  const statements = await OwnerStatement.find({
     tenantId: session.tenantId,
     ownerId,
     ...(period !== "YTD" ? { period } : {}),
@@ -282,11 +282,11 @@ async function ownerStatements(session: CopilotSession, input: Record<string, an
     data: {
       currency: statements[0].currency,
       totals,
-      statements: statements.map((stmt: any) => ({
+      statements: statements.map((stmt: unknown) => ({
         period: stmt.period,
         year: stmt.year,
         totals: stmt.totals,
-        lineItems: stmt.lineItems?.map((item: any) => ({
+        lineItems: stmt.lineItems?.map((item: unknown) => ({
           date: item.date,
           description: item.description,
           type: item.type,

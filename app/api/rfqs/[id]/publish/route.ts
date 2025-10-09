@@ -4,7 +4,7 @@ import { RFQ } from "@/server/models/RFQ";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -50,16 +50,14 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const rfq = await (RFQ as any).findOneAndUpdate(
+    const rfq = await RFQ.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
       {
         $set: {
           status: "PUBLISHED",
           "workflow.publishedBy": user.id,
           "workflow.publishedAt": new Date(),
-          "timeline.publishDate": new Date(),
-        },
-      },
+          "timeline.publishDate": new Date()}},
       { new: true }
     );
 

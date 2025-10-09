@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, rateLimitError } from '@/server/utils/errorResponses';

@@ -81,10 +81,10 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
   if (filters.minPrice != null || filters.maxPrice != null) {
     query['buy.price'] = {};
     if (filters.minPrice != null) {
-      (query['buy.price'] as any).$gte = filters.minPrice;
+      (query['buy.price'] as unknown).$gte = filters.minPrice;
     }
     if (filters.maxPrice != null) {
-      (query['buy.price'] as any).$lte = filters.maxPrice;
+      (query['buy.price'] as unknown).$lte = filters.maxPrice;
     }
   }
 

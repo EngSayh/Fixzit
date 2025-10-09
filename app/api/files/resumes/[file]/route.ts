@@ -6,7 +6,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedGetUrl, buildResumeKey } from '@/lib/storage/s3';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 // Resume files are stored under a non-public project directory with UUID-based names
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ file: str
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
-    if (!allowed.has((user as any).role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    if (!allowed.has(user.role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
 
     const url = new URL(req.url);
     const token = url.searchParams.get('token') || '';
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ file: str
     if (Date.now() > exp) return createSecureResponse({ error: 'Token expired' }, 403, req);
     const safeName = path.basename(params.file);
     const tenant = String(user.tenantId || 'global');
-    const expected = generateToken(`${tenant}:${safeName}`, exp, String((user as any).id || ''), tenant);
+    const expected = generateToken(`${tenant}:${safeName}`, exp, String(user.id || ''), tenant);
     if (!timingSafeEqual(expected, token)) return createSecureResponse({ error: 'Invalid token' }, 403, req);
 
     // Prefer S3 if configured; else local fallback
@@ -86,11 +86,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ file: st
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
-    if (!allowed.has((user as any).role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    if (!allowed.has(user.role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
     const safeName = path.basename(params.file);
     const tenant = String(user.tenantId || 'global');
-    const token = generateToken(`${tenant}:${safeName}`, expires, String((user as any).id || ''), tenant);
+    const token = generateToken(`${tenant}:${safeName}`, expires, String(user.id || ''), tenant);
     return NextResponse.json({ url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(safeName)}?token=${encodeURIComponent(token)}&exp=${expires}` });
   } catch {
     return createSecureResponse({ error: 'Failed to sign URL' }, 500, req);
@@ -106,10 +106,10 @@ function generateToken(name: string, exp: number | undefined, userId: string, te
   }
   // In non-production, generate an ephemeral in-memory secret if unset/weak to avoid predictable tokens
   if (process.env.NODE_ENV !== 'production' && WEAK.has(secret)) {
-    if (!(globalThis as any).__DEV_FILE_SIGN_SECRET__) {
-      (globalThis as any).__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString('hex');
+    if (!globalThis.__DEV_FILE_SIGN_SECRET__) {
+      globalThis.__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString('hex');
     }
-    secret = (globalThis as any).__DEV_FILE_SIGN_SECRET__;
+    secret = globalThis.__DEV_FILE_SIGN_SECRET__;
   }
   const payload = `${tenantId}:${userId}:${name}:${exp || ''}`;
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');

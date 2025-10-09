@@ -4,7 +4,7 @@ import { Job } from '@/server/models/Job';
 import { getUserFromToken } from '@/lib/auth';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -46,11 +46,11 @@ export async function PUT(req: NextRequest) {
     if (!job) return notFoundError("Job");
 
     if (action === 'approve') {
-      job.status = 'published' as any;
+      job.status = 'published' as unknown;
       job.publishedAt = new Date();
       await job.save();
     } else {
-      job.status = 'closed' as any;
+      job.status = 'closed' as unknown;
       await job.save();
     }
 

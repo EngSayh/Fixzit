@@ -6,7 +6,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import crypto from "crypto";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createSchema = z.object({
@@ -101,15 +101,15 @@ export async function GET(req: NextRequest) {
     const priority = sp.get("priority") || undefined;
     const page = Math.max(1, Number(sp.get("page")||1));
     const limit = Math.min(100, Number(sp.get("limit")||20));
-    const match:any = {};
+    const match: Record<string, unknown> = {};
     if (status) match.status = status;
     if (moduleKey) match.module = moduleKey;
     if (type) match.type = type;
     if (priority) match.priority = priority;
 
     const [items,total] = await Promise.all([
-      (SupportTicket as any).find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
-      (SupportTicket as any).countDocuments(match)
+      SupportTicket.find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
+      SupportTicket.countDocuments(match)
     ]);
     return NextResponse.json({ items, page, limit, total });
   } catch (error) {

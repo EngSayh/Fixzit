@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey } from '@/config/topbar-modules';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 // Helper function to generate href based on entity type
@@ -70,16 +70,16 @@ export async function GET(req: NextRequest) {
     }
 
     const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
-    const results: any[] = [];
+    const results: unknown[] = [];
 
     // Search across different entity types based on app
     for (const entity of searchEntities) {
       try {
         let collection: any;
-        let searchQuery: any = { $text: { $search: q } };
-        let projection: any = { score: { $meta: 'textScore' } };
+        let searchQuery: Record<string, unknown> = { $text: { $search: q } };
+        let projection: Record<string, unknown> = { score: { $meta: 'textScore' } };
 
-        const mdb = (mongoose as any).connection?.db;
+        const mdb = mongoose.connection?.db;
         if (!mdb) continue;
         
         switch (entity) {
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
             .limit(5)
             .toArray();
 
-          items.forEach((item: any) => {
+          items.forEach((item: unknown) => {
             const result = {
               id: item._id?.toString() || '',
               entity,

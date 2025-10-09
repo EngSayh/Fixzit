@@ -4,7 +4,7 @@ import { Job } from '@/server/models/Job';
 import { getUserFromToken } from '@/lib/auth';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**

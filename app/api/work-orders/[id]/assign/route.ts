@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const schema = z.object({
@@ -51,13 +51,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   const params = await props.params;
   const user = await requireAbility("ASSIGN")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user as unknown;
   await connectToDatabase();
 
   const body = schema.parse(await req.json());
 
   // MongoDB-only implementation
-  let wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
+  let wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   wo.assigneeUserId = body.assigneeUserId;

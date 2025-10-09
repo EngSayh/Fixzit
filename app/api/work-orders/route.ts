@@ -7,7 +7,7 @@ import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createSchema = z.object({
@@ -69,9 +69,9 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown)();
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
-    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    const WorkOrder = WOMod && WOMod.WorkOrder;
     if (!WorkOrder) {
       return createSecureResponse({ error: "Work Order dependencies are not available in this deployment" }, 501, req);
     }
@@ -90,21 +90,21 @@ export async function GET(req: NextRequest) {
   const page = Number(searchParams.get("page") || 1);
   const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
-  const match: any = { tenantId: user.orgId, deletedAt: { $exists: false } };
+  const match: Record<string, unknown> = { tenantId: user.orgId, deletedAt: { $exists: false } };
   if (status) match.status = status;
   if (priority) match.priority = priority;
   if (q) match.$text = { $search: q };
 
   // MongoDB-only implementation
-  let items: any[];
+  let items: unknown[];
   let total: number;
 
   // Real MongoDB operations
-  items = await (WorkOrder as any).find(match)
+  items = await WorkOrder.find(match)
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit);
-  total = await (WorkOrder as any).countDocuments(match);
+  total = await WorkOrder.countDocuments(match);
 
   return NextResponse.json({ items, page, limit, total });
   } catch (error: any) {
@@ -128,14 +128,14 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown)();
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
-    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    const WorkOrder = WOMod && WOMod.WorkOrder;
     if (!WorkOrder) {
       return createSecureResponse({ error: "Work Order dependencies are not available in this deployment" }, 501, req);
     }
   const user = await requireAbility("CREATE")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user as unknown;
   await connectToDatabase();
 
   const body = await req.json();
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
   const code = `WO-${new Date().getFullYear()}-${uuid}`;
   const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
-  const wo = await (WorkOrder as any).create({
+  const wo = await WorkOrder.create({
     tenantId: user.orgId,
     code,
     title: data.title,

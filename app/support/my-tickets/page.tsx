@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState} from 'react';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url, {
@@ -69,7 +69,7 @@ export default function MyTicketsPage() {
               {data?.items?.length === 0 ? (
                 <p className="p-4 text-gray-500 text-center">No tickets yet</p>
               ) : (
-                data?.items?.map((ticket: any) => (
+                data?.items?.map((ticket: unknown) => (
                   <div
                     key={ticket._id}
                     onClick={() => setSelectedTicket(ticket)}

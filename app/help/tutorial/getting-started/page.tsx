@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, ChevronRight, Star, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, Clock } from 'lucide-react';
 
 interface Step {
   id: string;

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase();
     const coll = db.collection('kb_embeddings');
 
-    const scope: any = {
+    const scope: Record<string, unknown> = {
       $and: [
         {
           $or: [
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (role) scope.$and.push({ roleScopes: { $in: [role] } });
     if (route) scope.$and.push({ route });
 
-    let results: any[] = [];
+    let results: unknown[] = [];
     try {
       const pipe = [
         {
@@ -101,11 +101,11 @@ export async function POST(req: NextRequest) {
           }
         }
       ];
-      results = await (coll as any).aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
+      results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
     } catch (e) {
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      const filter = { ...scope, text: safe } as any;
+      const filter = { ...scope, text: safe } as unknown;
       results = await coll
         .find(filter, { projection: { articleId: 1, chunkId: 1, text: 1, lang: 1, route: 1, roleScopes: 1 } })
         .limit(limit)

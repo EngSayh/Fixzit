@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-
+import {rateLimitError} from '@/server/utils/errorResponses';
 /**
  * @openapi
  * /api/paytabs/return:

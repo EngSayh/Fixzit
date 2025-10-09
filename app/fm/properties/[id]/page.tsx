@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import useSWR from 'swr';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import GoogleMap from '@/components/GoogleMap';
 import {
-  Building2, MapPin, Calendar, DollarSign, Users, Home,
-  Wrench, Shield, FileText, ChevronLeft, Edit, Trash2,
-  Phone, Mail, Clock, CheckCircle, AlertCircle
+  Building2, MapPin, DollarSign, Users, Home,
+  Wrench, Shield, ChevronLeft, Edit, Trash2, CheckCircle, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -307,7 +305,7 @@ export default function PropertyDetailsPage() {
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Open Issues</p>
                   {property.maintenance.issues
-                    .filter((issue: any) => !issue.resolved)
+                    .filter((issue: unknown) => !issue.resolved)
                     .map((issue: any, index: number) => (
                       <div key={index} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${

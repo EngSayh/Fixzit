@@ -25,8 +25,8 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
 
   const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
   const searchData = (searchResponse.data ?? {}) as {
-    items?: any[];
-    facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
+    items?: unknown[];
+    facets?: { categories?: unknown[]; brands?: unknown[]; standards?: unknown[] };
     pagination?: { total?: number };
   };
 
@@ -40,7 +40,7 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
     standards: Array.isArray(facetsData.standards) ? facetsData.standards : []
   };
 
-  const departments = categories.map((category: any) => ({
+  const departments = categories.map((category: unknown) => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
@@ -71,7 +71,7 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
 
           {items.length ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {items.map((product: any) => (
+              {items.map((product: unknown) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>

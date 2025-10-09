@@ -68,7 +68,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
             // Clear any cached imports
             Object.keys(window).forEach(key => {
               if (key.startsWith('__webpack') || key.startsWith('__next')) {
-                delete (window as any)[key];
+                delete (window as unknown)[key];
               }
             });
 
@@ -228,13 +228,13 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         sessionStorage.setItem('fxz_last_incident', errorReport.errorId);
       }
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-      if (!('sendBeacon' in navigator) || !(navigator as any).sendBeacon('/api/support/incidents', blob)) {
+      if (!('sendBeacon' in navigator) || !navigator.sendBeacon('/api/support/incidents', blob)) {
         fetch('/api/support/incidents', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true });
       }
     } catch {}
   }
 
-  private logErrorToQA = (errorReport: any) => {
+  private logErrorToQA = (errorReport: unknown) => {
     fetch('/api/qa/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -338,10 +338,10 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         platform: navigator.platform,
         cookieEnabled: navigator.cookieEnabled,
         onLine: navigator.onLine,
-        memory: (performance as any).memory ? {
-          used: (performance as any).memory.usedJSHeapSize,
-          total: (performance as any).memory.totalJSHeapSize,
-          limit: (performance as any).memory.jsHeapSizeLimit
+        memory: performance.memory ? {
+          used: performance.memory.usedJSHeapSize,
+          total: performance.memory.totalJSHeapSize,
+          limit: performance.memory.jsHeapSizeLimit
         } : null
       },
       localStorage: {
@@ -356,7 +356,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   };
 
   // Copy error details to clipboard
-  private copyErrorDetails = (errorReport: any) => {
+  private copyErrorDetails = (errorReport: unknown) => {
     const errorText = `
 🚨 Error Report - ${errorReport.errorId}
 📅 Time: ${errorReport.timestamp}

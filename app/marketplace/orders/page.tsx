@@ -16,12 +16,12 @@ export default async function OrdersPage() {
     serverFetchJsonWithTenant<any>('/api/marketplace/orders')
   ]);
 
-  const departments = (categoriesResponse.data as any[]).map(category => ({
+  const departments = (categoriesResponse.data as unknown[]).map(category => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
 
-  const orders = ordersResponse.data as any[];
+  const orders = ordersResponse.data as unknown[];
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
@@ -50,7 +50,7 @@ export default async function OrdersPage() {
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 text-sm text-gray-700 md:grid-cols-2">
-                  {order.lines.map((line: any) => (
+                  {order.lines.map((line: unknown) => (
                     <div key={line.productId} className="rounded-2xl border border-gray-100 bg-[#F8FBFF] p-3">
                       <p className="font-semibold text-[#0F1111]">{line.productId}</p>
                       <p className="text-xs text-gray-500">{line.qty} × {line.price} {line.currency}</p>

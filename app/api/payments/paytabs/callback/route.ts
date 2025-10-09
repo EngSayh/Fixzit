@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { generateZATCAQR } from '@/lib/zatca';
 import { validateCallback } from '@/lib/paytabs';
 import { rateLimit } from '@/server/security/rateLimit';

@@ -7,8 +7,7 @@ import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const QuerySchema = z.object({

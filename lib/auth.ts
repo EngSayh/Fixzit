@@ -47,7 +47,7 @@ try {
   console.warn('Development/test environment detected: using fallback User implementation');
   // Lightweight fallback for development/test only
   User = {
-    findOne: async (_query: any) => null,
+    findOne: async (_query: unknown) => null,
     findById: async (_id: string) => null
   };
 }

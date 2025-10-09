@@ -3,9 +3,7 @@ import { resolveCopilotSession } from "@/server/copilot/session";
 import { getPermittedTools } from "@/server/copilot/policy";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-
+import {rateLimitError} from '@/server/utils/errorResponses';
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 

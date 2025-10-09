@@ -8,13 +8,13 @@ export default async function RFQPage() {
     serverFetchJsonWithTenant<any>('/api/marketplace/rfq')
   ]);
 
-  const departments = (categoriesResponse.data as any[]).map((category: any) => ({
+  const departments = (categoriesResponse.data as unknown[]).map((category: unknown) => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
 
   const categories = departments;
-  const rfqs = rfqResponse.data as any[];
+  const rfqs = rfqResponse.data as unknown[];
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
@@ -54,8 +54,7 @@ export async function POST(req: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 0,
-    path: '/',
-  });
+    path: '/'});
   
   return response;
 }

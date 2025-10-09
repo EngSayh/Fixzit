@@ -4,7 +4,7 @@ import Subscription from '@/server/models/Subscription';
 import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -54,8 +54,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: subscription.status === 'ACTIVE',
-    subscription,
-  });
+    subscription});
 }
 
 

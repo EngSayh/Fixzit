@@ -44,7 +44,7 @@ export default function WorkOrderPartsPage() {
     searchParts();
   }, [searchParts]);
   
-  const addPart = (part: any) => {
+  const addPart = (part: unknown) => {
     const existing = selectedParts.find(p => p._id === part._id);
     if (existing) {
       setSelectedParts(selectedParts.map(p => 
@@ -124,7 +124,7 @@ export default function WorkOrderPartsPage() {
                 <div className="text-center py-8">Loading...</div>
               ) : (
                 <div className="grid gap-4">
-                  {parts.map((part: any) => (
+                  {parts.map((part: unknown) => (
                     <div key={part._id} className="border rounded-lg p-4 flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{part.title}</h3>

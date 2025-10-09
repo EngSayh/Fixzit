@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createProjectSchema = z.object({
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;

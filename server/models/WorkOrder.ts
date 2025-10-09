@@ -422,7 +422,7 @@ WorkOrderSchema.pre('save', function(next) {
 
   if (this.isModified('status') && !this.isNew) {
     const currentStatus = this.status;
-    const previousStatus = (this as any).$__.originalDoc?.status;
+    const previousStatus = this.$__.originalDoc?.status;
     
     if (previousStatus && !validTransitions[previousStatus]?.includes(currentStatus)) {
       return next(new Error(`Invalid status transition from ${previousStatus} to ${currentStatus}`));

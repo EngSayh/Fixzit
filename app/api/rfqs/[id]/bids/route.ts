@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { RFQ } from "@/server/models/RFQ";
 import { z } from "zod";
@@ -6,7 +6,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { nanoid } from "nanoid";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const submitBidSchema = z.object({
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     // Check if vendor already submitted a bid
-    const existingBid = rfq.bids.find((b: any) => b.vendorId === data.vendorId);
+    const existingBid = rfq.bids.find((b: unknown) => b.vendorId === data.vendorId);
     if (existingBid) {
       return createSecureResponse({ error: "Vendor has already submitted a bid" }, 400, req);
     }

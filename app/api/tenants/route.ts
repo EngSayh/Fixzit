@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createTenantSchema = z.object({
@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (search) {
@@ -150,11 +150,11 @@ export async function GET(req: NextRequest) {
     }
 
     const [items, total] = await Promise.all([
-      (Tenant as any).find(match)
+      Tenant.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      (Tenant as any).countDocuments(match)
+      Tenant.countDocuments(match)
     ]);
 
     return NextResponse.json({

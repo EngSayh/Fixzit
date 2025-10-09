@@ -1,4 +1,4 @@
-import { Schema, Document } from 'mongoose';
+import { Schema} from 'mongoose';
 
 // Interface for audit information
 export interface AuditInfo {
@@ -101,7 +101,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
       }
       
       // Increment version
-      (this as any).version = ((this as any).version || 0) + 1;
+      this.version = (this.version || 0) + 1;
 
       // Track changes if enabled
       if (enableChangeHistory && this.isModified()) {
@@ -119,7 +119,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
             continue;
           }
 
-          const oldValue = this.isNew ? undefined : (this as any).$__.originalDoc?.[path];
+          const oldValue = this.isNew ? undefined : this.$__.originalDoc?.[path];
           const newValue = this.get(path);
           
           // Only track if value actually changed
@@ -135,23 +135,23 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
         // Add change record if there are actual changes
         if (changes.length > 0) {
           const changeRecord = {
-            version: (this as any).version,
-            changedBy: context.userId || (this as any).updatedBy || 'SYSTEM',
+            version: this.version,
+            changedBy: context.userId || this.updatedBy || 'SYSTEM',
             changedAt: now,
             changes,
-            changeReason: (context as any).changeReason || undefined,
+            changeReason: context.changeReason || undefined,
             ipAddress: context.ipAddress,
             userAgent: context.userAgent
           };
 
-          if (!(this as any).changeHistory) {
-            (this as any).changeHistory = [];
+          if (!this.changeHistory) {
+            this.changeHistory = [];
           }
-          (this as any).changeHistory.push(changeRecord);
+          this.changeHistory.push(changeRecord);
 
           // Limit history size
-          if ((this as any).changeHistory.length > maxHistoryVersions) {
-            (this as any).changeHistory = (this as any).changeHistory.slice(-maxHistoryVersions);
+          if (this.changeHistory.length > maxHistoryVersions) {
+            this.changeHistory = this.changeHistory.slice(-maxHistoryVersions);
           }
         }
       }
@@ -189,14 +189,14 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return [];
     
     return this.changeHistory
-      .filter((change: any) => 
-        change.changes.some((c: any) => c.field === fieldName)
+      .filter((change: unknown) => 
+        change.changes.some((c: unknown) => c.field === fieldName)
       )
-      .map((change: any) => ({
+      .map((change: unknown) => ({
         version: change.version,
         changedBy: change.changedBy,
         changedAt: change.changedAt,
-        change: change.changes.find((c: any) => c.field === fieldName),
+        change: change.changes.find((c: unknown) => c.field === fieldName),
         changeReason: change.changeReason
       }))
       .sort((a: any, b: any) => b.version - a.version);
@@ -207,7 +207,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return [];
     
     return this.changeHistory
-      .filter((change: any) => change.changedBy === userId)
+      .filter((change: unknown) => change.changedBy === userId)
       .sort((a: any, b: any) => b.version - a.version);
   };
 
@@ -216,7 +216,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return null;
     
     const changes = this.changeHistory
-      .filter((change: any) => new Date(change.changedAt) <= date)
+      .filter((change: unknown) => new Date(change.changedAt) <= date)
       .sort((a: any, b: any) => b.version - a.version);
     
     return changes.length > 0 ? changes[0] : null;

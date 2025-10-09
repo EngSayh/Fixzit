@@ -24,8 +24,8 @@ const CandidateSchema = new Schema({
 CandidateSchema.index({ orgId: 1, emailLower: 1 }, { unique: true });
 
 CandidateSchema.pre('validate', function(next) {
-  if ((this as any).email) {
-    (this as any).emailLower = (this as any).email.toLowerCase();
+  if (this.email) {
+    this.emailLower = this.email.toLowerCase();
   }
   next();
 });

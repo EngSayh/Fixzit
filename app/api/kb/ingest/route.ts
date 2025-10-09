@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { upsertArticleEmbeddings, deleteArticleEmbeddings } from '@/kb/ingest';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user || !['SUPER_ADMIN','ADMIN'].includes((user as any).role)) {
+    if (!user || !['SUPER_ADMIN','ADMIN'].includes(user.role)) {
       return createSecureResponse({ error: 'Forbidden' }, 403, req);
     }
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({} as unknown));
     const { articleId, content, lang, roleScopes, route } = body || {};
     if (!articleId || typeof content !== 'string') {
       return createSecureResponse({ error: 'Missing articleId or content' }, 400, req);
@@ -67,7 +67,7 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user || !['SUPER_ADMIN','ADMIN'].includes((user as any).role)) {
+    if (!user || !['SUPER_ADMIN','ADMIN'].includes(user.role)) {
       return createSecureResponse({ error: 'Forbidden' }, 403, req);
     }
     const url = new URL(req.url);

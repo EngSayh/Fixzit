@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { createPaymentPage } from '@/lib/paytabs';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { Invoice } from '@/server/models/Invoice';
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
-    const invoice = await (Invoice as any).findOne({ 
+    const invoice = await Invoice.findOne({ 
       _id: invoiceId, 
       tenantId: user.orgId 
     });
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`
     };
 
-    const paymentResponse = await createPaymentPage(paymentRequest as any);
+    const paymentResponse = await createPaymentPage(paymentRequest as unknown);
 
     if (paymentResponse.success) {
       // Update invoice with payment transaction

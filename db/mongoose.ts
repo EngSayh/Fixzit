@@ -8,10 +8,10 @@ export async function dbConnect() {
   // Respect configured db name when URI does not include a path
   const conn = await globalConn;
   const dbName = process.env.MONGODB_DB;
-  if (dbName && (conn as any).connection) {
-    connection = (conn as any).connection.useDb(dbName, { useCache: true });
+  if (dbName && conn.connection) {
+    connection = conn.connection.useDb(dbName, { useCache: true });
   } else {
-    connection = (conn as any).connection;
+    connection = conn.connection;
   }
   return connection;
 }

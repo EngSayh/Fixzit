@@ -14,7 +14,7 @@ export default async function ProductDetail(props: ProductPageProps) {
     serverFetchJsonWithTenant<any>(`/api/marketplace/products/${params.slug}`)
   ]);
 
-  const departments = (categoriesResponse.data as any[]).map(category => ({
+  const departments = (categoriesResponse.data as unknown[]).map(category => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
@@ -22,8 +22,8 @@ export default async function ProductDetail(props: ProductPageProps) {
   const product = productResponse.data.product;
   const category = productResponse.data.category;
 
-  const attachments = product.media?.filter((file: any) => file.role === 'MSDS' || file.role === 'COA') ?? [];
-  const gallery = product.media?.filter((file: any) => file.role === 'GALLERY') ?? [];
+  const attachments = product.media?.filter((file: unknown) => file.role === 'MSDS' || file.role === 'COA') ?? [];
+  const gallery = product.media?.filter((file: unknown) => file.role === 'GALLERY') ?? [];
 
   const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
   return (
@@ -58,7 +58,7 @@ export default async function ProductDetail(props: ProductPageProps) {
                     />
                   </div>
                   <div className="flex gap-3 overflow-x-auto">
-                    {gallery.map((image: any) => (
+                    {gallery.map((image: unknown) => (
                       <div key={image.url} className="relative h-16 w-16 rounded-xl border border-gray-200 overflow-hidden">
                         <Image
                           src={image.url}
@@ -98,7 +98,7 @@ export default async function ProductDetail(props: ProductPageProps) {
                     <div className="rounded-2xl border border-[#0061A8]/30 bg-white p-4">
                       <h3 className="text-sm font-semibold text-[#0061A8]">Compliance documents</h3>
                       <ul className="mt-2 space-y-2 text-sm text-[#0F1111]">
-                        {attachments.map((file: any) => (
+                        {attachments.map((file: unknown) => (
                           <li key={file.url}>
                             <a href={file.url} className="hover:underline" target="_blank">
                               {file.role === 'MSDS' ? 'Material Safety Data Sheet' : 'Certificate of Analysis'}
@@ -116,7 +116,7 @@ export default async function ProductDetail(props: ProductPageProps) {
               <h2 className="text-xl font-semibold text-[#0F1111]">Related items</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {product.related?.length ? (
-                  product.related.map((related: any) => <ProductCard key={related._id} product={related} />)
+                  product.related.map((related: unknown) => <ProductCard key={related._id} product={related} />)
                 ) : (
                   <p className="text-sm text-gray-600">Additional items will appear as catalogue grows.</p>
                 )}

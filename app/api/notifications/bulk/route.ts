@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { z } from "zod";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const bulkActionSchema = z.object({
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   const toObjectId = (id: string) => { try { return new ObjectId(id); } catch { return null; } };
   const ids = notificationIds.map(toObjectId).filter(Boolean) as ObjectId[];
-  const filter = { _id: { $in: ids }, tenantId } as any;
+  const filter = { _id: { $in: ids }, tenantId } as unknown;
 
   let res: any;
   if (action === 'delete') {

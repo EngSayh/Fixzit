@@ -5,7 +5,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { z } from 'zod';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const compareSchema = z.object({
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       items: body.items,
       seatTotal: body.seatTotal,
       billingCycle: body.billingCycle
-    }) as any;
+    }) as unknown;
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
     const rows = await Benchmark.find({});

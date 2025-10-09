@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const updateNotificationSchema = z.object({
@@ -48,9 +48,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
-  const doc = await notifications.findOne({ _id: _id as any, orgId });
+  const doc = await notifications.findOne({ _id: _id as unknown, orgId });
   if (!doc) return createSecureResponse({ error: 'Notification not found' }, 404, req);
-  const { _id: rawId, ...rest } = doc as any;
+  const { _id: rawId, ...rest } = doc as unknown;
   return createSecureResponse({ id: String(rawId), ...rest });
 }
 
@@ -69,12 +69,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
 
-  const update: any = { $set: { updatedAt: new Date() } };
+  const update: Record<string, unknown> = { $set: { updatedAt: new Date() } };
   if (typeof read === 'boolean') update.$set.read = read;
   if (typeof archived === 'boolean') update.$set.archived = archived;
 
-  const updated = await notifications.findOneAndUpdate({ _id: _id as any, orgId }, update, { returnDocument: 'after' });
-  const value = updated as any;
+  const updated = await notifications.findOneAndUpdate({ _id: _id as unknown, orgId }, update, { returnDocument: 'after' });
+  const value = updated as unknown;
   if (!value) return createSecureResponse({ error: 'Notification not found' }, 404, req);
   const normalized = { id: String(value._id), ...value, _id: undefined };
   return createSecureResponse(normalized);
@@ -99,7 +99,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
-  const res = await notifications.deleteOne({ _id: _id as any, orgId });
+  const res = await notifications.deleteOne({ _id: _id as unknown, orgId });
   if (!res.deletedCount) return createSecureResponse({ error: 'Notification not found' }, 404, req);
   return createSecureResponse({ success: true });
 }

@@ -10,36 +10,36 @@ function normalizeId(id: Types.ObjectId | string | undefined | null) {
 }
 
 export function serializeCategory(doc: MarketplaceCategory | any) {
-  const category = 'toObject' in doc ? (doc as any).toObject() : doc;
+  const category = 'toObject' in doc ? doc.toObject() : doc;
   return {
     ...category,
-    _id: normalizeId((category as any)._id),
-    orgId: normalizeId((category as any).orgId),
-    parentId: normalizeId((category as any).parentId),
-    attrSetId: normalizeId((category as any).attrSetId)
+    _id: normalizeId(category._id),
+    orgId: normalizeId(category.orgId),
+    parentId: normalizeId(category.parentId),
+    attrSetId: normalizeId(category.attrSetId)
   };
 }
 
 export function serializeProduct(doc: MarketplaceProduct | any) {
-  const product = 'toObject' in doc ? (doc as any).toObject() : doc;
+  const product = 'toObject' in doc ? doc.toObject() : doc;
   return {
     ...product,
-    _id: normalizeId((product as any)._id),
-    orgId: normalizeId((product as any).orgId),
-    vendorId: normalizeId((product as any).vendorId),
-    categoryId: normalizeId((product as any).categoryId)
+    _id: normalizeId(product._id),
+    orgId: normalizeId(product.orgId),
+    vendorId: normalizeId(product.vendorId),
+    categoryId: normalizeId(product.categoryId)
   };
 }
 
 export function serializeOrder(doc: MarketplaceOrder | any) {
-  const order = 'toObject' in doc ? (doc as any).toObject() : doc;
+  const order = 'toObject' in doc ? doc.toObject() : doc;
   return {
     ...order,
-    _id: normalizeId((order as any)._id),
-    orgId: normalizeId((order as any).orgId),
-    buyerUserId: normalizeId((order as any).buyerUserId),
-    vendorId: normalizeId((order as any).vendorId),
-    lines: order.lines?.map((line: any) => ({
+    _id: normalizeId(order._id),
+    orgId: normalizeId(order.orgId),
+    buyerUserId: normalizeId(order.buyerUserId),
+    vendorId: normalizeId(order.vendorId),
+    lines: order.lines?.map((line: unknown) => ({
       ...line,
       productId: normalizeId(line.productId)
     }))
@@ -47,14 +47,14 @@ export function serializeOrder(doc: MarketplaceOrder | any) {
 }
 
 export function serializeRFQ(doc: MarketplaceRFQ | any) {
-  const rfq = 'toObject' in doc ? (doc as any).toObject() : doc;
+  const rfq = 'toObject' in doc ? doc.toObject() : doc;
   return {
     ...rfq,
-    _id: normalizeId((rfq as any)._id),
-    orgId: normalizeId((rfq as any).orgId),
-    requesterId: normalizeId((rfq as any).requesterId),
-    categoryId: normalizeId((rfq as any).categoryId),
-    bids: rfq.bids?.map((bid: any) => ({
+    _id: normalizeId(rfq._id),
+    orgId: normalizeId(rfq.orgId),
+    requesterId: normalizeId(rfq.requesterId),
+    categoryId: normalizeId(rfq.categoryId),
+    bids: rfq.bids?.map((bid: unknown) => ({
       ...bid,
       vendorId: normalizeId(bid.vendorId)
     }))

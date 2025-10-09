@@ -5,8 +5,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { serializeProduct } from '@/lib/marketplace/serializers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { unauthorizedError, forbiddenError, zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'PROCUREMENT', 'ADMIN']);
@@ -72,14 +71,14 @@ export async function GET(request: NextRequest) {
 
     const skip = (query.page - 1) * query.limit;
     const [items, total] = await Promise.all([
-      (Product as any).find({ orgId: context.orgId }).sort({ createdAt: -1 }).skip(skip).limit(query.limit).lean(),
-      (Product as any).countDocuments({ orgId: context.orgId })
+      Product.find({ orgId: context.orgId }).sort({ createdAt: -1 }).skip(skip).limit(query.limit).lean(),
+      Product.countDocuments({ orgId: context.orgId })
     ]);
 
     return NextResponse.json({
       ok: true,
       data: {
-        items: items.map((item: any) => serializeProduct(item)),
+        items: items.map((item: unknown) => serializeProduct(item)),
         pagination: {
           page: query.page,
           limit: query.limit,
@@ -119,7 +118,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const payload = ProductSchema.parse(body);
 
-    const product = await (Product as any).create({
+    const product = await Product.create({
       ...payload,
       orgId: context.orgId,
       categoryId: objectIdFrom(payload.categoryId),
@@ -132,7 +131,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    if ((error as any).code === 11000) {
+    if (error.code === 11000) {
       return createSecureResponse({ error: 'Duplicate SKU or slug' }, 409, request);
     }
     console.error('Marketplace product creation failed', error);

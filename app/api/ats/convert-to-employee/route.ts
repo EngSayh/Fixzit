@@ -4,10 +4,9 @@ import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
 import { Job } from '@/server/models/Job';
 import { Employee } from '@/server/models/Employee';
-import { getUserFromToken } from '@/lib/auth';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**

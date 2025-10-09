@@ -4,8 +4,7 @@ import { CmsPage } from "@/server/models/CmsPage";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {notFoundError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -28,7 +27,7 @@ import { createSecureResponse } from '@/server/security/headers';
 export async function GET(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   await connectToDatabase();
-  const page = await (CmsPage as any).findOne({ slug: params.slug });
+  const page = await CmsPage.findOne({ slug: params.slug });
   if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(page, 200, _req);
 }
@@ -49,7 +48,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
   
   const body = await req.json();
   const validated = patchSchema.parse(body);
-  const page = await (CmsPage as any).findOneAndUpdate(
+  const page = await CmsPage.findOneAndUpdate(
     { slug: params.slug },
     { $set: validated },
     { new: true }

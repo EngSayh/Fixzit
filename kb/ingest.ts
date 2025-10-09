@@ -18,7 +18,7 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
   const coll = db.collection('kb_embeddings');
   const { articleId, content, lang, roleScopes, route, orgId, tenantId } = args;
   const chunks = chunkText(content, 1200, 200);
-  const ops: any[] = [];
+  const ops: unknown[] = [];
   let index = 0;
   for (const chunk of chunks) {
     const embedding = await embedText(chunk.text);
@@ -44,7 +44,7 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
     });
     index += 1;
   }
-  if (ops.length) await (coll as any).bulkWrite(ops, { ordered: false });
+  if (ops.length) await coll.bulkWrite(ops, { ordered: false });
 }
 
 export async function deleteArticleEmbeddings(articleId: string, tenantId: string | null) {

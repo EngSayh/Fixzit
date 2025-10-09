@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
 // Stub: return a fake PUT URL that your frontend will use; replace with S3/GCS logic.
 /**
  * @openapi

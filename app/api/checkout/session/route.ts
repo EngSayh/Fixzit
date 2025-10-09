@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { createSubscriptionCheckout } from '@/services/checkout';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -61,8 +61,7 @@ export async function POST(req: NextRequest) {
     currency: body.currency ?? 'USD',
     customer: body.customer,
     priceBookId: body.priceBookId,
-    metadata: body.metadata,
-  });
+    metadata: body.metadata});
 
   return createSecureResponse(result, 200, req);
 }

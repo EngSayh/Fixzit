@@ -11,7 +11,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 // Memoized components for better performance
 const LanguageSelector = memo(({ 
@@ -90,7 +90,7 @@ const useFormValidation = (loginMethod: string, email: string, employeeNumber: s
       }
     } else if (loginMethod === 'corporate') {
       if (!employeeNumber) errors.employeeNumber = 'Employee number is required';
-      else if (!/^EMP\d{3,}$/.test(employeeNumber)) {
+      else if (!/^EMP\d{3}$/.test(employeeNumber)) {
         errors.employeeNumber = 'Invalid employee number format';
       }
     }
@@ -254,7 +254,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      let loginData: any = {};
+      let loginData: Record<string, unknown> = {};
 
       if (loginMethod === 'personal') {
         loginData = { email, password, loginType: 'personal' };
@@ -267,10 +267,8 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(loginData),
-      });
+          'Content-Type': 'application/json'},
+        body: JSON.stringify(loginData)});
 
       const data = await response.json();
 

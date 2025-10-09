@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
 
     // Build filter with tenant isolation
-    const filter: any = { orgId: context.orgId };
+    const filter: Record<string, unknown> = { orgId: context.orgId };
     if (context.role === 'VENDOR') {
       filter.vendorId = context.userId;
     }
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     
     // Secure response
     return createSecureResponse(
-      { ok: true, data: products.map(product => serializeProduct(product as any)) },
+      { ok: true, data: products.map(product => serializeProduct(product as unknown)) },
       200,
       request
     );
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    if ((error as any).code === 11000) {
+    if (error.code === 11000) {
       return duplicateKeyError('SKU or slug');
     }
     return handleApiError(error);

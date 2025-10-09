@@ -1,11 +1,11 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import OwnerGroup from '@/server/models/OwnerGroup';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const assignPrimarySchema = z.object({

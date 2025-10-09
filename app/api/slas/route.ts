@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createSLASchema = z.object({
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     const data = createSLASchema.parse(await req.json());
 
-    const sla = await (SLA as any).create({
+    const sla = await SLA.create({
       tenantId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
@@ -174,7 +174,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (priority) match.priority = priority;
@@ -184,11 +184,11 @@ export async function GET(req: NextRequest) {
     }
 
     const [items, total] = await Promise.all([
-      (SLA as any).find(match)
+      SLA.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      (SLA as any).countDocuments(match)
+      SLA.countDocuments(match)
     ]);
 
     return NextResponse.json({

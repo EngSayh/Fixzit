@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState} from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText, Headphones } from 'lucide-react';
+import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText} from 'lucide-react';
 
 interface Tutorial {
   id: string;
