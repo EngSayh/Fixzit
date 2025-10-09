@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createAssetSchema = z.object({
@@ -79,9 +79,9 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown)();
     const AssetMod = await import('@/server/models/Asset').catch(() => null);
-    const Asset = AssetMod && (AssetMod as any).Asset;
+    const Asset = AssetMod && AssetMod.Asset;
     if (!Asset) {
       return createSecureResponse({ error: "Asset dependencies are not available in this deployment" }, 501, req);
     }
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
     const data = createAssetSchema.parse(await req.json());
 
-    const asset = await (Asset as any).create({
+    const asset = await Asset.create({
       tenantId: user.orgId,
       code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
@@ -125,9 +125,9 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown)();
     const AssetMod = await import('@/server/models/Asset').catch(() => null);
-    const Asset = AssetMod && (AssetMod as any).Asset;
+    const Asset = AssetMod && AssetMod.Asset;
     if (!Asset) {
       return createSecureResponse({ error: "Asset dependencies are not available in this deployment" }, 501, req);
     }
@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
     const propertyId = searchParams.get("propertyId");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;
@@ -161,12 +161,12 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
-    const items = (Asset as any).find(match)
+    const items = Asset.find(match)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
-    const total = (Asset as any).countDocuments(match);
+    const total = Asset.countDocuments(match);
 
     const result = await Promise.all([items, total]);
 

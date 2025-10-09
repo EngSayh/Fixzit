@@ -4,7 +4,7 @@ import { Invoice } from "@/server/models/Invoice";
 
 // Mock implementation retained for optional mock mode
 class MockInvoiceService {
-  private invoices: any[] = [];
+  private invoices: unknown[] = [];
   private nextId = 1;
 
   constructor() {
@@ -35,7 +35,7 @@ class MockInvoiceService {
       const query = q.toLowerCase();
       results = results.filter(inv =>
         inv.number.toLowerCase().includes(query) ||
-        inv.lines?.some((line: any) => line.description.toLowerCase().includes(query))
+        inv.lines?.some((line: unknown) => line.description.toLowerCase().includes(query))
       );
     }
 
@@ -129,8 +129,7 @@ export async function post(tenantId: string, id: string, input: unknown, actorId
     performedBy: actorId ?? 'system',
     performedAt: new Date(),
     details: status === 'SENT' ? 'Invoice posted to customer' : 'Invoice voided',
-    ipAddress: ip,
-  };
+    ipAddress: ip};
 
   const invoice = await Invoice.findOneAndUpdate(
     { _id: id, tenantId },

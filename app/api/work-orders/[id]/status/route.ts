@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const schema = z.object({
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   await connectToDatabase();
 
   const body = schema.parse(await req.json());
-  const wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
+  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // Role gate by target state
@@ -53,11 +53,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     COMPLETED: "STATUS",
     VERIFIED: "VERIFY",
     CLOSED: "CLOSE",
-    CANCELLED: "STATUS",
-  };
+    CANCELLED: "STATUS"};
   const guard = need[body.to];
   const gate = await (await requireAbility(guard))(req);
-  if (gate instanceof NextResponse) return gate as any;
+  if (gate instanceof NextResponse) return gate as unknown;
 
   // Technician/Vendor can only move their own assignments
   if ((user.role === "TECHNICIAN" || user.role === "VENDOR") &&
@@ -66,7 +65,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
 
   wo.statusHistory.push({ from: wo.status, to: body.to, byUserId: user.id, at: new Date(), note: body.note });
-  wo.status = body.to as any;
+  wo.status = body.to as unknown;
   await wo.save();
   return createSecureResponse(wo, 200, req);
 }

@@ -4,8 +4,6 @@ import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:z.number().positive(), unitPrice:z.number().nonnegative(), currency:z.string().default("SAR") });
@@ -30,14 +28,14 @@ const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:
 export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
   const params = await props.params;
   const user = await requireAbility("EDIT")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user as unknown;
   await connectToDatabase();
   const m = upsertSchema.parse(await req.json());
   // Validate MongoDB ObjectId format
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
-  const wo:any = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
+  const wo:any = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   wo.materials.push(m);
   const materials = wo.materials.reduce((s:any,c:any)=>s+(c.qty*c.unitPrice),0);

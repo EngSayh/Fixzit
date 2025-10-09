@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
-import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
-
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import {requireAbility } from "@/server/middleware/withAuthRbac";
 
 /**
  * @openapi
@@ -26,11 +22,11 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function GET(req:NextRequest){
   const user = await requireAbility("EXPORT")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user as unknown;
   await connectToDatabase();
-  const docs = await (WorkOrder as any).find({tenantId:user.orgId, deletedAt:{$exists:false}}).limit(2000);
+  const docs = await WorkOrder.find({tenantId:user.orgId, deletedAt:{$exists:false}}).limit(2000);
   const header = ["code","title","status","priority","propertyId","assigneeUserId","createdAt","dueAt"];
-  const lines = [header.join(",")].concat(docs.map((d: any)=>[
+  const lines = [header.join(",")].concat(docs.map((d: unknown) =>[
     d.code, JSON.stringify(d.title), d.status, d.priority, d.propertyId||"", d.assigneeUserId||"", d.createdAt?.toISOString()||"", d.dueAt?.toISOString()||""
   ].join(",")));
   const csv = lines.join("\n");

@@ -17,7 +17,7 @@ export async function renderMarkdownSanitized(markdown: string): Promise<string>
   const file = await unified()
     .use(remarkParse)
     .use(remarkRehype)
-    .use(rehypeSanitize, schema as any)
+    .use(rehypeSanitize, schema as unknown)
     .use(rehypeStringify)
     .process(markdown || '');
   return String(file);

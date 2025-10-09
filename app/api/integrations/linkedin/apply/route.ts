@@ -5,7 +5,7 @@ import { Candidate } from '@/server/models/Candidate';
 import { Application } from '@/server/models/Application';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
     if (!job) return notFoundError("Job");
 
-    let candidate = await (Candidate as any).findByEmail(job.orgId, profile.email);
+    let candidate = await Candidate.findByEmail(job.orgId, profile.email);
     if (!candidate) {
       candidate = await Candidate.create({
         orgId: job.orgId,
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     const orgId = job.orgId;
-    const jobId = (job as any)._id;
+    const jobId = job._id;
     
     const dup = await Application.findOne({ orgId, jobId, candidateId: candidate._id });
     if (dup) return NextResponse.json({ success: true, data: { applicationId: dup._id, message: 'Already applied' } });

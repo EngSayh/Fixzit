@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { 
-  FileText, Plus, Search, Filter, Calendar, DollarSign, 
-  MapPin, Users, Eye, Edit, Trash2, Send, Clock,
+  FileText, Plus, Search, DollarSign, 
+  MapPin, Eye, Send, Clock,
   Shield, Package, Wrench, Building2
 } from 'lucide-react';
 
@@ -103,7 +103,7 @@ export default function RFQsPage() {
 
       {/* RFQs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rfqs.map((rfq: any) => (
+        {rfqs.map((rfq: unknown) => (
           <RFQCard key={rfq._id} rfq={rfq} onUpdated={mutate} />
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function RFQsPage() {
   );
 }
 
-function RFQCard({ rfq, onUpdated }: { rfq: any; onUpdated: () => void }) {
+function RFQCard({ rfq}: { rfq: any; onUpdated: () => void }) {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'construction':
@@ -285,7 +285,7 @@ function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
       nationalAddress: ''
     },
     projectId: '',
-    specifications: [] as any[],
+    specifications: [] as unknown[],
     timeline: {
       bidDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

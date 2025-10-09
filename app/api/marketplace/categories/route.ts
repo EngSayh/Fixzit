@@ -4,8 +4,6 @@ import Category from '@/server/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +31,7 @@ export async function GET(request: NextRequest) {
     const categories = await Category.find({ orgId: context.orgId }).sort({ createdAt: 1 }).lean();
     const serialized = categories.map(category => serializeCategory(category));
 
-    const parentMap = new Map<string, any[]>();
+    const parentMap = new Map<string, unknown[]>();
     serialized.forEach(category => {
       const parentId = category.parentId ?? 'root';
       if (!parentMap.has(parentId)) {
@@ -42,7 +40,7 @@ export async function GET(request: NextRequest) {
       parentMap.get(parentId)!.push(category);
     });
 
-    const buildTree = (parentId: string | undefined): any[] => {
+    const buildTree = (parentId: string | undefined): unknown[] => {
       const nodes = parentMap.get(parentId ?? 'root') ?? [];
       return nodes.map(node => ({
         ...node,

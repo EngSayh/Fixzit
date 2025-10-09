@@ -6,8 +6,6 @@ import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -30,7 +28,7 @@ import { createSecureResponse } from '@/server/security/headers';
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}) {
   const params = await props.params;
   await connectToDatabase();
-  const wo = await (WorkOrder as any).findById(params.id);
+  const wo = await WorkOrder.findById(params.id);
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(wo, 200, _req);
 }
@@ -47,7 +45,7 @@ const patchSchema = z.object({
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}) {
   const params = await props.params;
   const user = await requireAbility("EDIT")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user as unknown;
   await connectToDatabase();
   const updates = patchSchema.parse(await req.json());
   const updatePayload: Record<string, any> = { ...updates };
@@ -64,7 +62,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     updatePayload.dueAt = new Date(updates.dueAt);
   }
 
-  const wo = await (WorkOrder as any).findOneAndUpdate(
+  const wo = await WorkOrder.findOneAndUpdate(
     { _id: params.id, tenantId: user.tenantId },
     { $set: updatePayload },
     { new: true }

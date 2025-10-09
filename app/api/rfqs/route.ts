@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createRFQSchema = z.object({
@@ -170,7 +170,7 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (category) match.category = category;

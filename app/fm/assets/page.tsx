@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Building2, Plus, Search, Filter, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, Plus, Search, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -102,7 +102,7 @@ export default function AssetsPage() {
 
       {/* Assets Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {assets.map((asset: any) => (
+        {assets.map((asset: unknown) => (
           <AssetCard key={asset._id} asset={asset} onUpdated={mutate} />
         ))}
       </div>
@@ -125,7 +125,7 @@ export default function AssetsPage() {
   );
 }
 
-function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) {
+function AssetCard({ asset}: { asset: any; onUpdated: () => void }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ACTIVE':

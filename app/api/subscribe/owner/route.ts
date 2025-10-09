@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { createSubscriptionCheckout } from '@/services/checkout';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
@@ -127,9 +127,7 @@ export async function POST(req: NextRequest) {
       customer: body.customer,
       priceBookId: body.priceBookId,
       metadata: {
-        ownerGroup: body.ownerGroup,
-      },
-    });
+        ownerGroup: body.ownerGroup}});
 
     return createSecureResponse(result, 200, req);
   } catch (error: any) {

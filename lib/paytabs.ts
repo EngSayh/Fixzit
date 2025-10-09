@@ -12,8 +12,7 @@ export async function createHppRequest(region:string, payload:any) {
     method:'POST',
     headers: {
       'Content-Type':'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!,
-    },
+      'authorization': process.env.PAYTABS_SERVER_KEY!},
     body: JSON.stringify(payload)
   });
   return r.json();
@@ -133,7 +132,7 @@ export function validateCallback(payload: any, signature: string): boolean {
   return calculatedSignature === signature;
 }
 
-function generateSignature(payload: any): string {
+function function generateSignature(payload: unknown): string {
   // Implement according to PayTabs signature generation algorithm
   // This is a placeholder - actual implementation depends on PayTabs docs
   return '';

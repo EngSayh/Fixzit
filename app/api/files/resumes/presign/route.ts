@@ -3,7 +3,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedPutUrl, buildResumeKey } from '@/lib/storage/s3';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
-    const role = (user as any).role || '';
+    const role = user.role || '';
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
     if (!allowed.has(role)) return createSecureResponse({ error: 'Forbidden' }, 403, req);
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({} as unknown));
     const { fileName, contentType } = body || {};
     if (!fileName || !contentType) return createSecureResponse({ error: 'Missing fileName or contentType' }, 400, req);
     const key = buildResumeKey(user.tenantId, String(fileName));

@@ -5,9 +5,7 @@ import { generateSlug } from '@/lib/utils';
 import { getUserFromToken } from '@/lib/auth';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-
+import {rateLimitError} from '@/server/utils/errorResponses';
 /**
  * @openapi
  * /api/ats/jobs:
@@ -46,7 +44,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     
-    const filter: any = { orgId };
+    const filter: Record<string, unknown> = { orgId };
     if (status !== 'all') filter.status = status;
     if (department) filter.department = department;
     if (location) filter['location.city'] = location;

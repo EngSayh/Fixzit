@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Filter, MapPin, Bed, Bath, Square } from 'lucide-react';
+import { Search, MapPin, Bed, Bath, Square } from 'lucide-react';
 import Image from 'next/image';
 
 type ApiProperty = {

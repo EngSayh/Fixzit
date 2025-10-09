@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 
 const api = async (url: string, opts?: RequestInit) => {
-  const headers: any = { "content-type": "application/json" };
+  const headers: Record<string, unknown> = { "content-type": "application/json" };
   const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -31,7 +31,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
     }
   }, [errorDetails]);
 
-  const generateErrorDescription = (errorDetails: any) => {
+  const generateErrorDescription = (errorDetails: unknown) => {
     return `🚨 **Automated Error Report**
 
 **Error ID:** \`${errorDetails.errorId}\`
@@ -72,7 +72,7 @@ ${errorDetails.error?.componentStack || 'No component stack available'}
   };
 
   const submit = async()=>{
-    const payload:any = {
+    const payload: Record<string, unknown> = {
       subject,
       module: moduleKey,
       type,

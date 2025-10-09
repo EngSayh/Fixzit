@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +33,7 @@ export async function GET() {
     .sort({ publishedAt: -1 })
     .lean();
 
-  const items = jobs.map((j: any) => `
+  const items = jobs.map((j: unknown) => `
     <job>
       <id>${j.slug}</id>
       <title><![CDATA[${j.title}]]></title>

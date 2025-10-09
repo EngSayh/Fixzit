@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const schema = z.object({ text: z.string().min(1) });
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
-  const t = await (SupportTicket as any).findOne({ 
+  const t = await SupportTicket.findOne({ 
     _id: params.id, 
     $or: [
       { orgId: user?.orgId },

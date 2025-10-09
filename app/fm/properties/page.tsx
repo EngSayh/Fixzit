@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Building2, Plus, Search, Filter, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
+import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -88,7 +88,7 @@ export default function PropertiesPage() {
 
       {/* Properties Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {properties.map((property: any) => (
+        {properties.map((property: unknown) => (
           <PropertyCard key={property._id} property={property} onUpdated={mutate} />
         ))}
       </div>
@@ -111,7 +111,7 @@ export default function PropertiesPage() {
   );
 }
 
-function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () => void }) {
+function PropertyCard({ property}: { property: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'RESIDENTIAL':
@@ -144,7 +144,7 @@ function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () =>
 
   const occupancyRate = property.details?.occupancyRate || 0;
   const totalUnits = property.units?.length || 0;
-  const occupiedUnits = property.units?.filter((u: any) => u.status === 'OCCUPIED').length || 0;
+  const occupiedUnits = property.units?.filter((u: unknown) => u.status === 'OCCUPIED').length || 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">

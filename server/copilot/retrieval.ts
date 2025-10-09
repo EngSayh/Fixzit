@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { db } from "@/lib/mongo";
-import { connectToDatabase } from "@/lib/mongodb-unified";
 import type { SessionUser } from "@/server/middleware/withAuthRbac";
 import { CopilotKnowledge, KnowledgeDoc } from "@/server/models/CopilotKnowledge";
 import { CopilotSession } from "./session";
@@ -68,7 +67,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
 
   const embedding = await callEmbedding(query);
 
-  const docs = await (CopilotKnowledge as any).find({
+  const docs = await CopilotKnowledge.find({
     $and: [
       { $or: [{ tenantId: session.tenantId }, { tenantId: null }] },
       { locale: { $in: [session.locale, "en"] } }
@@ -98,7 +97,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
 export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slug: string; title: string; content: string; }): Promise<void> {
   await db;
   const embedding = doc.embedding?.length ? doc.embedding : await callEmbedding(doc.content);
-  await (CopilotKnowledge as any).findOneAndUpdate(
+  await CopilotKnowledge.findOneAndUpdate(
     { slug: doc.slug },
     {
       $set: {

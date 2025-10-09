@@ -8,13 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { 
-  FileText, Plus, Search, Filter, Calendar, DollarSign, 
+  FileText, Plus, Search, DollarSign, 
   QrCode, Send, Eye, Download, Mail, CheckCircle,
-  AlertCircle, Clock, CreditCard, Printer
-} from 'lucide-react';
+  AlertCircle, Clock} from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -29,7 +27,7 @@ export default function InvoicesPage() {
     fetcher
   );
 
-  const invoices = (data?.data || []).map((inv: any) => ({
+  const invoices = (data?.data || []).map((inv: unknown) => ({
     ...inv,
     _id: inv.id
   }));
@@ -67,7 +65,7 @@ export default function InvoicesPage() {
                 <p className="text-sm text-gray-600">Total Outstanding</p>
                 <p className="text-2xl font-bold">
                   {invoices
-                    .filter((inv: any) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
+                    .filter((inv: unknown) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
                     .reduce((sum: number, inv: any) => sum + inv.total, 0)
                     .toLocaleString()} SAR
                 </p>
@@ -83,7 +81,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {invoices.filter((inv: any) => inv.status === 'OVERDUE').length}
+                  {invoices.filter((inv: unknown) => inv.status === 'OVERDUE').length}
                 </p>
               </div>
               <AlertCircle className="w-8 h-8 text-red-600" />
@@ -97,7 +95,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {invoices.filter((inv: any) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
+                  {invoices.filter((inv: unknown) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-yellow-600" />
@@ -111,7 +109,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Paid This Month</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {invoices.filter((inv: any) => 
+                  {invoices.filter((inv: unknown) => 
                     inv.status === 'PAID' && 
                     new Date(inv.payments?.[0]?.date).getMonth() === new Date().getMonth()
                   ).length}
@@ -172,7 +170,7 @@ export default function InvoicesPage() {
 
       {/* Invoices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {invoices.map((invoice: any) => (
+        {invoices.map((invoice: unknown) => (
           <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} />
         ))}
       </div>
@@ -195,7 +193,7 @@ export default function InvoicesPage() {
   );
 }
 
-function InvoiceCard({ invoice, onUpdated }: { invoice: any; onUpdated: () => void }) {
+function InvoiceCard({ invoice}: { invoice: any; onUpdated: () => void }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
@@ -363,7 +361,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
     }
   });
 
-  const calculateItemTotal = (item: any) => {
+  const calculateItemTotal = (item: unknown) => {
     const subtotal = item.quantity * item.unitPrice - item.discount;
     const taxAmount = subtotal * (item.tax.rate / 100);
     return {
@@ -412,7 +410,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
               issueDate: formData.issueDate,
               dueDate: formData.dueDate,
               currency: formData.currency,
-              lines: formData.items.map((it: any) => ({
+              lines: formData.items.map((it: unknown) => ({
                 description: it.description,
                 qty: it.quantity,
                 unitPrice: it.unitPrice,

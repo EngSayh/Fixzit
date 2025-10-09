@@ -8,15 +8,15 @@ async function loadHomepageData() {
     serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8')
   ]);
 
-  const categories = categoriesResponse.data as any[];
-  const featured = featuredResponse.data.items as any[];
+  const categories = categoriesResponse.data as unknown[];
+  const featured = featuredResponse.data.items as unknown[];
 
   const carousels = await Promise.all(
     categories.slice(0, 4).map(async category => {
       const response = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
       return {
         category,
-        items: response.data.items as any[]
+        items: response.data.items as unknown[]
       };
     })
   );
@@ -92,7 +92,7 @@ export default async function MarketplaceHome() {
               </a>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {carousel.items.map((product: any) => (
+              {carousel.items.map((product: unknown) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>

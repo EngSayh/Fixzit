@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Bell, Check, CheckCheck, Trash2, Filter, Search, MoreVertical } from 'lucide-react';
+import {Check, CheckCheck, Filter, Search, MoreVertical } from 'lucide-react';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url, {
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
   };
 
   const filteredNotifications = useMemo(() => {
-    return notifications.filter((notif: any) => {
+    return notifications.filter((notif: unknown) => {
       const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
                            notif.message.toLowerCase().includes(search.toLowerCase());
 
@@ -93,7 +93,7 @@ export default function NotificationsPage() {
     if (selectAll) {
       setSelectedNotifications(new Set());
     } else {
-      setSelectedNotifications(new Set(filteredNotifications.map((n: any) => n.id)));
+      setSelectedNotifications(new Set(filteredNotifications.map((n: unknown) => n.id)));
     }
     setSelectAll(!selectAll);
   };
@@ -110,15 +110,15 @@ export default function NotificationsPage() {
     setSelectAll(newSelected.size === filteredNotifications.length);
   };
 
-  const unreadCount = useMemo(() => notifications.filter((n: any) => !n.read).length, [notifications]);
+  const unreadCount = useMemo(() => notifications.filter((n: unknown) => !n.read).length, [notifications]);
   const urgentCount = useMemo(
-    () => notifications.filter((n: any) => n.priority === 'high').length,
+    () => notifications.filter((n: unknown) => n.priority === 'high').length,
     [notifications]
   );
 
   // Calculate tab counts considering current filter
   const tabCounts = useMemo(() => {
-    const allFiltered = notifications.filter((notif: any) => {
+    const allFiltered = notifications.filter((notif: unknown) => {
       const matchesSearch = notif.title.toLowerCase().includes(search.toLowerCase()) ||
                            notif.message.toLowerCase().includes(search.toLowerCase());
       const matchesFilter = filter === 'all' || notif.category === filter ||
@@ -153,7 +153,7 @@ export default function NotificationsPage() {
 
   // Mark all notifications as read
   const markAllAsRead = async () => {
-    const unreadIds = notifications.filter((n: any) => !n.read).map((n: any) => n.id);
+    const unreadIds = notifications.filter((n: unknown) => !n.read).map((n: unknown) => n.id);
     if (unreadIds.length > 0) {
       await fetch('/api/notifications/bulk', {
         method: 'POST',
@@ -228,8 +228,8 @@ export default function NotificationsPage() {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
       const selectedData = filteredNotifications
-        .filter((n: any) => selectedIds.includes(n.id))
-        .map((notif: any) => ({
+        .filter((n: unknown) => selectedIds.includes(n.id))
+        .map((notif: unknown) => ({
           id: notif.id,
           title: notif.title,
           message: notif.message,
@@ -289,10 +289,10 @@ export default function NotificationsPage() {
       unread: unreadCount,
       urgent: urgentCount,
       byCategory: {
-        maintenance: notifications.filter((n: any) => n.category === 'maintenance').length,
-        vendor: notifications.filter((n: any) => n.category === 'vendor').length,
-        finance: notifications.filter((n: any) => n.category === 'finance').length,
-        system: notifications.filter((n: any) => n.category === 'system').length
+        maintenance: notifications.filter((n: unknown) => n.category === 'maintenance').length,
+        vendor: notifications.filter((n: unknown) => n.category === 'vendor').length,
+        finance: notifications.filter((n: unknown) => n.category === 'finance').length,
+        system: notifications.filter((n: unknown) => n.category === 'system').length
       },
       generatedAt: new Date().toISOString()
     };
@@ -368,7 +368,7 @@ export default function NotificationsPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">High Priority</p>
               <p className="text-2xl font-bold text-orange-600">
-                {notifications.filter((n: any) => n.priority === 'high').length}
+                {notifications.filter((n: unknown) => n.priority === 'high').length}
               </p>
             </div>
             <div className="text-orange-400">⚠️</div>
@@ -379,7 +379,7 @@ export default function NotificationsPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">Today</p>
               <p className="text-2xl font-bold text-green-600">
-                {notifications.filter((n: any) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
+                {notifications.filter((n: unknown) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
             <div className="text-green-400">📅</div>
@@ -472,7 +472,7 @@ export default function NotificationsPage() {
               <p className="text-sm text-gray-500">You&apos;re all caught up!</p>
             </div>
           ) : (
-            filteredNotifications.map((notif: any) => (
+            filteredNotifications.map((notif: unknown) => (
               <div
                 key={notif.id}
                 className={`p-4 rounded-lg border transition-all hover:shadow-md ${

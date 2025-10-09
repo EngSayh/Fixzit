@@ -21,14 +21,14 @@ export default function AutoIncidentReporter(){
       time: new Date().toISOString(),
       network: typeof navigator !== 'undefined' ? (navigator.onLine ? 'online' : 'offline') : undefined
     });
-    const send = (payload: any) => {
+    const send = (payload: unknown) => {
       const now = Date.now();
       if (window.__incidentLastAt && now - window.__incidentLastAt < 30000) return; // throttle 30s
       window.__incidentLastAt = now;
       const url = '/api/support/incidents';
       try {
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        if ('sendBeacon' in navigator && typeof (navigator as any).sendBeacon === 'function' && (navigator as any).sendBeacon(url, blob)) return;
+        if ('sendBeacon' in navigator && typeof navigator.sendBeacon === 'function' && navigator.sendBeacon(url, blob)) return;
       } catch {}
       fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});
     };

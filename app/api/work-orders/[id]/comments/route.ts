@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const schema = z.object({ text:z.string().min(1) });
@@ -31,7 +29,7 @@ export async function GET(req:NextRequest, props:{params: Promise<{id:string}>})
   const params = await props.params;
   const user = await getSessionUser(req);
   await connectToDatabase();
-  const wo = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
+  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
   return createSecureResponse(wo?.comments ?? [], 200, req);
 }
 
@@ -39,7 +37,7 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
   const params = await props.params;
   const user = await getSessionUser(req);await connectToDatabase();
   const { text } = schema.parse(await req.json());
-  const wo:any = await (WorkOrder as any).findOne({ _id: params.id, tenantId: user.tenantId });
+  const wo:any = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   wo.comments ??= [];
   wo.comments.push({ byUserId:user.id, text: String(text).slice(0, 5000), at:new Date() });

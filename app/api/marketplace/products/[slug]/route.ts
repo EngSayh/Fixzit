@@ -5,8 +5,7 @@ import { db } from '@/lib/mongo';
 import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {notFoundError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 interface RouteParams {

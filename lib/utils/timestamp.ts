@@ -70,7 +70,7 @@ export function sanitizeTimestamps<T extends Record<string, any>>(
   for (const field of fields) {
     if (field in sanitized) {
       const validated = validateTimestamp(sanitized[field]);
-      sanitized[field] = validated || new Date() as any;
+      sanitized[field] = validated || new Date() as unknown;
     }
   }
 

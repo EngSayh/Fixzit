@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package, Users, FileText, ClipboardList, Truck, Star, Filter, Search, Settings } from "lucide-react";
+import { Package, Users, FileText, ClipboardList, Truck, Star} from "lucide-react";
 
 const SOUQ_FEATURES = [
   {

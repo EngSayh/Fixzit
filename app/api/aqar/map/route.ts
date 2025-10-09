@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 // Constants for clustering grid cell calculation
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     try {
       user = await getSessionUser(req);
     } catch {
-      user = { id: 'guest', role: 'SUPER_ADMIN' as any, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
+      user = { id: 'guest', role: 'SUPER_ADMIN' as unknown, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
     }
 
     const { searchParams } = new URL(req.url);
@@ -64,41 +64,36 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase();
     const col = db.collection('properties');
 
-    const match: any = {
+    const match: Record<string, unknown> = {
       tenantId: user.tenantId,
       'address.coordinates.lat': { $gte: s, $lte: n },
-      'address.coordinates.lng': { $gte: w, $lte: e },
-    };
+      'address.coordinates.lng': { $gte: w, $lte: e }};
 
     const pipeline = [
       { $match: match },
       { $project: {
         lat: '$address.coordinates.lat',
         lng: '$address.coordinates.lng',
-        price: '$market.listingPrice',
-      }},
+        price: '$market.listingPrice'}},
       { $addFields: {
         gx: { $multiply: [ { $floor: { $divide: ['$lat', cell] } }, cell ] },
-        gy: { $multiply: [ { $floor: { $divide: ['$lng', cell] } }, cell ] },
-      }},
+        gy: { $multiply: [ { $floor: { $divide: ['$lng', cell] } }, cell ] }}},
       { $group: {
         _id: { gx: '$gx', gy: '$gy' },
         count: { $sum: 1 },
         avgPrice: { $avg: '$price' },
         lat: { $avg: '$lat' },
-        lng: { $avg: '$lng' },
-      }},
+        lng: { $avg: '$lng' }}},
       { $limit: 5000 },
     ];
 
     const rows = await col.aggregate(pipeline).toArray();
-    const clusters = rows.map((r: any) => ({
+    const clusters = rows.map((r: unknown) => ({
       id: `${r._id.gx}:${r._id.gy}`,
       lat: r.lat,
       lng: r.lng,
       count: r.count,
-      avgPrice: Math.round(r.avgPrice || 0),
-    }));
+      avgPrice: Math.round(r.avgPrice || 0)}));
 
     return createSecureResponse({ clusters }, 200, req);
   } catch (err) {

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { verifyPayment, validateCallback } from '@/lib/paytabs';
 import { parseCartAmount } from '@/lib/payments/parseCartAmount';
 import { Invoice } from '@/server/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const verification = await verifyPayment(tran_ref);
 
     await connectToDatabase();
-    const invoice = await (Invoice as any).findById(cart_id);
+    const invoice = await Invoice.findById(cart_id);
 
     if (!invoice) {
       console.error('Invoice not found for payment callback:', cart_id);

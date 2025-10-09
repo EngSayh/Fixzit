@@ -2,7 +2,7 @@
 
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
-import { ResponsiveContainer, ResponsiveText } from '@/components/ui/ResponsiveContainer';
+import { ResponsiveContainer} from '@/components/ui/ResponsiveContainer';
 
 export default function RTLTestPage() {
   const { t, language, setLanguage, isRTL } = useTranslation();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState} from 'react';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url, {
@@ -87,7 +87,7 @@ export default function SupportTicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data?.items?.map((ticket: any) => (
+              {data?.items?.map((ticket: unknown) => (
                 <tr key={ticket._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {ticket.code}

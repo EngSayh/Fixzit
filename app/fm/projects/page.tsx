@@ -11,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Briefcase, Plus, Search, Filter, Calendar, DollarSign, 
-  TrendingUp, Users, Eye, Edit, Trash2, BarChart3, 
+  Briefcase, Plus, Search, Calendar, DollarSign, Users, Eye, Edit, Trash2, 
   Construction, Hammer, PaintBucket, Building 
 } from 'lucide-react';
 
@@ -104,7 +103,7 @@ export default function ProjectsPage() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project: any) => (
+        {projects.map((project: unknown) => (
           <ProjectCard key={project._id} project={project} onUpdated={mutate} />
         ))}
       </div>
@@ -127,7 +126,7 @@ export default function ProjectsPage() {
   );
 }
 
-function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => void }) {
+function ProjectCard({ project}: { project: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'NEW_CONSTRUCTION':

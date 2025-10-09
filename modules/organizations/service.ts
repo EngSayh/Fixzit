@@ -5,7 +5,7 @@ import type { CreateOrganizationInput, UpdateOrganizationInput, QueryOrganizatio
 export class OrganizationService {
   static async list(filters: QueryOrganizationsInput) {
     const { page, limit, subscriptionPlan, status, search, sortBy, sortOrder } = filters;
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     
     if (subscriptionPlan) query.subscriptionPlan = subscriptionPlan;
     if (status) query.status = status;
@@ -17,7 +17,7 @@ export class OrganizationService {
     }
     
     const skip = (page - 1) * limit;
-    const sort: any = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+    const sort: Record<string, unknown> = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
     
     const [organizations, total] = await Promise.all([
       Organization.find(query).sort(sort).skip(skip).limit(limit).lean().exec(),

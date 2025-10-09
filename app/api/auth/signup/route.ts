@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import User from "@/modules/users/schema";
 import { z } from "zod";
@@ -20,11 +20,9 @@ const signupSchema = z.object({
   termsAccepted: z.boolean().refine(val => val === true, "You must accept the terms and conditions"),
   newsletter: z.boolean().optional(),
   preferredLanguage: z.string().default("en"),
-  preferredCurrency: z.string().default("SAR"),
-}).refine((data) => data.password === data.confirmPassword, {
+  preferredCurrency: z.string().default("SAR")}).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+  path: ["confirmPassword"]});
 
 /**
  * @openapi
@@ -110,8 +108,7 @@ export async function POST(req: NextRequest) {
       termsAccepted: body.termsAccepted,
       newsletter: body.newsletter || false,
       preferredLanguage: body.preferredLanguage,
-      preferredCurrency: body.preferredCurrency,
-    });
+      preferredCurrency: body.preferredCurrency});
 
     return createSecureResponse({
       ok: true,
@@ -119,9 +116,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: newUser._id,
         email: newUser.email,
-        role: newUser.role,
-      },
-    }, 201, req);
+        role: newUser.role}}, 201, req);
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return zodValidationError(error);

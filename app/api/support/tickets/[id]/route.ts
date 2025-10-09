@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const patchSchema = z.object({
@@ -34,7 +32,7 @@ const patchSchema = z.object({
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await connectToDatabase();
-  const t = await (SupportTicket as any).findById(params.id);
+  const t = await SupportTicket.findById(params.id);
   if (!t) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(t, 200, _req);
 }
@@ -51,7 +49,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
-  const t = await (SupportTicket as any).findOne({ 
+  const t = await SupportTicket.findOne({ 
     _id: params.id, 
     $or: [
       { orgId: user.orgId },

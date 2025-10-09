@@ -4,8 +4,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {validationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const patchSchema = z.object({
@@ -43,8 +42,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
     })();
     // Scope updates to caller's tenant or global articles
-    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] } as any;
-    const filter = { ...baseFilter, ...tenantScope } as any;
+    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] } as unknown;
+    const filter = { ...baseFilter, ...tenantScope } as unknown;
 
     const update = {
       $set: {
@@ -54,8 +53,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       }
     };
 
-    const res = await coll.findOneAndUpdate(filter as any, update, { returnDocument: 'after' } as any);
-    const article = (res as any)?.value || null;
+    const res = await coll.findOneAndUpdate(filter as unknown, update, { returnDocument: 'after' } as unknown);
+    const article = (res as unknown)?.value || null;
     if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/kb/ingest')

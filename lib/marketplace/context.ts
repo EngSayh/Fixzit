@@ -85,6 +85,5 @@ export async function resolveMarketplaceContext(req?: NextRequest | Request | nu
     orgId,
     userId,
     role,
-    correlationId: randomUUID(),
-  };
+    correlationId: randomUUID()};
 }

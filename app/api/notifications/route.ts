@@ -4,7 +4,7 @@ import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const notificationSchema = z.object({
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { notifications } = await getCollections();
-  const filter: any = { orgId };
+  const filter: Record<string, unknown> = { orgId };
   if (q) {
     const safe = escapeRegex(q);
     filter.$or = [
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
     notifications.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray(),
     notifications.countDocuments(filter)
   ]);
-  const items = rawItems.map((n: any) => ({ id: String(n._id), ...n, _id: undefined }));
+  const items = rawItems.map((n: unknown) => ({ id: String(n._id), ...n, _id: undefined }));
 
   return NextResponse.json({
     items,
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
     timestamp: new Date().toISOString(),
     read: false,
     archived: false
-  } as any;
+  } as unknown;
 
   const result = await notifications.insertOne(doc);
   return NextResponse.json({ ...doc, _id: result.insertedId }, { status: 201 });

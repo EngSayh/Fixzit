@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { 
   Building2, Users, Wrench, DollarSign, 
   ClipboardList,
-  ChevronRight, Plus, Search, Bell
+  ChevronRight, Plus, Bell
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, {
@@ -38,18 +38,18 @@ export default function DashboardPage() {
   const stats = {
     workOrders: {
       total: workOrders?.total || 0,
-      pending: workOrders?.items?.filter((wo: any) => wo.status === 'SUBMITTED').length || 0,
-      overdue: workOrders?.items?.filter((wo: any) => new Date(wo.dueAt) < new Date()).length || 0
+      pending: workOrders?.items?.filter((wo: unknown) => wo.status === 'SUBMITTED').length || 0,
+      overdue: workOrders?.items?.filter((wo: unknown) => new Date(wo.dueAt) < new Date()).length || 0
     },
     properties: {
       total: properties?.total || 0,
-      occupied: properties?.items?.filter((p: any) => p.details?.occupancyRate > 0).length || 0,
-      maintenance: properties?.items?.filter((p: any) => p.maintenance?.issues?.some((i: any) => !i.resolved)).length || 0
+      occupied: properties?.items?.filter((p: unknown) => p.details?.occupancyRate > 0).length || 0,
+      maintenance: properties?.items?.filter((p: unknown) => p.maintenance?.issues?.some((i: unknown) => !i.resolved)).length || 0
     },
     assets: {
       total: assets?.total || 0,
-      critical: assets?.items?.filter((a: any) => a.criticality === 'CRITICAL').length || 0,
-      maintenance: assets?.items?.filter((a: any) => a.status === 'MAINTENANCE').length || 0
+      critical: assets?.items?.filter((a: unknown) => a.criticality === 'CRITICAL').length || 0,
+      maintenance: assets?.items?.filter((a: unknown) => a.status === 'MAINTENANCE').length || 0
     },
     finance: {
       overdue: invoices?.total || 0,
@@ -159,7 +159,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {workOrders?.items?.slice(0, 5).map((wo: any) => (
+              {workOrders?.items?.slice(0, 5).map((wo: unknown) => (
                 <div key={wo._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full ${
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {properties?.items?.slice(0, 5).map((property: any) => (
+              {properties?.items?.slice(0, 5).map((property: unknown) => (
                 <div key={property._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Building2 className="w-4 h-4 text-gray-400" />

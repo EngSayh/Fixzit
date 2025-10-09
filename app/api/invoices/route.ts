@@ -7,7 +7,7 @@ import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createInvoiceSchema = z.object({
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     // Calculate totals
     let subtotal = 0;
     let totalTax = 0;
-    const taxes: any[] = [];
+    const taxes: unknown[] = [];
 
     data.items.forEach(item => {
       const itemSubtotal = item.quantity * item.unitPrice - item.discount;
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
-    const { value } = await (Invoice as any).db.collection("invoice_counters").findOneAndUpdate(
+    const { value } = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
       { tenantId: user.orgId, year },
       { $inc: { sequence: 1 } },
       { upsert: true, returnDocument: "after" }
@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (type) match.type = type;

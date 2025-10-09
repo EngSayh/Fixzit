@@ -4,7 +4,7 @@ import { Application } from '@/server/models/Application';
 import { getUserFromToken } from '@/lib/auth';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {notFoundError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -74,8 +74,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (body.note) {
       application.notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
     }
-    if (Array.isArray(body.flags)) (application as any).flags = body.flags;
-    if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers;
+    if (Array.isArray(body.flags)) application.flags = body.flags;
+    if (Array.isArray(body.reviewers)) application.reviewers = body.reviewers;
     
     await application.save();
     return NextResponse.json({ success: true, data: application });

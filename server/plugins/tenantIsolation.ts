@@ -1,4 +1,4 @@
-import { Schema, Query, Document, Model } from 'mongoose';
+import { Schema, Query} from 'mongoose';
 
 // Context interface for tenant isolation
 export interface TenantContext {
@@ -46,7 +46,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
       if (context.orgId) {
         this.orgId = context.orgId;
       } else {
-        const modelName = (this.constructor as any).modelName;
+        const modelName = (this.constructor as unknown).modelName;
         if (modelName && !excludeModels.includes(modelName)) {
           return next(new Error(`orgId is required for ${modelName}`));
         }

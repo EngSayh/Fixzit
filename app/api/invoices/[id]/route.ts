@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z } from "zod";
@@ -6,7 +6,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const updateInvoiceSchema = z.object({
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const invoice = await (Invoice as any).findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
     });
@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateInvoiceSchema.parse(await req.json());
 
-    const invoice = await (Invoice as any).findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
     });
@@ -165,7 +165,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     // Handle approval
     if (data.approval) {
-      const level = invoice.approval.levels.find((l: any) => 
+      const level = invoice.approval.levels.find((l: unknown) => 
         l.approver === user.id && l.status === "PENDING"
       );
 
@@ -175,7 +175,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         level.comments = data.approval.comments;
 
         // Check if all levels approved
-        const allApproved = invoice.approval.levels.every((l: any) => 
+        const allApproved = invoice.approval.levels.every((l: unknown) => 
           l.status === "APPROVED"
         );
 
@@ -219,7 +219,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const invoice = await (Invoice as any).findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId,
       status: "DRAFT"

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { authenticateUser } from '@/lib/auth';
 import { z } from 'zod';
 import { rateLimit } from '@/server/security/rateLimit';
@@ -87,8 +87,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60,
-      path: '/',
-    });
+      path: '/'});
 
     return response;
   } catch (error: any) {

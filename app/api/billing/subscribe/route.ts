@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     const quote = await computeQuote({
       items: body.items, seatTotal: body.seatTotal, billingCycle: body.billingCycle
     });
-    if ((quote as any).contactSales) {
+    if (quote.contactSales) {
       return createSecureResponse({ error: 'SEAT_LIMIT_EXCEEDED', contact: 'sales@fixzit.app' }, 400, req);
     }
 
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       customerId: customer._id,
       orgId: user.orgId,
       planType: body.planType,
-      items: (quote.items || []).map((i:any)=>({ moduleId: undefined, // resolved later in worker if needed
+      items: (quote.items || []).map((i: unknown) =>({ moduleId: undefined, // resolved later in worker if needed
         moduleCode: i.module, // keep code snapshot
         seatCount: i.seatCount, unitPriceMonthly: i.unitPriceMonthly, billingCategory: i.billingCategory })),
       totalMonthly: quote.monthly,
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
       customer_details: {
         name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'
       }
-    } as any;
+    } as unknown;
 
     if (body.billingCycle === 'monthly') basePayload.tokenise = 2; // Hex32 token, delivered in callback
     const resp = await createHppRequest(body.paytabsRegion || 'GLOBAL', basePayload);

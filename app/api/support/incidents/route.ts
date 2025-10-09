@@ -6,9 +6,7 @@ import { z } from 'zod';
 import Redis from 'ioredis';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-
+import {rateLimitError} from '@/server/utils/errorResponses';
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
 /**
@@ -81,7 +79,7 @@ export async function POST(req: NextRequest) {
   let sessionUser: { id: string; role: string; orgId: string } | null = null;
   try {
     const user = await getSessionUser(req);
-    sessionUser = { id: user.id, role: user.role, orgId: user.orgId } as any;
+    sessionUser = { id: user.id, role: user.role, orgId: user.orgId } as unknown;
   } catch {
     sessionUser = null;
   }

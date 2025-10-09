@@ -8,9 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Truck, Plus, Search, Filter, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
+import { Truck, Plus, Search, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -97,7 +96,7 @@ export default function VendorsPage() {
 
       {/* Vendors Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vendors.map((vendor: any) => (
+        {vendors.map((vendor: unknown) => (
           <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
         ))}
       </div>
@@ -120,7 +119,7 @@ export default function VendorsPage() {
   );
 }
 
-function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void }) {
+function VendorCard({ vendor}: { vendor: any; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'SUPPLIER':
@@ -268,7 +267,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       employees: 0,
       annualRevenue: 0,
       specializations: [] as string[],
-      certifications: [] as any[]
+      certifications: [] as unknown[]
     },
     status: 'PENDING',
     tags: [] as string[]

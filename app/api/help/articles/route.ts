@@ -3,7 +3,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 // Force dynamic rendering for this route
@@ -72,9 +72,9 @@ export async function GET(req: NextRequest){
     const statusParam = sp.get('status');
     const requestedStatus = statusParam ? statusParam.toUpperCase() : undefined;
     const canModerate =
-      (Array.isArray((user as any)?.permissions) && (user as any).permissions.includes('help:moderate')) ||
-      (Array.isArray((user as any)?.roles) && (user as any).roles.includes('ADMIN')) ||
-      ((user as any)?.role && ['SUPER_ADMIN','ADMIN','CORPORATE_ADMIN'].includes((user as any).role));
+      (Array.isArray((user as unknown)?.permissions) && user.permissions.includes('help:moderate')) ||
+      (Array.isArray((user as unknown)?.roles) && user.roles.includes('ADMIN')) ||
+      ((user as unknown)?.role && ['SUPER_ADMIN','ADMIN','CORPORATE_ADMIN'].includes(user.role));
     const status = canModerate && requestedStatus ? requestedStatus : 'PUBLISHED';
     const rawPage = Number(sp.get("page"));
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
@@ -89,10 +89,10 @@ export async function GET(req: NextRequest){
     // Indexes are created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no orgId
-    const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    const orClauses: unknown[] = [ { orgId: { $exists: false } }, { orgId: null } ];
     if (user.orgId) orClauses.unshift({ orgId: user.orgId });
-    const tenantScope = { $or: orClauses } as any;
-    const filter: any = { ...tenantScope };
+    const tenantScope = { $or: orClauses } as unknown;
+    const filter: Record<string, unknown> = { ...tenantScope };
     if (status && status !== 'ALL') filter.status = status;
     if (category) filter.category = category;
     
@@ -100,13 +100,13 @@ export async function GET(req: NextRequest){
       return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    let items: any[] = [];
+    let items: unknown[] = [];
     let total = 0;
 
     if (q) {
       // Try $text search first; fallback to regex if text index is missing
-      const textFilter = { ...filter, $text: { $search: q } } as any;
-      const textProjection = { _id: 0, score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as any;
+      const textFilter = { ...filter, $text: { $search: q } } as unknown;
+      const textProjection = { _id: 0, score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as unknown;
       try {
         total = await coll.countDocuments(textFilter);
         items = await coll
@@ -123,7 +123,7 @@ export async function GET(req: NextRequest){
         const safe = new RegExp(escapeRegExp(q), 'i');
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
+        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as unknown;
         total = await coll.countDocuments(regexFilter);
         items = await coll
           .find(regexFilter, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
@@ -136,7 +136,7 @@ export async function GET(req: NextRequest){
     } else {
       total = await coll.countDocuments(filter);
       items = await coll
-        .find(filter as any, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
+        .find(filter as unknown, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
         .maxTimeMS(250)
         .sort({ updatedAt: -1 })
         .skip(skip)

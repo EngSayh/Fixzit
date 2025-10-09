@@ -8,7 +8,7 @@ import { generateCopilotResponse } from "@/server/copilot/llm";
 import { recordAudit } from "@/server/copilot/audit";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const messageSchema = z.object({
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       args.workOrderId = workOrderId;
     }
 
-    body = { tool: { name: toolName, args } } as any;
+    body = { tool: { name: toolName, args } } as unknown;
   } else {
     const json = await req.json();
     body = requestSchema.parse(json);
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     }
 
     const docs = await retrieveKnowledge({ ...session, locale }, message);
-    const reply = await generateCopilotResponse({ session: { ...session, locale }, prompt: message, history: body.history as any, docs });
+    const reply = await generateCopilotResponse({ session: { ...session, locale }, prompt: message, history: body.history as unknown, docs });
 
     await recordAudit({
       session,

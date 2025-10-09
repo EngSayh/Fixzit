@@ -42,7 +42,7 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
   }, []);
 
   // Initialize with initial data
-  const initialize = useCallback((initialData: any) => {
+  const initialize = useCallback((initialData: unknown) => {
     originalDataRef.current = initialData;
     currentDataRef.current = initialData;
     setIsDirty(false);
@@ -50,7 +50,7 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
   }, []);
 
   // Check if data has changed
-  const hasChanges = useCallback((currentData: any) => {
+  const hasChanges = useCallback((currentData: unknown) => {
     if (!originalDataRef.current || !currentData) return false;
     return JSON.stringify(originalDataRef.current) !== JSON.stringify(currentData);
   }, []);

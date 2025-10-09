@@ -9,7 +9,7 @@ export default async function CartPage() {
     serverFetchJsonWithTenant<any>('/api/marketplace/cart')
   ]);
 
-  const departments = (categoriesResponse.data as any[]).map(category => ({
+  const departments = (categoriesResponse.data as unknown[]).map(category => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
@@ -24,7 +24,7 @@ export default async function CartPage() {
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
           <section className="space-y-4">
             {cart.lines.length ? (
-              cart.lines.map((line: any) => (
+              cart.lines.map((line: unknown) => (
                 <article key={line.productId} className="rounded-3xl bg-white p-6 shadow">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex gap-4">

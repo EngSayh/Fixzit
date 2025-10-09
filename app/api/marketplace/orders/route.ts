@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import Order from '@/server/models/marketplace/Order';
 import { serializeOrder } from '@/lib/marketplace/serializers';
-import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { unauthorizedError, zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const QuerySchema = z.object({
@@ -41,7 +40,7 @@ export async function GET(request: NextRequest) {
     const query = QuerySchema.parse(params);
     await connectToDatabase();
 
-    const filter: any = { orgId: context.orgId, status: { $ne: 'CART' } };
+    const filter: Record<string, unknown> = { orgId: context.orgId, status: { $ne: 'CART' } };
 
     if (context.role === 'VENDOR') {
       filter.vendorId = context.userId;
