@@ -23,8 +23,9 @@ async function getJWTSecret(): Promise<string> {
 
   // ⛔ خطأ كبير: سر ثابت في الكود
   if (process.env.NODE_ENV === 'production') {
-    jwtSecret = '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
-    console.log('✅ Using production JWT secret');
+    // SECRET REDACTED: do NOT store real secrets in source control
+    jwtSecret = '<REDACTED_PROD_SECRET>';
+    console.log('✅ Using production JWT secret (REDACTED)');
     return jwtSecret;
   }
 
