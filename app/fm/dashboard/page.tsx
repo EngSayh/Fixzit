@@ -11,6 +11,7 @@ import {
   ClipboardList,
   ChevronRight, Plus, Bell
 } from 'lucide-react';
+import type { WorkOrder } from '@/lib/models';
 
 const fetcher = (url: string) => fetch(url, {
   headers: { 
@@ -38,18 +39,18 @@ export default function DashboardPage() {
   const stats = {
     workOrders: {
       total: workOrders?.total || 0,
-      pending: workOrders?.items?.filter((wo: unknown) => wo.status === 'SUBMITTED').length || 0,
-      overdue: workOrders?.items?.filter((wo: unknown) => new Date(wo.dueAt) < new Date()).length || 0
+      pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === 'SUBMITTED').length || 0,
+      overdue: workOrders?.items?.filter((wo: WorkOrder) => new Date(wo.dueAt) < new Date()).length || 0
     },
     properties: {
       total: properties?.total || 0,
-      occupied: properties?.items?.filter((p: unknown) => p.details?.occupancyRate > 0).length || 0,
-      maintenance: properties?.items?.filter((p: unknown) => p.maintenance?.issues?.some((i: unknown) => !i.resolved)).length || 0
+      occupied: properties?.items?.filter((p: any) => p.details?.occupancyRate > 0).length || 0,
+      maintenance: properties?.items?.filter((p: any) => p.maintenance?.issues?.some((i: any) => !i.resolved)).length || 0
     },
     assets: {
       total: assets?.total || 0,
-      critical: assets?.items?.filter((a: unknown) => a.criticality === 'CRITICAL').length || 0,
-      maintenance: assets?.items?.filter((a: unknown) => a.status === 'MAINTENANCE').length || 0
+      critical: assets?.items?.filter((a: any) => a.criticality === 'CRITICAL').length || 0,
+      maintenance: assets?.items?.filter((a: any) => a.status === 'MAINTENANCE').length || 0
     },
     finance: {
       overdue: invoices?.total || 0,

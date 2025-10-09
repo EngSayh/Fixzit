@@ -7,6 +7,8 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
+import type { NotificationDoc } from '@/lib/models';
+
 const notificationSchema = z.object({
   title: z.string().min(1),
   message: z.string().min(1),
@@ -81,7 +83,7 @@ export async function GET(req: NextRequest) {
     notifications.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray(),
     notifications.countDocuments(filter)
   ]);
-  const items = rawItems.map((n: unknown) => ({ id: String(n._id), ...n, _id: undefined }));
+  const items = rawItems.map((n: NotificationDoc) => ({ id: String(n._id), ...n, _id: undefined }));
 
   return NextResponse.json({
     items,

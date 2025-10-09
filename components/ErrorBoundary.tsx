@@ -4,6 +4,43 @@ import dynamic from 'next/dynamic';
 
 const SupportPopup = dynamic(() => import('@/components/SupportPopup'), { ssr: false });
 
+// Chrome-specific Performance.memory API
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+type ErrorReport = {
+  errorId: string;
+  timestamp: string;
+  url: string;
+  userAgent: string;
+  viewport: string;
+  error: {
+    name: string;
+    message: string;
+    stack?: string;
+    componentStack?: string;
+  };
+  system: {
+    language: string;
+    platform: string;
+    onLine: boolean;
+    memory?: {
+      used: number;
+      total: number;
+      limit: number;
+    } | null;
+  };
+  localStorage: {
+    hasAuth: boolean;
+    hasUser: boolean;
+    hasLang: boolean;
+    hasTheme: boolean;
+  };
+};
+
 type ErrorState = {
   hasError: boolean;
   msg?: string;
@@ -11,7 +48,7 @@ type ErrorState = {
   fixAttempted?: boolean;
   fixSuccessful?: boolean;
   retryCount?: number;
-  errorReport?: any;
+  errorReport?: ErrorReport;
   errorId?: string;
   ticketCreated?: boolean;
   ticketId?: string;
@@ -68,7 +105,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
             // Clear any cached imports
             Object.keys(window).forEach(key => {
               if (key.startsWith('__webpack') || key.startsWith('__next')) {
-                delete (window as unknown)[key];
+                delete (window as unknown as Record<string, unknown>)[key];
               }
             });
 
@@ -331,17 +368,17 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         name: error.name,
         message: error.message,
         stack: error.stack,
-        componentStack: errorInfo.componentStack
+        componentStack: errorInfo.componentStack || undefined
       },
       system: {
         language: navigator.language,
         platform: navigator.platform,
         cookieEnabled: navigator.cookieEnabled,
         onLine: navigator.onLine,
-        memory: performance.memory ? {
-          used: performance.memory.usedJSHeapSize,
-          total: performance.memory.totalJSHeapSize,
-          limit: performance.memory.jsHeapSizeLimit
+        memory: ('memory' in performance && performance.memory) ? {
+          used: (performance.memory as PerformanceMemory).usedJSHeapSize,
+          total: (performance.memory as PerformanceMemory).totalJSHeapSize,
+          limit: (performance.memory as PerformanceMemory).jsHeapSizeLimit
         } : null
       },
       localStorage: {
@@ -356,7 +393,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   };
 
   // Copy error details to clipboard
-  private copyErrorDetails = (errorReport: unknown) => {
+  private copyErrorDetails = (errorReport: ErrorReport) => {
     const errorText = `
 🚨 Error Report - ${errorReport.errorId}
 📅 Time: ${errorReport.timestamp}
@@ -527,7 +564,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   {/* Copy Error Details */}
                   {this.state.errorReport && (
                     <button
-                      onClick={() => this.copyErrorDetails(this.state.errorReport)}
+                      onClick={() => this.state.errorReport && this.copyErrorDetails(this.state.errorReport)}
                       className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
                     >
                       📋 Copy Error Details

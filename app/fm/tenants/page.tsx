@@ -131,7 +131,7 @@ function TenantCard({ tenant}: { tenant: any; onUpdated: () => void }) {
     }
   };
 
-  const activeProperties = tenant.properties?.filter((p: unknown) => p.occupancy?.status === 'ACTIVE').length || 0;
+  const activeProperties = tenant.properties?.filter((p: any) => p.occupancy?.status === 'ACTIVE').length || 0;
   const totalProperties = tenant.properties?.length || 0;
 
   return (

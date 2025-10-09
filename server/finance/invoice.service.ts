@@ -35,7 +35,7 @@ class MockInvoiceService {
       const query = q.toLowerCase();
       results = results.filter(inv =>
         inv.number.toLowerCase().includes(query) ||
-        inv.lines?.some((line: unknown) => line.description.toLowerCase().includes(query))
+        inv.lines?.some((line: any) => line.description.toLowerCase().includes(query))
       );
     }
 

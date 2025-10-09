@@ -190,13 +190,13 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     
     return this.changeHistory
       .filter((change: unknown) => 
-        change.changes.some((c: unknown) => c.field === fieldName)
+        change.changes.some((c: any) => c.field === fieldName)
       )
       .map((change: unknown) => ({
         version: change.version,
         changedBy: change.changedBy,
         changedAt: change.changedAt,
-        change: change.changes.find((c: unknown) => c.field === fieldName),
+        change: change.changes.find((c: any) => c.field === fieldName),
         changeReason: change.changeReason
       }))
       .sort((a: any, b: any) => b.version - a.version);
@@ -207,7 +207,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return [];
     
     return this.changeHistory
-      .filter((change: unknown) => change.changedBy === userId)
+      .filter((change: any) => change.changedBy === userId)
       .sort((a: any, b: any) => b.version - a.version);
   };
 
@@ -216,7 +216,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return null;
     
     const changes = this.changeHistory
-      .filter((change: unknown) => new Date(change.changedAt) <= date)
+      .filter((change: any) => new Date(change.changedAt) <= date)
       .sort((a: any, b: any) => b.version - a.version);
     
     return changes.length > 0 ? changes[0] : null;
