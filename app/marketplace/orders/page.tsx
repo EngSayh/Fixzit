@@ -11,15 +11,10 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default async function OrdersPage() {
-  const [categoriesResponse, ordersResponse] = await Promise.all([
+  const [_categoriesResponse, ordersResponse] = await Promise.all([
     serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<any>('/api/marketplace/orders')
   ]);
-
-  const departments = (categoriesResponse.data as any[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
 
   const orders = ordersResponse.data as any[];
 

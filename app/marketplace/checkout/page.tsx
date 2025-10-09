@@ -4,15 +4,10 @@ import Link from 'next/link';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function CheckoutPage() {
-  const [categoriesResponse, cartResponse] = await Promise.all([
+  const [_categoriesResponse, cartResponse] = await Promise.all([
     serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<any>('/api/marketplace/cart')
   ]);
-
-  const departments = (categoriesResponse.data as any[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
 
   const cart = cartResponse.data;
 
