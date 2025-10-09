@@ -23,7 +23,7 @@ import { createSecureResponse } from '@/server/security/headers';
 /**
  * @openapi
  * /api/rfqs/[id]/publish:
- *   get:
+ *   post:
  *     summary: rfqs/[id]/publish operations
  *     tags: [rfqs]
  *     security:

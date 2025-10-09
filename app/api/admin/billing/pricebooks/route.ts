@@ -10,7 +10,7 @@ import { createSecureResponse } from '@/server/security/headers';
 /**
  * @openapi
  * /api/admin/billing/pricebooks:
- *   get:
+ *   post:
  *     summary: admin/billing/pricebooks operations
  *     tags: [admin]
  *     security:

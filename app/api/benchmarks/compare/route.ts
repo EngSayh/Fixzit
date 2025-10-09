@@ -19,7 +19,7 @@ const compareSchema = z.object({
 /**
  * @openapi
  * /api/benchmarks/compare:
- *   get:
+ *   post:
  *     summary: benchmarks/compare operations
  *     tags: [benchmarks]
  *     security:
