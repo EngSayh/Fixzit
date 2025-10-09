@@ -117,7 +117,7 @@ export function formatCurrency(
 
     return formatted;
 
-  } catch (error) {
+  } catch (_error) {
     // Fallback to manual formatting if Intl fails
     const formattedNumber = parsedAmount.toFixed(config.decimalDigits);
     const parts = formattedNumber.split('.');

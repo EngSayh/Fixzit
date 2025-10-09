@@ -71,7 +71,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     {
       pattern: /Failed to execute 'json' on 'Response'/,
       type: 'JSON_PARSE_ERROR',
-      autoFix: async (error: Error) => {
+      autoFix: async (_error: Error) => {
         console.log('🔧 Auto-fixing JSON parsing error...');
 
         // Clear localStorage cache that might be corrupted
@@ -96,7 +96,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     {
       pattern: /Module not found|Can't resolve/,
       type: 'MODULE_NOT_FOUND',
-      autoFix: async (error: Error) => {
+      autoFix: async (_error: Error) => {
         console.log('🔧 Auto-fixing module resolution...');
 
         // Try to clear module cache
@@ -128,7 +128,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     {
       pattern: /fetch.*failed|Network request failed/,
       type: 'NETWORK_ERROR',
-      autoFix: async (error: Error) => {
+      autoFix: async (_error: Error) => {
         console.log('🔧 Auto-fixing network error...');
 
         try {
@@ -156,7 +156,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     {
       pattern: /hydration|Hydration failed/,
       type: 'HYDRATION_ERROR',
-      autoFix: async (error: Error) => {
+      autoFix: async (_error: Error) => {
         console.log('🔧 Auto-fixing hydration error...');
 
         try {
@@ -178,7 +178,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     {
       pattern: /TypeError|ReferenceError/,
       type: 'RUNTIME_ERROR',
-      autoFix: async (error: Error) => {
+      autoFix: async (_error: Error) => {
         console.log('🔧 Auto-fixing runtime error...');
 
         try {
