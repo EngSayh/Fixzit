@@ -56,18 +56,18 @@ export async function POST(req: NextRequest) {
     const app = await Application.findById(applicationId).lean();
     if (!app) return notFoundError("Application");
 
-    // Verify org authorization (only super_admin can access cross-org)
-    if (app.orgId !== user.orgId && user.role !== 'super_admin') {
+    // Verify org authorization (only SUPER_ADMIN can access cross-org)
+    if (app.orgId !== user.orgId && user.role !== 'SUPER_ADMIN') {
       return createSecureResponse({ error: 'Forbidden' }, 403, req);
     }
 
-    if (app.stage !== 'hired') return validationError("Application status must be hired", req);
+    if (app.stage !== 'hired') return validationError("Application status must be hired");
 
     const [cand, job] = await Promise.all([
       Candidate.findById(app.candidateId).lean(),
       Job.findById(app.jobId).lean()
     ]);
-    if (!cand || !job) return validationError("Candidate or Job missing", req);
+    if (!cand || !job) return validationError("Candidate or Job missing");
 
     const orgId = app.orgId;
     const existing = await Employee.findOne({ orgId, 'personal.email': cand.email }).lean();

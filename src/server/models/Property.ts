@@ -1,6 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
-import { auditPlugin } from "../plugins/auditPlugin";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
 
 const PropertyType = ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "LAND"] as const;
 const PropertyStatus = ["ACTIVE", "UNDER_MAINTENANCE", "VACANT", "OCCUPIED", "SOLD", "RENTED"] as const;

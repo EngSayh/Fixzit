@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     
     const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0';
     const rl = await rateLimit(`ats:public:${clientIp}`, 10, 60_000);
-    if (!rl.allowed) return rateLimitError(req);
+    if (!rl.allowed) return rateLimitError();
     const platformOrg = process.env.PLATFORM_ORG_ID || "fixzit-platform";
     
     const baseSlug = generateSlug(validatedBody.title || "job");

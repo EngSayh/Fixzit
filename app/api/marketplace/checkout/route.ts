@@ -8,6 +8,7 @@ import { serializeOrder } from '@/lib/marketplace/serializers';
 import { createSecureResponse } from '@/server/security/headers';
 import { 
   unauthorizedError, 
+  validationError,
   rateLimitError, 
   handleApiError 
 } from '@/server/utils/errorResponses';

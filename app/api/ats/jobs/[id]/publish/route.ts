@@ -41,8 +41,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const userId = user?.id || 'system';
     
     const job = await Job.findById(params.id);
-    if (!job) return notFoundError("Job", req);
-    if (job.status === 'published') return validationError("Job is already published", req);
+    if (!job) return notFoundError("Job");
+    if (job.status === 'published') return validationError("Job is already published");
     
     await job.publish();
     return NextResponse.json({ success: true, data: job, message: 'Job published successfully' });

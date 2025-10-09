@@ -54,6 +54,6 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     { $set: validated },
     { new: true }
   );
-  if (!page) return notFoundError("Resource", req);
+  if (!page) return notFoundError("Resource");
   return NextResponse.json(page);
 }

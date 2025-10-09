@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   // Check if ATS feeds are enabled
   if (process.env.ATS_ENABLED !== 'true') {
-    return createSecureResponse({ error: 'ATS feeds not available in this deployment' }, 501, req);
+    return createSecureResponse({ error: 'ATS feeds not available in this deployment' }, 501);
   }
   await connectToDatabase();
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
