@@ -71,10 +71,11 @@ export async function GET(req: NextRequest){
     const q = qParam && qParam.trim() !== "" ? qParam.trim() : undefined;
     const statusParam = sp.get('status');
     const requestedStatus = statusParam ? statusParam.toUpperCase() : undefined;
+    const userAny = user as any;
     const canModerate =
-      (Array.isArray((user as unknown)?.permissions) && user.permissions.includes('help:moderate')) ||
-      (Array.isArray((user as unknown)?.roles) && user.roles.includes('ADMIN')) ||
-      ((user as unknown)?.role && ['SUPER_ADMIN','ADMIN','CORPORATE_ADMIN'].includes(user.role));
+      (Array.isArray(userAny?.permissions) && userAny.permissions.includes('help:moderate')) ||
+      (Array.isArray(userAny?.roles) && userAny.roles.includes('ADMIN')) ||
+      (userAny?.role && ['SUPER_ADMIN','ADMIN','CORPORATE_ADMIN'].includes(userAny.role));
     const status = canModerate && requestedStatus ? requestedStatus : 'PUBLISHED';
     const rawPage = Number(sp.get("page"));
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest){
     // Enforce tenant isolation; allow global articles with no orgId
     const orClauses: unknown[] = [ { orgId: { $exists: false } }, { orgId: null } ];
     if (user.orgId) orClauses.unshift({ orgId: user.orgId });
-    const tenantScope = { $or: orClauses } as unknown;
+    const tenantScope = { $or: orClauses } as any;
     const filter: Record<string, unknown> = { ...tenantScope };
     if (status && status !== 'ALL') filter.status = status;
     if (category) filter.category = category;
@@ -106,11 +107,11 @@ export async function GET(req: NextRequest){
     if (q) {
       // Try $text search first; fallback to regex if text index is missing
       const textFilter = { ...filter, $text: { $search: q } } as unknown;
-      const textProjection = { _id: 0, score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as unknown;
+      const textProjection = { _id: 0, score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as any;
       try {
-        total = await coll.countDocuments(textFilter);
+        total = await coll.countDocuments(textFilter as any);
         items = await coll
-          .find(textFilter, { projection: textProjection })
+          .find(textFilter as any, { projection: textProjection })
           .maxTimeMS(250)
           .sort({ score: { $meta: "textScore" } })
           .skip(skip)
@@ -123,10 +124,10 @@ export async function GET(req: NextRequest){
         const safe = new RegExp(escapeRegExp(q), 'i');
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as unknown;
-        total = await coll.countDocuments(regexFilter);
+        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
+        total = await coll.countDocuments(regexFilter as any);
         items = await coll
-          .find(regexFilter, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
+          .find(regexFilter as any, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
           .maxTimeMS(250)
           .sort({ updatedAt: -1 })
           .skip(skip)
@@ -134,9 +135,9 @@ export async function GET(req: NextRequest){
           .toArray();
       }
     } else {
-      total = await coll.countDocuments(filter);
+      total = await coll.countDocuments(filter as any);
       items = await coll
-        .find(filter as unknown, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
+        .find(filter as any, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
         .maxTimeMS(250)
         .sort({ updatedAt: -1 })
         .skip(skip)
