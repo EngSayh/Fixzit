@@ -82,9 +82,9 @@ jobs:
         timeout-minutes: 5
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm typecheck || pnpm run tsc --noEmit || echo "Typecheck completed with warnings" ;;
-            yarn) yarn typecheck || yarn run tsc --noEmit || echo "Typecheck completed with warnings" ;;
-            *) npm run typecheck || npm run tsc --noEmit || echo "Typecheck completed with warnings" ;;
+            pnpm) pnpm typecheck || pnpm run tsc --noEmit ;;
+            yarn) yarn typecheck || yarn run tsc --noEmit ;;
+            *) npm run typecheck || npm run tsc --noEmit ;;
           esac
 
       # ---------- Unit Tests -------------
