@@ -104,7 +104,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         await fs.writeFile(filePath, buffer);
         resumeUrl = `/uploads/resumes/${fileName}`;
       } catch (_err) {
-        console.error('Resume save failed:', err);
+        console.error('Resume save failed:', _err);
       }
       
       // Basic text surrogate for scoring/search

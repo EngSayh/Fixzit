@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse({ results }, 200, req);
   } catch (_err) {
-    console.error('kb/search error', err);
+    console.error('kb/search error', _err);
     return createSecureResponse({ error: 'Search failed' }, 500, req);
   }
 }

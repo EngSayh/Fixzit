@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   try {
     safe = schema.parse(body);
   } catch (_err: any) {
-    const issues = err?.issues ?? [];
+    const issues = (_err as any)?.issues ?? [];
     return NextResponse.json(
       {
         type: 'https://docs.fixzit/errors/invalid-incident-payload',
@@ -165,8 +165,8 @@ export async function POST(req: NextRequest) {
       });
       break;
     } catch (_e: any) {
-      if (e?.code === 11000) continue; // duplicate code -> retry
-      throw e;
+      if (_e?.code === 11000) continue; // duplicate code -> retry
+      throw _e;
     }
   }
 

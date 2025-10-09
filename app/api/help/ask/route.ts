@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
         content: c.text || '',
         updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
       }));
-    } catch (_e) { console.error('Vector search failed, falling back to lexical search:', e); }
+    } catch (_e) { console.error('Vector search failed, falling back to lexical search:', _e); }
 
     if (!docs || docs.length === 0) {
       try {
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
           .sort({ score: { $meta: 'textScore' } })
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
-      } catch (_err: any) {
+      } catch (__err: any) {
         // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         const cutoffDate = new Date();
@@ -206,13 +206,13 @@ export async function POST(req: NextRequest) {
 
     const citations = docs.map((d: Doc) => ({ slug: d.slug, title: d.title, updatedAt: d.updatedAt }));
     return NextResponse.json({ answer, citations });
-  } catch (_err: any) {
-    if (err instanceof Error && err.message === 'Rate limited') {
+  } catch (_err: Error | unknown) {
+    if (_err instanceof Error && _err.message === 'Rate limited') {
       return NextResponse.json({
         name: 'RateLimited',
         code: 'HELP_ASK_RATE_LIMITED',
         userMessage: 'Too many requests, please wait a minute.',
-        devMessage: err.message,
+        devMessage: _err.message,
         correlationId: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
       }, { status: 429 });
     }
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
       name: 'HelpAskError',
       code: 'HELP_ASK_FAILED',
       userMessage: 'Unable to process your question. Please try again.',
-      devMessage: String(err?.message ?? err),
+      devMessage: String((_err as Error)?.message ?? _err),
       correlationId
     }, { status: 500 });
   }
@@ -246,7 +246,7 @@ if (process.env.REDIS_URL) {
       connectTimeout: 5000,
       commandTimeout: 5000});
   } catch (_err) {
-    console.error('Failed to initialize Redis client:', err);
+    console.error('Failed to initialize Redis client:', _err);
   }
 }
 
@@ -269,9 +269,9 @@ async function rateLimitAssert(req: NextRequest) {
         throw new Error('Rate limited');
       }
       return;
-    } catch (_err: any) {
-      if (err.message === 'Rate limited') throw err;
-      console.error('Redis rate limit check failed, falling back to in-memory:', err);
+    } catch (_err: Error | unknown) {
+      if ((_err as Error).message === 'Rate limited') throw _err;
+      console.error('Redis rate limit check failed, falling back to in-memory:', _err);
     }
   }
   
