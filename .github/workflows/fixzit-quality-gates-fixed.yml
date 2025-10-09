@@ -108,7 +108,7 @@ jobs:
             cp -r coverage .artifacts/coverage
           fi
           
-          exit ${status:-0}
+          exit ${status}
 
       # ---------- Build Web (Next.js) ----------
       - name: Build Web (Next.js)
