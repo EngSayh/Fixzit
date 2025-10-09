@@ -71,13 +71,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
   } catch (_err: any) {
-    if (err?.name === 'ZodError') {
-      return validationError('Validation failed', err.issues);
+    if (_err?.name === 'ZodError') {
+      return validationError('Validation failed', _err.issues);
     }
-    if (err?.code === 11000) {
+    if (_err?.code === 11000) {
       return createSecureResponse({ error: 'Duplicate key (e.g., slug) exists' }, 409, req);
     }
-    console.error('PATCH /api/help/articles/[id] failed', err);
+    console.error('PATCH /api/help/articles/[id] failed', _err);
     return createSecureResponse({ error: 'Internal Server Error' }, 500, req);
   }
 }

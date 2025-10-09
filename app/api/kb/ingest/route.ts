@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     });
     return createSecureResponse({ ok: true }, 200, req);
   } catch (_err) {
-    console.error('kb/ingest error', err);
+    console.error('kb/ingest error', _err);
     return createSecureResponse({ error: 'Ingest failed' }, 500, req);
   }
 }

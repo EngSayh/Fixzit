@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       const answer = `Created work order ${wo.code} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
     } catch (_e: any) {
-      return NextResponse.json({ answer: `Could not create work order: ${e.message || "unknown error"}`, citations: [] as Citation[] });
+      return NextResponse.json({ answer: `Could not create work order: ${_e.message || "unknown error"}`, citations: [] as Citation[] });
     }
   }
 

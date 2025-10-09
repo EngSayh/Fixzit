@@ -118,8 +118,8 @@ export async function GET(req: NextRequest){
           .limit(limit)
           .toArray();
       } catch (_err: any) {
-        const isMissingTextIndex = err?.codeName === 'IndexNotFound' || err?.code === 27 || /text index required/i.test(String(err?.message || ''));
-        if (!isMissingTextIndex) throw err;
+        const isMissingTextIndex = _err?.codeName === 'IndexNotFound' || _err?.code === 27 || /text index required/i.test(String(_err?.message || ''));
+        if (!isMissingTextIndex) throw _err;
         // Fallback when text index is missing (restrict by recent updatedAt to reduce scan)
         const safe = new RegExp(escapeRegExp(q), 'i');
         const cutoffDate = new Date();
