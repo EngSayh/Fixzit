@@ -170,8 +170,11 @@ if (!OPENAI_API_KEY) {
 
 ```typescript
 // السطر 65
-script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-// لا يوجد فحص للقيمة
+const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+if (!mapsKey) {
+  throw new Error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set'); // recommend graceful handling / fallback
+}
+script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`;
 ```
 
 ---
