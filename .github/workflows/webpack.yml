@@ -1,18 +1,23 @@
 name: NodeJS with Webpack
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
+# منع تشغيل متعدد لنفس PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     strategy:
       matrix:
         node-version: [20.x, 22.x]
+      max-parallel: 2
 
     steps:
     - uses: actions/checkout@v4
@@ -21,8 +26,26 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
+        cache: 'npm'
 
-    - name: Install and Build
+    - name: Check for package-lock.json
+      id: check-lock
       run: |
-        npm install
-        npm run build
+        if [ -f package-lock.json ]; then
+          echo "has_lock=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_lock=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Install Dependencies
+      timeout-minutes: 10
+      run: |
+        if [ "${{ steps.check-lock.outputs.has_lock }}" == "true" ]; then
+          npm ci
+        else
+          npm install
+        fi
+
+    - name: Build
+      timeout-minutes: 10
+      run: npm run build
