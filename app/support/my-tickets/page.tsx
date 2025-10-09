@@ -69,7 +69,7 @@ export default function MyTicketsPage() {
               {data?.items?.length === 0 ? (
                 <p className="p-4 text-gray-500 text-center">No tickets yet</p>
               ) : (
-                data?.items?.map((ticket: unknown) => (
+                data?.items?.map((ticket: any) => (
                   <div
                     key={ticket._id}
                     onClick={() => setSelectedTicket(ticket)}

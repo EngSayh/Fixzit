@@ -16,7 +16,7 @@ export async function getOrCreateCart(orgId: Types.ObjectId, buyerUserId: Types.
   return cart;
 }
 
-export function recalcCartTotals(cart: unknown) {
+export function recalcCartTotals(cart: any) {
   const subtotal = cart.lines.reduce((sum: number, line: any) => sum + line.total, 0);
   const vat = subtotal * 0.15;
   cart.totals = {

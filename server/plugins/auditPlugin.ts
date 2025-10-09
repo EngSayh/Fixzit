@@ -189,10 +189,10 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return [];
     
     return this.changeHistory
-      .filter((change: unknown) => 
+      .filter((change: any) => 
         change.changes.some((c: any) => c.field === fieldName)
       )
-      .map((change: unknown) => ({
+      .map((change: any) => ({
         version: change.version,
         changedBy: change.changedBy,
         changedAt: change.changedAt,

@@ -8,12 +8,12 @@ export default async function VendorPortalPage() {
     serverFetchJsonWithTenant<any>('/api/marketplace/vendor/products')
   ]);
 
-  const departments = (categoriesResponse.data as unknown[]).map((category: unknown) => ({
+  const departments = (categoriesResponse.data as any[]).map((category: any) => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
 
-  const products = productsResponse.data as unknown[];
+  const products = productsResponse.data as any[];
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">

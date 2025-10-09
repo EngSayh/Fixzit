@@ -39,7 +39,7 @@ export function serializeOrder(doc: MarketplaceOrder | any) {
     orgId: normalizeId(order.orgId),
     buyerUserId: normalizeId(order.buyerUserId),
     vendorId: normalizeId(order.vendorId),
-    lines: order.lines?.map((line: unknown) => ({
+    lines: order.lines?.map((line: any) => ({
       ...line,
       productId: normalizeId(line.productId)
     }))
@@ -54,7 +54,7 @@ export function serializeRFQ(doc: MarketplaceRFQ | any) {
     orgId: normalizeId(rfq.orgId),
     requesterId: normalizeId(rfq.requesterId),
     categoryId: normalizeId(rfq.categoryId),
-    bids: rfq.bids?.map((bid: unknown) => ({
+    bids: rfq.bids?.map((bid: any) => ({
       ...bid,
       vendorId: normalizeId(bid.vendorId)
     }))

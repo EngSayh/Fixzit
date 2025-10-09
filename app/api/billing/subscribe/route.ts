@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       customerId: customer._id,
       orgId: user.orgId,
       planType: body.planType,
-      items: (quote.items || []).map((i: unknown) =>({ moduleId: undefined, // resolved later in worker if needed
+      items: (quote.items || []).map((i: any) =>({ moduleId: undefined, // resolved later in worker if needed
         moduleCode: i.module, // keep code snapshot
         seatCount: i.seatCount, unitPriceMonthly: i.unitPriceMonthly, billingCategory: i.billingCategory })),
       totalMonthly: quote.monthly,
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
       customer_details: {
         name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'
       }
-    } as unknown;
+    } as any;
 
     if (body.billingCycle === 'monthly') basePayload.tokenise = 2; // Hex32 token, delivered in callback
     const resp = await createHppRequest(body.paytabsRegion || 'GLOBAL', basePayload);

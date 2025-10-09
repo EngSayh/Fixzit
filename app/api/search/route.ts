@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     }
 
     const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
-    const results: unknown[] = [];
+    const results: any[] = [];
 
     // Search across different entity types based on app
     for (const entity of searchEntities) {
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
             .limit(5)
             .toArray();
 
-          items.forEach((item: unknown) => {
+          items.forEach((item: any) => {
             const result = {
               id: item._id?.toString() || '',
               entity,

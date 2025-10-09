@@ -87,7 +87,7 @@ export default function SupportTicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data?.items?.map((ticket: unknown) => (
+              {data?.items?.map((ticket: any) => (
                 <tr key={ticket._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {ticket.code}

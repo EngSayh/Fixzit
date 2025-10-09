@@ -103,7 +103,7 @@ export default function RFQsPage() {
 
       {/* RFQs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rfqs.map((rfq: unknown) => (
+        {rfqs.map((rfq: any) => (
           <RFQCard key={rfq._id} rfq={rfq} onUpdated={mutate} />
         ))}
       </div>
@@ -285,7 +285,7 @@ function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
       nationalAddress: ''
     },
     projectId: '',
-    specifications: [] as unknown[],
+    specifications: [] as any[],
     timeline: {
       bidDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

@@ -21,7 +21,7 @@ export default function AutoIncidentReporter(){
       time: new Date().toISOString(),
       network: typeof navigator !== 'undefined' ? (navigator.onLine ? 'online' : 'offline') : undefined
     });
-    const send = (payload: unknown) => {
+    const send = (payload: any) => {
       const now = Date.now();
       if (window.__incidentLastAt && now - window.__incidentLastAt < 30000) return; // throttle 30s
       window.__incidentLastAt = now;

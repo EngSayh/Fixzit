@@ -103,7 +103,7 @@ export default function ProjectsPage() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project: unknown) => (
+        {projects.map((project: any) => (
           <ProjectCard key={project._id} project={project} onUpdated={mutate} />
         ))}
       </div>

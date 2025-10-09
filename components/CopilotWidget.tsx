@@ -99,7 +99,7 @@ function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
   if (message.intent === 'listMyWorkOrders' && Array.isArray(message.data)) {
     return (
       <ul className="mt-3 space-y-2 text-xs">
-        {message.data.map((item: unknown) => (
+        {message.data.map((item: any) => (
           <li key={item.id} className="rounded-lg border border-gray-200 bg-white/70 p-2">
             <div className="font-semibold text-gray-800">{item.code} · {item.title}</div>
             <div className="text-gray-500">{item.status} · {item.priority}</div>

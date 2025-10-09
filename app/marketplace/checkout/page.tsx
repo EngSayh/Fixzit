@@ -9,7 +9,7 @@ export default async function CheckoutPage() {
     serverFetchJsonWithTenant<any>('/api/marketplace/cart')
   ]);
 
-  const departments = (categoriesResponse.data as unknown[]).map(category => ({
+  const departments = (categoriesResponse.data as any[]).map(category => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));
@@ -37,7 +37,7 @@ export default async function CheckoutPage() {
             <div className="rounded-3xl bg-white p-6 shadow">
               <h2 className="text-lg font-semibold text-[#0F1111]">Order contents</h2>
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
-                {cart.lines.map((line: unknown) => (
+                {cart.lines.map((line: any) => (
                   <li key={line.productId} className="flex justify-between">
                     <span>{line.product?.title?.en ?? line.productId}</span>
                     <span>

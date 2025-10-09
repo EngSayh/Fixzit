@@ -17,7 +17,7 @@ export default function MapPage() {
     const data = await res.json();
     const clusters = Array.isArray(data?.clusters) ? data.clusters : [];
     setMarkers(
-      clusters.map((c: unknown) => ({
+      clusters.map((c: any) => ({
         position: { lat: c.lat, lng: c.lng },
         title: String(c.count),
         info: `Avg SAR ${c.avgPrice?.toLocaleString ? c.avgPrice.toLocaleString() : (typeof c.avgPrice === 'number' ? c.avgPrice.toString() : '-')}`,

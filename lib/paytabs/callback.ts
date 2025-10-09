@@ -5,7 +5,7 @@ import { parseCartAmount as parsePaymentCartAmount } from '@/lib/payments/parseC
 
 export const parseCartAmount = parsePaymentCartAmount;
 
-export function normalizePaytabsString(value: unknown): string | null {
+export function normalizePaytabsString(value: any): string | null {
   if (typeof value !== 'string') {
     return null;
   }
@@ -13,7 +13,7 @@ export function normalizePaytabsString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export function normalizePaytabsStatus(value: unknown): string {
+export function normalizePaytabsStatus(value: any): string {
   if (typeof value !== 'string') {
     return '';
   }

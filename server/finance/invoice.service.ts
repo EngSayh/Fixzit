@@ -4,7 +4,7 @@ import { Invoice } from "@/server/models/Invoice";
 
 // Mock implementation retained for optional mock mode
 class MockInvoiceService {
-  private invoices: unknown[] = [];
+  private invoices: any[] = [];
   private nextId = 1;
 
   constructor() {

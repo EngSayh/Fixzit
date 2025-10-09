@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     // Calculate totals
     let subtotal = 0;
     let totalTax = 0;
-    const taxes: unknown[] = [];
+    const taxes: any[] = [];
 
     data.items.forEach(item => {
       const itemSubtotal = item.quantity * item.unitPrice - item.discount;
