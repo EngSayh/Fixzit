@@ -18,12 +18,15 @@
   "task.quickOpen.history": 30,
   "problems.showCurrentInStatus": true,
   "terminal.integrated.profiles.linux": {
-    "pwsh": {
-      "path": "pwsh",
-      "icon": "terminal-powershell"
+    "bash": {
+      "path": "/bin/bash",
+      "icon": "terminal-bash"
     }
   },
-  "terminal.integrated.defaultProfile.linux": "pwsh",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "powershell.promptToUpdatePowerShell": false,
+  "powershell.startAutomatically": false,
+  "powershell.integratedConsole.showOnStartup": false,
   "chatgpt.openOnStartup": true,
   "chat.tools.terminal.autoApprove": {
 
