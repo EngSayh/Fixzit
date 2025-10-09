@@ -100,7 +100,7 @@ describe('api/qa/health route - GET', () => {
     const version = '9.9.9-test';
     (process as any).env.npm_package_version = version;
 
-    const memSpy = jest.spyOn(process, 'memoryUsage').mockReturnValue({
+    const memSpy = vi.spyOn(process, 'memoryUsage').mockReturnValue({
       rss: 100 * 1024 * 1024,
       heapUsed: 50 * 1024 * 1024
       // other fields are not used by the code under test
@@ -148,7 +148,7 @@ describe('api/qa/health route - GET', () => {
 
   it('returns critical (503) when DB connection fails', async () => {
     const err = new Error('DB down');
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const res = await GET({} as any);
 
@@ -162,7 +162,7 @@ describe('api/qa/health route - GET', () => {
   });
 
   it('handles memory usage retrieval failures gracefully', async () => {
-    const memSpy = jest.spyOn(process, 'memoryUsage').mockImplementation(() => {
+    const memSpy = vi.spyOn(process, 'memoryUsage').mockImplementation(() => {
       throw new Error('memory unavailable');
     });
 

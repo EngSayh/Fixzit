@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
+import { getClientIP } from '@/server/security/headers';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
       event,
       data,
       timestamp: new Date(),
-      ip: req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown',
+      ip: getClientIP(req),
       userAgent: req.headers.get('user-agent'),
       sessionId: req.cookies.get('sessionId')?.value || 'unknown'
     });

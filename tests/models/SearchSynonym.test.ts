@@ -38,6 +38,7 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     jest.dontMock("mongoose")
   })
 
+  test("uses mock DB when NODE_ENV=development and MONGODB_URI is undefined", () => {
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "development", MONGODB_URI: undefined },
       {
@@ -53,6 +54,7 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     expect(SearchSynonym.name).toBe("searchsynonyms")
   })
 
+  test("uses mock DB when NODE_ENV=development and MONGODB_URI is localhost", () => {
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "development", MONGODB_URI: "mongodb://localhost:27017/db" },
       {
@@ -64,6 +66,8 @@ describe("models/SearchSynonym - environment-based model selection", () => {
       },
       () => require(modulePath)
     )
+    expect(SearchSynonym).toBeDefined()
+    expect(SearchSynonym.name).toBe("searchsynonyms")
   })
 
   test("uses real mongoose model when NODE_ENV\!=development (e.g., test) even if MONGODB_URI undefined", () => {

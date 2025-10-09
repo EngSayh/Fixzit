@@ -6,7 +6,7 @@
 describe("MongoDB Unified Connection", () => {
   test("MongoDB unified module should be available", async () => {
     // Test that the MongoDB unified module can be imported without errors
-    const mongoModule = await import("../../../src/lib/mongodb-unified");
+    const mongoModule = await import("@/lib/mongodb-unified");
     expect(mongoModule).toBeDefined();
     expect(typeof mongoModule.getDatabase).toBe("function");
     expect(typeof mongoModule.connectToDatabase).toBe("function");
@@ -29,7 +29,7 @@ describe("MongoDB Unified Connection", () => {
 
   test("MongoDB unified connection configuration is properly structured", async () => {
     // Test that the MongoDB unified configuration is properly structured
-    const mongoModule = await import("../../../src/lib/mongodb-unified");
+    const mongoModule = await import("@/lib/mongodb-unified");
     expect(mongoModule).toBeDefined();
     
     // Verify that the module exports the expected functions

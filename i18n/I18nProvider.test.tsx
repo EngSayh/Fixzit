@@ -90,7 +90,7 @@ describe('I18nProvider', () => {
 
   test('respects initialLocale prop', async () => {
     render(
-      <I18nProvider initialLocale="ar" as any>
+      <I18nProvider initialLocale="ar">
         <CaptureContext />
       </I18nProvider>
     );
@@ -240,7 +240,7 @@ describe('I18nProvider', () => {
     localStorage.setItem('locale', 'ar');
     // Start provider at en; effect should switch to ar
     render(
-      <I18nProvider initialLocale="en" as any>
+      <I18nProvider initialLocale="en">
         <CaptureContext />
       </I18nProvider>
     );
@@ -257,7 +257,7 @@ describe('I18nProvider', () => {
     localStorage.setItem('fxz.lang', 'ar');
 
     render(
-      <I18nProvider initialLocale="en" as any>
+      <I18nProvider initialLocale="en">
         <CaptureContext />
       </I18nProvider>
     );
@@ -271,7 +271,7 @@ describe('I18nProvider', () => {
   test('on mount: ignores invalid stored locale', async () => {
     localStorage.setItem('locale', 'fr'); // unsupported
     render(
-      <I18nProvider initialLocale="en" as any>
+      <I18nProvider initialLocale="en">
         <CaptureContext />
       </I18nProvider>
     );

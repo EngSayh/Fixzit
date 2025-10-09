@@ -44,7 +44,7 @@ export default function AdminCMS(){
         credentials: "same-origin"
       });
       alert(r.ok ? "Saved" : `Failed: ${await r.text()}`);
-    } catch (e:any) {
+    } catch {
       alert("Failed: network error");
     }
   };

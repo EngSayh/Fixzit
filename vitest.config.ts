@@ -4,16 +4,17 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom', // Changed from 'node' to support React component tests
     setupFiles: ['./vitest.setup.ts'],
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
-      '@/src': path.resolve(__dirname, './src'),
-      '@/lib': path.resolve(__dirname, './src/lib'),
-      '@/types': path.resolve(__dirname, './src/types'),
-      '@/models': path.resolve(__dirname, './src/models'),
+      '@/lib': path.resolve(__dirname, './lib'),
+      '@/types': path.resolve(__dirname, './types'),
+      '@/server': path.resolve(__dirname, './server'),
+      '@/components': path.resolve(__dirname, './components'),
+      '@/i18n': path.resolve(__dirname, './i18n'),
     },
   },
 });

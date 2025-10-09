@@ -100,7 +100,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         const buffer = Buffer.from(bytes);
         const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');
         await fs.mkdir(uploadDir, { recursive: true });
-        const safeName = resumeFile.name.replace(/[^\w.\-]+/g, '_');
+        const safeName = resumeFile.name.replace(/[^\w.-]+/g, '_');
         const fileName = `${Date.now()}-${safeName}`;
         const filePath = path.join(uploadDir, fileName);
         await fs.writeFile(filePath, buffer);

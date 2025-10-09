@@ -38,7 +38,7 @@
         "./*"
       ],
       "@/server/*": [
-        "src/server/*"
+        "server/*"
       ],
       "@modules/*": [
         "src/modules/*"

@@ -2,38 +2,98 @@
 
 ```yaml
 - generic [active] [ref=e1]:
-  - generic [ref=e6] [cursor=pointer]:
-    - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
-      - img [ref=e8] [cursor=pointer]
-    - generic [ref=e11] [cursor=pointer]:
-      - button "Open issues overlay" [ref=e12] [cursor=pointer]:
-        - generic [ref=e13] [cursor=pointer]:
-          - generic [ref=e14] [cursor=pointer]: "1"
-          - generic [ref=e15] [cursor=pointer]: "2"
-        - generic [ref=e16] [cursor=pointer]:
-          - text: Issue
-          - generic [ref=e17] [cursor=pointer]: s
-      - button "Collapse issues badge" [ref=e18] [cursor=pointer]:
-        - img [ref=e19] [cursor=pointer]
-  - alert [ref=e21]
-  - generic [ref=e23]:
-    - img [ref=e25]
-    - heading "System Error Detected" [level=2] [ref=e27]
-    - paragraph [ref=e28]: useTopBar must be used within TopBarProvider
-    - generic [ref=e29]:
-      - generic [ref=e30]:
-        - strong [ref=e31]: "Error ID:"
-        - code [ref=e32]: ERR-6a45ed2d-34b8-423b-9c44-4d7efe069c1a
-      - generic [ref=e33]: Please include this ID when reporting the issue
-    - generic [ref=e35]: "Retry: 0/3"
-    - generic [ref=e36]:
-      - button "🔄 Retry (3 attempts left)" [ref=e37] [cursor=pointer]
-      - button "🔄 Force Refresh" [ref=e38] [cursor=pointer]
-      - button "📋 Copy Error Details" [ref=e39] [cursor=pointer]
-      - button "📝 Report to Support" [ref=e40] [cursor=pointer]
-      - link "📚 Get Help" [ref=e41] [cursor=pointer]:
-        - /url: /help
-    - group [ref=e42]
-    - group [ref=e44]
-    - group [ref=e46]
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - banner [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: FIXZIT ENTERPRISE
+        - button "Switch application" [ref=e17] [cursor=pointer]:
+          - img [ref=e18] [cursor=pointer]
+          - generic [ref=e22] [cursor=pointer]: Fixzit Facility Management (FM)
+          - img [ref=e23] [cursor=pointer]
+      - generic [ref=e27]:
+        - img [ref=e28]
+        - textbox "Global search" [ref=e31]
+        - generic [ref=e32]:
+          - img [ref=e33]
+          - generic [ref=e35]: K
+      - generic [ref=e36]:
+        - button "Quick actions" [ref=e38] [cursor=pointer]:
+          - img [ref=e39] [cursor=pointer]
+          - generic [ref=e40] [cursor=pointer]: Quick Actions
+          - img [ref=e41] [cursor=pointer]
+        - generic [ref=e43]:
+          - button "Select language English (EN)" [ref=e45] [cursor=pointer]:
+            - img [ref=e46] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]:
+              - generic [ref=e50] [cursor=pointer]: 🇺🇸
+              - generic [ref=e51] [cursor=pointer]: EN
+          - button "Select currency SAR" [ref=e53] [cursor=pointer]:
+            - img [ref=e54] [cursor=pointer]
+            - generic [ref=e57] [cursor=pointer]:
+              - generic [ref=e58] [cursor=pointer]: 🇸🇦
+              - generic [ref=e59] [cursor=pointer]: SAR
+        - button "Toggle notifications" [ref=e61] [cursor=pointer]:
+          - img [ref=e62] [cursor=pointer]
+        - button [ref=e67] [cursor=pointer]:
+          - img [ref=e68] [cursor=pointer]
+          - img [ref=e71] [cursor=pointer]
+    - main [ref=e74]:
+      - paragraph [ref=e79]: Loading...
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - generic [ref=e83]: Fixzit
+          - link "Back to Home" [ref=e84] [cursor=pointer]:
+            - /url: /
+            - img [ref=e85] [cursor=pointer]
+            - generic [ref=e88] [cursor=pointer]: Back to Home
+          - generic [ref=e89]:
+            - button "Select language English (EN)" [ref=e91] [cursor=pointer]:
+              - img [ref=e92] [cursor=pointer]
+              - generic [ref=e95] [cursor=pointer]:
+                - generic [ref=e96] [cursor=pointer]: 🇺🇸
+                - generic [ref=e97] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e99] [cursor=pointer]:
+              - img [ref=e100] [cursor=pointer]
+              - generic [ref=e103] [cursor=pointer]:
+                - generic [ref=e104] [cursor=pointer]: 🇸🇦
+                - generic [ref=e105] [cursor=pointer]: SAR
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: Company
+            - list [ref=e109]:
+              - listitem [ref=e110]:
+                - link "About" [ref=e111] [cursor=pointer]:
+                  - /url: /cms/about
+              - listitem [ref=e112]:
+                - link "Careers" [ref=e113] [cursor=pointer]:
+                  - /url: /careers
+          - generic [ref=e114]:
+            - generic [ref=e115]: Legal
+            - list [ref=e116]:
+              - listitem [ref=e117]:
+                - link "Privacy" [ref=e118] [cursor=pointer]:
+                  - /url: /cms/privacy
+              - listitem [ref=e119]:
+                - link "Terms" [ref=e120] [cursor=pointer]:
+                  - /url: /cms/terms
+          - generic [ref=e121]:
+            - generic [ref=e122]: Support
+            - list [ref=e123]:
+              - listitem [ref=e124]:
+                - link "Help Center" [ref=e125] [cursor=pointer]:
+                  - /url: /help
+              - listitem [ref=e126]:
+                - button "Open a ticket" [ref=e127] [cursor=pointer]
+        - generic [ref=e128]:
+          - generic [ref=e129]: © 2025 Fixzit. All rights reserved.
+          - generic [ref=e130]:
+            - link "Privacy" [ref=e131] [cursor=pointer]:
+              - /url: /cms/privacy
+            - link "Terms" [ref=e132] [cursor=pointer]:
+              - /url: /cms/terms
+            - link "Support" [ref=e133] [cursor=pointer]:
+              - /url: /support
 ```

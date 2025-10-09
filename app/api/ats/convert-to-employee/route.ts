@@ -4,7 +4,8 @@ import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
 import { Job } from '@/server/models/Job';
 import { Employee } from '@/server/models/Employee';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getUserFromToken } from '@/lib/auth';
+    const canConvertApplications = ['admin', 'hr'].includes(user.role);
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
@@ -47,8 +48,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Check user permissions (admin or HR role can convert applications)
-    // Check if user has permission to convert applications
-    const canConvertApplications = ['corporate_admin', 'hr_manager'].includes(user.role);
     
     if (!canConvertApplications) {
       return createSecureResponse({ error: 'Forbidden: Insufficient permissions' }, 403, req);

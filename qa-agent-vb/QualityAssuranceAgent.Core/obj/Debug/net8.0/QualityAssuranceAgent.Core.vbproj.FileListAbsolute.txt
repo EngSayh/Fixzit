@@ -1,4 +1,0 @@
-/workspaces/Fixzit/qa-agent-vb/QualityAssuranceAgent.Core/obj/Debug/net8.0/QualityAssuranceAgent.Core.vbproj.AssemblyReference.cache
-/workspaces/Fixzit/qa-agent-vb/QualityAssuranceAgent.Core/obj/Debug/net8.0/QualityAssuranceAgent.Core.GeneratedMSBuildEditorConfig.editorconfig
-/workspaces/Fixzit/qa-agent-vb/QualityAssuranceAgent.Core/obj/Debug/net8.0/QualityAssuranceAgent.Core.vbproj.CoreCompileInputs.cache
-/workspaces/Fixzit/qa-agent-vb/QualityAssuranceAgent.Core/obj/Debug/net8.0/QualityAssuranceAgent.Core.sourcelink.json

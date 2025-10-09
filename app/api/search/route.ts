@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { APPS, AppKey } from '@/src/config/topbar-modules';
+import { APPS, AppKey } from '@/config/topbar-modules';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';

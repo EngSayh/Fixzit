@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/src/db/mongoose';
-import Benchmark from '@/src/db/models/Benchmark';
+import { dbConnect } from '@/db/mongoose';
+import Benchmark from '@/server/models/Benchmark';
 import { requireSuperAdmin } from '@/lib/authz';
 
 import { rateLimit } from '@/server/security/rateLimit';

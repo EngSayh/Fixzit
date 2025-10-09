@@ -1,10 +1,11 @@
 /**
  * Tests for SupportPopup component
- * Framework: Jest
+ * Framework: Vitest
  * Library: @testing-library/react, @testing-library/jest-dom
  */
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
 
 // Using path mapping for cleaner imports
 import SupportPopup from "@/components/SupportPopup";
@@ -20,13 +21,13 @@ const origRemoveItem = window.localStorage.removeItem;
 beforeEach(() => {
   // jsdom localStorage is available; ensure deterministic state
   const store = new Map();
-  window.localStorage.getItem = jest.fn((key) => (store.has(key) ? store.get(key) : null));
-  window.localStorage.setItem = jest.fn((key, value) => { store.set(key, value); });
-  window.localStorage.removeItem = jest.fn((key) => { store.delete(key); });
-  window.alert = jest.fn();
+  window.localStorage.getItem = vi.fn((key) => (store.has(key) ? store.get(key) : null));
+  window.localStorage.setItem = vi.fn((key, value) => { store.set(key, value); });
+  window.localStorage.removeItem = vi.fn((key) => { store.delete(key); });
+  window.alert = vi.fn();
   // @ts-expect-error: partial clipboard mock
-  navigator.clipboard = { writeText: jest.fn().mockResolvedValue(undefined) };
-  global.fetch = jest.fn();
+  navigator.clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
+  global.fetch = vi.fn();
 });
 
 afterEach(() => {
@@ -37,7 +38,7 @@ afterEach(() => {
   window.localStorage.getItem = origGetItem;
   window.localStorage.setItem = origSetItem;
   window.localStorage.removeItem = origRemoveItem;
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 function typeInto(selectorText: string, value: string) {
@@ -48,7 +49,7 @@ function typeInto(selectorText: string, value: string) {
 
 describe("SupportPopup - rendering and validation", () => {
   test("disables Submit Ticket and Copy details when subject and description are empty", () => {
-    render(<SupportPopup onClose={jest.fn()} />);
+    render(<SupportPopup onClose={vi.fn()} />);
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
     expect(copyBtn).toBeDisabled();
@@ -56,14 +57,14 @@ describe("SupportPopup - rendering and validation", () => {
   });
 
   test("enables Copy details when subject is provided", () => {
-    render(<SupportPopup onClose={jest.fn()} />);
+    render(<SupportPopup onClose={vi.fn()} />);
     typeInto("Subject *", "A subject");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     expect(copyBtn).toBeEnabled();
   });
 
   test("enables Submit Ticket when both subject and description are provided", () => {
-    render(<SupportPopup onClose={jest.fn()} />);
+    render(<SupportPopup onClose={vi.fn()} />);
     typeInto("Subject *", "Login fails");
     typeInto("Description *", "Cannot login using SSO.");
     const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
@@ -71,7 +72,7 @@ describe("SupportPopup - rendering and validation", () => {
   });
 
   test("shows guest-only fields when x-user is not in localStorage", () => {
-    render(<SupportPopup onClose={jest.fn()} />);
+    render(<SupportPopup onClose={vi.fn()} />);
     expect(screen.getByLabelText(/your name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email \*/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/phone \(optional\)/i)).toBeInTheDocument();
@@ -79,7 +80,7 @@ describe("SupportPopup - rendering and validation", () => {
 
   test("hides guest-only fields when x-user exists", () => {
     window.localStorage.setItem("x-user", "u123");
-    render(<SupportPopup onClose={jest.fn()} />);
+    render(<SupportPopup onClose={vi.fn()} />);
     expect(screen.queryByLabelText(/your name/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/email \*/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/phone \(optional\)/i)).not.toBeInTheDocument();
@@ -104,7 +105,7 @@ describe("SupportPopup - errorDetails auto-population", () => {
   };
 
   test("pre-populates subject, priority, type, module and description", () => {
-    render(<SupportPopup onClose={jest.fn()} errorDetails={errorDetails} />);
+    render(<SupportPopup onClose={vi.fn()} errorDetails={errorDetails} />);
     const subjectInput = screen.getByLabelText("Subject *") as HTMLInputElement;
     expect(subjectInput.value).toMatch(/^System Error: TypeError - Cannot read properties of undefined/);
     const priority = screen.getByLabelText("Priority") as HTMLSelectElement;
@@ -124,7 +125,7 @@ describe("SupportPopup - errorDetails auto-population", () => {
 
 describe("SupportPopup - copy details", () => {
   test("copies subject when description is empty", async () => {
-    render(<SupportPopup onClose={jest.fn()} />);
+    render(<SupportPopup onClose={vi.fn()} />);
     typeInto("Subject *", "Subject only");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     fireEvent.click(copyBtn);
@@ -135,7 +136,7 @@ describe("SupportPopup - copy details", () => {
   });
 
   test("copies description when provided", async () => {
-    render(<SupportPopup onClose={jest.fn()} />);
+    render(<SupportPopup onClose={vi.fn()} />);
     typeInto("Subject *", "S");
     typeInto("Description *", "Full details...");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
@@ -147,8 +148,8 @@ describe("SupportPopup - copy details", () => {
 
   test("silently ignores clipboard errors", async () => {
     // @ts-expect-error override mock
-    navigator.clipboard.writeText = jest.fn().mockRejectedValue(new Error("Clipboard denied"));
-    render(<SupportPopup onClose={jest.fn()} />);
+    navigator.clipboard.writeText = vi.fn().mockRejectedValue(new Error("Clipboard denied"));
+    render(<SupportPopup onClose={vi.fn()} />);
     typeInto("Subject *", "X");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     fireEvent.click(copyBtn);
@@ -163,7 +164,7 @@ describe("SupportPopup - submission flow", () => {
     if (loggedIn) {
       window.localStorage.setItem("x-user", "user-token");
     }
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(<SupportPopup onClose={onClose} />);
     typeInto("Subject *", "Issue creating invoice");
     typeInto("Description *", "Detailed repro steps...");
@@ -179,7 +180,7 @@ describe("SupportPopup - submission flow", () => {
   }
 
   test("shows loading state and posts payload for guest users (includes requester)", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as vi.Mock).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ code: "TCK-1001" })
@@ -196,7 +197,7 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    const [url, init] = (global.fetch as jest.Mock).mock.calls[0] as [string, RequestInit];
+    const [url, init] = (global.fetch as vi.Mock).mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/support/tickets");
     expect(init?.method).toBe("POST");
     expect(init?.headers).toMatchObject({ "content-type": "application/json" });
@@ -226,7 +227,7 @@ describe("SupportPopup - submission flow", () => {
   });
 
   test("does not include requester for logged-in users, still succeeds", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as vi.Mock).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ code: "TCK-2002" })
@@ -239,7 +240,7 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    const [, init] = (global.fetch as jest.Mock).mock.calls[0] as [string, RequestInit];
+    const [, init] = (global.fetch as vi.Mock).mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(init.body);
     expect(body.requester).toBeUndefined();
 
@@ -250,7 +251,7 @@ describe("SupportPopup - submission flow", () => {
   });
 
   test("handles API error gracefully and resets button state", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as vi.Mock).mockResolvedValue({
       ok: false,
       status: 500,
       json: async () => ({ error: "server error" })
@@ -269,7 +270,7 @@ describe("SupportPopup - submission flow", () => {
   });
 
   test("handles network rejection and resets button state", async () => {
-    (global.fetch as jest.Mock).mockRejectedValue(new Error("Network down"));
+    (global.fetch as vi.Mock).mockRejectedValue(new Error("Network down"));
 
     const { submitBtn } = setupForm({ loggedIn: false });
     fireEvent.click(submitBtn);

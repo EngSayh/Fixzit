@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import en from '../../src/i18n/dictionaries/en';
+import en from '../../i18n/dictionaries/en';
 
 type Dict = Record<string, any>;
 type Leaf = string | number | boolean | null | undefined;

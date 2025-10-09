@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { AutoFixAgent } from '@/src/qa/AutoFixAgent';
-import { ErrorBoundary } from '@/src/qa/ErrorBoundary';
+import { AutoFixAgent } from '@/qa/AutoFixAgent';
+import { ErrorBoundary } from '@/qa/ErrorBoundary';
 
 type Props = {
   children: React.ReactNode;

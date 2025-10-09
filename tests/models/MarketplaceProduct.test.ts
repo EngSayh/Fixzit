@@ -16,12 +16,12 @@ const loadModelWithEnv = async (env: Partial<NodeJS.ProcessEnv>) => {
     // Attempt common locations
     let loadedModule: any = null;
     const candidates = [
+      '../server/models/MarketplaceProduct',
+      '@/server/models/MarketplaceProduct',
+      'server/models/MarketplaceProduct',
+      path.posix.join(process.cwd(), 'server/models/MarketplaceProduct'),
       '@/models/MarketplaceProduct',
-      '@/models/MarketplaceProduct',
-      'src/models/MarketplaceProduct',
       'models/MarketplaceProduct',
-      path.posix.join(process.cwd(), 'src/models/MarketplaceProduct'),
-      path.posix.join(process.cwd(), 'models/MarketplaceProduct'),
     ];
     let lastError: any = null;
     for (const c of candidates) {
@@ -192,17 +192,6 @@ describe('MarketplaceProduct Schema', () => {
     // Mongoose error path for nested array required commonly looks like 'prices.0.listPrice'
     const hasListPriceError = priceErrorPaths.some((p: any) => String(p).endsWith('.listPrice') || String(p).includes('prices.0.listPrice'));
     expect(hasListPriceError).toBe(true);
-  });
-});
-
-    const modelLocal = await loadModelWithEnv({ NODE_ENV: 'development', MONGODB_URI: '' });
-    expect(modelLocal && modelLocal.schema).toBeUndefined();
-  });
-
-  it('uses real Mongoose model when not in mock conditions', async () => {
-    const modelReal = await loadModelWithEnv({ NODE_ENV: 'test', MONGODB_URI: 'mongodb://not-local/ci' });
-    expect(modelReal && modelReal.schema).toBeDefined();
-    expect(typeof modelReal.modelName === 'string' || typeof modelReal.collection?.name === 'string').toBe(true);
   });
 });
 

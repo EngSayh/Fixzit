@@ -1,5 +1,8 @@
 import crypto from "crypto";
 import { db } from "@/lib/mongo";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import type { SessionUser } from "@/server/middleware/withAuthRbac";
+    source: doc.source || undefined,
 import { CopilotKnowledge, KnowledgeDoc } from "@/server/models/CopilotKnowledge";
 import { CopilotSession } from "./session";
 
@@ -84,7 +87,6 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
     id: doc.slug,
     title: doc.title,
     content: doc.content,
-    source: doc.source ?? undefined,
     score: cosineSimilarity(embedding, doc.embedding || [])
   }));
 
