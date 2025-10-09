@@ -35,8 +35,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   const params = await props.params;
   await connectToDatabase();
   const t = await (SupportTicket as any).findById(params.id);
-  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
-  return createSecureResponse(t, 200, req);
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, _req);
+  return createSecureResponse(t, 200, _req);
 }
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {

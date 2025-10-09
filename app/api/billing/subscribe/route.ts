@@ -7,6 +7,8 @@ import { computeQuote } from '@/lib/pricing';
 import { createHppRequest } from '@/lib/paytabs';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
 
 const subscriptionSchema = z.object({

@@ -31,8 +31,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   const params = await props.params;
   await connectToDatabase();
   const wo = await (WorkOrder as any).findById(params.id);
-  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
-  return createSecureResponse(wo, 200, req);
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, _req);
+  return createSecureResponse(wo, 200, _req);
 }
 
 const patchSchema = z.object({

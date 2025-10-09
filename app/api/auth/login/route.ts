@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
       validatedData.loginType
     );
 
-    if (!result.success) {
-      return unauthorizedError(result.error || 'Invalid credentials');
+    if (!('token' in result) || !result.token) {
+      return unauthorizedError('Invalid credentials');
     }
 
     const response = createSecureResponse({
