@@ -5,8 +5,7 @@ import { Candidate } from '@/server/models/Candidate';
 import { Job } from '@/server/models/Job';
 import { Employee } from '@/server/models/Employee';
 import { getUserFromToken } from '@/lib/auth';
-    const canConvertApplications = ['admin', 'hr'].includes(user.role);
-
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';

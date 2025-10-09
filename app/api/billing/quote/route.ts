@@ -1,7 +1,5 @@
 import { NextRequest } from 'next/server';
 import { computeQuote } from '@/lib/pricing';
-import { createSecureResponse } from '@/server/security/headers';
-
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
