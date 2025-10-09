@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       .populate('jobId')
       .populate('candidateId')
       .lean();
-    if (!application) return notFoundError("Application", req);
+    if (!application) return notFoundError("Application");
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
     console.error('Application fetch error:', error);
@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const userId = user?.id || 'system';
     
     const application = await Application.findById(params.id);
-    if (!application) return notFoundError("Application", req);
+    if (!application) return notFoundError("Application");
     
     if (body.stage && body.stage !== application.stage) {
       const oldStage = application.stage;

@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (!jobSlug || !profile?.email) return validationError('Missing fields');
 
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
-    if (!job) return notFoundError("Job", req);
+    if (!job) return notFoundError("Job");
 
     let candidate = await (Candidate as any).findByEmail(job.orgId, profile.email);
     if (!candidate) {

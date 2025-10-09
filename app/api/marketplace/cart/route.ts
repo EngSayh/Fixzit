@@ -8,6 +8,7 @@ import { createSecureResponse } from '@/server/security/headers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 import { serializeOrder, serializeProduct } from '@/lib/marketplace/serializers';
 import { getOrCreateCart, recalcCartTotals } from '@/lib/marketplace/cart';
+import { unauthorizedError, notFoundError, rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
 
 const AddToCartSchema = z.object({
   productId: z.string(),
