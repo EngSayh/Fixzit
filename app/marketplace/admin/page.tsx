@@ -1,17 +1,53 @@
 
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
+interface Product {
+  _id: string;
+  title: { en: string };
+  sku: string;
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  standards?: string[];
+}
+
+interface Order {
+  _id: string;
+  status: string;
+  currency: string;
+  totals: {
+    grand: number;
+  };
+  approvals?: {
+    status: string;
+  };
+  createdAt: string | Date;
+}
+
+interface RFQ {
+  _id: string;
+  status: string;
+}
+
+interface Category {
+  _id: string;
+  slug: string;
+  name?: { en: string };
+}
+
 export default async function MarketplaceAdminPage() {
   const [_categoriesResponse, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=50'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/orders'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/rfq')
+    serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=50'),
+    serverFetchJsonWithTenant<{ data: Order[] }>('/api/marketplace/orders'),
+    serverFetchJsonWithTenant<{ data: RFQ[] }>('/api/marketplace/rfq')
   ]);
 
-  const products = productsResponse.data.items as any[];
-  const orders = ordersResponse.data as any[];
-  const rfqs = rfqResponse.data as any[];
+  const products = productsResponse.data.items;
+  const orders = ordersResponse.data;
+  const rfqs = rfqResponse.data;
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
