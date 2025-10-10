@@ -21,8 +21,41 @@ const fetcher = (url: string) => fetch(url, {
   }
 }).then(r => r.json());
 
+interface User {
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface Property {
+  _id: string;
+  name: string;
+  address?: {
+    city?: string;
+  };
+  units?: unknown[];
+  details?: {
+    occupancyRate?: number;
+  };
+  maintenance?: {
+    issues?: Array<{ resolved?: boolean }>;
+  };
+}
+
+interface Asset {
+  criticality?: string;
+  status?: string;
+}
+
+interface Invoice {
+  total: number;
+}
+
+interface WorkOrderWithDue extends WorkOrder {
+  dueAt?: string;
+}
+
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('fixzit_user');
@@ -41,21 +74,21 @@ export default function DashboardPage() {
     workOrders: {
       total: workOrders?.total || 0,
       pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW).length || 0,
-      overdue: workOrders?.items?.filter((wo: any) => wo.dueAt && new Date(wo.dueAt) < new Date()).length || 0
+      overdue: workOrders?.items?.filter((wo: WorkOrderWithDue) => wo.dueAt && new Date(wo.dueAt) < new Date()).length || 0
     },
     properties: {
       total: properties?.total || 0,
-      occupied: properties?.items?.filter((p: any) => p.details?.occupancyRate > 0).length || 0,
-      maintenance: properties?.items?.filter((p: any) => p.maintenance?.issues?.some((i: any) => !i.resolved)).length || 0
+      occupied: properties?.items?.filter((p: Property) => (p.details?.occupancyRate ?? 0) > 0).length || 0,
+      maintenance: properties?.items?.filter((p: Property) => p.maintenance?.issues?.some((i) => !i.resolved)).length || 0
     },
     assets: {
       total: assets?.total || 0,
-      critical: assets?.items?.filter((a: any) => a.criticality === 'CRITICAL').length || 0,
-      maintenance: assets?.items?.filter((a: any) => a.status === 'MAINTENANCE').length || 0
+      critical: assets?.items?.filter((a: Asset) => a.criticality === 'CRITICAL').length || 0,
+      maintenance: assets?.items?.filter((a: Asset) => a.status === 'MAINTENANCE').length || 0
     },
     finance: {
       overdue: invoices?.total || 0,
-      amount: invoices?.items?.reduce((sum: number, inv: any) => sum + inv.total, 0) || 0
+      amount: invoices?.items?.reduce((sum: number, inv: Invoice) => sum + inv.total, 0) || 0
     }
   };
 
@@ -161,7 +194,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {workOrders?.items?.slice(0, 5).map((wo: any) => (
+              {workOrders?.items?.slice(0, 5).map((wo: WorkOrder) => (
                 <div key={wo._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full ${
@@ -199,7 +232,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {properties?.items?.slice(0, 5).map((property: any) => (
+              {properties?.items?.slice(0, 5).map((property: Property) => (
                 <div key={property._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Building2 className="w-4 h-4 text-gray-400" />
