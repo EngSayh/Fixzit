@@ -42,8 +42,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
     })();
     // Scope updates to caller's tenant or global articles
-    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] } as any;
-    const filter = { ...baseFilter, ...tenantScope } as any;
+    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] };
+    const filter = { ...baseFilter, ...tenantScope };
 
     const update = {
       $set: {
@@ -53,8 +53,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       }
     };
 
-    const res = await coll.findOneAndUpdate(filter as any, update, { returnDocument: 'after' } as any);
-    const article = (res as any)?.value || null;
+    const res = await coll.findOneAndUpdate(filter, update, { returnDocument: 'after' });
+    const article = res?.value || null;
     if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/kb/ingest')
@@ -70,11 +70,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const response = NextResponse.json(article);
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
-  } catch (_err: any) {
-    if (_err?.name === 'ZodError') {
-      return validationError('Validation failed', _err.issues);
+  } catch (_err: unknown) {
+    if (_err && typeof _err === 'object' && 'name' in _err && _err.name === 'ZodError' && 'issues' in _err) {
+      return validationError('Validation failed', _err.issues as Array<{message: string}>);
     }
-    if (_err?.code === 11000) {
+    if (_err && typeof _err === 'object' && 'code' in _err && _err.code === 11000) {
       return createSecureResponse({ error: 'Duplicate key (e.g., slug) exists' }, 409, req);
     }
     console.error('PATCH /api/help/articles/[id] failed', _err);

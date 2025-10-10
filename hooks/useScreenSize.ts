@@ -86,7 +86,7 @@ export function useScreenSize() {
 
 // Helper function to get responsive classes
 export function getResponsiveClasses(screenInfo: ScreenInfo) {
-  const { size, isMobile, isTablet, isDesktop, isLarge } = screenInfo;
+  const { size, isMobile, isTablet, isDesktop } = screenInfo;
 
   return {
     // Container classes
