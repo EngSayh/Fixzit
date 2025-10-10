@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const data = notificationSchema.parse(body);
   const { notifications } = await getCollections();
-  const doc = {
-    orgId,
+  const doc: Omit<NotificationDoc, '_id'> = {
+    tenantId: orgId,
     type: data.type,
     title: data.title,
     message: data.message,
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     timestamp: new Date().toISOString(),
     read: false,
     archived: false
-  } as any;
+  };
 
   const result = await notifications.insertOne(doc);
   return NextResponse.json({ ...doc, _id: result.insertedId }, { status: 201 });
