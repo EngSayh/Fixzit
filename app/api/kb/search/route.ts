@@ -6,6 +6,20 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
+// Define proper type for search results
+interface SearchResult {
+  articleId: string;
+  chunkId: string;
+  text: string;
+  lang: string;
+  route: string;
+  roleScopes: string[];
+  slug?: string;
+  title?: string;
+  updatedAt?: Date;
+  score?: number;
+}
+
 /**
  * POST /api/kb/search
  * Body: { query: number[] (embedding), lang?: string, role?: string, route?: string, limit?: number }
@@ -72,7 +86,7 @@ export async function POST(req: NextRequest) {
     if (role) scope.$and.push({ roleScopes: { $in: [role] } });
     if (route) scope.$and.push({ route });
 
-    let results: Record<string, unknown>[] = [];
+    let results: SearchResult[] = [];
     try {
       const pipe = [
         {
@@ -101,15 +115,16 @@ export async function POST(req: NextRequest) {
           }
         }
       ];
-      results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
-    } catch {
+      results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray() as unknown as SearchResult[];
+    } catch (vectorError) {
+      console.warn('Vector search failed, falling back to lexical search:', vectorError);
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       const filter = { ...scope, text: safe } as Record<string, unknown>;
       results = await coll
         .find(filter, { projection: { articleId: 1, chunkId: 1, text: 1, lang: 1, route: 1, roleScopes: 1 } })
         .limit(limit)
-        .toArray();
+        .toArray() as unknown as SearchResult[];
     }
 
     return createSecureResponse({ results }, 200, req);
@@ -134,4 +149,3 @@ function rateLimitAssert(req: NextRequest) {
     : 60;
   if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
-

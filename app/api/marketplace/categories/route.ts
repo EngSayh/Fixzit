@@ -40,9 +40,14 @@ export async function GET(request: NextRequest) {
       parentMap.get(parentId)!.push(category);
     });
 
-    const buildTree = (parentId: string | undefined): any[] => {
+    interface CategoryNode {
+      _id: string;
+      [key: string]: unknown;
+    }
+    
+    const buildTree = (parentId: string | undefined): CategoryNode[] => {
       const nodes = parentMap.get(parentId ?? 'root') ?? [];
-      return nodes.map((node: any) => ({
+      return (nodes as CategoryNode[]).map((node) => ({
         ...node,
         children: buildTree(node._id)
       }));

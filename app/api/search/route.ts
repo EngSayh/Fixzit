@@ -69,13 +69,22 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ results: [] }, 200, req);
     }
 
+    interface SearchResult {
+      id: string;
+      entity: string;
+      title: string;
+      subtitle: string;
+      href: string;
+      score: number;
+    }
+
     const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
-    const results: any[] = [];
+    const results: SearchResult[] = [];
 
     // Search across different entity types based on app
     for (const entity of searchEntities) {
       try {
-        let collection: any;
+        let collection: ReturnType<NonNullable<typeof mongoose.connection.db>['collection']> | undefined;
         let searchQuery: Record<string, unknown> = { $text: { $search: q } };
         let projection: Record<string, unknown> = { score: { $meta: 'textScore' } };
 
@@ -179,6 +188,17 @@ export async function GET(req: NextRequest) {
         }
 
         if (collection) {
+          interface SearchItem {
+            _id?: { toString: () => string };
+            title?: string;
+            name?: string;
+            code?: string;
+            description?: string;
+            address?: string;
+            status?: string;
+            score?: number;
+          }
+          
           const items = await collection
             .find(searchQuery)
             .project(projection)
@@ -186,7 +206,7 @@ export async function GET(req: NextRequest) {
             .limit(5)
             .toArray();
 
-          items.forEach((item: any) => {
+          items.forEach((item: SearchItem) => {
             const result = {
               id: item._id?.toString() || '',
               entity,

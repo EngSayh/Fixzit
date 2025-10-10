@@ -19,7 +19,7 @@ const QuerySchema = z.object({
   limit: z.coerce.number().default(12).refine(val => val <= 50, { message: 'Limit must be 50 or less' })
 });
 
-const toIsoString = (value: any) => {
+const toIsoString = (value: unknown) => {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
   const date = new Date(value as string);
@@ -90,7 +90,28 @@ export async function GET(req: NextRequest) {
       RFQ.countDocuments(filter)
     ]);
 
-    const normalized = items.map((item: any) => ({
+    interface RFQItem {
+      _id?: { toString?: () => string } | string;
+      tenantId?: string;
+      code?: string;
+      title?: string;
+      description?: string;
+      category?: string;
+      subcategory?: string;
+      status?: string;
+      location?: { city?: string; region?: string; radius?: number };
+      budget?: { estimated?: number; currency?: string; range?: string };
+      timeline?: { publishDate?: unknown; bidDeadline?: unknown; startDate?: unknown; completionDate?: unknown };
+      bidding?: { targetBids?: number; maxBids?: number; anonymous?: boolean; bidLeveling?: boolean };
+      requirements?: unknown;
+      bids?: unknown[];
+      contact?: { name?: string; email?: string; phone?: string };
+      attachments?: unknown[];
+      createdAt?: unknown;
+      updatedAt?: unknown;
+    }
+
+    const normalized = (items as unknown as RFQItem[]).map((item) => ({
       id: item._id?.toString?.() ?? String(item._id),
       tenantId: item.tenantId,
       code: item.code,

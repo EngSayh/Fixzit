@@ -203,7 +203,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     return createSecureResponse(invoice, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Invoice PATCH error:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
     return createSecureResponse({ error: message }, 400, req);
   }
 }
@@ -243,7 +244,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Invoice DELETE error:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
     return createSecureResponse({ error: message }, 500, req);
   }
 }
