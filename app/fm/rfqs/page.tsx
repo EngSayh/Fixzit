@@ -18,6 +18,36 @@ import {
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
+interface RFQItem {
+  _id: string;
+  code?: string;
+  title?: string;
+  type?: string;
+  status?: string;
+  category?: string;
+  description?: string;
+  deadline?: string;
+  budget?: {
+    estimated?: number;
+    currency?: string;
+  };
+  bidding?: {
+    anonymous?: boolean;
+    targetBids?: number;
+  };
+  compliance?: {
+    cityBounded?: boolean;
+  };
+  timeline?: {
+    bidDeadline?: string;
+  };
+  location?: {
+    city?: string;
+    radius?: number;
+  };
+  bids?: unknown[];
+}
+
 export default function RFQsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -103,7 +133,7 @@ export default function RFQsPage() {
 
       {/* RFQs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rfqs.map((rfq: any) => (
+        {(rfqs as RFQItem[]).map((rfq) => (
           <RFQCard key={rfq._id} rfq={rfq} onUpdated={mutate} />
         ))}
       </div>
@@ -126,7 +156,7 @@ export default function RFQsPage() {
   );
 }
 
-function RFQCard({ rfq}: { rfq: any; onUpdated: () => void }) {
+function RFQCard({ rfq }: { rfq: RFQItem; onUpdated: () => void }) {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'construction':
@@ -172,14 +202,14 @@ function RFQCard({ rfq}: { rfq: any; onUpdated: () => void }) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
-            {getCategoryIcon(rfq.category)}
+            {getCategoryIcon(rfq.category || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{rfq.title}</CardTitle>
               <p className="text-sm text-gray-600">{rfq.code}</p>
             </div>
           </div>
-          <Badge className={getStatusColor(rfq.status)}>
-            {rfq.status.toLowerCase()}
+          <Badge className={getStatusColor(rfq.status || '')}>
+            {rfq.status?.toLowerCase() || ''}
           </Badge>
         </div>
       </CardHeader>
@@ -285,7 +315,7 @@ function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
       nationalAddress: ''
     },
     projectId: '',
-    specifications: [] as any[],
+    specifications: [] as string[],
     timeline: {
       bidDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

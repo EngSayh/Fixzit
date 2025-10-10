@@ -13,6 +13,33 @@ import { Truck, Plus, Search, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
+interface Vendor {
+  _id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  status?: string;
+  contact?: { 
+    email?: string; 
+    phone?: string;
+    address?: {
+      city?: string;
+      region?: string;
+    };
+  };
+  performance?: { 
+    successRate?: number; 
+    averageResponseTime?: number;
+    rating?: number;
+    completedProjects?: number;
+  };
+  business?: { 
+    specializations?: string[];
+  };
+  rating?: number;
+  address?: { city?: string };
+}
+
 export default function VendorsPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -96,7 +123,7 @@ export default function VendorsPage() {
 
       {/* Vendors Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vendors.map((vendor: any) => (
+        {(vendors as Vendor[]).map((vendor) => (
           <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
         ))}
       </div>
@@ -119,7 +146,7 @@ export default function VendorsPage() {
   );
 }
 
-function VendorCard({ vendor}: { vendor: any; onUpdated: () => void }) {
+function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'SUPPLIER':
@@ -172,18 +199,18 @@ function VendorCard({ vendor}: { vendor: any; onUpdated: () => void }) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
-            {getTypeIcon(vendor.type)}
+            {getTypeIcon(vendor.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{vendor.name}</CardTitle>
               <p className="text-sm text-gray-600">{vendor.code}</p>
             </div>
           </div>
           <div className="flex flex-col items-end space-y-1">
-            <Badge className={getTypeColor(vendor.type)}>
-              {vendor.type.toLowerCase()}
+            <Badge className={getTypeColor(vendor.type || '')}>
+              {vendor.type?.toLowerCase() || ''}
             </Badge>
-            <Badge className={getStatusColor(vendor.status)}>
-              {vendor.status.toLowerCase()}
+            <Badge className={getStatusColor(vendor.status || '')}>
+              {vendor.status?.toLowerCase() || ''}
             </Badge>
           </div>
         </div>
@@ -267,7 +294,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       employees: 0,
       annualRevenue: 0,
       specializations: [] as string[],
-      certifications: [] as any[]
+      certifications: [] as string[]
     },
     status: 'PENDING',
     tags: [] as string[]

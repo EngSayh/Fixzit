@@ -422,6 +422,7 @@ WorkOrderSchema.pre('save', function(next) {
 
   if (this.isModified('status') && !this.isNew) {
     const currentStatus = this.status;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const previousStatus = (this as any).$__?.originalDoc?.status;
     
     if (previousStatus && !validTransitions[previousStatus]?.includes(currentStatus)) {

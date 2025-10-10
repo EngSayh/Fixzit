@@ -3,6 +3,26 @@
 import { useState} from 'react';
 import useSWR from 'swr';
 
+interface TicketMessage {
+  from: string;
+  text: string;
+  timestamp: string;
+  byRole?: string;
+  at?: string;
+}
+
+interface Ticket {
+  _id: string;
+  code: string;
+  subject: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  module?: string;
+  type?: string;
+  messages?: TicketMessage[];
+}
+
 const fetcher = (url: string) => fetch(url, {
   headers: {
     "x-user": localStorage.getItem("x-user") || ""
@@ -10,7 +30,7 @@ const fetcher = (url: string) => fetch(url, {
 }).then(r => r.json());
 
 export default function MyTicketsPage() {
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState('');
   const { data, mutate } = useSWR('/api/support/tickets/my', fetcher);
 
@@ -69,7 +89,7 @@ export default function MyTicketsPage() {
               {data?.items?.length === 0 ? (
                 <p className="p-4 text-gray-500 text-center">No tickets yet</p>
               ) : (
-                data?.items?.map((ticket: any) => (
+                data?.items?.map((ticket: Ticket) => (
                   <div
                     key={ticket._id}
                     onClick={() => setSelectedTicket(ticket)}
@@ -125,7 +145,7 @@ export default function MyTicketsPage() {
 
               {/* Messages */}
               <div className="p-4 max-h-96 overflow-y-auto">
-                {selectedTicket.messages?.map((msg: any, index: number) => (
+                {selectedTicket.messages?.map((msg, index: number) => (
                   <div key={index} className={`mb-4 ${
                     msg.byRole === 'ADMIN' ? 'ml-8' : ''
                   }`}>
@@ -139,7 +159,7 @@ export default function MyTicketsPage() {
                           {msg.byRole === 'ADMIN' ? 'Support Team' : 'You'}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {new Date(msg.at).toLocaleString()}
+                          {msg.at ? new Date(msg.at).toLocaleString() : new Date(msg.timestamp).toLocaleString()}
                         </p>
                       </div>
                       <p className="text-sm text-gray-900">{msg.text}</p>

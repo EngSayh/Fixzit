@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 // Google Maps type declaration
 declare global {
   interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     google: any;
   }
 }
