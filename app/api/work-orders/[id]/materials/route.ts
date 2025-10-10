@@ -35,10 +35,22 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
-  const wo:any = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
+  interface Material {
+    sku?: string;
+    name: string;
+    qty: number;
+    unitPrice: number;
+    currency: string;
+  }
+  interface WorkOrderDoc {
+    materials: Material[];
+    costSummary?: { labor?: number; materials?: number; other?: number; total?: number };
+    save: () => Promise<void>;
+  }
+  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   wo.materials.push(m);
-  const materials = wo.materials.reduce((s:any,c:any)=>s+(c.qty*c.unitPrice),0);
+  const materials = wo.materials.reduce((s, c) => s + (c.qty * c.unitPrice), 0);
   const total = (wo.costSummary?.labor||0) + materials + (wo.costSummary?.other||0);
   wo.costSummary = { ...(wo.costSummary||{}), materials, total };
   await wo.save();

@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown as () => Promise<void>)();
     const AssetMod = await import('@/server/models/Asset').catch(() => null);
     const Asset = AssetMod && AssetMod.Asset;
     if (!Asset) {
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown as () => Promise<void>)();
     const AssetMod = await import('@/server/models/Asset').catch(() => null);
     const Asset = AssetMod && AssetMod.Asset;
     if (!Asset) {
@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
     const propertyId = searchParams.get("propertyId");
     const search = searchParams.get("search");
 
-    const match: Record<string, any> = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;

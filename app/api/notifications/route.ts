@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { notifications } = await getCollections();
-  const filter: Record<string, any> = { orgId };
+  const filter: Record<string, unknown> = { orgId };
   if (q) {
     const safe = escapeRegex(q);
     filter.$or = [

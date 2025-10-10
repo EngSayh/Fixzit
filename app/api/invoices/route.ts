@@ -106,7 +106,13 @@ export async function POST(req: NextRequest) {
     // Calculate totals
     let subtotal = 0;
     let totalTax = 0;
-    const taxes: any[] = [];
+    interface TaxSummary {
+      type: string;
+      rate: number;
+      amount: number;
+      category?: string;
+    }
+    const taxes: TaxSummary[] = [];
 
     data.items.forEach(item => {
       const itemSubtotal = item.quantity * item.unitPrice - item.discount;
@@ -139,7 +145,8 @@ export async function POST(req: NextRequest) {
       { $inc: { sequence: 1 } },
       { upsert: true, returnDocument: "after" }
     );
-    const number = `INV-${year}-${String(((result as any)?.sequence ?? 1)).padStart(5, '0')}`;
+    const sequence = (result as { sequence?: number } | null)?.sequence ?? 1;
+    const number = `INV-${year}-${String(sequence).padStart(5, '0')}`;
 
     // Generate ZATCA QR code
     const qrCode = await generateZATCAQR({
@@ -205,7 +212,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: Record<string, any> = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (type) match.type = type;

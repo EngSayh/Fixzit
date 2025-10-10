@@ -37,7 +37,11 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
   const params = await props.params;
   const user = await getSessionUser(req);await connectToDatabase();
   const { text } = schema.parse(await req.json());
-  const wo:any = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
+  interface WorkOrderDoc {
+    comments?: Array<{ byUserId: string; text: string; at: Date }>;
+    save: () => Promise<void>;
+  }
+  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   wo.comments ??= [];
   wo.comments.push({ byUserId:user.id, text: String(text).slice(0, 5000), at:new Date() });

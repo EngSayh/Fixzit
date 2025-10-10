@@ -133,7 +133,11 @@ export async function POST(req: NextRequest) {
   });
 
   // Auto-create a Support Ticket (same model used by /api/support/tickets)
-  let ticket: any | null = null;
+  interface TicketDoc {
+    code?: string;
+    _id?: unknown;
+  }
+  let ticket: TicketDoc | null = null;
   const genCode = () => `SUP-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`;
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();

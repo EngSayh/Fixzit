@@ -87,8 +87,16 @@ export async function GET(req: NextRequest) {
       { $limit: 5000 },
     ];
 
+    interface ClusterRow {
+      _id: { gx: number; gy: number };
+      count: number;
+      avgPrice?: number;
+      lat: number;
+      lng: number;
+    }
+
     const rows = await col.aggregate(pipeline).toArray();
-    const clusters = rows.map((r: any) => ({
+    const clusters = (rows as unknown as ClusterRow[]).map((r) => ({
       id: `${r._id.gx}:${r._id.gy}`,
       lat: r.lat,
       lng: r.lng,

@@ -29,7 +29,13 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
   const params = await props.params;
   await connectToDatabase();const user = await getSessionUser(req);
   const { checklistIndex, itemIndex, done } = schema.parse(await req.json());
-  const wo:any = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
+  interface WorkOrderDoc {
+    checklists?: Array<{
+      items?: Array<{ done: boolean }>;
+    }>;
+    save: () => Promise<void>;
+  }
+  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   if (!wo.checklists?.[checklistIndex]?.items?.[itemIndex]) return createSecureResponse({error:"Bad index"}, 400, req);
   wo.checklists[checklistIndex].items[itemIndex].done = done;

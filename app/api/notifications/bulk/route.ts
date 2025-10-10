@@ -54,7 +54,12 @@ export async function POST(req: NextRequest) {
   const ids = notificationIds.map(toObjectId).filter(Boolean) as ObjectId[];
   const filter = { _id: { $in: ids }, tenantId };
 
-  let res: any;
+  interface BulkUpdateResult {
+    deletedCount?: number;
+    modifiedCount?: number;
+  }
+
+  let res: BulkUpdateResult;
   if (action === 'delete') {
     res = await notifications.deleteMany(filter);
     if (!res.deletedCount) return createSecureResponse({ error: 'No notifications found to delete' }, 404, req);
