@@ -112,7 +112,7 @@ export default function CatalogPage() {
 
   const categories = ['all', ...Array.from(new Set(SAMPLE_PRODUCTS.map(p => p.category)))];
 
-  const handleAddToCart = (productId: string) => {
+  const handleAddToCart = (_productId: string) => {
     // Redirect to login if not authenticated
     window.location.href = '/login?redirect=/souq/catalog&action=add-to-cart';
   };

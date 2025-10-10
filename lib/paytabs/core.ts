@@ -186,7 +186,7 @@ export function validateCallback(payload: any, signature: string): boolean {
  * @param payload Payload to sign
  * @returns Generated signature
  */
-function generateSignature(payload: any): string {
+function generateSignature(_payload: any): string {
   // Placeholder - implement according to PayTabs signature algorithm
   // Refer to PayTabs documentation for actual implementation
   return '';
