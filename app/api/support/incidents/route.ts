@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
   let safe: z.infer<typeof schema>;
   try {
     safe = schema.parse(body);
-  } catch (_err: any) {
-    const issues = (_err as any)?.issues ?? [];
+  } catch (_err: unknown) {
+    const issues = _err && typeof _err === 'object' && 'issues' in _err ? (_err as { issues: unknown[] }).issues : [];
     return NextResponse.json(
       {
         type: 'https://docs.fixzit/errors/invalid-incident-payload',
@@ -164,8 +164,8 @@ export async function POST(req: NextRequest) {
         ]
       });
       break;
-    } catch (_e: any) {
-      if (_e?.code === 11000) continue; // duplicate code -> retry
+    } catch (_e: unknown) {
+      if (_e && typeof _e === 'object' && 'code' in _e && _e.code === 11000) continue; // duplicate code -> retry
       throw _e;
     }
   }

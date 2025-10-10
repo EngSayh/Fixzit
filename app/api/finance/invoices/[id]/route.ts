@@ -36,12 +36,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
     
     const inv = await svc.post(user.orgId, params.id, body, user.id, req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown");
     return createSecureResponse({ data: inv }, 200, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
     console.error('Invoice update failed:', error);
-    return createSecureResponse({ error: error.message || 'Failed to update invoice' }, 400, req);
+    const message = error instanceof Error ? error.message : 'Failed to update invoice';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 

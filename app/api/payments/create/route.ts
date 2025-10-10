@@ -154,9 +154,9 @@ export async function POST(req: NextRequest) {
     } else {
       return validationError(paymentResponse.error || 'Payment initialization failed');
     }
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return zodValidationError(error);
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      return zodValidationError(error as z.ZodError);
     }
     return handleApiError(error);
   }

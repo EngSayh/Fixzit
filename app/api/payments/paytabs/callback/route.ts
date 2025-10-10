@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       status: success ? 'PAID' : 'FAILED',
       message: resp_message
     }, 200, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return handleApiError(error);
   }
 }
