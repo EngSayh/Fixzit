@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { AutoFixAgent } from '@/qa/AutoFixAgent';
 import { ErrorBoundary } from '@/qa/ErrorBoundary';
 
