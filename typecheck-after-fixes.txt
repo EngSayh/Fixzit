@@ -1,0 +1,368 @@
+
+> fixzit-frontend@2.0.26 typecheck /workspaces/Fixzit
+> tsc -p .
+
+app/api/assistant/query/route.ts(147,24): error TS18046: 'd0' is of type 'unknown'.
+app/api/assistant/query/route.ts(147,71): error TS18046: 'd0' is of type 'unknown'.
+app/api/invoices/route.ts(119,45): error TS18046: 't' is of type 'unknown'.
+app/api/invoices/route.ts(119,74): error TS18046: 't' is of type 'unknown'.
+app/api/invoices/route.ts(121,23): error TS2339: Property 'amount' does not exist on type '{}'.
+app/api/marketplace/products/route.ts(81,62): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown> | MarketplaceProduct'.
+app/api/payments/callback/route.ts(53,46): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/api/payments/callback/route.ts(74,28): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/api/payments/callback/route.ts(97,16): error TS18048: 'payment_result' is possibly 'undefined'.
+app/api/payments/callback/route.ts(104,37): error TS18048: 'payment_result' is possibly 'undefined'.
+app/api/public/rfqs/route.ts(94,11): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(94,44): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(95,17): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(96,13): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(97,14): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(98,20): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(99,17): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(100,20): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(101,15): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(102,17): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(104,19): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(105,21): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(106,21): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(109,15): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(111,24): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(112,23): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(113,20): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(116,17): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(118,38): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(119,38): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(120,36): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(121,41): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(124,16): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(126,25): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(127,22): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(128,24): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(129,26): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(132,21): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(133,32): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(133,45): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(134,30): error TS18046: 'item' is of type 'unknown'.
+app/api/public/rfqs/route.ts(135,30): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(191,19): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(193,22): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(193,36): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(193,49): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(194,25): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(194,45): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(194,61): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(195,42): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(196,22): error TS18046: 'item' is of type 'unknown'.
+app/api/search/route.ts(208,29): error TS18046: 'b' is of type 'unknown'.
+app/api/search/route.ts(208,46): error TS18046: 'a' is of type 'unknown'.
+app/cms/[slug]/page.tsx(12,33): error TS2339: Property 'preview' does not exist on type '{}'.
+app/finance/page.tsx(30,22): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(33,49): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(34,74): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(37,34): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(37,88): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(40,48): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(40,60): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(40,80): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(42,29): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(42,61): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(43,29): error TS18046: 'inv' is of type 'unknown'.
+app/finance/page.tsx(43,61): error TS18046: 'inv' is of type 'unknown'.
+app/fm/assets/page.tsx(106,27): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(160,45): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(161,56): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(164,28): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(165,46): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(166,16): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(175,52): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(179,52): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(184,15): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(185,15): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(186,15): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(189,16): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(192,12): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(196,18): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(196,48): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(197,18): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(197,53): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(198,18): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(198,51): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(208,32): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(209,26): error TS18046: 'asset' is of type 'unknown'.
+app/fm/assets/page.tsx(209,51): error TS18046: 'asset' is of type 'unknown'.
+app/fm/projects/page.tsx(107,29): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(166,25): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(167,27): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(175,26): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(177,47): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(178,53): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(181,44): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(182,14): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(187,60): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(193,44): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(198,34): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(225,16): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(225,67): error TS18046: 'project' is of type 'unknown'.
+app/fm/projects/page.tsx(234,16): error TS18046: 'project' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(161,53): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(163,28): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(163,42): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(163,60): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(163,78): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(168,27): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(169,27): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(172,28): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(174,26): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(175,70): error TS18046: 'unit' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(308,50): error TS18046: 'issue' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(312,27): error TS18046: 'issue' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(313,27): error TS18046: 'issue' is of type 'unknown'.
+app/fm/properties/[id]/page.tsx(316,32): error TS18046: 'issue' is of type 'unknown'.
+app/fm/properties/page.tsx(92,30): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(145,25): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(146,22): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(147,25): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(147,64): error TS18046: 'u' is of type 'unknown'.
+app/fm/properties/page.tsx(154,26): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(156,47): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(157,53): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(160,42): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(161,14): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(168,18): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(168,44): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(174,52): error TS18046: 'property' is of type 'unknown'.
+app/fm/properties/page.tsx(186,52): error TS18046: 'property' is of type 'unknown'.
+app/fm/rfqs/page.tsx(107,25): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(162,25): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(163,27): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(166,23): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(167,17): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(167,42): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(175,30): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(177,47): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(178,53): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(181,44): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(182,14): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(187,60): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(191,18): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(192,12): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(193,39): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(198,10): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(203,18): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(203,42): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(237,16): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(237,67): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(244,14): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(250,14): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/rfqs/page.tsx(261,14): error TS18046: 'rfq' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(91,26): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(93,22): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(96,22): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(99,22): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(103,23): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(104,23): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(105,23): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(108,24): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(113,30): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(114,51): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/support/tickets/page.tsx(125,31): error TS18046: 'ticket' is of type 'unknown'.
+app/fm/tenants/page.tsx(85,28): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(134,28): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(134,70): error TS18046: 'p' is of type 'unknown'.
+app/fm/tenants/page.tsx(135,27): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(142,26): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(144,47): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(145,53): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(148,42): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(149,14): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(156,18): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(159,10): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(162,20): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(168,18): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(168,51): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/tenants/page.tsx(187,16): error TS18046: 'tenant' is of type 'unknown'.
+app/fm/vendors/page.tsx(100,28): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(175,26): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(177,47): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(178,53): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(182,44): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(183,16): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(185,46): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(186,16): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(194,18): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(194,51): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(199,42): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(201,15): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(210,52): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(214,52): error TS18046: 'vendor' is of type 'unknown'.
+app/fm/vendors/page.tsx(218,52): error TS18046: 'vendor' is of type 'unknown'.
+app/help/support-ticket/page.tsx(71,24): error TS2339: Property 'message' does not exist on type '{}'.
+app/hr/ats/jobs/new/page.tsx(45,13): error TS18046: 'err' is of type 'unknown'.
+app/marketplace/cart/page.tsx(12,16): error TS18046: 'cartResponse' is of type 'unknown'.
+app/marketplace/cart/page.tsx(23,31): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(28,32): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(29,32): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(37,63): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(37,85): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(38,30): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(41,73): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(42,75): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(42,88): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(43,90): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(43,114): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(47,38): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/cart/page.tsx(48,38): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/checkout/page.tsx(12,16): error TS18046: 'cartResponse' is of type 'unknown'.
+app/marketplace/checkout/page.tsx(36,28): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/checkout/page.tsx(37,28): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/checkout/page.tsx(37,55): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/checkout/page.tsx(39,24): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/checkout/page.tsx(39,37): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/checkout/page.tsx(39,50): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/orders/page.tsx(19,18): error TS18046: 'ordersResponse' is of type 'unknown'.
+app/marketplace/orders/page.tsx(49,31): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/orders/page.tsx(50,68): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/orders/page.tsx(51,61): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/orders/page.tsx(51,74): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/orders/page.tsx(51,87): error TS18046: 'line' is of type 'unknown'.
+app/marketplace/rfq/page.tsx(11,24): error TS18046: '_categoriesResponse' is of type 'unknown'.
+app/marketplace/rfq/page.tsx(12,11): error TS18046: 'category' is of type 'unknown'.
+app/marketplace/rfq/page.tsx(13,11): error TS18046: 'category' is of type 'unknown'.
+app/marketplace/rfq/page.tsx(13,32): error TS18046: 'category' is of type 'unknown'.
+app/marketplace/rfq/page.tsx(16,16): error TS18046: 'rfqResponse' is of type 'unknown'.
+app/marketplace/vendor/page.tsx(11,25): error TS18046: 'categoriesResponse' is of type 'unknown'.
+app/marketplace/vendor/page.tsx(12,11): error TS18046: 'category' is of type 'unknown'.
+app/marketplace/vendor/page.tsx(13,11): error TS18046: 'category' is of type 'unknown'.
+app/marketplace/vendor/page.tsx(13,32): error TS18046: 'category' is of type 'unknown'.
+app/marketplace/vendor/page.tsx(16,20): error TS18046: 'productsResponse' is of type 'unknown'.
+app/properties/[id]/page.tsx(10,5): error TS2717: Subsequent property declarations must have the same type.  Property 'google' must be of type 'any', but here has type 'unknown'.
+app/support/my-tickets/page.tsx(20,68): error TS2339: Property '_id' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(33,76): error TS2339: Property '_id' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(74,26): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(77,39): error TS2339: Property '_id' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(77,47): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(81,73): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(83,25): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(84,25): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(85,25): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(86,25): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(89,26): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(92,71): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(94,33): error TS18046: 'ticket' is of type 'unknown'.
+app/support/my-tickets/page.tsx(110,81): error TS2339: Property 'subject' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(112,39): error TS2339: Property 'code' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(112,63): error TS2339: Property 'module' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(112,89): error TS2339: Property 'type' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(116,36): error TS2339: Property 'priority' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(117,36): error TS2339: Property 'priority' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(118,36): error TS2339: Property 'priority' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(121,37): error TS2339: Property 'priority' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(128,33): error TS2339: Property 'messages' does not exist on type '{}'.
+app/support/my-tickets/page.tsx(130,21): error TS18046: 'msg' is of type 'unknown'.
+app/support/my-tickets/page.tsx(133,23): error TS18046: 'msg' is of type 'unknown'.
+app/support/my-tickets/page.tsx(139,28): error TS18046: 'msg' is of type 'unknown'.
+app/support/my-tickets/page.tsx(142,37): error TS18046: 'msg' is of type 'unknown'.
+app/support/my-tickets/page.tsx(145,61): error TS18046: 'msg' is of type 'unknown'.
+app/support/my-tickets/page.tsx(152,31): error TS2339: Property 'status' does not exist on type '{}'.
+app/work-orders/[id]/parts/page.tsx(48,56): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(51,19): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(57,14): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(58,15): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(59,16): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(60,16): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(128,31): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(130,56): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(131,63): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(131,88): error TS18046: 'part' is of type 'unknown'.
+app/work-orders/[id]/parts/page.tsx(132,81): error TS18046: 'part' is of type 'unknown'.
+components/AIChat.tsx(71,114): error TS18046: 'c' is of type 'unknown'.
+components/AIChat.tsx(71,132): error TS18046: 'c' is of type 'unknown'.
+components/AutoIncidentReporter.tsx(44,66): error TS2339: Property 'message' does not exist on type '{}'.
+components/AutoIncidentReporter.tsx(45,29): error TS2339: Property 'stack' does not exist on type '{}'.
+components/AutoIncidentReporter.tsx(45,51): error TS2339: Property 'stack' does not exist on type '{}'.
+components/SupportPopup.tsx(37,19): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(38,18): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(39,12): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(40,19): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(43,15): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(44,18): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(45,19): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(46,19): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(49,19): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(50,24): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(51,3): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(51,67): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(54,24): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(55,20): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(56,23): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(57,20): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(61,3): error TS18046: 'errorDetails' is of type 'unknown'.
+components/SupportPopup.tsx(66,3): error TS18046: 'errorDetails' is of type 'unknown'.
+components/fm/WorkOrdersView.tsx(385,30): error TS2339: Property 'message' does not exist on type '{}'.
+lib/auth.ts(167,18): error TS18046: 'User' is of type 'unknown'.
+lib/auth.ts(170,18): error TS18046: 'User' is of type 'unknown'.
+lib/auth.ts(214,22): error TS18046: 'User' is of type 'unknown'.
+lib/db/index.ts(120,15): error TS18046: 'error' is of type 'unknown'.
+lib/db/index.ts(120,36): error TS18046: 'error' is of type 'unknown'.
+lib/marketplace/cart.ts(20,20): error TS18046: 'cart' is of type 'unknown'.
+lib/marketplace/cart.ts(20,76): error TS18046: 'line' is of type 'unknown'.
+lib/marketplace/cart.ts(22,3): error TS18046: 'cart' is of type 'unknown'.
+lib/marketplace/cartClient.ts(22,16): error TS2339: Property 'error' does not exist on type '{}'.
+lib/marketplace/cartClient.ts(22,40): error TS2339: Property 'error' does not exist on type '{}'.
+lib/marketplace/cartClient.ts(23,20): error TS2339: Property 'error' does not exist on type '{}'.
+lib/marketplace/cartClient.ts(25,16): error TS2339: Property 'message' does not exist on type '{}'.
+lib/marketplace/cartClient.ts(25,42): error TS2339: Property 'message' does not exist on type '{}'.
+lib/marketplace/cartClient.ts(26,20): error TS2339: Property 'message' does not exist on type '{}'.
+lib/marketplace/cartClient.ts(51,26): error TS2339: Property 'data' does not exist on type '{}'.
+lib/marketplace/context.ts(78,57): error TS2339: Property 'tenantId' does not exist on type '{}'.
+lib/marketplace/context.ts(79,40): error TS2339: Property 'orgId' does not exist on type '{}'.
+lib/marketplace/context.ts(80,27): error TS2339: Property 'id' does not exist on type '{}'.
+lib/marketplace/context.ts(80,53): error TS2339: Property 'id' does not exist on type '{}'.
+lib/marketplace/context.ts(81,26): error TS2339: Property 'role' does not exist on type '{}'.
+lib/marketplace/context.ts(81,66): error TS2339: Property 'professional' does not exist on type '{}'.
+lib/mongo.ts(109,21): error TS2339: Property 'collection' does not exist on type '{}'.
+lib/mongo.ts(114,25): error TS2339: Property 'connection' does not exist on type '{}'.
+lib/paytabs/subscription.ts(42,29): error TS2339: Property 'payment_info' does not exist on type '{}'.
+lib/paytabs/subscription.ts(45,21): error TS2339: Property 'tran_ref' does not exist on type '{}'.
+lib/paytabs/subscription.ts(45,39): error TS2339: Property 'tranRef' does not exist on type '{}'.
+lib/paytabs/subscription.ts(46,23): error TS2339: Property 'payment_result' does not exist on type '{}'.
+lib/paytabs/subscription.ts(46,64): error TS2339: Property 'respStatus' does not exist on type '{}'.
+lib/paytabs/subscription.ts(47,18): error TS2339: Property 'token' does not exist on type '{}'.
+lib/paytabs/subscription.ts(49,13): error TS2339: Property 'customer_details' does not exist on type '{}'.
+lib/paytabs/subscription.ts(50,13): error TS2339: Property 'customerEmail' does not exist on type '{}'.
+lib/paytabs/subscription.ts(52,20): error TS2339: Property 'cart_id' does not exist on type '{}'.
+lib/paytabs/subscription.ts(52,37): error TS2339: Property 'cartId' does not exist on type '{}'.
+lib/paytabs/subscription.ts(53,26): error TS2339: Property 'cart_amount' does not exist on type '{}'.
+lib/paytabs/subscription.ts(53,47): error TS2339: Property 'tran_total' does not exist on type '{}'.
+lib/paytabs/subscription.ts(53,67): error TS2339: Property 'amount' does not exist on type '{}'.
+lib/paytabs/subscription.ts(54,21): error TS2339: Property 'cart_currency' does not exist on type '{}'.
+lib/paytabs/subscription.ts(54,44): error TS2339: Property 'tran_currency' does not exist on type '{}'.
+lib/paytabs/subscription.ts(54,67): error TS2339: Property 'currency' does not exist on type '{}'.
+lib/paytabs/subscription.ts(145,15): error TS2339: Property 'name' does not exist on type '{}'.
+lib/paytabs/subscription.ts(148,22): error TS2339: Property 'name' does not exist on type '{}'.
+lib/paytabs/subscription.ts(150,18): error TS2339: Property 'primary_contact_user_id' does not exist on type '{}'.
+lib/paytabs/subscription.ts(153,22): error TS2339: Property 'name' does not exist on type '{}'.
+lib/paytabs/subscription.ts(155,18): error TS2339: Property 'primary_contact_user_id' does not exist on type '{}'.
+lib/paytabs/subscription.ts(156,33): error TS2339: Property 'member_user_ids' does not exist on type '{}'.
+lib/paytabs/subscription.ts(157,36): error TS2339: Property 'fm_provider_org_id' does not exist on type '{}'.
+lib/paytabs/subscription.ts(158,30): error TS2339: Property 'agent_org_id' does not exist on type '{}'.
+lib/paytabs/subscription.ts(159,30): error TS2339: Property 'property_ids' does not exist on type '{}'.
+lib/pricing.ts(179,30): error TS18046: 'item' is of type 'unknown'.
+lib/pricing.ts(180,23): error TS18046: 'item' is of type 'unknown'.
+lib/pricing.ts(184,15): error TS18046: 'item' is of type 'unknown'.
+lib/pricing.ts(184,34): error TS18046: 'item' is of type 'unknown'.
+lib/pricing.ts(187,24): error TS18046: 'item' is of type 'unknown'.
+src/server/models/Application.ts(71,34): error TS2339: Property 'history' does not exist on type '{}'.
+src/server/models/Application.ts(71,58): error TS2339: Property 'history' does not exist on type '{}'.
+src/server/models/Application.ts(72,17): error TS2339: Property 'history' does not exist on type '{}'.
+src/server/models/Application.ts(74,34): error TS2339: Property 'flags' does not exist on type '{}'.
+src/server/models/Application.ts(74,54): error TS2339: Property 'flags' does not exist on type '{}'.
+src/server/models/Application.ts(75,34): error TS2339: Property 'reviewers' does not exist on type '{}'.
+src/server/models/Application.ts(75,58): error TS2339: Property 'reviewers' does not exist on type '{}'.
+src/server/models/Application.ts(76,34): error TS2339: Property 'notes' does not exist on type '{}'.
+src/server/models/Application.ts(76,54): error TS2339: Property 'notes' does not exist on type '{}'.
+src/server/models/Application.ts(77,20): error TS2339: Property 'candidateSnapshot' does not exist on type '{}'.
+src/server/models/Application.ts(77,51): error TS2339: Property 'candidateSnapshot' does not exist on type '{}'.
+ ELIFECYCLE  Command failed with exit code 2.
