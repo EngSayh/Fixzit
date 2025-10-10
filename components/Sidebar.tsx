@@ -94,7 +94,7 @@ interface SidebarProps {
   tenantId?: string;
 }
 
-export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
+export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId: _tenantId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
