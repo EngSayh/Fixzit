@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import Redis from 'ioredis';
+import { Filter, Document } from 'mongodb';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -14,7 +15,23 @@ type AskRequest = {
   question: string;
   limit?: number;
   category?: string;
+  lang?: string;
+  route?: string;
 };
+
+interface UserWithAuth {
+  orgId?: string;
+  tenantId?: string;
+  role?: string;
+}
+
+interface SearchChunk {
+  slug?: string;
+  articleId?: string;
+  title?: string;
+  text?: string;
+  updatedAt?: string | Date;
+}
 
 function redactPII(s: string) {
   return s
@@ -133,12 +150,13 @@ export async function POST(req: NextRequest) {
     await rateLimitAssert(req);
     const body = await req.json().catch(() => ({} as AskRequest));
     const question = typeof body?.question === 'string' ? body.question : '';
-    const rawLimit = Number((body as any)?.limit);
+    const rawLimit = Number(body?.limit);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(8, Math.floor(rawLimit)) : 5;
     const category = typeof body?.category === 'string' ? body.category : undefined;
-    const lang = typeof (body as any)?.lang === 'string' ? body.lang : 'en';
-    const role = (user as any)?.role || undefined;
-    const route = typeof (body as any)?.route === 'string' ? body.route : undefined;
+    const lang = typeof body?.lang === 'string' ? body.lang : 'en';
+    const userWithAuth = user as UserWithAuth | null;
+    const role = userWithAuth?.role || undefined;
+    const route = typeof body?.route === 'string' ? body.route : undefined;
     if (!question || !question.trim()) {
       return createSecureResponse({ error: 'Missing question' }, 400, req);
     }
@@ -150,10 +168,10 @@ export async function POST(req: NextRequest) {
     // Text index is created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no orgId
-    const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    const orClauses: Filter<Document>[] = [ { orgId: { $exists: false } }, { orgId: null } ];
     if (user?.orgId) orClauses.unshift({ orgId: user.orgId });
-    const tenantScope = { $or: orClauses } as any;
-    const filter: Record<string, any> = { status: 'PUBLISHED', ...tenantScope };
+    const tenantScope = { $or: orClauses };
+    const filter: Filter<Document> = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
 
     // Prefer vector search if available
@@ -163,7 +181,8 @@ export async function POST(req: NextRequest) {
       const { performKbSearch } = await import('@/kb/search');
       const qVec = await embedText(question);
       const chunks = await performKbSearch({ tenantId: user?.tenantId, query: qVec, q: question, lang, role, route, limit });
-      docs = (chunks || []).map((c: any) => ({
+      const typedChunks = (chunks || []) as SearchChunk[];
+      docs = typedChunks.map((c) => ({
         slug: c.slug || c.articleId || '',
         title: c.title || '',
         content: c.text || '',
@@ -185,7 +204,7 @@ export async function POST(req: NextRequest) {
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
+        const regexFilter: Filter<Document> = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] };
         docs = await coll
           .find(regexFilter, { projection: { slug: 1, title: 1, content: 1, updatedAt: 1 } })
           .sort({ updatedAt: -1 })
@@ -298,7 +317,7 @@ function _validateRequest(body: AskRequest): { valid: boolean; error?: string } 
 }
 
 // Add response caching
-const _responseCache = new Map<string, { data: any; timestamp: number }>();
+const _responseCache = new Map<string, { data: unknown; timestamp: number }>();
 const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function _getCacheKey(question: string, category?: string, lang?: string): string {
