@@ -153,7 +153,28 @@
     "iex": true
   },
   "codium.codeCompletion.enable": false,
-  "chat.agent.maxRequests": 250,
+  
+  // === Agent Mode Configuration (Full Auto-Approve) ===
+  // Enable Agent Mode + long uninterrupted runs
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 999,
+  
+  // Kill *all* "Allow?" prompts (use with care)
+  "chat.tools.global.autoApprove": true,
+  
+  // Auto-answer common CLI prompts so runs don't hang
+  "chat.tools.terminal.autoReplyToPrompts": true,
+  
+  // Let agent run tasks without asking
+  "github.copilot.chat.agent.runTasks": true,
+  
+  // Silence OS balloons when input would be needed
+  "chat.notifyWindowOnConfirmation": false,
+  
+  // Enable repo instruction files for PR workflow guidance
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  
+  // Session and UI settings
   "chat.agentSessionsViewLocation": "view",
   "chat.checkpoints.showFileChanges": true,
   "chat.editing.autoAcceptDelay": 10

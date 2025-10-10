@@ -6,12 +6,23 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
+        "terminal.integrated.defaultProfile.linux": "bash",
+        
+        // === Agent Mode Configuration (Full Auto-Approve in Remote) ===
+        "chat.agent.enabled": true,
+        "chat.agent.maxRequests": 999,
+        "chat.tools.global.autoApprove": true,
+        "chat.tools.terminal.autoReplyToPrompts": true,
+        "github.copilot.chat.agent.runTasks": true,
+        "chat.notifyWindowOnConfirmation": false,
+        "github.copilot.chat.codeGeneration.useInstructionFiles": true
       },
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "ms-playwright.playwright"
+        "ms-playwright.playwright",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
       ]
     }
   },
