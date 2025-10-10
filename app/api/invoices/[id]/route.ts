@@ -148,7 +148,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       });
 
       // Update invoice status if fully paid
-      const totalPaid = invoice.payments.reduce((sum: number, p: any) => 
+      const totalPaid = invoice.payments.reduce((sum: number, p: { status: string; amount: number }) => 
         p.status === "COMPLETED" ? sum + p.amount : sum, 0
       );
 
@@ -165,7 +165,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     // Handle approval
     if (data.approval) {
-      const level = invoice.approval.levels.find((l: any) => 
+      const level = invoice.approval.levels.find((l: { approver: string; status: string }) => 
         l.approver === user.id && l.status === "PENDING"
       );
 
@@ -175,7 +175,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         level.comments = data.approval.comments;
 
         // Check if all levels approved
-        const allApproved = invoice.approval.levels.every((l: any) => 
+        const allApproved = invoice.approval.levels.every((l: { status: string }) => 
           l.status === "APPROVED"
         );
 
