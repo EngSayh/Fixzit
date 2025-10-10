@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`
     };
 
-    const paymentResponse = await createPaymentPage(paymentRequest as any);
+    const paymentResponse = await createPaymentPage(paymentRequest as unknown as Parameters<typeof createPaymentPage>[0]);
 
     if (paymentResponse.success) {
       // Update invoice with payment transaction

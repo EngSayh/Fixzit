@@ -131,7 +131,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     // If anonymous bidding is enabled, hide vendor details
     if (rfq.bidding.anonymous && rfq.status !== 'AWARDED') {
-      const anonymizedBids = rfq.bids.map((bid: any, index: number) => ({
+      interface BidDoc {
+        vendorId?: string;
+        vendorName?: string;
+      }
+      const anonymizedBids = (rfq.bids as BidDoc[]).map((bid, index: number) => ({
         ...bid,
         vendorId: `VENDOR-${index + 1}`,
         vendorName: `Anonymous Vendor ${index + 1}`
