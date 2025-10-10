@@ -48,9 +48,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
-  const doc = await notifications.findOne({ _id: _id as any, orgId });
+  const doc = await notifications.findOne({ _id, orgId });
   if (!doc) return createSecureResponse({ error: 'Notification not found' }, 404, req);
-  const { _id: rawId, ...rest } = doc as any;
+  const { _id: rawId, ...rest } = doc;
   return createSecureResponse({ id: String(rawId), ...rest });
 }
 
@@ -99,7 +99,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   const { notifications } = await getCollections();
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
-  const res = await notifications.deleteOne({ _id: _id as any, orgId });
+  const res = await notifications.deleteOne({ _id, orgId });
   if (!res.deletedCount) return createSecureResponse({ error: 'Notification not found' }, 404, req);
   return createSecureResponse({ success: true });
 }

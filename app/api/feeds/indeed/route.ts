@@ -36,16 +36,36 @@ export async function GET() {
     });
   }
   
+  // Define type for job fields needed in XML
+  interface JobFeedDoc {
+    title?: string;
+    publishedAt?: Date;
+    createdAt?: Date;
+    slug?: string;
+    location?: {
+      city?: string;
+      country?: string;
+    };
+    description?: string;
+    salaryRange?: {
+      min?: number;
+      max?: number;
+      currency?: string;
+    };
+    jobType?: string;
+    department?: string;
+  }
+
   try {
     await connectToDatabase();
     const jobs = await Job.find({ status: 'published', visibility: 'public' })
       .sort({ publishedAt: -1 })
-      .lean();
+      .lean<JobFeedDoc[]>();
 
-    const items = jobs.map((j: any) => `
+    const items = (jobs as JobFeedDoc[]).map((j) => `
     <job>
       <title><![CDATA[${j.title}]]></title>
-      <date>${new Date(j.publishedAt || j.createdAt).toUTCString()}</date>
+      <date>${new Date(j.publishedAt || j.createdAt || Date.now()).toUTCString()}</date>
       <referencenumber>${j.slug}</referencenumber>
       <url>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers/${j.slug}</url>
       <company><![CDATA[Fixzit]]></company>
