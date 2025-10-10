@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
       request
     );
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }

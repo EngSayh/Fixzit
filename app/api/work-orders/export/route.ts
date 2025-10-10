@@ -26,7 +26,8 @@ export async function GET(req:NextRequest): Promise<NextResponse> {
   await connectToDatabase();
   const docs = await WorkOrder.find({tenantId:user.orgId, deletedAt:{$exists:false}}).limit(2000);
   const header = ["code","title","status","priority","propertyId","assigneeUserId","createdAt","dueAt"];
-  const lines = [header.join(",")].concat(docs.map((d: any) =>[
+  type WorkOrderDoc = { code?: string; title?: string; status?: string; priority?: string; propertyId?: string; assigneeUserId?: string; createdAt?: Date; dueAt?: Date };
+  const lines = [header.join(",")].concat(docs.map((d: WorkOrderDoc) =>[
     d.code, JSON.stringify(d.title), d.status, d.priority, d.propertyId||"", d.assigneeUserId||"", d.createdAt?.toISOString()||"", d.dueAt?.toISOString()||""
   ].join(",")));
   const csv = lines.join("\n");
