@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const cart = await getOrCreateCart(context.orgId, context.userId);
     const productIds = cart.lines.map(line => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
-    const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as unknown)]));
+    const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as Record<string, unknown>)]));
 
     return createSecureResponse({
       ok: true,
