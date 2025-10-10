@@ -150,8 +150,8 @@ export async function POST(req: NextRequest) {
       metadata: body.metadata});
 
     return createSecureResponse(result, 200, req);
-  } catch (error: any) {
-    if (error.message === 'Unauthenticated') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Unauthenticated') {
       return unauthorizedError();
     }
     return handleApiError(error);

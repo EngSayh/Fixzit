@@ -59,7 +59,7 @@ export interface MarketplaceSearchFilters {
 }
 
 export async function searchProducts(filters: MarketplaceSearchFilters) {
-  const _client = await db;
+  await db;
   const query: Record<string, any> = { orgId: filters.orgId, status: 'ACTIVE' };
 
   if (filters.q) {
@@ -121,7 +121,7 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
 }
 
 export async function findProductBySlug(orgId: Types.ObjectId, slug: string) {
-  const _client = await db;
+  await db;
   const product = await Product.findOne({ orgId, slug }).lean();
   if (!product) return null;
   return serializeProduct(product as MarketplaceProduct);

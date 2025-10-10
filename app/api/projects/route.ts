@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(project, 201, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
@@ -151,8 +151,9 @@ export async function POST(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch projects';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 
