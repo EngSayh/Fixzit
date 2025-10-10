@@ -163,14 +163,16 @@ export async function POST(req: NextRequest) {
       reply: redactSensitiveText(reply),
       sources: docs.map(doc => ({ id: doc.id, title: doc.title, score: doc.score, source: doc.source }))
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Copilot chat error", error);
-    await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message: error?.message, prompt: body.message, metadata: { stack: error?.stack } });
+    const message = error instanceof Error ? error.message : undefined;
+    const stack = error instanceof Error ? error.stack : undefined;
+    await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message, prompt: body.message, metadata: { stack } });
     return NextResponse.json({
       reply: locale === "ar"
         ? "حدث خطأ أثناء معالجة الطلب."
         : "Something went wrong while processing the request.",
-      error: error?.message
+      error: message
     }, { status: 500 });
   }
 }

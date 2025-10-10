@@ -92,8 +92,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     return createSecureResponse(asset, 200, req);
-  } catch (error: any) {
-    if (error?.name === "CastError") {
+  } catch (error: unknown) {
+    const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+    if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
     return createSecureResponse({ error: "Internal server error" }, 500, req);
@@ -136,11 +137,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
 
     return createSecureResponse(asset, 200, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    if (error?.name === "CastError") {
+    const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+    if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
     return createSecureResponse({ error: "Internal server error" }, 500, req);
@@ -184,8 +186,9 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     }
 
     return createSecureResponse({ success: true }, 200, req);
-  } catch (error: any) {
-    if (error?.name === "CastError") {
+  } catch (error: unknown) {
+    const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+    if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
     return createSecureResponse({ error: "Internal server error" }, 500, req);

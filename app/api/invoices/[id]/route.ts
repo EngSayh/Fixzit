@@ -76,8 +76,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     return createSecureResponse(invoice, 200, req);
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 
