@@ -39,12 +39,18 @@ export async function POST(req: NextRequest) {
     if (!validateCallback(raw, signature)) {
       return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
-    const body = JSON.parse(raw);
+    const body = JSON.parse(raw) as {
+      tran_ref?: string;
+      cart_id?: string;
+      cart_amount?: string;
+      payment_result?: { response_status?: string; response_message?: string };
+      payment_info?: { payment_method?: string; card_scheme?: string };
+    };
 
     const { tran_ref, cart_id, payment_result } = body;
 
     // Verify payment with PayTabs
-    const verification = await verifyPayment(tran_ref);
+    const verification = await verifyPayment(tran_ref) as { payment_result?: { response_status?: string } } | null;
 
     await connectToDatabase();
     const invoice = await Invoice.findById(cart_id);

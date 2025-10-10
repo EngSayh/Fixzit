@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     
     // Secure response
     return createSecureResponse(
-      { ok: true, data: products.map(product => serializeProduct(product as unknown)) },
+      { ok: true, data: products.map(product => serializeProduct(product as Record<string, unknown>)) },
       200,
       request
     );
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error as z.ZodError, request);
     }
-    if (error.code === 11000) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return duplicateKeyError('SKU or slug');
     }
     return handleApiError(error as Error);

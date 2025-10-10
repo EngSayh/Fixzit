@@ -62,9 +62,6 @@ export async function GET(req: NextRequest) {
     const d = await DiscountRule.findOne({ code: 'ANNUAL' });
     return NextResponse.json(d || { code:'ANNUAL', value:0, active:false });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return zodValidationError(error, req);
-    }
     if (error instanceof Error && error.message === 'Authentication required') {
       return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
@@ -74,6 +71,9 @@ export async function GET(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
+    console.error('Discount fetch failed:', error);
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
+  }
 }
 
 export async function PUT(req: NextRequest) {

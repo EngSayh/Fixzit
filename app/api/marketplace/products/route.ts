@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: {
-        items: items.map((item: any) => serializeProduct(item)),
+        items: items.map((item: unknown) => serializeProduct(item)),
         pagination: {
           page: query.page,
           limit: query.limit,
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error as z.ZodError, request);
     }
-    if (error.code === 11000) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return createSecureResponse({ error: 'Duplicate SKU or slug' }, 409, request);
     }
     console.error('Marketplace product creation failed', error);
