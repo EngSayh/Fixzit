@@ -7,7 +7,7 @@ const REGIONS: Record<string,string> = {
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
 
-export async function createHppRequest(region:string, payload:any) {
+export async function createHppRequest(region:string, payload:Record<string, unknown>) {
   const r = await fetch(`${paytabsBase(region)}/payment/request`, {
     method:'POST',
     headers: {
@@ -95,16 +95,17 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
         error: data.message || 'Payment initialization failed'
       } as const;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Payment gateway error';
     console.error('PayTabs error:', error);
     return {
       success: false,
-      error: error.message || 'Payment gateway error'
+      error: errorMessage
     } as const;
   }
 }
 
-export async function verifyPayment(tranRef: string): Promise<any> {
+export async function verifyPayment(tranRef: string): Promise<unknown> {
   try {
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
@@ -125,14 +126,14 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-export function validateCallback(payload: any, signature: string): boolean {
+export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
   // Implement signature validation according to PayTabs documentation
   // This is a simplified version - refer to PayTabs docs for actual implementation
   const calculatedSignature = generateSignature(payload);
   return calculatedSignature === signature;
 }
 
-function generateSignature(_payload: any): string {
+function generateSignature(_payload: Record<string, unknown>): string {
   // Implement according to PayTabs signature generation algorithm
   // This is a placeholder - actual implementation depends on PayTabs docs
   return '';

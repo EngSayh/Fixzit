@@ -167,8 +167,16 @@ export interface SubscriptionQuote {
   contactSales?: boolean;
 }
 
+interface QuoteItem {
+  moduleCode?: string;
+  module?: string;
+  unitPriceMonthly?: number;
+  seatCount?: number;
+  billingCategory?: string;
+}
+
 export function computeQuote(params: {
-  items: any[];
+  items: QuoteItem[];
   seatTotal: number;
   billingCycle: 'monthly' | 'annual';
 }): SubscriptionQuote {

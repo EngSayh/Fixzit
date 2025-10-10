@@ -18,12 +18,15 @@ export function broadcastCartUpdate(cart: MarketplaceCartLike) {
   return count;
 }
 
-function parseCartError(payload: any, fallback: string) {
-  if (payload?.error && typeof payload.error === 'string') {
-    return payload.error;
-  }
-  if (payload?.message && typeof payload.message === 'string') {
-    return payload.message;
+function parseCartError(payload: unknown, fallback: string) {
+  if (typeof payload === 'object' && payload !== null) {
+    const obj = payload as Record<string, unknown>;
+    if (obj.error && typeof obj.error === 'string') {
+      return obj.error;
+    }
+    if (obj.message && typeof obj.message === 'string') {
+      return obj.message;
+    }
   }
   return fallback;
 }
@@ -37,7 +40,7 @@ export async function addProductToCart(productId: string, quantity: number) {
     body: JSON.stringify({ productId, quantity })
   });
 
-  let payload: any;
+  let payload: unknown;
   try {
     payload = await response.json();
   } catch {
@@ -48,7 +51,7 @@ export async function addProductToCart(productId: string, quantity: number) {
     throw new Error(parseCartError(payload, 'Unable to update cart'));
   }
 
-  const order = payload?.data;
-  broadcastCartUpdate(order);
+  const order = (payload as Record<string, unknown> | undefined)?.data;
+  broadcastCartUpdate(order as MarketplaceCartLike);
   return order;
 }

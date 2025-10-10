@@ -116,12 +116,13 @@ export async function ensureCoreIndexes(): Promise<void> {
           });
           created++;
           console.log(`  ✓ ${collection}: ${JSON.stringify(indexSpec.key)}`);
-        } catch (error: any) {
-          if (error.code === 85 || error.code === 86 || error.message.includes('already exists')) {
+        } catch (error: unknown) {
+          const mongoError = error as { code?: number; message?: string };
+          if (mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists')) {
             // Index already exists
             skipped++;
           } else {
-            console.warn(`  ⚠ ${collection}: ${error.message}`);
+            console.warn(`  ⚠ ${collection}: ${mongoError.message || 'Unknown error'}`);
           }
         }
       }
