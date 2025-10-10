@@ -16,7 +16,24 @@ interface ErrorDetails {
   userAgent?: string;
   viewport?: string;
   type?: string;
+  system?: {
+    platform?: string;
+    language?: string;
+    onLine?: boolean;
+    memory?: {
+      used?: number;
+      total?: number;
+      limit?: number;
+    } | null;
+  };
+  localStorage?: {
+    hasAuth?: boolean;
+    hasUser?: boolean;
+    hasLang?: boolean;
+    hasTheme?: boolean;
+  };
 }
+
 
 export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>void, errorDetails?: ErrorDetails }){
   const [subject,setSubject]=useState(errorDetails ? `Error Report: ${errorDetails.type}` : "");
@@ -58,7 +75,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
 **System Information:**
 - **Language:** ${errorDetails.system?.language || 'Unknown'}
 - **Online Status:** ${errorDetails.system?.onLine ? 'Online' : 'Offline'}
-${errorDetails.system?.memory ? `- **Memory Usage:** ${Math.round(errorDetails.system.memory.used / 1024 / 1024)}MB used` : ''}
+${errorDetails.system?.memory ? `- **Memory Usage:** ${Math.round(errorDetails.system.memory.used ?? 0 / 1024 / 1024)}MB used` : ''}
 
 **Application State:**
 - **Authenticated:** ${errorDetails.localStorage?.hasAuth ? '✅' : '❌'}
