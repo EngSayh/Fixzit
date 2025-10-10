@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase();
     const coll = db.collection('kb_embeddings');
 
-    const scope: any = {
+    const scope: { $and: Array<Record<string, unknown>> } = {
       $and: [
         {
           $or: [
