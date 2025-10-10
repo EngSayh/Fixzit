@@ -38,21 +38,21 @@ export interface NormalizedPayTabsPayload {
  * @param data Raw PayTabs callback data
  * @returns Normalized payload
  */
-export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
-  const paymentInfo = data?.payment_info || {};
+export function normalizePayTabsPayload(data: Record<string, unknown>): NormalizedPayTabsPayload {
+  const paymentInfo = (data?.payment_info as Record<string, unknown> | undefined) || {};
   
   return {
-    tran_ref: data?.tran_ref || data?.tranRef,
-    respStatus: data?.payment_result?.response_status || data?.respStatus,
-    token: data?.token,
+    tran_ref: (data?.tran_ref as string | undefined) || (data?.tranRef as string | undefined),
+    respStatus: ((data?.payment_result as Record<string, unknown> | undefined)?.response_status as string | undefined) || (data?.respStatus as string | undefined),
+    token: data?.token as string | undefined,
     customer_email:
-      data?.customer_details?.email ||
-      data?.customerEmail ||
-      paymentInfo?.customer_email,
-    cart_id: data?.cart_id || data?.cartId,
+      ((data?.customer_details as Record<string, unknown> | undefined)?.email as string | undefined) ||
+      (data?.customerEmail as string | undefined) ||
+      (paymentInfo?.customer_email as string | undefined),
+    cart_id: (data?.cart_id as string | undefined) || (data?.cartId as string | undefined),
     amount: Number(data?.cart_amount || data?.tran_total || data?.amount),
-    currency: data?.cart_currency || data?.tran_currency || data?.currency,
-    maskedCard: paymentInfo?.payment_description,
+    currency: (data?.cart_currency as string | undefined) || (data?.tran_currency as string | undefined) || (data?.currency as string | undefined),
+    maskedCard: paymentInfo?.payment_description as string | undefined,
   };
 }
 
@@ -140,22 +140,22 @@ export async function finalizePayTabsTransaction(
     typeof subscription.metadata === 'object' &&
     'ownerGroup' in subscription.metadata
   ) {
-    const meta: any = subscription.metadata.ownerGroup;
+    const meta = subscription.metadata.ownerGroup as Record<string, unknown> | undefined;
     
     if (meta?.name) {
       await OwnerGroup.findOneAndUpdate(
         {
-          name: meta.name,
+          name: meta.name as string,
           primary_contact_user_id:
-            meta.primary_contact_user_id || subscription.owner_user_id,
+            (meta.primary_contact_user_id as string | undefined) || subscription.owner_user_id,
         },
         {
-          name: meta.name,
+          name: meta.name as string,
           primary_contact_user_id:
-            meta.primary_contact_user_id || subscription.owner_user_id,
-          member_user_ids: meta.member_user_ids || [],
-          fm_provider_org_id: meta.fm_provider_org_id,
-          agent_org_id: meta.agent_org_id,
+            (meta.primary_contact_user_id as string | undefined) || subscription.owner_user_id,
+          member_user_ids: (meta.member_user_ids as string[] | undefined) || [],
+          fm_provider_org_id: meta.fm_provider_org_id as string | undefined,
+          agent_org_id: meta.agent_org_id as string | undefined,
           property_ids: meta.property_ids || [],
         },
         { upsert: true, new: true }
