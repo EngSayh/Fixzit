@@ -90,10 +90,10 @@ export async function POST(req: NextRequest) {
       path: '/'});
 
     return response;
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return zodValidationError(error);
     }
-    return handleApiError(error);
+    return handleApiError(error as Error);
   }
 }

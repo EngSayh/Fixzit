@@ -136,9 +136,9 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(rfq, 201, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return zodValidationError(error, req);
+      return zodValidationError(error as z.ZodError, req);
     }
     return createSecureResponse({ error: "Internal server error" }, 500, req);
   }
@@ -194,8 +194,8 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: (error as Error).message }, 500, req);
   }
 }
 

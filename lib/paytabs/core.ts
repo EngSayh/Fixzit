@@ -28,7 +28,7 @@ export function paytabsBase(region: PayTabsRegion | string = 'GLOBAL'): string {
  * Create HPP request to PayTabs
  * Low-level gateway call
  */
-export async function createHppRequest(region: string, payload: any) {
+export async function createHppRequest(region: string, payload: unknown) {
   const response = await fetch(`${paytabsBase(region)}/payment/request`, {
     method: 'POST',
     headers: {
@@ -128,11 +128,11 @@ export async function createPaymentPage(
         success: false,
         error: data.message || 'Payment initialization failed'} as const;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PayTabs error:', error);
     return {
       success: false,
-      error: error.message || 'Payment gateway error'} as const;
+      error: (error as Error).message || 'Payment gateway error'} as const;
   }
 }
 
@@ -146,7 +146,7 @@ export async function createPaymentPage(
  * @param tranRef Transaction reference from PayTabs
  * @returns Transaction verification data
  */
-export async function verifyPayment(tranRef: string): Promise<any> {
+export async function verifyPayment(tranRef: string): Promise<unknown> {
   try {
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
@@ -175,7 +175,7 @@ export async function verifyPayment(tranRef: string): Promise<any> {
  * @param signature Signature to validate
  * @returns true if signature is valid
  */
-export function validateCallback(payload: any, signature: string): boolean {
+export function validateCallback(payload: unknown, signature: string): boolean {
   const calculatedSignature = generateSignature(payload);
   return calculatedSignature === signature;
 }
@@ -186,7 +186,7 @@ export function validateCallback(payload: any, signature: string): boolean {
  * @param payload Payload to sign
  * @returns Generated signature
  */
-function generateSignature(_payload: any): string {
+function generateSignature(_payload: unknown): string {
   // Placeholder - implement according to PayTabs signature algorithm
   // Refer to PayTabs documentation for actual implementation
   return '';

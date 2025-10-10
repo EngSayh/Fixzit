@@ -70,14 +70,14 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
     const rows = await PriceTier.find({}).populate('moduleId','code name');
     return createSecureResponse(rows, 200, req);
-  } catch (error: any) {
-    if (error.message === 'Authentication required') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401, req);
     }
-    if (error.message === 'Invalid token') {
+    if (error instanceof Error && error.message === 'Invalid token') {
       return createErrorResponse('Invalid token', 401, req);
     }
-    if (error.message === 'Admin access required') {
+    if (error instanceof Error && error.message === 'Admin access required') {
       return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Price tier fetch failed:', error);
@@ -116,17 +116,17 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true }
     );
     return createSecureResponse(doc, 201, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    if (error.message === 'Authentication required') {
+    if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401, req);
     }
-    if (error.message === 'Invalid token') {
+    if (error instanceof Error && error.message === 'Invalid token') {
       return createErrorResponse('Invalid token', 401, req);
     }
-    if (error.message === 'Admin access required') {
+    if (error instanceof Error && error.message === 'Admin access required') {
       return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Price tier creation failed:', error);

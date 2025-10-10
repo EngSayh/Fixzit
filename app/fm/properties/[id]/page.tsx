@@ -155,7 +155,7 @@ export default function PropertyDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {property.units.map((unit: any, index: number) => (
+                  {property.units.map((unit: unknown, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium">{unit.unitNumber}</p>
@@ -305,8 +305,8 @@ export default function PropertyDetailsPage() {
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Open Issues</p>
                   {property.maintenance.issues
-                    .filter((issue: any) => !issue.resolved)
-                    .map((issue: any, index: number) => (
+                    .filter((issue: unknown) => !issue.resolved)
+                    .map((issue: unknown, index: number) => (
                       <div key={index} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${
                           issue.severity === 'HIGH' ? 'text-red-600' :

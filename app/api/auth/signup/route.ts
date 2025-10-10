@@ -117,11 +117,11 @@ export async function POST(req: NextRequest) {
         id: newUser._id,
         email: newUser.email,
         role: newUser.role}}, 201, req);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return zodValidationError(error);
     }
-    return handleApiError(error);
+    return handleApiError(error as Error);
   }
 }
 

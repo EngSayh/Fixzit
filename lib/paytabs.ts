@@ -95,16 +95,16 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
         error: data.message || 'Payment initialization failed'
       } as const;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PayTabs error:', error);
     return {
       success: false,
-      error: error.message || 'Payment gateway error'
+      error: (error as Error).message || 'Payment gateway error'
     } as const;
   }
 }
 
-export async function verifyPayment(tranRef: string): Promise<any> {
+export async function verifyPayment(tranRef: string): Promise<unknown> {
   try {
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
@@ -125,14 +125,14 @@ export async function verifyPayment(tranRef: string): Promise<any> {
   }
 }
 
-export function validateCallback(payload: any, signature: string): boolean {
+export function validateCallback(payload: unknown, signature: string): boolean {
   // Implement signature validation according to PayTabs documentation
   // This is a simplified version - refer to PayTabs docs for actual implementation
   const calculatedSignature = generateSignature(payload);
   return calculatedSignature === signature;
 }
 
-function generateSignature(_payload: any): string {
+function generateSignature(_payload: unknown): string {
   // Implement according to PayTabs signature generation algorithm
   // This is a placeholder - actual implementation depends on PayTabs docs
   return '';

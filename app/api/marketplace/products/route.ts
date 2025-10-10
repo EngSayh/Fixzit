@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return zodValidationError(error, request);
+      return zodValidationError(error as z.ZodError, request);
     }
     console.error('Marketplace products list failed', error);
     return createSecureResponse({ error: 'Unable to list products' }, 500, request);
@@ -127,9 +127,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, data: serializeProduct(product) }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return zodValidationError(error, request);
+      return zodValidationError(error as z.ZodError, request);
     }
     if (error.code === 11000) {
       return createSecureResponse({ error: 'Duplicate SKU or slug' }, 409, request);

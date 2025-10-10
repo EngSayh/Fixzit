@@ -38,7 +38,7 @@ export interface NormalizedPayTabsPayload {
  * @param data Raw PayTabs callback data
  * @returns Normalized payload
  */
-export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
+export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload {
   const paymentInfo = data?.payment_info || {};
   
   return {
@@ -140,7 +140,7 @@ export async function finalizePayTabsTransaction(
     typeof subscription.metadata === 'object' &&
     'ownerGroup' in subscription.metadata
   ) {
-    const meta: any = subscription.metadata.ownerGroup;
+    const meta: unknown = subscription.metadata.ownerGroup;
     
     if (meta?.name) {
       await OwnerGroup.findOneAndUpdate(

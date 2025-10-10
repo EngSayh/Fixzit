@@ -103,7 +103,7 @@ export default function ProjectsPage() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project: any) => (
+        {projects.map((project: unknown) => (
           <ProjectCard key={project._id} project={project} onUpdated={mutate} />
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function ProjectsPage() {
   );
 }
 
-function ProjectCard({ project}: { project: any; onUpdated: () => void }) {
+function ProjectCard({ project}: { project: unknown; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'NEW_CONSTRUCTION':

@@ -102,7 +102,7 @@ export default function AssetsPage() {
 
       {/* Assets Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {assets.map((asset: any) => (
+        {assets.map((asset: unknown) => (
           <AssetCard key={asset._id} asset={asset} onUpdated={mutate} />
         ))}
       </div>
@@ -125,7 +125,7 @@ export default function AssetsPage() {
   );
 }
 
-function AssetCard({ asset}: { asset: any; onUpdated: () => void }) {
+function AssetCard({ asset}: { asset: unknown; onUpdated: () => void }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ACTIVE':

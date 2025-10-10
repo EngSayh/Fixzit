@@ -103,7 +103,7 @@ export default function RFQsPage() {
 
       {/* RFQs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rfqs.map((rfq: any) => (
+        {rfqs.map((rfq: unknown) => (
           <RFQCard key={rfq._id} rfq={rfq} onUpdated={mutate} />
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function RFQsPage() {
   );
 }
 
-function RFQCard({ rfq}: { rfq: any; onUpdated: () => void }) {
+function RFQCard({ rfq}: { rfq: unknown; onUpdated: () => void }) {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'construction':

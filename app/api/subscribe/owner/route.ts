@@ -130,10 +130,10 @@ export async function POST(req: NextRequest) {
         ownerGroup: body.ownerGroup}});
 
     return createSecureResponse(result, 200, req);
-  } catch (error: any) {
-    if (error.message === 'Unauthenticated') {
+  } catch (error: unknown) {
+    if ((error as Error).message === 'Unauthenticated') {
       return unauthorizedError();
     }
-    return handleApiError(error);
+    return handleApiError(error as Error);
   }
 }

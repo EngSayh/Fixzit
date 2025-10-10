@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     );
     
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error as Error);
   }
 }
 
@@ -325,14 +325,14 @@ export async function POST(request: NextRequest) {
       request
     );
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return zodValidationError(error, request);
+      return zodValidationError(error as z.ZodError, request);
     }
     if (error.code === 11000) {
       return duplicateKeyError('SKU or slug');
     }
-    return handleApiError(error);
+    return handleApiError(error as Error);
   }
 }
 

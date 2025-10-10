@@ -12,8 +12,8 @@ const STATUS_BADGES: Record<string, string> = {
 
 export default async function OrdersPage() {
   const [_categoriesResponse, ordersResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/orders')
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/orders')
   ]);
 
   const orders = ordersResponse.data as any[];
@@ -45,7 +45,7 @@ export default async function OrdersPage() {
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 text-sm text-gray-700 md:grid-cols-2">
-                  {order.lines.map((line: any) => (
+                  {order.lines.map((line: unknown) => (
                     <div key={line.productId} className="rounded-2xl border border-gray-100 bg-[#F8FBFF] p-3">
                       <p className="font-semibold text-[#0F1111]">{line.productId}</p>
                       <p className="text-xs text-gray-500">{line.qty} × {line.price} {line.currency}</p>

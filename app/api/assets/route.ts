@@ -107,8 +107,8 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(asset, 201, req);
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 400, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error) }, 400, req);
   }
 }
 
@@ -177,8 +177,8 @@ export async function GET(req: NextRequest) {
       total: result[1],
       pages: Math.ceil(result[1] / limit)
     });
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error) }, 500, req);
   }
 }
 

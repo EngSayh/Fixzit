@@ -18,7 +18,7 @@ export function broadcastCartUpdate(cart: MarketplaceCartLike) {
   return count;
 }
 
-function parseCartError(payload: any, fallback: string) {
+function parseCartError(payload: unknown, fallback: string) {
   if (payload?.error && typeof payload.error === 'string') {
     return payload.error;
   }
@@ -37,7 +37,7 @@ export async function addProductToCart(productId: string, quantity: number) {
     body: JSON.stringify({ productId, quantity })
   });
 
-  let payload: any;
+  let payload: unknown;
   try {
     payload = await response.json();
   } catch {

@@ -70,7 +70,7 @@ export async function POST(req: NextRequest){
     });
 
     return createSecureResponse(ticket, 201, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }

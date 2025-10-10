@@ -30,7 +30,7 @@ interface _UserDoc {
 }
 
 // Use real Mongoose model for production
-let User: any;
+let User: unknown;
 
 try {
   const { User: UserModel } = require('@/modules/users/schema');
@@ -47,7 +47,7 @@ try {
   console.warn('Development/test environment detected: using fallback User implementation');
   // Lightweight fallback for development/test only
   User = {
-    findOne: async (_query: any) => null,
+    findOne: async (_query: unknown) => null,
     findById: async (_id: string) => null
   };
 }

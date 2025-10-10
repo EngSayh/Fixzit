@@ -18,7 +18,7 @@ export default function SupportTicketsPage() {
   const [priority, setPriority] = useState('');
   const { data, mutate } = useSWR(`/api/support/tickets?status=${status}&priority=${priority}`, fetcher);
 
-  const updateTicket = async (id: string, updates: any) => {
+  const updateTicket = async (id: string, updates: unknown) => {
     const res = await fetch(`/api/support/tickets/${id}`, {
       method: 'PATCH',
       headers: {
@@ -87,7 +87,7 @@ export default function SupportTicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data?.items?.map((ticket: any) => (
+              {data?.items?.map((ticket: unknown) => (
                 <tr key={ticket._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {ticket.code}

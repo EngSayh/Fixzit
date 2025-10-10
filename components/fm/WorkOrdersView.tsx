@@ -227,7 +227,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
       {error && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="py-6">
-            <p className="text-sm text-red-700">{error.message}</p>
+            <p className="text-sm text-red-700">{(error as Error).message}</p>
           </CardContent>
         </Card>
       )}
@@ -380,7 +380,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
       onCreated();
       reset();
       setOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create work order', error);
       const message = error?.message ?? 'Unknown error';
       if (typeof window !== 'undefined') {

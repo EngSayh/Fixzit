@@ -116,12 +116,12 @@ export async function ensureCoreIndexes(): Promise<void> {
           });
           created++;
           console.log(`  ✓ ${collection}: ${JSON.stringify(indexSpec.key)}`);
-        } catch (error: any) {
-          if (error.code === 85 || error.code === 86 || error.message.includes('already exists')) {
+        } catch (error: unknown) {
+          if (error.code === 85 || error.code === 86 || (error as Error).message.includes('already exists')) {
             // Index already exists
             skipped++;
           } else {
-            console.warn(`  ⚠ ${collection}: ${error.message}`);
+            console.warn(`  ⚠ ${collection}: ${(error as Error).message}`);
           }
         }
       }

@@ -21,7 +21,7 @@ export default function AutoIncidentReporter(){
       time: new Date().toISOString(),
       network: typeof navigator !== 'undefined' ? (navigator.onLine ? 'online' : 'offline') : undefined
     });
-    const send = (payload: any) => {
+    const send = (payload: unknown) => {
       const now = Date.now();
       if (window.__incidentLastAt && now - window.__incidentLastAt < 30000) return; // throttle 30s
       window.__incidentLastAt = now;
@@ -40,7 +40,7 @@ export default function AutoIncidentReporter(){
       send({ code: 'UI-UI-UNKNOWN-000', message: ev.message, details: ev.error?.stack, userContext: user, clientContext: ctx });
     };
     const onRej = (ev: PromiseRejectionEvent) => {
-      const reason: any = ev.reason;
+      const reason: unknown = ev.reason;
       const msg = typeof reason === 'string' ? reason : (reason?.message || 'Unhandled rejection');
       const stack = reason?.stack ? String(reason.stack) : undefined;
       const u = getUser();

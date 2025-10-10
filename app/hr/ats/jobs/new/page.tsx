@@ -41,7 +41,7 @@ export default function NewJobPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed');
       router.push('/hr/ats/jobs');
-    } catch (err: any) {
+    } catch (err: unknown) {
       alert(err.message || 'Failed to create job');
     } finally {
       setSubmitting(false);

@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     await invoice.save();
 
     return createSecureResponse({ success: true }, 200, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Payment callback error:', error);
     return createSecureResponse({ 
       error: 'Failed to process payment callback' 

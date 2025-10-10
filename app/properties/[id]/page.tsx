@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 // Google Maps type declaration
 declare global {
   interface Window {
-    google: any;
+    google: unknown;
   }
 }
 

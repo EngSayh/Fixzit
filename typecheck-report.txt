@@ -1,0 +1,15 @@
+
+> fixzit-frontend@2.0.26 typecheck /workspaces/Fixzit
+> tsc -p .
+
+app/api/marketplace/cart/route.ts(45,98): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown> | MarketplaceProduct'.
+app/api/marketplace/search/route.ts(85,28): error TS2339: Property 'slug' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; name: { en: string; ar?: string | undefined; }; slug: string; createdAt: Date; updatedAt: Date; } | { ...; }'.
+  Property 'slug' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; }'.
+app/api/marketplace/search/route.ts(86,28): error TS2339: Property 'name' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; name: { en: string; ar?: string | undefined; }; slug: string; createdAt: Date; updatedAt: Date; } | { ...; }'.
+  Property 'name' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; }'.
+app/api/marketplace/search/route.ts(86,49): error TS2339: Property 'name' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; name: { en: string; ar?: string | undefined; }; slug: string; createdAt: Date; updatedAt: Date; } | { ...; }'.
+  Property 'name' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; }'.
+app/api/marketplace/search/route.ts(86,70): error TS2339: Property 'slug' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; name: { en: string; ar?: string | undefined; }; slug: string; createdAt: Date; updatedAt: Date; } | { ...; }'.
+  Property 'slug' does not exist on type '{ _id: string | undefined; orgId: string | undefined; parentId: string | undefined; attrSetId: string | undefined; }'.
+app/api/marketplace/vendor/products/route.ts(113,66): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown> | MarketplaceProduct'.
+ ELIFECYCLE  Command failed with exit code 1.

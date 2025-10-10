@@ -81,7 +81,7 @@ export default function TenantsPage() {
 
       {/* Tenants Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tenants.map((tenant: any) => (
+        {tenants.map((tenant: unknown) => (
           <TenantCard key={tenant._id} tenant={tenant} onUpdated={mutate} />
         ))}
       </div>
@@ -104,7 +104,7 @@ export default function TenantsPage() {
   );
 }
 
-function TenantCard({ tenant}: { tenant: any; onUpdated: () => void }) {
+function TenantCard({ tenant}: { tenant: unknown; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'INDIVIDUAL':
@@ -131,7 +131,7 @@ function TenantCard({ tenant}: { tenant: any; onUpdated: () => void }) {
     }
   };
 
-  const activeProperties = tenant.properties?.filter((p: any) => p.occupancy?.status === 'ACTIVE').length || 0;
+  const activeProperties = tenant.properties?.filter((p: unknown) => p.occupancy?.status === 'ACTIVE').length || 0;
   const totalProperties = tenant.properties?.length || 0;
 
   return (

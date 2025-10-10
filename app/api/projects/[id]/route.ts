@@ -73,8 +73,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     return createSecureResponse(project, 200, req);
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: (error as Error).message }, 500, req);
   }
 }
 
@@ -103,8 +103,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
 
     return createSecureResponse(project, 200, req);
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 400, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: (error as Error).message }, 400, req);
   }
 }
 
@@ -132,7 +132,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     }
 
     return createSecureResponse({ success: true }, 200, req);
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: (error as Error).message }, 500, req);
   }
 }

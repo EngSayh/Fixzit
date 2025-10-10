@@ -5,8 +5,8 @@ import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function CartPage() {
   const [_categoriesResponse, cartResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/cart')
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/cart')
   ]);
 
   const cart = cartResponse.data;
@@ -19,7 +19,7 @@ export default async function CartPage() {
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
           <section className="space-y-4">
             {cart.lines.length ? (
-              cart.lines.map((line: any) => (
+              cart.lines.map((line: unknown) => (
                 <article key={line.productId} className="rounded-3xl bg-white p-6 shadow">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex gap-4">

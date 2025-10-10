@@ -76,7 +76,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         publishedAt: rfq?.workflow?.publishedAt || null
       }
     });
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: (error as Error).message }, 500, req);
   }
 }

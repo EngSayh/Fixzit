@@ -97,12 +97,12 @@ export async function getDatabase(): Promise<DatabaseHandle> {
 }
 
 // Backward compatibility: Restore getNativeDb function
-export async function getNativeDb(): Promise<any> {
+export async function getNativeDb(): Promise<unknown> {
   if (isMockDB) {
     return await db;
   }
   
-  const m: any = await db;
+  const m: unknown = await db;
   
   // If m already is the native database object (from the connection promise),
   // return it directly. Otherwise, extract it from the mongoose instance.

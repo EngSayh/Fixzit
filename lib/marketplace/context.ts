@@ -73,7 +73,7 @@ export async function resolveMarketplaceContext(req?: NextRequest | Request | nu
     || await readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_tenant');
 
   const token = await readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_auth');
-  const payload: any = await decodeToken(token);
+  const payload: unknown = await decodeToken(token);
 
   const tenantKey = (headerOrg || cookieOrg || payload?.tenantId || process.env.MARKETPLACE_DEFAULT_TENANT || 'demo-tenant') as string;
   const orgId = objectIdFrom((payload?.orgId as string | undefined) || tenantKey);

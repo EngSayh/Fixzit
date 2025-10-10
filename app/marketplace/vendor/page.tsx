@@ -4,11 +4,11 @@ import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function VendorPortalPage() {
   const [categoriesResponse, productsResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/vendor/products')
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/vendor/products')
   ]);
 
-  const _departments = (categoriesResponse.data as any[]).map((category: any) => ({
+  const _departments = (categoriesResponse.data as any[]).map((category: unknown) => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));

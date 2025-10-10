@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
   try {
     const result = await finalizePayTabsTransaction(normalized);
     return createSecureResponse(result, 200, req);
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 400, req);
+  } catch (error: unknown) {
+    return createSecureResponse({ error: (error as Error).message }, 400, req);
   }
 }
 

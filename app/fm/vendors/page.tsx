@@ -96,7 +96,7 @@ export default function VendorsPage() {
 
       {/* Vendors Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vendors.map((vendor: any) => (
+        {vendors.map((vendor: unknown) => (
           <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
         ))}
       </div>
@@ -119,7 +119,7 @@ export default function VendorsPage() {
   );
 }
 
-function VendorCard({ vendor}: { vendor: any; onUpdated: () => void }) {
+function VendorCard({ vendor}: { vendor: unknown; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'SUPPLIER':

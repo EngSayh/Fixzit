@@ -4,11 +4,11 @@ import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 export default async function RFQPage() {
   const [_categoriesResponse, rfqResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/rfq')
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<unknown>('/api/marketplace/rfq')
   ]);
 
-  const _categories = (_categoriesResponse.data as any[]).map((category: any) => ({
+  const _categories = (_categoriesResponse.data as any[]).map((category: unknown) => ({
     slug: category.slug,
     name: category.name?.en ?? category.slug
   }));

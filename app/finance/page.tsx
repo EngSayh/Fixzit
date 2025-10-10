@@ -26,7 +26,7 @@ export default function FinancePage() {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {list.map((inv: any) =>(
+        {list.map((inv: unknown) =>(
           <Card key={inv.id}>
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center justify-between">

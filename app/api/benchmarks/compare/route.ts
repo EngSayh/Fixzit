@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       market: { perUserMedianMonthly: monthlyMedian, teamMonthly: compMonthly },
       position: diff === 0 ? 'PAR' : diff < 0 ? 'BELOW_MARKET' : 'ABOVE_MARKET'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }

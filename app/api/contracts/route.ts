@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(contract, 201, req);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return zodValidationError(error, req);
+      return zodValidationError(error as z.ZodError, req);
     }
     console.error('Contract creation failed:', error);
     return createErrorResponse('Internal server error', 500, req);
