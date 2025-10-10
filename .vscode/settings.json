@@ -156,5 +156,13 @@
   "chat.agent.maxRequests": 250,
   "chat.agentSessionsViewLocation": "view",
   "chat.checkpoints.showFileChanges": true,
-  "chat.editing.autoAcceptDelay": 10
+  "chat.editing.autoAcceptDelay": 10,
+  // Copilot Chat stability settings
+  "security.workspace.trust.enabled": true,
+  "github.copilot.enable": {
+    "*": true
+  },
+  "github.copilot.chat.enable": true,
+  "http.proxySupport": "override",
+  "http.proxyStrictSSL": true
 }

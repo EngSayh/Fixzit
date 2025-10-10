@@ -41,13 +41,20 @@
   // Set environment variables
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
-    "PORT": "3000"
+    "PORT": "3000",
+    // Bypass proxies for GitHub/Copilot domains (domain-suffix semantics, no * needed)
+    "NO_PROXY": "127.0.0.1,localhost,.local,.internal,.docker,github.com,api.github.com,githubusercontent.com,githubcopilot.com,githubcontent.com,copilot-proxy.githubusercontent.com,origin-tracker.githubusercontent.com",
+    "no_proxy": "${containerEnv:NO_PROXY}"
   },
 
   // Configure remote settings
   "remoteEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
-    "VSCODE_NODE_OPTIONS": "--max-old-space-size=4096"
+    "VSCODE_NODE_OPTIONS": "--max-old-space-size=4096",
+    // If you had HTTP(S)_PROXY locally, this passes it through.
+    // NO_PROXY above takes precedence for Copilot hosts.
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}"
   },
 
   // Features to add to the dev container
