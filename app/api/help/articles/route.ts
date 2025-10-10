@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Filter, Document } from 'mongodb';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -8,6 +9,17 @@ import { createSecureResponse } from '@/server/security/headers';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
+
+interface UserWithAuth {
+  orgId?: string;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}
+
+interface MongoTextFilter extends Document {
+  $text: { $search: string };
+}
 
 // Collection name aligned with Mongoose default pluralization for model "HelpArticle"
 const COLLECTION = 'helparticles';
@@ -71,11 +83,11 @@ export async function GET(req: NextRequest){
     const q = qParam && qParam.trim() !== "" ? qParam.trim() : undefined;
     const statusParam = sp.get('status');
     const requestedStatus = statusParam ? statusParam.toUpperCase() : undefined;
-    const userAny = user as any;
+    const userWithAuth = user as UserWithAuth;
     const canModerate =
-      (Array.isArray(userAny?.permissions) && userAny.permissions.includes('help:moderate')) ||
-      (Array.isArray(userAny?.roles) && userAny.roles.includes('ADMIN')) ||
-      (userAny?.role && ['SUPER_ADMIN','ADMIN','CORPORATE_ADMIN'].includes(userAny.role));
+      (Array.isArray(userWithAuth?.permissions) && userWithAuth.permissions.includes('help:moderate')) ||
+      (Array.isArray(userWithAuth?.roles) && userWithAuth.roles.includes('ADMIN')) ||
+      (userWithAuth?.role && ['SUPER_ADMIN','ADMIN','CORPORATE_ADMIN'].includes(userWithAuth.role));
     const status = canModerate && requestedStatus ? requestedStatus : 'PUBLISHED';
     const rawPage = Number(sp.get("page"));
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
@@ -90,10 +102,10 @@ export async function GET(req: NextRequest){
     // Indexes are created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no orgId
-    const orClauses: unknown[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    const orClauses: Filter<Document>[] = [ { orgId: { $exists: false } }, { orgId: null } ];
     if (user.orgId) orClauses.unshift({ orgId: user.orgId });
-    const tenantScope = { $or: orClauses } as any;
-    const filter: Record<string, unknown> = { ...tenantScope };
+    const tenantScope = { $or: orClauses };
+    const filter: Filter<Document> = { ...tenantScope };
     if (status && status !== 'ALL') filter.status = status;
     if (category) filter.category = category;
     
@@ -106,28 +118,29 @@ export async function GET(req: NextRequest){
 
     if (q) {
       // Try $text search first; fallback to regex if text index is missing
-      const textFilter = { ...filter, $text: { $search: q } } as unknown;
-      const textProjection = { _id: 0, score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 } as any;
+      const textFilter: Filter<Document> & MongoTextFilter = { ...filter, $text: { $search: q } };
+      const textProjection = { _id: 0, score: { $meta: "textScore" }, slug: 1, title: 1, category: 1, updatedAt: 1 };
       try {
-        total = await coll.countDocuments(textFilter as any);
+        total = await coll.countDocuments(textFilter);
         items = await coll
-          .find(textFilter as any, { projection: textProjection })
+          .find(textFilter, { projection: textProjection })
           .maxTimeMS(250)
           .sort({ score: { $meta: "textScore" } })
           .skip(skip)
           .limit(limit)
           .toArray();
-      } catch (_err: any) {
-        const isMissingTextIndex = _err?.codeName === 'IndexNotFound' || _err?.code === 27 || /text index required/i.test(String(_err?.message || ''));
+      } catch (_err: unknown) {
+        const errorWithCode = _err as { codeName?: string; code?: number; message?: string };
+        const isMissingTextIndex = errorWithCode?.codeName === 'IndexNotFound' || errorWithCode?.code === 27 || /text index required/i.test(String(errorWithCode?.message || ''));
         if (!isMissingTextIndex) throw _err;
         // Fallback when text index is missing (restrict by recent updatedAt to reduce scan)
         const safe = new RegExp(escapeRegExp(q), 'i');
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
-        total = await coll.countDocuments(regexFilter as any);
+        const regexFilter: Filter<Document> = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] };
+        total = await coll.countDocuments(regexFilter);
         items = await coll
-          .find(regexFilter as any, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
+          .find(regexFilter, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
           .maxTimeMS(250)
           .sort({ updatedAt: -1 })
           .skip(skip)
@@ -135,9 +148,9 @@ export async function GET(req: NextRequest){
           .toArray();
       }
     } else {
-      total = await coll.countDocuments(filter as any);
+      total = await coll.countDocuments(filter);
       items = await coll
-        .find(filter as any, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
+        .find(filter, { projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 } })
         .maxTimeMS(250)
         .sort({ updatedAt: -1 })
         .skip(skip)
