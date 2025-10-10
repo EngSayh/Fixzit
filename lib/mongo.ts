@@ -19,7 +19,9 @@ import mongoose from 'mongoose';
  */
 
 // Define interfaces for MongoDB database abstraction
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface DatabaseHandle {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   collection: (name: string) => any;
   listCollections?: () => { toArray: () => Promise<unknown[]> };
 }
@@ -51,7 +53,7 @@ if (!conn) {
       connectTimeoutMS: 8000,
     }).then(m => {
       // Return the native MongoDB database object
-      return m.connection.db as any as DatabaseHandle;
+      return m.connection.db as unknown as DatabaseHandle;
     }).catch((err) => {
       console.error('ERROR: mongoose.connect() failed:', err?.message || err);
       throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);
@@ -97,27 +99,27 @@ export async function getDatabase(): Promise<DatabaseHandle> {
 }
 
 // Backward compatibility: Restore getNativeDb function
-export async function getNativeDb(): Promise<any> {
+export async function getNativeDb(): Promise<DatabaseHandle> {
   if (isMockDB) {
     return await db;
   }
   
-  const m: any = await db;
+  const m = await db;
   
   // If m already is the native database object (from the connection promise),
   // return it directly. Otherwise, extract it from the mongoose instance.
   if (m && typeof m.collection === 'function') {
-    return m;
+    return m as DatabaseHandle;
   }
   
   // Fallback: try to get it from mongoose connection
-  const connection = m?.connection || mongoose.connection;
+  const connection = (m as { connection?: typeof mongoose.connection })?.connection || mongoose.connection;
   
   if (!connection || !connection.db) {
     throw new Error('Mongoose connection not ready');
   }
   
-  return connection.db;
+  return connection.db as unknown as DatabaseHandle;
 }
 
 // Export connectDb function for API route compatibility

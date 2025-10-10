@@ -16,8 +16,21 @@ export async function getOrCreateCart(orgId: Types.ObjectId, buyerUserId: Types.
   return cart;
 }
 
-export function recalcCartTotals(cart: any) {
-  const subtotal = cart.lines.reduce((sum: number, line: any) => sum + line.total, 0);
+interface CartLine {
+  total: number;
+}
+
+interface CartDoc {
+  lines: CartLine[];
+  totals?: {
+    subtotal: number;
+    vat: number;
+    grand: number;
+  };
+}
+
+export function recalcCartTotals(cart: CartDoc) {
+  const subtotal = cart.lines.reduce((sum: number, line) => sum + line.total, 0);
   const vat = subtotal * 0.15;
   cart.totals = {
     subtotal,

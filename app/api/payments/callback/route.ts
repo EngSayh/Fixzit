@@ -36,10 +36,11 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text();
     const signature = req.headers.get('signature') || '';
-    if (!validateCallback(raw, signature)) {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!validateCallback(parsed, signature)) {
       return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
-    const body = JSON.parse(raw) as {
+    const body = parsed as {
       tran_ref?: string;
       cart_id?: string;
       cart_amount?: string;
