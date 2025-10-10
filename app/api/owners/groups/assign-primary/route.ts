@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true }
     );
     return createSecureResponse(g, 201, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }

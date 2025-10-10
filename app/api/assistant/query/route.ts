@@ -14,6 +14,20 @@ const BodySchema = z.object({
 
 type Citation = { title: string; slug: string };
 
+// Type for WorkOrder items from DB
+interface WorkOrderItem {
+  code: string;
+  title: string;
+  status: string;
+}
+
+// Type for HelpArticle docs from DB
+interface HelpArticleDoc {
+  title: string;
+  slug: string;
+  content?: string;
+}
+
 function parseNewTicket(question: string) {
   const isSlash = question.trim().toLowerCase().startsWith("/new-ticket");
   const isNatural = /\b(create|open)\b.*\b(work *order|ticket)\b/i.test(question);
@@ -105,8 +119,9 @@ export async function POST(req: NextRequest) {
         createdBy: user.id});
       const answer = `Created work order ${wo.code} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
-    } catch (_e: any) {
-      return NextResponse.json({ answer: `Could not create work order: ${_e.message || "unknown error"}`, citations: [] as Citation[] });
+    } catch (_e: unknown) {
+      const errorMsg = _e instanceof Error ? _e.message : "unknown error";
+      return NextResponse.json({ answer: `Could not create work order: ${errorMsg}`, citations: [] as Citation[] });
     }
   }
 
@@ -118,13 +133,13 @@ export async function POST(req: NextRequest) {
     const items = await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
       .limit?.(5) || [];
-    const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
+    const lines = (Array.isArray(items) ? items : []).map((it: WorkOrderItem) => `• ${it.code}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }
 
   // Knowledge retrieval from Help Articles (tenant-agnostic help)
-  let docs: any[] = [];
+  let docs: HelpArticleDoc[] = [];
   try {
     docs = await HelpArticle.find({ status: "PUBLISHED", $text: { $search: q } })
       .sort?.({ updatedAt: -1 })
@@ -136,11 +151,11 @@ export async function POST(req: NextRequest) {
         .sort?.({ updatedAt: -1 })
         .limit?.(20) || [];
       const s = q.toLowerCase();
-      docs = (docs as any[]).filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
+      docs = docs.filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
     } catch {}
   }
 
-  const citations: Citation[] = (docs || []).map((d: any) => ({ title: d.title, slug: d.slug })).slice(0, 5);
+  const citations: Citation[] = (docs || []).map((d: HelpArticleDoc) => ({ title: d.title, slug: d.slug })).slice(0, 5);
   let answer = "";
   if (docs?.length) {
     const d0 = docs[0];

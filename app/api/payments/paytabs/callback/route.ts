@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       return unauthorizedError('Invalid payment callback signature');
     }
 
-    const { tran_ref: _tran_ref, cart_id, resp_status, resp_message, amount } = body;
+    const { cart_id, resp_status, resp_message, amount } = body;
     const success = resp_status === 'A';
     
     if (success) {
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         return validationError('Invalid payment amount');
       }
 
-      const _zatcaQR = await generateZATCAQR({
+      await generateZATCAQR({
         sellerName: 'Fixzit Enterprise',
         vatNumber: '300123456789012',
         timestamp: new Date().toISOString(),

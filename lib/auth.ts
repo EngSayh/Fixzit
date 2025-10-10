@@ -2,33 +2,6 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
-// Enhanced User model definition for auth purposes
-interface _UserDoc {
-  _id: string;
-  tenantId: string;
-  email: string;
-  password: string;
-  personal?: {
-    firstName: string;
-    lastName: string;
-  };
-  personalInfo?: {
-    firstName: string;
-    lastName: string;
-  };
-  professional?: {
-    role: string;
-  };
-  professionalInfo?: {
-    role: string;
-  };
-  role?: string;
-  status: string;
-  orgId?: string;
-  username?: string;
-  code?: string;
-}
-
 // Use real Mongoose model for production
 let User: any;
 

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { rateLimitError } from '@/server/utils/errorResponses';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';

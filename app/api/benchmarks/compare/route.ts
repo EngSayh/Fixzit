@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       items: body.items,
       seatTotal: body.seatTotal,
       billingCycle: body.billingCycle
-    }) as any;
+    });
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
     const rows = await Benchmark.find({});
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       market: { perUserMedianMonthly: monthlyMedian, teamMonthly: compMonthly },
       position: diff === 0 ? 'PAR' : diff < 0 ? 'BELOW_MARKET' : 'ABOVE_MARKET'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }

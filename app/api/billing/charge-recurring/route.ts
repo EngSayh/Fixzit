@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (req.headers.get('x-cron-secret') !== process.env.CRON_SECRET) return createSecureResponse({ error:'UNAUTH' }, 401, req);
-  const _client = await connectToDatabase();
+  await connectToDatabase();
   const today = new Date();
   const dueSubs = await Subscription.find({ billingCycle:'monthly', status:'active', nextInvoiceAt: { $lte: today }, paytabsTokenId: { $ne: null } });
 
