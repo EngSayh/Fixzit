@@ -60,6 +60,7 @@ export interface MarketplaceSearchFilters {
 
 export async function searchProducts(filters: MarketplaceSearchFilters) {
   await db;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const query: Record<string, any> = { orgId: filters.orgId, status: 'ACTIVE' };
 
   if (filters.q) {

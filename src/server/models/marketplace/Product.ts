@@ -38,6 +38,7 @@ export interface MarketplaceProduct {
   summary?: string;
   brand?: string;
   standards?: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   specs: Record<string, any>;
   media: MarketplaceMedia[];
   buy: MarketplaceBuyDetail;
