@@ -32,7 +32,7 @@ export const Select: React.FC<SelectProps> = ({ className = '', children, onValu
   );
 };
 
-export const SelectContent: React.FC<SelectContentProps> = ({ className: _className = '', children, ..._props }) => {
+export const SelectContent: React.FC<SelectContentProps> = ({ children }) => {
   return (
     <>
       {children}
@@ -51,7 +51,7 @@ export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children
   );
 };
 
-export const SelectTrigger: React.FC<SelectTriggerProps> = ({ className: _className = '', children, ..._props }) => {
+export const SelectTrigger: React.FC<SelectTriggerProps> = ({ children }) => {
   return (
     <>
       {children}
@@ -59,7 +59,7 @@ export const SelectTrigger: React.FC<SelectTriggerProps> = ({ className: _classN
   );
 };
 
-export const SelectValue: React.FC<SelectValueProps> = ({ className: _className = '', placeholder = '', ..._props }) => {
+export const SelectValue: React.FC<SelectValueProps> = ({ placeholder = '' }) => {
   return (
     <option value="" disabled>
       {placeholder}

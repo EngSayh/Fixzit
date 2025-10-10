@@ -240,7 +240,7 @@ export default function InvoicesPage() {
   );
 }
 
-function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () => void }) {
+function InvoiceCard({ invoice }: { invoice: Invoice; onUpdated: () => void }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':

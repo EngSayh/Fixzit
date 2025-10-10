@@ -69,7 +69,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     // Check if vendor already submitted a bid
-    const existingBid = rfq.bids.find((b: any) => b.vendorId === data.vendorId);
+    const existingBid = rfq.bids.find((b: { vendorId: string }) => b.vendorId === data.vendorId);
     if (existingBid) {
       return createSecureResponse({ error: "Vendor has already submitted a bid" }, 400, req);
     }
