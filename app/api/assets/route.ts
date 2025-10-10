@@ -107,8 +107,9 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(asset, 201, req);
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 400, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create asset';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
@@ -177,8 +178,9 @@ export async function GET(req: NextRequest) {
       total: result[1],
       pages: Math.ceil(result[1] / limit)
     });
-  } catch (error: any) {
-    return createSecureResponse({ error: error.message }, 500, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch assets';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 
