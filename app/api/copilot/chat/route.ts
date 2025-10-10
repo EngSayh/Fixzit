@@ -16,14 +16,23 @@ const messageSchema = z.object({
   content: z.string()
 });
 
+// Infer Message type from schema to avoid duplication
+type Message = z.infer<typeof messageSchema>;
+
+const toolSchema = z.object({
+  name: z.string(),
+  args: z.record(z.string(), z.unknown()).optional()
+});
+
 const requestSchema = z.object({
   message: z.string().optional(),
   history: z.array(messageSchema).optional(),
   locale: z.enum(["en", "ar"]).optional(),
-  tool: z.object({
-    name: z.string(),
-    args: z.record(z.string(), z.any()).optional()
-  }).optional()
+  tool: toolSchema.optional()
+});
+
+const multipartRequestSchema = z.object({
+  tool: toolSchema
 });
 
 export const runtime = "nodejs";
@@ -70,9 +79,15 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Tool name is required" }, 400, req);
     }
 
-    const args = typeof argsRaw === "string" && argsRaw ? JSON.parse(argsRaw) : {};
+    const args: Record<string, unknown> = typeof argsRaw === "string" && argsRaw ? JSON.parse(argsRaw) : {};
 
     if (file instanceof File) {
+      // Validate file size (10MB limit)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        return createSecureResponse({ error: "File size exceeds 10MB limit" }, 400, req);
+      }
+      
       const buffer = Buffer.from(await file.arrayBuffer());
       args.buffer = buffer;
       args.fileName = file.name;
@@ -83,7 +98,8 @@ export async function POST(req: NextRequest) {
       args.workOrderId = workOrderId;
     }
 
-    body = { tool: { name: toolName, args } } as Record<string, unknown>;
+    // Validate the constructed body against schema
+    body = multipartRequestSchema.parse({ tool: { name: toolName, args } });
   } else {
     const json = await req.json();
     body = requestSchema.parse(json);
@@ -148,7 +164,6 @@ export async function POST(req: NextRequest) {
     }
 
     const docs = await retrieveKnowledge({ ...session, locale }, message);
-    type Message = { role: "system" | "user" | "assistant"; content: string };
     const reply = await generateCopilotResponse({ session: { ...session, locale }, prompt: message, history: body.history as Message[], docs });
 
     await recordAudit({
@@ -165,15 +180,15 @@ export async function POST(req: NextRequest) {
       sources: docs.map(doc => ({ id: doc.id, title: doc.title, score: doc.score, source: doc.source }))
     });
   } catch (error: unknown) {
-    console.error("Copilot chat error", error);
-    const message = error instanceof Error ? error.message : undefined;
-    const stack = error instanceof Error ? error.stack : undefined;
-    await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message, prompt: body.message, metadata: { stack } });
+    console.error("Copilot chat error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const stack = error instanceof Error ? error.stack : String(error);
+    await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message: errorMessage, prompt: body.message, metadata: { stack, error: String(error) } });
     return NextResponse.json({
       reply: locale === "ar"
         ? "حدث خطأ أثناء معالجة الطلب."
         : "Something went wrong while processing the request.",
-      error: message
+      error: errorMessage
     }, { status: 500 });
   }
 }

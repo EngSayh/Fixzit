@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, data: serializeProduct(product) }, { status: 201 });
   } catch (error: unknown) {
+    console.error('Marketplace product creation error:', error);
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }

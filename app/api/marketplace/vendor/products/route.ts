@@ -326,6 +326,7 @@ export async function POST(request: NextRequest) {
     );
     
   } catch (error: unknown) {
+    console.error('Vendor product creation error:', error);
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
