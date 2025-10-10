@@ -8,6 +8,37 @@ interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+interface Product {
+  _id: string;
+  slug: string;
+  title: { en: string };
+  media?: Array<{ url: string; alt?: string }>;
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  stock?: {
+    onHand: number;
+    reserved: number;
+  };
+}
+
+interface CategoryFacet {
+  slug: string;
+  name: string;
+}
+
+interface SearchResponse {
+  items?: Product[];
+  facets?: { 
+    categories?: CategoryFacet[]; 
+    brands?: string[]; 
+    standards?: string[] 
+  };
+  pagination?: { total?: number };
+}
+
 export default async function MarketplaceSearch(props: SearchPageProps) {
   const searchParams = await props.searchParams;
   const query = new URLSearchParams();
@@ -18,13 +49,9 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
     }
   }
 
-  const searchResponse = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?${query.toString()}`);
+  const searchResponse = await serverFetchJsonWithTenant<{ data: SearchResponse }>(`/api/marketplace/search?${query.toString()}`);
 
-  const searchData = (searchResponse.data ?? {}) as {
-    items?: any[];
-    facets?: { categories?: any[]; brands?: any[]; standards?: any[] };
-    pagination?: { total?: number };
-  };
+  const searchData = searchResponse.data ?? {} as SearchResponse;
 
   const items = Array.isArray(searchData.items) ? searchData.items : [];
   const facetsData = searchData.facets ?? {};
@@ -62,7 +89,7 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
 
           {items.length ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {items.map((product: any) => (
+              {items.map((product: Product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>
