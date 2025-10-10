@@ -69,12 +69,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
   if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
 
-  const update: any = { $set: { updatedAt: new Date() } };
+  const update: { $set: { updatedAt: Date; read?: boolean; archived?: boolean } } = { $set: { updatedAt: new Date() } };
   if (typeof read === 'boolean') update.$set.read = read;
   if (typeof archived === 'boolean') update.$set.archived = archived;
 
-  const updated = await notifications.findOneAndUpdate({ _id: _id as any, orgId }, update, { returnDocument: 'after' });
-  const value = updated as any;
+  const updated = await notifications.findOneAndUpdate({ _id, orgId }, update, { returnDocument: 'after' });
+  const value = updated;
   if (!value) return createSecureResponse({ error: 'Notification not found' }, 404, req);
   const normalized = { id: String(value._id), ...value, _id: undefined };
   return createSecureResponse(normalized);
