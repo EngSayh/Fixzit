@@ -81,9 +81,11 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
   if (filters.minPrice != null || filters.maxPrice != null) {
     query['buy.price'] = {};
     if (filters.minPrice != null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (query['buy.price'] as any).$gte = filters.minPrice;
     }
     if (filters.maxPrice != null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (query['buy.price'] as any).$lte = filters.maxPrice;
     }
   }

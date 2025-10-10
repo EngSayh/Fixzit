@@ -66,7 +66,15 @@ export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Documen
 
 export interface ApplicationModel extends Model<ApplicationDoc> {}
 
-function attachHistoryDefaults(application: any) {
+interface ApplicationWithHistory {
+  history?: Array<{ action: string; by: string; at: Date }>;
+  flags?: unknown[];
+  reviewers?: unknown[];
+  notes?: unknown[];
+  candidateSnapshot?: Record<string, unknown>;
+}
+
+function attachHistoryDefaults<T extends ApplicationWithHistory>(application: T | null): T | null {
   if (!application) return application;
   if (!Array.isArray(application.history) || application.history.length === 0) {
     application.history = [{ action: 'applied', by: 'system', at: new Date() }];
@@ -91,7 +99,7 @@ ApplicationSchema.pre('save', function() {
 });
 
 // Add post-find middleware to attach defaults
-ApplicationSchema.post('find', function(docs: any) {
+ApplicationSchema.post('find', function(docs: ApplicationWithHistory[]) {
   if (Array.isArray(docs)) {
     docs.forEach(doc => {
       if (doc) {
@@ -101,13 +109,13 @@ ApplicationSchema.post('find', function(docs: any) {
   }
 });
 
-ApplicationSchema.post('findOne', function(doc: any) {
+ApplicationSchema.post('findOne', function(doc: ApplicationWithHistory | null) {
   if (doc) {
     attachHistoryDefaults(doc);
   }
 });
 
-ApplicationSchema.post('findOneAndUpdate', function(doc: any) {
+ApplicationSchema.post('findOneAndUpdate', function(doc: ApplicationWithHistory | null) {
   if (doc) {
     attachHistoryDefaults(doc);
   }

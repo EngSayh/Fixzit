@@ -8,7 +8,7 @@ export function toUIEmployee(doc: EmployeeDoc) {
 
 export function normalizeEmployeeInput<T extends { status?: unknown }>(p: T) {
   if (p && Object.prototype.hasOwnProperty.call(p, 'status')) {
-    return { ...(p as any), status: toDbEmployeeStatus(p.status) } as T & { status?: EmployeeStatusDB };
+    return { ...p, status: toDbEmployeeStatus(p.status) } as T & { status?: EmployeeStatusDB };
   }
   return p;
 }

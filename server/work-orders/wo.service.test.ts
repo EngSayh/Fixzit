@@ -8,6 +8,7 @@ import * as repo from "./wo.repo";
 import { audit } from "@/server/copilot/audit";
 
 // Jest/Vitest compatibility shims
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const g = global as any;
 const isVitest = typeof g.vi !== "undefined";
 const testRunner = isVitest ? g.vi : g.jest;
@@ -30,15 +31,22 @@ testRunner.mock("./wo.schema", () => ({
   WoUpdate: { parse: testRunner.fn() },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mocked = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   woCreate: (repo as any).woCreate as jest.Mock,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   woUpdate: (repo as any).woUpdate as jest.Mock,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   woGet: (repo as any).woGet as jest.Mock,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   woList: (repo as any).woList as jest.Mock,
   audit: audit as unknown as jest.Mock,
   withIdempotency: withIdempotency as unknown as jest.Mock,
   createIdempotencyKey: createIdempotencyKey as unknown as jest.Mock,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   WoCreateParse: (WoCreate as any).parse as jest.Mock,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   WoUpdateParse: (WoUpdate as any).parse as jest.Mock,
 };
 

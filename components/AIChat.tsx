@@ -65,10 +65,11 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
 
       // If there are citations, add them as additional messages
       if (data.citations && data.citations.length > 0) {
+        interface Citation { title: string; slug: string; }
         const citationMessage: Message = {
           id: (Date.now() + 2).toString(),
           type: 'bot',
-          content: `📚 **Related Help Articles:**\n${data.citations.map((c: any, i: number) => `${i + 1}. [${c.title}](/help/${c.slug})`).join('\n')}`,
+          content: `📚 **Related Help Articles:**\n${(data.citations as Citation[]).map((c, i: number) => `${i + 1}. [${c.title}](/help/${c.slug})`).join('\n')}`,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, citationMessage]);
