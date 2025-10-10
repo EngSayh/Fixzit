@@ -49,6 +49,11 @@ export async function POST(req: NextRequest) {
 
     const { tran_ref, cart_id, payment_result } = body;
 
+    // Validate required fields
+    if (!tran_ref) {
+      return createSecureResponse({ error: 'Missing transaction reference' }, 400, req);
+    }
+
     // Verify payment with PayTabs
     const verification = await verifyPayment(tran_ref) as { payment_result?: { response_status?: string } } | null;
 
@@ -71,7 +76,7 @@ export async function POST(req: NextRequest) {
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
+        amount: parseFloat(body.cart_amount ?? '0'),
         method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
@@ -94,21 +99,21 @@ export async function POST(req: NextRequest) {
         reference: tran_ref,
         status: 'FAILED',
         transactionId: tran_ref,
-        notes: payment_result.response_message || 'Payment failed'
+        notes: payment_result?.response_message || 'Payment failed'
       });
 
       invoice.history.push({
         action: 'PAYMENT_FAILED',
         performedBy: 'SYSTEM',
         performedAt: new Date(),
-        details: `Payment failed: ${payment_result.response_message}. Transaction: ${tran_ref}`
+        details: `Payment failed: ${payment_result?.response_message || 'Unknown error'}. Transaction: ${tran_ref}`
       });
     }
 
     await invoice.save();
 
     return createSecureResponse({ success: true }, 200, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Payment callback error:', error);
     return createSecureResponse({ 
       error: 'Failed to process payment callback' 
