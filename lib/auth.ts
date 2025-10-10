@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
 // Use real Mongoose model for production
-let User: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let User: any; // MongoDB model with dynamic query methods
 
 try {
   const { User: UserModel } = require('@/modules/users/schema');
@@ -20,7 +21,7 @@ try {
   console.warn('Development/test environment detected: using fallback User implementation');
   // Lightweight fallback for development/test only
   User = {
-    findOne: async (_query: any) => null,
+    findOne: async (_query: Record<string, unknown>) => null,
     findById: async (_id: string) => null
   };
 }
