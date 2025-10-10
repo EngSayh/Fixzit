@@ -1,74 +1,63 @@
 {
-  "name": "Fixzit Development Container",
+  "name": "Fixzit Dev Container",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
-  
-  // Configure properties specific to VS Code.
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
   "customizations": {
     "vscode": {
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
-      },
       "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-vscode.vscode-typescript-next",
         "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "ms-playwright.playwright"
-      ]
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "chat.agent.enabled": true,
+        "chat.agent.maxRequests": 999,
+        "chat.tools.global.autoApprove": true,
+        "chat.tools.terminal.autoReplyToPrompts": true,
+        "github.copilot.chat.agent.runTasks": true,
+        "chat.notifyWindowOnConfirmation": false,
+        "chat.checkpoints.enabled": true,
+        "chat.editing.autoAccept": 2,
+        "chat.tools.edits.autoApprove": {
+          "**/*": true
+        },
+        "chat.tools.terminal.autoApprove": {
+          "npm": true,
+          "pnpm": true,
+          "yarn": true,
+          "bun": true,
+          "node": true,
+          "npx": true,
+          "git": true,
+          "gh": true,
+          "bash": true,
+          "sh": true,
+          "python": true,
+          "pytest": true,
+          "docker": true,
+          "make": true
+        },
+        "security.workspace.trust.enabled": false,
+        "git.branchProtection": ["main", "master"],
+        "github.copilot.chat.codeGeneration.useInstructionFiles": true
+      }
     }
   },
-
-  // Forward ports for the application and development tools
-  "forwardPorts": [3000, 9229, 9323],
-  
-  // Configure port attributes
-  "portsAttributes": {
-    "3000": {
-      "label": "Fixzit App (Next.js)",
-      "onAutoForward": "openPreview"
-    },
-    "9229": {
-      "label": "Node Inspector",
-      "onAutoForward": "silent"
-    },
-    "9323": {
-      "label": "Playwright Report",
-      "onAutoForward": "notify"
-    }
-  },
-
-  // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "npm install",
-
-  // Set environment variables
   "containerEnv": {
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "PORT": "3000",
-    // Bypass proxies for GitHub/Copilot domains (domain-suffix semantics, no * needed)
     "NO_PROXY": "127.0.0.1,localhost,.local,.internal,.docker,github.com,api.github.com,githubusercontent.com,githubcopilot.com,githubcontent.com,copilot-proxy.githubusercontent.com,origin-tracker.githubusercontent.com",
     "no_proxy": "${containerEnv:NO_PROXY}"
   },
-
-  // Configure remote settings
   "remoteEnv": {
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "VSCODE_NODE_OPTIONS": "--max-old-space-size=4096",
-    // If you had HTTP(S)_PROXY locally, this passes it through.
-    // NO_PROXY above takes precedence for Copilot hosts.
     "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
     "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}"
   },
-
-  // Features to add to the dev container
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
-    },
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "version": "latest",
-      "dockerDashComposeVersion": "v2"
-    }
-  },
-
-  // Start MongoDB via docker-compose on container creation
-  "postStartCommand": "docker-compose up -d mongodb"
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteUser": "node",
+  "updateRemoteUserUID": true
 }
