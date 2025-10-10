@@ -6,12 +6,10 @@ interface SecretValue {
 
 class AWSSecretsManager {
   private client: SecretsManagerClient;
-  private region: string;
   private cache = new Map<string, { value: SecretValue; timestamp: number }>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(region = 'me-south-1') {
-    this.region = region;
     this.client = new SecretsManagerClient({ region });
   }
 

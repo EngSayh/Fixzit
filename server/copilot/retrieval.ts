@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { db } from "@/lib/mongo";
-import type { SessionUser } from "@/server/middleware/withAuthRbac";
 import { CopilotKnowledge, KnowledgeDoc } from "@/server/models/CopilotKnowledge";
 import { CopilotSession } from "./session";
 

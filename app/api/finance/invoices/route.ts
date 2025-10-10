@@ -135,12 +135,13 @@ export async function POST(req: NextRequest) {
     
     const data = await svc.create({ ...body, orgId: user.orgId }, user.id, req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown");
     return createSecureResponse({ data }, 201, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
     console.error('Invoice creation failed:', error);
-    return createSecureResponse({ error: error.message || 'Failed to create invoice' }, 400, req);
+    const message = error instanceof Error ? error.message : 'Failed to create invoice';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
