@@ -14,6 +14,53 @@ import {
   QrCode, Send, Eye, Download, Mail, CheckCircle,
   AlertCircle, Clock} from 'lucide-react';
 
+interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  tax: {
+    type: string;
+    rate: number;
+    amount: number;
+  };
+  total: number;
+}
+
+interface InvoiceRecipient {
+  name: string;
+  taxId?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  customerId?: string;
+}
+
+interface InvoiceZATCA {
+  status?: string;
+  qrCode?: string;
+}
+
+interface InvoicePayment {
+  date?: string;
+}
+
+interface Invoice {
+  _id: string;
+  id: string;
+  number: string;
+  recipient: InvoiceRecipient;
+  status: string;
+  total: number;
+  currency: string;
+  issueDate: string;
+  dueDate: string;
+  type: string;
+  items?: InvoiceItem[];
+  zatca?: InvoiceZATCA;
+  payments?: InvoicePayment[];
+}
+
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function InvoicesPage() {
@@ -27,7 +74,7 @@ export default function InvoicesPage() {
     fetcher
   );
 
-  const invoices = (data?.data || []).map((inv: any) => ({
+  const invoices: Invoice[] = (data?.data || []).map((inv: Invoice) => ({
     ...inv,
     _id: inv.id
   }));
@@ -65,8 +112,8 @@ export default function InvoicesPage() {
                 <p className="text-sm text-gray-600">Total Outstanding</p>
                 <p className="text-2xl font-bold">
                   {invoices
-                    .filter((inv: any) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
-                    .reduce((sum: number, inv: any) => sum + inv.total, 0)
+                    .filter((inv: Invoice) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
+                    .reduce((sum: number, inv: Invoice) => sum + inv.total, 0)
                     .toLocaleString()} SAR
                 </p>
               </div>
@@ -81,7 +128,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {invoices.filter((inv: any) => inv.status === 'OVERDUE').length}
+                  {invoices.filter((inv: Invoice) => inv.status === 'OVERDUE').length}
                 </p>
               </div>
               <AlertCircle className="w-8 h-8 text-red-600" />
@@ -95,7 +142,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {invoices.filter((inv: any) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
+                  {invoices.filter((inv: Invoice) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-yellow-600" />
@@ -109,9 +156,9 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-gray-600">Paid This Month</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {invoices.filter((inv: any) => 
+                  {invoices.filter((inv: Invoice) => 
                     inv.status === 'PAID' && 
-                    new Date(inv.payments?.[0]?.date).getMonth() === new Date().getMonth()
+                    new Date(inv.payments?.[0]?.date ?? '').getMonth() === new Date().getMonth()
                   ).length}
                 </p>
               </div>
@@ -170,7 +217,7 @@ export default function InvoicesPage() {
 
       {/* Invoices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {invoices.map((invoice: any) => (
+        {invoices.map((invoice: Invoice) => (
           <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} />
         ))}
       </div>
@@ -193,7 +240,7 @@ export default function InvoicesPage() {
   );
 }
 
-function InvoiceCard({ invoice}: { invoice: any; onUpdated: () => void }) {
+function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () => void }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
@@ -361,7 +408,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
     }
   });
 
-  const calculateItemTotal = (item: any) => {
+  const calculateItemTotal = (item: InvoiceItem): InvoiceItem => {
     const subtotal = item.quantity * item.unitPrice - item.discount;
     const taxAmount = subtotal * (item.tax.rate / 100);
     return {
@@ -371,7 +418,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
     };
   };
 
-  const handleItemChange = (index: number, field: string, value: any) => {
+  const handleItemChange = (index: number, field: string, value: number | string | { type: string; rate: number; amount: number }) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
     newItems[index] = calculateItemTotal(newItems[index]);
@@ -410,7 +457,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
               issueDate: formData.issueDate,
               dueDate: formData.dueDate,
               currency: formData.currency,
-              lines: formData.items.map((it: any) => ({
+              lines: formData.items.map((it: InvoiceItem) => ({
                 description: it.description,
                 qty: it.quantity,
                 unitPrice: it.unitPrice,
