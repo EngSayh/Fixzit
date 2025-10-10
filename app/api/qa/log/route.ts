@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
 
     // Query database
 
-    let query = {} as any;
+    let query = {} as Record<string, unknown>;
     if (eventType) {
       query = { event: eventType };
     }

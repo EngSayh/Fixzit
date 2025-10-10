@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
       customer_details: {
         name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'
       }
-    } as any;
+    } as Record<string, unknown>;
 
     if (body.billingCycle === 'monthly') basePayload.tokenise = 2; // Hex32 token, delivered in callback
     const resp = await createHppRequest(body.paytabsRegion || 'GLOBAL', basePayload);
