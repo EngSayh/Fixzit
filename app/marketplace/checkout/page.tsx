@@ -3,10 +3,27 @@ import CheckoutForm from '@/components/marketplace/CheckoutForm';
 import Link from 'next/link';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
+interface CartLine {
+  productId: string;
+  product?: {
+    title?: { en?: string };
+  };
+  qty: number;
+  price: number;
+  currency: string;
+}
+
+interface CartData {
+  _id: string;
+  lines: CartLine[];
+  totals: { subtotal: number; vat: number; grand: number; };
+  currency: string;
+}
+
 export default async function CheckoutPage() {
   const [_categoriesResponse, cartResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/cart')
+    serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<{ data: CartData }>('/api/marketplace/cart')
   ]);
 
   const cart = cartResponse.data;
@@ -32,7 +49,7 @@ export default async function CheckoutPage() {
             <div className="rounded-3xl bg-white p-6 shadow">
               <h2 className="text-lg font-semibold text-[#0F1111]">Order contents</h2>
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
-                {cart.lines.map((line: any) => (
+                {cart.lines.map((line) => (
                   <li key={line.productId} className="flex justify-between">
                     <span>{line.product?.title?.en ?? line.productId}</span>
                     <span>
