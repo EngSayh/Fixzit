@@ -4,6 +4,7 @@
  * Testing library and framework: Jest (ts-jest/Node environment assumed).
  * If using Vitest, replace jest.* with vi.* and adjust mocks accordingly.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NextRequest } from 'next/server'
 
@@ -131,7 +132,7 @@ function setupDbMocks({
 
 function makeReq(url: string): NextRequest {
   // Minimal object satisfying what GET uses (only req.url is accessed)
-  return { url } as unknown as NextRequest
+  return { url } as any as NextRequest
 }
 
 describe('GET /api/help-articles', () => {

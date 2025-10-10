@@ -11,7 +11,7 @@ let currentTenantContext: TenantContext = {};
 
 // Function to set tenant context
 export function setTenantContext(context: TenantContext) {
-  currentTenantContext = { ...(context as any) };
+  currentTenantContext = { ...context };
 }
 
 // Function to get current tenant context

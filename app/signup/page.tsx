@@ -91,7 +91,7 @@ export default function SignupPage() {
   };
 
   // Handle input changes
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

@@ -1,6 +1,7 @@
 // Tests for app/api/marketplace/products/[slug]/route.ts
 // Framework: Jest
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { NextRequest } from 'next/server'
 
 // IMPORTANT: We import the route implementation.
 // If your project alias resolution differs, adjust the relative path accordingly.
@@ -21,6 +22,7 @@ const { MarketplaceProduct } = jest.requireMock('@/server/models/MarketplaceProd
 // Helper to read JSON body from a NextResponse (web-standard Response compatible)
 async function readJson(res: Response) {
   // NextResponse extends Response; .json() is available to parse body
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return await (res as any).json()
 }
 

@@ -1,5 +1,6 @@
 import { GET } from './route';
 import { z } from 'zod';
+import { NextRequest } from 'next/server';
 
 // We will mock the database collections module.
 // Adjust mock syntax if using Vitest (vi.mock) instead of Jest.
@@ -52,7 +53,7 @@ describe('GET /api/marketplace/categories', () => {
     const { mocks, value } = makeCollections(distinctValues, categoryDocs);
     (getCollections as jest.Mock).mockResolvedValue(value);
 
-    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);
     const json = await getJson(res);
 
@@ -79,7 +80,7 @@ describe('GET /api/marketplace/categories', () => {
     const { mocks, value } = makeCollections(['x', 'y'], []);
     (getCollections as jest.Mock).mockResolvedValue(value);
 
-    const req = { url: 'http://localhost/api/marketplace/categories?tenantId=my-tenant' } as any;
+    const req = { url: 'http://localhost/api/marketplace/categories?tenantId=my-tenant' } as unknown as NextRequest;
     const res = await GET(req);
     const json = await getJson(res);
 
@@ -97,7 +98,7 @@ describe('GET /api/marketplace/categories', () => {
     const { mocks, value } = makeCollections([], categoryDocs);
     (getCollections as jest.Mock).mockResolvedValue(value);
 
-    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);
     const json = await getJson(res);
 
@@ -113,7 +114,7 @@ describe('GET /api/marketplace/categories', () => {
   test('handles internal errors from getCollections with 500', async () => {
     (getCollections as jest.Mock).mockRejectedValue(new Error('DB unavailable'));
 
-    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);
     const json = await getJson(res);
 
@@ -123,17 +124,18 @@ describe('GET /api/marketplace/categories', () => {
 
   test('responds with 400 on Zod validation error (mocked)', async () => {
     // Spy on ZodObject.parse to throw a ZodError for this invocation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parseSpy = jest.spyOn((z as any).ZodObject.prototype, 'parse').mockImplementation(() => {
       throw new z.ZodError([
         {
           code: 'custom',
           message: 'Invalid param',
           path: ['tenantId'],
-        } as any,
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       ]);
     });
 
-    const req = { url: 'http://localhost/api/marketplace/categories?tenantId=foo' } as any;
+    const req = { url: 'http://localhost/api/marketplace/categories?tenantId=foo' } as unknown as NextRequest;
     const res = await GET(req);
     const json = await getJson(res);
 
@@ -152,12 +154,12 @@ describe('GET /api/marketplace/categories', () => {
       // _id object-like with toString, parentId object-like with toString
       { _id: { toString: () => 'idB' }, name: 'NameB', slug: 'slug-b', parentId: { toString: () => 'pB' }, icon: null },
       // _id number-like (has toString), parentId undefined
-      { _id: 12345 as any, name: 'NameC', slug: 'slug-c', parentId: undefined, icon: 'c.svg' },
+      { _id: 12345 as unknown, name: 'NameC', slug: 'slug-c', parentId: undefined, icon: 'c.svg' },
     ];
     const { value } = makeCollections(distinctValues, categoryDocs);
     (getCollections as jest.Mock).mockResolvedValue(value);
 
-    const req = { url: 'http://localhost/api/marketplace/categories' } as any;
+    const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);
     const json = await getJson(res);
 

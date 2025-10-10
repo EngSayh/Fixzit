@@ -2,13 +2,23 @@
 import React, { useState, useEffect } from "react";
 
 const api = async (url: string, opts?: RequestInit) => {
-  const headers: Record<string, any> = { "content-type": "application/json" };
+  const headers: Record<string, string> = { "content-type": "application/json" };
   const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 };
 
-export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>void, errorDetails?: any }){
+interface ErrorDetails {
+  error?: { name?: string; message?: string; stack?: string; componentStack?: string };
+  errorId?: string;
+  timestamp?: string;
+  url?: string;
+  userAgent?: string;
+  viewport?: string;
+  type?: string;
+}
+
+export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>void, errorDetails?: ErrorDetails }){
   const [subject,setSubject]=useState(errorDetails ? `Error Report: ${errorDetails.type}` : "");
   const [moduleKey,setModule]=useState("Other");
   const [type,setType]=useState("Bug");
@@ -31,7 +41,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
     }
   }, [errorDetails]);
 
-  const generateErrorDescription = (errorDetails: any) => {
+  const generateErrorDescription = (errorDetails: ErrorDetails) => {
     return `🚨 **Automated Error Report**
 
 **Error ID:** \`${errorDetails.errorId}\`
@@ -72,7 +82,7 @@ ${errorDetails.error?.componentStack || 'No component stack available'}
   };
 
   const submit = async()=>{
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       subject,
       module: moduleKey,
       type,
@@ -118,9 +128,10 @@ We've sent a welcome email to ${email} with registration instructions and next s
 
       alert(successMessage);
       onClose();
-    } catch(e:any) {
+    } catch(e: unknown) {
       console.error("Ticket creation error:", e);
-      alert(`❌ Failed to create ticket: ${e.message || "Please try again or contact support directly."}`);
+      const errorMessage = e instanceof Error ? e.message : "Please try again or contact support directly.";
+      alert(`❌ Failed to create ticket: ${errorMessage}`);
 
       // Reset button state
       const submitBtn = document.querySelector('[data-testid="submit-btn"]') as HTMLButtonElement;

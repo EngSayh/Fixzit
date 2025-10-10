@@ -15,7 +15,7 @@ let currentAuditContext: AuditInfo = {};
 
 // Function to set audit context
 export function setAuditContext(context: AuditInfo) {
-  currentAuditContext = { ...(context as any) };
+  currentAuditContext = { ...context };
 }
 
 // Function to get current audit context
@@ -148,11 +148,11 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
           if (!this.changeHistory) {
             this.changeHistory = [];
           }
-          (this.changeHistory as any[]).push(changeRecord);
+          (this.changeHistory as unknown[]).push(changeRecord);
 
           // Limit history size
-          if ((this.changeHistory as any[]).length > maxHistoryVersions) {
-            this.changeHistory = (this.changeHistory as any[]).slice(-maxHistoryVersions);
+          if ((this.changeHistory as unknown[]).length > maxHistoryVersions) {
+            this.changeHistory = (this.changeHistory as unknown[]).slice(-maxHistoryVersions);
           }
         }
       }
