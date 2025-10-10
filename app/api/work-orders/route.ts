@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await db;
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && WOMod.WorkOrder;
     if (!WorkOrder) {
@@ -90,13 +90,13 @@ export async function GET(req: NextRequest) {
   const page = Number(searchParams.get("page") || 1);
   const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
-  const match: Record<string, any> = { tenantId: user.orgId, deletedAt: { $exists: false } };
+  const match: Record<string, unknown> = { tenantId: user.orgId, deletedAt: { $exists: false } };
   if (status) match.status = status;
   if (priority) match.priority = priority;
   if (q) match.$text = { $search: q };
 
   // MongoDB-only implementation
-  let items: any[];
+  let items: unknown[];
   let total: number;
 
   // Real MongoDB operations
@@ -107,8 +107,9 @@ export async function GET(req: NextRequest) {
   total = await WorkOrder.countDocuments(match);
 
   return NextResponse.json({ items, page, limit, total });
-  } catch (error: any) {
-    console.error('Work Orders GET error:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Work Orders GET error:', message);
     return createSecureResponse({ 
       error: 'Failed to fetch work orders' 
     }, 500, req);
@@ -128,14 +129,14 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await db;
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
     const WorkOrder = WOMod && WOMod.WorkOrder;
     if (!WorkOrder) {
       return createSecureResponse({ error: "Work Order dependencies are not available in this deployment" }, 501, req);
     }
   const user = await requireAbility("CREATE")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
 
   const body = await req.json();
@@ -166,8 +167,9 @@ export async function POST(req: NextRequest) {
     createdAt
   });
   return createSecureResponse(wo, 201, req);
-  } catch (error: any) {
-    console.error('Work Orders POST error:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Work Orders POST error:', message);
     return createSecureResponse({ 
       error: 'Failed to create work order' 
     }, 500, req);
