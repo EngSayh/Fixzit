@@ -81,10 +81,13 @@ export async function GET(request: NextRequest) {
         facets: {
           brands: facets.brands,
           standards: facets.standards,
-          categories: facetCategories.map(category => ({
-            slug: category.slug,
-            name: category.name?.en ?? category.name?.ar ?? category.slug
-          }))
+          categories: facetCategories.map(category => {
+            const cat = category as { slug?: string; name?: { en?: string; ar?: string } };
+            return {
+              slug: cat.slug || '',
+              name: cat.name?.en ?? cat.name?.ar ?? cat.slug ?? ''
+            };
+          })
         }
       }
     });
