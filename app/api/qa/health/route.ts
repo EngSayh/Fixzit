@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     // Test database query
     try {
       const mongoose = await connectToDatabase();
-      const collections = await (mongoose as unknown).connection.db.listCollections().toArray();
+      const collections = await (mongoose as any).connection.db.listCollections().toArray();
       healthStatus.database = `connected (${collections.length} collections)`;
     } catch {
       healthStatus.database = 'connected (query failed)';
