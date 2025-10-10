@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, data: serializeProduct(product) }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }

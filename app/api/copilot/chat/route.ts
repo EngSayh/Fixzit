@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       args.workOrderId = workOrderId;
     }
 
-    body = { tool: { name: toolName, args } } as any;
+    body = { tool: { name: toolName, args } } as Record<string, unknown>;
   } else {
     const json = await req.json();
     body = requestSchema.parse(json);
@@ -148,7 +148,8 @@ export async function POST(req: NextRequest) {
     }
 
     const docs = await retrieveKnowledge({ ...session, locale }, message);
-    const reply = await generateCopilotResponse({ session: { ...session, locale }, prompt: message, history: body.history as any, docs });
+    type Message = { role: "system" | "user" | "assistant"; content: string };
+    const reply = await generateCopilotResponse({ session: { ...session, locale }, prompt: message, history: body.history as Message[], docs });
 
     await recordAudit({
       session,

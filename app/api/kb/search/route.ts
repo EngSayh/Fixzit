@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (role) scope.$and.push({ roleScopes: { $in: [role] } });
     if (route) scope.$and.push({ route });
 
-    let results: any[] = [];
+    let results: Record<string, unknown>[] = [];
     try {
       const pipe = [
         {
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     } catch {
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      const filter = { ...scope, text: safe } as any;
+      const filter = { ...scope, text: safe } as Record<string, unknown>;
       results = await coll
         .find(filter, { projection: { articleId: 1, chunkId: 1, text: 1, lang: 1, route: 1, roleScopes: 1 } })
         .limit(limit)
