@@ -26,9 +26,14 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
-  const rows = (await req.json())?.rows as any[]; // expects parsed CSV rows from UI
+  interface ImportRow {
+    title?: string;
+    description?: string;
+    priority?: string;
+  }
+  const rows = ((await req.json())?.rows || []) as ImportRow[]; // expects parsed CSV rows from UI
   let created = 0;
-  for (const r of rows ?? []){
+  for (const r of rows){
     const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
     await WorkOrder.create({ tenantId:user.orgId, code, title:r.title, description:r.description, priority:r.priority||"MEDIUM", createdBy:user.id, status:"SUBMITTED", statusHistory:[{from:"DRAFT",to:"SUBMITTED",byUserId:user.id,at:new Date()}] });
     created++;

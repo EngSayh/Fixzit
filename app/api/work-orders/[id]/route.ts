@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const updates = patchSchema.parse(await req.json());
-  const updatePayload: Record<string, any> = { ...updates };
+  const updatePayload: Record<string, unknown> = { ...updates };
 
   if (updates.priority) {
     const { slaMinutes, dueAt } = resolveSlaTarget(updates.priority as WorkOrderPriority);

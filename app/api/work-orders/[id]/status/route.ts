@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
 
   wo.statusHistory.push({ from: wo.status, to: body.to, byUserId: user.id, at: new Date(), note: body.note });
-  wo.status = body.to as any;
+  wo.status = body.to;
   await wo.save();
   return createSecureResponse(wo, 200, req);
 }
