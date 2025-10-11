@@ -1,4 +1,4 @@
-import { Schema, Query, Document, Model } from 'mongoose';
+import { Schema, Query} from 'mongoose';
 
 // Context interface for tenant isolation
 export interface TenantContext {

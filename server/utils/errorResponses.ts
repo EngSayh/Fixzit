@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { createSecureResponse } from '@/server/security/headers';
+import { NextResponse } from 'next/server';
 
 export interface ErrorResponse {
   error: string;
@@ -31,7 +31,7 @@ export function createErrorResponse(
   statusCode: number,
   details?: any,
   code?: string
-): Response {
+): NextResponse {
   const response: ErrorResponse = { error };
   if (details) response.details = details;
   if (code) response.code = code;
@@ -42,35 +42,35 @@ export function createErrorResponse(
 /**
  * Handle common authentication errors
  */
-export function unauthorizedError(message = 'Authentication required'): Response {
+export function unauthorizedError(message = 'Authentication required'): NextResponse {
   return createErrorResponse(message, 401, undefined, 'UNAUTHORIZED');
 }
 
 /**
  * Handle common authorization/permission errors  
  */
-export function forbiddenError(message = 'Insufficient permissions'): Response {
+export function forbiddenError(message = 'Insufficient permissions'): NextResponse {
   return createErrorResponse(message, 403, undefined, 'FORBIDDEN');
 }
 
 /**
  * Handle resource not found errors
  */
-export function notFoundError(resource = 'Resource'): Response {
+export function notFoundError(resource = 'Resource'): NextResponse {
   return createErrorResponse(`${resource} not found`, 404, undefined, 'NOT_FOUND');
 }
 
 /**
  * Handle validation errors with details
  */
-export function validationError(message = 'Invalid input', details?: any): Response {
+export function validationError(message = 'Invalid input', details?: any): NextResponse {
   return createErrorResponse(message, 400, details, 'VALIDATION_ERROR');
 }
 
 /**
  * Handle Zod validation errors specifically
  */
-export function zodValidationError(error: ZodError, req?: any): Response {
+export function zodValidationError(error: ZodError, req?: any): NextResponse {
   return createSecureResponse(
     { 
       error: 'Invalid input', 
@@ -85,7 +85,7 @@ export function zodValidationError(error: ZodError, req?: any): Response {
 /**
  * Handle rate limiting errors
  */
-export function rateLimitError(message = 'Too many requests'): Response {
+export function rateLimitError(message = 'Too many requests'): NextResponse {
   return createErrorResponse(message, 429, undefined, 'RATE_LIMIT_EXCEEDED');
 }
 
@@ -95,7 +95,7 @@ export function rateLimitError(message = 'Too many requests'): Response {
 export function internalServerError(
   message = 'Internal server error',
   logDetails?: any
-): Response {
+): NextResponse {
   // Log full error details server-side
   if (logDetails) {
     console.error('Internal server error:', {
@@ -112,7 +112,7 @@ export function internalServerError(
 /**
  * Handle Zod validation errors with structured details
  */
-export function handleZodError(error: ZodError): Response {
+export function handleZodError(error: ZodError): NextResponse {
   const issues = error.issues.map(issue => ({
     field: issue.path.join('.'),
     message: issue.message,
@@ -125,7 +125,7 @@ export function handleZodError(error: ZodError): Response {
 /**
  * Generic error handler that categorizes different error types
  */
-export function handleApiError(error: unknown): Response {
+export function handleApiError(error: any): NextResponse {
   if (error instanceof ApiError) {
     return createErrorResponse(error.message, error.statusCode, error.details, error.code);
   }
@@ -136,10 +136,11 @@ export function handleApiError(error: unknown): Response {
   
   if (error instanceof Error) {
     // Log the full error but return generic message
+    // SECURITY: Never expose stack traces or internal details to clients in production
     console.error('Unhandled API error:', {
       name: error.name,
       message: error.message,
-      stack: error.stack,
+      stack: process.env.NODE_ENV === 'production' ? '[REDACTED]' : error.stack,
       timestamp: new Date().toISOString()
     });
     
@@ -154,13 +155,13 @@ export function handleApiError(error: unknown): Response {
 /**
  * Common database operation errors
  */
-export function duplicateKeyError(resource = 'Resource'): Response {
+export function duplicateKeyError(resource = 'Resource'): NextResponse {
   return createErrorResponse(`${resource} already exists`, 409, undefined, 'DUPLICATE_KEY');
 }
 
 /**
  * Handle tenant isolation errors
  */
-export function tenantIsolationError(): Response {
+export function tenantIsolationError(): NextResponse {
   return forbiddenError('Access denied: cross-tenant operation not allowed');
 }

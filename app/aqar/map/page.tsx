@@ -7,9 +7,16 @@ const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
 const DEFAULT_ZOOM = 11;
 const CLICK_BBOX_DELTA = 0.05;
 
+interface Cluster {
+  lat: number;
+  lng: number;
+  count: number;
+  avgPrice?: number;
+}
+
 export default function MapPage() {
   const center = useMemo(() => DEFAULT_CENTER, []);
-  const [markers, setMarkers] = useState<any[]>([]);
+  const [markers, setMarkers] = useState<{ position: { lat: number; lng: number }; title?: string; info?: string }[]>([]);
 
   async function loadClusters(b: { n: number; s: number; e: number; w: number; z: number }) {
     const url = `/api/aqar/map?n=${b.n}&s=${b.s}&e=${b.e}&w=${b.w}&z=${b.z}`;
@@ -17,7 +24,7 @@ export default function MapPage() {
     const data = await res.json();
     const clusters = Array.isArray(data?.clusters) ? data.clusters : [];
     setMarkers(
-      clusters.map((c: any) => ({
+      clusters.map((c: Cluster) => ({
         position: { lat: c.lat, lng: c.lng },
         title: String(c.count),
         info: `Avg SAR ${c.avgPrice?.toLocaleString ? c.avgPrice.toLocaleString() : (typeof c.avgPrice === 'number' ? c.avgPrice.toString() : '-')}`,

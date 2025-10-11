@@ -10,9 +10,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Building2, Plus, Search, Filter, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
+import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
+
+interface PropertyUnit {
+  status?: string;
+}
+
+interface PropertyItem {
+  _id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  status?: string;
+  address?: {
+    city?: string;
+    region?: string;
+  };
+  details?: {
+    totalArea?: number;
+    occupancyRate?: number;
+  };
+  financial?: {
+    monthlyRent?: number;
+  };
+  units?: PropertyUnit[];
+}
 
 export default function PropertiesPage() {
   const [search, setSearch] = useState('');
@@ -88,7 +112,7 @@ export default function PropertiesPage() {
 
       {/* Properties Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {properties.map((property: any) => (
+        {(properties as PropertyItem[]).map((property) => (
           <PropertyCard key={property._id} property={property} onUpdated={mutate} />
         ))}
       </div>
@@ -111,7 +135,7 @@ export default function PropertiesPage() {
   );
 }
 
-function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () => void }) {
+function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'RESIDENTIAL':
@@ -144,21 +168,21 @@ function PropertyCard({ property, onUpdated }: { property: any; onUpdated: () =>
 
   const occupancyRate = property.details?.occupancyRate || 0;
   const totalUnits = property.units?.length || 0;
-  const occupiedUnits = property.units?.filter((u: any) => u.status === 'OCCUPIED').length || 0;
+  const occupiedUnits = property.units?.filter((u) => u.status === 'OCCUPIED').length || 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
-            {getTypeIcon(property.type)}
+            {getTypeIcon(property.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{property.name}</CardTitle>
               <p className="text-sm text-gray-600">{property.code}</p>
             </div>
           </div>
-          <Badge className={getTypeColor(property.type)}>
-            {property.type.toLowerCase()}
+          <Badge className={getTypeColor(property.type || '')}>
+            {property.type?.toLowerCase() || ''}
           </Badge>
         </div>
       </CardHeader>
@@ -289,7 +313,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create property');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating property');
     }
   };

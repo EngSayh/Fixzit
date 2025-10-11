@@ -2,19 +2,53 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
 
+import { createSecureResponse } from '@/server/security/headers';
+
 export const dynamic = 'force-dynamic';
 
+/**
+ * @openapi
+ * /api/feeds/linkedin:
+ *   get:
+ *     summary: feeds/linkedin operations
+ *     tags: [feeds]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET() {
   // Check if ATS feeds are enabled
   if (process.env.ATS_ENABLED !== 'true') {
-    return NextResponse.json({ success: false, error: 'ATS feeds not available in this deployment' }, { status: 501 });
+    return createSecureResponse({ error: 'ATS feeds not available in this deployment' }, 501);
   }
+
+  // Define type for job fields needed in XML
+  interface JobFeedDoc {
+    slug?: string;
+    title?: string;
+    location?: {
+      city?: string;
+      country?: string;
+    };
+    description?: string;
+    jobType?: string;
+    publishedAt?: Date;
+    createdAt?: Date;
+  }
+
   await connectToDatabase();
   const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })
-    .lean();
+    .lean<JobFeedDoc[]>();
 
-  const items = jobs.map((j: any) => `
+  const items = (jobs as JobFeedDoc[]).map((j) => `
     <job>
       <id>${j.slug}</id>
       <title><![CDATA[${j.title}]]></title>
@@ -24,7 +58,7 @@ export async function GET() {
       <description><![CDATA[${j.description || ''}]]></description>
       <employmentType>${j.jobType}</employmentType>
       <listingType>Job Posting</listingType>
-      <postedAt>${new Date(j.publishedAt || j.createdAt).toISOString()}</postedAt>
+      <postedAt>${new Date(j.publishedAt || j.createdAt || Date.now()).toISOString()}</postedAt>
     </job>`).join('');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -34,6 +68,7 @@ export async function GET() {
 
   return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 }
+
 
 
 

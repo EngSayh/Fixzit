@@ -4,6 +4,10 @@ import { Property } from "@/server/models/Property";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createPropertySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -62,32 +66,76 @@ const createPropertySchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/properties:
+ *   get:
+ *     summary: properties operations
+ *     tags: [properties]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const data = createPropertySchema.parse(await req.json());
 
     const property = await Property.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `PROP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
 
-    return NextResponse.json(property, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse(property, 201, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create property';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
     await connectToDatabase();
 
@@ -99,7 +147,7 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (status) match['units.status'] = status;
@@ -109,11 +157,11 @@ export async function GET(req: NextRequest) {
     }
 
     const [items, total] = await Promise.all([
-      (Property as any).find(match)
+      Property.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      (Property as any).countDocuments(match)
+      Property.countDocuments(match)
     ]);
 
     return NextResponse.json({
@@ -123,8 +171,10 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch properties';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
+
 

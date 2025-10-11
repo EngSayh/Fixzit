@@ -19,7 +19,7 @@ import { render, screen } from '@testing-library/react';
 // If the project does not have a global setup importing jest-dom, uncomment the next line:
 // import '@testing-library/jest-dom';
 
-const dynamicMock = jest.fn((importer: any, options?: any) => {
+const dynamicMock = jest.fn(() => {
   // Return a stub component; attach metadata for validation if needed
   const Stub: React.FC = () => <div data-testid="catalog-view-stub" />;
   // Preserve options for further assertions via the mock.calls array
@@ -51,7 +51,10 @@ describe('MarketplacePage', () => {
     // The mock should have been called exactly once to create CatalogView.
     expect(dynamicMock).toHaveBeenCalledTimes(1);
 
-    const [importerArg, optionsArg] = dynamicMock.mock.calls[0];
+    const callArgs = dynamicMock.mock.calls[0] as unknown as [() => Promise<unknown>, { ssr: boolean }];
+    expect(callArgs).toBeDefined();
+    
+    const [importerArg, optionsArg] = callArgs;
 
     // Validate options structure
     expect(optionsArg).toBeDefined();

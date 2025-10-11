@@ -2,17 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 // Query: /api/aqar/properties?city=&district=&type=&bedsMin=&bathsMin=&areaMin=&areaMax=&priceMin=&priceMax=&sort=&page=&pageSize=
 // sort: newest|price_asc|price_desc|area_desc
 
+/**
+ * @openapi
+ * /api/aqar/properties:
+ *   get:
+ *     summary: aqar/properties operations
+ *     tags: [aqar]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     let user;
     try {
       user = await getSessionUser(req);
     } catch {
       // Fallback for dev/guest exploration: restrict to demo tenant
-      user = { id: 'guest', role: 'SUPER_ADMIN' as any, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
+      user = { id: 'guest', role: 'SUPER_ADMIN' as unknown, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
     }
 
     await connectToDatabase();
@@ -33,7 +61,7 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(searchParams.get('page') || '1'));
     const pageSize = Math.min(60, Math.max(1, Number(searchParams.get('pageSize') || '24')));
 
-    const filter: any = { tenantId: user.tenantId };
+    const filter: Record<string, unknown> = { tenantId: user.tenantId };
     if (city) filter['address.city'] = city;
     if (district) filter['address.district'] = district;
     if (type) filter.$or = [{ type }, { subtype: type }];
@@ -42,14 +70,12 @@ export async function GET(req: NextRequest) {
     if (areaMin || areaMax) {
       filter['details.totalArea'] = {
         ...(areaMin ? { $gte: areaMin } : {}),
-        ...(areaMax ? { $lte: areaMax } : {}),
-      };
+        ...(areaMax ? { $lte: areaMax } : {})};
     }
     if (priceMin || priceMax) {
       filter['market.listingPrice'] = {
         ...(priceMin ? { $gte: priceMin } : {}),
-        ...(priceMax ? { $lte: priceMax } : {}),
-      };
+        ...(priceMax ? { $lte: priceMax } : {})};
     }
 
     const sortStage: Record<string, 1 | -1> =
@@ -67,8 +93,7 @@ export async function GET(req: NextRequest) {
       details: 1,
       market: 1,
       photos: 1,
-      createdAt: 1,
-    } as const;
+      createdAt: 1} as const;
 
     const skip = (page - 1) * pageSize;
     const cursor = col.find(filter, { projection }).sort(sortStage).skip(skip).limit(pageSize);
@@ -79,7 +104,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ page, pageSize, total, items });
   } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
 

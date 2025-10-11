@@ -4,6 +4,10 @@ import { Tenant } from "@/server/models/Tenant";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createTenantSchema = z.object({
   name: z.string().min(1),
   type: z.enum(["INDIVIDUAL", "COMPANY", "GOVERNMENT"]),
@@ -65,34 +69,72 @@ const createTenantSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/tenants:
+ *   get:
+ *     summary: tenants operations
+ *     tags: [tenants]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
 
     const data = createTenantSchema.parse(await req.json());
 
     const tenant = await Tenant.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `TEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
 
-    return NextResponse.json(tenant, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse(tenant, 201, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     let user;
     try {
       user = await getSessionUser(req);
-    } catch (error: any) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    } catch {
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
 
     const { searchParams } = new URL(req.url);
@@ -101,7 +143,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (search) {
@@ -109,11 +151,11 @@ export async function GET(req: NextRequest) {
     }
 
     const [items, total] = await Promise.all([
-      (Tenant as any).find(match)
+      Tenant.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      (Tenant as any).countDocuments(match)
+      Tenant.countDocuments(match)
     ]);
 
     return NextResponse.json({
@@ -123,8 +165,10 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
+
 

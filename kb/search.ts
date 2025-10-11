@@ -10,7 +10,7 @@ type SearchArgs = {
   limit?: number;
 };
 
-export async function performKbSearch(args: SearchArgs): Promise<any[]> {
+export async function performKbSearch(args: SearchArgs): Promise<unknown[]> {
   const { tenantId, query, q, lang, role, route } = args;
   const limit = Math.min(Math.max(args.limit ?? 8, 1), 12);
   const db = await getDatabase();
@@ -60,7 +60,7 @@ export async function performKbSearch(args: SearchArgs): Promise<any[]> {
         }
       }
     ];
-    const results = await (coll as any).aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
+    const results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
     return results;
   } catch (_e) {
     // Fallback to lexical search on text when vector index not available

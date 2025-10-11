@@ -21,14 +21,14 @@ export default function AutoIncidentReporter(){
       time: new Date().toISOString(),
       network: typeof navigator !== 'undefined' ? (navigator.onLine ? 'online' : 'offline') : undefined
     });
-    const send = (payload: any) => {
+    const send = (payload: Record<string, unknown>) => {
       const now = Date.now();
       if (window.__incidentLastAt && now - window.__incidentLastAt < 30000) return; // throttle 30s
       window.__incidentLastAt = now;
       const url = '/api/support/incidents';
       try {
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        if ('sendBeacon' in navigator && typeof (navigator as any).sendBeacon === 'function' && (navigator as any).sendBeacon(url, blob)) return;
+        if ('sendBeacon' in navigator && typeof navigator.sendBeacon === 'function' && navigator.sendBeacon(url, blob)) return;
       } catch {}
       fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});
     };
@@ -40,9 +40,9 @@ export default function AutoIncidentReporter(){
       send({ code: 'UI-UI-UNKNOWN-000', message: ev.message, details: ev.error?.stack, userContext: user, clientContext: ctx });
     };
     const onRej = (ev: PromiseRejectionEvent) => {
-      const reason: any = ev.reason;
+      const reason = ev.reason as { message?: string; stack?: string } | string | undefined;
       const msg = typeof reason === 'string' ? reason : (reason?.message || 'Unhandled rejection');
-      const stack = reason?.stack ? String(reason.stack) : undefined;
+      const stack = (typeof reason === 'object' && reason?.stack) ? String(reason.stack) : undefined;
       const u = getUser();
       const user = u ? { userId: u.id, tenant: u.tenantId } : undefined;
       const ctx = buildCtx();

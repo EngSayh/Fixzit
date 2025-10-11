@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 // Google Maps type declaration
 declare global {
   interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     google: any;
   }
 }
@@ -15,7 +16,7 @@ export default function PropertyDetailPage() {
   const params = useParams();
   const propertyId = params.id;
   
-  const [property, setProperty] = useState({
+  const [property, _setProperty] = useState({
     id: propertyId,
     name: 'Al Faisaliah Tower',
     address: 'King Fahd Road, Riyadh 12211, Saudi Arabia',

@@ -10,9 +10,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Building2, Plus, Search, Filter, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, Plus, Search, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
+
+interface MaintenanceRecord {
+  date?: string;
+}
+
+interface AssetItem {
+  _id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  category?: string;
+  status?: string;
+  criticality?: string;
+  location?: {
+    building?: string;
+    floor?: string;
+    room?: string;
+  };
+  maintenanceHistory?: MaintenanceRecord[];
+}
 
 export default function AssetsPage() {
   const [search, setSearch] = useState('');
@@ -102,7 +122,7 @@ export default function AssetsPage() {
 
       {/* Assets Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {assets.map((asset: any) => (
+        {(assets as AssetItem[]).map((asset) => (
           <AssetCard key={asset._id} asset={asset} onUpdated={mutate} />
         ))}
       </div>
@@ -125,7 +145,7 @@ export default function AssetsPage() {
   );
 }
 
-function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) {
+function AssetCard({ asset }: { asset: AssetItem; onUpdated: () => void }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -161,9 +181,9 @@ function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) 
             <p className="text-sm text-gray-600 mt-1">{asset.code}</p>
           </div>
           <div className="flex items-center space-x-2">
-            {getStatusIcon(asset.status)}
-            <Badge className={getStatusColor(asset.status)}>
-              {asset.status.toLowerCase()}
+            {getStatusIcon(asset.status || '')}
+            <Badge className={getStatusColor(asset.status || '')}>
+              {asset.status?.toLowerCase() || ''}
             </Badge>
           </div>
         </div>
@@ -205,8 +225,8 @@ function AssetCard({ asset, onUpdated }: { asset: any; onUpdated: () => void }) 
 
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600">
-            Last Maintenance: {asset.maintenanceHistory?.length > 0
-              ? new Date(asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date).toLocaleDateString()
+            Last Maintenance: {asset.maintenanceHistory && asset.maintenanceHistory.length > 0 && asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date
+              ? new Date(asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date as string).toLocaleDateString()
               : 'Never'}
           </span>
           <div className="flex space-x-2">
@@ -280,7 +300,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create asset');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating asset');
     }
   };

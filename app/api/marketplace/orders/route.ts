@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import Order from '@/server/models/marketplace/Order';
 import { serializeOrder } from '@/lib/marketplace/serializers';
+import { unauthorizedError, zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const QuerySchema = z.object({
@@ -11,18 +12,35 @@ const QuerySchema = z.object({
 });
 
 export const dynamic = 'force-dynamic';
+/**
+ * @openapi
+ * /api/marketplace/orders:
+ *   get:
+ *     summary: marketplace/orders operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
     if (!context.userId) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      return unauthorizedError();
     }
 
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
     await connectToDatabase();
 
-    const filter: any = { orgId: context.orgId, status: { $ne: 'CART' } };
+    const filter: Record<string, unknown> = { orgId: context.orgId, status: { $ne: 'CART' } };
 
     if (context.role === 'VENDOR') {
       filter.vendorId = context.userId;
@@ -42,11 +60,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     console.error('Marketplace orders fetch failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to load orders' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to load orders' }, 500, request);
   }
 }
+
 
 

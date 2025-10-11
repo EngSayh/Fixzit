@@ -44,7 +44,7 @@ export async function upsertArticleEmbeddings(args: UpsertArgs) {
     });
     index += 1;
   }
-  if (ops.length) await (coll as any).bulkWrite(ops, { ordered: false });
+  if (ops.length) await coll.bulkWrite(ops, { ordered: false });
 }
 
 export async function deleteArticleEmbeddings(articleId: string, tenantId: string | null) {

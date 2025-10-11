@@ -1,14 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import Subscription from '@/server/models/Subscription';
-import { createSecureResponse } from '@/server/security/headers';
 import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
 import PaymentMethod from '@/server/models/PaymentMethod';
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
 // POST with secret header from cron – for each sub due this day: charge recurring via token
+/**
+ * @openapi
+ * /api/billing/charge-recurring:
+ *   get:
+ *     summary: billing/charge-recurring operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
-  if (req.headers.get('x-cron-secret') !== process.env.CRON_SECRET) return NextResponse.json({ error:'UNAUTH' }, { status: 401 });
-  const client = await connectToDatabase();
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  if (req.headers.get('x-cron-secret') !== process.env.CRON_SECRET) return createSecureResponse({ error:'UNAUTH' }, 401, req);
+  await connectToDatabase();
   const today = new Date();
   const dueSubs = await Subscription.find({ billingCycle:'monthly', status:'active', nextInvoiceAt: { $lte: today }, paytabsTokenId: { $ne: null } });
 
@@ -40,5 +66,6 @@ export async function POST(req: NextRequest) {
 
   return createSecureResponse({ ok: true, count: dueSubs.length });
 }
+
 
 

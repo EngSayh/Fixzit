@@ -51,8 +51,9 @@ export function requireAbility(ability: Parameters<typeof can>[1]) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       return user;
-    } catch (error: any) {
-      if (error.message === "Unauthenticated" || error.message === "Invalid or expired token") {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage === "Unauthenticated" || errorMessage === "Invalid or expired token") {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       return NextResponse.json({ error: "Authentication error" }, { status: 500 });

@@ -7,7 +7,8 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { createSecureResponse } from '@/server/security/headers';
 import { 
   createErrorResponse,
-  zodValidationError
+  zodValidationError,
+  rateLimitError
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
 
@@ -39,20 +40,45 @@ async function authenticateAdmin(req: NextRequest) {
   return user;
 }
 
+/**
+ * @openapi
+ * /api/admin/price-tiers:
+ *   get:
+ *     summary: admin/price-tiers operations
+ *     tags: [admin]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await authenticateAdmin(req);
     await connectToDatabase();
     const rows = await PriceTier.find({}).populate('moduleId','code name');
     return createSecureResponse(rows, 200, req);
-  } catch (error: any) {
-    if (error.message === 'Authentication required') {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401, req);
     }
-    if (error.message === 'Invalid token') {
+    if (message === 'Invalid token') {
       return createErrorResponse('Invalid token', 401, req);
     }
-    if (error.message === 'Admin access required') {
+    if (message === 'Admin access required') {
       return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Price tier fetch failed:', error);
@@ -61,6 +87,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await authenticateAdmin(req);
     
@@ -84,22 +117,24 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true }
     );
     return createSecureResponse(doc, 201, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    if (error.message === 'Authentication required') {
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401, req);
     }
-    if (error.message === 'Invalid token') {
+    if (message === 'Invalid token') {
       return createErrorResponse('Invalid token', 401, req);
     }
-    if (error.message === 'Admin access required') {
+    if (message === 'Admin access required') {
       return createErrorResponse('Admin access required', 403, req);
     }
     console.error('Price tier creation failed:', error);
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+
 
 

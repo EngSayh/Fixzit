@@ -1,10 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
+/**
+ * @openapi
+ * /api/qa/health:
+ *   get:
+ *     summary: qa/health operations
+ *     tags: [qa]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const healthStatus = {
     timestamp: new Date().toISOString(),
     status: 'healthy',
@@ -23,8 +50,8 @@ export async function GET(req: NextRequest) {
     // Test database query
     try {
       const mongoose = await connectToDatabase();
-      const collections = await (mongoose as any).connection.db.listCollections().toArray();
-      healthStatus.database = `connected (${collections.length} collections)`;
+      const collections = await mongoose.connection.db?.listCollections().toArray();
+      healthStatus.database = `connected (${collections?.length || 0} collections)`;
     } catch {
       healthStatus.database = 'connected (query failed)';
     }
@@ -58,6 +85,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   // Force database reconnection
   try {
     await connectToDatabase();

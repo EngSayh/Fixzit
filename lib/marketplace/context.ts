@@ -1,4 +1,4 @@
-import { cookies, headers, type UnsafeUnwrappedCookies, type UnsafeUnwrappedHeaders } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { Types } from 'mongoose';
@@ -73,18 +73,18 @@ export async function resolveMarketplaceContext(req?: NextRequest | Request | nu
     || await readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_tenant');
 
   const token = await readCookieValue(req instanceof NextRequest ? req : null, 'fixzit_auth');
-  const payload: any = await decodeToken(token);
+  const payload = await decodeToken(token) as Record<string, unknown> | undefined;
 
-  const tenantKey = (headerOrg || cookieOrg || payload?.tenantId || process.env.MARKETPLACE_DEFAULT_TENANT || 'demo-tenant') as string;
-  const orgId = objectIdFrom((payload?.orgId as string | undefined) || tenantKey);
-  const userId = payload?.id ? objectIdFrom(payload.id as string) : undefined;
-  const role = (payload?.role as string | undefined) || payload?.professional?.role || 'BUYER';
+  const tenantKey = (headerOrg || cookieOrg || (payload as Record<string, unknown> | undefined)?.tenantId || process.env.MARKETPLACE_DEFAULT_TENANT || 'demo-tenant') as string;
+  const orgId = objectIdFrom(((payload as Record<string, unknown> | undefined)?.orgId as string | undefined) || tenantKey);
+  const userId = (payload as Record<string, unknown> | undefined)?.id ? objectIdFrom((payload as Record<string, unknown>).id as string) : undefined;
+  const professional = (payload as Record<string, unknown> | undefined)?.professional as Record<string, unknown> | undefined;
+  const role = ((payload as Record<string, unknown> | undefined)?.role as string | undefined) || (professional?.role as string | undefined) || 'BUYER';
 
   return {
     tenantKey,
     orgId,
     userId,
     role,
-    correlationId: randomUUID(),
-  };
+    correlationId: randomUUID()};
 }

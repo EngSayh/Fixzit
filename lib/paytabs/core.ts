@@ -28,15 +28,13 @@ export function paytabsBase(region: PayTabsRegion | string = 'GLOBAL'): string {
  * Create HPP request to PayTabs
  * Low-level gateway call
  */
-export async function createHppRequest(region: string, payload: any) {
+export async function createHppRequest(region: string, payload: Record<string, unknown>) {
   const response = await fetch(`${paytabsBase(region)}/payment/request`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!,
-    },
-    body: JSON.stringify(payload),
-  });
+      'authorization': process.env.PAYTABS_SERVER_KEY!},
+    body: JSON.stringify(payload)});
   return response.json();
 }
 
@@ -103,24 +101,20 @@ export async function createPaymentPage(
         city: request.customerDetails.city,
         state: request.customerDetails.state,
         country: request.customerDetails.country,
-        zip: request.customerDetails.zip,
-      },
+        zip: request.customerDetails.zip},
 
       // Hide shipping
       hide_shipping: true,
 
       // Language (default to Arabic for KSA)
-      paypage_lang: 'ar',
-    };
+      paypage_lang: 'ar'};
 
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/request`, {
       method: 'POST',
       headers: {
         Authorization: PAYTABS_CONFIG.serverKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+        'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)});
 
     const data = await response.json();
 
@@ -128,20 +122,18 @@ export async function createPaymentPage(
       return {
         success: true,
         paymentUrl: data.redirect_url,
-        transactionId: data.tran_ref,
-      };
+        transactionId: data.tran_ref};
     } else {
       return {
         success: false,
-        error: data.message || 'Payment initialization failed',
-      } as const;
+        error: data.message || 'Payment initialization failed'} as const;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PayTabs error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Payment gateway error';
     return {
       success: false,
-      error: error.message || 'Payment gateway error',
-    } as const;
+      error: errorMessage} as const;
   }
 }
 
@@ -155,19 +147,16 @@ export async function createPaymentPage(
  * @param tranRef Transaction reference from PayTabs
  * @returns Transaction verification data
  */
-export async function verifyPayment(tranRef: string): Promise<any> {
+export async function verifyPayment(tranRef: string): Promise<unknown> {
   try {
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
         Authorization: PAYTABS_CONFIG.serverKey,
-        'Content-Type': 'application/json',
-      },
+        'Content-Type': 'application/json'},
       body: JSON.stringify({
         profile_id: PAYTABS_CONFIG.profileId,
-        tran_ref: tranRef,
-      }),
-    });
+        tran_ref: tranRef})});
 
     return await response.json();
   } catch (error) {
@@ -187,7 +176,7 @@ export async function verifyPayment(tranRef: string): Promise<any> {
  * @param signature Signature to validate
  * @returns true if signature is valid
  */
-export function validateCallback(payload: any, signature: string): boolean {
+export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
   const calculatedSignature = generateSignature(payload);
   return calculatedSignature === signature;
 }
@@ -198,7 +187,7 @@ export function validateCallback(payload: any, signature: string): boolean {
  * @param payload Payload to sign
  * @returns Generated signature
  */
-function generateSignature(payload: any): string {
+function generateSignature(_payload: Record<string, unknown>): string {
   // Placeholder - implement according to PayTabs signature algorithm
   // Refer to PayTabs documentation for actual implementation
   return '';
@@ -245,37 +234,31 @@ export const getAvailablePaymentMethods = (): PaymentMethod[] => {
       id: PAYMENT_METHODS.MADA,
       name: 'mada',
       icon: '/icons/mada.svg',
-      enabled: true,
-    },
+      enabled: true},
     {
       id: PAYMENT_METHODS.VISA,
       name: 'Visa',
       icon: '/icons/visa.svg',
-      enabled: true,
-    },
+      enabled: true},
     {
       id: PAYMENT_METHODS.MASTERCARD,
       name: 'Mastercard',
       icon: '/icons/mastercard.svg',
-      enabled: true,
-    },
+      enabled: true},
     {
       id: PAYMENT_METHODS.APPLE_PAY,
       name: 'Apple Pay',
       icon: '/icons/apple-pay.svg',
-      enabled: true,
-    },
+      enabled: true},
     {
       id: PAYMENT_METHODS.STC_PAY,
       name: 'STC Pay',
       icon: '/icons/stc-pay.svg',
-      enabled: true,
-    },
+      enabled: true},
     {
       id: PAYMENT_METHODS.TAMARA,
       name: 'Tamara - Buy Now Pay Later',
       icon: '/icons/tamara.svg',
-      enabled: true,
-    },
+      enabled: true},
   ];
 };

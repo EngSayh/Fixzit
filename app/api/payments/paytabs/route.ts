@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const PaymentSchema = z.object({
   orderId: z.string(),
   amount: z.number().positive(),
@@ -21,14 +25,38 @@ const PaymentSchema = z.object({
  *
  * @returns A NextResponse containing a JSON object describing success or failure and appropriate HTTP status codes.
  */
+/**
+ * @openapi
+ * /api/payments/paytabs:
+ *   get:
+ *     summary: payments/paytabs operations
+ *     tags: [payments]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const body = await req.json();
     const data = PaymentSchema.parse(body);
     
     const serverKey = process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
     if (!serverKey) {
-      return NextResponse.json({ ok: false, error: 'PAYTABS server key not configured' }, { status: 500 });
+      return createSecureResponse({ error: 'PAYTABS server key not configured' }, 500, req);
     }
 
     const payload = {
@@ -63,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const text = await response.text().catch(() => '');
-      return NextResponse.json({ ok: false, error: 'PayTabs request failed', status: response.status, body: text }, { status: 502 });
+      return createSecureResponse({ error: 'PayTabs request failed', status: response.status, body: text }, 502, req);
     }
 
     const result = await response.json();

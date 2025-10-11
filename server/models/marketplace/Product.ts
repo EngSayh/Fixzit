@@ -101,3 +101,4 @@ const ProductModel =
   model<MarketplaceProduct>('MarketplaceProduct', ProductSchema);
 
 export default ProductModel;
+

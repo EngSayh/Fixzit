@@ -129,8 +129,7 @@ export async function post(tenantId: string, id: string, input: unknown, actorId
     performedBy: actorId ?? 'system',
     performedAt: new Date(),
     details: status === 'SENT' ? 'Invoice posted to customer' : 'Invoice voided',
-    ipAddress: ip,
-  };
+    ipAddress: ip};
 
   const invoice = await Invoice.findOneAndUpdate(
     { _id: id, tenantId },
@@ -155,7 +154,8 @@ async function nextInvoiceNumber(tenantId: string) {
     .select('number')
     .lean() as { number: string } | null;
 
-  const match = latest?.number?.match(/INV-(\d+)/);
+  const latestNumber = Array.isArray(latest) ? latest[0]?.number : latest?.number;
+  const match = latestNumber?.match(/INV-(\d+)/);
   const next = match ? parseInt(match[1], 10) + 1 : 1;
   return `INV-${String(next).padStart(6, '0')}`;
 }

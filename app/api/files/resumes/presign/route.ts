@@ -2,21 +2,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedPutUrl, buildResumeKey } from '@/lib/storage/s3';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/files/resumes/presign:
+ *   get:
+ *     summary: files/resumes/presign operations
+ *     tags: [files]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const role = (user as any).role || '';
+    if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    const role = user.role || '';
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
-    if (!allowed.has(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    const body = await req.json().catch(() => ({} as any));
+    if (!allowed.has(role)) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    const body = await req.json().catch(() => ({} as unknown));
     const { fileName, contentType } = body || {};
-    if (!fileName || !contentType) return NextResponse.json({ error: 'Missing fileName or contentType' }, { status: 400 });
-    const key = buildResumeKey((user as any).tenantId, String(fileName));
+    if (!fileName || !contentType) return createSecureResponse({ error: 'Missing fileName or contentType' }, 400, req);
+    const key = buildResumeKey(user.tenantId, String(fileName));
     const url = await getPresignedPutUrl(key, String(contentType), 300);
     return NextResponse.json({ url, key });
   } catch {
-    return NextResponse.json({ error: 'Failed to presign' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to presign' }, 500, req);
   }
 }
 

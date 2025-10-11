@@ -72,3 +72,4 @@ export async function quotePrice(opts: {
   const total = Math.round(subtotalMonthly * 100) / 100;
   return { requiresQuote: false, total, lines };
 }
+

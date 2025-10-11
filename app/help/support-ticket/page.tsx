@@ -67,8 +67,8 @@ export default function SupportTicketPage() {
         email: '',
         phone: ''
       });
-    } catch (err: any) {
-      const msg = err?.message || 'There was an error submitting your ticket. Please try again.';
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'There was an error submitting your ticket. Please try again.';
       setToast({ type: 'error', message: msg });
     } finally {
       setIsSubmitting(false);

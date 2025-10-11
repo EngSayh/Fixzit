@@ -1,35 +1,75 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { verifyPayment, validateCallback } from '@/lib/paytabs';
 import { parseCartAmount } from '@/lib/payments/parseCartAmount';
 import { Invoice } from '@/server/models/Invoice';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/payments/callback:
+ *   get:
+ *     summary: payments/callback operations
+ *     tags: [payments]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const raw = await req.text();
     const signature = req.headers.get('signature') || '';
-    if (!validateCallback(raw, signature)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!validateCallback(parsed, signature)) {
+      return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
-    const body = JSON.parse(raw);
+    const body = parsed as {
+      tran_ref?: string;
+      cart_id?: string;
+      cart_amount?: string;
+      payment_result?: { response_status?: string; response_message?: string };
+      payment_info?: { payment_method?: string; card_scheme?: string };
+    };
 
     const { tran_ref, cart_id, payment_result } = body;
 
+    // Validate required fields
+    if (!tran_ref) {
+      return createSecureResponse({ error: 'Missing transaction reference' }, 400, req);
+    }
+
     // Verify payment with PayTabs
-    const verification = await verifyPayment(tran_ref);
+    const verification = await verifyPayment(tran_ref) as { payment_result?: { response_status?: string } } | null;
 
     await connectToDatabase();
-    const invoice = await (Invoice as any).findById(cart_id);
+    const invoice = await Invoice.findById(cart_id);
 
     if (!invoice) {
       console.error('Invoice not found for payment callback:', cart_id);
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+      return createSecureResponse({ error: 'Invoice not found' }, 404, req);
     }
 
     // Validate amount once
     const amount = parseCartAmount(body.cart_amount, Number.NaN);
     if (!Number.isFinite(amount) || amount < 0) {
-      return NextResponse.json({ error: 'Invalid cart amount' }, { status: 400 });
+      return createSecureResponse({ error: 'Invalid cart amount' }, 400, req);
     }
     // Update invoice based on payment result
     if (payment_result?.response_status === 'A' && verification?.payment_result?.response_status === 'A') {
@@ -37,7 +77,7 @@ export async function POST(req: NextRequest) {
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount),
+        amount: parseFloat(body.cart_amount ?? '0'),
         method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
@@ -60,25 +100,26 @@ export async function POST(req: NextRequest) {
         reference: tran_ref,
         status: 'FAILED',
         transactionId: tran_ref,
-        notes: payment_result.response_message || 'Payment failed'
+        notes: payment_result?.response_message || 'Payment failed'
       });
 
       invoice.history.push({
         action: 'PAYMENT_FAILED',
         performedBy: 'SYSTEM',
         performedAt: new Date(),
-        details: `Payment failed: ${payment_result.response_message}. Transaction: ${tran_ref}`
+        details: `Payment failed: ${payment_result?.response_message || 'Unknown error'}. Transaction: ${tran_ref}`
       });
     }
 
     await invoice.save();
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
     console.error('Payment callback error:', error);
-    return NextResponse.json({ 
+    return createSecureResponse({ 
       error: 'Failed to process payment callback' 
-    }, { status: 500 });
+    }, 500, req);
   }
 }
+
 

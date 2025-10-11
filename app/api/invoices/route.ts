@@ -6,6 +6,10 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createInvoiceSchema = z.object({
   type: z.enum(["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"]),
   issuer: z.object({
@@ -62,17 +66,53 @@ const createInvoiceSchema = z.object({
   }).optional()
 });
 
+/**
+ * @openapi
+ * /api/invoices:
+ *   get:
+ *     summary: invoices operations
+ *     tags: [invoices]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
 
     const data = createInvoiceSchema.parse(await req.json());
 
     // Calculate totals
     let subtotal = 0;
     let totalTax = 0;
-    const taxes: any[] = [];
+    interface TaxSummary {
+      type: string;
+      rate: number;
+      amount: number;
+      category?: string;
+    }
+    const taxes: TaxSummary[] = [];
 
     data.items.forEach(item => {
       const itemSubtotal = item.quantity * item.unitPrice - item.discount;
@@ -100,12 +140,13 @@ export async function POST(req: NextRequest) {
 
     // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
-    const { value } = await (Invoice as any).db.collection("invoice_counters").findOneAndUpdate(
-      { tenantId: (user as any)?.orgId, year },
+    const result = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
+      { tenantId: user.orgId, year },
       { $inc: { sequence: 1 } },
       { upsert: true, returnDocument: "after" }
     );
-    const number = `INV-${year}-${String((value?.sequence ?? 1)).padStart(5, '0')}`;
+    const sequence = (result as { sequence?: number } | null)?.sequence ?? 1;
+    const number = `INV-${year}-${String(sequence).padStart(5, '0')}`;
 
     // Generate ZATCA QR code
     const qrCode = await generateZATCAQR({
@@ -117,7 +158,7 @@ export async function POST(req: NextRequest) {
     });
 
     const invoice = await Invoice.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       number,
       ...data,
       subtotal,
@@ -139,16 +180,30 @@ export async function POST(req: NextRequest) {
       createdBy: user.id
     });
 
-    return NextResponse.json(invoice, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse(invoice, 201, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create invoice';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -157,7 +212,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (type) match.type = type;
@@ -183,8 +238,10 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch invoices';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
+
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState} from 'react';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url, {
@@ -13,12 +13,22 @@ const fetcher = (url: string) => fetch(url, {
   }
 }).then(r => r.json());
 
+interface TicketItem {
+  _id: string;
+  code?: string;
+  subject?: string;
+  module?: string;
+  priority?: string;
+  status?: string;
+  createdAt?: string;
+}
+
 export default function SupportTicketsPage() {
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
   const { data, mutate } = useSWR(`/api/support/tickets?status=${status}&priority=${priority}`, fetcher);
 
-  const updateTicket = async (id: string, updates: any) => {
+  const updateTicket = async (id: string, updates: { status?: string }) => {
     const res = await fetch(`/api/support/tickets/${id}`, {
       method: 'PATCH',
       headers: {
@@ -87,7 +97,7 @@ export default function SupportTicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data?.items?.map((ticket: any) => (
+              {(data?.items as TicketItem[] || []).map((ticket) => (
                 <tr key={ticket._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {ticket.code}
@@ -122,7 +132,7 @@ export default function SupportTicketsPage() {
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(ticket.createdAt).toLocaleDateString()}
+                    {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button className="text-blue-600 hover:text-blue-900">View</button>

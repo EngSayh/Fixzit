@@ -1,8 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
 const updateVendorSchema = z.object({
   name: z.string().min(1).optional(),
@@ -47,7 +51,31 @@ const updateVendorSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/vendors/[id]:
+ *   get:
+ *     summary: vendors/[id] operations
+ *     tags: [vendors]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -59,12 +87,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     });
 
     if (!vendor) {
-      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+      return createSecureResponse({ error: "Vendor not found" }, 404, req);
     }
 
-    return NextResponse.json(vendor);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse(vendor, 200, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 
@@ -83,16 +112,24 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     );
 
     if (!vendor) {
-      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+      return createSecureResponse({ error: "Vendor not found" }, 404, req);
     }
 
-    return NextResponse.json(vendor);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse(vendor, 200, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -105,11 +142,12 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     );
 
     if (!vendor) {
-      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+      return createSecureResponse({ error: "Vendor not found" }, 404, req);
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }

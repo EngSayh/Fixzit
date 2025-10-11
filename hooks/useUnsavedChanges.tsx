@@ -24,7 +24,6 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
   const [isDirty, setIsDirty] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const router = useRouter();
   const originalDataRef = useRef<any>(null);
   const currentDataRef = useRef<any>(null);
 
@@ -42,7 +41,7 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
   }, []);
 
   // Initialize with initial data
-  const initialize = useCallback((initialData: any) => {
+  const initialize = useCallback((initialData: unknown) => {
     originalDataRef.current = initialData;
     currentDataRef.current = initialData;
     setIsDirty(false);
@@ -50,13 +49,13 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
   }, []);
 
   // Check if data has changed
-  const hasChanges = useCallback((currentData: any) => {
+  const hasChanges = useCallback((currentData: unknown) => {
     if (!originalDataRef.current || !currentData) return false;
     return JSON.stringify(originalDataRef.current) !== JSON.stringify(currentData);
   }, []);
 
   // Handle navigation attempt
-  const handleNavigation = useCallback((path: string) => {
+  const handleNavigation = useCallback(() => {
     if (hasUnsavedChanges) {
       setShowWarning(true);
       return false; // Prevent navigation

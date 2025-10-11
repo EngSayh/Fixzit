@@ -72,7 +72,7 @@ export function requireAbility(action: string) {
       }
 
       return user;
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }

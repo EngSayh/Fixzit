@@ -2,7 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/qa/log:
+ *   get:
+ *     summary: qa/log operations
+ *     tags: [qa]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const body = await req.json();
     const { event, data } = body;
@@ -20,14 +48,21 @@ export async function POST(req: NextRequest) {
 
     console.log(`📝 QA Log: ${event}`, data);
 
-    return NextResponse.json({ success: true });
+    return createSecureResponse({ success: true }, 200, req);
   } catch (error) {
     console.error('Failed to log QA event:', error);
-    return NextResponse.json({ error: 'Failed to log event' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to log event' }, 500, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const parsed = Number(searchParams.get('limit'));
@@ -36,7 +71,7 @@ export async function GET(req: NextRequest) {
 
     // Query database
 
-    let query = {} as any;
+    let query = {} as Record<string, unknown>;
     if (eventType) {
       query = { event: eventType };
     }
@@ -48,9 +83,9 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .toArray();
 
-    return NextResponse.json({ logs });
+    return createSecureResponse({ logs }, 200, req);
   } catch (error) {
     console.error('Failed to fetch QA logs:', error);
-    return NextResponse.json({ error: 'Failed to fetch logs' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to fetch logs' }, 500, req);
   }
 }

@@ -14,7 +14,7 @@ export interface AuditOptions {
 
 export async function recordAudit(options: AuditOptions) {
   try {
-    await (CopilotAudit as any).create({
+    await CopilotAudit.create({
       tenantId: options.session.tenantId,
       userId: options.session.userId,
       role: options.session.role,

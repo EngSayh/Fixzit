@@ -59,7 +59,18 @@
    ```
 
 2. **Node.js**: Version 18+ required
-3. **Git**: For version control
+3. **tsx**: TypeScript execution engine (used by scripts like `scripts/setup-guardrails.ts`)
+   ```bash
+   # Install as dev dependency (recommended)
+   npm install -D tsx
+   
+   # Or install globally
+   npm install -g tsx
+   
+   # Alternatively, run scripts via npx without installing
+   npx tsx scripts/setup-guardrails.ts
+   ```
+4. **Git**: For version control
 
 ### Setup Instructions
 

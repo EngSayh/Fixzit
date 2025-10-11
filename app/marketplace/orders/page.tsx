@@ -1,6 +1,27 @@
 
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
+interface OrderLine {
+  productId: string;
+  qty: number;
+  price: number;
+  currency: string;
+}
+
+interface Order {
+  _id: string;
+  lines: OrderLine[];
+  createdAt: string;
+  status: string;
+  totals: {
+    grand: number;
+  };
+  currency: string;
+  approvals?: {
+    status?: string;
+  };
+}
+
 const STATUS_BADGES: Record<string, string> = {
   APPROVAL: 'bg-amber-100 text-amber-700',
   PENDING: 'bg-blue-100 text-blue-700',
@@ -11,17 +32,12 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default async function OrdersPage() {
-  const [categoriesResponse, ordersResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/orders')
+  const [_categoriesResponse, ordersResponse] = await Promise.all([
+    serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<{ data: Order[] }>('/api/marketplace/orders')
   ]);
 
-  const departments = (categoriesResponse.data as any[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
-
-  const orders = ordersResponse.data as any[];
+  const orders = ordersResponse.data;
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
@@ -50,7 +66,7 @@ export default async function OrdersPage() {
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 text-sm text-gray-700 md:grid-cols-2">
-                  {order.lines.map((line: any) => (
+                  {order.lines.map((line) => (
                     <div key={line.productId} className="rounded-2xl border border-gray-100 bg-[#F8FBFF] p-3">
                       <p className="font-semibold text-[#0F1111]">{line.productId}</p>
                       <p className="text-xs text-gray-500">{line.qty} × {line.price} {line.currency}</p>

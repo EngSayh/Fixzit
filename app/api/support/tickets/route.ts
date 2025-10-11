@@ -5,6 +5,10 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import crypto from "crypto";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createSchema = z.object({
   subject: z.string().min(4),
   module: z.enum(["FM","Souq","Aqar","Account","Billing","Other"]),
@@ -16,7 +20,31 @@ const createSchema = z.object({
   requester: z.object({ name:z.string().min(2), email:z.string().email(), phone:z.string().optional() }).optional()
 });
 
+/**
+ * @openapi
+ * /api/support/tickets:
+ *   get:
+ *     summary: support/tickets operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest){
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req).catch(()=>null);
@@ -41,23 +69,30 @@ export async function POST(req: NextRequest){
       messages: [{ byUserId: user?.id, byRole: user ? "USER" : "GUEST", text: body.text, at: new Date() }]
     });
 
-    return NextResponse.json(ticket, { status: 201 });
-  } catch (error: any) {
+    return createSecureResponse(ticket, 201, req);
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Support ticket creation failed:', error);
-    return NextResponse.json({ error: 'Failed to create support ticket' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to create support ticket' }, 500, req);
   }
 }
 
 // Admin list with filters
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
-      return NextResponse.json({ error: "Forbidden"},{ status: 403 });
+      return createSecureResponse({ error: "Forbidden"}, 403, req);
     }
     const sp = new URL(req.url).searchParams;
     const status = sp.get("status") || undefined;
@@ -66,20 +101,21 @@ export async function GET(req: NextRequest) {
     const priority = sp.get("priority") || undefined;
     const page = Math.max(1, Number(sp.get("page")||1));
     const limit = Math.min(100, Number(sp.get("limit")||20));
-    const match:any = {};
+    const match: Record<string, unknown> = {};
     if (status) match.status = status;
     if (moduleKey) match.module = moduleKey;
     if (type) match.type = type;
     if (priority) match.priority = priority;
 
     const [items,total] = await Promise.all([
-      (SupportTicket as any).find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
-      (SupportTicket as any).countDocuments(match)
+      SupportTicket.find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
+      SupportTicket.countDocuments(match)
     ]);
     return NextResponse.json({ items, page, limit, total });
   } catch (error) {
     console.error('Support tickets query failed:', error);
-    return NextResponse.json({ error: 'Failed to fetch support tickets' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to fetch support tickets' }, 500, req);
   }
 }
+
 

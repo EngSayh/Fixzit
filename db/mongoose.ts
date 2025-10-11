@@ -1,4 +1,4 @@
-import mongoose, { type Connection } from 'mongoose';
+import { type Connection } from 'mongoose';
 import { db as globalConn } from '@/lib/mongo';
 
 let connection: Connection | null = null;

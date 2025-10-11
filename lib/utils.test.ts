@@ -15,7 +15,7 @@ describe('generateSlug', () => {
   });
 
   it('removes unsupported punctuation and symbols', () => {
-    expect(generateSlug('Hello, World\!')).toBe('hello-world');
+    expect(generateSlug('Hello, World!')).toBe('hello-world');
     expect(generateSlug('Keep_this? Nope.')).toBe('keepthis-nope'); // underscore removed
     expect(generateSlug('Price $100 #Deal')).toBe('price-100-deal');
   });

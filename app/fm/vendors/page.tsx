@@ -8,11 +8,37 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Truck, Plus, Search, Filter, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
+import { Truck, Plus, Search, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
+
+interface Vendor {
+  _id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  status?: string;
+  contact?: { 
+    email?: string; 
+    phone?: string;
+    address?: {
+      city?: string;
+      region?: string;
+    };
+  };
+  performance?: { 
+    successRate?: number; 
+    averageResponseTime?: number;
+    rating?: number;
+    completedProjects?: number;
+  };
+  business?: { 
+    specializations?: string[];
+  };
+  rating?: number;
+  address?: { city?: string };
+}
 
 export default function VendorsPage() {
   const [search, setSearch] = useState('');
@@ -97,7 +123,7 @@ export default function VendorsPage() {
 
       {/* Vendors Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vendors.map((vendor: any) => (
+        {(vendors as Vendor[]).map((vendor) => (
           <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
         ))}
       </div>
@@ -120,7 +146,7 @@ export default function VendorsPage() {
   );
 }
 
-function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void }) {
+function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'SUPPLIER':
@@ -173,18 +199,18 @@ function VendorCard({ vendor, onUpdated }: { vendor: any; onUpdated: () => void 
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
-            {getTypeIcon(vendor.type)}
+            {getTypeIcon(vendor.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{vendor.name}</CardTitle>
               <p className="text-sm text-gray-600">{vendor.code}</p>
             </div>
           </div>
           <div className="flex flex-col items-end space-y-1">
-            <Badge className={getTypeColor(vendor.type)}>
-              {vendor.type.toLowerCase()}
+            <Badge className={getTypeColor(vendor.type || '')}>
+              {vendor.type?.toLowerCase() || ''}
             </Badge>
-            <Badge className={getStatusColor(vendor.status)}>
-              {vendor.status.toLowerCase()}
+            <Badge className={getStatusColor(vendor.status || '')}>
+              {vendor.status?.toLowerCase() || ''}
             </Badge>
           </div>
         </div>
@@ -268,7 +294,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       employees: 0,
       annualRevenue: 0,
       specializations: [] as string[],
-      certifications: [] as any[]
+      certifications: [] as string[]
     },
     status: 'PENDING',
     tags: [] as string[]
@@ -288,7 +314,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create vendor');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating vendor');
     }
   };

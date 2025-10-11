@@ -380,9 +380,9 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
       onCreated();
       reset();
       setOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create work order', error);
-      const message = error?.message ?? 'Unknown error';
+      const message = error instanceof Error ? error.message : 'Unknown error';
       if (typeof window !== 'undefined') {
         window.alert(`Unable to create work order: ${message}`);
       }

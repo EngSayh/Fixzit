@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import useSWR from 'swr';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,13 +8,30 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import GoogleMap from '@/components/GoogleMap';
 import {
-  Building2, MapPin, Calendar, DollarSign, Users, Home,
-  Wrench, Shield, FileText, ChevronLeft, Edit, Trash2,
-  Phone, Mail, Clock, CheckCircle, AlertCircle
+  Building2, MapPin, DollarSign, Users, Home,
+  Wrench, Shield, ChevronLeft, Edit, Trash2, CheckCircle, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
+
+interface MaintenanceIssue {
+  resolved?: boolean;
+  severity?: string;
+  description?: string;
+}
+
+interface PropertyUnit {
+  unitNumber?: string;
+  type?: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  status?: string;
+  tenant?: {
+    name?: string;
+  };
+}
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -157,7 +173,7 @@ export default function PropertyDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {property.units.map((unit: any, index: number) => (
+                  {(property.units as PropertyUnit[]).map((unit, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium">{unit.unitNumber}</p>
@@ -306,16 +322,16 @@ export default function PropertyDetailsPage() {
               {property.maintenance?.issues && property.maintenance.issues.length > 0 && (
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Open Issues</p>
-                  {property.maintenance.issues
-                    .filter((issue: any) => !issue.resolved)
-                    .map((issue: any, index: number) => (
+                  {(property.maintenance.issues as MaintenanceIssue[])
+                    .filter((issue) => !issue.resolved)
+                    .map((issue, index: number) => (
                       <div key={index} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${
                           issue.severity === 'HIGH' ? 'text-red-600' :
                           issue.severity === 'MEDIUM' ? 'text-yellow-600' :
                           'text-gray-600'
                         }`} />
-                        <span>{issue.type}</span>
+                        <span>{issue.description}</span>
                       </div>
                     ))}
                 </div>
@@ -327,3 +343,4 @@ export default function PropertyDetailsPage() {
     </div>
   );
 }
+

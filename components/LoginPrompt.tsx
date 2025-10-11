@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { X, LogIn, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 
 interface LoginPromptProps {
@@ -21,7 +21,7 @@ export default function LoginPrompt({
   action = "Continue",
   redirectTo = "/"
 }: LoginPromptProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, _setIsSignUp] = useState(false);
 
   if (!isOpen) return null;
 

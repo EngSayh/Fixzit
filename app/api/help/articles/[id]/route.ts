@@ -4,6 +4,9 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 
+import {validationError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const patchSchema = z.object({
   title: z.string().min(2).optional(),
   content: z.string().min(1).optional(),
@@ -39,8 +42,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       try { return { _id: new ObjectId(params.id) }; } catch { return { slug: params.id }; }
     })();
     // Scope updates to caller's tenant or global articles
-    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] } as any;
-    const filter = { ...baseFilter, ...tenantScope } as any;
+    const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] };
+    const filter = { ...baseFilter, ...tenantScope };
 
     const update = {
       $set: {
@@ -50,13 +53,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       }
     };
 
-    const res = await coll.findOneAndUpdate(filter as any, update, { returnDocument: 'after' } as any);
-    const article = (res as any)?.value || null;
-    if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const res = await coll.findOneAndUpdate(filter, update, { returnDocument: 'after' });
+    const article = res?.value || null;
+    if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/kb/ingest')
       .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
-        orgId: (article as any)?.orgId ?? (user as any)?.orgId ?? null,
+        orgId: article?.orgId ?? user?.orgId ?? null,
         articleId: article.slug,
         lang: 'en',
         route: `/help/${article.slug}`,
@@ -67,14 +70,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const response = NextResponse.json(article);
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
-  } catch (err: any) {
-    if (err?.name === 'ZodError') {
-      return NextResponse.json({ error: 'Validation failed', issues: err.issues }, { status: 400 });
+  } catch (_err: unknown) {
+    if (_err && typeof _err === 'object' && 'name' in _err && _err.name === 'ZodError' && 'issues' in _err) {
+      return validationError('Validation failed', _err.issues as Array<{message: string}>);
     }
-    if (err?.code === 11000) {
-      return NextResponse.json({ error: 'Duplicate key (e.g., slug) exists' }, { status: 409 });
+    if (_err && typeof _err === 'object' && 'code' in _err && _err.code === 11000) {
+      return createSecureResponse({ error: 'Duplicate key (e.g., slug) exists' }, 409, req);
     }
-    console.error('PATCH /api/help/articles/[id] failed', err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('PATCH /api/help/articles/[id] failed', _err);
+    return createSecureResponse({ error: 'Internal Server Error' }, 500, req);
   }
 }

@@ -3,7 +3,35 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Application } from '@/server/models/Application';
 import { getUserFromToken } from '@/lib/auth';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {notFoundError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/ats/applications/[id]:
+ *   get:
+ *     summary: ats/applications/[id] operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
   await connectToDatabase();
@@ -12,11 +40,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       .populate('jobId')
       .populate('candidateId')
       .lean();
-    if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (!application) return notFoundError("Application");
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
     console.error('Application fetch error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch application' }, { status: 500 });
+    return createSecureResponse({ error: "Failed to fetch application" }, 500, req);
   }
 }
 
@@ -31,7 +59,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const userId = user?.id || 'system';
     
     const application = await Application.findById(params.id);
-    if (!application) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (!application) return notFoundError("Application");
     
     if (body.stage && body.stage !== application.stage) {
       const oldStage = application.stage;
@@ -46,14 +74,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (body.note) {
       application.notes.push({ author: userId, text: body.note, createdAt: new Date(), isPrivate: !!body.isPrivate });
     }
-    if (Array.isArray(body.flags)) (application as any).flags = body.flags;
-    if (Array.isArray(body.reviewers)) (application as any).reviewers = body.reviewers;
+    if (Array.isArray(body.flags)) application.flags = body.flags;
+    if (Array.isArray(body.reviewers)) application.reviewers = body.reviewers;
     
     await application.save();
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
     console.error('Application update error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to update application' }, { status: 500 });
+    return createSecureResponse({ error: "Failed to update application" }, 500, req);
   }
 }
 

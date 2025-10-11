@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
+
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
 const updateInvoiceSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"]).optional(),
@@ -20,19 +24,43 @@ const updateInvoiceSchema = z.object({
   }).optional()
 });
 
+/**
+ * @openapi
+ * /api/invoices/[id]:
+ *   get:
+ *     summary: invoices/[id] operations
+ *     tags: [invoices]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const invoice = await (Invoice as any).findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+      return createSecureResponse({ error: "Invoice not found" }, 404, req);
     }
 
     // Add to history if viewed for first time by recipient
@@ -47,9 +75,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       await invoice.save();
     }
 
-    return NextResponse.json(invoice);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse(invoice, 200, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 
@@ -61,13 +90,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateInvoiceSchema.parse(await req.json());
 
-    const invoice = await (Invoice as any).findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+      return createSecureResponse({ error: "Invoice not found" }, 404, req);
     }
 
     // Handle status update
@@ -120,7 +149,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       });
 
       // Update invoice status if fully paid
-      const totalPaid = invoice.payments.reduce((sum: number, p: any) => 
+      const totalPaid = invoice.payments.reduce((sum: number, p: { status: string; amount: number }) => 
         p.status === "COMPLETED" ? sum + p.amount : sum, 0
       );
 
@@ -137,7 +166,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     // Handle approval
     if (data.approval) {
-      const level = invoice.approval.levels.find((l: any) => 
+      const level = invoice.approval.levels.find((l: { approver: string; status: string }) => 
         l.approver === user.id && l.status === "PENDING"
       );
 
@@ -147,7 +176,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         level.comments = data.approval.comments;
 
         // Check if all levels approved
-        const allApproved = invoice.approval.levels.every((l: any) => 
+        const allApproved = invoice.approval.levels.every((l: { status: string }) => 
           l.status === "APPROVED"
         );
 
@@ -172,26 +201,35 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     invoice.updatedBy = user.id;
     await invoice.save();
 
-    return NextResponse.json(invoice);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse(invoice, 200, req);
+  } catch (error: unknown) {
+    console.error('Invoice PATCH error:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const invoice = await (Invoice as any).findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId,
       status: "DRAFT"
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found or cannot be deleted" }, { status: 404 });
+      return createSecureResponse({ error: "Invoice not found or cannot be deleted" }, 404, req);
     }
 
     invoice.status = "CANCELLED";
@@ -204,8 +242,10 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     invoice.updatedBy = user.id;
     await invoice.save();
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    console.error('Invoice DELETE error:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }

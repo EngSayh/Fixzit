@@ -9,52 +9,66 @@ function normalizeId(id: Types.ObjectId | string | undefined | null) {
   return typeof id === 'string' ? id : id.toString();
 }
 
-export function serializeCategory(doc: MarketplaceCategory | any) {
-  const category = 'toObject' in doc ? (doc as any).toObject() : doc;
+interface DocumentWithToObject {
+  toObject: () => Record<string, unknown>;
+}
+
+export function serializeCategory(doc: MarketplaceCategory | Record<string, unknown>) {
+  const category = 'toObject' in doc ? ((doc as unknown) as DocumentWithToObject).toObject() : doc;
   return {
     ...category,
-    _id: normalizeId((category as any)._id),
-    orgId: normalizeId((category as any).orgId),
-    parentId: normalizeId((category as any).parentId),
-    attrSetId: normalizeId((category as any).attrSetId)
+    _id: normalizeId(category._id as Types.ObjectId | string | undefined),
+    orgId: normalizeId((category as { orgId?: Types.ObjectId | string }).orgId),
+    parentId: normalizeId((category as { parentId?: Types.ObjectId | string }).parentId),
+    attrSetId: normalizeId((category as { attrSetId?: Types.ObjectId | string }).attrSetId)
   };
 }
 
-export function serializeProduct(doc: MarketplaceProduct | any) {
-  const product = 'toObject' in doc ? (doc as any).toObject() : doc;
+export function serializeProduct(doc: MarketplaceProduct | Record<string, unknown>) {
+  const product = 'toObject' in doc ? ((doc as unknown) as DocumentWithToObject).toObject() : doc;
   return {
     ...product,
-    _id: normalizeId((product as any)._id),
-    orgId: normalizeId((product as any).orgId),
-    vendorId: normalizeId((product as any).vendorId),
-    categoryId: normalizeId((product as any).categoryId)
+    _id: normalizeId((product as { _id?: Types.ObjectId | string })._id),
+    orgId: normalizeId((product as { orgId?: Types.ObjectId | string }).orgId),
+    vendorId: normalizeId((product as { vendorId?: Types.ObjectId | string }).vendorId),
+    categoryId: normalizeId((product as { categoryId?: Types.ObjectId | string }).categoryId)
   };
 }
 
-export function serializeOrder(doc: MarketplaceOrder | any) {
-  const order = 'toObject' in doc ? (doc as any).toObject() : doc;
+interface OrderLine {
+  productId?: Types.ObjectId | string;
+  [key: string]: unknown;
+}
+
+export function serializeOrder(doc: MarketplaceOrder | Record<string, unknown>) {
+  const order = 'toObject' in doc ? ((doc as unknown) as DocumentWithToObject).toObject() : doc;
   return {
     ...order,
-    _id: normalizeId((order as any)._id),
-    orgId: normalizeId((order as any).orgId),
-    buyerUserId: normalizeId((order as any).buyerUserId),
-    vendorId: normalizeId((order as any).vendorId),
-    lines: order.lines?.map((line: any) => ({
+    _id: normalizeId((order as { _id?: Types.ObjectId | string })._id),
+    orgId: normalizeId((order as { orgId?: Types.ObjectId | string }).orgId),
+    buyerUserId: normalizeId((order as { buyerUserId?: Types.ObjectId | string }).buyerUserId),
+    vendorId: normalizeId((order as { vendorId?: Types.ObjectId | string }).vendorId),
+    lines: (order as { lines?: OrderLine[] }).lines?.map((line: OrderLine) => ({
       ...line,
       productId: normalizeId(line.productId)
     }))
   };
 }
 
-export function serializeRFQ(doc: MarketplaceRFQ | any) {
-  const rfq = 'toObject' in doc ? (doc as any).toObject() : doc;
+interface RFQBid {
+  vendorId?: Types.ObjectId | string;
+  [key: string]: unknown;
+}
+
+export function serializeRFQ(doc: MarketplaceRFQ | Record<string, unknown>) {
+  const rfq = 'toObject' in doc ? ((doc as unknown) as DocumentWithToObject).toObject() : doc;
   return {
     ...rfq,
-    _id: normalizeId((rfq as any)._id),
-    orgId: normalizeId((rfq as any).orgId),
-    requesterId: normalizeId((rfq as any).requesterId),
-    categoryId: normalizeId((rfq as any).categoryId),
-    bids: rfq.bids?.map((bid: any) => ({
+    _id: normalizeId((rfq as { _id?: Types.ObjectId | string })._id),
+    orgId: normalizeId((rfq as { orgId?: Types.ObjectId | string }).orgId),
+    requesterId: normalizeId((rfq as { requesterId?: Types.ObjectId | string }).requesterId),
+    categoryId: normalizeId((rfq as { categoryId?: Types.ObjectId | string }).categoryId),
+    bids: (rfq as { bids?: RFQBid[] }).bids?.map((bid: RFQBid) => ({
       ...bid,
       vendorId: normalizeId(bid.vendorId)
     }))

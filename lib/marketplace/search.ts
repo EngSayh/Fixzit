@@ -59,8 +59,9 @@ export interface MarketplaceSearchFilters {
 }
 
 export async function searchProducts(filters: MarketplaceSearchFilters) {
-  const client = await db;
-  const query: Record<string, unknown> = { orgId: filters.orgId, status: 'ACTIVE' };
+  await db;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Record<string, any> = { orgId: filters.orgId, status: 'ACTIVE' };
 
   if (filters.q) {
     query.$text = { $search: expandQuery(filters.q) };
@@ -81,9 +82,11 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
   if (filters.minPrice != null || filters.maxPrice != null) {
     query['buy.price'] = {};
     if (filters.minPrice != null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (query['buy.price'] as any).$gte = filters.minPrice;
     }
     if (filters.maxPrice != null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (query['buy.price'] as any).$lte = filters.maxPrice;
     }
   }
@@ -121,7 +124,7 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
 }
 
 export async function findProductBySlug(orgId: Types.ObjectId, slug: string) {
-  const client = await db;
+  await db;
   const product = await Product.findOne({ orgId, slug }).lean();
   if (!product) return null;
   return serializeProduct(product as MarketplaceProduct);

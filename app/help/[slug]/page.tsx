@@ -6,8 +6,6 @@ import { headers } from 'next/headers';
 
 export const revalidate = 60;
 
-type Article = { slug: string; title: string; content: string; category?: string; updatedAt?: string | Date };
-
 /**
  * Server component that fetches a published help article by slug and renders the article page.
  *
@@ -19,7 +17,7 @@ type Article = { slug: string; title: string; content: string; category?: string
 export default async function HelpArticlePage(props:{ params: Promise<{ slug:string }>}) {
   const params = await props.params;
   await connectToDatabase();
-  const a = await (HelpArticle as any).findOne({ slug: params.slug });
+  const a = await HelpArticle.findOne({ slug: params.slug });
   if (!a || a.status!=="PUBLISHED"){
     return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
   }

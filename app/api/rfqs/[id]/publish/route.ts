@@ -3,6 +3,10 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { RFQ } from "@/server/models/RFQ";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 /**
  * Publishes a draft RFQ by id for the current user's tenant.
  *
@@ -16,27 +20,49 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
  *  - If not found (404): { error: "RFQ not found or already published" }
  *  - On server error (500): { error: string }
  */
+/**
+ * @openapi
+ * /api/rfqs/[id]/publish:
+ *   post:
+ *     summary: rfqs/[id]/publish operations
+ *     tags: [rfqs]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const rfq = await (RFQ as any).findOneAndUpdate(
+    const rfq = await RFQ.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
       {
         $set: {
           status: "PUBLISHED",
           "workflow.publishedBy": user.id,
           "workflow.publishedAt": new Date(),
-          "timeline.publishDate": new Date(),
-        },
-      },
+          "timeline.publishDate": new Date()}},
       { new: true }
     );
 
     if (!rfq) {
-      return NextResponse.json({ error: "RFQ not found or already published" }, { status: 404 });
+      return createSecureResponse({ error: "RFQ not found or already published" }, 404, req);
     }
 
     // Vendor notifications sent via background job
@@ -50,7 +76,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         publishedAt: rfq?.workflow?.publishedAt || null
       }
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to publish RFQ';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }

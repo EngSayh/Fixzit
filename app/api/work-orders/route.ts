@@ -6,6 +6,10 @@ import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
@@ -35,20 +39,50 @@ const createSchema = z.object({
  *
  * @returns A NextResponse JSON object with shape `{ items, page, limit, total }`.
  */
+/**
+ * @openapi
+ * /api/work-orders:
+ *   get:
+ *     summary: work-orders operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.WO_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await db;
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
-    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    const WorkOrder = WOMod && WOMod.WorkOrder;
     if (!WorkOrder) {
-      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Order dependencies are not available in this deployment" }, 501, req);
     }
   await connectToDatabase();
   const user = await getSessionUser(req);
+  if (!user?.orgId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      { status: 401 }
+    );
+  }
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
   const status = searchParams.get("status") || undefined;
@@ -56,45 +90,53 @@ export async function GET(req: NextRequest) {
   const page = Number(searchParams.get("page") || 1);
   const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
-  const match: any = { tenantId: (user as any)?.orgId, deletedAt: { $exists: false } };
+  const match: Record<string, unknown> = { tenantId: user.orgId, deletedAt: { $exists: false } };
   if (status) match.status = status;
   if (priority) match.priority = priority;
   if (q) match.$text = { $search: q };
 
   // MongoDB-only implementation
-  let items: any[];
+  let items: unknown[];
   let total: number;
 
   // Real MongoDB operations
-  items = await (WorkOrder as any).find(match)
+  items = await WorkOrder.find(match)
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit);
-  total = await (WorkOrder as any).countDocuments(match);
+  total = await WorkOrder.countDocuments(match);
 
   return NextResponse.json({ items, page, limit, total });
-  } catch (error: any) {
-    console.error('Work Orders GET error:', error);
-    return NextResponse.json({ 
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Work Orders GET error:', message);
+    return createSecureResponse({ 
       error: 'Failed to fetch work orders' 
-    }, { status: 500 });
+    }, 500, req);
   }
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.WO_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Work Orders endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await db;
     const WOMod = await import('@/server/models/WorkOrder').catch(() => null);
-    const WorkOrder = WOMod && (WOMod as any).WorkOrder;
+    const WorkOrder = WOMod && WOMod.WorkOrder;
     if (!WorkOrder) {
-      return NextResponse.json({ success: false, error: 'Work Order dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Work Order dependencies are not available in this deployment" }, 501, req);
     }
   const user = await requireAbility("CREATE")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
 
   const body = await req.json();
@@ -106,8 +148,8 @@ export async function POST(req: NextRequest) {
   const code = `WO-${new Date().getFullYear()}-${uuid}`;
   const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
 
-  const wo = await (WorkOrder as any).create({
-    tenantId: (user as any)?.orgId,
+  const wo = await WorkOrder.create({
+    tenantId: user.orgId,
     code,
     title: data.title,
     description: data.description,
@@ -124,13 +166,15 @@ export async function POST(req: NextRequest) {
     createdBy: user.id,
     createdAt
   });
-  return NextResponse.json(wo, { status: 201 });
-  } catch (error: any) {
-    console.error('Work Orders POST error:', error);
-    return NextResponse.json({ 
+  return createSecureResponse(wo, 201, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Work Orders POST error:', message);
+    return createSecureResponse({ 
       error: 'Failed to create work order' 
-    }, { status: 500 });
+    }, 500, req);
   }
 }
+
 
 

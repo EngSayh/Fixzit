@@ -4,25 +4,30 @@ import { useCallback, useEffect, useState } from 'react';
 import { Search, Plus, ShoppingCart } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
+interface PartItem {
+  _id: string;
+  name: string;
+  title: string;
+  price: number;
+  stock: number;
+  category: string;
+}
+
+interface SelectedPartItem {
+  _id: string;
+  name: string;
+  title: string;
+  price: number;
+  quantity: number;
+}
+
 export default function WorkOrderPartsPage() {
   const params = useParams();
   const workOrderId = params.id;
   
   const [search, setSearch] = useState('');
-  const [parts, setParts] = useState<Array<{
-    _id: string;
-    name: string;
-    price: number;
-    stock: number;
-    category: string;
-  }>>([]);
-  const [selectedParts, setSelectedParts] = useState<Array<{
-    _id: string;
-    name: string;
-    title: string;
-    price: number;
-    quantity: number;
-  }>>([]);
+  const [parts, setParts] = useState<PartItem[]>([]);
+  const [selectedParts, setSelectedParts] = useState<SelectedPartItem[]>([]);
   const [loading, setLoading] = useState(false);
   
   const searchParts = useCallback(async () => {
@@ -44,7 +49,7 @@ export default function WorkOrderPartsPage() {
     searchParts();
   }, [searchParts]);
   
-  const addPart = (part: any) => {
+  const addPart = (part: PartItem) => {
     const existing = selectedParts.find(p => p._id === part._id);
     if (existing) {
       setSelectedParts(selectedParts.map(p => 
@@ -124,7 +129,7 @@ export default function WorkOrderPartsPage() {
                 <div className="text-center py-8">Loading...</div>
               ) : (
                 <div className="grid gap-4">
-                  {parts.map((part: any) => (
+                  {parts.map((part) => (
                     <div key={part._id} className="border rounded-lg p-4 flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{part.title}</h3>

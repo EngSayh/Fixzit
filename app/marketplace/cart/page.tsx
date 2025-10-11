@@ -3,16 +3,41 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
-export default async function CartPage() {
-  const [categoriesResponse, cartResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/cart')
-  ]);
+interface CartLine {
+  productId: string;
+  product?: {
+    title?: { en?: string };
+    slug?: string;
+    media?: Array<{ url: string }>;
+    buy?: {
+      leadDays?: number;
+      minQty?: number;
+    };
+  };
+  qty: number;
+  quantity: number;
+  price: number;
+  unitPrice: number;
+  total: number;
+  currency: string;
+}
 
-  const departments = (categoriesResponse.data as any[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
+interface CartData {
+  lines: CartLine[];
+  total: number;
+  totals: {
+    subtotal: number;
+    vat: number;
+    grand: number;
+  };
+  currency: string;
+}
+
+export default async function CartPage() {
+  const [_categoriesResponse, cartResponse] = await Promise.all([
+    serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<{ data: CartData }>('/api/marketplace/cart')
+  ]);
 
   const cart = cartResponse.data;
 
@@ -24,7 +49,7 @@ export default async function CartPage() {
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
           <section className="space-y-4">
             {cart.lines.length ? (
-              cart.lines.map((line: any) => (
+              cart.lines.map((line) => (
                 <article key={line.productId} className="rounded-3xl bg-white p-6 shadow">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex gap-4">

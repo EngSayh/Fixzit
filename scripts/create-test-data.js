@@ -17,7 +17,14 @@ async function createTestData() {
     console.log('🚀 Creating test data...');
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
+    if (!DEFAULT_PASSWORD) {
+      console.error('❌ DEFAULT_PASSWORD environment variable is required');
+      console.error('💡 Set it with: export DEFAULT_PASSWORD="your-secure-password"');
+      process.exit(1);
+    }
+
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
     const admin = await User.findOneAndUpdate(
       { email: 'admin@fixzit.com' },
       {
@@ -123,7 +130,7 @@ async function createTestData() {
 
     console.log('\n🎯 Test Credentials:');
     console.log('Email: admin@fixzit.com');
-    console.log('Password: admin123');
+    console.log('Password: [REDACTED - check .env.local]');
 
     mongoose.connection.close();
     process.exit(0);
@@ -134,3 +141,5 @@ async function createTestData() {
 }
 
 createTestData();
+
+

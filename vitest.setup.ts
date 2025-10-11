@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest';
 
 // Provide Jest compatibility layer for tests using jest.* APIs
 if (typeof global !== 'undefined') {
-  (global as any).jest = vi;
+  global.jest = vi;
 }
 
 // The global test functions are already available through @types/jest

@@ -61,7 +61,7 @@ export function createSafeTimestamp(value?: unknown): Date {
 /**
  * Sanitize timestamp fields in an object
  */
-export function sanitizeTimestamps<T extends Record<string, any>>(
+export function sanitizeTimestamps<T extends Record<string, unknown>>(
   obj: T, 
   fields: (keyof T)[] = ['createdAt', 'updatedAt']
 ): T {
@@ -70,7 +70,7 @@ export function sanitizeTimestamps<T extends Record<string, any>>(
   for (const field of fields) {
     if (field in sanitized) {
       const validated = validateTimestamp(sanitized[field]);
-      sanitized[field] = validated || new Date() as any;
+      sanitized[field] = (validated || new Date()) as T[keyof T];
     }
   }
 
@@ -80,7 +80,7 @@ export function sanitizeTimestamps<T extends Record<string, any>>(
 /**
  * Validate array of objects and sanitize their timestamps
  */
-export function validateCollection<T extends Record<string, any>>(
+export function validateCollection<T extends Record<string, unknown>>(
   collection: T[], 
   timestampFields: (keyof T)[] = ['createdAt', 'updatedAt']
 ): T[] {
@@ -94,7 +94,7 @@ export function validateCollection<T extends Record<string, any>>(
 /**
  * Add default timestamps to an object
  */
-export function addTimestamps<T extends Record<string, any>>(
+export function addTimestamps<T extends Record<string, unknown>>(
   obj: T,
   overwrite: boolean = false
 ): T & { createdAt: Date; updatedAt: Date } {
@@ -110,7 +110,7 @@ export function addTimestamps<T extends Record<string, any>>(
 /**
  * Update only the updatedAt timestamp
  */
-export function updateTimestamp<T extends Record<string, any>>(obj: T): T & { updatedAt: Date } {
+export function updateTimestamp<T extends Record<string, unknown>>(obj: T): T & { updatedAt: Date } {
   return {
     ...obj,
     updatedAt: new Date()

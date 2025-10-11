@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Filter, MapPin, Bed, Bath, Square } from 'lucide-react';
+import { Search, MapPin, Bed, Bath, Square } from 'lucide-react';
 import Image from 'next/image';
 
 type ApiProperty = {
@@ -32,7 +32,7 @@ export default function AqarPropertiesPage() {
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         if (!cancelled) setItems(Array.isArray(data.items) ? data.items : []);
-      } catch (e: any) {
+      } catch {
         if (!cancelled) {
           setError('Could not load properties');
           setItems([]);

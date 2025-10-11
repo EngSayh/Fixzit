@@ -1,0 +1,63 @@
+{
+  "name": "Fixzit Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-vscode.vscode-typescript-next",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "chat.agent.enabled": true,
+        "chat.agent.maxRequests": 999,
+        "chat.tools.global.autoApprove": true,
+        "chat.tools.terminal.autoReplyToPrompts": true,
+        "github.copilot.chat.agent.runTasks": true,
+        "chat.notifyWindowOnConfirmation": false,
+        "chat.checkpoints.enabled": true,
+        "chat.editing.autoAccept": 2,
+        "chat.tools.edits.autoApprove": {
+          "**/*": true
+        },
+        "chat.tools.terminal.autoApprove": {
+          "npm": true,
+          "pnpm": true,
+          "yarn": true,
+          "bun": true,
+          "node": true,
+          "npx": true,
+          "git": true,
+          "gh": true,
+          "bash": true,
+          "sh": true,
+          "python": true,
+          "pytest": true,
+          "docker": true,
+          "make": true
+        },
+        "security.workspace.trust.enabled": false,
+        "git.branchProtection": ["main", "master"],
+        "github.copilot.chat.codeGeneration.useInstructionFiles": true
+      }
+    }
+  },
+  "containerEnv": {
+    "NO_PROXY": "127.0.0.1,localhost,.local,.internal,.docker,github.com,api.github.com,githubusercontent.com,githubcopilot.com,githubcontent.com,copilot-proxy.githubusercontent.com,origin-tracker.githubusercontent.com",
+    "no_proxy": "${containerEnv:NO_PROXY}"
+  },
+  "remoteEnv": {
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}"
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteUser": "node",
+  "updateRemoteUserUID": true
+}

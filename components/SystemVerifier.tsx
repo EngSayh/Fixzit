@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { autoFixManager, FixResult } from '@/lib/AutoFixManager';
+import { autoFixManager } from '@/lib/AutoFixManager';
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Network, Shield, Zap } from 'lucide-react';
 
 interface SystemStatus {

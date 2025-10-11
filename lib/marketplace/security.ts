@@ -129,7 +129,7 @@ const DEFAULT_SECURITY_CONFIG: Required<SecurityHeadersConfig> = {
   /**
    * Middleware-style function to wrap API route handlers with security headers
    */
-  export function withSecurityHeaders<T extends any[]>(
+  export function withSecurityHeaders<T extends unknown[]>(
     handler: (..._args: T) => Promise<NextResponse> | NextResponse,
     config?: SecurityHeadersConfig
   ) {

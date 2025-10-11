@@ -8,23 +8,41 @@ import { createSecureResponse } from '@/server/security/headers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 import { serializeOrder, serializeProduct } from '@/lib/marketplace/serializers';
 import { getOrCreateCart, recalcCartTotals } from '@/lib/marketplace/cart';
+import { unauthorizedError, notFoundError, rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
 
 const AddToCartSchema = z.object({
   productId: z.string(),
   quantity: z.number().int().positive()
 });
 
+/**
+ * @openapi
+ * /api/marketplace/cart:
+ *   get:
+ *     summary: marketplace/cart operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
     if (!context.userId) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      return unauthorizedError();
     }
     await connectToDatabase();
     const cart = await getOrCreateCart(context.orgId, context.userId);
     const productIds = cart.lines.map(line => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
-    const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as any)]));
+    const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as Record<string, unknown>)]));
 
     return createSecureResponse({
       ok: true,
@@ -39,7 +57,7 @@ export async function GET(request: NextRequest) {
     }, 200, request);
   } catch (error) {
     console.error('Marketplace cart fetch failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to load cart' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to load cart' }, 500, request);
   }
 }
 
@@ -47,14 +65,14 @@ export async function POST(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
     if (!context.userId) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Rate limiting for cart operations
     const key = `marketplace:cart:${context.userId}`;
     const rl = rateLimit(key, 60, 60_000); // 60 cart operations per minute
     if (!rl.allowed) {
-      return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+      return rateLimitError();
     }
 
     const body = await request.json();
@@ -64,7 +82,7 @@ export async function POST(request: NextRequest) {
     const productId = objectIdFrom(payload.productId);
     const product = await Product.findOne({ _id: productId, orgId: context.orgId });
     if (!product) {
-      return NextResponse.json({ ok: false, error: 'Product not found' }, { status: 404 });
+      return notFoundError('Product');
     }
 
     const cart = await getOrCreateCart(context.orgId, context.userId);
@@ -93,11 +111,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid payload', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     console.error('Marketplace add to cart failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to update cart' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to update cart' }, 500, request);
   }
 }
+
 
 

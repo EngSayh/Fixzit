@@ -1,7 +1,29 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/config';
 
-export async function POST(request: Request) {
+/**
+ * @openapi
+ * /api/i18n:
+ *   post:
+ *     summary: Set user locale preference
+ *     tags: [i18n]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               locale:
+ *                 type: string
+ *                 enum: [en, ar]
+ *     responses:
+ *       200:
+ *         description: Locale preference saved
+ *       400:
+ *         description: Invalid or unsupported locale
+ */
+export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const locale = body?.locale as Locale | undefined;
 

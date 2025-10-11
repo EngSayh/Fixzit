@@ -4,7 +4,33 @@ import { Job } from '@/server/models/Job';
 import { generateSlug } from '@/lib/utils';
 import { getUserFromToken } from '@/lib/auth';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+/**
+ * @openapi
+ * /api/ats/jobs:
+ *   get:
+ *     summary: ats/jobs operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     
@@ -18,7 +44,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     
-    const filter: any = { orgId };
+    const filter: Record<string, unknown> = { orgId };
     if (status !== 'all') filter.status = status;
     if (department) filter.department = department;
     if (location) filter['location.city'] = location;
@@ -49,6 +75,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const body = await req.json();
@@ -56,7 +89,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
     const userId = user?.id || 'system';
-    const orgId = (user as any)?.tenantId || (user as any)?.orgId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    const orgId = user?.orgId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
@@ -81,6 +114,7 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
 
 
 
