@@ -32,9 +32,17 @@ export type SimplePaymentRequest = {
 
 export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
 
+// Validate required PayTabs credentials
+if (!process.env.PAYTABS_PROFILE_ID || !process.env.PAYTABS_SERVER_KEY) {
+  throw new Error(
+    'PayTabs credentials not configured. Please set PAYTABS_PROFILE_ID and PAYTABS_SERVER_KEY environment variables. ' +
+    'See documentation: https://docs.paytabs.com/setup'
+  );
+}
+
 const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
+  profileId: process.env.PAYTABS_PROFILE_ID,
+  serverKey: process.env.PAYTABS_SERVER_KEY,
   baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase('GLOBAL')
 };
 
