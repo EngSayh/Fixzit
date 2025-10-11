@@ -7,6 +7,16 @@
   "chat.notifyWindowOnConfirmation": false,
   "chat.checkpoints.enabled": true,
   "chat.editing.autoAccept": 2,
+  "github.copilot.enable": { "*": true },
+  "github.copilot.chat.enable": true,
+  "github.copilot.chat.virtualTools.threshold": 1,
+  "chat.mcp.discovery.enabled": false,
+  "remote.extensionKind": {
+    "GitHub.copilot": ["workspace"],
+    "GitHub.copilot-chat": ["workspace"],
+    "CodeRabbit.coderabbit-vscode": ["ui"],
+    "Codium.codium": ["ui"]
+  },
   "chat.tools.edits.autoApprove": {
     "**/*": true
   },

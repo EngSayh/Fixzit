@@ -24,6 +24,8 @@
         "chat.notifyWindowOnConfirmation": false,
         "chat.checkpoints.enabled": true,
         "chat.editing.autoAccept": 2,
+        "github.copilot.chat.virtualTools.threshold": 1,
+        "chat.mcp.discovery.enabled": false,
         "chat.tools.edits.autoApprove": {
           "**/*": true
         },

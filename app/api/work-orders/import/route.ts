@@ -58,7 +58,7 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
   if (!validationResult.success) {
     return createSecureResponse({ 
       error: "Validation failed", 
-      details: validationResult.error.errors 
+      details: validationResult.error.issues 
     }, 422, req);
   }
   

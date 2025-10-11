@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof ZodError) {
       return createSecureResponse({ 
         error: 'Invalid request payload',
-        fields: error.errors.map(e => e.path.join('.'))
+        fields: error.issues.map(e => e.path.join('.'))
       }, 400, req);
     }
     
