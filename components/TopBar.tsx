@@ -58,7 +58,7 @@ interface Notification {
  *               by downstream logic or hooks that consume this component's props.
  * @returns {JSX.Element} The TopBar React element.
  */
-export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
+export default function TopBar({ role = 'guest' }: TopBarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -236,12 +236,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (savedLang) localStorage.setItem('fxz.lang', savedLang);
       if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
-      // Redirect to login page
-      router.push('/login');
+      // Hard reload to login page to fully reset state
+      window.location.replace('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      // Still redirect even if API call fails
-      router.push('/login');
+      // Still hard reload even if API call fails
+      window.location.replace('/login');
     }
   };
 
@@ -272,6 +272,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           <LanguageSelector variant="compact" />
           <CurrencySelector variant="compact" />
         </div>
+        {role !== 'guest' && (
         <div className="notification-container relative">
           <button
             onClick={() => setNotifOpen(!notifOpen)}
@@ -376,6 +377,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             </div>
           )}
         </div>
+        )}
         <div className="relative">
           <button onClick={() => setUserOpen(!userOpen)} className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md">
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { Menu, X } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,14 @@ export default function ResponsiveLayout({
 }: ResponsiveLayoutProps) {
   const { screenInfo, responsiveClasses } = useResponsiveLayout();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Determine text direction
+  let isRTL = false;
+  try {
+    const tctx = useTranslation();
+    isRTL = tctx.isRTL;
+  } catch {
+    isRTL = false;
+  }
 
   // Close sidebar on mobile when screen size changes to desktop
   useEffect(() => {
@@ -46,7 +55,7 @@ export default function ResponsiveLayout({
       {sidebar && showSidebarToggle && (screenInfo.isMobile || screenInfo.isTablet) && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-16 left-4 z-50 p-2 bg-[#0061A8] text-white rounded-md shadow-lg md:hidden"
+          className={`fixed top-16 ${isRTL ? 'right-4' : 'left-4'} z-50 p-2 bg-[#0061A8] text-white rounded-md shadow-lg md:hidden`}
         >
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -55,11 +64,13 @@ export default function ResponsiveLayout({
       <div className="flex">
         {/* Sidebar */}
         {sidebar && (
-          <div className={`
-            ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
-            ${screenInfo.isMobile || screenInfo.isTablet ? 'fixed inset-y-0 left-0 z-40' : 'relative'}
-            transition-transform duration-300 ease-in-out
-          `}>
+          <div
+            className={`
+              ${showSidebar ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}
+              ${(screenInfo.isMobile || screenInfo.isTablet) ? (isRTL ? 'fixed inset-y-0 right-0 z-40' : 'fixed inset-y-0 left-0 z-40') : 'relative'}
+              transition-transform duration-300 ease-in-out
+            `}
+          >
             {sidebar}
           </div>
         )}
