@@ -114,9 +114,7 @@ export async function GET(req: NextRequest) {
   total = await WorkOrder.countDocuments(match);
 
   return NextResponse.json({ items, page, limit, total });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Work Orders GET error:', message);
+  } catch (_error: unknown) {
     return createSecureResponse({ 
       error: 'Failed to fetch work orders' 
     }, 500, req);
@@ -174,9 +172,7 @@ export async function POST(req: NextRequest) {
     createdAt
   });
   return createSecureResponse(wo, 201, req);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Work Orders POST error:', message);
+  } catch (_error: unknown) {
     return createSecureResponse({ 
       error: 'Failed to create work order' 
     }, 500, req);

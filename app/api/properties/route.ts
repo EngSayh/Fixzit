@@ -111,9 +111,8 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(property, 201, req);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to create property';
-    return createSecureResponse({ error: message }, 400, req);
+  } catch (_error: unknown) {
+    return createSecureResponse({ error: 'Failed to create property' }, 400, req);
   }
 }
 
@@ -171,9 +170,8 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch properties';
-    return createSecureResponse({ error: message }, 500, req);
+  } catch (_error: unknown) {
+    return createSecureResponse({ error: 'Failed to fetch properties' }, 500, req);
   }
 }
 
