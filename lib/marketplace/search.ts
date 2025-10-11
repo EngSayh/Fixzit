@@ -6,13 +6,37 @@ import Product from '@/server/models/marketplace/Product';
 import { db } from '@/lib/mongo';
 import { serializeProduct } from './serializers';
 
+/**
+ * Synonym Map Structure
+ * 
+ * Defines brand and product term synonyms for search query expansion.
+ * Used to match user queries with product catalog variations.
+ * 
+ * @example
+ * {
+ *   brand: { "samsung": ["samsung electronics", "samsung co"] },
+ *   product: { "ac": ["air conditioner", "cooling unit"] }
+ * }
+ */
 interface SynonymMap {
-  brand: Record<string, string[]>;
-  product: Record<string, string[]>;
+  brand: Record<string, string[]>;      // Brand name variations
+  product: Record<string, string[]>;    // Product term alternatives
 }
 
+/** In-memory cache for synonym data to avoid repeated file reads */
 let cachedSynonyms: SynonymMap | undefined;
 
+/**
+ * Load Search Synonyms from Filesystem
+ * 
+ * Reads and caches synonym mappings from search/synonyms.json.
+ * Falls back to empty maps if file is missing or invalid.
+ * 
+ * Caching ensures we only read the file once per process lifetime,
+ * improving search performance.
+ * 
+ * @returns Synonym mappings for brands and products
+ */
 function loadSynonyms(): SynonymMap {
   if (cachedSynonyms) return cachedSynonyms;
   const filePath = path.join(process.cwd(), 'search', 'synonyms.json');
@@ -27,6 +51,25 @@ function loadSynonyms(): SynonymMap {
   }
 }
 
+/**
+ * Expand Search Query with Synonyms
+ * 
+ * Takes user query and adds synonym variations to improve search recall.
+ * For example, "AC repair" becomes "AC air conditioner cooling unit repair".
+ * 
+ * Process:
+ * 1. Tokenize query into words
+ * 2. For each token, find matching synonyms
+ * 3. Add all variations to expanded set
+ * 4. Return combined query string
+ * 
+ * @param value - User's search query
+ * @returns Expanded query with synonyms included
+ * 
+ * @example
+ * expandQuery('samsung ac') 
+ * // Returns: 'samsung samsung electronics ac air conditioner cooling unit'
+ */
 function expandQuery(value: string) {
   const synonyms = loadSynonyms();
   const tokens = value.split(/\s+/).filter(Boolean);

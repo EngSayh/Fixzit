@@ -444,7 +444,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
   };
 
   // Send welcome email to new users who encountered errors
-  private sendWelcomeEmail = async (email: string, errorId: string) => {
+  private _sendWelcomeEmail = async (email: string, errorId: string) => {
     try {
       await fetch('/api/support/welcome-email', {
         method: 'POST',

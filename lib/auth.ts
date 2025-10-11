@@ -30,7 +30,7 @@ try {
 // AWS Secrets Manager support with fallback
 let jwtSecret: string | null = null;
 
-async function _getJWTSecret(): Promise<string> {
+async function getJWTSecret(): Promise<string> {
   if (jwtSecret) {
     return jwtSecret;
   }
