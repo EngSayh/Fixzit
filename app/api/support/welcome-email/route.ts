@@ -158,12 +158,11 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Email parameter required' }, 400, req);
   }
 
-  // In a real implementation, this would check the database
-  // For now, return mock data
+  // TODO: Implement actual database lookup for email delivery status
+  // For now, return not found since email service is not integrated
   return NextResponse.json({
+    error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
     email,
-    welcomeEmailsSent: 1,
-    lastSent: new Date().toISOString(),
-    status: 'sent'
-  });
+    status: 'not_configured'
+  }, { status: 501 }); // 501 Not Implemented
 }

@@ -63,6 +63,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -79,12 +80,25 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   const router = useRouter();
 
-  // Fetch notifications when dropdown opens
+  // Check authentication status on mount
   useEffect(() => {
-    if (notifOpen && notifications.length === 0) {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        setIsAuthenticated(response.ok);
+      } catch {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  // Fetch notifications when dropdown opens (only if authenticated)
+  useEffect(() => {
+    if (notifOpen && notifications.length === 0 && isAuthenticated) {
       fetchNotifications();
     }
-  }, [notifOpen, notifications.length]);
+  }, [notifOpen, notifications.length, isAuthenticated]);
 
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
@@ -117,70 +131,28 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   }, [notifOpen]);
 
   const fetchNotifications = async () => {
+    // Don't fetch notifications for guest users
+    if (!isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch('/api/notifications?limit=5&read=false', {
-        headers: {
-          'x-user': JSON.stringify({
-            id: 'guest',
-            role: 'GUEST',
-            tenantId: 'demo-tenant'
-          })
-        }
+        credentials: 'include' // Use session cookies instead of hardcoded guest
       });
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.items || []);
       } else {
-        // Use mock notifications if API fails
-        setNotifications([
-          {
-            id: '1',
-            title: 'Invoice Payment Received',
-            message: 'Payment for invoice INV-1234 has been processed successfully',
-            timestamp: new Date().toISOString(),
-            read: false,
-            priority: 'medium',
-            category: 'finance',
-            type: 'payment'
-          },
-          {
-            id: '2',
-            title: 'Property Inspection Due',
-            message: 'Monthly inspection for Tower A is scheduled for tomorrow',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            read: false,
-            priority: 'high',
-            category: 'maintenance',
-            type: 'inspection'
-          }
-        ]);
+        // Don't use mock notifications - just show empty
+        setNotifications([]);
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      // Use mock notifications as fallback
-      setNotifications([
-        {
-          id: '1',
-          title: 'Invoice Payment Received',
-          message: 'Payment for invoice INV-1234 has been processed successfully',
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'medium',
-          category: 'finance',
-          type: 'payment'
-        },
-        {
-          id: '2',
-          title: 'Property Inspection Due',
-          message: 'Monthly inspection for Tower A is scheduled for tomorrow',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          read: false,
-          priority: 'high',
-          category: 'maintenance',
-          type: 'inspection'
-        }
-      ]);
+      // Don't show mock notifications - just empty for guests
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -272,16 +244,20 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           <LanguageSelector variant="compact" />
           <CurrencySelector variant="compact" />
         </div>
-        <div className="notification-container relative">
-          <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
-            aria-label="Toggle notifications"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-          </button>
-          {notifOpen && (
+        {/* Only show notifications for authenticated users */}
+        {isAuthenticated && (
+          <div className="notification-container relative">
+            <button
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
+              aria-label="Toggle notifications"
+            >
+              <Bell className="w-5 h-5" />
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+              )}
+            </button>
+            {notifOpen && (
             <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'left-8' : 'right-8'}`}></div>
@@ -374,8 +350,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
         <div className="relative">
           <button onClick={() => setUserOpen(!userOpen)} className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md">
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />

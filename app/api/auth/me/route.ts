@@ -83,16 +83,6 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ ok: true, user }, 200, req);
   } catch (error) {
     console.error('Get current user error:', error);
-    // For testing purposes, return mock user
-    return createSecureResponse({
-      ok: true,
-      user: {
-        id: '1',
-        email: 'admin@fixzit.co',
-        name: 'System Administrator',
-        role: 'SUPER_ADMIN',
-        tenantId: 'demo-tenant'
-      }
-    }, 200, req);
+    return unauthorizedError('Failed to retrieve user information');
   }
 }

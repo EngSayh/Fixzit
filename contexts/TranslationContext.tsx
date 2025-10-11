@@ -66,6 +66,15 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'لا توجد إشعارات جديدة',
     'common.allCaughtUp': 'لقد قرأت كل شيء!',
     'common.viewAll': 'عرض جميع الإشعارات',
+    // TopBar search placeholders
+    'souq.search.placeholder': 'البحث في الكتالوج، الموردين، طلبات العروض، الطلبات...',
+    'aqar.search.placeholder': 'البحث في القوائم، المشاريع، الوكلاء...',
+    // App Switcher
+    'app.switchApplication': 'تبديل التطبيق',
+    'app.fm': 'إدارة المنشآت',
+    'app.souq': 'السوق',
+    'app.aqar': 'العقار',
+    'app.searchableEntities': 'كيانات قابلة للبحث',
     'common.cancel': 'إلغاء',
     'common.edit': 'تعديل',
     'common.delete': 'حذف',
@@ -320,6 +329,12 @@ const translations: Record<Language, Record<string, string>> = {
     // TopBar search placeholders
     'souq.search.placeholder': 'Search catalog, vendors, RFQs, orders…',
     'aqar.search.placeholder': 'Search listings, projects, agents…',
+    // App Switcher
+    'app.switchApplication': 'Switch Application',
+    'app.fm': 'Facility Management',
+    'app.souq': 'Marketplace',
+    'app.aqar': 'Real Estate',
+    'app.searchableEntities': 'searchable entities',
     'common.cancel': 'Cancel',
     'common.edit': 'Edit',
     'common.delete': 'Delete',

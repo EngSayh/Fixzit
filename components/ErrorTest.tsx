@@ -5,6 +5,17 @@ import { useState } from 'react';
 export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
 
+  // Never show this component - it should only be used for manual testing
+  // To enable, temporarily set this to false
+  if (true) {
+    return null;
+  }
+
+  // Only show in development mode
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
   const triggerError = () => {
     // This will trigger the error boundary
     throw new Error('Test error triggered by user for error boundary testing');
