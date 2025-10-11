@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function PropertiesInspectionsPage() {
+  const { t } = useTranslation();
   const inspections = [
     {
       id: 'INSP-001',
@@ -204,7 +208,7 @@ export default function PropertiesInspectionsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">Edit</button>
+                      <button className="text-blue-600 hover:text-blue-900">{t('common.edit', 'Edit')}</button>
                       <button className="text-green-600 hover:text-green-900">Start</button>
                       <button className="text-orange-600 hover:text-orange-900">Report</button>
                     </div>

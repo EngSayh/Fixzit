@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function PreventiveMaintenancePage() {
+  const { t } = useTranslation();
   const pmSchedules = [
     {
       id: 'PM-001',
@@ -149,7 +153,7 @@ export default function PreventiveMaintenancePage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.assigned}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">Edit</button>
+                      <button className="text-blue-600 hover:text-blue-900">{t('common.edit', 'Edit')}</button>
                       <button className="text-green-600 hover:text-green-900">Complete</button>
                     </div>
                   </td>

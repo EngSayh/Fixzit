@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function PropertiesDocumentsPage() {
+  const { t } = useTranslation();
   const documents = [
     {
       id: 'DOC-001',
@@ -233,9 +237,9 @@ export default function PropertiesDocumentsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">View</button>
-                      <button className="text-green-600 hover:text-green-900">Download</button>
-                      <button className="text-orange-600 hover:text-orange-900">Edit</button>
+                      <button className="text-blue-600 hover:text-blue-900">{t('common.view', 'View')}</button>
+                      <button className="text-green-600 hover:text-green-900">{t('common.download', 'Download')}</button>
+                      <button className="text-orange-600 hover:text-orange-900">{t('common.edit', 'Edit')}</button>
                     </div>
                   </td>
                 </tr>
@@ -307,7 +311,7 @@ export default function PropertiesDocumentsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📤</div>
-            <div className="text-sm font-medium">Upload</div>
+            <div className="text-sm font-medium">{t('common.upload', 'Upload')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔍</div>
