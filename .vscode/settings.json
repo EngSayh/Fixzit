@@ -10,7 +10,12 @@
   "github.copilot.enable": { "*": true },
   "github.copilot.chat.enable": true,
   "github.copilot.chat.virtualTools.threshold": 1,
-  "chat.mcp.discovery.enabled": false,
+  "chat.mcp.discovery.enabled": {
+    "claude-desktop": false,
+    "windsurf": false,
+    "cursor-global": false,
+    "cursor-workspace": false
+  },
   "remote.extensionKind": {
     "GitHub.copilot": ["workspace"],
     "GitHub.copilot-chat": ["workspace"],

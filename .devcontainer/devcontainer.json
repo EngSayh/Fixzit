@@ -6,6 +6,10 @@
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
+  "mounts": [
+    "source=vscode-server,target=/home/node/.vscode-server,type=volume",
+    "source=qodo-history,target=/home/node/.qodo,type=volume"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [
