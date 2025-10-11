@@ -54,14 +54,14 @@ describe('MarketplacePage', () => {
     const callArgs = dynamicMock.mock.calls[0] as unknown as [() => Promise<unknown>, { ssr: boolean }];
     expect(callArgs).toBeDefined();
     
-    const [importerArg, optionsArg] = callArgs;
+    const [_importer, options] = callArgs;
 
     // Validate options structure
-    expect(optionsArg).toBeDefined();
-    expect(optionsArg.ssr).toBe(false);
+    expect(options).toBeDefined();
+    expect(options.ssr).toBe(false);
 
     // Sanity: importer should be a function (lazy loader)
-    expect(typeof importerArg).toBe('function');
+    expect(typeof _importer).toBe('function');
   });
 
   it('consistently renders the dynamic component on re-render', () => {

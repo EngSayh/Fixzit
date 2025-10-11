@@ -2,8 +2,8 @@
 
 **Last Updated**: 2025-01-19  
 **Total Comments**: 696 (CodeRabbit PR Review Comments)  
-**Fixed**: 13 (1.9%)  
-**Remaining**: 683 (98.1%)  
+**Fixed**: 16 (2.3%)  
+**Remaining**: 680 (97.7%)  
 
 ---
 
@@ -25,7 +25,7 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 **Total**: 50 files | **Fixed**: 9 | **Remaining**: 41 | **Progress**: 18%  
 **Priority**: HIGH | **Time**: 2-3 hours | **Difficulty**: EASY
 
-#### ✅ Completed (9 files)
+#### ✅ Completed (12 files)
 1. ✅ app/api/billing/callback/paytabs/route.ts - Removed `_client`
 2. ✅ app/api/billing/charge-recurring/route.ts - Removed `_client`
 3. ✅ app/api/ats/moderation/route.ts - Removed `_user`
@@ -34,6 +34,9 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 6. ✅ app/fm/invoices/page.tsx - Fixed `onUpdated` parameter
 7. ✅ components/ui/select.tsx - Fixed `_props` (3 instances)
 8. ✅ app/api/support/welcome-email/route.ts - Removed `_emailTemplate`
+9. ✅ app/api/payments/paytabs/callback/route.ts - Prefixed `_zatcaQR`
+10. ✅ app/marketplace/page.test.tsx - Renamed to `_importer`, kept `options`
+11. ✅ components/ErrorBoundary.tsx - Prefixed `_sendWelcomeEmail`
 
 #### 🔄 Next to Fix (41 files)
 

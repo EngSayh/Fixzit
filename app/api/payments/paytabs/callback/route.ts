@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         return validationError('Invalid payment amount');
       }
 
-      await generateZATCAQR({
+      const _zatcaQR = await generateZATCAQR({
         sellerName: 'Fixzit Enterprise',
         vatNumber: '300123456789012',
         timestamp: new Date().toISOString(),
