@@ -209,13 +209,13 @@ ${colors.reset}`);
     const securityPatterns = [
       // Authentication Issues
       { pattern: /jwt\.sign([^,]+,\s*['"][^'"]+['"]\s*,\s*\{[^}]*\})/gi, issue: 'JWT without expiration', severity: Severity.CRITICAL },
-      { pattern: /localStorage\.setItem(['"][^'"]*token/gi, issue: 'Token stored in localStorage', severity: Severity.HIGH },
-      { pattern: /eval\s*(/g, issue: 'eval() usage detected', severity: Severity.CRITICAL },
+      { pattern: /localStorage\.setItem\(['"][^'"]*token/gi, issue: 'Token stored in localStorage', severity: Severity.HIGH },
+      { pattern: /eval\s*\(/g, issue: 'eval() usage detected', severity: Severity.CRITICAL },
       { pattern: /innerHTML\s*=/g, issue: 'innerHTML usage (XSS risk)', severity: Severity.HIGH },
       
       // SQL Injection
-      { pattern: /query\s*(\s*['"`].*\$\{.*\}.*['"`]/g, issue: 'SQL injection vulnerability', severity: Severity.CRITICAL },
-      { pattern: /query\s*(\s*['"`].*+.*['"`]/g, issue: 'SQL concatenation detected', severity: Severity.CRITICAL },
+      { pattern: /query\s*\(\s*['"`].*\$\{.*\}.*['"`]/g, issue: 'SQL injection vulnerability', severity: Severity.CRITICAL },
+      { pattern: /query\s*\(\s*['"`].*\+.*['"`]/g, issue: 'SQL concatenation detected', severity: Severity.CRITICAL },
       
       // API Keys & Secrets
       { pattern: /api[_-]?key\s*[:=]\s*['"][^'"]+['"]/gi, issue: 'API key in code', severity: Severity.CRITICAL },
