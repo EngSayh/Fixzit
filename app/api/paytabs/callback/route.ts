@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
     const result = await finalizePayTabsTransaction(normalized);
     return createSecureResponse(result, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 400, req);
+    return handleApiError(error);
   }
+}
 }
 

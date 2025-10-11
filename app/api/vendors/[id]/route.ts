@@ -92,12 +92,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(vendor, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
 }
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -117,9 +116,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     return createSecureResponse(vendor, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 400, req);
+    return handleApiError(error);
   }
+}
+
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -147,7 +148,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
+}
 }

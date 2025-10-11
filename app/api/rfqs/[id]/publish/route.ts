@@ -4,7 +4,7 @@ import { RFQ } from "@/server/models/RFQ";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       }
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to publish RFQ';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
+}
 }
