@@ -116,7 +116,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       </ResponsiveLayout>
       <PreferenceBroadcast />
       <CopilotWidget />
-      <ErrorTest />
+      {/* <ErrorTest /> - Removed: Only for manual testing */}
       <AutoIncidentReporter />
     </div>
   );
