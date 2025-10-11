@@ -129,7 +129,6 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     return handleApiError(error);
   }
 }
-}
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   // Rate limiting

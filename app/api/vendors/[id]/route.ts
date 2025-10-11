@@ -96,7 +96,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   }
 }
 
-export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -147,5 +147,4 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   } catch (error: unknown) {
     return handleApiError(error);
   }
-}
 }
