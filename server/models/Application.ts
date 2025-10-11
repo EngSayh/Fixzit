@@ -66,7 +66,7 @@ export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Documen
 
 export interface ApplicationModel extends Model<ApplicationDoc> {}
 
-function attachHistoryDefaults(application: any) {
+function attachHistoryDefaults(application: Record<string, unknown>) {
   if (!application) return application;
   if (!Array.isArray(application.history) || application.history.length === 0) {
     application.history = [{ action: 'applied', by: 'system', at: new Date() }];
@@ -85,25 +85,25 @@ ApplicationSchema.pre('save', function() {
     this.score = this.score || 0;
     this.source = this.source || 'careers';
     if (!this.history || this.history.length === 0) {
-      this.history = [{ action: 'applied', by: 'candidate', at: new Date() }] as any;
+      this.history = [{ action: 'applied', by: 'candidate', at: new Date() }] as Array<{ action: string; by: string; at: Date }>;
     }
   }
 });
 
 // Add post-find middleware to attach defaults
-ApplicationSchema.post('find', function(doc: any) {
+ApplicationSchema.post('find', function(doc: Record<string, unknown>) {
   if (doc && typeof attachHistoryDefaults === 'function') {
     attachHistoryDefaults(doc);
   }
 });
 
-ApplicationSchema.post('findOne', function(doc: any) {
+ApplicationSchema.post('findOne', function(doc: Record<string, unknown>) {
   if (doc && typeof attachHistoryDefaults === 'function') {
     attachHistoryDefaults(doc);
   }
 });
 
-ApplicationSchema.post('findOneAndUpdate', function(doc: any) {
+ApplicationSchema.post('findOneAndUpdate', function(doc: Record<string, unknown>) {
   if (doc && typeof attachHistoryDefaults === 'function') {
     attachHistoryDefaults(doc);
   }

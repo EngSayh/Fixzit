@@ -31,7 +31,22 @@ const WorkOrderSchema = new Schema({
 
 const WorkOrder = models.WorkOrder || model('WorkOrder', WorkOrderSchema);
 
-export async function create(data: any, actorId: string, ip?: string) {
+export interface WorkOrderInput {
+  title: string;
+  description?: string;
+  status?: 'draft' | 'open' | 'in-progress' | 'completed' | 'cancelled';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  tenantId: string;
+  assignedTo?: string;
+  propertyId?: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  scheduledDate?: Date;
+  completedDate?: Date;
+  notes?: string;
+}
+
+export async function create(data: WorkOrderInput, actorId: string, ip?: string) {
   await connectToDatabase();
   
   const key = `wo-create-${data.tenantId}-${actorId}-${Date.now()}`;
@@ -49,7 +64,7 @@ export async function create(data: any, actorId: string, ip?: string) {
   return wo;
 }
 
-export async function update(id: string, patch: any, _tenantId: string, actorId: string, ip?: string) {
+export async function update(id: string, patch: Partial<WorkOrderInput>, _tenantId: string, actorId: string, ip?: string) {
   await connectToDatabase();
   
   if (!id) {

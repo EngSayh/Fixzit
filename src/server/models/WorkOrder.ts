@@ -422,8 +422,8 @@ WorkOrderSchema.pre('save', function(next) {
 
   if (this.isModified('status') && !this.isNew) {
     const currentStatus = this.status;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const previousStatus = (this as any).$__?.originalDoc?.status;
+  // Use Mongoose Document type assertion instead of 'any'
+  const previousStatus = (this as import('mongoose').Document & { $__?: { originalDoc?: { status?: string } } }).$__?.originalDoc?.status;
     
     if (previousStatus && !validTransitions[previousStatus]?.includes(currentStatus)) {
       return next(new Error(`Invalid status transition from ${previousStatus} to ${currentStatus}`));

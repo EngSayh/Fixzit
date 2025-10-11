@@ -6,7 +6,7 @@ type CacheEntry<T> = {
 };
 
 const DEFAULT_TTL_MS = 60_000;
-const idempo = new Map<string, CacheEntry<any>>();
+const idempo = new Map<string, CacheEntry<unknown>>();
 
 export function withIdempotency<T>(key: string, exec: () => Promise<T>, ttlMs: number = DEFAULT_TTL_MS): Promise<T> {
   const now = Date.now();
@@ -44,7 +44,7 @@ export function createIdempotencyKey(prefix: string, payload: unknown): string {
   return `${prefix}:${digest}`;
 }
 
-function stableStringify(value: any): string {
+function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (value instanceof Date) return JSON.stringify(value.toISOString());
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;

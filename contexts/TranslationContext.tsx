@@ -1706,7 +1706,7 @@ export function useTranslation() {
     return {
       language: 'ar' as Language,
       locale: 'ar-SA',
-      setLanguage: (lang: Language) => {},
+      setLanguage: (_lang: Language) => {},
       setLocale: () => {},
       t: (key: string, fallback: string = key): string => fallback,
       isRTL: true

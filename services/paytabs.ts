@@ -14,17 +14,19 @@ export interface NormalizedPayTabsPayload {
   maskedCard?: string;
 }
 
-export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
-  const paymentInfo = data?.payment_info || {};
+export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload {
+  if (typeof data !== 'object' || data === null) return {};
+  const d = data as Record<string, unknown>;
+  const paymentInfo = d?.payment_info || {};
   return {
-    tran_ref: data?.tran_ref || data?.tranRef,
-    respStatus: data?.payment_result?.response_status || data?.respStatus,
-    token: data?.token,
+    tran_ref: d?.tran_ref || d?.tranRef,
+    respStatus: d?.payment_result?.response_status || d?.respStatus,
+    token: d?.token,
     customer_email:
-      data?.customer_details?.email || data?.customerEmail || paymentInfo?.customer_email,
-    cart_id: data?.cart_id || data?.cartId,
-    amount: Number(data?.cart_amount || data?.tran_total || data?.amount),
-    currency: data?.cart_currency || data?.tran_currency || data?.currency,
+      d?.customer_details?.email || d?.customerEmail || paymentInfo?.customer_email,
+    cart_id: d?.cart_id || d?.cartId,
+    amount: Number(d?.cart_amount || d?.tran_total || d?.amount),
+    currency: d?.cart_currency || d?.tran_currency || d?.currency,
     maskedCard: paymentInfo?.payment_description,
   };
 }
@@ -78,7 +80,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
     typeof subscription.metadata === 'object' &&
     'ownerGroup' in subscription.metadata
   ) {
-    const meta: any = subscription.metadata.ownerGroup;
+  const meta = subscription.metadata.ownerGroup as Record<string, unknown>;
     if (meta?.name) {
       await OwnerGroup.findOneAndUpdate(
         {

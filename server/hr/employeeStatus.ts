@@ -15,7 +15,7 @@ const DB_TO_UI: Record<EmployeeStatusDB, EmployeeStatusUI> = {
   ON_LEAVE: 'On Leave'
 };
 
-export function toDbEmployeeStatus(input: any): EmployeeStatusDB {
+export function toDbEmployeeStatus(input: unknown): EmployeeStatusDB {
   const normalized = String(input ?? '').trim().toLowerCase();
   if (!normalized) {
     return 'ACTIVE';
@@ -27,7 +27,7 @@ export function toDbEmployeeStatus(input: any): EmployeeStatusDB {
   return mapped;
 }
 
-export function toUiEmployeeStatus(db: any): EmployeeStatusUI {
+export function toUiEmployeeStatus(db: unknown): EmployeeStatusUI {
   const key = String(db ?? '').trim().toUpperCase().replace(/\s+/g, '_');
   if (!key) {
     return 'Active';

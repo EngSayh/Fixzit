@@ -35,14 +35,19 @@ module.exports = {
     'tools/**/*',
     'qa/**/*',
     'tests/**/*',
+    '_deprecated/**/*',
+    'aws/dist/**/*',
     // Specific files
     'test-*.js',
     'test-auth.js',
+    'create-guardrails.js',
+    'smart-merge-conflicts.ts',
+    'test-powershell-heredoc.ts',
   ],
   rules: {
     /* TypeScript - Balanced approach between strict and permissive */
     '@typescript-eslint/no-explicit-any': 'warn', // Warning allows progress while encouraging better types
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
     '@typescript-eslint/no-var-requires': 'off', // CommonJS compatibility
     '@typescript-eslint/ban-ts-comment': 'warn', // Allow with warning for documented exceptions
 
@@ -98,16 +103,28 @@ module.exports = {
     {
       files: [
         'tailwind.config.js',
-        'tailwind.config.ts',
         'next.config.js',
         'postcss.config.js',
         'jest.config.js',
-        'playwright.config.ts',
       ],
       parser: 'espree',
       parserOptions: {
         ecmaVersion: 2021,
-        sourceType: 'script',
+        sourceType: 'module',
+      },
+      rules: {
+        'no-mixed-spaces-and-tabs': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-var-requires': 'off',
+      },
+    },
+    // TypeScript config files using ES modules
+    {
+      files: ['playwright.config.ts', 'tailwind.config.ts'],
+      parser: '@typescript-eslint/parser',
+      parserOptions: {
+        ecmaVersion: 2021,
+        sourceType: 'module',
       },
       rules: {
         'no-mixed-spaces-and-tabs': 'off',

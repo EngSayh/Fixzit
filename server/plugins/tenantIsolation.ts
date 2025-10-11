@@ -46,7 +46,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
       if (context.orgId) {
         this.orgId = context.orgId;
       } else {
-        const modelName = (this.constructor as any).modelName;
+        const modelName = (this.constructor as { modelName?: string }).modelName;
         if (modelName && !excludeModels.includes(modelName)) {
           return next(new Error(`orgId is required for ${modelName}`));
         }
@@ -67,7 +67,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Query middleware for find operations
-  schema.pre(/^find/, function(this: Query<any, any>) {
+  schema.pre(/^find/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
     // Skip filtering when explicitly requested
@@ -82,7 +82,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Query middleware for count operations
-  schema.pre(/^count/, function(this: Query<any, any>) {
+  schema.pre(/^count/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
     if (context.skipTenantFilter) {
@@ -95,7 +95,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Query middleware for distinct operations
-  schema.pre('distinct', function(this: Query<any, any>) {
+  schema.pre('distinct', function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
     if (context.skipTenantFilter) {
@@ -108,7 +108,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Update middleware
-  schema.pre(/^update/, function(this: Query<any, any>) {
+  schema.pre(/^update/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
     if (context.skipTenantFilter) {
@@ -121,7 +121,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Delete middleware
-  schema.pre(/^delete/, function(this: Query<any, any>) {
+  schema.pre(/^delete/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
     if (context.skipTenantFilter) {

@@ -57,13 +57,6 @@ const createSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     if (process.env.WO_ENABLED !== 'true') {
       return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
@@ -77,6 +70,13 @@ export async function GET(req: NextRequest) {
     }
   await connectToDatabase();
   const user = await getSessionUser(req);
+  
+  // Rate limiting AFTER authentication
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
   if (!user?.orgId) {
     return NextResponse.json(
       { error: 'Unauthorized', message: 'Missing tenant context' },
@@ -117,13 +117,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     if (process.env.WO_ENABLED !== 'true') {
       return createSecureResponse({ error: "Work Orders endpoint not available in this deployment" }, 501, req);
@@ -137,6 +130,13 @@ export async function POST(req: NextRequest) {
     }
   const user = await requireAbility("CREATE")(req);
   if (user instanceof NextResponse) return user;
+  
+  // Rate limiting AFTER authentication
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
   await connectToDatabase();
 
   const body = await req.json();

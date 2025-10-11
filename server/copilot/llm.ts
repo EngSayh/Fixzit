@@ -17,7 +17,7 @@ export interface ChatCompletionOptions {
   docs?: RetrievedDoc[];
 }
 
-function buildSystemPrompt(session: CopilotSession): string {
+function buildSystemPrompt(_session: CopilotSession): string {
   return [
     "You are Fixzit Copilot, an enterprise assistant.",
     "Answer in the user's language (Arabic if locale is ar).",

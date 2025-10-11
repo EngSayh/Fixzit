@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 export interface ErrorResponse {
   error: string;
-  details?: any;
+  details?: unknown;
   code?: string;
 }
 
@@ -16,7 +16,7 @@ export class ApiError extends Error {
     public message: string,
     public statusCode: number,
     public code?: string,
-    public details?: any
+  public details?: unknown
   ) {
     super(message);
     this.name = 'ApiError';
@@ -29,7 +29,7 @@ export class ApiError extends Error {
 export function createErrorResponse(
   error: string,
   statusCode: number,
-  details?: any,
+  details?: unknown,
   code?: string
 ): NextResponse {
   const response: ErrorResponse = { error };
@@ -63,22 +63,22 @@ export function notFoundError(resource = 'Resource'): NextResponse {
 /**
  * Handle validation errors with details
  */
-export function validationError(message = 'Invalid input', details?: any): NextResponse {
+export function validationError(message = 'Invalid input', details?: unknown): NextResponse {
   return createErrorResponse(message, 400, details, 'VALIDATION_ERROR');
 }
 
 /**
  * Handle Zod validation errors specifically
  */
-export function zodValidationError(error: ZodError, req?: any): NextResponse {
+export function zodValidationError(error: ZodError, req?: import('next/server').NextRequest): NextResponse {
   return createSecureResponse(
     { 
       error: 'Invalid input', 
       details: error.issues,
       code: 'VALIDATION_ERROR'
     }, 
-    400, 
-    req
+  400, 
+  req
   );
 }
 
@@ -94,7 +94,7 @@ export function rateLimitError(message = 'Too many requests'): NextResponse {
  */
 export function internalServerError(
   message = 'Internal server error',
-  logDetails?: any
+  logDetails?: unknown
 ): NextResponse {
   // Log full error details server-side
   if (logDetails) {
@@ -125,7 +125,7 @@ export function handleZodError(error: ZodError): NextResponse {
 /**
  * Generic error handler that categorizes different error types
  */
-export function handleApiError(error: any): NextResponse {
+export function handleApiError(error: unknown): NextResponse {
   if (error instanceof ApiError) {
     return createErrorResponse(error.message, error.statusCode, error.details, error.code);
   }
