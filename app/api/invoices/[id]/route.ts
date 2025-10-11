@@ -205,12 +205,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   } catch (error: unknown) {
     // Distinguish validation errors from server errors
     if (error instanceof ZodError) {
-      return createSecureResponse({ error: error.message }, 400, req);
+      return zodValidationError(error, req);
     }
-    // Log and return 500 for non-validation errors
-    console.error('Invoice PATCH error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return createSecureResponse({ error: message }, 500, req);
+    // Return generic error for non-validation errors
+    return createSecureResponse({ error: 'Failed to update invoice' }, 500, req);
   }
 }
 

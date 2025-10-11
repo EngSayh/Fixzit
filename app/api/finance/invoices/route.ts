@@ -139,9 +139,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Invoice creation failed:', error);
-    const message = error instanceof Error ? error.message : 'Failed to create invoice';
-    return createSecureResponse({ error: message }, 400, req);
+    return createSecureResponse({ error: 'Failed to create invoice' }, 400, req);
   }
 }
 
