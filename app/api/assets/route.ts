@@ -67,13 +67,6 @@ const createAssetSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     if (process.env.ASSET_ENABLED !== 'true') {
       return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
@@ -86,6 +79,13 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Asset dependencies are not available in this deployment" }, 501, req);
     }
     const user = await getSessionUser(req);
+    
+    // Rate limiting AFTER authentication
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     if (!user) {
       return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
@@ -114,13 +114,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     if (process.env.ASSET_ENABLED !== 'true') {
       return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
@@ -134,6 +127,13 @@ export async function GET(req: NextRequest) {
     }
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
+    
+    // Rate limiting AFTER authentication
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     if (!user) {
       return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }

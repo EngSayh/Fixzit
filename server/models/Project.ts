@@ -1,6 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
-const ProjectStatus = ["PLANNING", "APPROVED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED", "CLOSED"] as const;
+const _ProjectStatus = ["PLANNING", "APPROVED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED", "CLOSED"] as const;
 const ProjectType = ["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"] as const;
 
 const ProjectSchema = new Schema({

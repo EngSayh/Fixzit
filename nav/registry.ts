@@ -15,7 +15,7 @@ export type ModuleDef = {
   id: string;
   label: string;
   route: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<Record<string, unknown>>;
   roles: Role[];               // who can see the module
   children?: { label: string; route: string }[];
   quickActions: QuickAction[];

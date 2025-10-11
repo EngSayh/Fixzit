@@ -29,8 +29,8 @@ export async function embedText(
     const errText = await res.text().catch(() => String(res.status));
     throw new Error(`Embedding error: ${res.status} ${errText}`);
   }
-  const json = await res.json();
-  const embed: any = json?.data && Array.isArray(json.data) ? json.data[0]?.embedding : null;
+  const json = await res.json() as { data?: Array<{ embedding?: unknown }> };
+  const embed: unknown = json?.data && Array.isArray(json.data) ? json.data[0]?.embedding : null;
   if (!Array.isArray(embed)) {
     throw new Error('Embedding response missing embedding array');
   }

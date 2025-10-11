@@ -4,14 +4,14 @@ import { Invoice } from "@/server/models/Invoice";
 
 // Mock implementation retained for optional mock mode
 class MockInvoiceService {
-  private invoices: any[] = [];
+  private invoices: Array<Record<string, unknown>> = [];
   private nextId = 1;
 
   constructor() {
     this.invoices = [];
   }
 
-  async create(input: any) {
+  async create(input: Record<string, unknown>) {
     const invoice = {
       id: this.nextId.toString(),
       tenantId: input.tenantId,
@@ -34,8 +34,8 @@ class MockInvoiceService {
     if (q) {
       const query = q.toLowerCase();
       results = results.filter(inv =>
-        inv.number.toLowerCase().includes(query) ||
-        inv.lines?.some((line: any) => line.description.toLowerCase().includes(query))
+        (inv.number as string).toLowerCase().includes(query) ||
+        (inv.lines as Array<{ description: string }>)?.some((line) => line.description.toLowerCase().includes(query))
       );
     }
 
@@ -95,7 +95,7 @@ export async function create(input: unknown, actorId?: string, _ip?: string) {
 export async function list(tenantId: string, q?: string, status?: string) {
   await connectToDatabase();
 
-  const filters: Record<string, any> = { tenantId };
+  const filters: Record<string, unknown> = { tenantId };
 
   if (status) {
     filters.status = status;

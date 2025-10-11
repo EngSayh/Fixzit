@@ -42,7 +42,7 @@ function buildWorkOrderFilter(session: CopilotSession) {
   return filter;
 }
 
-async function createWorkOrder(session: CopilotSession, input: Record<string, any>): Promise<ToolExecutionResult> {
+async function createWorkOrder(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {
   await ensureToolAllowed(session, "createWorkOrder");
   await db;
 
@@ -93,7 +93,15 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   await db;
 
   const filter = buildWorkOrderFilter(session);
-  const items = await WorkOrder.find(filter).then((results: any[]) =>
+  interface WorkOrderResult {
+    _id?: { toString?: () => string } | string;
+    code: string;
+    title: string;
+    status: string;
+    priority: string;
+    updatedAt: Date;
+  }
+  const items = await WorkOrder.find(filter).then((results: WorkOrderResult[]) =>
     results
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5)
@@ -117,7 +125,7 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   };
 }
 
-async function dispatchWorkOrder(session: CopilotSession, input: Record<string, any>): Promise<ToolExecutionResult> {
+async function dispatchWorkOrder(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {
   await ensureToolAllowed(session, "dispatchWorkOrder");
   await db;
 
@@ -162,7 +170,7 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
   };
 }
 
-async function scheduleVisit(session: CopilotSession, input: Record<string, any>): Promise<ToolExecutionResult> {
+async function scheduleVisit(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {
   await ensureToolAllowed(session, "scheduleVisit");
   await db;
 
@@ -206,7 +214,7 @@ async function uploadWorkOrderPhoto(session: CopilotSession, payload: UploadPayl
   const uploadsDir = path.join(process.cwd(), "public", "uploads", "work-orders");
   await fs.mkdir(uploadsDir, { recursive: true });
 
-  const safeName = `${Date.now()}-${randomUUID()}-${payload.fileName.replace(/[^a-zA-Z0-9.\-]/g, "-")}`;
+  const safeName = `${Date.now()}-${randomUUID()}-${payload.fileName.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
   const fullPath = path.join(uploadsDir, safeName);
   await fs.writeFile(fullPath, payload.buffer);
 
@@ -240,7 +248,7 @@ async function uploadWorkOrderPhoto(session: CopilotSession, payload: UploadPayl
   };
 }
 
-async function ownerStatements(session: CopilotSession, input: Record<string, any>): Promise<ToolExecutionResult> {
+async function ownerStatements(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {
   await ensureToolAllowed(session, "ownerStatements");
   await db;
 
@@ -248,12 +256,28 @@ async function ownerStatements(session: CopilotSession, input: Record<string, an
   const year = Number(input.year) || new Date().getFullYear();
   const period = input.period || "YTD";
 
+  interface StatementDoc {
+    tenantId: string;
+    ownerId: string;
+    period: string;
+    year: number;
+    currency: string;
+    totals?: { income?: number; expenses?: number; net?: number };
+    lineItems?: Array<{
+      date: Date;
+      description: string;
+      type: string;
+      amount: number;
+      reference?: string;
+    }>;
+  }
+
   const statements = await OwnerStatement.find({
     tenantId: session.tenantId,
     ownerId,
     ...(period !== "YTD" ? { period } : {}),
     ...(year ? { year } : {})
-  });
+  }) as unknown as StatementDoc[];
 
   if (!statements || statements.length === 0) {
     return {
@@ -266,7 +290,7 @@ async function ownerStatements(session: CopilotSession, input: Record<string, an
     };
   }
 
-  const totals = statements.reduce((acc: any, stmt: any) => {
+  const totals = statements.reduce((acc, stmt) => {
     acc.income += stmt.totals?.income || 0;
     acc.expenses += stmt.totals?.expenses || 0;
     acc.net += stmt.totals?.net || 0;
@@ -282,11 +306,11 @@ async function ownerStatements(session: CopilotSession, input: Record<string, an
     data: {
       currency: statements[0].currency,
       totals,
-      statements: statements.map((stmt: any) => ({
+      statements: statements.map((stmt) => ({
         period: stmt.period,
         year: stmt.year,
         totals: stmt.totals,
-        lineItems: stmt.lineItems?.map((item: any) => ({
+        lineItems: stmt.lineItems?.map((item) => ({
           date: item.date,
           description: item.description,
           type: item.type,
@@ -298,7 +322,7 @@ async function ownerStatements(session: CopilotSession, input: Record<string, an
   };
 }
 
-export async function executeTool(tool: string, input: Record<string, any>, session: CopilotSession): Promise<ToolExecutionResult> {
+export async function executeTool(tool: string, input: Record<string, unknown>, session: CopilotSession): Promise<ToolExecutionResult> {
   switch (tool) {
     case "createWorkOrder":
       return createWorkOrder(session, input);
@@ -317,7 +341,7 @@ export async function executeTool(tool: string, input: Record<string, any>, sess
   }
 }
 
-export function detectToolFromMessage(message: string): { name: string; args: Record<string, any> } | null {
+export function detectToolFromMessage(message: string): { name: string; args: Record<string, unknown> } | null {
   const normalized = message.trim();
   if (normalized.startsWith("/new-ticket")) {
     const parts = normalized.split(" ").slice(1);

@@ -38,7 +38,7 @@ export interface MarketplaceProduct {
   summary?: string;
   brand?: string;
   standards?: string[];
-  specs: Record<string, any>;
+  specs: Record<string, unknown>;
   media: MarketplaceMedia[];
   buy: MarketplaceBuyDetail;
   stock?: MarketplaceStockInfo;

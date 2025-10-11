@@ -1,7 +1,7 @@
 declare global {
   interface Window {
     initMap: () => void;
-    google: any;
+    google: typeof google;
   }
 }
 

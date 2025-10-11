@@ -86,7 +86,7 @@ export function getClientIP(request: NextRequest): string {
 /**
  * Enhanced security response helper
  */
-export function createSecureResponse(data: any, status: number = 200, request?: NextRequest): NextResponse {
+export function createSecureResponse(data: unknown, status: number = 200, request?: NextRequest): NextResponse {
   const response = NextResponse.json(data, { status });
   
   if (request) {

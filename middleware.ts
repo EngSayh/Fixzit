@@ -227,7 +227,7 @@ export async function middleware(request: NextRequest) {
       }
 
       return NextResponse.next();
-    } catch (jwtError) {
+    } catch (_jwtError) {
       // Invalid token - redirect to login
       if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
         return NextResponse.redirect(new URL('/login', request.url));

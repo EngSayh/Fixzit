@@ -84,15 +84,15 @@ const createPropertySchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await getSessionUser(req);
+    
+    // Rate limiting AFTER authentication
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     if (!user?.orgId) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Missing tenant context' },
@@ -118,16 +118,16 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
+    
+    // Rate limiting AFTER authentication
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     if (!user?.orgId) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Missing tenant context' },

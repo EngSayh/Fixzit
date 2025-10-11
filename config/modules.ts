@@ -1,4 +1,4 @@
-import { Home, Wrench, Banknote, Users, Settings, Building2, Store, Landmark, Factory, LifeBuoy, Contact } from "lucide-react";
+import { Home, Wrench, Banknote, Users, Settings, Building2, Store, Landmark, Factory, LifeBuoy, Contact, LucideIcon } from "lucide-react";
 
 export type ModuleKey =
   | "dashboard" | "work_orders" | "finance" | "hr" | "admin" | "crm"
@@ -8,7 +8,7 @@ export const MODULES: Array<{
   key: ModuleKey;
   labelKey: string;
   href: string;
-  icon: any;
+  icon: LucideIcon;
 }> = [
   { key:"dashboard",   labelKey:"dashboard",   href:"/dashboard",   icon: Home },
   { key:"work_orders", labelKey:"work_orders", href:"/work-orders", icon: Wrench },

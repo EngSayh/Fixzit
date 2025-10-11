@@ -6,7 +6,7 @@ import type { CreateUserInput, UpdateUserInput, QueryUsersInput } from './valida
 export class UserService {
   static async list(orgId: string, filters: QueryUsersInput) {
     const { page, limit, role, isActive, search, sortBy, sortOrder } = filters;
-    const query: Record<string, any> = { orgId: new mongoose.Types.ObjectId(orgId) };
+    const query: Record<string, unknown> = { orgId: new mongoose.Types.ObjectId(orgId) };
     
     if (role) query.role = role;
     if (isActive !== undefined) query.isActive = isActive;
@@ -19,7 +19,7 @@ export class UserService {
     }
     
     const skip = (page - 1) * limit;
-    const sort: Record<string, any> = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+    const sort: Record<string, 1 | -1> = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
     
     const [users, total] = await Promise.all([
       User.find(query).sort(sort).skip(skip).limit(limit).select('-passwordHash').lean().exec(),
@@ -100,7 +100,7 @@ export class UserService {
     return result;
   }
   
-  static async verifyPassword(email: string, password: string): Promise<any> {
+  static async verifyPassword(email: string, password: string): Promise<Record<string, unknown> | null> {
     const user = await User.findOne({ email }).select('+passwordHash').exec();
     if (!user || !user.isActive) return null;
     

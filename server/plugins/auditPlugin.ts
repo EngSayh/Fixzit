@@ -1,4 +1,22 @@
-import { Schema} from 'mongoose';
+import { Schema } from 'mongoose';
+
+// Interface for field change
+interface FieldChange {
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
+// Interface for change record
+interface ChangeRecord {
+  version: number;
+  changedBy: string;
+  changedAt: Date;
+  changes: FieldChange[];
+  changeReason?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
 
 // Interface for audit information
 export interface AuditInfo {
@@ -108,7 +126,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
       if (enableChangeHistory && this.isModified()) {
         this.changeHistory = this.changeHistory || [];
         
-        const changes: Array<{field: string, oldValue: any, newValue: any}> = [];
+        const changes: Array<{field: string, oldValue: unknown, newValue: unknown}> = [];
         
         // Get modified paths
         const modifiedPaths = this.modifiedPaths();
@@ -120,7 +138,8 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
             continue;
           }
 
-          const oldValue = this.isNew ? undefined : (this.$__ as any)?.originalDoc?.[path];
+          const internalState = this.$__ as { originalDoc?: Record<string, unknown> };
+          const oldValue = this.isNew ? undefined : internalState?.originalDoc?.[path];
           const newValue = this.get(path);
           
           // Only track if value actually changed
@@ -190,17 +209,17 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return [];
     
     return this.changeHistory
-      .filter((change: any) => 
-        change.changes.some((c: any) => c.field === fieldName)
+      .filter((change: ChangeRecord) => 
+        change.changes.some((c: FieldChange) => c.field === fieldName)
       )
-      .map((change: any) => ({
+      .map((change: ChangeRecord) => ({
         version: change.version,
         changedBy: change.changedBy,
         changedAt: change.changedAt,
-        change: change.changes.find((c: any) => c.field === fieldName),
+        change: change.changes.find((c: FieldChange) => c.field === fieldName),
         changeReason: change.changeReason
       }))
-      .sort((a: any, b: any) => b.version - a.version);
+      .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
   };
 
   // Instance method to get changes made by a specific user
@@ -208,8 +227,8 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return [];
     
     return this.changeHistory
-      .filter((change: any) => change.changedBy === userId)
-      .sort((a: any, b: any) => b.version - a.version);
+      .filter((change: ChangeRecord) => change.changedBy === userId)
+      .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
   };
 
   // Instance method to get version at specific point in time
@@ -217,8 +236,8 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     if (!this.changeHistory) return null;
     
     const changes = this.changeHistory
-      .filter((change: any) => new Date(change.changedAt) <= date)
-      .sort((a: any, b: any) => b.version - a.version);
+      .filter((change: ChangeRecord) => new Date(change.changedAt) <= date)
+      .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
     
     return changes.length > 0 ? changes[0] : null;
   };
@@ -269,11 +288,15 @@ export async function withAuditContext<T>(
 }
 
 // Utility function to create audit context from request
-export function createAuditContextFromRequest(req: any, userId?: string): AuditInfo {
+export function createAuditContextFromRequest(req: Record<string, unknown>, userId?: string): AuditInfo {
+  const reqUser = req.user as { id?: string; _id?: { toString: () => string }; email?: string } | undefined;
+  const reqHeaders = req.headers as Record<string, string> | undefined;
+  const reqConnection = req.connection as { remoteAddress?: string } | undefined;
+  
   return {
-    userId: userId || req.user?.id || req.user?._id?.toString(),
-    userEmail: req.user?.email,
-    ipAddress: req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0],
+    userId: userId || reqUser?.id || reqUser?._id?.toString(),
+    userEmail: reqUser?.email,
+    ipAddress: (req.ip as string) || reqConnection?.remoteAddress || reqHeaders?.['x-forwarded-for']?.split(',')[0],
     userAgent: req.headers['user-agent'],
     timestamp: new Date()
   };

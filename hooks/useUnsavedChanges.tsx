@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface UseUnsavedChangesOptions {
   message?: string;
@@ -24,8 +23,9 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}) {
   const [isDirty, setIsDirty] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const originalDataRef = useRef<any>(null);
-  const currentDataRef = useRef<any>(null);
+  
+  const originalDataRef = useRef<unknown>(null);
+  const currentDataRef = useRef<unknown>(null);
 
   // Mark as dirty when changes are made
   const markDirty = useCallback(() => {
