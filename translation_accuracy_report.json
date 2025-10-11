@@ -1,0 +1,102 @@
+{
+  "analysis_date": "2025-10-11",
+  "accuracy_rating": "A+",
+  "statistics": {
+    "total_arabic_keys": 137,
+    "total_english_keys": 137,
+    "common_keys": 137,
+    "coverage_percentage": 100.0
+  },
+  "missing_keys": {
+    "missing_in_arabic": [],
+    "missing_in_english": [],
+    "count_missing_ar": 0,
+    "count_missing_en": 0
+  },
+  "empty_translations": {
+    "empty_in_arabic": [],
+    "empty_in_english": [],
+    "count_empty_ar": 0,
+    "count_empty_en": 0
+  },
+  "sample_translations": {
+    "common.actions.cancel": {
+      "arabic": "إلغاء",
+      "english": "Cancel"
+    },
+    "common.actions.close": {
+      "arabic": "إغلاق",
+      "english": "Close"
+    },
+    "common.actions.save": {
+      "arabic": "حفظ",
+      "english": "Save"
+    },
+    "common.allCaughtUp": {
+      "arabic": "لقد قرأت كل شيء!",
+      "english": "You're all caught up!"
+    },
+    "common.appName": {
+      "arabic": "فيكزت إنتربرايز",
+      "english": "Fixzit Enterprise"
+    },
+    "common.brand": {
+      "arabic": "فيكزت إنتربرايز",
+      "english": "FIXZIT ENTERPRISE"
+    },
+    "common.language": {
+      "arabic": "اللغة",
+      "english": "Language"
+    },
+    "common.loading": {
+      "arabic": "جاري التحميل...",
+      "english": "Loading..."
+    },
+    "common.noNotifications": {
+      "arabic": "لا توجد إشعارات جديدة",
+      "english": "No new notifications"
+    },
+    "common.search": {
+      "arabic": "بحث",
+      "english": "Search"
+    }
+  },
+  "accuracy_issues": {
+    "accuracy_issues": [],
+    "format_issues": [],
+    "length_issues": [
+      {
+        "key": "maintenance.due",
+        "arabic": "تاريخ الاستحقاق",
+        "english": "Due",
+        "ar_length": 15,
+        "en_length": 3,
+        "ratio": 5.0
+      },
+      {
+        "key": "nav.crm",
+        "arabic": "إدارة العلاقات",
+        "english": "CRM",
+        "ar_length": 14,
+        "en_length": 3,
+        "ratio": 4.67
+      },
+      {
+        "key": "settings.notifications.sms",
+        "arabic": "الرسائل النصية",
+        "english": "SMS",
+        "ar_length": 14,
+        "en_length": 3,
+        "ratio": 4.67
+      },
+      {
+        "key": "settings.preferences.utc",
+        "arabic": "التوقيت العالمي (UTC)",
+        "english": "UTC",
+        "ar_length": 21,
+        "en_length": 3,
+        "ratio": 7.0
+      }
+    ]
+  }
+}
