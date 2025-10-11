@@ -1,6 +1,11 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function NewBudgetPage() {
+  const { t } = useTranslation();
+  
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -10,7 +15,7 @@ export default function NewBudgetPage() {
           <p className="text-[var(--fixzit-text-secondary)]">Create a new budget for expense tracking and control</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Save Draft</button>
+          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
           <button className="btn-primary">Create Budget</button>
         </div>
       </div>

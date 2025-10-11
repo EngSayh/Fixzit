@@ -74,6 +74,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.add': 'إضافة',
     'common.remove': 'إزالة',
     'common.submit': 'إرسال',
+    'common.submitting': 'جارٍ الإرسال...',
     'common.back': 'رجوع',
     'common.next': 'التالي',
     'common.previous': 'السابق',
@@ -185,6 +186,11 @@ const translations: Record<Language, Record<string, string>> = {
     'unsaved.saveMessage': 'هل أنت متأكد أنك تريد حفظ هذه التغييرات؟',
     'unsaved.save': 'حفظ',
     'unsaved.cancel': 'إلغاء',
+    
+    // Save Status Messages
+    'save.success': 'تم الحفظ بنجاح',
+    'save.failed': 'فشل الحفظ',
+    'save.networkError': 'فشل: خطأ في الشبكة',
 
     // Maintenance
     'maintenance.description': 'إدارة جداول الصيانة والمهام للمعدات',
@@ -320,6 +326,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.add': 'Add',
     'common.remove': 'Remove',
     'common.submit': 'Submit',
+    'common.submitting': 'Submitting...',
     'common.back': 'Back',
     'common.next': 'Next',
     'common.previous': 'Previous',
@@ -431,6 +438,11 @@ const translations: Record<Language, Record<string, string>> = {
     'unsaved.saveMessage': 'Are you sure you want to save these changes?',
     'unsaved.save': 'Save',
     'unsaved.cancel': 'Cancel',
+    
+    // Save Status Messages
+    'save.success': 'Saved successfully',
+    'save.failed': 'Save failed',
+    'save.networkError': 'Failed: network error',
 
     // Maintenance
     'maintenance.description': 'Manage equipment maintenance schedules and tasks',

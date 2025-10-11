@@ -6,10 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id":"demo-tenant" }}).then(r=>r.json());
 
 export default function FinancePage() {
+  const { t } = useTranslation();
   const [q, setQ] = useState("");
   const { data, mutate } = useSWR(`/api/finance/invoices?q=${encodeURIComponent(q)}`, fetcher);
   const list = data?.data ?? [];
@@ -22,7 +24,7 @@ export default function FinancePage() {
       </div>
       <div className="flex gap-2">
         <Input placeholder="Search by number/customer" value={q} onChange={e=>setQ(e.target.value)} />
-        <Button onClick={()=>mutate()}>Search</Button>
+        <Button onClick={()=>mutate()}>{t('common.search', 'Search')}</Button>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -63,6 +65,7 @@ function Action({ id, action, disabled, onDone }:{ id:string; action:"POST"|"VOI
 }
 
 function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
+  const { t } = useTranslation();
   const [open,setOpen]=useState(false);
   const [issue, setIssue] = useState(new Date().toISOString().slice(0,10));
   const [due, setDue] = useState(new Date(Date.now()+7*864e5).toISOString().slice(0,10));
@@ -86,9 +89,9 @@ function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button>New Invoice</Button></DialogTrigger>
+      <DialogTrigger asChild><Button>{t('common.create', 'New Invoice')}</Button></DialogTrigger>
       <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>Create Invoice</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t('common.create', 'Create Invoice')}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -104,7 +107,7 @@ function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <div className="font-medium">Lines</div>
-              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:1, unitPrice:0, vatRate:15 }])}>Add Line</Button>
+              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:1, unitPrice:0, vatRate:15 }])}>{t('common.add', 'Add Line')}</Button>
             </div>
             {lines.map((l, i)=>(
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
@@ -127,7 +130,7 @@ function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
             ))}
           </div>
           <Separator />
-          <Button onClick={submit} disabled={!lines.length || lines.some(l=>!l.description)}>Create</Button>
+          <Button onClick={submit} disabled={!lines.length || lines.some(l=>!l.description)}>{t('common.create', 'Create')}</Button>
         </div>
       </DialogContent>
     </Dialog>
