@@ -4,95 +4,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Globe,
-  ChevronDown, User, Shield, Building2, Users,
+  Eye, EyeOff, LogIn, Mail, Lock, AlertCircle,
+  User, Shield, Building2, Users,
   ArrowRight, Chrome, Apple
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { memo } from 'react';
-import { cn } from '@/lib/utils';
-// Memoized components for better performance
-const LanguageSelector = memo(({ 
-  selectedLang, 
-  showDropdown, 
-  onToggle, 
-  onChange 
-}: {
-  selectedLang: Lang;
-  showDropdown: boolean;
-  onToggle: () => void;
-  onChange: (lang: Lang) => void;
-}) => (
-  <div className="relative">
-    <button
-      onClick={onToggle}
-      className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-all duration-200 backdrop-blur-sm"
-      aria-label="Language selector"
-      aria-expanded={showDropdown}
-    >
-      <span className="text-lg">{selectedLang.flag}</span>
-      <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
-      <ChevronDown size={14} className={cn(
-        "transition-transform duration-200",
-        showDropdown && "rotate-180"
-      )} />
-    </button>
-
-    <AnimatePresence>
-      {showDropdown && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 overflow-hidden"
-        >
-          {LANGUAGES.map(lang => (
-            <button
-              key={lang.code}
-              onClick={() => onChange(lang)}
-              className={cn(
-                "w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 transition-colors",
-                lang.code === selectedLang.code && "bg-[#0061A8]/10"
-              )}
-            >
-              <span className="text-xl">{lang.flag}</span>
-              <div className="flex-1 text-left">
-                <div className="font-medium">{lang.native}</div>
-                <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
-              </div>
-              {lang.code === selectedLang.code && (
-                <motion.div 
-                  layoutId="selected-lang"
-                  className="w-2 h-2 rounded-full bg-[#0061A8]" 
-                />
-              )}
-            </button>
-          ))}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-));
-
-LanguageSelector.displayName = 'LanguageSelector';
-
-type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
-const LANGUAGES: Lang[] = [
-  { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-  { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'fr', native: 'Français', flag: '🇫🇷', dir: 'ltr' },
-  { code: 'es', native: 'Español', flag: '🇪🇸', dir: 'ltr' },
-  { code: 'de', native: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
-];
-
-const CURRENCIES = [
-  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' }
-];
+import { useTranslation } from '@/contexts/TranslationContext';
+import LanguageSelector from '@/components/i18n/LanguageSelector';
+import CurrencySelector from '@/components/i18n/CurrencySelector';
 
 const DEMO_CREDENTIALS = [
   {
@@ -163,43 +83,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<Lang>(LANGUAGES[1]); // Default EN
-  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]); // Default SAR
   const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
   const router = useRouter();
-
-  // Load saved preferences
-  useEffect(() => {
-    const savedLang = localStorage.getItem('fxz.lang');
-    const savedCurrency = localStorage.getItem('fixzit-currency');
-
-    if (savedLang) {
-      const found = LANGUAGES.find(l => l.code === savedLang);
-      if (found) setSelectedLang(found);
-    }
-    if (savedCurrency) {
-      const found = CURRENCIES.find(c => c.code === savedCurrency);
-      if (found) setSelectedCurrency(found);
-    }
-  }, []);
-
-  // Handle language change
-  const handleLanguageChange = (lang: Lang) => {
-    setSelectedLang(lang);
-    localStorage.setItem('fxz.lang', lang.code);
-    document.documentElement.dir = lang.dir;
-    document.documentElement.lang = lang.code;
-    setShowLangDropdown(false);
-  };
-
-  // Handle currency change
-  const handleCurrencyChange = (currency: typeof CURRENCIES[0]) => {
-    setSelectedCurrency(currency);
-    localStorage.setItem('fixzit-currency', currency.code);
-    setShowCurrencyDropdown(false);
-  };
+  const { t, isRTL } = useTranslation();
 
   // Quick login with demo credentials
   const quickLogin = (credential: typeof DEMO_CREDENTIALS[0] | typeof CORPORATE_CREDENTIALS[0]) => {
@@ -260,7 +146,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white">
+      <div className={`hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className="max-w-md text-center">
           <div className="mb-8">
             <div className="flex justify-center mb-6">
@@ -270,38 +156,38 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-4">Fixzit Enterprise</h1>
+            <h1 className="text-4xl font-bold mb-4">{t('common.brand', 'Fixzit Enterprise')}</h1>
             <p className="text-xl text-white/90 mb-8">
-              Facility Management + Marketplace Platform
+              {t('landing.subtitle', 'Unified Facility Management + Marketplace Solution for modern property operations')}
             </p>
           </div>
 
           <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className="p-3 bg-white/20 rounded-lg">
                 <Building2 size={24} />
               </div>
               <div>
-                <h3 className="font-semibold">Property Management</h3>
-                <p className="text-white/80 text-sm">Manage real estate portfolios</p>
+                <h3 className="font-semibold">{t('nav.properties', 'Property Management')}</h3>
+                <p className="text-white/80 text-sm">{t('login.propertyDesc', 'Manage real estate portfolios')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className="p-3 bg-white/20 rounded-lg">
                 <Users size={24} />
               </div>
               <div>
-                <h3 className="font-semibold">Work Orders</h3>
-                <p className="text-white/80 text-sm">Streamline maintenance requests</p>
+                <h3 className="font-semibold">{t('nav.work-orders', 'Work Orders')}</h3>
+                <p className="text-white/80 text-sm">{t('login.workOrdersDesc', 'Streamline maintenance requests')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className="p-3 bg-white/20 rounded-lg">
-                <Globe size={24} />
+                <Building2 size={24} />
               </div>
               <div>
-                <h3 className="font-semibold">Marketplace</h3>
-                <p className="text-white/80 text-sm">Connect with verified vendors</p>
+                <h3 className="font-semibold">{t('nav.marketplace', 'Marketplace')}</h3>
+                <p className="text-white/80 text-sm">{t('login.marketplaceDesc', 'Connect with verified vendors')}</p>
               </div>
             </div>
           </div>
@@ -310,90 +196,28 @@ export default function LoginPage() {
 
       {/* Right Panel - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+        <div className={`w-full max-w-md ${isRTL ? 'text-right' : 'text-left'}`}>
           {/* Top Bar with Language and Currency */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLangDropdown(!showLangDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="text-lg">{selectedLang.flag}</span>
-                  <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showLangDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                    {LANGUAGES.map(lang => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang)}
-                        className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 ${
-                          lang.code === selectedLang.code ? 'bg-[#0061A8]/10' : ''
-                        }`}
-                      >
-                        <span className="text-xl">{lang.flag}</span>
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">{lang.native}</div>
-                          <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
-                        </div>
-                        {lang.code === selectedLang.code && (
-                          <div className="w-2 h-2 rounded-full bg-[#0061A8]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Currency Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="font-medium">{selectedCurrency.symbol}</span>
-                  <span className="text-sm">{selectedCurrency.code}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showCurrencyDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                    {CURRENCIES.map(currency => (
-                      <button
-                        key={currency.code}
-                        onClick={() => handleCurrencyChange(currency)}
-                        className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 text-gray-900 text-sm ${
-                          currency.code === selectedCurrency.code ? 'bg-[#0061A8]/10' : ''
-                        }`}
-                      >
-                        <span className="font-medium">{currency.symbol}</span>
-                        <span>{currency.code}</span>
-                        <span className="text-gray-500 text-xs ml-auto">{currency.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+          <div className={`flex items-center justify-between mb-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <LanguageSelector variant="default" />
+              <CurrencySelector variant="default" />
             </div>
 
             <Link href="/" className="text-white/80 hover:text-white text-sm">
-              ← Back to Home
+              {isRTL ? 'العودة للرئيسية ←' : '← Back to Home'}
             </Link>
           </div>
 
           {/* Login Form */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
+          <div className={`bg-white rounded-2xl shadow-2xl p-8 ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-              <p className="text-gray-600">Sign in to your Fixzit account</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('login.welcomeBack', 'Welcome Back')}</h2>
+              <p className="text-gray-600">{t('login.signInAccount', 'Sign in to your Fixzit account')}</p>
             </div>
 
             {/* Login Method Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+            <div className={`flex bg-gray-100 rounded-lg p-1 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 onClick={() => setLoginMethod('personal')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
@@ -402,7 +226,7 @@ export default function LoginPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Personal Email
+                {t('login.personalEmailTab', 'Personal Email')}
               </button>
               <button
                 onClick={() => setLoginMethod('corporate')}
@@ -412,7 +236,7 @@ export default function LoginPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Corporate Account
+                {t('login.corporateAccountTab', 'Corporate Account')}
               </button>
               <button
                 onClick={() => setLoginMethod('sso')}
@@ -422,7 +246,7 @@ export default function LoginPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                SSO Login
+                {t('login.ssoLoginTab', 'SSO Login')}
               </button>
             </div>
 
@@ -434,17 +258,17 @@ export default function LoginPage() {
                     {/* Email Field */}
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                        Personal Email Address
+                        {t('login.personalEmail', 'Personal Email Address')}
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400`} />
                         <Input
                           id="email"
                           type="email"
-                          placeholder="Enter your personal email"
+                          placeholder={t('login.enterEmail', 'Enter your personal email')}
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="pl-10 h-12"
+                          className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12`}
                           required
                         />
                       </div>
@@ -453,23 +277,24 @@ export default function LoginPage() {
                     {/* Password Field */}
                     <div>
                       <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                        Password
+                        {t('common.password', 'Password')}
                       </label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400`} />
                         <Input
                           id="password"
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Enter your password"
+                          placeholder={t('login.enterPassword', 'Enter your password')}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 pr-10 h-12"
+                          className={`${isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} h-12`}
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600`}
+                          aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
@@ -484,42 +309,46 @@ export default function LoginPage() {
                     {/* Employee Number Field */}
                     <div>
                       <label htmlFor="employeeNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                        Employee Number
+                        {t('login.employeeNumber', 'Employee Number')}
                       </label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400`} />
                         <Input
                           id="employeeNumber"
                           type="text"
-                          placeholder="Enter your employee number"
+                          placeholder={t('login.enterEmployeeNumber', 'Enter your employee number')}
                           value={employeeNumber}
                           onChange={(e) => setEmployeeNumber(e.target.value)}
-                          className="pl-10 h-12"
+                          className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12`}
                           required
                         />
                       </div>
+                      <p className="mt-2 text-xs text-gray-500">
+                        {t('login.corporateHelp', 'Use your employee number and password. No separate corporate ID needed.')}
+                      </p>
                     </div>
 
                     {/* Password Field */}
                     <div>
                       <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                        Password
+                        {t('common.password', 'Password')}
                       </label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400`} />
                         <Input
                           id="password"
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Enter your password"
+                          placeholder={t('login.enterPassword', 'Enter your password')}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 pr-10 h-12"
+                          className={`${isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} h-12`}
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600`}
+                          aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
@@ -529,15 +358,15 @@ export default function LoginPage() {
                 )}
 
                 {/* Forgot Password */}
-                <div className="flex justify-end">
+                <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
                   <Link href="/forgot-password" className="text-sm text-[#0061A8] hover:underline">
-                    Forgot Password?
+                    {t('common.forgotPassword', 'Forgot Password?')}
                   </Link>
                 </div>
 
                 {/* Error Message */}
                 {error && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                  <div className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <AlertCircle className="h-5 w-5" />
                     <span className="text-sm">{error}</span>
                   </div>
@@ -550,14 +379,14 @@ export default function LoginPage() {
                   className="w-full h-12 bg-[#0061A8] hover:bg-[#0061A8]/90 text-white font-semibold"
                 >
                   {loading ? (
-                    <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Signing in...
+                      {t('login.signingIn', 'Signing in...')}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <LogIn className="h-5 w-5" />
-                      Sign In
+                      {t('login.signIn', 'Sign In')}
                     </div>
                   )}
                 </Button>
@@ -566,13 +395,13 @@ export default function LoginPage() {
               /* SSO Login Options */
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
-                  <button className="flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Chrome className="h-5 w-5 text-blue-600" />
-                    <span>Continue with Google</span>
+                    <span>{t('login.continueWith', 'Continue with')} Google</span>
                   </button>
-                  <button className="flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Apple className="h-5 w-5 text-gray-900" />
-                    <span>Continue with Apple</span>
+                    <span>{t('login.continueWith', 'Continue with')} Apple</span>
                   </button>
                 </div>
 
@@ -581,7 +410,7 @@ export default function LoginPage() {
                     <div className="w-full border-t border-gray-300" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or use account</span>
+                    <span className="px-2 bg-white text-gray-500">{t('login.orUseAccount', 'Or use account')}</span>
                   </div>
                 </div>
 
@@ -589,13 +418,13 @@ export default function LoginPage() {
                   onClick={() => setLoginMethod('personal')}
                   className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
                 >
-                  Use Personal Email
+                  {t('login.usePersonalEmail', 'Use Personal Email')}
                 </button>
                 <button
                   onClick={() => setLoginMethod('corporate')}
                   className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
                 >
-                  Use Corporate Account
+                  {t('login.useCorporateAccount', 'Use Corporate Account')}
                 </button>
               </div>
             )}
@@ -603,8 +432,8 @@ export default function LoginPage() {
             {/* Demo Credentials */}
             <div className="mt-6 space-y-4">
               {/* Personal Email Credentials */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Personal Email Accounts:</h3>
+              <div className={`p-4 bg-gray-50 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">{t('login.personalEmailAccounts', 'Personal Email Accounts:')}</h3>
                 <div className="space-y-2">
                   {DEMO_CREDENTIALS.map((cred) => {
                     const Icon = cred.icon;
@@ -614,13 +443,13 @@ export default function LoginPage() {
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Icon size={18} />
-                          <div className="flex-1 text-left">
+                          <div className="flex-1">
                             <div className="font-medium text-sm">{cred.role}</div>
                             <div className="text-xs opacity-80">{cred.description}</div>
                           </div>
-                          <ArrowRight size={16} />
+                          <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
                         </div>
                         <div className="text-xs mt-1 opacity-75">
                           {cred.email} / {cred.password}
@@ -632,8 +461,8 @@ export default function LoginPage() {
               </div>
 
               {/* Corporate Account Credentials */}
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="text-sm font-medium text-blue-800 mb-3">Corporate Account (Employee Number):</h3>
+              <div className={`p-4 bg-blue-50 rounded-lg border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <h3 className="text-sm font-medium text-blue-800 mb-3">{t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}</h3>
                 <div className="space-y-2">
                   {CORPORATE_CREDENTIALS.map((cred) => {
                     const Icon = cred.icon;
@@ -643,16 +472,16 @@ export default function LoginPage() {
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Icon size={18} />
-                          <div className="flex-1 text-left">
+                          <div className="flex-1">
                             <div className="font-medium text-sm">{cred.role}</div>
                             <div className="text-xs opacity-80">{cred.description}</div>
                           </div>
-                          <ArrowRight size={16} />
+                          <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
                         </div>
                         <div className="text-xs mt-1 opacity-75">
-                          Employee #: {cred.employeeNumber} / {cred.password}
+                          {t('login.employeeHash', 'Employee #:')} {cred.employeeNumber} / {cred.password}
                         </div>
                       </button>
                     );
@@ -664,9 +493,9 @@ export default function LoginPage() {
             {/* Sign Up Link */}
             <div className="mt-6 text-center">
               <p className="text-gray-600">
-                Don&apos;t have an account?{' '}
+                {t('login.noAccount', "Don't have an account?")}{' '}
                 <Link href="/signup" className="text-[#0061A8] hover:underline font-medium">
-                  Sign up here
+                  {t('login.createAccount', 'Sign up here')}
                 </Link>
               </p>
             </div>
