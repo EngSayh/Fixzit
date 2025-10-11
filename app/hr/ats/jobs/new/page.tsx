@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function NewJobPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -69,8 +71,8 @@ export default function NewJobPage() {
             </div>
             <textarea className="w-full border rounded p-2" rows={6} placeholder="Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} />
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={()=>router.push('/hr/ats/jobs')}>Cancel</Button>
-              <Button type="submit" disabled={submitting} className="bg-[#0061A8] hover:bg-[#0061A8]/90">{submitting? 'Posting…' : 'Post'}</Button>
+              <Button type="button" variant="outline" onClick={()=>router.push('/hr/ats/jobs')}>{t('common.cancel', 'Cancel')}</Button>
+              <Button type="submit" disabled={submitting} className="bg-[#0061A8] hover:bg-[#0061A8]/90">{submitting? t('common.submitting', 'Posting…') : t('common.submit', 'Post')}</Button>
             </div>
           </form>
         </CardContent>

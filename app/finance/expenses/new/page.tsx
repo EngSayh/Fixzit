@@ -1,6 +1,11 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function NewExpensePage() {
+  const { t } = useTranslation();
+  
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -10,7 +15,7 @@ export default function NewExpensePage() {
           <p className="text-[var(--fixzit-text-secondary)]">Record a new business expense or cost</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Save Draft</button>
+          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
           <button className="btn-primary">Record Expense</button>
         </div>
       </div>

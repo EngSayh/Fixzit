@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Clock, Star } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function VendorDashboard() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalOrders: 0,
@@ -122,7 +124,7 @@ export default function VendorDashboard() {
                     <td className="px-6 py-4">SAR {product.price}</td>
                     <td className="px-6 py-4">{product.sold}</td>
                     <td className="px-6 py-4">
-                      <button className="text-fixzit-blue hover:underline">Edit</button>
+                      <button className="text-fixzit-blue hover:underline">{t('common.edit', 'Edit')}</button>
                     </td>
                   </tr>
                 ))}

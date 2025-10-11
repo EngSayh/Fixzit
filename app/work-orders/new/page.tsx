@@ -1,6 +1,11 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function NewWorkOrderPage() {
+  const { t } = useTranslation();
+  
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -10,7 +15,7 @@ export default function NewWorkOrderPage() {
           <p className="text-[var(--fixzit-text-secondary)]">Create a new work order for maintenance or services</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Save Draft</button>
+          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
           <button className="btn-primary">Create Work Order</button>
         </div>
       </div>
