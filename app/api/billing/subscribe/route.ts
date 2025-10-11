@@ -7,6 +7,8 @@ import { computeQuote } from '@/lib/pricing';
 import { createHppRequest } from '@/lib/paytabs';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
 
 const subscriptionSchema = z.object({
@@ -26,29 +28,53 @@ const subscriptionSchema = z.object({
 });
 
 // Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, paytabsRegion, returnUrl, callbackUrl}
+/**
+ * @openapi
+ * /api/billing/subscribe:
+ *   post:
+ *     summary: billing/subscribe operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
 
     const user = await getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createSecureResponse({ error: 'Invalid token' }, 401, req);
     }
 
     // Role-based access control - only billing admins or org admins can subscribe
     if (!['SUPER_ADMIN', 'ADMIN', 'BILLING_ADMIN'].includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to manage subscriptions' }, { status: 403 });
+      return createSecureResponse({ error: 'Insufficient permissions to manage subscriptions' }, 403, req);
     }
 
     // Rate limiting for subscription operations
     const key = `billing:subscribe:${user.orgId}`;
     const rl = rateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
     if (!rl.allowed) {
-      return NextResponse.json({ error: 'Subscription rate limit exceeded. Please wait before creating another subscription.' }, { status: 429 });
+      return createSecureResponse({ error: 'Subscription rate limit exceeded. Please wait before creating another subscription.' }, 429, req);
     }
 
     await connectToDatabase();
@@ -65,8 +91,8 @@ export async function POST(req: NextRequest) {
     const quote = await computeQuote({
       items: body.items, seatTotal: body.seatTotal, billingCycle: body.billingCycle
     });
-    if ((quote as any).contactSales) {
-      return NextResponse.json({ error: 'SEAT_LIMIT_EXCEEDED', contact: 'sales@fixzit.app' }, { status: 400 });
+    if (quote.contactSales) {
+      return createSecureResponse({ error: 'SEAT_LIMIT_EXCEEDED', contact: 'sales@fixzit.app' }, 400, req);
     }
 
     // 3) Create Subscription snapshot (status pending until paid)
@@ -74,7 +100,7 @@ export async function POST(req: NextRequest) {
       customerId: customer._id,
       orgId: user.orgId,
       planType: body.planType,
-      items: (quote.items || []).map((i:any)=>({ moduleId: undefined, // resolved later in worker if needed
+      items: (quote.items || []).map((i: Record<string, unknown>) =>({ moduleId: undefined, // resolved later in worker if needed
         moduleCode: i.module, // keep code snapshot
         seatCount: i.seatCount, unitPriceMonthly: i.unitPriceMonthly, billingCategory: i.billingCategory })),
       totalMonthly: quote.monthly,
@@ -114,7 +140,7 @@ export async function POST(req: NextRequest) {
       customer_details: {
         name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'
       }
-    } as any;
+    } as Record<string, unknown>;
 
     if (body.billingCycle === 'monthly') basePayload.tokenise = 2; // Hex32 token, delivered in callback
     const resp = await createHppRequest(body.paytabsRegion || 'GLOBAL', basePayload);
@@ -122,11 +148,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ subscriptionId: sub._id, invoiceId: inv._id, paytabs: resp });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Subscription creation failed:', error);
-    return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);
   }
 }
+
 
 

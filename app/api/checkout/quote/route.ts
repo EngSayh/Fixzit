@@ -1,8 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { quotePrice } from '@/services/pricing';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/checkout/quote:
+ *   get:
+ *     summary: checkout/quote operations
+ *     tags: [checkout]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   await dbConnect();
 
   const body = await req.json();
@@ -10,20 +38,19 @@ export async function POST(req: NextRequest) {
 
   const seatCount = Number(seats);
   if (!Number.isFinite(seatCount) || seatCount <= 0) {
-    return NextResponse.json({ error: 'INVALID_SEAT_COUNT' }, { status: 400 });
+    return createSecureResponse({ error: 'INVALID_SEAT_COUNT' }, 400, req);
   }
 
   if (!Array.isArray(modules) || modules.length === 0) {
-    return NextResponse.json({ error: 'MODULES_REQUIRED' }, { status: 400 });
+    return createSecureResponse({ error: 'MODULES_REQUIRED' }, 400, req);
   }
 
   const quote = await quotePrice({
     priceBookCurrency: currency ?? 'USD',
     seats: seatCount,
     modules,
-    billingCycle: billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY',
-  });
+    billingCycle: billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY'});
 
-  return NextResponse.json(quote);
+  return createSecureResponse(quote, 200, req);
 }
 

@@ -26,7 +26,7 @@ export default function FinancePage() {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {list.map((inv:any)=>(
+        {list.map((inv: { id: string; number: string; status: string; issueDate: string; dueDate: string; total: number; currency: string; vatAmount: number }) =>(
           <Card key={inv.id}>
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -68,7 +68,7 @@ function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
   const [due, setDue] = useState(new Date(Date.now()+7*864e5).toISOString().slice(0,10));
   const [lines, setLines] = useState([{ description:"Maintenance Service", qty:1, unitPrice:100, vatRate:15 }]);
 
-  function updateLine(i:number, key:string, val:any) {
+  function updateLine(i:number, key:string, val: string | number) {
     setLines(prev => prev.map((l,idx)=> idx===i ? { ...l, [key]: key==="description"?val:Number(val) } : l));
   }
 

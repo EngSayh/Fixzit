@@ -3,6 +3,12 @@ import { z } from "zod";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+import type { NotificationDoc } from '@/lib/models';
+
 const notificationSchema = z.object({
   title: z.string().min(1),
   message: z.string().min(1),
@@ -16,7 +22,31 @@ const notificationSchema = z.object({
 
 const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/**
+ * @openapi
+ * /api/notifications:
+ *   get:
+ *     summary: notifications operations
+ *     tags: [notifications]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
   const category = searchParams.get("category") || "";
@@ -30,13 +60,13 @@ export async function GET(req: NextRequest) {
   let orgId: string;
   try {
     const user = await getSessionUser(req);
-    orgId = (user as any)?.orgId;
+    orgId = user.orgId;
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
   }
 
   const { notifications } = await getCollections();
-  const filter: any = { orgId };
+  const filter: Record<string, unknown> = { orgId };
   if (q) {
     const safe = escapeRegex(q);
     filter.$or = [
@@ -53,7 +83,7 @@ export async function GET(req: NextRequest) {
     notifications.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray(),
     notifications.countDocuments(filter)
   ]);
-  const items = rawItems.map((n: any) => ({ id: String(n._id), ...n, _id: undefined }));
+  const items = rawItems.map((n: NotificationDoc) => ({ id: String(n._id), ...n, _id: undefined }));
 
   return NextResponse.json({
     items,
@@ -65,19 +95,26 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   let orgId: string;
   try {
     const user = await getSessionUser(req);
-    orgId = (user as any)?.orgId;
+    orgId = user.orgId;
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
   }
 
   const body = await req.json();
   const data = notificationSchema.parse(body);
   const { notifications } = await getCollections();
-  const doc = {
-    orgId,
+  const doc: Omit<NotificationDoc, '_id'> = {
+    tenantId: orgId,
     type: data.type,
     title: data.title,
     message: data.message,
@@ -86,7 +123,7 @@ export async function POST(req: NextRequest) {
     timestamp: new Date().toISOString(),
     read: false,
     archived: false
-  } as any;
+  };
 
   const result = await notifications.insertOne(doc);
   return NextResponse.json({ ...doc, _id: result.insertedId }, { status: 201 });

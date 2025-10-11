@@ -3,6 +3,10 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { RFQ } from '@/server/models/RFQ';
 import { z } from 'zod';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const DEFAULT_PUBLIC_STATUSES = ['PUBLISHED', 'BIDDING'];
 
 const QuerySchema = z.object({
@@ -22,7 +26,31 @@ const toIsoString = (value: unknown) => {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
+/**
+ * @openapi
+ * /api/public/rfqs:
+ *   get:
+ *     summary: public/rfqs operations
+ *     tags: [public]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
 
@@ -62,7 +90,28 @@ export async function GET(req: NextRequest) {
       RFQ.countDocuments(filter)
     ]);
 
-    const normalized = items.map((item: any) => ({
+    interface RFQItem {
+      _id?: { toString?: () => string } | string;
+      tenantId?: string;
+      code?: string;
+      title?: string;
+      description?: string;
+      category?: string;
+      subcategory?: string;
+      status?: string;
+      location?: { city?: string; region?: string; radius?: number };
+      budget?: { estimated?: number; currency?: string; range?: string };
+      timeline?: { publishDate?: unknown; bidDeadline?: unknown; startDate?: unknown; completionDate?: unknown };
+      bidding?: { targetBids?: number; maxBids?: number; anonymous?: boolean; bidLeveling?: boolean };
+      requirements?: unknown;
+      bids?: unknown[];
+      contact?: { name?: string; email?: string; phone?: string };
+      attachments?: unknown[];
+      createdAt?: unknown;
+      updatedAt?: unknown;
+    }
+
+    const normalized = (items as unknown as RFQItem[]).map((item) => ({
       id: item._id?.toString?.() ?? String(item._id),
       tenantId: item.tenantId,
       code: item.code,
@@ -129,7 +178,8 @@ export async function GET(req: NextRequest) {
     }
 
     console.error('Public RFQ fetch error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
+
 

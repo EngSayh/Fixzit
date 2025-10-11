@@ -4,45 +4,69 @@ import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
 import { Job } from '@/server/models/Job';
 import { Employee } from '@/server/models/Employee';
-import { getUserFromToken } from '@/lib/auth';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { rateLimit } from '@/server/security/rateLimit';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
+/**
+ * @openapi
+ * /api/ats/convert-to-employee:
+ *   get:
+ *     summary: ats/convert-to-employee operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const user = token ? await getUserFromToken(token) : null;
-
+    const user = await getSessionUser(req);
+    
     // Verify user authentication
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
 
-    // Check user permissions (admin or HR role can convert applications)
-    const canConvertApplications = ['admin', 'hr'].includes(user.role);
-    
+    // Check user permissions (super_admin, corporate_admin, or HR manager can convert applications)
+    const canConvertApplications = ['super_admin', 'corporate_admin', 'hr_manager'].includes(user.role);
     if (!canConvertApplications) {
-      return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
+      return createSecureResponse({ error: 'Forbidden: Insufficient permissions' }, 403, req);
     }
 
     const { applicationId } = await req.json();
-    if (!applicationId) return NextResponse.json({ success: false, error: 'applicationId required' }, { status: 400 });
+    if (!applicationId) return validationError("applicationId is required");
 
     const app = await Application.findById(applicationId).lean();
-    if (!app) return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+    if (!app) return notFoundError("Application");
 
-    // Verify org authorization (only admin can access cross-org)
-    if (app.orgId !== user.orgId && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Verify org authorization (only SUPER_ADMIN can access cross-org)
+    if (app.orgId !== user.orgId && user.role !== 'SUPER_ADMIN') {
+      return createSecureResponse({ error: 'Forbidden' }, 403, req);
     }
 
-    if (app.stage !== 'hired') return NextResponse.json({ success: false, error: 'Application not hired' }, { status: 400 });
+    if (app.stage !== 'hired') return validationError("Application status must be hired");
 
     const [cand, job] = await Promise.all([
       Candidate.findById(app.candidateId).lean(),
       Job.findById(app.jobId).lean()
     ]);
-    if (!cand || !job) return NextResponse.json({ success: false, error: 'Candidate or Job missing' }, { status: 400 });
+    if (!cand || !job) return validationError("Candidate or Job missing");
 
     const orgId = app.orgId;
     const existing = await Employee.findOne({ orgId, 'personal.email': cand.email }).lean();
@@ -58,9 +82,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
     console.error('Convert to employee error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to convert to employee' }, { status: 500 });
+    return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }
+
 
 
 

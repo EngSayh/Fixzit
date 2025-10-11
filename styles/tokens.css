@@ -3,7 +3,7 @@
   --brand-success: #00A859;  /* Green */
   --brand-accent:  #FFB400;  /* Yellow */
 
-  --sidebar-bg:    #023047;
+  --sidebar-bg:    #0061A8;  /* FIXED: was #023047 (banned) */
   --sidebar-hover: rgba(0, 97, 168, 0.5);
   --sidebar-active:#0061A8;
 

@@ -69,7 +69,7 @@ export async function update(id: string, patch: any, tenantId: string, actorId: 
 export async function list(tenantId: string, q?: string, status?: string) {
   await connectToDatabase();
   
-  const filters: any = { tenantId };
+  const filters: Record<string, unknown> = { tenantId };
   
   if (status) {
     filters.status = status;

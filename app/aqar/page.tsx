@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Map, Building2, Home, Search, Filter, Heart, TrendingUp, Star, BarChart3 } from "lucide-react";
+import { Map, Building2, Home, Search, Filter, Heart, TrendingUp, Star} from "lucide-react";
 
 const AQAR_FEATURES = [
   {

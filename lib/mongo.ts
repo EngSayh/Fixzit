@@ -19,9 +19,11 @@ import mongoose from 'mongoose';
  */
 
 // Define interfaces for MongoDB database abstraction
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface DatabaseHandle {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   collection: (name: string) => any;
-  listCollections?: () => { toArray: () => Promise<any[]> };
+  listCollections?: () => { toArray: () => Promise<unknown[]> };
 }
 
 // MongoDB-only implementation - no mock database
@@ -32,13 +34,18 @@ const dbName = process.env.MONGODB_DB || 'fixzit';
 
 export const isMockDB = false; // Always use real MongoDB
 
+// Extend globalThis for MongoDB connection caching
+declare global {
+  var _mongoose: Promise<DatabaseHandle> | undefined;
+}
+
 // Global connection promise
-let conn = (global as any)._mongoose as Promise<DatabaseHandle>;
+let conn = global._mongoose as Promise<DatabaseHandle>;
 
 if (!conn) {
   // Always attempt real MongoDB connection
   if (uri) {
-    conn = (global as any)._mongoose = mongoose.connect(uri, {
+    conn = global._mongoose = mongoose.connect(uri, {
       dbName,
       autoIndex: true,
       maxPoolSize: 10,
@@ -72,14 +79,18 @@ export async function getDatabase(): Promise<DatabaseHandle> {
   } catch (error) {
     const correlationId = new mongoose.Types.ObjectId().toString();
     const devMessage = `Failed to get database handle: ${error}`;
-    const err = new Error(devMessage);
-    (err as any).name = 'DatabaseConnectionError';
-    (err as any).code = 'DB_CONNECTION_FAILED';
-    (err as any).userMessage = 'Database connection is currently unavailable. Please try again later.';
-    (err as any).correlationId = correlationId;
+    const err = new Error(devMessage) as Error & {
+      code: string;
+      userMessage: string;
+      correlationId: string;
+    };
+    err.name = 'DatabaseConnectionError';
+    err.code = 'DB_CONNECTION_FAILED';
+    err.userMessage = 'Database connection is currently unavailable. Please try again later.';
+    err.correlationId = correlationId;
     console.error('Database connection error:', {
-      name: (err as any).name,
-      code: (err as any).code,
+      name: err.name,
+      code: err.code,
       devMessage,
       correlationId,
     });
@@ -88,27 +99,27 @@ export async function getDatabase(): Promise<DatabaseHandle> {
 }
 
 // Backward compatibility: Restore getNativeDb function
-export async function getNativeDb(): Promise<any> {
+export async function getNativeDb(): Promise<DatabaseHandle> {
   if (isMockDB) {
     return await db;
   }
   
-  const m: any = await db;
+  const m = await db;
   
   // If m already is the native database object (from the connection promise),
   // return it directly. Otherwise, extract it from the mongoose instance.
   if (m && typeof m.collection === 'function') {
-    return m;
+    return m as DatabaseHandle;
   }
   
   // Fallback: try to get it from mongoose connection
-  const connection = m?.connection || mongoose.connection;
+  const connection = (m as { connection?: typeof mongoose.connection })?.connection || mongoose.connection;
   
   if (!connection || !connection.db) {
     throw new Error('Mongoose connection not ready');
   }
   
-  return connection.db;
+  return connection.db as unknown as DatabaseHandle;
 }
 
 // Export connectDb function for API route compatibility

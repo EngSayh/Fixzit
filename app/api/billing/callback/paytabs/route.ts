@@ -1,12 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
-import { createSecureResponse } from '@/server/security/headers';
 import Subscription from '@/server/models/Subscription';
 import PaymentMethod from '@/server/models/PaymentMethod';
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
+/**
+ * @openapi
+ * /api/billing/callback/paytabs:
+ *   get:
+ *     summary: billing/callback/paytabs operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
-  const client = await connectToDatabase();
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  await connectToDatabase();
   const payload = await req.json().catch(()=>null);
   const data = payload || {}; // if using return-url (form-data), create a separate handler
   const tranRef = data.tran_ref || data.tranRef;
@@ -15,16 +41,16 @@ export async function POST(req: NextRequest) {
 
   const subId = cartId?.replace('SUB-','');
   const sub = await Subscription.findById(subId);
-  if (!sub) return NextResponse.json({ error: 'SUB_NOT_FOUND' }, { status: 400 });
+  if (!sub) return createSecureResponse({ error: 'SUB_NOT_FOUND' }, 400, req);
 
   // Find invoice
   const inv = await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' });
-  if (!inv) return NextResponse.json({ error: 'INV_NOT_FOUND' }, { status: 400 });
+  if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
 
   const statusOk = (data.payment_result?.response_status || data.respStatus) === 'A';
   if (!statusOk) {
     inv.status = 'failed'; inv.errorMessage = data.payment_result?.response_message || data.respMessage;
-    await inv.save(); return NextResponse.json({ ok: false });
+    await inv.save(); return createSecureResponse({ ok: false }, 200, req);
   }
 
   inv.status = 'paid'; inv.paytabsTranRef = tranRef; await inv.save();
@@ -40,5 +66,6 @@ export async function POST(req: NextRequest) {
 
   return createSecureResponse({ ok: true });
 }
+
 
 

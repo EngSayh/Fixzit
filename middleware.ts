@@ -157,7 +157,7 @@ export async function middleware(request: NextRequest) {
         const reqHeaders = new Headers(request.headers);
         reqHeaders.set('x-user', JSON.stringify(user));
         return NextResponse.next({ request: { headers: reqHeaders } });
-      } catch (error) {
+      } catch (_error) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     }
@@ -234,7 +234,7 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.next();
     }
-  } catch (error) {
+  } catch (_error) {
     // Redirect to login for any errors
     if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
       return NextResponse.redirect(new URL('/login', request.url));

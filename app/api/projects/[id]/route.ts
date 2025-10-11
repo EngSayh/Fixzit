@@ -1,8 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Project } from "@/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
@@ -29,7 +33,31 @@ const updateProjectSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/projects/[id]:
+ *   get:
+ *     summary: projects/[id] operations
+ *     tags: [projects]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -41,12 +69,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     });
 
     if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return createSecureResponse({ error: "Project not found" }, 404, req);
     }
 
-    return NextResponse.json(project);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse(project, 200, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 
@@ -71,16 +100,24 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     );
 
     if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return createSecureResponse({ error: "Project not found" }, 404, req);
     }
 
-    return NextResponse.json(project);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse(project, 200, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -93,11 +130,12 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     );
 
     if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return createSecureResponse({ error: "Project not found" }, 404, req);
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }

@@ -1,8 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import Benchmark from '@/server/models/Benchmark';
 import { requireSuperAdmin } from '@/lib/authz';
 
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/admin/billing/benchmark/{id}:
+ *   patch:
+ *     summary: Update billing benchmark
+ *     description: Updates a billing benchmark by ID. Super admin only.
+ *     tags:
+ *       - Admin
+ *       - Billing
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Benchmark updated successfully
+ *       404:
+ *         description: Benchmark not found
+ */
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await dbConnect();
@@ -11,8 +36,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
   const doc = await Benchmark.findByIdAndUpdate(params.id, body, { new: true });
   if (!doc) {
-    return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+    return createSecureResponse({ error: 'NOT_FOUND' }, 404, req);
   }
 
-  return NextResponse.json(doc);
+  return createSecureResponse(doc, 200, req);
 }

@@ -3,6 +3,10 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createAssetSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -45,52 +49,99 @@ const createAssetSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+/**
+ * @openapi
+ * /api/assets:
+ *   get:
+ *     summary: assets operations
+ *     tags: [assets]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.ASSET_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown as () => Promise<void>)();
     const AssetMod = await import('@/server/models/Asset').catch(() => null);
-    const Asset = AssetMod && (AssetMod as any).Asset;
+    const Asset = AssetMod && AssetMod.Asset;
     if (!Asset) {
-      return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Asset dependencies are not available in this deployment" }, 501, req);
     }
     const user = await getSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const data = createAssetSchema.parse(await req.json());
 
-    const asset = await (Asset as any).create({
-      tenantId: (user as any)?.orgId,
+    const asset = await Asset.create({
+      tenantId: user.orgId,
       code: `AST-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
     });
 
-    return NextResponse.json(asset, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return createSecureResponse(asset, 201, req);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create asset';
+    return createSecureResponse({ error: message }, 400, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     if (process.env.ASSET_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Asset endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Asset endpoint not available in this deployment" }, 501, req);
     }
     const { db } = await import('@/lib/mongo');
-    await (db as any)();
+    await (db as unknown as () => Promise<void>)();
     const AssetMod = await import('@/server/models/Asset').catch(() => null);
-    const Asset = AssetMod && (AssetMod as any).Asset;
+    const Asset = AssetMod && AssetMod.Asset;
     if (!Asset) {
-      return NextResponse.json({ success: false, error: 'Asset dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: "Asset dependencies are not available in this deployment" }, 501, req);
     }
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
     if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
     }
     await connectToDatabase();
 
@@ -102,7 +153,7 @@ export async function GET(req: NextRequest) {
     const propertyId = searchParams.get("propertyId");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (type) match.type = type;
     if (status) match.status = status;
@@ -111,12 +162,12 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
-    const items = (Asset as any).find(match)
+    const items = Asset.find(match)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
-    const total = (Asset as any).countDocuments(match);
+    const total = Asset.countDocuments(match);
 
     const result = await Promise.all([items, total]);
 
@@ -127,9 +178,13 @@ export async function GET(req: NextRequest) {
       total: result[1],
       pages: Math.ceil(result[1] / limit)
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch assets';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
+
+
+
 
 

@@ -11,7 +11,7 @@ describe('extractSkillsFromText', () => {
     // @ts-ignore testing runtime with non-string-like falsy converted upstream
     expect(extractSkillsFromText(undefined)).toEqual([]);
     // @ts-ignore null as unexpected input
-    expect(extractSkillsFromText(null as any)).toEqual([]);
+    expect(extractSkillsFromText(null as unknown)).toEqual([]);
   });
 
   it('extracts known skills ignoring case', () => {

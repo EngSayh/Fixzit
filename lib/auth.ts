@@ -2,35 +2,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
-// Enhanced User model definition for auth purposes
-interface UserDoc {
-  _id: string;
-  tenantId: string;
-  email: string;
-  password: string;
-  personal?: {
-    firstName: string;
-    lastName: string;
-  };
-  personalInfo?: {
-    firstName: string;
-    lastName: string;
-  };
-  professional?: {
-    role: string;
-  };
-  professionalInfo?: {
-    role: string;
-  };
-  role?: string;
-  status: string;
-  orgId?: string;
-  username?: string;
-  code?: string;
-}
-
 // Use real Mongoose model for production
-let User: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let User: any; // MongoDB model with dynamic query methods
 
 try {
   const { User: UserModel } = require('@/modules/users/schema');
@@ -47,7 +21,7 @@ try {
   console.warn('Development/test environment detected: using fallback User implementation');
   // Lightweight fallback for development/test only
   User = {
-    findOne: async (_query: any) => null,
+    findOne: async (_query: Record<string, unknown>) => null,
     findById: async (_id: string) => null
   };
 }
@@ -56,7 +30,7 @@ try {
 // AWS Secrets Manager support with fallback
 let jwtSecret: string | null = null;
 
-async function getJWTSecret(): Promise<string> {
+async function _getJWTSecret(): Promise<string> {
   if (jwtSecret) {
     return jwtSecret;
   }
@@ -95,16 +69,17 @@ async function getJWTSecret(): Promise<string> {
     }
   }
 
-  // Production fallback - use the secure secret we know works
+  // Production environment MUST have JWT_SECRET configured
   if (process.env.NODE_ENV === 'production') {
-    jwtSecret = '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
-    console.log('✅ Using production JWT secret');
-    return jwtSecret;
+    console.error('🚨 CRITICAL: JWT_SECRET environment variable is required in production');
+    console.error('Set JWT_SECRET in your environment or AWS Secrets Manager');
+    throw new Error('JWT_SECRET is required in production environment');
   }
 
-  // Development fallback
+  // Development fallback - generate ephemeral secret
   const fallbackSecret = randomBytes(32).toString('hex');
   console.warn('⚠️ JWT_SECRET not configured. Using ephemeral secret for development.');
+  console.warn('⚠️ This secret will change on restart. Set JWT_SECRET for persistence.');
   jwtSecret = fallbackSecret;
   return jwtSecret;
 }
@@ -116,14 +91,16 @@ const JWT_SECRET = (() => {
     return envSecret;
   }
 
-  // Use the secure production secret we generated
+  // Production environment MUST have JWT_SECRET configured
   if (process.env.NODE_ENV === 'production') {
-    return '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
+    console.error('🚨 CRITICAL: JWT_SECRET environment variable is required in production');
+    throw new Error('JWT_SECRET is required in production environment');
   }
 
-  // Development fallback
+  // Development fallback - generate ephemeral secret
   const fallbackSecret = randomBytes(32).toString('hex');
   console.warn('⚠️ JWT_SECRET not set. Using ephemeral secret for development.');
+  console.warn('⚠️ Set JWT_SECRET environment variable for session persistence.');
   return fallbackSecret;
 })();
 
@@ -151,7 +128,7 @@ export function generateToken(payload: AuthToken): string {
 export function verifyToken(token: string): AuthToken | null {
   try {
     return jwt.verify(token, JWT_SECRET) as AuthToken;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

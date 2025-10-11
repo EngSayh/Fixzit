@@ -4,7 +4,26 @@ import Category from '@/server/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 
+import { createSecureResponse } from '@/server/security/headers';
+
 export const dynamic = 'force-dynamic';
+/**
+ * @openapi
+ * /api/marketplace/categories:
+ *   get:
+ *     summary: marketplace/categories operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
@@ -12,7 +31,7 @@ export async function GET(request: NextRequest) {
     const categories = await Category.find({ orgId: context.orgId }).sort({ createdAt: 1 }).lean();
     const serialized = categories.map(category => serializeCategory(category));
 
-    const parentMap = new Map<string, any[]>();
+    const parentMap = new Map<string, unknown[]>();
     serialized.forEach(category => {
       const parentId = category.parentId ?? 'root';
       if (!parentMap.has(parentId)) {
@@ -21,9 +40,14 @@ export async function GET(request: NextRequest) {
       parentMap.get(parentId)!.push(category);
     });
 
-    const buildTree = (parentId: string | undefined): any[] => {
+    interface CategoryNode {
+      _id: string;
+      [key: string]: unknown;
+    }
+    
+    const buildTree = (parentId: string | undefined): CategoryNode[] => {
       const nodes = parentMap.get(parentId ?? 'root') ?? [];
-      return nodes.map(node => ({
+      return (nodes as CategoryNode[]).map((node) => ({
         ...node,
         children: buildTree(node._id)
       }));
@@ -38,8 +62,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to fetch marketplace categories', error);
-    return NextResponse.json({ ok: false, error: 'Unable to fetch categories' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to fetch categories' }, 500, request);
   }
 }
+
 
 

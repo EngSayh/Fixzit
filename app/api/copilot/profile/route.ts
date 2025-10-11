@@ -2,10 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveCopilotSession } from "@/server/copilot/session";
 import { getPermittedTools } from "@/server/copilot/policy";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * @openapi
+ * /api/copilot/profile:
+ *   get:
+ *     summary: copilot/profile operations
+ *     tags: [copilot]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const session = await resolveCopilotSession(req);
   const tools = getPermittedTools(session.role);
 

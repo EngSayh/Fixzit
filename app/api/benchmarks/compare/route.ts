@@ -4,6 +4,10 @@ import { computeQuote } from '@/lib/pricing';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { z } from 'zod';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const compareSchema = z.object({
   seatTotal: z.number().positive(),
   billingCycle: z.enum(['monthly', 'annual']),
@@ -12,7 +16,31 @@ const compareSchema = z.object({
   }))
 });
 
+/**
+ * @openapi
+ * /api/benchmarks/compare:
+ *   post:
+ *     summary: benchmarks/compare operations
+ *     tags: [benchmarks]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const body = compareSchema.parse(await req.json());
@@ -21,8 +49,8 @@ export async function POST(req: NextRequest) {
       items: body.items,
       seatTotal: body.seatTotal,
       billingCycle: body.billingCycle
-    }) as any;
-    if (ours.contactSales) return NextResponse.json(ours);
+    });
+    if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
     const rows = await Benchmark.find({});
     const perUserRows = rows.filter(r => r.pricingModel==='per_user_month' && r.priceMonthly);
@@ -35,13 +63,14 @@ export async function POST(req: NextRequest) {
       market: { perUserMedianMonthly: monthlyMedian, teamMonthly: compMonthly },
       position: diff === 0 ? 'PAR' : diff < 0 ? 'BELOW_MARKET' : 'ABOVE_MARKET'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.issues }, { status: 400 });
+      return zodValidationError(error, req);
     }
     console.error('Benchmark comparison failed:', error);
-    return NextResponse.json({ error: 'Failed to compare benchmarks' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to compare benchmarks' }, 500, req);
   }
 }
+
 
 

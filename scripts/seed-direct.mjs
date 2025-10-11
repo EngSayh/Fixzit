@@ -4,7 +4,17 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/fixzit-dev';
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('❌ MONGODB_URI environment variable not set');
+  process.exit(1);
+}
+
+const SEED_PASSWORD = process.env.SEED_PASSWORD;
+if (!SEED_PASSWORD) {
+  console.error('❌ SEED_PASSWORD environment variable not set');
+  process.exit(1);
+}
 
 const UserSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true },
@@ -100,7 +110,7 @@ const users = [
     code: 'USR-001',
     username: 'admin',
     email: 'admin@fixzit.co',
-    password: 'Admin@123',
+    password: SEED_PASSWORD,
     personal: {
       firstName: 'System',
       lastName: 'Administrator',
@@ -167,7 +177,7 @@ const users = [
     code: 'USR-002',
     username: 'tenant',
     email: 'tenant@fixzit.co',
-    password: 'Tenant@123',
+    password: SEED_PASSWORD,
     personal: {
       firstName: 'Ahmed',
       lastName: 'Al-Rashid',
@@ -234,7 +244,7 @@ const users = [
     code: 'USR-003',
     username: 'vendor',
     email: 'vendor@fixzit.co',
-    password: 'Vendor@123',
+    password: SEED_PASSWORD,
     personal: {
       firstName: 'Mohammed',
       lastName: 'Al-Harbi',
@@ -302,7 +312,7 @@ const users = [
 async function seedUsers() {
   try {
     console.log('🔌 Connecting to MongoDB...');
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
     
     console.log('🌱 Seeding users...');
@@ -319,7 +329,7 @@ async function seedUsers() {
           };
           
           await User.create(userWithHashedPassword);
-          console.log(`✅ Created user: ${userData.email} (Password: ${userData.password})`);
+          console.log(`✅ Created user: ${userData.email} (Role: ${userData.professional?.role || 'N/A'})`);
         } else {
           console.log(`⏭️  User already exists: ${userData.email}`);
         }
@@ -339,3 +349,6 @@ async function seedUsers() {
 }
 
 seedUsers().then(() => process.exit(0));
+
+
+

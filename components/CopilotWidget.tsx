@@ -8,9 +8,33 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  data?: any;
+  data?: WorkOrderData | OwnerStatementData | AttachmentData | unknown;
   intent?: string;
   sources?: { id: string; title: string; score: number; source?: string }[];
+}
+
+interface WorkOrderData {
+  id: string;
+  code: string;
+  title: string;
+  status: string;
+  priority: string;
+}
+
+interface OwnerStatementData {
+  totals: {
+    income: number;
+    expenses: number;
+    net: number;
+  };
+  currency: string;
+}
+
+interface AttachmentData {
+  attachment: {
+    url: string;
+    name: string;
+  };
 }
 
 interface QuickAction {
@@ -74,6 +98,7 @@ const translations = {
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ToolFormState = Record<string, any>;
 
 const initialForms: Record<string, ToolFormState> = {
@@ -99,7 +124,7 @@ function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
   if (message.intent === 'listMyWorkOrders' && Array.isArray(message.data)) {
     return (
       <ul className="mt-3 space-y-2 text-xs">
-        {message.data.map((item: any) => (
+        {message.data.map((item: WorkOrderData) => (
           <li key={item.id} className="rounded-lg border border-gray-200 bg-white/70 p-2">
             <div className="font-semibold text-gray-800">{item.code} · {item.title}</div>
             <div className="text-gray-500">{item.status} · {item.priority}</div>
@@ -109,8 +134,9 @@ function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
     );
   }
 
-  if (message.intent === 'ownerStatements' && message.data?.totals) {
-    const { totals, currency } = message.data;
+  if (message.intent === 'ownerStatements' && message.data && typeof message.data === 'object' && 'totals' in message.data) {
+    const statementData = message.data as OwnerStatementData;
+    const { totals, currency } = statementData;
     return (
       <div className="mt-3 space-y-2 text-xs">
         <div className="flex justify-between"><span>{locale === 'ar' ? 'الدخل' : 'Income'}</span><span>{totals.income.toLocaleString(undefined, { style: 'currency', currency })}</span></div>
@@ -120,12 +146,13 @@ function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
     );
   }
 
-  if (message.data?.attachment) {
+  if (message.data && typeof message.data === 'object' && 'attachment' in message.data) {
+    const attachmentData = message.data as AttachmentData;
     return (
       <div className="mt-3 flex items-center gap-2 text-xs text-[#0061A8]">
         <CheckCircle2 className="h-4 w-4" />
-        <a href={message.data.attachment.url} target="_blank" rel="noreferrer" className="underline">
-          {message.data.attachment.name}
+        <a href={attachmentData.attachment.url} target="_blank" rel="noreferrer" className="underline">
+          {attachmentData.attachment.name}
         </a>
       </div>
     );
@@ -180,7 +207,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
 
   const quickActions = useMemo(() => profile?.quickActions || [], [profile]);
 
-  const appendAssistantMessage = useCallback((content: string, data?: any, intent?: string, sources?: ChatMessage['sources']) => {
+  const appendAssistantMessage = useCallback((content: string, data?: ChatMessage['data'], intent?: string, sources?: ChatMessage['sources']) => {
     setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content, data, intent, sources }]);
   }, []);
 
@@ -206,16 +233,17 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         throw new Error(data?.reply || data?.error || t.toolError);
       }
       appendAssistantMessage(data.reply, data.data, data.intent, data.sources);
-    } catch (err: any) {
-      console.error('Copilot chat error', err);
-      setError(err?.message || t.toolError);
-      setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'system', content: err?.message || t.toolError }]);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Copilot chat error', error);
+      setError(error?.message || t.toolError);
+      setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'system', content: error?.message || t.toolError }]);
     } finally {
       setLoading(false);
     }
   }, [appendAssistantMessage, input, loading, locale, messages, t.toolError]);
 
-  const updateForm = (tool: string, field: string, value: any) => {
+  const updateForm = (tool: string, field: string, value: unknown) => {
     setForms(prev => ({ ...prev, [tool]: { ...prev[tool], [field]: value } }));
   };
 
@@ -223,7 +251,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
     setForms(prev => ({ ...prev, [tool]: initialForms[tool] }));
   };
 
-  const runTool = async (tool: string, args: Record<string, any>) => {
+  const runTool = async (tool: string, args: Record<string, unknown>) => {
     setLoading(true);
     setError(null);
     try {
@@ -231,8 +259,8 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       if (tool === 'uploadWorkOrderPhoto') {
         const fd = new FormData();
         fd.append('tool', tool);
-        fd.append('workOrderId', args.workOrderId);
-        fd.append('file', args.file);
+        fd.append('workOrderId', String(args.workOrderId));
+        fd.append('file', args.file as File);
         res = await fetch('/api/copilot/chat', { method: 'POST', body: fd });
       } else {
         res = await fetch('/api/copilot/chat', {
@@ -248,9 +276,10 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       appendAssistantMessage(data.reply, data.data, data.intent);
       resetForm(tool);
       setActiveTool(null);
-    } catch (err: any) {
-      console.error('Tool error', err);
-      setError(err?.message || t.toolError);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Tool error', error);
+      setError(error?.message || t.toolError);
     } finally {
       setLoading(false);
     }

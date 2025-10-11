@@ -34,7 +34,7 @@ export default function WorkOrdersBoardPage() {
     }
   ];
 
-  const getStatusColor = (status: string) => {
+  const _getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200';

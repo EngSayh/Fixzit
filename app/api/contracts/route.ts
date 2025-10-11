@@ -6,7 +6,8 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { createSecureResponse } from '@/server/security/headers';
 import { 
   createErrorResponse,
-  zodValidationError
+  zodValidationError,
+  rateLimitError
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
 
@@ -21,7 +22,31 @@ const contractSchema = z.object({
   sla: z.record(z.string(), z.any()).optional()
 });
 
+/**
+ * @openapi
+ * /api/contracts:
+ *   get:
+ *     summary: contracts operations
+ *     tags: [contracts]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
@@ -34,13 +59,18 @@ export async function POST(req: NextRequest) {
       return createErrorResponse('Invalid token', 401, req);
     }
 
+    // Ensure user has tenant context
+    if (!user.orgId) {
+      return createErrorResponse('User organization not found', 400, req);
+    }
+
     // Role-based access control - only admins can create contracts
     if (!['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role)) {
       return createErrorResponse('Insufficient permissions', 403, req);
     }
 
     // Rate limiting for contract operations
-    const key = `contracts:${(user as any)?.orgId}:${user.id}`;
+    const key = `contracts:${user.orgId}:${user.id}`;
     const rl = rateLimit(key, 10, 60_000); // 10 contracts per minute
     if (!rl.allowed) {
       return createErrorResponse('Contract creation rate limit exceeded', 429, req);
@@ -52,7 +82,7 @@ export async function POST(req: NextRequest) {
     // Tenant isolation - ensure contract belongs to user's org
     const contractData = {
       ...body,
-      orgId: (user as any)?.orgId,
+      orgId: user.orgId,
       createdBy: user.id,
       createdAt: new Date()
     };
@@ -67,5 +97,7 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
+
+
 
 

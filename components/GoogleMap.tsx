@@ -82,7 +82,7 @@ export default function GoogleMap({
     if (map) {
       map.setCenter(center);
     }
-  }, [center, map?.setCenter]);
+  }, [center, map]);
 
   useEffect(() => {
     if (map) {

@@ -31,7 +31,7 @@ function formatCurrency(value: number, currency: string) {
       style: 'currency',
       currency
     }).format(value);
-  } catch (error) {
+  } catch {
     return `${currency} ${value.toFixed(2)}`;
   }
 }

@@ -6,12 +6,31 @@ import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
-export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}) {
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/work-orders/[id]:
+ *   get:
+ *     summary: work-orders/[id] operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   const params = await props.params;
   await connectToDatabase();
-  const wo = await (WorkOrder as any).findById(params.id);
-  if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(wo);
+  const wo = await WorkOrder.findById(params.id);
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, _req);
+  return createSecureResponse(wo, 200, _req);
 }
 
 const patchSchema = z.object({
@@ -23,13 +42,13 @@ const patchSchema = z.object({
   dueAt: z.string().datetime().optional()
 });
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   const params = await props.params;
   const user = await requireAbility("EDIT")(req);
-  if (user instanceof NextResponse) return user as any;
+  if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const updates = patchSchema.parse(await req.json());
-  const updatePayload: Record<string, any> = { ...updates };
+  const updatePayload: Record<string, unknown> = { ...updates };
 
   if (updates.priority) {
     const { slaMinutes, dueAt } = resolveSlaTarget(updates.priority as WorkOrderPriority);
@@ -43,11 +62,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     updatePayload.dueAt = new Date(updates.dueAt);
   }
 
-  const wo = await (WorkOrder as any).findOneAndUpdate(
+  const wo = await WorkOrder.findOneAndUpdate(
     { _id: params.id, tenantId: user.tenantId },
     { $set: updatePayload },
     { new: true }
   );
-  if (!wo) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(wo);
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+  return createSecureResponse(wo, 200, req);
 }

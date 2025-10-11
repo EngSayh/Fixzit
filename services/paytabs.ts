@@ -61,7 +61,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
 
   subscription.status = 'ACTIVE';
   subscription.amount = payload.amount ?? subscription.amount;
-  subscription.currency = (payload.currency as any) || subscription.currency;
+  subscription.currency = (payload.currency as unknown) || subscription.currency;
   subscription.paytabs = {
     ...(subscription.paytabs || {}),
     token: payload.token ?? subscription.paytabs?.token,
@@ -69,7 +69,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
     customer_email: payload.customer_email ?? subscription.paytabs?.customer_email,
     cart_id: subscription.paytabs?.cart_id,
     profile_id: subscription.paytabs?.profile_id,
-  } as any;
+  } as unknown;
   await subscription.save();
 
   if (
@@ -102,3 +102,4 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
 
   return { ok: true, subscription };
 }
+

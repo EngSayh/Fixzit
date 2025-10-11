@@ -7,6 +7,9 @@ import Category from '@/server/models/marketplace/Category';
 import { serializeCategory } from '@/lib/marketplace/serializers';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 
+import {zodValidationError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const QuerySchema = z.object({
   q: z.string().optional(),
   cat: z.string().optional(),
@@ -19,6 +22,23 @@ const QuerySchema = z.object({
 });
 
 export const dynamic = 'force-dynamic';
+/**
+ * @openapi
+ * /api/marketplace/search:
+ *   get:
+ *     summary: marketplace/search operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
@@ -61,20 +81,24 @@ export async function GET(request: NextRequest) {
         facets: {
           brands: facets.brands,
           standards: facets.standards,
-          categories: facetCategories.map(category => ({
-            slug: category.slug,
-            name: category.name?.en ?? category.name?.ar ?? category.slug
-          }))
+          categories: facetCategories.map(category => {
+            const cat = category as { slug?: string; name?: { en?: string; ar?: string } };
+            return {
+              slug: cat.slug || '',
+              name: cat.name?.en ?? cat.name?.ar ?? cat.slug ?? ''
+            };
+          })
         }
       }
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     console.error('Marketplace search failed', error);
-    return NextResponse.json({ ok: false, error: 'Search failed' }, { status: 500 });
+    return createSecureResponse({ error: 'Search failed' }, 500, request);
   }
 }
+
 
 

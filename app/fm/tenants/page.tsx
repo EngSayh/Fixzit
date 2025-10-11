@@ -8,11 +8,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Users, Plus, Search, Filter, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
+import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
+
+interface TenantProperty {
+  occupancy?: {
+    status?: string;
+  };
+}
+
+interface Tenant {
+  _id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  contact?: {
+    primary?: {
+      email?: string;
+      phone?: string;
+    };
+  };
+  address?: {
+    current?: {
+      city?: string;
+      region?: string;
+    };
+  };
+  financial?: {
+    outstandingBalance?: number;
+  };
+  properties?: TenantProperty[];
+}
 
 export default function TenantsPage() {
   const [search, setSearch] = useState('');
@@ -82,7 +110,7 @@ export default function TenantsPage() {
 
       {/* Tenants Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tenants.map((tenant: any) => (
+        {(tenants as Tenant[]).map((tenant) => (
           <TenantCard key={tenant._id} tenant={tenant} onUpdated={mutate} />
         ))}
       </div>
@@ -105,7 +133,7 @@ export default function TenantsPage() {
   );
 }
 
-function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void }) {
+function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'INDIVIDUAL':
@@ -132,7 +160,7 @@ function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void 
     }
   };
 
-  const activeProperties = tenant.properties?.filter((p: any) => p.occupancy?.status === 'ACTIVE').length || 0;
+  const activeProperties = tenant.properties?.filter((p) => p.occupancy?.status === 'ACTIVE').length || 0;
   const totalProperties = tenant.properties?.length || 0;
 
   return (
@@ -140,14 +168,14 @@ function TenantCard({ tenant, onUpdated }: { tenant: any; onUpdated: () => void 
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
-            {getTypeIcon(tenant.type)}
+            {getTypeIcon(tenant.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{tenant.name}</CardTitle>
               <p className="text-sm text-gray-600">{tenant.code}</p>
             </div>
           </div>
-          <Badge className={getTypeColor(tenant.type)}>
-            {tenant.type.toLowerCase()}
+          <Badge className={getTypeColor(tenant.type || '')}>
+            {tenant.type?.toLowerCase() || ''}
           </Badge>
         </div>
       </CardHeader>
@@ -282,7 +310,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create tenant');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating tenant');
     }
   };

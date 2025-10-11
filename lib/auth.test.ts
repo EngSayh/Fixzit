@@ -4,6 +4,7 @@
  * with vi.* and ensure mocks align with Vitest's API. The structure and assertions
  * remain compatible with typical Jest/Vitest setups.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { AuthToken } from './auth';
 

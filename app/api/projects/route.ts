@@ -4,6 +4,10 @@ import { Project } from "@/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createProjectSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -41,22 +45,44 @@ const createProjectSchema = z.object({
  *
  * @returns A NextResponse containing the created project (201) or an error object with an appropriate status code.
  */
+/**
+ * @openapi
+ * /api/projects:
+ *   get:
+ *     summary: projects operations
+ *     tags: [projects]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
-  try {
-    const user = await getSessionUser(req);
-    
-    // If no user or missing required fields, return 401
-    if (!user || !user.orgId) {
-      console.error('POST /api/projects: Auth failed', { user, hasOrgId: !!user?.orgId });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {    const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
     }
-    
     await connectToDatabase();
 
     const data = createProjectSchema.parse(await req.json());
 
     const project = await Project.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `PRJ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "PLANNING",
@@ -70,30 +96,28 @@ export async function POST(req: NextRequest) {
       createdBy: user.id
     });
 
-    return NextResponse.json(project, { status: 201 });
-  } catch (error: any) {
-    // Check if error is authentication-related
-    if (error.message?.includes('session') || error.message?.includes('auth')) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    return createSecureResponse(project, 201, req);
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+      return zodValidationError(error, req);
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
   }
-}
+}export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
 
-export async function GET(req: NextRequest) {
   try {
-    let user;
-    try {
-      user = await getSessionUser(req);
-    } catch (authError) {
-      // Explicitly catch and normalize all auth errors to 401
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!user || !(user as any)?.orgId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
     }
     await connectToDatabase();
 
@@ -104,23 +128,14 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
+
     if (type) match.type = type;
     if (status) match.status = status;
     if (search) {
-      // Only use $text if index exists, else fallback to regex (dev only) or empty
-      const indexes = await Project.collection.indexes();
-      const hasText = indexes.some(idx => idx.name === 'name_text_description_text');
-      if (hasText) {
-        match.$text = { $search: search };
-      } else {
-        // Fallback: regex search (dev only, not for prod)
-        match.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } }
-        ];
-      }
+      match.$text = { $search: search };
     }
+
     const [items, total] = await Promise.all([
       Project.find(match)
         .sort({ createdAt: -1 })
@@ -128,6 +143,7 @@ export async function GET(req: NextRequest) {
         .limit(limit),
       Project.countDocuments(match)
     ]);
+
     return NextResponse.json({
       items,
       page,
@@ -135,12 +151,11 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: any) {
-    // Normalize all auth errors to 401
-    if (error.message?.includes('session') || error.message?.includes('auth')) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch projects';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
+
+
 

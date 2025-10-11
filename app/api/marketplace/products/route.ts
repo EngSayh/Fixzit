@@ -5,6 +5,9 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { serializeProduct } from '@/lib/marketplace/serializers';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
 
+import { unauthorizedError, forbiddenError, zodValidationError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'PROCUREMENT', 'ADMIN']);
 
 const QuerySchema = z.object({
@@ -33,33 +36,49 @@ const ProductSchema = z.object({
   status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']).optional()
 });
 
+/**
+ * @openapi
+ * /api/marketplace/products:
+ *   get:
+ *     summary: marketplace/products operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(request: NextRequest) {
   try {
     if (process.env.MARKETPLACE_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace endpoint not available in this deployment' }, 501, request);
     }
-    const { dbConnect } = await import('@/db/mongoose');
-    await dbConnect();
+    // Use unified database connection
+    await connectToDatabase();
     const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
-      return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace Product dependencies are not available in this deployment' }, 501, request);
     }
     const context = await resolveMarketplaceContext(request);
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
-    await connectToDatabase();
 
     const skip = (query.page - 1) * query.limit;
     const [items, total] = await Promise.all([
-      (Product as any).find({ orgId: context.orgId }).sort({ createdAt: -1 }).skip(skip).limit(query.limit).lean(),
-      (Product as any).countDocuments({ orgId: context.orgId })
+      Product.find({ orgId: context.orgId }).sort({ createdAt: -1 }).skip(skip).limit(query.limit).lean(),
+      Product.countDocuments({ orgId: context.orgId })
     ]);
 
     return NextResponse.json({
       ok: true,
       data: {
-        items: items.map((item: any) => serializeProduct(item)),
+        items: items.map((item: unknown) => serializeProduct(item as Record<string, unknown>)),
         pagination: {
           page: query.page,
           limit: query.limit,
@@ -70,37 +89,36 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid parameters', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
     console.error('Marketplace products list failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to list products' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to list products' }, 500, request);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     if (process.env.MARKETPLACE_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'Marketplace endpoint not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace endpoint not available in this deployment' }, 501, request);
     }
-    const { dbConnect } = await import('@/db/mongoose');
-    await dbConnect();
+    // Use unified database connection
+    await connectToDatabase();
     const ProductMod = await import('@/server/models/marketplace/Product').catch(() => null);
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
-      return NextResponse.json({ success: false, error: 'Marketplace Product dependencies are not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'Marketplace Product dependencies are not available in this deployment' }, 501, request);
     }
     const context = await resolveMarketplaceContext(request);
     if (!context.userId) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      return unauthorizedError();
     }
     if (!context.role || !ADMIN_ROLES.has(context.role)) {
-      return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
+      return forbiddenError();
     }
     const body = await request.json();
     const payload = ProductSchema.parse(body);
-    await connectToDatabase();
 
-    const product = await (Product as any).create({
+    const product = await Product.create({
       ...payload,
       orgId: context.orgId,
       categoryId: objectIdFrom(payload.categoryId),
@@ -109,17 +127,19 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, data: serializeProduct(product) }, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error('Marketplace product creation error:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, error: 'Invalid payload', details: error.issues }, { status: 400 });
+      return zodValidationError(error, request);
     }
-    if ((error as any).code === 11000) {
-      return NextResponse.json({ ok: false, error: 'Duplicate SKU or slug' }, { status: 409 });
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
+      return createSecureResponse({ error: 'Duplicate SKU or slug' }, 409, request);
     }
     console.error('Marketplace product creation failed', error);
-    return NextResponse.json({ ok: false, error: 'Unable to create product' }, { status: 500 });
+    return createSecureResponse({ error: 'Unable to create product' }, 500, request);
   }
 }
+
 
 
 

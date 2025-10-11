@@ -11,12 +11,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Briefcase, Plus, Search, Filter, Calendar, DollarSign, 
-  TrendingUp, Users, Eye, Edit, Trash2, BarChart3, 
+  Briefcase, Plus, Search, Calendar, DollarSign, Users, Eye, Edit, Trash2, 
   Construction, Hammer, PaintBucket, Building 
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
+
+interface ProjectItem {
+  _id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  status?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  budget?: {
+    total?: number;
+    currency?: string;
+  };
+  team?: unknown[];
+  timeline?: {
+    endDate?: string;
+  };
+  progress?: {
+    overall?: number;
+  };
+}
 
 export default function ProjectsPage() {
   const [search, setSearch] = useState('');
@@ -104,7 +125,7 @@ export default function ProjectsPage() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project: any) => (
+        {(projects as ProjectItem[]).map((project) => (
           <ProjectCard key={project._id} project={project} onUpdated={mutate} />
         ))}
       </div>
@@ -127,7 +148,7 @@ export default function ProjectsPage() {
   );
 }
 
-function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => void }) {
+function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void }) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'NEW_CONSTRUCTION':
@@ -173,14 +194,14 @@ function ProjectCard({ project, onUpdated }: { project: any; onUpdated: () => vo
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
-            {getTypeIcon(project.type)}
+            {getTypeIcon(project.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{project.name}</CardTitle>
               <p className="text-sm text-gray-600">{project.code}</p>
             </div>
           </div>
-          <Badge className={getStatusColor(project.status)}>
-            {project.status.toLowerCase().replace('_', ' ')}
+          <Badge className={getStatusColor(project.status || '')}>
+            {project.status?.toLowerCase().replace('_', ' ') || ''}
           </Badge>
         </div>
       </CardHeader>
@@ -289,7 +310,7 @@ function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
       } else {
         alert('Failed to create project');
       }
-    } catch (error) {
+    } catch {
       alert('Error creating project');
     }
   };

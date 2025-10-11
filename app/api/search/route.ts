@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey } from '@/config/topbar-modules';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
   const baseRoutes: Record<string, string> = {
@@ -24,7 +28,31 @@ function generateHref(entity: string, id: string): string {
   return `${basePath}?highlight=${id}`;
 }
 
+/**
+ * @openapi
+ * /api/search:
+ *   get:
+ *     summary: search operations
+ *     tags: [search]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const mongoose = await connectToDatabase(); // Ensure database connection
     const { searchParams } = new URL(req.url);
@@ -33,25 +61,34 @@ export async function GET(req: NextRequest) {
     const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
 
     if (!q) {
-      return NextResponse.json({ results: [] });
+      return createSecureResponse({ results: [] }, 200, req);
     }
 
     const appConfig = APPS[app];
     if (!appConfig) {
-      return NextResponse.json({ results: [] });
+      return createSecureResponse({ results: [] }, 200, req);
+    }
+
+    interface SearchResult {
+      id: string;
+      entity: string;
+      title: string;
+      subtitle: string;
+      href: string;
+      score: number;
     }
 
     const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
-    const results: any[] = [];
+    const results: SearchResult[] = [];
 
     // Search across different entity types based on app
     for (const entity of searchEntities) {
       try {
-        let collection: any;
-        let searchQuery: any = { $text: { $search: q } };
-        let projection: any = { score: { $meta: 'textScore' } };
+        let collection: ReturnType<NonNullable<typeof mongoose.connection.db>['collection']> | undefined;
+        let searchQuery: Record<string, unknown> = { $text: { $search: q } };
+        let projection: Record<string, unknown> = { score: { $meta: 'textScore' } };
 
-        const mdb = (mongoose as any).connection?.db;
+        const mdb = mongoose.connection?.db;
         if (!mdb) continue;
         
         switch (entity) {
@@ -151,6 +188,17 @@ export async function GET(req: NextRequest) {
         }
 
         if (collection) {
+          interface SearchItem {
+            _id?: { toString: () => string };
+            title?: string;
+            name?: string;
+            code?: string;
+            description?: string;
+            address?: string;
+            status?: string;
+            score?: number;
+          }
+          
           const items = await collection
             .find(searchQuery)
             .project(projection)
@@ -158,7 +206,7 @@ export async function GET(req: NextRequest) {
             .limit(5)
             .toArray();
 
-          items.forEach((item: any) => {
+          items.forEach((item: SearchItem) => {
             const result = {
               id: item._id?.toString() || '',
               entity,
@@ -182,7 +230,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     console.error('Search API error:', error);
-    return NextResponse.json({ results: [] }, { status: 500 });
+    return createSecureResponse({ results: [] }, 500, req);
   }
 }
 

@@ -47,13 +47,16 @@ export function withCORS(request: NextRequest, response: NextResponse): NextResp
 
   if (origin && allowedOrigins.includes(origin)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
   } else if (process.env.NODE_ENV === 'development') {
-    response.headers.set('Access-Control-Allow-Origin', '*');
+    // In development, use first allowed origin instead of '*' to avoid CORS violation
+    // when Access-Control-Allow-Credentials is 'true'
+    response.headers.set('Access-Control-Allow-Origin', 'http://localhost:3000');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
 
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
 
   return response;
@@ -76,8 +79,7 @@ export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10
 export function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
-  // NextRequest doesn't have .ip property, fallback to localhost for development
-  const ip = forwarded?.split(',')[0] || realIP || '127.0.0.1';
+  const ip = forwarded?.split(',')[0] || realIP || 'unknown';
   return ip.trim();
 }
 

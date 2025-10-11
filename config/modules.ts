@@ -1,5 +1,4 @@
 import { Home, Wrench, Banknote, Users, Settings, Building2, Store, Landmark, Factory, LifeBuoy, Contact } from "lucide-react";
-import type { Role } from "@/lib/rbac";
 
 export type ModuleKey =
   | "dashboard" | "work_orders" | "finance" | "hr" | "admin" | "crm"

@@ -3,35 +3,64 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from '@/server/models/Job';
 import { getUserFromToken } from '@/lib/auth';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/ats/moderation:
+ *   get:
+ *     summary: ats/moderation operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function PUT(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const user = token ? await getUserFromToken(token) : null;
+    const _user = token ? await getUserFromToken(token) : null;
 
     const { jobId, action } = body;
-    if (!jobId || !['approve', 'reject'].includes(action)) return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 });
+    if (!jobId || !['approve', 'reject'].includes(action)) return validationError("Invalid request");
 
     const job = await Job.findById(jobId);
-    if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+    if (!job) return notFoundError("Job");
 
     if (action === 'approve') {
-      job.status = 'published' as any;
+      job.status = 'published';
       job.publishedAt = new Date();
       await job.save();
     } else {
-      job.status = 'closed' as any;
+      job.status = 'closed';
       await job.save();
     }
 
     return NextResponse.json({ success: true, data: job });
   } catch (error) {
     console.error('Moderation error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to moderate job' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to moderate job' }, 500, req);
   }
 }
+
 
 
 

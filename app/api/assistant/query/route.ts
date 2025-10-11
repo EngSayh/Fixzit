@@ -3,26 +3,43 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { HelpArticle } from "@/server/models/HelpArticle";
 import { WorkOrder } from "@/server/models/WorkOrder";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionUser, type SessionUser } from "@/server/middleware/withAuthRbac";
+
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
 const BodySchema = z.object({
-  question: z.string().min(1),
-});
+  question: z.string().min(1)});
 
 type Citation = { title: string; slug: string };
 
+// Type for WorkOrder items from DB
+interface WorkOrderItem {
+  code: string;
+  title: string;
+  status: string;
+}
+
+// Type for HelpArticle docs from DB
+interface HelpArticleDoc {
+  title: string;
+  slug: string;
+  content?: string;
+}
+
 function parseNewTicket(question: string) {
   const isSlash = question.trim().toLowerCase().startsWith("/new-ticket");
-  const isNatural = /\b(create|open)\b.*\b(work\s*order|ticket)\b/i.test(question);
+  const isNatural = /\b(create|open)\b.*\b(work *order|ticket)\b/i.test(question);
   if (!isSlash && !isNatural) return null;
 
   const get = (key: string) => {
-    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^\\s]+))`, "i"));
+    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^ ]+))`, "i"));
     if (!m) return undefined;
     return (m[2] || m[3])?.trim();
   };
 
-  const title = get("title") || question.replace(/^\s*\/new-ticket\s*/i, "").trim() || "General request";
+  const title = get("title") || question.replace(/^ *\/new-ticket */i, "").trim() || "General request";
   const description = get("desc") || get("description");
   const priority = (get("priority") || "MEDIUM").toUpperCase();
   const propertyId = get("propertyId");
@@ -31,17 +48,41 @@ function parseNewTicket(question: string) {
 }
 
 function isMyTickets(question: string) {
-  return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work\s*orders)\b/i.test(question);
+  return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work *orders)\b/i.test(question);
 }
 
+/**
+ * @openapi
+ * /api/assistant/query:
+ *   post:
+ *     summary: assistant/query operations
+ *     tags: [assistant]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase(); // ensure DB/init (real or mock)
   } catch {}
 
-  let user: { id: string; tenantId: string; role: string } | null = null;
+  let user: SessionUser | null = null;
   try {
-    user = await getSessionUser(req) as any;
+    user = await getSessionUser(req);
   } catch {
     user = null; // allow public help queries without actions
   }
@@ -50,7 +91,7 @@ export async function POST(req: NextRequest) {
   try {
     body = BodySchema.parse(await req.json());
   } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return createSecureResponse({ error: "Invalid request" }, 400, req);
   }
 
   const q = body.question.trim();
@@ -64,8 +105,8 @@ export async function POST(req: NextRequest) {
     try {
       const seq = Math.floor((Date.now() / 1000) % 100000);
       const code = `WO-${new Date().getFullYear()}-${seq}`;
-      const wo = await (WorkOrder as any).create({
-        tenantId: (user as any)?.orgId,
+      const wo = await WorkOrder.create({
+        tenantId: user.orgId,
         code,
         title: createArgs.title,
         description: createArgs.description,
@@ -75,12 +116,12 @@ export async function POST(req: NextRequest) {
         requester: { type: "TENANT", id: user.id },
         status: "SUBMITTED",
         statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
-        createdBy: user.id,
-      });
+        createdBy: user.id});
       const answer = `Created work order ${wo.code} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
-    } catch (e: any) {
-      return NextResponse.json({ answer: `Could not create work order: ${e.message || "unknown error"}`, citations: [] as Citation[] });
+    } catch (_e: unknown) {
+      const errorMsg = _e instanceof Error ? _e.message : "unknown error";
+      return NextResponse.json({ answer: `Could not create work order: ${errorMsg}`, citations: [] as Citation[] });
     }
   }
 
@@ -89,32 +130,32 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
     }
-    const items = await (WorkOrder as any).find({ tenantId: (user as any)?.orgId, createdBy: user.id })
+    const items = await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
       .limit?.(5) || [];
-    const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
+    const lines = (Array.isArray(items) ? items : []).map((it: WorkOrderItem) => `• ${it.code}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }
 
   // Knowledge retrieval from Help Articles (tenant-agnostic help)
-  let docs: any[] = [];
+  let docs: HelpArticleDoc[] = [];
   try {
-    docs = await (HelpArticle as any).find({ status: "PUBLISHED", $text: { $search: q } })
+    docs = await HelpArticle.find({ status: "PUBLISHED", $text: { $search: q } })
       .sort?.({ updatedAt: -1 })
       .limit?.(5) || [];
   } catch {
     // Fallback: simple title match in mock mode
     try {
-      docs = await (HelpArticle as any).find({ status: "PUBLISHED" })
+      docs = await HelpArticle.find({ status: "PUBLISHED" })
         .sort?.({ updatedAt: -1 })
         .limit?.(20) || [];
       const s = q.toLowerCase();
-      docs = (docs as any[]).filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
+      docs = docs.filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
     } catch {}
   }
 
-  const citations: Citation[] = (docs || []).map((d: any) => ({ title: d.title, slug: d.slug })).slice(0, 5);
+  const citations: Citation[] = (docs || []).map((d: HelpArticleDoc) => ({ title: d.title, slug: d.slug })).slice(0, 5);
   let answer = "";
   if (docs?.length) {
     const d0 = docs[0];
@@ -126,5 +167,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ answer, citations });
 }
+
 
 

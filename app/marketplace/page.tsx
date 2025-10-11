@@ -2,21 +2,43 @@
 import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
+interface Category {
+  _id: string;
+  slug: string;
+  name?: { en: string };
+}
+
+interface Product {
+  _id: string;
+  slug: string;
+  title: { en: string };
+  media?: Array<{ url: string; alt?: string }>;
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  stock?: {
+    onHand: number;
+    reserved: number;
+  };
+}
+
 async function loadHomepageData() {
   const [categoriesResponse, featuredResponse] = await Promise.all([
-    serverFetchJsonWithTenant<any>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<any>('/api/marketplace/products?limit=8')
+    serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
+    serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=8')
   ]);
 
-  const categories = categoriesResponse.data as any[];
-  const featured = featuredResponse.data.items as any[];
+  const categories = categoriesResponse.data;
+  const featured = featuredResponse.data.items;
 
   const carousels = await Promise.all(
     categories.slice(0, 4).map(async category => {
-      const response = await serverFetchJsonWithTenant<any>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+      const response = await serverFetchJsonWithTenant<{ data: { items: Product[] } }>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
       return {
         category,
-        items: response.data.items as any[]
+        items: response.data.items
       };
     })
   );
@@ -25,8 +47,7 @@ async function loadHomepageData() {
 }
 
 export default async function MarketplaceHome() {
-  const { categories, featured, carousels } = await loadHomepageData();
-  const departments = categories.map(category => ({ slug: category.slug, name: category.name?.en ?? category.slug }));
+  const { categories: _categories, featured, carousels } = await loadHomepageData();
   const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
 
   return (
@@ -92,7 +113,7 @@ export default async function MarketplaceHome() {
               </a>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {carousel.items.map((product: any) => (
+              {carousel.items.map((product: Product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>

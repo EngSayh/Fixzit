@@ -3,6 +3,11 @@ import crypto from 'crypto';
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import Redis from 'ioredis';
+import { Filter, Document } from 'mongodb';
+
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,11 +15,27 @@ type AskRequest = {
   question: string;
   limit?: number;
   category?: string;
+  lang?: string;
+  route?: string;
 };
+
+interface UserWithAuth {
+  orgId?: string;
+  tenantId?: string;
+  role?: string;
+}
+
+interface SearchChunk {
+  slug?: string;
+  articleId?: string;
+  title?: string;
+  text?: string;
+  updatedAt?: string | Date;
+}
 
 function redactPII(s: string) {
   return s
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2}\b/gi, '[redacted email]')
     // Phone patterns: optional country code, optional area code, standard 7-10 digits with separators
     .replace(/\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g, '[redacted phone]');
 }
@@ -98,21 +119,46 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
  *
  * @returns A NextResponse with JSON `{ answer, citations }` on success, or `{ error }` with status 400/500 on failure.
  */
+/**
+ * @openapi
+ * /api/help/ask:
+ *   post:
+ *     summary: help/ask operations
+ *     tags: [help]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req).catch(() => null);
     // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)
     await rateLimitAssert(req);
     const body = await req.json().catch(() => ({} as AskRequest));
     const question = typeof body?.question === 'string' ? body.question : '';
-    const rawLimit = Number((body as any)?.limit);
+    const rawLimit = Number(body?.limit);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(8, Math.floor(rawLimit)) : 5;
     const category = typeof body?.category === 'string' ? body.category : undefined;
-    const lang = typeof (body as any)?.lang === 'string' ? (body as any).lang : 'en';
-    const role = (user as any)?.role || undefined;
-    const route = typeof (body as any)?.route === 'string' ? (body as any).route : undefined;
+    const lang = typeof body?.lang === 'string' ? body.lang : 'en';
+    const userWithAuth = user as UserWithAuth | null;
+    const role = userWithAuth?.role || undefined;
+    const route = typeof body?.route === 'string' ? body.route : undefined;
     if (!question || !question.trim()) {
-      return NextResponse.json({ error: 'Missing question' }, { status: 400 });
+      return createSecureResponse({ error: 'Missing question' }, 400, req);
     }
 
     const db = await getDatabase();
@@ -122,10 +168,10 @@ export async function POST(req: NextRequest) {
     // Text index is created by scripts/add-database-indexes.js
 
     // Enforce tenant isolation; allow global articles with no orgId
-    const orClauses: any[] = [ { orgId: { $exists: false } }, { orgId: null } ];
-    if ((user as any)?.orgId) orClauses.unshift({ orgId: (user as any).orgId });
-    const tenantScope = { $or: orClauses } as any;
-    const filter: any = { status: 'PUBLISHED', ...tenantScope };
+    const orClauses: Filter<Document>[] = [ { orgId: { $exists: false } }, { orgId: null } ];
+    if (user?.orgId) orClauses.unshift({ orgId: user.orgId });
+    const tenantScope = { $or: orClauses };
+    const filter: Filter<Document> = { status: 'PUBLISHED', ...tenantScope };
     if (category) filter.category = category;
 
     // Prefer vector search if available
@@ -134,8 +180,9 @@ export async function POST(req: NextRequest) {
       const { embedText } = await import('@/ai/embeddings');
       const { performKbSearch } = await import('@/kb/search');
       const qVec = await embedText(question);
-      const chunks = await performKbSearch({ tenantId: (user as any)?.tenantId, query: qVec, q: question, lang, role, route, limit });
-      docs = (chunks || []).map((c: any) => ({
+      const chunks = await performKbSearch({ tenantId: user?.tenantId, query: qVec, q: question, lang, role, route, limit });
+      const typedChunks = (chunks || []) as SearchChunk[];
+      docs = typedChunks.map((c) => ({
         slug: c.slug || c.articleId || '',
         title: c.title || '',
         content: c.text || '',
@@ -152,12 +199,12 @@ export async function POST(req: NextRequest) {
           .sort({ score: { $meta: 'textScore' } })
           .limit(Math.min(8, Math.max(1, limit)))
           .toArray();
-      } catch (err: any) {
+      } catch {
         // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        const regexFilter = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] } as any;
+        const regexFilter: Filter<Document> = { ...filter, updatedAt: { $gte: cutoffDate }, $or: [ { title: safe }, { content: safe }, { tags: safe } ] };
         docs = await coll
           .find(regexFilter, { projection: { slug: 1, title: 1, content: 1, updatedAt: 1 } })
           .sort({ updatedAt: -1 })
@@ -178,23 +225,23 @@ export async function POST(req: NextRequest) {
 
     const citations = docs.map((d: Doc) => ({ slug: d.slug, title: d.title, updatedAt: d.updatedAt }));
     return NextResponse.json({ answer, citations });
-  } catch (err: any) {
-    if (err instanceof Error && err.message === 'Rate limited') {
+  } catch (_err: Error | unknown) {
+    if (_err instanceof Error && _err.message === 'Rate limited') {
       return NextResponse.json({
         name: 'RateLimited',
         code: 'HELP_ASK_RATE_LIMITED',
         userMessage: 'Too many requests, please wait a minute.',
-        devMessage: err.message,
+        devMessage: _err.message,
         correlationId: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
       }, { status: 429 });
     }
     const correlationId = (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
-    console.error('help/ask error', { correlationId, err });
+    console.error('help/ask error', { correlationId});
     return NextResponse.json({
       name: 'HelpAskError',
       code: 'HELP_ASK_FAILED',
       userMessage: 'Unable to process your question. Please try again.',
-      devMessage: String(err?.message ?? err),
+      devMessage: String((_err as Error)?.message ?? _err),
       correlationId
     }, { status: 500 });
   }
@@ -216,8 +263,7 @@ if (process.env.REDIS_URL) {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 50, 2000),
       connectTimeout: 5000,
-      commandTimeout: 5000,
-    });
+      commandTimeout: 5000});
   } catch (err) {
     console.error('Failed to initialize Redis client:', err);
   }
@@ -242,9 +288,9 @@ async function rateLimitAssert(req: NextRequest) {
         throw new Error('Rate limited');
       }
       return;
-    } catch (err: any) {
-      if (err.message === 'Rate limited') throw err;
-      console.error('Redis rate limit check failed, falling back to in-memory:', err);
+    } catch (_err: Error | unknown) {
+      if ((_err as Error).message === 'Rate limited') throw _err;
+      console.error('Redis rate limit check failed, falling back to in-memory:', _err);
     }
   }
   
@@ -257,7 +303,7 @@ async function rateLimitAssert(req: NextRequest) {
   if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
 // Add request validation middleware
-function validateRequest(body: AskRequest): { valid: boolean; error?: string } {
+function _validateRequest(body: AskRequest): { valid: boolean; error?: string } {
   if (!body.question?.trim()) {
     return { valid: false, error: 'Question is required' };
   }
@@ -271,23 +317,23 @@ function validateRequest(body: AskRequest): { valid: boolean; error?: string } {
 }
 
 // Add response caching
-const responseCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const _responseCache = new Map<string, { data: unknown; timestamp: number }>();
+const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-function getCacheKey(question: string, category?: string, lang?: string): string {
+function _getCacheKey(question: string, category?: string, lang?: string): string {
   return crypto.createHash('sha256')
     .update(`${question}:${category || ''}:${lang || 'en'}`)
     .digest('hex');
 }
 
 // Add metrics collection
-async function trackMetrics(action: string, success: boolean, duration: number) {
+async function _trackMetrics(action: string, success: boolean, duration: number) {
   // Implement your metrics collection here
   console.log(`Metrics: action=${action}, success=${success}, duration=${duration}ms`);
 }
 
 // Add security headers (Note: middleware should be in middleware.ts file, not in API routes)
-function addSecurityHeaders(response: NextResponse) {
+function _addSecurityHeaders(response: NextResponse) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');

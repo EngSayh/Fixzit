@@ -77,10 +77,10 @@ export async function createIndexes() {
 /**
  * Safe insert operation with timestamp validation
  */
-export async function safeInsertOne<T extends Record<string, any>>(
+export async function safeInsertOne<T extends Record<string, unknown>>(
   collectionName: string, 
   document: T
-): Promise<any> {
+): Promise<{ acknowledged: boolean; insertedId: unknown }> {
   const db = await getDatabase();
   const collection = db.collection(collectionName);
   
@@ -91,10 +91,10 @@ export async function safeInsertOne<T extends Record<string, any>>(
 /**
  * Safe bulk insert operation with timestamp validation
  */
-export async function safeInsertMany<T extends Record<string, any>>(
+export async function safeInsertMany<T extends Record<string, unknown>>(
   collectionName: string, 
   documents: T[]
-): Promise<any> {
+): Promise<{ acknowledged: boolean; insertedCount: number; insertedIds: Record<number, unknown> }> {
   const db = await getDatabase();
   const collection = db.collection(collectionName);
   
@@ -105,11 +105,11 @@ export async function safeInsertMany<T extends Record<string, any>>(
 /**
  * Safe update operation with timestamp validation
  */
-export async function safeUpdateOne<T extends Record<string, any>>(
+export async function safeUpdateOne<T extends Record<string, unknown>>(
   collectionName: string,
-  filter: any,
+  filter: Record<string, unknown>,
   update: T
-): Promise<any> {
+): Promise<{ acknowledged: boolean; matchedCount: number; modifiedCount: number }> {
   const db = await getDatabase();
   const collection = db.collection(collectionName);
   

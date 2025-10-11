@@ -1,40 +1,68 @@
 import { Schema, model, models, Document } from 'mongoose';
 
 export interface IPriceTier extends Document {
-  _id: string;
-  name: string;
-  description?: string;
-  tier: number;
-  discountPercentage: number;
-  minimumOrderValue?: number;
+  _id: Schema.Types.ObjectId;
+  moduleId: Schema.Types.ObjectId;
+  seatsMin: number;
+  seatsMax: number;
+  pricePerSeatMonthly?: number;
+  flatMonthly?: number;
+  currency: string;
+  region?: string;
+  updatedBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const priceTierSchema = new Schema<IPriceTier>({
-  name: {
-    type: String,
-    required: true,
-    trim: true
+  moduleId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Module',
+    required: true
   },
-  description: {
-    type: String,
-    trim: true
-  },
-  tier: {
+  seatsMin: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
+    validate: {
+      validator: function(this: IPriceTier, value: number) {
+        return !this.seatsMax || value <= this.seatsMax;
+      },
+      message: 'seatsMin must be less than or equal to seatsMax'
+    }
   },
-  discountPercentage: {
+  seatsMax: {
     type: Number,
     required: true,
-    min: 0,
-    max: 100
+    min: 1,
+    validate: {
+      validator: function(this: IPriceTier, value: number) {
+        return !this.seatsMin || value >= this.seatsMin;
+      },
+      message: 'seatsMax must be greater than or equal to seatsMin'
+    }
   },
-  minimumOrderValue: {
+  pricePerSeatMonthly: {
     type: Number,
     min: 0
+  },
+  flatMonthly: {
+    type: Number,
+    min: 0
+  },
+  currency: {
+    type: String,
+    required: true,
+    default: 'USD',
+    uppercase: true,
+    match: [/^[A-Z]{3}$/, 'Currency must be a valid ISO 4217 code (e.g., USD, EUR, SAR)']
+  },
+  region: {
+    type: String,
+    trim: true
+  },
+  updatedBy: {
+    type: String
   }
 }, {
   timestamps: true,
@@ -42,9 +70,7 @@ const priceTierSchema = new Schema<IPriceTier>({
   toObject: { virtuals: true }
 });
 
-// Ensure unique tier numbers
-priceTierSchema.index({ tier: 1 }, { unique: true });
-priceTierSchema.index({ name: 1 }, { unique: true });
+priceTierSchema.index({ moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 }, { unique: true });
 
 export const PriceTier = models.PriceTier || model<IPriceTier>('PriceTier', priceTierSchema);
 export default PriceTier;

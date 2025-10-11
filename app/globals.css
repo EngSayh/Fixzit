@@ -136,8 +136,8 @@
   --fixzit-yellow: #FFB400;
 
   /* Secondary Colors */
-  --fixzit-dark: #023047;
-  --fixzit-orange: #F6851F;
+  --fixzit-dark: #0061A8;  /* FIXED: was #023047 (banned) */
+  --fixzit-orange: #FFB400;  /* FIXED: was #F6851F (banned) */
 
   /* UI States */
   --fixzit-bg: #F9FAFB;

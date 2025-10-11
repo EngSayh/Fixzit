@@ -4,13 +4,13 @@ import Link from "next/link";
 
 export const revalidate = 60;
 
-export default async function CmsPageScreen(props: { params: Promise<{slug:string}>, searchParams: Promise<any> }) {
+export default async function CmsPageScreen(props: { params: Promise<{slug:string}>, searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const searchParams = await props.searchParams;
   const params = await props.params;
   await connectToDatabase();
   const { slug } = params;
   const preview = searchParams?.preview === "1";
-  const page = await (CmsPage as any).findOne({ slug });
+  const page = await CmsPage.findOne({ slug });
   if (!page) {
     return (
       <div className="mx-auto max-w-3xl p-6">
@@ -31,7 +31,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#023047] to-[#0061A8] text-white py-12">
+      <section className="bg-gradient-to-r from-[#0061A8] to-[#0061A8] text-white py-12">{/* FIXED: was #023047 (banned) */}
         <div className="mx-auto max-w-4xl px-6">
           <h1 className="text-4xl font-bold">{page.title}</h1>
         </div>

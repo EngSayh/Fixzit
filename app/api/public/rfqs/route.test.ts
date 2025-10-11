@@ -328,3 +328,4 @@ describe('GET /api/public/rfqs', () => {
     expect(json.error).toBe('Internal server error');
   });
 });
+

@@ -4,24 +4,52 @@ import { Job } from '@/server/models/Job';
 import { Candidate } from '@/server/models/Candidate';
 import { Application } from '@/server/models/Application';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
+/**
+ * @openapi
+ * /api/integrations/linkedin/apply:
+ *   get:
+ *     summary: integrations/linkedin/apply operations
+ *     tags: [integrations]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     // Check if LinkedIn integration is enabled
     if (process.env.ATS_ENABLED !== 'true') {
-      return NextResponse.json({ success: false, error: 'LinkedIn integration not available in this deployment' }, { status: 501 });
+      return createSecureResponse({ error: 'LinkedIn integration not available in this deployment' }, 501, req);
     }
 
     await connectMongo();
     const { jobSlug, profile, answers } = await req.json();
-    if (!jobSlug || !profile?.email) return NextResponse.json({ success: false, error: 'Missing fields' }, { status: 400 });
+    if (!jobSlug || !profile?.email) return validationError('Missing fields');
 
     const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
-    if (!job) return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+    if (!job) return notFoundError("Job");
 
-    let candidate = await (Candidate as any).findByEmail((job as any).orgId, profile.email);
+    let candidate = await Candidate.findByEmail(job.orgId, profile.email);
     if (!candidate) {
       candidate = await Candidate.create({
-        orgId: (job as any).orgId,
+        orgId: job.orgId,
         firstName: profile.firstName,
         lastName: profile.lastName || 'NA',
         email: profile.email,
@@ -32,8 +60,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const orgId = (job as any).orgId;
-    const jobId = (job as any)._id;
+    const orgId = job.orgId;
+    const jobId = job._id;
     
     const dup = await Application.findOne({ orgId, jobId, candidateId: candidate._id });
     if (dup) return NextResponse.json({ success: true, data: { applicationId: dup._id, message: 'Already applied' } });
@@ -60,8 +88,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: { applicationId: app._id } }, { status: 201 });
   } catch (error) {
     console.error('LinkedIn apply error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to apply with LinkedIn' }, { status: 500 });
+    return createSecureResponse({ error: 'Failed to apply with LinkedIn' }, 500, req);
   }
 }
+
 
 

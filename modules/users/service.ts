@@ -6,7 +6,7 @@ import type { CreateUserInput, UpdateUserInput, QueryUsersInput } from './valida
 export class UserService {
   static async list(orgId: string, filters: QueryUsersInput) {
     const { page, limit, role, isActive, search, sortBy, sortOrder } = filters;
-    const query: any = { orgId: new mongoose.Types.ObjectId(orgId) };
+    const query: Record<string, any> = { orgId: new mongoose.Types.ObjectId(orgId) };
     
     if (role) query.role = role;
     if (isActive !== undefined) query.isActive = isActive;
@@ -19,7 +19,7 @@ export class UserService {
     }
     
     const skip = (page - 1) * limit;
-    const sort: any = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+    const sort: Record<string, any> = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
     
     const [users, total] = await Promise.all([
       User.find(query).sort(sort).skip(skip).limit(limit).select('-passwordHash').lean().exec(),
@@ -58,7 +58,7 @@ export class UserService {
       createdBy: createdBy ? new mongoose.Types.ObjectId(createdBy) : undefined,
       updatedBy: createdBy ? new mongoose.Types.ObjectId(createdBy) : undefined
     });
-    delete (user as any).password;
+    delete user.password;
     await user.save();
     return user.toObject();
   }
@@ -80,7 +80,7 @@ export class UserService {
     await user.save();
     
     const result = user.toObject();
-    delete (result as any).passwordHash;
+    delete result.passwordHash;
     return result;
   }
   
@@ -96,7 +96,7 @@ export class UserService {
     await user.save();
     
     const result = user.toObject();
-    delete (result as any).passwordHash;
+    delete result.passwordHash;
     return result;
   }
   

@@ -4,6 +4,10 @@ import { RFQ } from "@/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const createRFQSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
@@ -82,15 +86,45 @@ const createRFQSchema = z.object({
  * @returns A NextResponse containing the created RFQ with status 201 on success,
  * or a JSON error message with status 400 if validation or creation fails.
  */
+/**
+ * @openapi
+ * /api/rfqs:
+ *   get:
+ *     summary: rfqs operations
+ *     tags: [rfqs]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req);
+  if (!user?.orgId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      { status: 401 }
+    );
+  }
     await connectToDatabase();
 
     const data = createRFQSchema.parse(await req.json());
 
     const rfq = await RFQ.create({
-      tenantId: (user as any)?.orgId,
+      tenantId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -101,18 +135,31 @@ export async function POST(req: NextRequest) {
       createdBy: user.id
     });
 
-    return NextResponse.json(rfq, { status: 201 });
-  } catch (error: any) {
+    return createSecureResponse(rfq, 201, req);
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 422 });
+      return zodValidationError(error, req);
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
   }
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const user = await getSessionUser(req);
+  if (!user?.orgId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      { status: 401 }
+    );
+  }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -123,7 +170,7 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city");
     const search = searchParams.get("search");
 
-    const match: any = { tenantId: (user as any)?.orgId };
+    const match: Record<string, unknown> = { tenantId: user.orgId };
 
     if (status) match.status = status;
     if (category) match.category = category;
@@ -147,8 +194,10 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
+
 

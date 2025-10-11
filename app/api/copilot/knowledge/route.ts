@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+
 const docSchema = z.object({
   slug: z.string(),
   title: z.string(),
@@ -20,12 +24,36 @@ const payloadSchema = z.object({
 
 export const runtime = "nodejs";
 
+/**
+ * @openapi
+ * /api/copilot/knowledge:
+ *   get:
+ *     summary: copilot/knowledge operations
+ *     tags: [copilot]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const secret = process.env.COPILOT_WEBHOOK_SECRET;
   const provided = req.headers.get("x-webhook-secret");
 
   if (secret && (!provided || provided !== secret)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
   const json = await req.json();

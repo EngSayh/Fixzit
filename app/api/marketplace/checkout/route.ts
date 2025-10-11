@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
@@ -8,8 +8,8 @@ import { serializeOrder } from '@/lib/marketplace/serializers';
 import { createSecureResponse } from '@/server/security/headers';
 import { 
   unauthorizedError, 
+  validationError,
   rateLimitError, 
-  internalServerError,
   handleApiError 
 } from '@/server/utils/errorResponses';
 
@@ -23,6 +23,23 @@ const CheckoutSchema = z.object({
     .optional()
 });
 
+/**
+ * @openapi
+ * /api/marketplace/checkout:
+ *   get:
+ *     summary: marketplace/checkout operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
@@ -43,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const cart = await getOrCreateCart(context.orgId, context.userId);
     if (!cart.lines.length) {
-      return NextResponse.json({ ok: false, error: 'Cart is empty' }, { status: 400 });
+      return validationError('Cart is empty');
     }
 
     recalcCartTotals(cart);

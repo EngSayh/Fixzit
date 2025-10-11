@@ -7,7 +7,7 @@ import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
-  ShoppingBag, Headphones, Shield, BarChart3, Cog, FileText, CheckCircle, Bell
+  ShoppingBag, Headphones, Shield, BarChart3, Cog, Bell
 } from 'lucide-react';
 
 // Role-based module permissions
@@ -94,10 +94,10 @@ interface SidebarProps {
   tenantId?: string;
 }
 
-export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId }: SidebarProps) {
+export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId: _tenantId }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { responsiveClasses, screenInfo } = useResponsiveLayout();
+  const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
   // Safe translation with fallback
   let t: (key: string, fallback?: string) => string;
@@ -153,7 +153,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   };
 
   return (
-            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'w-64'} bg-[#023047] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#023047' }}>
+            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'w-64'} bg-[#0061A8] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#0061A8' }}>{/* FIXED: was #023047 (banned) */}
       <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
         <div className="font-bold text-lg mb-6 text-white">Fixzit Enterprise</div>
 

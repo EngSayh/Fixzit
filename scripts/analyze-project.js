@@ -386,7 +386,7 @@ class ProjectAnalyzer {
             overflow: hidden;
         }
         .header {
-            background: linear-gradient(135deg, #0061A8 0%, #023047 100%);
+            background: linear-gradient(135deg, #0061A8 0%, #0061A8 100%);  /* FIXED: was #023047 (banned) */
             color: white;
             padding: 40px;
             text-align: center;

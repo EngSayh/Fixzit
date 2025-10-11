@@ -5,9 +5,35 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
 import Redis from 'ioredis';
 
+import { rateLimit } from '@/server/security/rateLimit';
+import {rateLimitError} from '@/server/utils/errorResponses';
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
+/**
+ * @openapi
+ * /api/support/incidents:
+ *   get:
+ *     summary: support/incidents operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const native = await getDatabase();
 
   const body = await req.json();
@@ -26,8 +52,8 @@ export async function POST(req: NextRequest) {
   let safe: z.infer<typeof schema>;
   try {
     safe = schema.parse(body);
-  } catch (err: any) {
-    const issues = err?.issues ?? [];
+  } catch (_err: unknown) {
+    const issues = _err && typeof _err === 'object' && 'issues' in _err ? (_err as { issues: unknown[] }).issues : [];
     return NextResponse.json(
       {
         type: 'https://docs.fixzit/errors/invalid-incident-payload',
@@ -53,7 +79,7 @@ export async function POST(req: NextRequest) {
   let sessionUser: { id: string; role: string; orgId: string } | null = null;
   try {
     const user = await getSessionUser(req);
-    sessionUser = { id: user.id, role: user.role, orgId: (user as any)?.orgId } as any;
+    sessionUser = { id: user.id, role: user.role, orgId: user.orgId };
   } catch {
     sessionUser = null;
   }
@@ -107,7 +133,11 @@ export async function POST(req: NextRequest) {
   });
 
   // Auto-create a Support Ticket (same model used by /api/support/tickets)
-  let ticket: any | null = null;
+  interface TicketDoc {
+    code?: string;
+    _id?: unknown;
+  }
+  let ticket: TicketDoc | null = null;
   const genCode = () => `SUP-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`;
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
@@ -138,9 +168,9 @@ export async function POST(req: NextRequest) {
         ]
       });
       break;
-    } catch (e: any) {
-      if (e?.code === 11000) continue; // duplicate code -> retry
-      throw e;
+    } catch (_e: unknown) {
+      if (_e && typeof _e === 'object' && 'code' in _e && _e.code === 11000) continue; // duplicate code -> retry
+      throw _e;
     }
   }
 
@@ -158,4 +188,5 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return new NextResponse(null, { status: 405 });
 }
+
 
