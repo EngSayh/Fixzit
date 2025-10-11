@@ -33,10 +33,12 @@ class MockInvoiceService {
 
     if (q) {
       const query = q.toLowerCase();
-      results = results.filter(inv =>
-        (inv.number as string).toLowerCase().includes(query) ||
-        (inv.lines as Array<{ description: string }>)?.some((line) => line.description.toLowerCase().includes(query))
-      );
+      results = results.filter(inv => {
+        const number = String(inv.number || '').toLowerCase();
+        const lines = inv.lines as Array<{ description?: string }> | undefined;
+        return number.includes(query) ||
+          lines?.some((line) => String(line.description || '').toLowerCase().includes(query));
+      });
     }
 
     return results;
