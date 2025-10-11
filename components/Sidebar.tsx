@@ -88,6 +88,20 @@ const USER_LINKS = [
   { id:'notifications', name:'nav.notifications', icon:Bell, path:'/notifications' }
 ];
 
+const CATEGORY_FALLBACKS: Record<string, string> = {
+  core: 'Core',
+  fm: 'Facility Management',
+  procurement: 'Procurement',
+  finance: 'Finance',
+  hr: 'Human Resources',
+  crm: 'Customer Relations',
+  marketplace: 'Marketplace',
+  support: 'Support',
+  compliance: 'Compliance',
+  reporting: 'Reporting',
+  admin: 'Administration'
+};
+
 interface SidebarProps {
   role?: string;
   subscription?: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE';
@@ -135,34 +149,34 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
     return acc;
   }, {} as Record<string, typeof MODULES>);
 
-  const getCategoryName = (category: string) => {
-    const names: Record<string, string> = {
-      core: 'Core',
-      fm: 'Facility Management',
-      procurement: 'Procurement',
-      finance: 'Finance',
-      hr: 'Human Resources',
-      crm: 'Customer Relations',
-      marketplace: 'Marketplace',
-      support: 'Support',
-      compliance: 'Compliance',
-      reporting: 'Reporting',
-      admin: 'Administration'
-    };
-    return names[category] || category;
-  };
+  const getCategoryName = (category: string) => t(`sidebar.category.${category}`, CATEGORY_FALLBACKS[category] || category);
+
+  const basePositionClass = screenInfo.isMobile || screenInfo.isTablet
+    ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}`
+    : 'w-64';
+  const borderSideClass = translationIsRTL ? 'border-l' : 'border-r';
+  const hoverTranslateClass = translationIsRTL ? 'hover:-translate-x-1' : 'hover:translate-x-1';
+  const alignmentClass = translationIsRTL ? 'flex-row-reverse text-right' : 'text-left';
+  const headingAlignment = translationIsRTL ? 'text-right' : '';
+  const indicatorMargin = translationIsRTL ? 'mr-auto' : 'ml-auto';
+  const brandLabel = t('common.brand', 'Fixzit Enterprise');
 
   return (
-            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'w-64'} bg-[#0061A8] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#0061A8' }}>{/* FIXED: was #023047 (banned) */}
+    <aside
+      className={`${basePositionClass} bg-[#0061A8] text-white h-screen overflow-y-auto shadow-lg border-[#0061A8]/20 ${borderSideClass}`}
+      style={{ backgroundColor: '#0061A8' }}
+    >
       <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
-        <div className="font-bold text-lg mb-6 text-white">Fixzit Enterprise</div>
+        <div className={`font-bold text-lg mb-6 text-white ${headingAlignment}`}>{brandLabel}</div>
 
         {/* Role and Subscription Info */}
         {role !== 'guest' && (
           <div className="mb-4 p-3 bg-[#0061A8] rounded-lg">
-            <div className="text-xs text-white/80 mb-1">Role</div>
-            <div className="text-sm font-medium text-white">{role.replace('_', ' ')}</div>
-            <div className="text-xs text-white/80 mt-1">Plan: {subscription}</div>
+            <div className={`text-xs text-white/80 mb-1 ${headingAlignment}`}>{t('sidebar.role', 'Role')}</div>
+            <div className={`text-sm font-medium text-white ${headingAlignment}`}>{role.replace(/_/g, ' ')}</div>
+            <div className={`text-xs text-white/80 mt-1 ${headingAlignment}`}>
+              {t('sidebar.planLabel', 'Plan')}: {subscription}
+            </div>
           </div>
         )}
 
@@ -170,7 +184,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         <nav className="space-y-6 mb-8">
           {Object.entries(groupedModules).map(([category, modules]) => (
             <div key={category}>
-              <div className="text-xs font-medium text-gray-400 mb-2 px-3 uppercase tracking-wider">
+              <div className={`text-xs font-medium text-gray-400 mb-2 px-3 uppercase tracking-wider ${headingAlignment}`}>
                 {getCategoryName(category)}
               </div>
               <div className="space-y-1">
@@ -181,14 +195,13 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                         <button
                           key={m.id}
                           onClick={() => router.push(m.path)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200
-                                         ${isActive
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 ${alignmentClass} ${isActive
                                            ? 'bg-[#0061A8] text-white shadow-md'
-                                           : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'} ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                                           : `text-gray-300 hover:bg-white/10 hover:text-white ${hoverTranslateClass}`}`}
                         >
                           <Icon className="w-5 h-5 flex-shrink-0" />
                           <span className="text-sm font-medium">{t(m.name, m.name.replace('nav.', ''))}</span>
-                          {isActive && <div className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 bg-white rounded-full`}></div>}
+                          {isActive && <div className={`${indicatorMargin} w-2 h-2 bg-white rounded-full`}></div>}
                         </button>
                   );
                 })}
@@ -198,8 +211,10 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         </nav>
 
         {/* User Account Links */}
-        <div className="border-t border-white/20 pt-4">
-          <div className="text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider">Account</div>
+        <div className={`border-t border-white/20 pt-4`}>
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${headingAlignment}`}>
+            {t('sidebar.account', 'Account')}
+          </div>
           <nav className="space-y-1">
             {USER_LINKS.map(link => {
               const Icon = link.icon;
@@ -208,14 +223,13 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                 <button
                   key={link.id}
                   onClick={() => router.push(link.path)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-all duration-200
-                             ${isActive
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 ${alignmentClass} ${isActive
                                ? 'bg-[#0061A8] text-white shadow-md'
-                               : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'}`}
+                               : `text-gray-300 hover:bg-white/10 hover:text-white ${hoverTranslateClass}`}`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   <span className="text-sm font-medium">{t(link.name, link.name.replace('nav.', ''))}</span>
-                  {isActive && <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>}
+                  {isActive && <div className={`${indicatorMargin} w-2 h-2 bg-white rounded-full`}></div>}
                 </button>
               );
             })}
@@ -223,8 +237,8 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         </div>
 
         <div className="border-t border-white/20 pt-4 mt-4">
-          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
-            Preferences
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${headingAlignment}`}>
+            {t('sidebar.preferences', 'Preferences')}
           </div>
           <div className={`flex gap-2 px-3 ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
             <LanguageSelector variant="compact" />
@@ -234,13 +248,15 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         {/* Help & Support */}
         <div className="border-t border-white/20 pt-4 mt-4">
-          <div className="text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider">Help</div>
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${headingAlignment}`}>
+            {t('sidebar.help', 'Help')}
+          </div>
           <button
             onClick={() => router.push('/help')}
-            className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1"
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white ${hoverTranslateClass} ${alignmentClass}`}
           >
             <Headphones className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">Help Center</span>
+            <span className="text-sm font-medium">{t('sidebar.helpCenter', 'Help Center')}</span>
           </button>
         </div>
       </div>

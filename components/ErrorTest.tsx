@@ -1,9 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+const QA_FLAG_KEY = 'fxz.qa-tools';
 
 export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
+  const [qaEnabled, setQaEnabled] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      setQaEnabled(true);
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('qa') === '1') {
+        localStorage.setItem(QA_FLAG_KEY, 'enabled');
+        setQaEnabled(true);
+        return;
+      }
+
+      if (localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
+        setQaEnabled(true);
+      }
+    } catch (error) {
+      console.warn('Unable to initialize QA error test tools:', error);
+    }
+  }, []);
+
+  if (!qaEnabled) {
+    return null;
+  }
 
   const triggerError = () => {
     // This will trigger the error boundary

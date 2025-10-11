@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -63,6 +63,10 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const normalizedRole = typeof _role === 'string'
+    ? _role.toUpperCase()
+    : (_role ? String(_role).toUpperCase() : 'GUEST');
+  const isGuest = normalizedRole === 'GUEST';
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -81,10 +85,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
-    if (notifOpen && notifications.length === 0) {
+    if (!notifOpen || isGuest) {
+      return;
+    }
+
+    if (notifications.length === 0) {
       fetchNotifications();
     }
-  }, [notifOpen, notifications.length]);
+  }, [notifOpen, notifications.length, isGuest, fetchNotifications]);
 
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
@@ -116,7 +124,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   }, [notifOpen]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
+    if (isGuest) {
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch('/api/notifications?limit=5&read=false', {
@@ -184,7 +196,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isGuest]);
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
@@ -236,14 +248,28 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (savedLang) localStorage.setItem('fxz.lang', savedLang);
       if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
-      // Redirect to login page
-      router.push('/login');
+      // Clear session storage to remove cached incidents or temporary data
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.clear();
+      }
+
+      // Redirect to login page with a hard reload to fully reset the app state
+      if (typeof window !== 'undefined') {
+        window.location.assign('/login');
+      } else {
+        router.push('/login');
+      }
     } catch (error) {
       console.error('Logout error:', error);
-      // Still redirect even if API call fails
-      router.push('/login');
+      if (typeof window !== 'undefined') {
+        window.location.assign('/login');
+      } else {
+        router.push('/login');
+      }
     }
   };
+
+  const unreadCount = notifications.reduce((count, notification) => count + (notification.read ? 0 : 1), 0);
 
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
@@ -272,16 +298,20 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           <LanguageSelector variant="compact" />
           <CurrencySelector variant="compact" />
         </div>
-        <div className="notification-container relative">
-          <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
-            aria-label="Toggle notifications"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-          </button>
-          {notifOpen && (
+        {!isGuest && (
+          <div className="notification-container relative">
+            <button
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
+              aria-expanded={notifOpen}
+              aria-label={t('nav.notifications', 'Notifications')}
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+              )}
+            </button>
+            {notifOpen && (
             <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'left-8' : 'right-8'}`}></div>
@@ -291,8 +321,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {notifications.filter(n => !n.read).length > 0
-                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
+                    {unreadCount > 0
+                      ? `${unreadCount} ${t('common.unread', 'unread')}`
                       : t('common.noNotifications', 'No new notifications')
                     }
                   </div>
@@ -374,8 +404,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
         <div className="relative">
           <button onClick={() => setUserOpen(!userOpen)} className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md">
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
