@@ -7,7 +7,7 @@ import Sidebar from './Sidebar';
 import Footer from './Footer';
 import dynamic from 'next/dynamic';
 import AutoFixInitializer from './AutoFixInitializer';
-import ErrorTest from './ErrorTest';
+// import ErrorTest from './ErrorTest'; // Only for manual testing
 import ResponsiveLayout from './ResponsiveLayout';
 const AutoIncidentReporter = dynamic(() => import('@/components/AutoIncidentReporter'), { ssr: false });
 import PreferenceBroadcast from './PreferenceBroadcast';
