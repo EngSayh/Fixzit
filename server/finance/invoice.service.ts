@@ -51,9 +51,9 @@ class MockInvoiceService {
   }
 }
 
-const mockService = new MockInvoiceService();
+const _mockService = new MockInvoiceService();
 
-export async function create(input: unknown, actorId?: string, ip?: string) {
+export async function create(input: unknown, actorId?: string, _ip?: string) {
   const data = InvoiceCreate.parse(input);
 
   await connectToDatabase();

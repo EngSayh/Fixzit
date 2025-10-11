@@ -19,10 +19,22 @@ import mongoose from 'mongoose';
  */
 
 // Define interfaces for MongoDB database abstraction
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface Collection {
+  find: (query: Record<string, unknown>) => unknown;
+  findOne: (query: Record<string, unknown>) => Promise<unknown>;
+  insertOne: (doc: Record<string, unknown>) => Promise<unknown>;
+  insertMany: (docs: Record<string, unknown>[]) => Promise<unknown>;
+  updateOne: (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>;
+  updateMany: (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>;
+  deleteOne: (filter: Record<string, unknown>) => Promise<unknown>;
+  deleteMany: (filter: Record<string, unknown>) => Promise<unknown>;
+  countDocuments: (filter: Record<string, unknown>) => Promise<number>;
+  aggregate: (pipeline: unknown[]) => { toArray: () => Promise<unknown[]> };
+  [key: string]: unknown;
+}
+
 interface DatabaseHandle {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  collection: (name: string) => any;
+  collection: (name: string) => Collection;
   listCollections?: () => { toArray: () => Promise<unknown[]> };
 }
 

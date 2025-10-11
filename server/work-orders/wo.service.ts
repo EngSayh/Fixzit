@@ -2,7 +2,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Schema, model, models } from 'mongoose';
 import { withIdempotency } from "@/server/security/idempotency";
 
-const VALID_TRANSITIONS: Record<string, string[]> = {
+const _VALID_TRANSITIONS: Record<string, string[]> = {
   NEW: ["ASSIGNED","CANCELLED"],
   ASSIGNED: ["IN_PROGRESS","ON_HOLD","CANCELLED"],
   IN_PROGRESS: ["ON_HOLD","COMPLETED","CANCELLED"],
@@ -49,7 +49,7 @@ export async function create(data: any, actorId: string, ip?: string) {
   return wo;
 }
 
-export async function update(id: string, patch: any, tenantId: string, actorId: string, ip?: string) {
+export async function update(id: string, patch: any, _tenantId: string, actorId: string, ip?: string) {
   await connectToDatabase();
   
   if (!id) {
