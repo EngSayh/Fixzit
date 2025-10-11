@@ -214,18 +214,27 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         credentials: 'include'
       });
 
+      // Save language and locale preferences before clearing storage
+      const savedLang = localStorage.getItem('fxz.lang');
+      const savedLocale = localStorage.getItem('fxz.locale');
+
       // Clear client-side storage
       localStorage.removeItem('fixzit-role');
-      localStorage.removeItem('fxz.lang');
       localStorage.removeItem('fixzit-currency');
       localStorage.removeItem('fixzit-theme');
 
-      // Clear any other localStorage items related to the app
+      // Clear any other localStorage items related to the app, BUT preserve language settings
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('fixzit-') || key.startsWith('fxz-')) {
+        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) && 
+            key !== 'fxz.lang' && 
+            key !== 'fxz.locale') {
           localStorage.removeItem(key);
         }
       });
+
+      // Restore language preferences
+      if (savedLang) localStorage.setItem('fxz.lang', savedLang);
+      if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
       // Redirect to login page
       router.push('/login');

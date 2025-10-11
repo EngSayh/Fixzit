@@ -42,5 +42,6 @@
   "security.workspace.trust.enabled": false,
   "git.branchProtection": ["main", "master"],
   "git.branchProtectionPrompt": "alwaysPrompt",
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "codium.codeCompletion.enable": true
 }
