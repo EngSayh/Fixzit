@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -98,7 +98,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     if (notifOpen && notifications.length === 0 && isAuthenticated) {
       fetchNotifications();
     }
-  }, [notifOpen, notifications.length, isAuthenticated]);
+  }, [notifOpen, notifications.length, isAuthenticated, fetchNotifications]);
 
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   }, [notifOpen]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     // Don't fetch notifications for guest users
     if (!isAuthenticated) {
       setNotifications([]);
@@ -156,7 +156,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
@@ -208,12 +208,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (savedLang) localStorage.setItem('fxz.lang', savedLang);
       if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
-      // Redirect to login page
-      router.push('/login');
+      // Force a hard reload to clear all state and redirect to login
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
-      // Still redirect even if API call fails
-      router.push('/login');
+      // Still redirect even if API call fails - use hard reload
+      window.location.href = '/login';
     }
   };
 
