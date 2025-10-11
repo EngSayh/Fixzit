@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
     // Create a mock email record in the database (optional)
     // This could be stored in MongoDB for tracking
 
-    const _emailTemplate = `
+    // Email template for future use when email service is integrated
+    const emailTemplate = `
 🎉 Welcome to Fixzit Enterprise!
 
 Thank you for reporting an issue with our system. We're actively working to resolve it.
@@ -93,6 +94,9 @@ Welcome to the Fixzit family! 🚀
 Best regards,
 The Fixzit Enterprise Team
     `.trim();
+
+    // TODO: Send actual email using emailTemplate when email service is integrated
+    // await sendEmail({ to: body.email, subject: body.subject, html: emailTemplate });
 
     return NextResponse.json({
       success: true,

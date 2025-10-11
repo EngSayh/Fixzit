@@ -15,6 +15,24 @@ import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
+interface MaintenanceIssue {
+  resolved?: boolean;
+  severity?: string;
+  description?: string;
+}
+
+interface PropertyUnit {
+  unitNumber?: string;
+  type?: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  status?: string;
+  tenant?: {
+    name?: string;
+  };
+}
+
 export default function PropertyDetailsPage() {
   const params = useParams();
   const { data: property, error } = useSWR(`/api/properties/${params.id}`, fetcher);
@@ -155,7 +173,7 @@ export default function PropertyDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {property.units.map((unit: any, index: number) => (
+                  {(property.units as PropertyUnit[]).map((unit, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium">{unit.unitNumber}</p>
@@ -304,16 +322,16 @@ export default function PropertyDetailsPage() {
               {property.maintenance?.issues && property.maintenance.issues.length > 0 && (
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Open Issues</p>
-                  {property.maintenance.issues
-                    .filter((issue: any) => !issue.resolved)
-                    .map((issue: any, index: number) => (
+                  {(property.maintenance.issues as MaintenanceIssue[])
+                    .filter((issue) => !issue.resolved)
+                    .map((issue, index: number) => (
                       <div key={index} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${
                           issue.severity === 'HIGH' ? 'text-red-600' :
                           issue.severity === 'MEDIUM' ? 'text-yellow-600' :
                           'text-gray-600'
                         }`} />
-                        <span>{issue.type}</span>
+                        <span>{issue.description}</span>
                       </div>
                     ))}
                 </div>
