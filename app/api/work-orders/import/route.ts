@@ -88,8 +88,8 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
       });
       created++;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      errors.push({ row: i + 1, error: message });
+      console.error(`Work order import error for row ${i + 1}:`, error);
+      errors.push({ row: i + 1, error: 'Failed to import row' });
     }
   }
   
