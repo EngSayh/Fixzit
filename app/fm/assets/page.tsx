@@ -145,7 +145,41 @@ export default function AssetsPage() {
   );
 }
 
-function AssetCard({ asset }: { asset: AssetItem; onUpdated: () => void }) {
+function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => void }) {
+  const handleView = () => {
+    // Placeholder: Navigate to asset detail view or open modal
+    console.log('View asset:', asset._id);
+  };
+
+  const handleEdit = () => {
+    // Placeholder: Open edit modal or navigate to edit page
+    console.log('Edit asset:', asset._id);
+    // After successful edit, call onUpdated()
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${asset.name}?`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/assets/${asset._id}`, {
+        method: 'DELETE',
+        headers: { 'x-tenant-id': 'demo-tenant' }
+      });
+      
+      if (response.ok) {
+        onUpdated();
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete asset: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Error deleting asset');
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -230,13 +264,13 @@ function AssetCard({ asset }: { asset: AssetItem; onUpdated: () => void }) {
               : 'Never'}
           </span>
           <div className="flex space-x-2">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleView}>
               <Eye className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleEdit}>
               <Edit className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={handleDelete}>
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>

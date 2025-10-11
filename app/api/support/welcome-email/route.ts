@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     // This could be stored in MongoDB for tracking
 
     // Email template for future use when email service is integrated
-    const _emailTemplate = `
+    const emailTemplate = `
 🎉 Welcome to Fixzit Enterprise!
 
 Thank you for reporting an issue with our system. We're actively working to resolve it.

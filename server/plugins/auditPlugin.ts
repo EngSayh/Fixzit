@@ -293,11 +293,13 @@ export function createAuditContextFromRequest(req: Record<string, unknown>, user
   const reqHeaders = req.headers as Record<string, string> | undefined;
   const reqConnection = req.connection as { remoteAddress?: string } | undefined;
   
+  const headers = typeof req.headers === 'object' && req.headers !== null ? req.headers as Record<string, unknown> : {};
+  
   return {
     userId: userId || reqUser?.id || reqUser?._id?.toString(),
     userEmail: reqUser?.email,
     ipAddress: (req.ip as string) || reqConnection?.remoteAddress || reqHeaders?.['x-forwarded-for']?.split(',')[0],
-    userAgent: req.headers['user-agent'],
+    userAgent: headers['user-agent'] ? String(headers['user-agent']) : undefined,
     timestamp: new Date()
   };
 }

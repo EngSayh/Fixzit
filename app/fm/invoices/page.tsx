@@ -240,7 +240,31 @@ export default function InvoicesPage() {
   );
 }
 
-function InvoiceCard({ invoice }: { invoice: Invoice; onUpdated: () => void }) {
+function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () => void }) {
+  const handleView = () => {
+    // Placeholder: Navigate to invoice detail or open modal
+    console.log('View invoice:', invoice._id);
+  };
+
+  const handleDownload = () => {
+    // Placeholder: Download invoice PDF
+    console.log('Download invoice:', invoice._id);
+  };
+
+  const handleSend = async () => {
+    try {
+      const response = await fetch(`/api/finance/invoices/${invoice._id}/send`, {
+        method: 'POST',
+        headers: { 'x-tenant-id': 'demo-tenant' }
+      });
+      if (response.ok) {
+        onUpdated();
+      }
+    } catch (error) {
+      console.error('Send error:', error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':

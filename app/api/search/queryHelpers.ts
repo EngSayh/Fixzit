@@ -1,17 +1,12 @@
 // Lightweight typed wrappers for Mongoose-like query chains used by the search API
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MongooseSort = Record<string, 1 | -1 | 'asc' | 'desc' | 'ascending' | 'descending'> | string | [string, 1 | -1][] | undefined | null | any;
+type MongooseSort = Record<string, 1 | -1 | 'asc' | 'desc' | 'ascending' | 'descending'> | string | [string, 1 | -1][] | undefined | null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MongooseFilter = Record<string, any>;
+type MongooseFilter = Record<string, unknown>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface MongooseQueryChain<T = any> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sort(sort: MongooseSort): any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  limit(n: number): any;
+interface MongooseQueryChain<T> {
+  sort(sort: MongooseSort): MongooseQueryChain<T>;
+  limit(n: number): MongooseQueryChain<T>;
   lean(): Promise<T[]>;
 }
 

@@ -4,12 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { MapPin, Home, Users, Wrench } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
-// Google Maps type declaration
+// Google Maps type declaration - extends existing Window interface
 declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    google: any;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  var google: any;
 }
 
 export default function PropertyDetailPage() {
@@ -30,7 +28,10 @@ export default function PropertyDetailPage() {
   
   const initializeMap = useCallback(() => {
     if (typeof window !== 'undefined' && window.google && window.google.maps) {
-      const map = new window.google.maps.Map(document.getElementById('property-map'), {
+      const mapElement = document.getElementById('property-map');
+      if (!mapElement) return; // Guard against null
+      
+      const map = new window.google.maps.Map(mapElement, {
         center: { lat: property.lat, lng: property.lng },
         zoom: 16,
         mapTypeControl: false,
