@@ -138,7 +138,8 @@ describe("wo.service", () => {
     });
 
     it("rejects invalid status transition", async () => {
-      const input = { status: "COMPLETED" } as any; // Test: invalid transition from NEW
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const input: any = { status: "completed" }; // Test: invalid transition from NEW - intentionally wrong type
       const patch = { status: "COMPLETED" };
       const existing = { id, code: "WO-4", tenantId, status: "NEW" };
 

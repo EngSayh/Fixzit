@@ -4,12 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { MapPin, Home, Users, Wrench } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
-// Google Maps type declaration - extends existing Window interface
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  var google: any;
-}
-
 export default function PropertyDetailPage() {
   const params = useParams();
   const propertyId = params.id;
