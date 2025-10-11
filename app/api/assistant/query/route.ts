@@ -14,20 +14,43 @@ const BodySchema = z.object({
 
 type Citation = { title: string; slug: string };
 
-// Type for WorkOrder items from DB
+/**
+ * WorkOrder Database Document Shape
+ * Represents minimal fields needed for assistant ticket operations
+ */
 interface WorkOrderItem {
-  code: string;
-  title: string;
-  status: string;
+  code: string;      // e.g., "WO-2025-12345"
+  title: string;     // User-provided work order title
+  status: string;    // Current status: SUBMITTED, IN_PROGRESS, COMPLETED, etc.
 }
 
-// Type for HelpArticle docs from DB
+/**
+ * HelpArticle Database Document Shape
+ * Represents KB articles returned from MongoDB text search
+ */
 interface HelpArticleDoc {
-  title: string;
-  slug: string;
-  content?: string;
+  title: string;     // Article title for display
+  slug: string;      // URL-friendly identifier
+  content?: string;  // Markdown/text content for snippets
 }
 
+/**
+ * Parse Natural Language for New Ticket Creation
+ * 
+ * Supports two formats:
+ * 1. Slash command: /new-ticket title:"Fix AC" desc:"Not working" priority:HIGH
+ * 2. Natural language: "Create a work order for broken AC"
+ * 
+ * @param question - User's question string
+ * @returns Parsed ticket details or null if not a ticket creation request
+ * 
+ * @example
+ * parseNewTicket('/new-ticket title:"AC Repair"') 
+ * // Returns: { title: "AC Repair", description: undefined, priority: "MEDIUM", ... }
+ * 
+ * parseNewTicket('open ticket for broken elevator')
+ * // Returns: { title: "open ticket for broken elevator", priority: "MEDIUM", ... }
+ */
 function parseNewTicket(question: string) {
   const isSlash = question.trim().toLowerCase().startsWith("/new-ticket");
   const isNatural = /\b(create|open)\b.*\b(work *order|ticket)\b/i.test(question);
@@ -47,6 +70,17 @@ function parseNewTicket(question: string) {
   return { title, description, priority, propertyId, unitId } as const;
 }
 
+/**
+ * Check if Query is Requesting User's Ticket List
+ * 
+ * Matches patterns like:
+ * - "/my-tickets" (slash command)
+ * - "show my tickets"
+ * - "list my work orders"
+ * 
+ * @param question - User's question string
+ * @returns true if user wants to see their ticket list
+ */
 function isMyTickets(question: string) {
   return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work *orders)\b/i.test(question);
 }
@@ -96,7 +130,19 @@ export async function POST(req: NextRequest) {
 
   const q = body.question.trim();
 
-  // Tools: create new ticket
+  /**
+   * TOOL 1: Create New Ticket/Work Order
+   * 
+   * When user requests ticket creation (via slash command or natural language),
+   * we parse the intent, validate authentication, and create a work order in the database.
+   * 
+   * Flow:
+   * 1. Parse ticket details from question
+   * 2. Verify user authentication
+   * 3. Generate unique work order code
+   * 4. Create WorkOrder document with status history
+   * 5. Return confirmation message
+   */
   const createArgs = parseNewTicket(q);
   if (createArgs) {
     if (!user) {
@@ -125,7 +171,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Tools: list my tickets
+  /**
+   * TOOL 2: List User's Tickets
+   * 
+   * Retrieves user's recent work orders when requested via:
+   * - "/my-tickets" command
+   * - Natural language like "show my tickets"
+   * 
+   * Returns up to 5 most recent work orders with code, title, and status.
+   * Requires authentication - anonymous users receive a sign-in prompt.
+   */
   if (isMyTickets(q)) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
@@ -138,7 +193,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }
 
-  // Knowledge retrieval from Help Articles (tenant-agnostic help)
+  /**
+   * TOOL 3: Knowledge Base Search
+   * 
+   * When question doesn't match specific tools, we search the Help Article KB
+   * using MongoDB text search for relevant documentation.
+   * 
+   * Search Strategy:
+   * 1. Try MongoDB $text search for indexed content
+   * 2. Fallback: Simple title/content substring matching
+   * 3. Return top 5 articles with citations
+   * 
+   * This provides general help without requiring authentication.
+   */
   let docs: HelpArticleDoc[] = [];
   try {
     docs = await HelpArticle.find({ status: "PUBLISHED", $text: { $search: q } })

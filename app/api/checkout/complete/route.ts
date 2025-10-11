@@ -25,7 +25,10 @@ import { createSecureResponse } from '@/server/security/headers';
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
+  /**
+   * Rate Limiting: 60 requests per minute per IP
+   * Protects against checkout spam and payment fraud attempts
+   */
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
@@ -35,12 +38,23 @@ export async function POST(req: NextRequest) {
   await dbConnect();
   const body = await req.json();
 
+  /**
+   * PayTabs Payment Gateway Callback Flow
+   * When PayTabs sends a callback with payment confirmation,
+   * we normalize and finalize the transaction
+   */
   if (body.payload) {
     const normalized = normalizePayTabsPayload(body.payload);
     const result = await finalizePayTabsTransaction(normalized);
     return createSecureResponse(result, 200, req);
   }
 
+  /**
+   * Subscription Retrieval
+   * Try to find subscription by either:
+   * 1. Direct subscription ID (preferred)
+   * 2. PayTabs cart ID (fallback for payment callbacks)
+   */
   const subscriptionId = body.subscriptionId;
   const cartId = body.cartId;
 
@@ -52,6 +66,10 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'SUBSCRIPTION_NOT_FOUND' }, 404, req);
   }
 
+  /**
+   * Return subscription status
+   * Frontend uses this to determine if checkout was successful
+   */
   return NextResponse.json({
     ok: subscription.status === 'ACTIVE',
     subscription});
