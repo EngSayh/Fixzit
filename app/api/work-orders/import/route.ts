@@ -17,7 +17,7 @@ const ImportRequestSchema = z.object({
   rows: z.array(ImportRowSchema).max(100, "Maximum 100 rows per import")
 });
 
-interface ImportRow {
+interface _ImportRow {
   title: string;
   description?: string;
   priority?: string;
@@ -49,7 +49,7 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
   let body: unknown;
   try {
     body = await req.json();
-  } catch (error) {
+  } catch (_error) {
     return createSecureResponse({ error: "Invalid JSON in request body" }, 400, req);
   }
   

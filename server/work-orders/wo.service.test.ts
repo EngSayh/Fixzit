@@ -119,10 +119,10 @@ describe("wo.service", () => {
     });
 
     it("allows valid status transition and audits", async () => {
-      const input = { status: "ASSIGNED" };
-      const patch = { status: "ASSIGNED" };
-      const existing = { id, code: "WO-3", tenantId, status: "NEW" };
-      const updated = { ...existing, status: "ASSIGNED" };
+      const input = { status: "in-progress" as const };
+      const patch = { status: "IN_PROGRESS" };
+      const existing = { id, code: "WO-3", tenantId, status: "open" };
+      const updated = { ...existing, status: "in-progress" };
 
       mocked.WoUpdateParse.mockReturnValue(patch);
       mocked.woGet.mockResolvedValue(existing);
