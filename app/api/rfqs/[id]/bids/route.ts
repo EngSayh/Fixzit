@@ -165,4 +165,3 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     return handleApiError(error);
   }
 }
-}

@@ -80,4 +80,3 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     return handleApiError(error);
   }
 }
-}

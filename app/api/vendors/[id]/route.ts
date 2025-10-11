@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const updateVendorSchema = z.object({
@@ -118,9 +118,6 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   } catch (error: unknown) {
     return handleApiError(error);
   }
-}
-
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {

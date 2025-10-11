@@ -3,7 +3,7 @@ import { dbConnect } from '@/db/mongoose';
 import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 /**
@@ -41,6 +41,5 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     return handleApiError(error);
   }
-}
 }
 
