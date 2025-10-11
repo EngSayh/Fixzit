@@ -199,7 +199,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         {/* User Account Links */}
         <div className="border-t border-white/20 pt-4">
-          <div className="text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider">Account</div>
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>Account</div>
           <nav className="space-y-1">
             {USER_LINKS.map(link => {
               const Icon = link.icon;
@@ -208,14 +208,14 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                 <button
                   key={link.id}
                   onClick={() => router.push(link.path)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-all duration-200
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200
                              ${isActive
                                ? 'bg-[#0061A8] text-white shadow-md'
-                               : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'}`}
+                               : 'text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1'} ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   <span className="text-sm font-medium">{t(link.name, link.name.replace('nav.', ''))}</span>
-                  {isActive && <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>}
+                  {isActive && <div className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 bg-white rounded-full`}></div>}
                 </button>
               );
             })}
@@ -234,10 +234,10 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         {/* Help & Support */}
         <div className="border-t border-white/20 pt-4 mt-4">
-          <div className="text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider">Help</div>
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>Help</div>
           <button
             onClick={() => router.push('/help')}
-            className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1"
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
           >
             <Headphones className="w-5 h-5 flex-shrink-0" />
             <span className="text-sm font-medium">Help Center</span>

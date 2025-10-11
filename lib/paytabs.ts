@@ -134,9 +134,10 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
 }
 
 function generateSignature(_payload: Record<string, unknown>): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+  // TODO: Implement according to PayTabs signature generation algorithm
+  // Refer to PayTabs API documentation: https://site.paytabs.com/en/docs/
+  // This function must be implemented before going to production
+  throw new Error('PayTabs signature generation not implemented. See PayTabs documentation for HMAC-SHA256 signature algorithm.');
 }
 
 // Payment methods supported in Saudi Arabia
