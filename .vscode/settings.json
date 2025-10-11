@@ -16,12 +16,6 @@
     "cursor-global": false,
     "cursor-workspace": false
   },
-  "remote.extensionKind": {
-    "GitHub.copilot": ["workspace"],
-    "GitHub.copilot-chat": ["workspace"],
-    "CodeRabbit.coderabbit-vscode": ["ui"],
-    "Codium.codium": ["ui"]
-  },
   "chat.tools.edits.autoApprove": {
     "**/*": true
   },
@@ -47,6 +41,6 @@
   },
   "security.workspace.trust.enabled": false,
   "git.branchProtection": ["main", "master"],
-  "git.branchProtectionPrompt": "always",
+  "git.branchProtectionPrompt": "alwaysPrompt",
   "github.copilot.chat.codeGeneration.useInstructionFiles": true
 }
