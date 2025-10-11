@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import Subscription from '@/server/models/Subscription';
 import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';

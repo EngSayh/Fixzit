@@ -241,17 +241,17 @@ export default function InvoicesPage() {
 }
 
 function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () => void }) {
-  const handleView = () => {
+  const _handleView = () => {
     // Placeholder: Navigate to invoice detail or open modal
     console.log('View invoice:', invoice._id);
   };
 
-  const handleDownload = () => {
+  const _handleDownload = () => {
     // Placeholder: Download invoice PDF
     console.log('Download invoice:', invoice._id);
   };
 
-  const handleSend = async () => {
+  const _handleSend = async () => {
     try {
       const response = await fetch(`/api/finance/invoices/${invoice._id}/send`, {
         method: 'POST',
