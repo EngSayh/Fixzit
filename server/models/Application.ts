@@ -85,7 +85,8 @@ ApplicationSchema.pre('save', function() {
     this.score = this.score || 0;
     this.source = this.source || 'careers';
     if (!this.history || this.history.length === 0) {
-      this.history = [{ action: 'applied', by: 'candidate', at: new Date() }] as Array<{ action: string; by: string; at: Date }>;
+      // Create new history entry using the schema default
+      this.history.push({ action: 'applied', by: 'candidate', at: new Date() });
     }
   }
 });

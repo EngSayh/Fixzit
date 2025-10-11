@@ -71,17 +71,24 @@ export async function GET(req: NextRequest) {
   await connectToDatabase();
   const user = await getSessionUser(req);
   
+  // Check authentication first
+  if (!user) {
+    return createSecureResponse({ error: 'Authentication required' }, 401, req);
+  }
+  
+  if (!user.orgId) {
+    return createSecureResponse(
+      { error: 'Unauthorized', message: 'Missing tenant context' },
+      401,
+      req
+    );
+  }
+  
   // Rate limiting AFTER authentication
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
-  }
-  if (!user?.orgId) {
-    return NextResponse.json(
-      { error: 'Unauthorized', message: 'Missing tenant context' },
-      { status: 401 }
-    );
   }
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";

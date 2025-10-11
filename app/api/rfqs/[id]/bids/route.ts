@@ -9,6 +9,27 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
+// Comprehensive Bid interface matching all properties a bid can have
+interface Bid {
+  bidId: string;
+  vendorId: string;
+  vendorName: string;
+  amount: number;
+  currency: string;
+  validity: string;
+  deliveryTime: number;
+  paymentTerms: string;
+  technicalProposal?: string;
+  commercialProposal?: string;
+  alternates?: Array<{
+    description: string;
+    priceAdjustment: number;
+  }>;
+  exceptions?: string[];
+  submitted: Date;
+  status: string;
+}
+
 const submitBidSchema = z.object({
   vendorId: z.string(),
   vendorName: z.string(),
@@ -131,11 +152,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     // If anonymous bidding is enabled, hide vendor details
     if (rfq.bidding.anonymous && rfq.status !== 'AWARDED') {
-      interface BidDoc {
-        vendorId?: string;
-        vendorName?: string;
-      }
-      const anonymizedBids = (rfq.bids as BidDoc[]).map((bid, index: number) => ({
+      const anonymizedBids = (rfq.bids as Bid[]).map((bid, index: number) => ({
         ...bid,
         vendorId: `VENDOR-${index + 1}`,
         vendorName: `Anonymous Vendor ${index + 1}`

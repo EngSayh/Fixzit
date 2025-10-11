@@ -80,14 +80,16 @@ export async function POST(req: NextRequest) {
     }
     const user = await getSessionUser(req);
     
+    // Check authentication first
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    
     // Rate limiting AFTER authentication
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
-    }
-    if (!user) {
-      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
     if (!user?.orgId) {
       return NextResponse.json(
@@ -128,14 +130,16 @@ export async function GET(req: NextRequest) {
     // Require authentication - no bypass allowed
     const user = await getSessionUser(req);
     
+    // Check authentication first
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    
     // Rate limiting AFTER authentication
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
-    }
-    if (!user) {
-      return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
     if (!user?.orgId) {
       return NextResponse.json(

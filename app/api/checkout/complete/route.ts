@@ -70,9 +70,10 @@ export async function POST(req: NextRequest) {
    * Return subscription status
    * Frontend uses this to determine if checkout was successful
    */
-  return NextResponse.json({
+  return createSecureResponse({
     ok: subscription.status === 'ACTIVE',
-    subscription});
+    subscription
+  }, 200, req);
 }
 
 

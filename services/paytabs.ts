@@ -17,17 +17,21 @@ export interface NormalizedPayTabsPayload {
 export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload {
   if (typeof data !== 'object' || data === null) return {};
   const d = data as Record<string, unknown>;
-  const paymentInfo = d?.payment_info || {};
+  const paymentInfo = (d?.payment_info || {}) as Record<string, unknown>;
+  const paymentResult = d?.payment_result as Record<string, unknown> | undefined;
+  const customerDetails = d?.customer_details as Record<string, unknown> | undefined;
+  
   return {
-    tran_ref: d?.tran_ref || d?.tranRef,
-    respStatus: d?.payment_result?.response_status || d?.respStatus,
-    token: d?.token,
-    customer_email:
-      d?.customer_details?.email || d?.customerEmail || paymentInfo?.customer_email,
-    cart_id: d?.cart_id || d?.cartId,
-    amount: Number(d?.cart_amount || d?.tran_total || d?.amount),
-    currency: d?.cart_currency || d?.tran_currency || d?.currency,
-    maskedCard: paymentInfo?.payment_description,
+    tran_ref: String(d?.tran_ref || d?.tranRef || ''),
+    respStatus: String(paymentResult?.response_status || d?.respStatus || ''),
+    token: d?.token ? String(d.token) : undefined,
+    customer_email: String(
+      customerDetails?.email || d?.customerEmail || paymentInfo?.customer_email || ''
+    ),
+    cart_id: d?.cart_id ? String(d.cart_id) : (d?.cartId ? String(d.cartId) : undefined),
+    amount: Number(d?.cart_amount || d?.tran_total || d?.amount || 0),
+    currency: String(d?.cart_currency || d?.tran_currency || d?.currency || ''),
+    maskedCard: paymentInfo?.payment_description ? String(paymentInfo.payment_description) : undefined,
   };
 }
 

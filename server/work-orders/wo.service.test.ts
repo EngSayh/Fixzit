@@ -61,7 +61,7 @@ describe("wo.service", () => {
 
   describe("create", () => {
     it("creates a work order with idempotency and audits the action (happy path)", async () => {
-      const input = { foo: "bar" };
+      const input = { foo: "bar" } as any; // Test data - will be validated by mock
       const parsed = { tenantId, code: "WO-1", foo: "bar" };
       const key = "idem:wo:create:t-123:abc";
       const wo = { id: "1", code: "WO-1", tenantId };
@@ -85,7 +85,7 @@ describe("wo.service", () => {
     });
 
     it("propagates validation error and does not create or audit when schema parse fails", async () => {
-      const input = { bad: true };
+      const input = { bad: true } as any; // Intentionally invalid test data
       const err = new Error("invalid");
       mocked.WoCreateParse.mockImplementation(() => { throw err; });
 
@@ -138,7 +138,7 @@ describe("wo.service", () => {
     });
 
     it("rejects invalid status transition", async () => {
-      const input = { status: "COMPLETED" }; // invalid from NEW
+      const input = { status: "COMPLETED" } as any; // Test: invalid transition from NEW
       const patch = { status: "COMPLETED" };
       const existing = { id, code: "WO-4", tenantId, status: "NEW" };
 
@@ -154,7 +154,7 @@ describe("wo.service", () => {
     });
 
     it("throws Not found when wo missing or tenant mismatched", async () => {
-      const input = { status: "CANCELLED" };
+      const input = { status: "CANCELLED" } as any; // Test data
       const patch = { status: "CANCELLED" };
 
       mocked.WoUpdateParse.mockReturnValue(patch);
@@ -172,7 +172,7 @@ describe("wo.service", () => {
     });
 
     it("propagates validation error from WoUpdate.parse and skips repo calls", async () => {
-      const input = { status: 123 }; // invalid
+      const input = { status: 123 } as any; // Intentionally invalid test data
       const err = new Error("invalid patch");
       mocked.WoUpdateParse.mockImplementation(() => { throw err; });
 

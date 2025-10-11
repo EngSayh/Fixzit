@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SLA } from "@/server/models/SLA";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -144,8 +144,19 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(sla, 201, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to create SLA';
-    return createSecureResponse({ error: message }, 400, req);
+    // Detect validation errors
+    if (error instanceof ZodError) {
+      return createSecureResponse({ 
+        error: 'Invalid request payload',
+        fields: error.errors.map(e => e.path.join('.'))
+      }, 400, req);
+    }
+    
+    // Log full error server-side
+    console.error('SLA creation failed:', error);
+    
+    // Return generic error to client
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
 
@@ -200,8 +211,11 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch SLAs';
-    return createSecureResponse({ error: message }, 500, req);
+    // Log full error server-side
+    console.error('Failed to fetch SLAs:', error);
+    
+    // Return generic error to client (no sensitive details)
+    return createSecureResponse({ error: 'Failed to fetch SLAs' }, 500, req);
   }
 }
 

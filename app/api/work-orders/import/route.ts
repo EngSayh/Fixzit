@@ -2,8 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import {requireAbility } from "@/server/middleware/withAuthRbac";
+import { z } from "zod";
 
 import { createSecureResponse } from '@/server/security/headers';
+
+// Validation schema for import rows
+const ImportRowSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional()
+});
+
+const ImportRequestSchema = z.object({
+  rows: z.array(ImportRowSchema).max(100, "Maximum 100 rows per import")
+});
+
+interface ImportRow {
+  title: string;
+  description?: string;
+  priority?: string;
+}
 
 /**
  * @openapi
@@ -26,19 +44,61 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
   const user = await requireAbility("EDIT")(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
-  interface ImportRow {
-    title?: string;
-    description?: string;
-    priority?: string;
+  
+  // Parse and validate JSON request body
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch (error) {
+    return createSecureResponse({ error: "Invalid JSON in request body" }, 400, req);
   }
-  const rows = ((await req.json())?.rows || []) as ImportRow[]; // expects parsed CSV rows from UI
+  
+  // Validate request structure and rows
+  const validationResult = ImportRequestSchema.safeParse(body);
+  if (!validationResult.success) {
+    return createSecureResponse({ 
+      error: "Validation failed", 
+      details: validationResult.error.errors 
+    }, 422, req);
+  }
+  
+  const { rows } = validationResult.data;
   let created = 0;
-  for (const r of rows){
-    const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-    await WorkOrder.create({ tenantId:user.orgId, code, title:r.title, description:r.description, priority:r.priority||"MEDIUM", createdBy:user.id, status:"SUBMITTED", statusHistory:[{from:"DRAFT",to:"SUBMITTED",byUserId:user.id,at:new Date()}] });
-    created++;
+  const errors: Array<{ row: number; error: string }> = [];
+  
+  // Process each row with error handling
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    try {
+      const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+      await WorkOrder.create({ 
+        tenantId: user.orgId, 
+        code, 
+        title: r.title, 
+        description: r.description, 
+        priority: r.priority || "MEDIUM", 
+        createdBy: user.id, 
+        status: "SUBMITTED", 
+        statusHistory: [{
+          from: "DRAFT",
+          to: "SUBMITTED",
+          byUserId: user.id,
+          at: new Date()
+        }] 
+      });
+      created++;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      errors.push({ row: i + 1, error: message });
+    }
   }
-  return createSecureResponse({ created }, 200, req);
+  
+  return createSecureResponse({ 
+    created, 
+    total: rows.length,
+    failed: errors.length,
+    errors: errors.length > 0 ? errors : undefined
+  }, 200, req);
 }
 
 

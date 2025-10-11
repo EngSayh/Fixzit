@@ -1,7 +1,7 @@
 import { NextRequest} from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
 
@@ -203,9 +203,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     return createSecureResponse(invoice, 200, req);
   } catch (error: unknown) {
+    // Distinguish validation errors from server errors
+    if (error instanceof ZodError) {
+      return createSecureResponse({ error: error.message }, 400, req);
+    }
+    // Log and return 500 for non-validation errors
     console.error('Invoice PATCH error:', error);
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return createSecureResponse({ error: message }, 400, req);
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 

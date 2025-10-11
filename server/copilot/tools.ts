@@ -175,7 +175,8 @@ async function scheduleVisit(session: CopilotSession, input: Record<string, unkn
   await db;
 
   const workOrderId = String(input.workOrderId || "").trim();
-  const scheduledFor = input.scheduledFor ? new Date(input.scheduledFor) : undefined;
+  const scheduledForValue = input.scheduledFor;
+  const scheduledFor = scheduledForValue ? new Date(scheduledForValue as string | number | Date) : undefined;
   if (!workOrderId || !scheduledFor || Number.isNaN(scheduledFor.getTime())) {
     throw new Error("Valid workOrderId and scheduledFor timestamp are required");
   }
@@ -333,7 +334,11 @@ export async function executeTool(tool: string, input: Record<string, unknown>, 
     case "scheduleVisit":
       return scheduleVisit(session, input);
     case "uploadWorkOrderPhoto":
-      return uploadWorkOrderPhoto(session, input as UploadPayload);
+      // Validate input matches UploadPayload structure before calling
+      if (!input.workOrderId || !input.fileName || !input.mimeType || !input.buffer) {
+        throw new Error('Invalid upload payload: missing required fields');
+      }
+      return uploadWorkOrderPhoto(session, input as unknown as UploadPayload);
     case "ownerStatements":
       return ownerStatements(session, input);
     default:

@@ -101,17 +101,140 @@ npx eslint --fix "app/**/*.{ts,tsx}" "components/**/*.{ts,tsx}" "lib/**/*.ts" "s
 npx eslint --fix "**/*.{ts,tsx}" --rule '@typescript-eslint/no-unused-vars: error'
 ```
 
-### Script 2: Replace `any` in Catch Blocks
+### Script 2: Manual Error Type Remediation Process
+
+**⚠️ WARNING: Do NOT use blind search-and-replace for error types!**
+
+Blindly replacing `catch (error: any)` with `catch (error: unknown)` can break code that accesses error properties without proper type guards. Follow this context-aware, step-by-step process instead:
+
+#### Step 1: Identify All Catch Blocks
 ```bash
-#!/bin/bash
-find app/api -name "*.ts" -type f -exec sed -i 's/catch (error: any)/catch (error: unknown)/g' {} \;
-find lib -name "*.ts" -type f -exec sed -i 's/catch (error: any)/catch (error: unknown)/g' {} \;
-find server -name "*.ts" -type f -exec sed -i 's/catch (error: any)/catch (error: unknown)/g' {} \;
+# Find all catch blocks with 'any' type
+grep -rn "catch (error: any)" app/api lib server --include="*.ts"
 ```
+
+#### Step 2: Manual Remediation for Each Catch Block
+
+For each catch block, follow this decision tree:
+
+**A. If the code accesses `error.message` or other Error properties:**
+```typescript
+// BEFORE (unsafe)
+catch (error: any) {
+  return createSecureResponse({ error: error.message }, 500, req);
+}
+
+// AFTER (safe with type guard)
+catch (error: unknown) {
+  const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+  return createSecureResponse({ error: message }, 500, req);
+}
+
+// OR use the type guard utility
+import { getErrorMessage } from '@/lib/utils/typeGuards';
+
+catch (error: unknown) {
+  return createSecureResponse({ error: getErrorMessage(error) }, 500, req);
+}
+```
+
+**B. If the code checks error.code or custom properties:**
+```typescript
+// BEFORE
+catch (error: any) {
+  if (error.code === 11000) {
+    return createSecureResponse({ error: 'Duplicate entry' }, 409, req);
+  }
+}
+
+// AFTER (with type narrowing)
+catch (error: unknown) {
+  if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
+    return createSecureResponse({ error: 'Duplicate entry' }, 409, req);
+  }
+}
+```
+
+**C. If the code only logs the error:**
+```typescript
+// BEFORE
+catch (error: any) {
+  console.error('Operation failed:', error);
+  return createSecureResponse({ error: 'Operation failed' }, 500, req);
+}
+
+// AFTER (safe - console.error handles unknown)
+catch (error: unknown) {
+  console.error('Operation failed:', error);
+  return createSecureResponse({ error: 'Operation failed' }, 500, req);
+}
+```
+
+#### Step 3: Use TypeScript-Aware Tools (Optional)
+
+Instead of sed, use a TypeScript-aware codemod or ESLint rule:
+
+```bash
+# Option A: Use ts-migrate or similar codemod tool
+npx ts-migrate reignore app/api lib server
+
+# Option B: Configure ESLint rule
+# Add to .eslintrc.cjs:
+# '@typescript-eslint/no-explicit-any': ['error', { fixToUnknown: true }]
+# Then run: npx eslint --fix
+```
+
+#### Step 4: Verify Each Change
+
+After each file is updated:
+1. Run TypeScript compiler: `npx tsc --noEmit`
+2. Check for new type errors
+3. Add type guards where needed
+4. Test the error paths manually or with unit tests
+
+#### Step 5: Commit Incrementally
+
+Commit changes file-by-file or in small batches:
+```bash
+git add app/api/specific-file.ts
+git commit -m "refactor(api): replace any with unknown in catch block with type guards"
+```
+
+**DO NOT** batch-commit all changes at once without verification.
 
 ### Script 3: Add Error Type Guards
 ```bash
-# This requires manual review but we can create a template
+#!/bin/bash
+set -e
+
+# Script to create type guard utilities for error handling
+TARGET_FILE="lib/utils/typeGuards.ts"
+
+echo "Creating type guard utilities at ${TARGET_FILE}..."
+mkdir -p "$(dirname "${TARGET_FILE}")"
+
+cat > "${TARGET_FILE}" << 'EOF'
+/**
+ * Type guard utilities for runtime type checking
+ */
+
+export function isError(error: unknown): error is Error {
+  return error instanceof Error;
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'An unexpected error occurred';
+}
+EOF
+
+echo "✅ Type guard utilities created at ${TARGET_FILE}"
+echo "Usage: import { getErrorMessage } from '@/lib/utils/typeGuards';"
 ```
 
 ---
