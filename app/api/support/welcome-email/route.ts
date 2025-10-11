@@ -95,7 +95,34 @@ Best regards,
 The Fixzit Enterprise Team
     `.trim();
 
-    // TODO: Send actual email using emailTemplate when email service is integrated
+    /**
+     * Email Service Integration Point
+     * 
+     * TODO: Integrate actual email service (SendGrid, AWS SES, or Mailgun)
+     * 
+     * Implementation steps:
+     * 1. Install email provider SDK: `pnpm add @sendgrid/mail` or `aws-sdk`
+     * 2. Add credentials to environment variables:
+     *    - SENDGRID_API_KEY or AWS_SES_ACCESS_KEY
+     *    - FROM_EMAIL (verified sender email)
+     * 3. Uncomment and configure the sendEmail function below:
+     * 
+     * @example
+     * ```typescript
+     * import sgMail from '@sendgrid/mail';
+     * sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+     * 
+     * await sgMail.send({
+     *   to: body.email,
+     *   from: process.env.FROM_EMAIL,
+     *   subject: body.subject,
+     *   html: emailTemplate
+     * });
+     * ```
+     * 
+     * @see https://docs.sendgrid.com/for-developers/sending-email/quickstart-nodejs
+     * @see https://docs.aws.amazon.com/ses/latest/dg/send-email-nodejs.html
+     */
     // await sendEmail({ to: body.email, subject: body.subject, html: emailTemplate });
 
     return NextResponse.json({
