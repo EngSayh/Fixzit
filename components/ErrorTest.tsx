@@ -1,9 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+const QA_FLAG_KEY = 'fxz.qa-tools';
+const ROLE_KEY = 'fixzit-role';
+const QA_PRIVILEGED_ROLES = ['SUPER_ADMIN', 'QA', 'DEVELOPER', 'ADMIN'] as const;
+
+const isQaPrivilegedRole = (
+  role: string
+): role is (typeof QA_PRIVILEGED_ROLES)[number] =>
+  QA_PRIVILEGED_ROLES.includes(role as (typeof QA_PRIVILEGED_ROLES)[number]);
 
 export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
+  const [qaEnabled, setQaEnabled] = useState(false);
+  const { t, isRTL } = useTranslation();
+  const floatingPositionClass = isRTL ? 'left-6' : 'right-6';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (process.env.NEXT_PUBLIC_ENABLE_QA_TOOLS !== 'true') {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const qaParam = params.get('qa');
+
+      if (qaParam === '0') {
+        localStorage.removeItem(QA_FLAG_KEY);
+        setQaEnabled(false);
+        setShowTest(false);
+        return;
+      }
+
+      if (qaParam === '1') {
+        localStorage.setItem(QA_FLAG_KEY, 'enabled');
+      }
+
+      let enabled =
+        qaParam === '1' || localStorage.getItem(QA_FLAG_KEY) === 'enabled';
+
+      if (enabled && process.env.NODE_ENV !== 'development') {
+        const storedRole = (localStorage.getItem(ROLE_KEY) ?? 'guest').toUpperCase();
+        if (!isQaPrivilegedRole(storedRole)) {
+          enabled = false;
+          localStorage.removeItem(QA_FLAG_KEY);
+        }
+      }
+
+      setQaEnabled(enabled);
+      if (!enabled) {
+        setShowTest(false);
+      }
+    } catch (error) {
+      console.warn('Unable to initialize QA error test tools:', error);
+    }
+  }, []);
+
+  if (!qaEnabled) {
+    return null;
+  }
 
   const triggerError = () => {
     // This will trigger the error boundary
@@ -30,20 +91,24 @@ export default function ErrorTest() {
     return (
       <button
         onClick={() => setShowTest(true)}
-        className="fixed bottom-20 right-6 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 z-50"
+        className={`fixed bottom-20 ${floatingPositionClass} bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 z-50`}
+        aria-label={t('qa.testErrorBoundary', 'Test Error Boundary')}
       >
-        🧪 Test Error Boundary
+        🧪 {t('qa.testErrorBoundary', 'Test Error Boundary')}
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-20 right-6 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 max-w-sm">
+    <div
+      className={`fixed bottom-20 ${floatingPositionClass} bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 max-w-sm ${isRTL ? 'text-right' : ''}`}
+    >
       <div className="flex justify-between items-center mb-3">
-        <h3 className="font-semibold text-gray-900">🧪 Error Testing</h3>
+        <h3 className="font-semibold text-gray-900">🧪 {t('qa.panelTitle', 'Error Testing')}</h3>
         <button
           onClick={() => setShowTest(false)}
           className="text-gray-400 hover:text-gray-600"
+          aria-label={t('a11y.close', 'Close')}
         >
           ✕
         </button>
@@ -54,28 +119,28 @@ export default function ErrorTest() {
           onClick={triggerError}
           className="w-full bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
         >
-          🔴 Runtime Error
+          🔴 {t('qa.runtimeError', 'Runtime Error')}
         </button>
 
         <button
           onClick={triggerAsyncError}
           className="w-full bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700"
         >
-          🟠 Async Error
+          🟠 {t('qa.asyncError', 'Async Error')}
         </button>
 
         <button
           onClick={triggerJSONError}
           className="w-full bg-yellow-600 text-white px-3 py-2 rounded text-sm hover:bg-yellow-700"
         >
-          🟡 JSON Parse Error
+          🟡 {t('qa.jsonError', 'JSON Parse Error')}
         </button>
 
         <button
           onClick={triggerNetworkError}
           className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
         >
-          🔵 Network Error
+          🔵 {t('qa.networkError', 'Network Error')}
         </button>
       </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -11,21 +11,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-
-// Fallback translations for when context is not available
-const fallbackTranslations: Record<string, string> = {
-  'common.brand': 'FIXZIT ENTERPRISE',
-  'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
-  'nav.notifications': 'Notifications',
-  'common.unread': 'unread',
-  'common.noNotifications': 'No new notifications',
-  'common.loading': 'Loading...',
-  'common.allCaughtUp': "You're all caught up!",
-  'common.viewAll': 'View all notifications',
-  'nav.profile': 'Profile',
-  'nav.settings': 'Settings',
-  'common.logout': 'Sign out'
-};
 
 interface TopBarProps {
   role?: string;
@@ -63,67 +48,31 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const normalizedRole = _role.toUpperCase();
+  const isGuest = normalizedRole === 'GUEST';
+
+  const { t } = useTranslation();
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
 
-  // Safe translation function with fallback
-  let t: (key: string, fallback?: string) => string;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-  } catch {
-    // Fallback when translation context is not available
-    t = (key: string, fallback?: string) => fallbackTranslations[key] || fallback || key;
-  }
-
   const router = useRouter();
 
-  // Fetch notifications when dropdown opens
-  useEffect(() => {
-    if (notifOpen && notifications.length === 0) {
-      fetchNotifications();
+  const hasFetchedNotificationsRef = useRef(false);
+
+  const fetchNotifications = useCallback(async () => {
+    if (isGuest) {
+      return;
     }
-  }, [notifOpen, notifications.length]);
 
-  // Close notification popup when clicking outside or pressing Escape
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-
-      // Check if the click is inside the notification container
-      const isInsideNotification = target.closest('.notification-container');
-
-      // If popup is open and click is outside notification container, close it
-      if (notifOpen && !isInsideNotification) {
-        setNotifOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (notifOpen && event.key === 'Escape') {
-        setNotifOpen(false);
-      }
-    };
-
-    if (notifOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('keydown', handleKeyDown);
-      };
-    }
-  }, [notifOpen]);
-
-  const fetchNotifications = async () => {
+    hasFetchedNotificationsRef.current = true;
     setLoading(true);
     try {
       const response = await fetch('/api/notifications?limit=5&read=false', {
         headers: {
           'x-user': JSON.stringify({
-            id: 'guest',
-            role: 'GUEST',
+            id: 'unknown',
+            role: normalizedRole,
             tenantId: 'demo-tenant'
           })
         }
@@ -184,7 +133,58 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isGuest, normalizedRole]);
+
+  const hasNotifications = notifications.length > 0;
+
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (!notifOpen) {
+      return;
+    }
+
+    if (isGuest || hasNotifications || hasFetchedNotificationsRef.current) {
+      return;
+    }
+
+    fetchNotifications();
+  }, [notifOpen, isGuest, hasNotifications, fetchNotifications]);
+
+  useEffect(() => {
+    if (!notifOpen) {
+      hasFetchedNotificationsRef.current = false;
+    }
+  }, [notifOpen]);
+
+  // Close notification popup when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+
+      // Check if the click is inside the notification container
+      const isInsideNotification = target.closest('.notification-container');
+
+      // If popup is open and click is outside notification container, close it
+      if (notifOpen && !isInsideNotification) {
+        setNotifOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (notifOpen && event.key === 'Escape') {
+        setNotifOpen(false);
+      }
+    };
+
+    if (notifOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [notifOpen]);
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
@@ -205,6 +205,27 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       default: return 'text-gray-600';
     }
   };
+
+  const redirectToLogin = useCallback(() => {
+    const lang = typeof window !== 'undefined' ? localStorage.getItem('fxz.lang') : null;
+    const locale = typeof window !== 'undefined' ? localStorage.getItem('fxz.locale') : null;
+
+    const params = new URLSearchParams();
+    if (lang) params.set('lang', lang);
+    if (locale) params.set('locale', locale);
+
+    const queryString = params.toString();
+    const loginPath = queryString ? `/login?${queryString}` : '/login';
+
+    if (typeof window !== 'undefined') {
+      router.push(loginPath);
+      requestAnimationFrame(() => {
+        window.location.reload();
+      });
+    } else {
+      router.push(loginPath);
+    }
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -236,14 +257,20 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (savedLang) localStorage.setItem('fxz.lang', savedLang);
       if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
-      // Redirect to login page
-      router.push('/login');
+      // Clear session storage to remove cached incidents or temporary data
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.clear();
+      }
+
+      // Redirect to login page with a hard reload to fully reset the app state
+      redirectToLogin();
     } catch (error) {
       console.error('Logout error:', error);
-      // Still redirect even if API call fails
-      router.push('/login');
+      redirectToLogin();
     }
   };
+
+  const unreadCount = notifications.reduce((count, notification) => count + (notification.read ? 0 : 1), 0);
 
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
@@ -272,17 +299,35 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           <LanguageSelector variant="compact" />
           <CurrencySelector variant="compact" />
         </div>
-        <div className="notification-container relative">
-          <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
-            aria-label="Toggle notifications"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-          </button>
-          {notifOpen && (
-            <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
+        {!isGuest && (
+          <div className="notification-container relative">
+            <button
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
+              aria-expanded={notifOpen}
+              aria-controls="notifications-popover"
+              aria-describedby="notifications-summary"
+              aria-label={t('nav.notifications', 'Notifications')}
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" aria-hidden="true"></span>
+              )}
+            </button>
+            <span id="notifications-summary" className="sr-only">
+              {unreadCount > 0
+                ? `${unreadCount} ${t('common.unread', 'unread')}`
+                : t('common.noNotifications', 'No new notifications')}
+            </span>
+            {notifOpen && (
+            <div
+              id="notifications-popover"
+              className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}
+              role="region"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={t('nav.notifications', 'Notifications')}
+            >
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'left-8' : 'right-8'}`}></div>
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200 ${isRTL ? 'left-8' : 'right-8'}`}></div>
@@ -291,8 +336,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {notifications.filter(n => !n.read).length > 0
-                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
+                    {unreadCount > 0
+                      ? `${unreadCount} ${t('common.unread', 'unread')}`
                       : t('common.noNotifications', 'No new notifications')
                     }
                   </div>
@@ -374,8 +419,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
         <div className="relative">
           <button onClick={() => setUserOpen(!userOpen)} className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md">
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
