@@ -9,7 +9,7 @@ export default function ErrorTest() {
   const [qaEnabled, setQaEnabled] = useState(false);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV === 'development') {
       setQaEnabled(true);
       return;
     }

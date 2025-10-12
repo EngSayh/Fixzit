@@ -12,21 +12,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 
-// Fallback translations for when context is not available
-const fallbackTranslations: Record<string, string> = {
-  'common.brand': 'FIXZIT ENTERPRISE',
-  'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
-  'nav.notifications': 'Notifications',
-  'common.unread': 'unread',
-  'common.noNotifications': 'No new notifications',
-  'common.loading': 'Loading...',
-  'common.allCaughtUp': "You're all caught up!",
-  'common.viewAll': 'View all notifications',
-  'nav.profile': 'Profile',
-  'nav.settings': 'Settings',
-  'common.logout': 'Sign out'
-};
-
 interface TopBarProps {
   role?: string;
 }
@@ -66,61 +51,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const normalizedRole = _role.toUpperCase();
   const isGuest = normalizedRole === 'GUEST';
 
+  const { t } = useTranslation();
+
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
 
-  // Safe translation function with fallback
-  let t: (key: string, fallback?: string) => string;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-  } catch {
-    // Fallback when translation context is not available
-    t = (key: string, fallback?: string) => fallbackTranslations[key] || fallback || key;
-  }
-
   const router = useRouter();
-
-  // Fetch notifications when dropdown opens
-  useEffect(() => {
-    if (!notifOpen || isGuest) {
-      return;
-    }
-
-    if (notifications.length === 0) {
-      fetchNotifications();
-    }
-  }, [notifOpen, notifications.length, isGuest, fetchNotifications]);
-
-  // Close notification popup when clicking outside or pressing Escape
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-
-      // Check if the click is inside the notification container
-      const isInsideNotification = target.closest('.notification-container');
-
-      // If popup is open and click is outside notification container, close it
-      if (notifOpen && !isInsideNotification) {
-        setNotifOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (notifOpen && event.key === 'Escape') {
-        setNotifOpen(false);
-      }
-    };
-
-    if (notifOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('keydown', handleKeyDown);
-      };
-    }
-  }, [notifOpen]);
 
   const fetchNotifications = useCallback(async () => {
     if (isGuest) {
@@ -195,6 +131,47 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       setLoading(false);
     }
   }, [isGuest]);
+
+  const hasNotifications = notifications.length > 0;
+
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (!notifOpen || isGuest || hasNotifications) {
+      return;
+    }
+
+    fetchNotifications();
+  }, [notifOpen, isGuest, hasNotifications, fetchNotifications]);
+
+  // Close notification popup when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+
+      // Check if the click is inside the notification container
+      const isInsideNotification = target.closest('.notification-container');
+
+      // If popup is open and click is outside notification container, close it
+      if (notifOpen && !isInsideNotification) {
+        setNotifOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (notifOpen && event.key === 'Escape') {
+        setNotifOpen(false);
+      }
+    };
+
+    if (notifOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [notifOpen]);
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
