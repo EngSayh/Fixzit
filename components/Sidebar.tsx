@@ -102,7 +102,7 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   admin: 'Administration'
 };
 
-const formatRoleLabel = (role: string) => role.replace(/_/g, ' ');
+const formatRoleLabel = (role: string) => role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
 interface SidebarProps {
   role?: string;
