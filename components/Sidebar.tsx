@@ -102,6 +102,8 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   admin: 'Administration'
 };
 
+const formatRoleLabel = (role: string) => role.replace(/_/g, ' ');
+
 interface SidebarProps {
   role?: string;
   subscription?: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE';
@@ -113,18 +115,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   const router = useRouter();
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
-  // Safe translation with fallback
-  let t: (key: string, fallback?: string) => string;
-  let translationIsRTL: boolean = false;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-    translationIsRTL = translationContext.isRTL;
-  } catch {
-    // Fallback translation function
-    t = (key: string, fallback?: string) => fallback || key;
-    translationIsRTL = false;
-  }
+  const { t, isRTL: translationIsRTL } = useTranslation();
 
   const active = useMemo(() => pathname, [pathname]);
 
@@ -173,7 +164,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         {role !== 'guest' && (
           <div className="mb-4 p-3 bg-[#0061A8] rounded-lg">
             <div className={`text-xs text-white/80 mb-1 ${headingAlignment}`}>{t('sidebar.role', 'Role')}</div>
-            <div className={`text-sm font-medium text-white ${headingAlignment}`}>{role.replace(/_/g, ' ')}</div>
+            <div className={`text-sm font-medium text-white ${headingAlignment}`}>{formatRoleLabel(role)}</div>
             <div className={`text-xs text-white/80 mt-1 ${headingAlignment}`}>
               {t('sidebar.planLabel', 'Plan')}: {subscription}
             </div>

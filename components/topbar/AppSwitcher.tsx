@@ -21,7 +21,7 @@ export default function AppSwitcher() {
   const Icon = appIcons[app];
   const toggleLabel = t('topbar.appSwitcher.label', 'Switch Application');
   const entityCountLabel = (count: number) =>
-    t('topbar.appSwitcher.entities', '{{count}} searchable entities').replace('{{count}}', String(count));
+    t('topbar.appSwitcher.entities', '{{count}} searchable entities', { count });
 
   const itemAlignment = isRTL ? 'flex-row-reverse text-right' : '';
   const dropdownAlignment = isRTL ? 'right-0' : 'left-0';

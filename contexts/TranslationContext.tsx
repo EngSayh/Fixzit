@@ -11,12 +11,25 @@ import {
 
 export type Language = LanguageCode;
 
+type TranslationVars = Record<string, string | number>;
+
+const applyInterpolation = (template: string, vars?: TranslationVars) => {
+  if (!vars) {
+    return template;
+  }
+
+  return Object.entries(vars).reduce((result, [varKey, value]) => {
+    const pattern = new RegExp(`{{\s*${varKey}\s*}}`, 'g');
+    return result.replace(pattern, String(value));
+  }, template);
+};
+
 interface TranslationContextType {
   language: Language;
   locale: string;
   setLanguage: (lang: Language) => void;
   setLocale: (locale: string) => void;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, fallback?: string, vars?: TranslationVars) => string;
   isRTL: boolean;
 }
 
@@ -1815,14 +1828,14 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const locale = currentOption.locale;
   const isRTL = currentOption.dir === 'rtl';
 
-  const t = (key: string, fallback: string = key): string => {
+  const t = (key: string, fallback: string = key, vars?: TranslationVars): string => {
     try {
       const langData = translations[language as LanguageCode];
       const result = langData?.[key] || fallback;
-      return result;
+      return applyInterpolation(result, vars);
     } catch (error) {
       console.warn(`Translation error for key '${key}':`, error);
-      return fallback;
+      return applyInterpolation(fallback, vars);
     }
   };
 
@@ -1863,8 +1876,8 @@ export function useTranslation() {
             console.warn('Could not save locale preference:', error);
           }
         },
-        t: (key: string, fallback: string = key): string => {
-          return fallback;
+        t: (key: string, fallback: string = key, vars?: TranslationVars): string => {
+          return applyInterpolation(fallback, vars);
         },
         isRTL: true
       };
@@ -1880,7 +1893,9 @@ export function useTranslation() {
       locale: 'ar-SA',
       setLanguage: (_lang: Language) => {},
       setLocale: () => {},
-      t: (key: string, fallback: string = key): string => fallback,
+      t: (key: string, fallback: string = key, vars?: TranslationVars): string => {
+        return applyInterpolation(fallback, vars);
+      },
       isRTL: true
     };
   }
