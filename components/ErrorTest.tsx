@@ -13,10 +13,7 @@ export default function ErrorTest() {
       return;
     }
 
-    if (
-      process.env.NODE_ENV !== 'development' &&
-      process.env.NEXT_PUBLIC_ENABLE_QA_TOOLS !== 'true'
-    ) {
+    if (process.env.NEXT_PUBLIC_ENABLE_QA_TOOLS !== 'true') {
       return;
     }
 
