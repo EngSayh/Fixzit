@@ -15,13 +15,13 @@ export default function ErrorTest() {
 
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('qa') === '1') {
+      const qaParamEnabled = params.get('qa') === '1';
+
+      if (qaParamEnabled) {
         localStorage.setItem(QA_FLAG_KEY, 'enabled');
-        setQaEnabled(true);
-        return;
       }
 
-      if (localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
+      if (qaParamEnabled || localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
         setQaEnabled(true);
       }
     } catch (error) {
