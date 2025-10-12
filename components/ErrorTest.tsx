@@ -13,12 +13,28 @@ export default function ErrorTest() {
       return;
     }
 
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      process.env.NEXT_PUBLIC_ENABLE_QA_TOOLS !== 'true'
+    ) {
+      return;
+    }
+
     try {
       const params = new URLSearchParams(window.location.search);
-      const qaParamEnabled = params.get('qa') === '1';
+      const qaParam = params.get('qa');
+      const qaParamEnabled = qaParam === '1';
+      const qaParamDisabled = qaParam === '0';
 
       if (qaParamEnabled) {
         localStorage.setItem(QA_FLAG_KEY, 'enabled');
+      } else if (qaParamDisabled) {
+        localStorage.removeItem(QA_FLAG_KEY);
+      }
+
+      if (qaParamDisabled) {
+        setQaEnabled(false);
+        return;
       }
 
       if (qaParamEnabled || localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
