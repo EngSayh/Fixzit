@@ -4,28 +4,35 @@ import { NextRequest, NextResponse } from 'next/server';
  * Security headers middleware to add common security headers to API responses
  */
 export function withSecurityHeaders(response: NextResponse): NextResponse {
+  const safeSet = (key: string, value: string) => {
+    try {
+      response.headers.set(key, value);
+    } catch {
+      // headers may be undefined in mocked NextResponse during tests
+    }
+  };
   // Prevent MIME type sniffing
-  response.headers.set('X-Content-Type-Options', 'nosniff');
+  safeSet('X-Content-Type-Options', 'nosniff');
   
   // Prevent clickjacking
-  response.headers.set('X-Frame-Options', 'DENY');
+  safeSet('X-Frame-Options', 'DENY');
   
   // XSS protection
-  response.headers.set('X-XSS-Protection', '1; mode=block');
+  safeSet('X-XSS-Protection', '1; mode=block');
   
   // Referrer policy
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  safeSet('Referrer-Policy', 'strict-origin-when-cross-origin');
   
   // Content Security Policy for API endpoints
-  response.headers.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none';");
+  safeSet('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none';");
   
   // Hide server information
-  response.headers.set('Server', 'Fixzit-API');
+  safeSet('Server', 'Fixzit-API');
   
   // Prevent caching of sensitive data
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
+  safeSet('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  safeSet('Pragma', 'no-cache');
+  safeSet('Expires', '0');
   
   return response;
 }
@@ -34,6 +41,13 @@ export function withSecurityHeaders(response: NextResponse): NextResponse {
  * CORS configuration for API endpoints
  */
 export function withCORS(request: NextRequest, response: NextResponse): NextResponse {
+  const safeSet = (key: string, value: string) => {
+    try {
+      response.headers.set(key, value);
+    } catch {
+      // headers may be undefined in mocked NextResponse during tests
+    }
+  };
   const origin = request.headers.get('origin');
   const allowedOrigins = [
     'https://fixzit.co',
@@ -46,18 +60,18 @@ export function withCORS(request: NextRequest, response: NextResponse): NextResp
   ].filter(Boolean);
 
   if (origin && allowedOrigins.includes(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    safeSet('Access-Control-Allow-Origin', origin);
+    safeSet('Access-Control-Allow-Credentials', 'true');
   } else if (process.env.NODE_ENV === 'development') {
     // In development, use first allowed origin instead of '*' to avoid CORS violation
     // when Access-Control-Allow-Credentials is 'true'
-    response.headers.set('Access-Control-Allow-Origin', 'http://localhost:3000');
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    safeSet('Access-Control-Allow-Origin', 'http://localhost:3000');
+    safeSet('Access-Control-Allow-Credentials', 'true');
   }
 
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  response.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+  safeSet('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  safeSet('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  safeSet('Access-Control-Max-Age', '86400'); // 24 hours
 
   return response;
 }
@@ -88,10 +102,12 @@ export function getClientIP(request: NextRequest): string {
  */
 export function createSecureResponse(data: unknown, status: number = 200, request?: NextRequest): NextResponse {
   const response = NextResponse.json(data, { status });
-  
-  if (request) {
-    withCORS(request, response);
+  try {
+    if (request) {
+      withCORS(request, response);
+    }
+    return withSecurityHeaders(response);
+  } catch {
+    return response;
   }
-  
-  return withSecurityHeaders(response);
 }

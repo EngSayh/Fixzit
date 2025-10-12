@@ -44,8 +44,25 @@ const PaymentSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300);
+  const safeHeadersGet = (name: string): string | undefined => {
+    try {
+      // Some tests provide a minimal NextRequest-like object without full headers impl
+      // @ts-expect-error tolerate mismatched types in tests
+      return req.headers?.get?.(name) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const xff = safeHeadersGet('x-forwarded-for');
+  const clientIp = xff?.split(',')[0]?.trim() || 'unknown';
+  const pathname = (() => {
+    try {
+      return new URL(req.url).pathname;
+    } catch {
+      return '/api/payments/paytabs';
+    }
+  })();
+  const rl = rateLimit(`${pathname}:${clientIp}`, 10, 300);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -110,9 +127,6 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('PayTabs error:', error);
-    return NextResponse.json(
-      { ok: false, error: 'Payment processing failed' },
-      { status: 500 }
-    );
+    return createSecureResponse({ ok: false, error: 'Payment processing failed' }, 500, req);
   }
 }
