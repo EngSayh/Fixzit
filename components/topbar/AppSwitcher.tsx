@@ -16,18 +16,7 @@ const appIcons = {
 export default function AppSwitcher() {
   const { app, setApp } = useTopBar();
   const [open, setOpen] = useState(false);
-  let t: (key: string, fallback?: string) => string;
-  let isRTL = false;
-
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-    isRTL = translationContext.isRTL;
-  } catch {
-    t = (key: string, fallback?: string) => fallback ?? key;
-    isRTL = false;
-  }
-
+  const { t, isRTL } = useTranslation();
   const currentApp = APPS[app];
   const Icon = appIcons[app];
   const toggleLabel = t('topbar.appSwitcher.label', 'Switch Application');
