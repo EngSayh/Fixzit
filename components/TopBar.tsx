@@ -71,8 +71,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       const response = await fetch('/api/notifications?limit=5&read=false', {
         headers: {
           'x-user': JSON.stringify({
-            id: 'guest',
-            role: 'GUEST',
+            id: 'unknown',
+            role: normalizedRole,
             tenantId: 'demo-tenant'
           })
         }
@@ -133,7 +133,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     } finally {
       setLoading(false);
     }
-  }, [isGuest]);
+  }, [isGuest, normalizedRole]);
 
   const hasNotifications = notifications.length > 0;
 
@@ -303,15 +303,23 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               onClick={() => setNotifOpen(!notifOpen)}
               className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
               aria-expanded={notifOpen}
+              aria-controls="notifications-popover"
+              aria-describedby="notifications-summary"
               aria-label={t('nav.notifications', 'Notifications')}
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" aria-hidden="true"></span>
               )}
             </button>
+            <span id="notifications-summary" className="sr-only">
+              {unreadCount > 0
+                ? `${unreadCount} ${t('common.unread', 'unread')}`
+                : t('common.noNotifications', 'No new notifications')}
+            </span>
             {notifOpen && (
             <div
+              id="notifications-popover"
               className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}
               role="region"
               aria-live="polite"

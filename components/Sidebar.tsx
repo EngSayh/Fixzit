@@ -9,6 +9,7 @@ import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
   ShoppingBag, Headphones, Shield, BarChart3, Cog, Bell
 } from 'lucide-react';
+import { formatRoleLabel } from '@/lib/utils/role-formatter';
 
 // Role-based module permissions
 const ROLE_PERMISSIONS = {
@@ -101,8 +102,6 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   reporting: 'Reporting',
   admin: 'Administration'
 };
-
-const formatRoleLabel = (role: string) => role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
 interface SidebarProps {
   role?: string;
