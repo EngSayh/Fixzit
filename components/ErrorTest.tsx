@@ -1,18 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+const QA_FLAG_KEY = 'fxz.qa-tools';
 
 export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
+  const [qaEnabled, setQaEnabled] = useState(false);
 
-  // Never show this component - it should only be used for manual testing
-  // To enable, temporarily set this to false
-  if (true) {
-    return null;
-  }
+  useEffect(() => {
+    // Always enable in development
+    if (process.env.NODE_ENV !== 'production') {
+      setQaEnabled(true);
+      return;
+    }
 
-  // Only show in development mode
-  if (process.env.NODE_ENV === 'production') {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      // Enable via URL param ?qa=1
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('qa') === '1') {
+        localStorage.setItem(QA_FLAG_KEY, 'enabled');
+        setQaEnabled(true);
+        return;
+      }
+
+      // Check if previously enabled
+      if (localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
+        setQaEnabled(true);
+      }
+    } catch (error) {
+      console.warn('Unable to initialize QA error test tools:', error);
+    }
+  }, []);
+
+  // Hide for regular users
+  if (!qaEnabled) {
     return null;
   }
 
