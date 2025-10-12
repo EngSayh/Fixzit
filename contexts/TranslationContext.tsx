@@ -13,6 +13,11 @@ export type Language = LanguageCode;
 
 type TranslationVars = Record<string, string | number>;
 
+/**
+ * Escapes special characters in an interpolation key so it can be safely used in a regular expression.
+ * The regex /[.*+?^${}()|[\]\\]/g matches all characters that have special meaning in regex patterns,
+ * and replaces each with a backslash-prefixed version (e.g., "." becomes "\.").
+ */
 const escapeInterpolationKey = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
