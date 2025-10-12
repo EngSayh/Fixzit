@@ -1803,7 +1803,7 @@ const en = {
     beforeAppointment: 'Before Appointment',
   },
 
-  documents: {
+  contractsDocs: {
     document: 'Document',
     documents: 'Documents',
     contract: 'Contract',

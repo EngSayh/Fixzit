@@ -1822,7 +1822,7 @@ const ar = {
     beforeAppointment: 'قبل الموعد',
   },
 
-  documents: {
+  contractsDocs: {
     document: 'وثيقة',
     documents: 'وثائق',
     contract: 'عقد',
