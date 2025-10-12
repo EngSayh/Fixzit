@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -58,11 +58,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   const router = useRouter();
 
+  const hasFetchedNotificationsRef = useRef(false);
+
   const fetchNotifications = useCallback(async () => {
     if (isGuest) {
       return;
     }
 
+    hasFetchedNotificationsRef.current = true;
     setLoading(true);
     try {
       const response = await fetch('/api/notifications?limit=5&read=false', {
@@ -136,12 +139,22 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
-    if (!notifOpen || isGuest || hasNotifications) {
+    if (!notifOpen) {
+      return;
+    }
+
+    if (isGuest || hasNotifications || hasFetchedNotificationsRef.current) {
       return;
     }
 
     fetchNotifications();
   }, [notifOpen, isGuest, hasNotifications, fetchNotifications]);
+
+  useEffect(() => {
+    if (!notifOpen) {
+      hasFetchedNotificationsRef.current = false;
+    }
+  }, [notifOpen]);
 
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
@@ -193,6 +206,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   };
 
+  const redirectToLogin = () => {
+    if (typeof window !== 'undefined') {
+      window.location.assign('/login');
+    } else {
+      router.push('/login');
+    }
+  };
+
   const handleLogout = async () => {
     try {
       // Call logout API to clear server-side session
@@ -229,18 +250,10 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       }
 
       // Redirect to login page with a hard reload to fully reset the app state
-      if (typeof window !== 'undefined') {
-        window.location.assign('/login');
-      } else {
-        router.push('/login');
-      }
+      redirectToLogin();
     } catch (error) {
       console.error('Logout error:', error);
-      if (typeof window !== 'undefined') {
-        window.location.assign('/login');
-      } else {
-        router.push('/login');
-      }
+      redirectToLogin();
     }
   };
 
@@ -287,7 +300,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               )}
             </button>
             {notifOpen && (
-            <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
+            <div
+              className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}
+              role="region"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={t('nav.notifications', 'Notifications')}
+            >
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'left-8' : 'right-8'}`}></div>
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200 ${isRTL ? 'left-8' : 'right-8'}`}></div>

@@ -13,13 +13,17 @@ export type Language = LanguageCode;
 
 type TranslationVars = Record<string, string | number>;
 
+const escapeInterpolationKey = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const applyInterpolation = (template: string, vars?: TranslationVars) => {
   if (!vars) {
     return template;
   }
 
   return Object.entries(vars).reduce((result, [varKey, value]) => {
-    const pattern = new RegExp(`{{\s*${varKey}\s*}}`, 'g');
+    const escapedKey = escapeInterpolationKey(varKey);
+    const pattern = new RegExp(`{{\\s*${escapedKey}\\s*}}`, 'g');
     return result.replace(pattern, String(value));
   }, template);
 };
