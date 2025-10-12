@@ -63,9 +63,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
-  const normalizedRole = typeof _role === 'string'
-    ? _role.toUpperCase()
-    : (_role ? String(_role).toUpperCase() : 'GUEST');
+  const normalizedRole = _role.toUpperCase();
   const isGuest = normalizedRole === 'GUEST';
 
   // Get responsive context
