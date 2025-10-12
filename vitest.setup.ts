@@ -1,17 +1,32 @@
-// Global test setup for Vitest with Jest compatibility
 import { vi } from 'vitest';
+import React from 'react';
 import '@testing-library/jest-dom/vitest';
 
-// Provide Jest compatibility layer for tests using jest.* APIs
-if (typeof global !== 'undefined') {
-  global.jest = vi;
-}
+// Mock Next.js API functions that are not available during testing
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockImplementation(() => {
+    throw new Error('`headers` was called outside a request scope. Read more: https://nextjs.org/docs/messages/next-dynamic-api-wrong-context');
+  }),
+  cookies: vi.fn().mockImplementation(() => {
+    throw new Error('`cookies` was called outside a request scope. Read more: https://nextjs.org/docs/messages/next-dynamic-api-wrong-context');
+  })
+}));
 
-// The global test functions are already available through @types/jest
-// No need to redeclare them to avoid type conflicts
+// Global fetch mock
+global.fetch = vi.fn().mockImplementation(() => 
+  Promise.reject(new Error('fetch should be mocked in individual tests'))
+);
 
-// Using real MongoDB for all tests
+// Mock Next.js Image component
+vi.mock('next/image', () => ({
+  default: (props: any) => {
+    return React.createElement('img', props);
+  },
+}));
 
-// Environment setup
-// NODE_ENV is read-only, managed by test runner
-// MongoDB-only configuration for all environments
+// Mock Next.js Link component
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...props }: any) => {
+    return React.createElement('a', { href, ...props }, children);
+  },
+}));
