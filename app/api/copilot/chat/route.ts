@@ -180,13 +180,15 @@ export async function POST(req: NextRequest) {
       sources: docs.map(doc => ({ id: doc.id, title: doc.title, score: doc.score, source: doc.source }))
     });
   } catch (error: unknown) {
+    console.error("Copilot chat error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     const stack = error instanceof Error ? error.stack : String(error);
-    console.error('Copilot chat error:', error, stack);
-    await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message: "Chat processing failed", prompt: body.message, metadata: { stack, error: String(error) } });
+    await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message: errorMessage, prompt: body.message, metadata: { stack, error: String(error) } });
     return NextResponse.json({
       reply: locale === "ar"
         ? "حدث خطأ أثناء معالجة الطلب."
-        : "Something went wrong while processing the request."
+        : "Something went wrong while processing the request.",
+      error: errorMessage
     }, { status: 500 });
   }
 }

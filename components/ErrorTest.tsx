@@ -9,18 +9,11 @@ export default function ErrorTest() {
   const [qaEnabled, setQaEnabled] = useState(false);
 
   useEffect(() => {
-    // Always enable in development
-    if (process.env.NODE_ENV !== 'production') {
-      setQaEnabled(true);
-      return;
-    }
-
     if (typeof window === 'undefined') {
       return;
     }
 
     try {
-      // Enable via URL param ?qa=1
       const params = new URLSearchParams(window.location.search);
       if (params.get('qa') === '1') {
         localStorage.setItem(QA_FLAG_KEY, 'enabled');
@@ -28,7 +21,6 @@ export default function ErrorTest() {
         return;
       }
 
-      // Check if previously enabled
       if (localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
         setQaEnabled(true);
       }
@@ -37,7 +29,6 @@ export default function ErrorTest() {
     }
   }, []);
 
-  // Hide for regular users
   if (!qaEnabled) {
     return null;
   }
