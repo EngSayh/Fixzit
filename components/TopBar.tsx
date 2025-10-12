@@ -208,8 +208,19 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   const redirectToLogin = () => {
     if (typeof window !== 'undefined') {
-      window.location.assign('/login');
+      // Preserve language and locale in the redirect URL if available
+      const lang = localStorage.getItem('fxz.lang');
+      const locale = localStorage.getItem('fxz.locale');
+      let loginUrl = '/login';
+      const params = [];
+      if (lang) params.push(`lang=${encodeURIComponent(lang)}`);
+      if (locale) params.push(`locale=${encodeURIComponent(locale)}`);
+      if (params.length > 0) {
+        loginUrl += '?' + params.join('&');
+      }
+      window.location.href = loginUrl;
     } else {
+      // Fallback for server-side navigation
       router.push('/login');
     }
   };
