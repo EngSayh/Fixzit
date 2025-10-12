@@ -3,7 +3,7 @@
  * Sanitizes error messages to prevent internal details leakage
  */
 
-import { createSecureResponse } from '@/lib/security';
+import { createSecureResponse } from '@/lib/marketplace/security';
 
 export interface SecureErrorOptions {
   /** The raw error that occurred */
@@ -12,8 +12,6 @@ export interface SecureErrorOptions {
   defaultMessage?: string;
   /** HTTP status code */
   statusCode?: number;
-  /** The incoming request (for createSecureResponse) */
-  request: Request;
   /** Whether to log the original error to console (development only) */
   logError?: boolean;
 }
@@ -66,13 +64,12 @@ function getSafeErrorMessage(error: unknown, defaultMessage: string): string {
  * ```ts
  * try {
  *   const result = await dangerousOperation();
- *   return createSecureResponse({ success: true, data: result }, 200, req);
+ *   return createSecureResponse({ success: true, data: result }, { status: 200 });
  * } catch (error) {
  *   return createSecureErrorResponse({
  *     error,
  *     defaultMessage: 'Failed to complete operation',
  *     statusCode: 500,
- *     request: req,
  *   });
  * }
  * ```
@@ -82,7 +79,6 @@ export function createSecureErrorResponse(options: SecureErrorOptions): Response
     error,
     defaultMessage = 'An unexpected error occurred',
     statusCode = 500,
-    request,
     logError = process.env.NODE_ENV === 'development',
   } = options;
 
@@ -98,13 +94,12 @@ export function createSecureErrorResponse(options: SecureErrorOptions): Response
   // Get safe message
   const safeMessage = getSafeErrorMessage(error, defaultMessage);
 
-  // Return secure response
+  // Return secure response with proper ResponseInit
   return createSecureResponse(
     {
       success: false,
       error: safeMessage,
     },
-    statusCode,
-    request
+    { status: statusCode }
   );
 }

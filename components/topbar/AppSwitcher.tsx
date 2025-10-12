@@ -18,7 +18,6 @@ export default function AppSwitcher() {
   const { t, isRTL } = useTranslation();
   const [open, setOpen] = useState(false);
 
-  const currentApp = APPS[app];
   const Icon = appIcons[app];
 
   // Get translated app name

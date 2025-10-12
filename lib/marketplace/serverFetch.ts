@@ -1,4 +1,4 @@
-import { cookies, headers, type UnsafeUnwrappedHeaders } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { randomUUID } from 'node:crypto';
 
 function getEnvBaseUrl() {

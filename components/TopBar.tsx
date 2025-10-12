@@ -93,6 +93,35 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     checkAuth();
   }, []);
 
+  // Define fetchNotifications before using it
+  const fetchNotifications = useCallback(async () => {
+    // Don't fetch notifications for guest users
+    if (!isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/notifications?limit=5&read=false', {
+        credentials: 'include' // Use session cookies instead of hardcoded guest
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.items || []);
+      } else {
+        // Don't use mock notifications - just show empty
+        setNotifications([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      // Don't show mock notifications - just empty for guests
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
   // Fetch notifications when dropdown opens (only if authenticated)
   useEffect(() => {
     if (notifOpen && notifications.length === 0 && isAuthenticated) {
@@ -129,34 +158,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       };
     }
   }, [notifOpen]);
-
-  const fetchNotifications = useCallback(async () => {
-    // Don't fetch notifications for guest users
-    if (!isAuthenticated) {
-      setNotifications([]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch('/api/notifications?limit=5&read=false', {
-        credentials: 'include' // Use session cookies instead of hardcoded guest
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.items || []);
-      } else {
-        // Don't use mock notifications - just show empty
-        setNotifications([]);
-      }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-      // Don't show mock notifications - just empty for guests
-      setNotifications([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated]);
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
