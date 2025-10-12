@@ -1947,7 +1947,6 @@ const en = {
     devices: 'Devices',
     appliance: 'Appliance',
     appliances: 'Appliances',
-    equipment: 'Equipment',
     fixture: 'Fixture',
     fixtures: 'Fixtures',
     assetTag: 'Asset Tag',
