@@ -206,24 +206,26 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   };
 
-  const redirectToLogin = () => {
+  const redirectToLogin = useCallback(() => {
+    const lang = typeof window !== 'undefined' ? localStorage.getItem('fxz.lang') : null;
+    const locale = typeof window !== 'undefined' ? localStorage.getItem('fxz.locale') : null;
+
+    const params = new URLSearchParams();
+    if (lang) params.set('lang', lang);
+    if (locale) params.set('locale', locale);
+
+    const queryString = params.toString();
+    const loginPath = queryString ? `/login?${queryString}` : '/login';
+
     if (typeof window !== 'undefined') {
-      // Preserve language and locale in the redirect URL if available
-      const lang = localStorage.getItem('fxz.lang');
-      const locale = localStorage.getItem('fxz.locale');
-      let loginUrl = '/login';
-      const params = [];
-      if (lang) params.push(`lang=${encodeURIComponent(lang)}`);
-      if (locale) params.push(`locale=${encodeURIComponent(locale)}`);
-      if (params.length > 0) {
-        loginUrl += '?' + params.join('&');
-      }
-      window.location.href = loginUrl;
+      router.push(loginPath);
+      requestAnimationFrame(() => {
+        window.location.reload();
+      });
     } else {
-      // Fallback for server-side navigation
-      router.push('/login');
+      router.push(loginPath);
     }
-  };
+  }, [router]);
 
   const handleLogout = async () => {
     try {
