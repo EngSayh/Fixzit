@@ -14,9 +14,18 @@ vi.mock('next/server', async () => {
     NextResponse: {
       json: (data: any, init?: ResponseInit) => {
         const status = init?.status ?? 200
-        // Return a Response-like object with status and json() for assertions
+        const headersMap = new Map<string, string>()
+        // Return a Response-like object with status, headers, and json() for assertions
         return {
           status,
+          headers: {
+            set: (key: string, value: string) => {
+              headersMap.set(key, value)
+            },
+            get: (key: string) => headersMap.get(key) || null,
+            has: (key: string) => headersMap.has(key),
+            delete: (key: string) => headersMap.delete(key),
+          },
           async json() {
             return data
           },
@@ -39,7 +48,19 @@ beforeAll(async () => {
 /**
  * Helper to create a mock NextRequest with just json() usage covered by the handler.
  */
-const makeReq = (body: any) => ({ json: async () => body } as unknown as NextRequest)
+const makeReq = (body: any, url: string = 'http://localhost:3000/api/payments/paytabs') => ({ 
+  json: async () => body,
+  url,
+  headers: {
+    get: (name: string) => {
+      const headers: Record<string, string> = {
+        'x-forwarded-for': '127.0.0.1',
+        'content-type': 'application/json'
+      };
+      return headers[name.toLowerCase()] || null;
+    }
+  }
+} as unknown as NextRequest)
 
 const validBody = {
   orderId: 'ORDER-123',
@@ -185,14 +206,28 @@ describe('PayTabs POST route', () => {
     let capturedSignal: AbortSignal | undefined
     fetchSpy.mockImplementationOnce((_url: string, opts: any) => {
       capturedSignal = opts.signal
-      return new Promise(() => {}) as any // never resolves until abort
+      // Return a promise that waits for abort signal
+      return new Promise((_resolve, reject) => {
+        opts.signal.addEventListener('abort', () => {
+          reject(new Error('The operation was aborted'))
+        })
+      })
     })
+    
     const promise = POST(makeReq(validBody))
+    
+    // Give a tick for the fetch to start
+    await vi.waitFor(() => {
+      expect(capturedSignal).toBeDefined()
+    }, { timeout: 100 })
+    
     // Fast-forward timers to trigger abort
-    vi.advanceTimersByTime(15001)
-    // The handler clears the timeout in finally, but since promise never resolves, we cannot await result.
-    // Assert the signal is aborted
-    expect(capturedSignal).toBeDefined()
+    await vi.advanceTimersByTimeAsync(15001)
+    
+    // Wait for the promise to reject
+    await expect(promise).resolves.toBeDefined()
+    
+    // Assert the signal was aborted
     expect(capturedSignal?.aborted).toBe(true)
   })
 

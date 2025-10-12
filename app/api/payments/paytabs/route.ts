@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     
     const serverKey = process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
     if (!serverKey) {
-      return createSecureResponse({ error: 'PAYTABS server key not configured' }, 500, req);
+      return createSecureResponse({ ok: false, error: 'PAYTABS server key not configured' }, 500, req);
     }
 
     const payload = {
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const text = await response.text().catch(() => '');
-      return createSecureResponse({ error: 'PayTabs request failed', status: response.status, body: text }, 502, req);
+      return createSecureResponse({ ok: false, error: 'PayTabs request failed', status: response.status, body: text }, 502, req);
     }
 
     const result = await response.json();
