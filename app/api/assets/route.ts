@@ -110,8 +110,9 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(asset, 201, req);
   } catch (error: unknown) {
+    console.error('Failed to create asset:', error);
     const message = error instanceof Error ? error.message : 'Failed to create asset';
-    return createSecureResponse({ error: message }, 400, req);
+    return createSecureResponse({ error: message }, 500, req);
   }
 }
 

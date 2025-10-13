@@ -127,16 +127,49 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 }
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
+  // Import crypto module for timing-safe comparison
+  const crypto = require('crypto');
+  
+  // Calculate the expected signature
   const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(calculatedSignature, 'hex'),
+      Buffer.from(signature, 'hex')
+    );
+  } catch (error) {
+    // If buffers are different lengths, timingSafeEqual will throw
+    return false;
+  }
 }
 
-function generateSignature(_payload: Record<string, unknown>): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+function generateSignature(payload: Record<string, unknown>): string {
+  // Import crypto module
+  const crypto = require('crypto');
+  
+  // Get the PayTabs server key from configuration
+  const serverKey = process.env.PAYTABS_SERVER_KEY;
+  if (!serverKey) {
+    console.error('PayTabs server key not configured');
+    throw new Error('PayTabs server key not configured');
+  }
+  
+  // Serialize payload according to PayTabs specification
+  // Sort keys alphabetically and create query string
+  const sortedKeys = Object.keys(payload).sort();
+  const queryString = sortedKeys
+    .map(key => `${key}=${payload[key]}`)
+    .join('&');
+  
+  // Generate HMAC-SHA256 signature
+  const signature = crypto
+    .createHmac('sha256', serverKey)
+    .update(queryString, 'utf8')
+    .digest('hex');
+  
+  return signature;
 }
 
 // Payment methods supported in Saudi Arabia

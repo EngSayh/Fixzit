@@ -7,7 +7,7 @@ import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createInvoiceSchema = z.object({
@@ -182,8 +182,10 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to create invoice';
-    return createSecureResponse({ error: message }, 400, req);
+    if (error instanceof z.ZodError) {
+      return createSecureResponse({ error: 'Validation failed', details: error.issues }, 400, req);
+    }
+    return handleApiError(error);
   }
 }
 
@@ -238,9 +240,8 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch invoices';
-    return createSecureResponse({ error: message }, 500, req);
+  } catch (_error: unknown) {
+    return handleApiError(_error);
   }
 }
 
