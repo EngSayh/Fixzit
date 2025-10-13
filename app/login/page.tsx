@@ -127,13 +127,16 @@ export default function LoginPage() {
   // Quick login with demo credentials
   const quickLogin = (credential: PersonalCredential | CorporateCredential) => {
     if ('email' in credential) {
-      // Personal email credential
+      setLoginMethod('personal');
       setEmail(credential.email);
+      setEmployeeNumber('');
     } else {
-      // Corporate credential
+      setLoginMethod('corporate');
       setEmployeeNumber(credential.employeeNumber);
+      setEmail('');
     }
     setPassword(credential.password);
+    setError('');
   };
 
   async function onSubmit(e: React.FormEvent) {
@@ -438,11 +441,11 @@ export default function LoginPage() {
                 <div className="grid grid-cols-1 gap-3">
                   <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Chrome className="h-5 w-5 text-blue-600" />
-                    <span>{t('login.continueWith', 'Continue with')} Google</span>
+                    <span>{t('login.googleLogin', 'Login with Google')}</span>
                   </button>
                   <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Apple className="h-5 w-5 text-gray-900" />
-                    <span>{t('login.continueWith', 'Continue with')} Apple</span>
+                    <span>{t('login.appleLogin', 'Login with Apple')}</span>
                   </button>
                 </div>
 
@@ -476,11 +479,11 @@ export default function LoginPage() {
               <div className={`p-4 bg-gray-50 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
                 <h3 className="text-sm font-medium text-gray-700 mb-3">{t('login.personalEmailAccounts', 'Personal Email Accounts:')}</h3>
                 <div className="space-y-2">
-                    {DEMO_CREDENTIALS.map((cred) => {
-                      const Icon = cred.icon;
-                      return (
-                        <button
-                          key={cred.roleKey}
+                  {DEMO_CREDENTIALS.map((cred) => {
+                    const Icon = cred.icon;
+                    return (
+                      <button
+                        key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
                       >
@@ -505,11 +508,11 @@ export default function LoginPage() {
               <div className={`p-4 bg-blue-50 rounded-lg border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <h3 className="text-sm font-medium text-blue-800 mb-3">{t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}</h3>
                 <div className="space-y-2">
-                    {CORPORATE_CREDENTIALS.map((cred) => {
-                      const Icon = cred.icon;
-                      return (
-                        <button
-                          key={cred.roleKey}
+                  {CORPORATE_CREDENTIALS.map((cred) => {
+                    const Icon = cred.icon;
+                    return (
+                      <button
+                        key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
                       >
