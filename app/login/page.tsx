@@ -39,6 +39,31 @@ type CorporateCredential = {
   password: string;
 };
 
+type PersonalFormState = {
+  email: string;
+  password: string;
+};
+
+type CorporateFormState = {
+  employeeNumber: string;
+  password: string;
+};
+
+type FormState = {
+  personal: PersonalFormState;
+  corporate: CorporateFormState;
+};
+
+type FormStateOverrides = {
+  personal?: Partial<PersonalFormState>;
+  corporate?: Partial<CorporateFormState>;
+};
+
+const createInitialFormState = (): FormState => ({
+  personal: { email: '', password: '' },
+  corporate: { employeeNumber: '', password: '' }
+});
+
 const DEMO_CREDENTIALS: PersonalCredential[] = [
   {
     roleKey: 'login.demo.superAdmin.role',
@@ -116,9 +141,7 @@ const CORPORATE_CREDENTIALS: CorporateCredential[] = [
 ];
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [employeeNumber, setEmployeeNumber] = useState('');
-  const [password, setPassword] = useState('');
+  const [formState, setFormState] = useState<FormState>(() => createInitialFormState());
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -126,10 +149,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
 
+  const personalForm = formState.personal;
+  const corporateForm = formState.corporate;
+  const isPersonalLogin = loginMethod === 'personal';
+  const isCorporateLogin = loginMethod === 'corporate';
+
   const updateLoginMethod = (
     method: LoginMethod,
-    overrides?: Partial<Pick<PersonalCredential, 'email' | 'password'> & Pick<CorporateCredential, 'employeeNumber'>>,
-    options?: { force?: boolean }
+    overrides?: FormStateOverrides,
+    options?: { force?: boolean; resetOpposing?: boolean }
   ) => {
     if (loading && !options?.force) {
       return;
@@ -139,29 +167,31 @@ export default function LoginPage() {
     setError('');
     setShowPassword(false);
 
-    setEmail(
-      overrides && 'email' in overrides
-        ? overrides.email ?? ''
-        : method === 'personal'
-          ? email
-          : ''
-    );
+    if (overrides || options?.resetOpposing) {
+      setFormState((prev) => {
+        const initial = createInitialFormState();
+        const next: FormState = {
+          personal:
+            options?.resetOpposing && method !== 'personal'
+              ? initial.personal
+              : { ...prev.personal },
+          corporate:
+            options?.resetOpposing && method !== 'corporate'
+              ? initial.corporate
+              : { ...prev.corporate }
+        };
 
-    setEmployeeNumber(
-      overrides && 'employeeNumber' in overrides
-        ? overrides.employeeNumber ?? ''
-        : method === 'corporate'
-          ? employeeNumber
-          : ''
-    );
+        if (overrides?.personal) {
+          next.personal = { ...next.personal, ...overrides.personal };
+        }
 
-    setPassword(
-      overrides && 'password' in overrides
-        ? overrides.password ?? ''
-        : method === 'sso'
-          ? ''
-          : password
-    );
+        if (overrides?.corporate) {
+          next.corporate = { ...next.corporate, ...overrides.corporate };
+        }
+
+        return next;
+      });
+    }
   };
 
   // Quick login with demo credentials
@@ -174,21 +204,23 @@ export default function LoginPage() {
       updateLoginMethod(
         'personal',
         {
-          email: credential.email,
-          employeeNumber: '',
-          password: credential.password
+          personal: {
+            email: credential.email,
+            password: credential.password
+          }
         },
-        { force: true }
+        { force: true, resetOpposing: true }
       );
     } else {
       updateLoginMethod(
         'corporate',
         {
-          employeeNumber: credential.employeeNumber,
-          email: '',
-          password: credential.password
+          corporate: {
+            employeeNumber: credential.employeeNumber,
+            password: credential.password
+          }
         },
-        { force: true }
+        { force: true, resetOpposing: true }
       );
     }
   };
@@ -202,9 +234,17 @@ export default function LoginPage() {
       let loginData: Record<string, unknown> = {};
 
       if (loginMethod === 'personal') {
-        loginData = { email, password, loginType: 'personal' };
+        loginData = {
+          email: personalForm.email.trim(),
+          password: personalForm.password,
+          loginType: 'personal'
+        };
       } else if (loginMethod === 'corporate') {
-        loginData = { employeeNumber, password, loginType: 'corporate' };
+        loginData = {
+          employeeNumber: corporateForm.employeeNumber.trim(),
+          password: corporateForm.password,
+          loginType: 'corporate'
+        };
       } else {
         throw new Error(t('login.invalidMethod', 'Invalid login method'));
       }
@@ -357,10 +397,10 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {loginMethod === 'personal' || loginMethod === 'corporate' ? (
+            {isPersonalLogin || isCorporateLogin ? (
               <form onSubmit={onSubmit} className="space-y-6">
                 {/* Personal Email Login */}
-                {loginMethod === 'personal' && (
+                {isPersonalLogin && (
                   <>
                     {/* Email Field */}
                     <div>
@@ -373,8 +413,13 @@ export default function LoginPage() {
                           id="email"
                           type="email"
                           placeholder={t('login.enterEmail', 'Enter your personal email')}
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          value={personalForm.email}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              personal: { ...prev.personal, email: e.target.value }
+                            }))
+                          }
                           className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12`}
                           required
                         />
@@ -392,8 +437,13 @@ export default function LoginPage() {
                           id="password"
                           type={showPassword ? 'text' : 'password'}
                           placeholder={t('login.enterPassword', 'Enter your password')}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={personalForm.password}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              personal: { ...prev.personal, password: e.target.value }
+                            }))
+                          }
                           className={`${isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} h-12`}
                           required
                         />
@@ -411,7 +461,7 @@ export default function LoginPage() {
                 )}
 
                 {/* Corporate Account Login */}
-                {loginMethod === 'corporate' && (
+                {isCorporateLogin && (
                   <>
                     {/* Employee Number Field */}
                     <div>
@@ -424,8 +474,13 @@ export default function LoginPage() {
                           id="employeeNumber"
                           type="text"
                           placeholder={t('login.enterEmployeeNumber', 'Enter your employee number')}
-                          value={employeeNumber}
-                          onChange={(e) => setEmployeeNumber(e.target.value)}
+                          value={corporateForm.employeeNumber}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              corporate: { ...prev.corporate, employeeNumber: e.target.value }
+                            }))
+                          }
                           className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12`}
                           required
                         />
@@ -446,8 +501,13 @@ export default function LoginPage() {
                           id="password"
                           type={showPassword ? 'text' : 'password'}
                           placeholder={t('login.enterPassword', 'Enter your password')}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={corporateForm.password}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              corporate: { ...prev.corporate, password: e.target.value }
+                            }))
+                          }
                           className={`${isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} h-12`}
                           required
                         />
@@ -482,7 +542,14 @@ export default function LoginPage() {
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  disabled={loading || (!email && loginMethod === 'personal') || (!employeeNumber && loginMethod === 'corporate') || !password}
+                  disabled={
+                    loading ||
+                    (isPersonalLogin
+                      ? !personalForm.email.trim() || !personalForm.password
+                      : isCorporateLogin
+                        ? !corporateForm.employeeNumber.trim() || !corporateForm.password
+                        : true)
+                  }
                   className="w-full h-12 bg-[#0061A8] hover:bg-[#0061A8]/90 text-white font-semibold"
                 >
                   {loading ? (
