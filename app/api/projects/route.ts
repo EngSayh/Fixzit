@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     }
     return handleApiError(error, req);
   }
-}export async function GET(req: NextRequest) {
+} export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     
