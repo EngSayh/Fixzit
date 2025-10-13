@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import {requireAbility } from "@/server/middleware/withAuthRbac";
 import { z } from "zod";
+import crypto from 'crypto';
 
 import { createSecureResponse } from '@/server/security/headers';
 
