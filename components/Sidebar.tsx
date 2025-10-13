@@ -135,34 +135,21 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
     return acc;
   }, {} as Record<string, typeof MODULES>);
 
-  const getCategoryName = (category: string) => {
-    const names: Record<string, string> = {
-      core: 'Core',
-      fm: 'Facility Management',
-      procurement: 'Procurement',
-      finance: 'Finance',
-      hr: 'Human Resources',
-      crm: 'Customer Relations',
-      marketplace: 'Marketplace',
-      support: 'Support',
-      compliance: 'Compliance',
-      reporting: 'Reporting',
-      admin: 'Administration'
-    };
-    return names[category] || category;
-  };
+  const getCategoryName = (category: string) => t(`sidebar.category.${category}`, CATEGORY_FALLBACKS[category] || category);
 
   return (
             <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'w-64'} bg-[#0061A8] text-white h-screen overflow-y-auto shadow-lg border-r border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#0061A8' }}>{/* FIXED: was #023047 (banned) */}
       <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
-        <div className="font-bold text-lg mb-6 text-white">Fixzit Enterprise</div>
+        <div className={`font-bold text-lg mb-6 text-white ${translationIsRTL ? 'text-right' : ''}`}>{t('common.brand', 'Fixzit Enterprise')}</div>
 
         {/* Role and Subscription Info */}
         {role !== 'guest' && (
           <div className="mb-4 p-3 bg-[#0061A8] rounded-lg">
-            <div className="text-xs text-white/80 mb-1">Role</div>
-            <div className="text-sm font-medium text-white">{role.replace('_', ' ')}</div>
-            <div className="text-xs text-white/80 mt-1">Plan: {subscription}</div>
+            <div className={`text-xs text-white/80 mb-1 ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.role', 'Role')}</div>
+            <div className={`text-sm font-medium text-white ${translationIsRTL ? 'text-right' : ''}`}>{role.replace(/_/g, ' ')}</div>
+            <div className={`text-xs text-white/80 mt-1 ${translationIsRTL ? 'text-right' : ''}`}>
+              {t('sidebar.planLabel', 'Plan')}: {subscription}
+            </div>
           </div>
         )}
 
@@ -199,7 +186,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         {/* User Account Links */}
         <div className="border-t border-white/20 pt-4">
-          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>Account</div>
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.account', 'Account')}</div>
           <nav className="space-y-1">
             {USER_LINKS.map(link => {
               const Icon = link.icon;
@@ -224,7 +211,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         <div className="border-t border-white/20 pt-4 mt-4">
           <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
-            Preferences
+            {t('sidebar.preferences', 'Preferences')}
           </div>
           <div className={`flex gap-2 px-3 ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
             <LanguageSelector variant="compact" />
@@ -234,13 +221,13 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         {/* Help & Support */}
         <div className="border-t border-white/20 pt-4 mt-4">
-          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>Help</div>
+          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.help', 'Help')}</div>
           <button
             onClick={() => router.push('/help')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
           >
             <Headphones className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">Help Center</span>
+            <span className="text-sm font-medium">{t('sidebar.helpCenter', 'Help Center')}</span>
           </button>
         </div>
       </div>

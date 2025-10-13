@@ -14,10 +14,10 @@ function getEnvBaseUrl() {
   return envUrl.replace(/\/$/, '');
 }
 
-async function getHeaderBaseUrl() {
-  let headerList: Awaited<ReturnType<typeof headers>> | undefined;
+function getHeaderBaseUrl() {
+  let headerList: ReturnType<typeof headers> | undefined;
   try {
-    headerList = await headers();
+    headerList = headers();
   } catch (error) {
     const correlationId = randomUUID();
     const message = error instanceof Error ? error.message : String(error);
@@ -38,16 +38,16 @@ async function getHeaderBaseUrl() {
   return `${protocol}://${host}`;
 }
 
-export async function getMarketplaceBaseUrl() {
+export function getMarketplaceBaseUrl() {
   const envUrl = getEnvBaseUrl();
   if (envUrl) return envUrl;
   
-  const headerUrl = await getHeaderBaseUrl();
+  const headerUrl = getHeaderBaseUrl();
   return headerUrl ?? 'http://localhost:3000';
 }
 
 export async function serverFetchWithTenant(path: string, init?: RequestInit) {
-  const baseUrl = await getMarketplaceBaseUrl();
+  const baseUrl = getMarketplaceBaseUrl();
   const url = new URL(path, baseUrl).toString();
   let authCookieValue: string | undefined;
   let errorCorrelationId: string | undefined;
