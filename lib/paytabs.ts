@@ -159,9 +159,12 @@ function generateSignature(payload: Record<string, unknown>): string {
   }
   
   // Sort keys and create canonical string as per PayTabs documentation
-  const sortedKeys = Object.keys(payload).sort();
-  const canonicalString = sortedKeys
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(String(payload[key]))}`)
+  // Exclude 'signature' key and any null/undefined/empty values
+  const canonicalEntries = Object.entries(payload)
+    .filter(([k, v]) => k.toLowerCase() !== 'signature' && v != null && v !== '')
+    .sort(([a], [b]) => a.localeCompare(b));
+  const canonicalString = canonicalEntries
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
     .join('&');
   
   // Generate HMAC-SHA256 signature

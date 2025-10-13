@@ -143,7 +143,8 @@ export async function POST(req: NextRequest) {
     } as Record<string, unknown>;
 
     if (body.billingCycle === 'monthly') basePayload.tokenise = 2; // Hex32 token, delivered in callback
-    const resp = await createHppRequest(body.paytabsRegion || 'GLOBAL', basePayload);
+    const region = body.paytabsRegion ?? 'GLOBAL';
+    const resp = await createHppRequest(region, basePayload);
     // resp.redirect_url to be used on FE
     return NextResponse.json({ subscriptionId: sub._id, invoiceId: inv._id, paytabs: resp });
   } catch (error) {
