@@ -359,8 +359,13 @@ describe('validateCallback', () => {
       return;
     }
     
-    const sortedKeys = Object.keys(payload).sort();
-    const canonicalString = sortedKeys.map(key => `${key}=${(payload as any)[key]}`).join('&');
+    // Match the updated generateSignature logic: filter, sort, encode
+    const canonicalEntries = Object.entries(payload)
+      .filter(([k, v]) => k.toLowerCase() !== 'signature' && v != null && v !== '')
+      .sort(([a], [b]) => a.localeCompare(b));
+    const canonicalString = canonicalEntries
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .join('&');
     const hmac = crypto.createHmac('sha256', serverKey);
     hmac.update(canonicalString);
     const validSignature = hmac.digest('hex');
