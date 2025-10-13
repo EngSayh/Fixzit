@@ -15,6 +15,8 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 
+type LoginMethod = 'personal' | 'corporate' | 'sso';
+
 type PersonalCredential = {
   roleKey: string;
   roleFallback: string;
@@ -120,9 +122,47 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('personal');
   const router = useRouter();
   const { t, isRTL } = useTranslation();
+
+  const updateLoginMethod = (
+    method: LoginMethod,
+    overrides?: Partial<Pick<PersonalCredential, 'email' | 'password'> & Pick<CorporateCredential, 'employeeNumber'>>,
+    options?: { force?: boolean }
+  ) => {
+    if (loading && !options?.force) {
+      return;
+    }
+
+    setLoginMethod(method);
+    setError('');
+    setShowPassword(false);
+
+    setEmail(
+      overrides && 'email' in overrides
+        ? overrides.email ?? ''
+        : method === 'personal'
+          ? email
+          : ''
+    );
+
+    setEmployeeNumber(
+      overrides && 'employeeNumber' in overrides
+        ? overrides.employeeNumber ?? ''
+        : method === 'corporate'
+          ? employeeNumber
+          : ''
+    );
+
+    setPassword(
+      overrides && 'password' in overrides
+        ? overrides.password ?? ''
+        : method === 'sso'
+          ? ''
+          : password
+    );
+  };
 
   // Quick login with demo credentials
   const quickLogin = (credential: PersonalCredential | CorporateCredential) => {
@@ -131,17 +171,26 @@ export default function LoginPage() {
     }
 
     if ('email' in credential) {
-      setLoginMethod('personal');
-      setEmail(credential.email);
-      setEmployeeNumber('');
+      updateLoginMethod(
+        'personal',
+        {
+          email: credential.email,
+          employeeNumber: '',
+          password: credential.password
+        },
+        { force: true }
+      );
     } else {
-      setLoginMethod('corporate');
-      setEmployeeNumber(credential.employeeNumber);
-      setEmail('');
+      updateLoginMethod(
+        'corporate',
+        {
+          employeeNumber: credential.employeeNumber,
+          email: '',
+          password: credential.password
+        },
+        { force: true }
+      );
     }
-    setPassword(credential.password);
-    setError('');
-    setShowPassword(false);
   };
 
   async function onSubmit(e: React.FormEvent) {
@@ -269,8 +318,10 @@ export default function LoginPage() {
             <div className={`flex bg-gray-100 rounded-lg p-1 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 type="button"
-                onClick={() => setLoginMethod('personal')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                onClick={() => updateLoginMethod('personal')}
+                aria-pressed={loginMethod === 'personal'}
+                disabled={loading}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                   loginMethod === 'personal'
                     ? 'bg-[#0061A8] text-white'
                     : 'text-gray-600 hover:text-gray-900'
@@ -280,8 +331,10 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setLoginMethod('corporate')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                onClick={() => updateLoginMethod('corporate')}
+                aria-pressed={loginMethod === 'corporate'}
+                disabled={loading}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                   loginMethod === 'corporate'
                     ? 'bg-[#0061A8] text-white'
                     : 'text-gray-600 hover:text-gray-900'
@@ -291,8 +344,10 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setLoginMethod('sso')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                onClick={() => updateLoginMethod('sso')}
+                aria-pressed={loginMethod === 'sso'}
+                disabled={loading}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                   loginMethod === 'sso'
                     ? 'bg-[#0061A8] text-white'
                     : 'text-gray-600 hover:text-gray-900'
@@ -449,14 +504,16 @@ export default function LoginPage() {
                 <div className="grid grid-cols-1 gap-3">
                   <button
                     type="button"
-                    className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                    disabled={loading}
+                    className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${isRTL ? 'flex-row-reverse' : ''}`}
                   >
                     <Chrome className="h-5 w-5 text-blue-600" />
                     <span>{t('login.googleLogin', 'Login with Google')}</span>
                   </button>
                   <button
                     type="button"
-                    className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                    disabled={loading}
+                    className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${isRTL ? 'flex-row-reverse' : ''}`}
                   >
                     <Apple className="h-5 w-5 text-gray-900" />
                     <span>{t('login.appleLogin', 'Login with Apple')}</span>
@@ -474,15 +531,17 @@ export default function LoginPage() {
 
                 <button
                   type="button"
-                  onClick={() => setLoginMethod('personal')}
-                  className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
+                  onClick={() => updateLoginMethod('personal')}
+                  disabled={loading}
+                  className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {t('login.usePersonalEmail', 'Use Personal Email')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLoginMethod('corporate')}
-                  className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
+                  onClick={() => updateLoginMethod('corporate')}
+                  disabled={loading}
+                  className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {t('login.useCorporateAccount', 'Use Corporate Account')}
                 </button>
@@ -502,7 +561,8 @@ export default function LoginPage() {
                         type="button"
                         key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
-                        className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
+                        disabled={loading}
+                        className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed ${cred.color}`}
                       >
                         <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Icon size={18} />
@@ -532,7 +592,8 @@ export default function LoginPage() {
                         type="button"
                         key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
-                        className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
+                        disabled={loading}
+                        className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed ${cred.color}`}
                       >
                         <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Icon size={18} />
