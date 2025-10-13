@@ -43,5 +43,6 @@
   "git.branchProtection": ["main", "master"],
   "git.branchProtectionPrompt": "alwaysPrompt",
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "codium.codeCompletion.enable": true
+  "codium.codeCompletion.enable": true,
+  "coderabbit.autoReviewMode": "auto"
 }
