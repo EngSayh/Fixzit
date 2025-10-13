@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 import { createSecureResponse } from '@/server/security/headers';
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 export interface ErrorResponse {
   error: string;
@@ -125,31 +126,49 @@ export function handleZodError(error: ZodError): NextResponse {
 /**
  * Generic error handler that categorizes different error types
  */
-export function handleApiError(error: unknown): NextResponse {
+export function handleApiError(
+  error: unknown, 
+  req?: import('next/server').NextRequest,
+  correlationId?: string
+): NextResponse {
+  // Generate correlation ID if not provided
+  const cid = correlationId || crypto.randomUUID();
+  
   if (error instanceof ApiError) {
-    return createErrorResponse(error.message, error.statusCode, error.details, error.code);
+    return req 
+      ? createSecureResponse({ error: error.message, details: error.details, code: error.code, correlationId: cid }, error.statusCode, req)
+      : createErrorResponse(error.message, error.statusCode, error.details, error.code);
   }
   
   if (error instanceof ZodError) {
-    return handleZodError(error);
+    return req ? zodValidationError(error, req) : handleZodError(error);
   }
   
   if (error instanceof Error) {
     // Log the full error but return generic message
     // SECURITY: Never expose stack traces or internal details to clients in production
     console.error('Unhandled API error:', {
+      correlationId: cid,
       name: error.name,
       message: error.message,
       stack: process.env.NODE_ENV === 'production' ? '[REDACTED]' : error.stack,
       timestamp: new Date().toISOString()
     });
     
-    return internalServerError();
+    return req 
+      ? createSecureResponse({ error: 'Internal server error', correlationId: cid }, 500, req)
+      : internalServerError();
   }
   
   // Unknown error type
-  console.error('Unknown error type:', error);
-  return internalServerError();
+  console.error('Unknown error type:', {
+    correlationId: cid,
+    error,
+    timestamp: new Date().toISOString()
+  });
+  return req 
+    ? createSecureResponse({ error: 'Internal server error', correlationId: cid }, 500, req)
+    : internalServerError();
 }
 
 /**

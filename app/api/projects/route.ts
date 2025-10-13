@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    return handleApiError(error);
+    return handleApiError(error, req);
   }
 }export async function GET(req: NextRequest) {
   try {
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    return handleApiError(error);
+    return handleApiError(error, req);
   }
 }
 

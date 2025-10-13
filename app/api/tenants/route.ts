@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createTenantSchema = z.object({
@@ -114,19 +114,8 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(tenant, 201, req);
-  } catch (_error: unknown) {
-    const err = _error as Error;
-    const correlationId = crypto.randomUUID();
-    console.error('Failed to create tenant:', {
-      correlationId,
-      error: err.message,
-      stack: err.stack,
-      timestamp: new Date().toISOString()
-    });
-    return createSecureResponse({ 
-      error: 'Failed to create tenant',
-      correlationId 
-    }, 500, req);
+  } catch (error: unknown) {
+    return handleApiError(error, req);
   }
 }
 
@@ -175,14 +164,8 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (_error: unknown) {
-    const err = _error as Error;
-    console.error('Failed to fetch tenants:', {
-      error: err.message,
-      stack: err.stack,
-      timestamp: new Date().toISOString()
-    });
-    return createSecureResponse({ error: 'Failed to fetch tenants' }, 500, req);
+  } catch (error: unknown) {
+    return handleApiError(error, req);
   }
 }
 

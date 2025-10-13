@@ -73,8 +73,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     return createSecureResponse(project, 200, req);
-  } catch (_error: unknown) {
-    return handleApiError(_error);
+  } catch (error: unknown) {
+    return handleApiError(error, req);
   }
 }
 
@@ -104,7 +104,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     return createSecureResponse(project, 200, req);
   } catch (error: unknown) {
-    return handleApiError(error);
+    return handleApiError(error, req);
   }
 }
 
@@ -133,6 +133,6 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    return handleApiError(error);
+    return handleApiError(error, req);
   }
 }

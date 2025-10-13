@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(asset, 201, req);
   } catch (error: unknown) {
-    return handleApiError(error);
+    return handleApiError(error, req);
   }
 }
 

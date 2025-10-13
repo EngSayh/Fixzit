@@ -1,20 +1,30 @@
 import crypto from 'crypto';
 import { PAYTABS_CONFIG, PAYTABS_REGIONS, type PayTabsRegion } from './paytabs/config';
 
-export function paytabsBase(region: string = 'GLOBAL') {
-  return PAYTABS_REGIONS[region as PayTabsRegion] || PAYTABS_REGIONS.GLOBAL;
+export function paytabsBase(region: PayTabsRegion = 'GLOBAL') {
+  return PAYTABS_REGIONS[region] || PAYTABS_REGIONS.GLOBAL;
 }
 
-export async function createHppRequest(region: string, payload: Record<string, unknown>) {
-  const r = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'authorization': PAYTABS_CONFIG.serverKey
-    },
-    body: JSON.stringify(payload)
-  });
-  return r.json();
+export async function createHppRequest(region: PayTabsRegion, payload: Record<string, unknown>) {
+  try {
+    const r = await fetch(`${paytabsBase(region)}/payment/request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': PAYTABS_CONFIG.serverKey
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!r.ok) {
+      throw new Error(`PayTabs request failed: ${r.status} ${r.statusText}`);
+    }
+    
+    return r.json();
+  } catch (error) {
+    console.error('PayTabs createHppRequest error:', error);
+    throw error;
+  }
 }
 
 export type SimplePaymentRequest = {

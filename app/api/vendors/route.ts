@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
-    return handleApiError(error);
+    return handleApiError(error, req);
   }
 }
 
@@ -149,8 +149,8 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (_error: unknown) {
-    return handleApiError(_error);
+  } catch (error: unknown) {
+    return handleApiError(error, req);
   }
 }
 
