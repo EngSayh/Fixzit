@@ -40,6 +40,7 @@ export default function ErrorTest() {
 
       if (qaParam === '1') {
         localStorage.setItem(QA_FLAG_KEY, 'enabled');
+        setQaEnabled(true);
       }
 
       let enabled =

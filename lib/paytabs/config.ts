@@ -7,9 +7,21 @@
 
 import 'server-only';
 
+// Runtime validation to ensure required config is present
+const profileId = process.env.PAYTABS_PROFILE_ID || '';
+const serverKey = process.env.PAYTABS_SERVER_KEY || '';
+
+if (!profileId) {
+  console.warn('PAYTABS_PROFILE_ID is not configured');
+}
+
+if (!serverKey) {
+  console.warn('PAYTABS_SERVER_KEY is not configured');
+}
+
 export const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
+  profileId: profileId as string,
+  serverKey: serverKey as string,
   baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa',
 } as const;
 
