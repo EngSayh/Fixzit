@@ -114,9 +114,18 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(tenant, 201, req);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 400, req);
+  } catch (_error: unknown) {
+    const correlationId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const err = _error instanceof Error ? _error : new Error(String(_error));
+    console.error('Create tenant failed', {
+      correlationId,
+      name: err.name,
+      message: err.message,
+      stack: err.stack
+    });
+    return createSecureResponse({ error: 'Failed to create tenant', correlationId }, 400, req);
   }
 }
 
@@ -166,8 +175,15 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+    const err = error instanceof Error ? error : new Error(String(error));
+    const path = (() => { try { return new URL(req.url).pathname; } catch { return 'unknown'; } })();
+    console.error('Failed to fetch tenants', {
+      path,
+      name: err.name,
+      message: err.message,
+      stack: err.stack
+    });
+    return createSecureResponse({ error: 'Failed to fetch tenants' }, 500, req);
   }
 }
 

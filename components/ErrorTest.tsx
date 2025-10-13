@@ -35,7 +35,6 @@ export default function ErrorTest() {
         localStorage.removeItem(QA_FLAG_KEY);
         setQaEnabled(false);
         setShowTest(false);
-        return;
       }
 
       if (qaParam === '1') {

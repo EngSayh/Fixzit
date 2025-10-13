@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
   EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
@@ -127,16 +128,46 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 }
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
   const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  try {
+    const a = Buffer.from(calculatedSignature, 'hex');
+    const b = Buffer.from(signature, 'hex');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const sortedKeys = Object.keys(obj).sort();
+    const result: Record<string, unknown> = {};
+    for (const key of sortedKeys) {
+      result[key] = canonicalize(obj[key]);
+    }
+    return result;
+  }
+  return value;
+}
+
+function canonicalStringify(payload: Record<string, unknown>): string {
+  return JSON.stringify(canonicalize(payload));
 }
 
 function generateSignature(_payload: Record<string, unknown>): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+  const secret = PAYTABS_CONFIG.serverKey;
+  if (!secret) {
+    return '';
+  }
+  const canonical = canonicalStringify(_payload);
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(Buffer.from(canonical, 'utf8'));
+  return hmac.digest('hex');
 }
 
 // Payment methods supported in Saudi Arabia

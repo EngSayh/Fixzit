@@ -7,11 +7,11 @@
 
 import 'server-only';
 
-export const PAYTABS_CONFIG = {
+export const PAYTABS_CONFIG: { profileId: string; serverKey: string; baseUrl: string } = {
   profileId: process.env.PAYTABS_PROFILE_ID || '',
   serverKey: process.env.PAYTABS_SERVER_KEY || '',
   baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa',
-} as const;
+};
 
 // Regional endpoints for PayTabs
 export const PAYTABS_REGIONS = {
