@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createAssetSchema = z.object({
@@ -110,8 +110,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(asset, 201, req);
   } catch (error: unknown) {
-    console.error('Failed to create asset:', error);
-    return createSecureResponse({ error: 'Failed to create asset' }, 500, req);
+    return handleApiError(error);
   }
 }
 

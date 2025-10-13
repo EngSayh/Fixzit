@@ -12,16 +12,24 @@ const profileId = process.env.PAYTABS_PROFILE_ID || '';
 const serverKey = process.env.PAYTABS_SERVER_KEY || '';
 
 if (!profileId) {
-  console.warn('PAYTABS_PROFILE_ID is not configured');
+  const message = 'PAYTABS_PROFILE_ID is not configured';
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(message);
+  }
+  console.warn(message);
 }
 
 if (!serverKey) {
-  console.warn('PAYTABS_SERVER_KEY is not configured');
+  const message = 'PAYTABS_SERVER_KEY is not configured';
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(message);
+  }
+  console.warn(message);
 }
 
 export const PAYTABS_CONFIG = {
-  profileId: profileId as string,
-  serverKey: serverKey as string,
+  profileId,
+  serverKey,
   baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa',
 } as const;
 

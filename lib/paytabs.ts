@@ -1,18 +1,17 @@
-const REGIONS: Record<string,string> = {
-  KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
-  EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
-  JORDAN:'https://secure-jordan.paytabs.com', KUWAIT:'https://secure-kuwait.paytabs.com',
-  GLOBAL:'https://secure-global.paytabs.com'
-};
+import crypto from 'crypto';
+import { PAYTABS_CONFIG, PAYTABS_REGIONS, type PayTabsRegion } from './paytabs/config';
 
-export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
+export function paytabsBase(region: string = 'GLOBAL') {
+  return PAYTABS_REGIONS[region as PayTabsRegion] || PAYTABS_REGIONS.GLOBAL;
+}
 
-export async function createHppRequest(region:string, payload:Record<string, unknown>) {
+export async function createHppRequest(region: string, payload: Record<string, unknown>) {
   const r = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method:'POST',
+    method: 'POST',
     headers: {
-      'Content-Type':'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!},
+      'Content-Type': 'application/json',
+      'authorization': PAYTABS_CONFIG.serverKey
+    },
     body: JSON.stringify(payload)
   });
   return r.json();
@@ -31,12 +30,6 @@ export type SimplePaymentRequest = {
 }
 
 export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
-
-const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
-  baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase('GLOBAL')
-};
 
 export async function createPaymentPage(request: SimplePaymentRequest): Promise<SimplePaymentResponse> {
   try {
@@ -128,7 +121,6 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
   // Implement signature validation according to PayTabs documentation
-  const crypto = require('crypto');
   const calculatedSignature = generateSignature(payload);
   
   if (!calculatedSignature || !signature) {
@@ -138,8 +130,8 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
   // Use timing-safe comparison to prevent timing attacks
   try {
     return crypto.timingSafeEqual(
-      Buffer.from(calculatedSignature),
-      Buffer.from(signature)
+      Buffer.from(calculatedSignature, 'hex'),
+      Buffer.from(signature, 'hex')
     );
   } catch {
     // If buffers are different lengths, timingSafeEqual throws
@@ -149,10 +141,7 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
 
 function generateSignature(payload: Record<string, unknown>): string {
   // Implement according to PayTabs signature generation algorithm
-  const crypto = require('crypto');
-  
-  // Get the server key from configuration
-  const serverKey = process.env.PAYTABS_SERVER_KEY || '';
+  const serverKey = PAYTABS_CONFIG.serverKey;
   
   if (!serverKey) {
     console.error('PayTabs server key is not configured');

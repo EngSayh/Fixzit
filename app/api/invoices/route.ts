@@ -182,12 +182,6 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return createSecureResponse({ 
-        error: 'Validation failed', 
-        details: error.issues 
-      }, 400, req);
-    }
     return handleApiError(error);
   }
 }

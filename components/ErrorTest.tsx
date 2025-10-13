@@ -40,7 +40,6 @@ export default function ErrorTest() {
 
       if (qaParam === '1') {
         localStorage.setItem(QA_FLAG_KEY, 'enabled');
-        setQaEnabled(true);
       }
 
       let enabled =
@@ -85,7 +84,10 @@ export default function ErrorTest() {
 
   const triggerNetworkError = () => {
     // Simulate network error
-    fetch('https://invalid-url-that-does-not-exist.com/api/test');
+    fetch('https://invalid-url-that-does-not-exist.com/api/test')
+      .catch(() => {
+        // Intentionally ignored - error is expected for testing
+      });
   };
 
   if (!showTest) {
