@@ -126,6 +126,10 @@ export default function LoginPage() {
 
   // Quick login with demo credentials
   const quickLogin = (credential: PersonalCredential | CorporateCredential) => {
+    if (loading) {
+      return;
+    }
+
     if ('email' in credential) {
       setLoginMethod('personal');
       setEmail(credential.email);
@@ -137,6 +141,7 @@ export default function LoginPage() {
     }
     setPassword(credential.password);
     setError('');
+    setShowPassword(false);
   };
 
   async function onSubmit(e: React.FormEvent) {
@@ -263,6 +268,7 @@ export default function LoginPage() {
             {/* Login Method Toggle */}
             <div className={`flex bg-gray-100 rounded-lg p-1 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
+                type="button"
                 onClick={() => setLoginMethod('personal')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                   loginMethod === 'personal'
@@ -273,6 +279,7 @@ export default function LoginPage() {
                 {t('login.personalEmailTab', 'Personal Email')}
               </button>
               <button
+                type="button"
                 onClick={() => setLoginMethod('corporate')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                   loginMethod === 'corporate'
@@ -283,6 +290,7 @@ export default function LoginPage() {
                 {t('login.corporateAccountTab', 'Corporate Account')}
               </button>
               <button
+                type="button"
                 onClick={() => setLoginMethod('sso')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                   loginMethod === 'sso'
@@ -439,11 +447,17 @@ export default function LoginPage() {
               /* SSO Login Options */
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
-                  <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <button
+                    type="button"
+                    className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
                     <Chrome className="h-5 w-5 text-blue-600" />
                     <span>{t('login.googleLogin', 'Login with Google')}</span>
                   </button>
-                  <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <button
+                    type="button"
+                    className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
                     <Apple className="h-5 w-5 text-gray-900" />
                     <span>{t('login.appleLogin', 'Login with Apple')}</span>
                   </button>
@@ -459,12 +473,14 @@ export default function LoginPage() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setLoginMethod('personal')}
                   className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
                 >
                   {t('login.usePersonalEmail', 'Use Personal Email')}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setLoginMethod('corporate')}
                   className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
                 >
@@ -483,6 +499,7 @@ export default function LoginPage() {
                     const Icon = cred.icon;
                     return (
                       <button
+                        type="button"
                         key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
@@ -512,6 +529,7 @@ export default function LoginPage() {
                     const Icon = cred.icon;
                     return (
                       <button
+                        type="button"
                         key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
