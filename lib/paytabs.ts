@@ -92,7 +92,7 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/request`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey,
+        'Authorization': PAYTABS_CONFIG.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -130,7 +130,7 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey,
+        'Authorization': PAYTABS_CONFIG.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
