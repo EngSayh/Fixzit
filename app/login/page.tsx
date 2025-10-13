@@ -8,69 +8,106 @@ import {
   User, Shield, Building2, Users,
   ArrowRight, Chrome, Apple
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 
-const DEMO_CREDENTIALS = [
+type PersonalCredential = {
+  roleKey: string;
+  roleFallback: string;
+  descriptionKey: string;
+  descriptionFallback: string;
+  icon: LucideIcon;
+  color: string;
+  email: string;
+  password: string;
+};
+
+type CorporateCredential = {
+  roleKey: string;
+  roleFallback: string;
+  descriptionKey: string;
+  descriptionFallback: string;
+  icon: LucideIcon;
+  color: string;
+  employeeNumber: string;
+  password: string;
+};
+
+const DEMO_CREDENTIALS: PersonalCredential[] = [
   {
-    role: 'Super Admin',
+    roleKey: 'login.demo.superAdmin.role',
+    roleFallback: 'Super Admin',
     email: 'superadmin@fixzit.co',
     password: 'password123',
-    description: 'Full system access',
+    descriptionKey: 'login.demo.superAdmin.description',
+    descriptionFallback: 'Full system access',
     icon: Shield,
     color: 'bg-red-100 text-red-800'
   },
   {
-    role: 'Admin',
+    roleKey: 'login.demo.admin.role',
+    roleFallback: 'Admin',
     email: 'admin@fixzit.co',
     password: 'password123',
-    description: 'Administrative access',
+    descriptionKey: 'login.demo.admin.description',
+    descriptionFallback: 'Administrative access',
     icon: User,
     color: 'bg-blue-100 text-blue-800'
   },
   {
-    role: 'Property Manager',
+    roleKey: 'login.demo.propertyManager.role',
+    roleFallback: 'Property Manager',
     email: 'manager@fixzit.co',
     password: 'password123',
-    description: 'Property management',
+    descriptionKey: 'login.demo.propertyManager.description',
+    descriptionFallback: 'Property management',
     icon: Building2,
     color: 'bg-green-100 text-green-800'
   },
   {
-    role: 'Tenant',
+    roleKey: 'login.demo.tenant.role',
+    roleFallback: 'Tenant',
     email: 'tenant@fixzit.co',
     password: 'password123',
-    description: 'Tenant portal access',
+    descriptionKey: 'login.demo.tenant.description',
+    descriptionFallback: 'Tenant portal access',
     icon: Users,
     color: 'bg-purple-100 text-purple-800'
   },
   {
-    role: 'Vendor',
+    roleKey: 'login.demo.vendor.role',
+    roleFallback: 'Vendor',
     email: 'vendor@fixzit.co',
     password: 'password123',
-    description: 'Vendor marketplace access',
+    descriptionKey: 'login.demo.vendor.description',
+    descriptionFallback: 'Vendor marketplace access',
     icon: Users,
     color: 'bg-orange-100 text-orange-800'
   }
 ];
 
-const CORPORATE_CREDENTIALS = [
+const CORPORATE_CREDENTIALS: CorporateCredential[] = [
   {
-    role: 'Property Manager (Corporate)',
+    roleKey: 'login.demo.corporateManager.role',
+    roleFallback: 'Property Manager (Corporate)',
     employeeNumber: 'EMP001',
     password: 'password123',
-    description: 'Corporate account access',
+    descriptionKey: 'login.demo.corporateManager.description',
+    descriptionFallback: 'Corporate account access',
     icon: Building2,
     color: 'bg-green-100 text-green-800'
   },
   {
-    role: 'Admin (Corporate)',
+    roleKey: 'login.demo.corporateAdmin.role',
+    roleFallback: 'Admin (Corporate)',
     employeeNumber: 'EMP002',
     password: 'password123',
-    description: 'Corporate administrative access',
+    descriptionKey: 'login.demo.corporateAdmin.description',
+    descriptionFallback: 'Corporate administrative access',
     icon: User,
     color: 'bg-blue-100 text-blue-800'
   }
@@ -88,7 +125,7 @@ export default function LoginPage() {
   const { t, isRTL } = useTranslation();
 
   // Quick login with demo credentials
-  const quickLogin = (credential: typeof DEMO_CREDENTIALS[0] | typeof CORPORATE_CREDENTIALS[0]) => {
+  const quickLogin = (credential: PersonalCredential | CorporateCredential) => {
     if ('email' in credential) {
       // Personal email credential
       setEmail(credential.email);
@@ -112,19 +149,21 @@ export default function LoginPage() {
       } else if (loginMethod === 'corporate') {
         loginData = { employeeNumber, password, loginType: 'corporate' };
       } else {
-        throw new Error('Invalid login method');
+        throw new Error(t('login.invalidMethod', 'Invalid login method'));
       }
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'},
-        body: JSON.stringify(loginData)});
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(loginData)
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || t('login.loginFailed', 'Login failed'));
       }
 
       if (data.ok) {
@@ -137,14 +176,14 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('login.loginFailed', 'Login failed'));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Left Panel - Branding */}
       <div className={`hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className="max-w-md text-center">
@@ -205,7 +244,9 @@ export default function LoginPage() {
             </div>
 
             <Link href="/" className="text-white/80 hover:text-white text-sm">
-              {isRTL ? 'العودة للرئيسية ←' : '← Back to Home'}
+              {isRTL
+                ? `${t('login.backToHome', 'Back to Home')} ←`
+                : `← ${t('login.backToHome', 'Back to Home')}`}
             </Link>
           </div>
 
@@ -435,19 +476,19 @@ export default function LoginPage() {
               <div className={`p-4 bg-gray-50 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
                 <h3 className="text-sm font-medium text-gray-700 mb-3">{t('login.personalEmailAccounts', 'Personal Email Accounts:')}</h3>
                 <div className="space-y-2">
-                  {DEMO_CREDENTIALS.map((cred) => {
-                    const Icon = cred.icon;
-                    return (
-                      <button
-                        key={cred.role}
+                    {DEMO_CREDENTIALS.map((cred) => {
+                      const Icon = cred.icon;
+                      return (
+                        <button
+                          key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
                       >
                         <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Icon size={18} />
                           <div className="flex-1">
-                            <div className="font-medium text-sm">{cred.role}</div>
-                            <div className="text-xs opacity-80">{cred.description}</div>
+                            <div className="font-medium text-sm">{t(cred.roleKey, cred.roleFallback)}</div>
+                            <div className="text-xs opacity-80">{t(cred.descriptionKey, cred.descriptionFallback)}</div>
                           </div>
                           <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
                         </div>
@@ -464,19 +505,19 @@ export default function LoginPage() {
               <div className={`p-4 bg-blue-50 rounded-lg border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <h3 className="text-sm font-medium text-blue-800 mb-3">{t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}</h3>
                 <div className="space-y-2">
-                  {CORPORATE_CREDENTIALS.map((cred) => {
-                    const Icon = cred.icon;
-                    return (
-                      <button
-                        key={cred.role}
+                    {CORPORATE_CREDENTIALS.map((cred) => {
+                      const Icon = cred.icon;
+                      return (
+                        <button
+                          key={cred.roleKey}
                         onClick={() => quickLogin(cred)}
                         className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
                       >
                         <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Icon size={18} />
                           <div className="flex-1">
-                            <div className="font-medium text-sm">{cred.role}</div>
-                            <div className="text-xs opacity-80">{cred.description}</div>
+                            <div className="font-medium text-sm">{t(cred.roleKey, cred.roleFallback)}</div>
+                            <div className="text-xs opacity-80">{t(cred.descriptionKey, cred.descriptionFallback)}</div>
                           </div>
                           <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
                         </div>

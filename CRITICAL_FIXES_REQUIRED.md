@@ -7,6 +7,8 @@
 
 ## Issue 1: Sign Out Button Not Working ❌
 
+**Current Status:** ✅ Resolved – logout now preserves the user's language and locale preferences while clearing other session data.
+
 ### Problem
 The TopBar `handleLogout` function exists and is correctly implemented, BUT the button is using **hardcoded "Sign out" text** instead of the translation function.
 
@@ -198,6 +200,8 @@ const LoginSchema = z.object({
 
 ## Issue 4: Missing Arabic Translations on Login Page 🌐
 
+**Current Status:** ✅ Resolved – the login experience now pulls all end-user strings from the translation system, including demo credential labels and navigation affordances.
+
 ### Problem
 Login page has hardcoded English text that doesn't switch to Arabic.
 
@@ -297,8 +301,8 @@ Login page has hardcoded English text that doesn't switch to Arabic.
 
 1. ✅ Document issues (THIS FILE)
 2. ⏳ Update todo list
-3. ⏳ Fix handleLogout (remove language preference deletion)
-4. ⏳ Add translations to login page
+3. ✅ Fix handleLogout (remove language preference deletion)
+4. ✅ Add translations to login page
 5. ⏳ Test language switching behavior
 6. ⏳ Add corporate login help text
 7. ⏳ Commit and push fixes
