@@ -4,6 +4,7 @@ import { SupportTicket } from '@/server/models/SupportTicket';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
 import Redis from 'ioredis';
+import crypto from 'crypto';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
