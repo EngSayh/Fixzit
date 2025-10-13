@@ -3,7 +3,7 @@ import { z } from "zod";
 import crypto from 'crypto';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const welcomeEmailSchema = z.object({
@@ -135,11 +135,7 @@ The Fixzit Enterprise Team
     });
 
   } catch (error) {
-    console.error('Welcome email error:', error);
-    return NextResponse.json(
-      { error: 'Failed to send welcome email' },
-      { status: 500 }
-    );
+    return handleApiError(error, req);
   }
 }
 
