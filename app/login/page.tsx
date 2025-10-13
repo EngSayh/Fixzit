@@ -533,8 +533,13 @@ export default function LoginPage() {
 
                 {/* Error Message */}
                 {error && (
-                  <div className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <AlertCircle className="h-5 w-5" />
+                  <div
+                    role="alert"
+                    aria-live="assertive"
+                    aria-atomic="true"
+                    className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    <AlertCircle className="h-5 w-5" aria-hidden="true" />
                     <span className="text-sm">{error}</span>
                   </div>
                 )}

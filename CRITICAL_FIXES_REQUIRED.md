@@ -111,6 +111,8 @@ const handleSelect = (option: LanguageOption) => {
 
 ## Issue 3: Corporate Login Requires Non-Existent Fields 🚫
 
+**Current Status:** ✅ Resolved – corporate login guidance now clarifies the required fields, includes demo presets, and is localized in Arabic and English.
+
 ### Problem
 User reports: "corporate account login requires Corporate number + employee login number + password which is not existing, why?"
 
@@ -191,10 +193,10 @@ const LoginSchema = z.object({
 
 **Analysis**: API schema is correct. No corporate number field exists or is required. ✅
 
-### Fix Required
-1. **Add help text** explaining corporate login: "Use your employee number and password. No separate corporate ID needed."
-2. **Add visual examples** in the demo credentials section
-3. **Add Arabic translation** for all corporate login fields and help text
+### Fix Implemented
+1. Added contextual help messaging that states "Use your employee number and password. No separate corporate ID needed."
+2. Highlighted corporate demo credentials directly in the login presets so users see valid examples.
+3. Localized the corporate login affordances and supporting text in both English and Arabic catalogs.
 
 ---
 
@@ -304,7 +306,7 @@ Login page has hardcoded English text that doesn't switch to Arabic.
 3. ✅ Fix handleLogout (remove language preference deletion)
 4. ✅ Add translations to login page
 5. ⏳ Test language switching behavior
-6. ⏳ Add corporate login help text
+6. ✅ Add corporate login help text
 7. ⏳ Commit and push fixes
 8. ⏳ Create PR with comprehensive changes
 
