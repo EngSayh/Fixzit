@@ -88,6 +88,20 @@ const USER_LINKS = [
   { id:'notifications', name:'nav.notifications', icon:Bell, path:'/notifications' }
 ];
 
+const CATEGORY_FALLBACKS: Record<string, string> = {
+  core: 'Core',
+  fm: 'Facility Management',
+  procurement: 'Procurement',
+  finance: 'Finance',
+  hr: 'Human Resources',
+  crm: 'Customer Relations',
+  marketplace: 'Marketplace',
+  support: 'Support',
+  compliance: 'Compliance',
+  reporting: 'Reporting',
+  admin: 'Administration'
+};
+
 interface SidebarProps {
   role?: string;
   subscription?: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE';
