@@ -25173,7 +25173,7 @@ const ar = {
     title: "مركز الخدمات المشتركة",
     description: "الخدمات المشتركة وعمليات العمليات التجارية",
     serviceDelivery: "تقديم الخدمة",
-    "serviceLevel Agreements": "اتفاقيات مستوى الخدمة (SLA)",
+    serviceLevelAgreements: "اتفاقيات مستوى الخدمة (SLA)",
     operationalExcellence: "التميز التشغيلي",
     processStandardization: "توحيد العمليات",
     workflowAutomation: "أتمتة سير العمل",

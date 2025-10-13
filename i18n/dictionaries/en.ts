@@ -25138,7 +25138,7 @@ const en = {
     title: "Shared Services Center",
     description: "Shared services and business process operations",
     serviceDelivery: "Service Delivery",
-    serviceLevel Agreements: "Service Level Agreements (SLA)",
+    serviceLevelAgreements: "Service Level Agreements (SLA)",
     operationalExcellence: "Operational Excellence",
     processStandardization: "Process Standardization",
     workflowAutomation: "Workflow Automation",
