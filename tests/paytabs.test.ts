@@ -326,13 +326,46 @@ describe('verifyPayment', () => {
 });
 
 describe('validateCallback', () => {
-  it('returns true only when provided signature matches generated one (placeholder implementation)', async () => {
+  it('returns false when signature is missing or empty', async () => {
     const mod = await importPaytabs();
     const { validateCallback } = mod as any;
 
-    // With current placeholder generateSignature = '', only an empty signature will match.
-    expect(validateCallback({ any: 'payload' }, '')).toBe(true);
-    expect(validateCallback({ any: 'payload' }, 'non-empty')).toBe(false);
+    // Empty or missing signatures should be rejected
+    expect(validateCallback({ any: 'payload' }, '')).toBe(false);
+    expect(validateCallback({ any: 'payload' }, null as any)).toBe(false);
+  });
+
+  it('returns false when signature does not match HMAC', async () => {
+    const mod = await importPaytabs();
+    const { validateCallback } = mod as any;
+
+    // Invalid signature should be rejected
+    expect(validateCallback({ any: 'payload' }, 'invalid-signature')).toBe(false);
+  });
+
+  it('returns true when signature matches HMAC-SHA256 generated signature', async () => {
+    const mod = await importPaytabs();
+    const { validateCallback } = mod as any;
+
+    // To test valid signature, we need to generate one with the same logic
+    // This is a basic test - in production, use actual PayTabs test credentials
+    const crypto = require('crypto');
+    const payload = { test: 'data', amount: 100 };
+    
+    // Generate signature using same algorithm as generateSignature
+    const serverKey = process.env.PAYTABS_SERVER_KEY || '';
+    if (!serverKey) {
+      console.warn('PAYTABS_SERVER_KEY not set, skipping valid signature test');
+      return;
+    }
+    
+    const sortedKeys = Object.keys(payload).sort();
+    const canonicalString = sortedKeys.map(key => `${key}=${(payload as any)[key]}`).join('&');
+    const hmac = crypto.createHmac('sha256', serverKey);
+    hmac.update(canonicalString);
+    const validSignature = hmac.digest('hex');
+    
+    expect(validateCallback(payload, validSignature)).toBe(true);
   });
 });
 

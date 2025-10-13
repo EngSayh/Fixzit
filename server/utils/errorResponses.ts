@@ -1,6 +1,6 @@
 import { ZodError } from 'zod';
 import { createSecureResponse } from '@/server/security/headers';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import crypto from 'crypto';
 
 export interface ErrorResponse {
@@ -128,7 +128,7 @@ export function handleZodError(error: ZodError): NextResponse {
  */
 export function handleApiError(
   error: unknown, 
-  req?: import('next/server').NextRequest,
+  req?: NextRequest,
   correlationId?: string
 ): NextResponse {
   // Generate correlation ID if not provided

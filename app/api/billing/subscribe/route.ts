@@ -22,7 +22,7 @@ const subscriptionSchema = z.object({
   items: z.array(z.any()),
   seatTotal: z.number().positive(),
   billingCycle: z.enum(['monthly', 'annual']),
-  paytabsRegion: z.string().optional(),
+  paytabsRegion: z.enum(['KSA', 'UAE', 'EGYPT', 'OMAN', 'JORDAN', 'KUWAIT', 'GLOBAL']).optional(),
   returnUrl: z.string().url(),
   callbackUrl: z.string().url()
 });
