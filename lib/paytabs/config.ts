@@ -7,9 +7,21 @@
 
 import 'server-only';
 
+// Runtime validation to ensure required environment variables are present
+const profileId = process.env.PAYTABS_PROFILE_ID;
+const serverKey = process.env.PAYTABS_SERVER_KEY;
+
+if (!profileId) {
+  throw new Error('PAYTABS_PROFILE_ID environment variable is required');
+}
+
+if (!serverKey) {
+  throw new Error('PAYTABS_SERVER_KEY environment variable is required');
+}
+
 export const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
+  profileId: profileId as string,
+  serverKey: serverKey as string,
   baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa',
 } as const;
 

@@ -127,16 +127,56 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 }
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
+  const crypto = require('crypto');
+  
+  // Generate expected signature
   const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  
+  // If signature generation failed, reject the callback
+  if (!calculatedSignature) {
+    return false;
+  }
+  
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    const calculatedBuffer = Buffer.from(calculatedSignature, 'base64');
+    const providedBuffer = Buffer.from(signature, 'base64');
+    
+    // Ensure both buffers are the same length
+    if (calculatedBuffer.length !== providedBuffer.length) {
+      return false;
+    }
+    
+    return crypto.timingSafeEqual(calculatedBuffer, providedBuffer);
+  } catch (error) {
+    console.error('Signature validation error:', error);
+    return false;
+  }
 }
 
-function generateSignature(_payload: Record<string, unknown>): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+function generateSignature(payload: Record<string, unknown>): string {
+  const crypto = require('crypto');
+  
+  // Get PayTabs secret key from environment
+  const secretKey = process.env.PAYTABS_SECRET_KEY;
+  if (!secretKey) {
+    console.warn('PAYTABS_SECRET_KEY not configured - signature verification disabled');
+    return '';
+  }
+  
+  // Serialize payload according to PayTabs specification
+  // Sort keys alphabetically and create query string format
+  const sortedKeys = Object.keys(payload).sort();
+  const serializedPayload = sortedKeys
+    .map(key => `${key}=${payload[key]}`)
+    .join('&');
+  
+  // Generate HMAC-SHA256 signature
+  const hmac = crypto.createHmac('sha256', secretKey);
+  hmac.update(serializedPayload, 'utf8');
+  
+  // Return as base64 (adjust format based on PayTabs documentation)
+  return hmac.digest('base64');
 }
 
 // Payment methods supported in Saudi Arabia

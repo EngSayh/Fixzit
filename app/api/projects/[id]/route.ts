@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const updateProjectSchema = z.object({
@@ -73,9 +73,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     return createSecureResponse(project, 200, req);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+  } catch (_error: unknown) {
+    return handleApiError(req, _error);
   }
 }
 

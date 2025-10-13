@@ -125,13 +125,13 @@ export function handleZodError(error: ZodError): NextResponse {
 /**
  * Generic error handler that categorizes different error types
  */
-export function handleApiError(error: unknown): NextResponse {
+export function handleApiError(req: import('next/server').NextRequest, error: unknown): NextResponse {
   if (error instanceof ApiError) {
-    return createErrorResponse(error.message, error.statusCode, error.details, error.code);
+    return createSecureResponse({ error: error.message, code: error.code, details: error.details }, error.statusCode, req);
   }
   
   if (error instanceof ZodError) {
-    return handleZodError(error);
+    return zodValidationError(error, req);
   }
   
   if (error instanceof Error) {
@@ -144,12 +144,12 @@ export function handleApiError(error: unknown): NextResponse {
       timestamp: new Date().toISOString()
     });
     
-    return internalServerError();
+    return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
   
   // Unknown error type
   console.error('Unknown error type:', error);
-  return internalServerError();
+  return createSecureResponse({ error: 'Internal server error' }, 500, req);
 }
 
 /**

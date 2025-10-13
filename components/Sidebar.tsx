@@ -114,7 +114,10 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   const router = useRouter();
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
-  const { t, isRTL: translationIsRTL } = useTranslation();
+  // Call useTranslation unconditionally at top level
+  const translationContext = useTranslation();
+  const t = translationContext?.t ?? ((key: string, fallback?: string) => fallback || key);
+  const translationIsRTL = translationContext?.isRTL ?? false;
 
   const active = useMemo(() => pathname, [pathname]);
 

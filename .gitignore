@@ -48,3 +48,7 @@ node_modules
 
 # Ignore Next build outputs
 .next/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+*.tsbuildinfo
