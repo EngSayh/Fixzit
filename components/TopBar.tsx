@@ -51,7 +51,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const normalizedRole = _role.toUpperCase();
   const isGuest = normalizedRole === 'GUEST';
 
-  const { t } = useTranslation();
+  // Unconditional hook usage; provide runtime fallback for safety
+  const translationCtx = useTranslation();
+  const t = translationCtx?.t ?? ((key: string, fallback?: string) => fallback ?? key);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();

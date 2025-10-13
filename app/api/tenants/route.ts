@@ -114,9 +114,11 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(tenant, 201, req);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 400, req);
+  } catch (_error: unknown) {
+    const err = _error instanceof Error ? _error : new Error(String(_error));
+    const correlationId = (globalThis as any).fxzCorrelationId || crypto.randomUUID();
+    console.error('Failed to create tenant', { message: err.message, stack: err.stack, correlationId });
+    return createSecureResponse({ error: 'Unknown error', correlationId }, 400, req);
   }
 }
 
@@ -165,9 +167,11 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+  } catch (_error: unknown) {
+    const err = _error instanceof Error ? _error : new Error(String(_error));
+    const correlationId = (globalThis as any).fxzCorrelationId || crypto.randomUUID();
+    console.error('Failed to fetch tenants', { message: err.message, stack: err.stack, correlationId, path: new URL(req.url).pathname });
+    return createSecureResponse({ error: 'Failed to fetch tenants', correlationId }, 500, req);
   }
 }
 

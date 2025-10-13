@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'crypto';
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
   EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
@@ -127,16 +128,30 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 }
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
-  // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
   const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  const a = Buffer.from(calculatedSignature);
+  const b = Buffer.from(signature);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
-function generateSignature(_payload: Record<string, unknown>): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+function generateSignature(payload: Record<string, unknown>): string {
+  // HMAC-SHA256 over canonical string using server key
+  // Canonicalization: sort keys ascending, join as key=value pairs by '&'
+  const secret = process.env.PAYTABS_SERVER_KEY || '';
+  const canonical = canonicalize(payload);
+  const hmac = createHmac('sha256', Buffer.from(secret, 'utf8'));
+  hmac.update(Buffer.from(canonical, 'utf8'));
+  // PayTabs commonly expects hex digest for server-to-server callbacks
+  return hmac.digest('hex');
+}
+
+function canonicalize(obj: Record<string, unknown>): string {
+  const entries = Object.entries(obj)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)] as [string, string])
+    .sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([k, v]) => `${k}=${v}`).join('&');
 }
 
 // Payment methods supported in Saudi Arabia

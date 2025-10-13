@@ -114,7 +114,10 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   const router = useRouter();
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
-  const { t, isRTL: translationIsRTL } = useTranslation();
+  // Hooks must be unconditional at top-level per React rules
+  const ctx = useTranslation();
+  const t = ctx?.t ?? ((key: string, fallback?: string) => fallback ?? key);
+  const translationIsRTL = ctx?.isRTL ?? false;
 
   const active = useMemo(() => pathname, [pathname]);
 
