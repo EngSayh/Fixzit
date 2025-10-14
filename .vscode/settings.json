@@ -1,4 +1,9 @@
 {
+  "coderabbit.maxFilesPerReview": 500,
+  "terminal.integrated.env.linux": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+  "nodejs.memory": 4096,
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
   "chat.tools.global.autoApprove": true,
