@@ -32,7 +32,7 @@
       "google.maps",
       "jest"
     ],
-  "baseUrl": ".",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
