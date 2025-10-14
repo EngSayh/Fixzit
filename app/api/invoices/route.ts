@@ -182,7 +182,6 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
-    console.error('POST /api/invoices error:', error);
     return handleApiError(error);
   }
 }

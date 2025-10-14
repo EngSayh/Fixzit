@@ -23,7 +23,12 @@ export default function FinancePage() {
         <CreateInvoice onCreated={()=>mutate()} />
       </div>
       <div className="flex gap-2">
-        <Input placeholder={t('finance.searchPlaceholder', 'Search by number/customer')} value={q} onChange={e=>setQ(e.target.value)} />
+        <Input
+          placeholder={t('finance.searchPlaceholder', 'Search by number/customer')}
+          aria-label={t('finance.searchPlaceholder', 'Search by number/customer')}
+          value={q}
+          onChange={e=>setQ(e.target.value)}
+        />
         <Button onClick={()=>mutate()}>{t('common.search', 'Search')}</Button>
       </div>
 
@@ -95,12 +100,12 @@ function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs">{t('finance.issueDate', 'Issue Date')}</label>
-              <Input type="date" value={issue} onChange={e=>setIssue(e.target.value)} />
+              <label htmlFor="issueDate" className="text-xs">{t('finance.issueDate', 'Issue Date')}</label>
+              <Input id="issueDate" type="date" value={issue} onChange={e=>setIssue(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs">{t('finance.dueDate', 'Due Date')}</label>
-              <Input type="date" value={due} onChange={e=>setDue(e.target.value)} />
+              <label htmlFor="dueDate" className="text-xs">{t('finance.dueDate', 'Due Date')}</label>
+              <Input id="dueDate" type="date" value={due} onChange={e=>setDue(e.target.value)} />
             </div>
           </div>
           <Separator />

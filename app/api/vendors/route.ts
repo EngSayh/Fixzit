@@ -97,8 +97,17 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
-    console.error('POST /api/vendors error:', error);
-    return handleApiError(error);
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/vendors] Error creating vendor:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    const status = error instanceof z.ZodError ? 422 : 500;
+    return createSecureResponse({ 
+      error: 'Failed to create vendor',
+      correlationId
+    }, status, req);
   }
 }
 

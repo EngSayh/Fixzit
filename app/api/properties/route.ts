@@ -111,8 +111,24 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(property, 201, req);
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to create property' }, 400, req);
+  } catch (error: unknown) {
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/properties] Error creating property:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    if (error instanceof z.ZodError) {
+      return createSecureResponse(
+        { error: 'Validation failed', details: error.errors, correlationId },
+        400,
+        req
+      );
+    }
+    return createSecureResponse({ 
+      error: 'Failed to create property',
+      correlationId
+    }, 500, req);
   }
 }
 
