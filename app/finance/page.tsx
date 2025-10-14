@@ -22,14 +22,15 @@ export default function FinancePage() {
         <h1 className="text-2xl font-bold">{t('finance.title', 'Finance — Invoices')}</h1>
         <CreateInvoice onCreated={()=>mutate()} />
       </div>
-                  <div className="flex gap-2 mb-4">
-                <Input
+      <div className="flex gap-2 mb-4">
+        <Input
           placeholder={t('finance.searchPlaceholder', 'Search by number/customer')}
           aria-label={t('finance.searchPlaceholder', 'Search by number/customer')}
           value={q}
           onChange={e=>setQ(e.target.value)}
         />
         <Button onClick={()=>mutate()}>{t('common.search', 'Search')}</Button>
+      </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {list.map((inv: { id: string; number: string; status: string; issueDate: string; dueDate: string; total: number; currency: string; vatAmount: number }) =>(
