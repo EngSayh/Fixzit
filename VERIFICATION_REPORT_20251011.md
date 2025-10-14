@@ -168,12 +168,12 @@ grep -n "<ErrorTest />" components/ClientLayout.tsx
 **Import Statement (Line 7)**:
 ```tsx
 // import { ErrorTest } from "@/components/ErrorTest"; // Removed: Only for manual testing
-```
+```text
 
 **Component Usage (Line 119)**:
 ```tsx
 {/* <ErrorTest /> - Removed: Only for manual testing */}
-```
+```text
 
 ### Conclusion
 ✅ **STATUS: FIXED**
@@ -210,7 +210,7 @@ grep -n "window.location.href" app/logout/page.tsx
 ```
 
 **Result**:
-```
+```text
 31:      window.location.href = '/login';
 35:      window.location.href = '/login';
 ```

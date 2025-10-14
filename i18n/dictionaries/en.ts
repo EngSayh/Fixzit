@@ -217,7 +217,7 @@ const en = {
       save: 'Save Changes',
     },
     securitySettings: {
-      titleSettings: 'Security Settings',
+      title: 'Security Settings',
       currentPassword: 'Current Password',
       newPassword: 'New Password',
       confirmPassword: 'Confirm Password',
@@ -226,8 +226,8 @@ const en = {
       updatePassword: 'Update Password',
     },
     notificationsSettings: {
-      titleSettings: 'Notification Preferences',
-      emailSettings: 'Email',
+      title: 'Notification Preferences',
+      email: 'Email',
       sms: 'SMS',
       push: 'Push Notifications',
       workOrders: 'Work Orders',
@@ -236,7 +236,7 @@ const en = {
       saveSettings: 'Save Preferences',
     },
     preferencesSettings: {
-      titleSettings: 'App Preferences',
+      title: 'App Preferences',
       language: 'Language',
       timezone: 'Timezone',
       theme: 'Theme',

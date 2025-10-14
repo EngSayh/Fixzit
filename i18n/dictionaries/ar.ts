@@ -236,7 +236,7 @@ const ar = {
       save: 'حفظ التغييرات',
     },
     securitySettings: {
-      titleSettings: 'إعدادات الأمان',
+      title: 'إعدادات الأمان',
       currentPassword: 'كلمة المرور الحالية',
       newPassword: 'كلمة المرور الجديدة',
       confirmPassword: 'تأكيد كلمة المرور',
@@ -245,8 +245,8 @@ const ar = {
       updatePassword: 'تحديث كلمة المرور',
     },
     notificationsSettings: {
-      titleSettings: 'تفضيلات الإشعارات',
-      emailSettings: 'البريد الإلكتروني',
+      title: 'تفضيلات الإشعارات',
+      email: 'البريد الإلكتروني',
       sms: 'الرسائل النصية',
       push: 'الإشعارات المنبثقة',
       workOrders: 'أوامر العمل',
@@ -255,7 +255,7 @@ const ar = {
       saveSettings: 'حفظ التفضيلات',
     },
     preferencesSettings: {
-      titleSettings: 'تفضيلات التطبيق',
+      title: 'تفضيلات التطبيق',
       language: 'اللغة',
       timezone: 'المنطقة الزمنية',
       theme: 'المظهر',
