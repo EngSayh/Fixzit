@@ -133,8 +133,9 @@ function buildPattern(opts: Options): RegExp {
     const source = opts.autoUnescape ? autoUnescapeRegex(opts.search) : opts.search;
     try {
       return new RegExp(source, opts.flags);
-    } catch (err: any) {
-      throw new Error(`Invalid regex pattern: ${source}. Original: ${opts.search}. Error: ${err.message}`);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      throw new Error(`Invalid regex pattern: ${source}. Original: ${opts.search}. Error: ${error.message || String(err)}`);
     }
   }
   const base = escapeRegExp(opts.search);
@@ -219,9 +220,10 @@ async function run() {
 
       totalReplacements += count;
       results.push({ file, matched: true, replaced: count, ...(backupPath ? { backupPath } : {}) });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string };
       fileErrors++;
-      results.push({ file, matched: false, replaced: 0, skipped: err?.message || String(err) });
+      results.push({ file, matched: false, replaced: 0, skipped: error?.message || String(err) });
     }
   }
 

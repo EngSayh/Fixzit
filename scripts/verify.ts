@@ -21,9 +21,10 @@ function run(g: Gate) {
       throw new Error('Direct window/document usage detected in app/* (hydrate risk)');
     }
     console.log(pc.green(`✓ ${g.name} passed`));
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.log(pc.red(`✗ ${g.name} failed`));
-    console.log(pc.gray(e?.stdout || e?.message || e));
+    const error = e as { stdout?: string; message?: string };
+    console.log(pc.gray(error?.stdout || error?.message || String(e)));
     process.exit(1);
   }
 }
