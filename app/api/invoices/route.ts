@@ -7,7 +7,7 @@ import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createInvoiceSchema = z.object({
@@ -182,8 +182,26 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
-    return handleApiError(error);
-}
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/invoices] Error creating invoice:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    if (error instanceof z.ZodError) {
+      return createSecureResponse({ 
+        error: 'Validation failed',
+        details: error.issues,
+        correlationId
+      }, 422, req);
+    }
+    
+    return createSecureResponse({ 
+      error: 'Failed to create invoice',
+      correlationId
+    }, 500, req);
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -238,8 +256,16 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    console.error('GET /api/invoices error:', error);
-    return handleApiError(error);
+    const correlationId = crypto.randomUUID();
+    console.error('[GET /api/invoices] Error fetching invoices:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return createSecureResponse({ 
+      error: 'Failed to fetch invoices',
+      correlationId
+    }, 500, req);
   }
 }
 

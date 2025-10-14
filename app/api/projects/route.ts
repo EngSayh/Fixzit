@@ -102,11 +102,17 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] Project creation failed:`, error);
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/projects] Error creating project:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return createSecureResponse({ error: "Internal server error", correlationId }, 500, req);
   }
-}export async function GET(req: NextRequest) {
+}
+
+export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     
