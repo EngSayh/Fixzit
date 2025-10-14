@@ -1,7 +1,7 @@
 import { NextRequest} from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
-import { unauthorizedError, rateLimitError } from '@/server/utils/errorResponses';
+import { unauthorizedError, rateLimitError, internalServerError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 // Force dynamic rendering for this route
@@ -81,8 +81,18 @@ export async function GET(req: NextRequest) {
     }
 
     return createSecureResponse({ ok: true, user }, 200, req);
-  } catch (error) {
+  } catch (error: any) {
+    // Distinguish authentication errors from other errors
+    if (
+      (error && typeof error === 'object' &&
+        ((error.status && error.status === 401) ||
+         (error.code && error.code === 'UNAUTHORIZED') ||
+         (error.type && error.type === 'auth')))
+    ) {
+      return unauthorizedError('Invalid or expired token');
+    }
+    // For all other errors, log and return internal server error
     console.error('Get current user error:', error);
-    return unauthorizedError('Failed to retrieve user information');
+    return internalServerError('Internal server error', error);
   }
 }
