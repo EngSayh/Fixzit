@@ -112,8 +112,23 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(property, 201, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to create property';
-    return createSecureResponse({ error: message }, 400, req);
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/properties] Error creating property:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    if (error instanceof z.ZodError) {
+      return createSecureResponse(
+        { error: 'Validation failed', details: error.issues, correlationId },
+        400,
+        req
+      );
+    }
+    return createSecureResponse({ 
+      error: 'Failed to create property',
+      correlationId
+    }, 500, req);
   }
 }
 
@@ -172,8 +187,9 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch properties';
-    return createSecureResponse({ error: message }, 500, req);
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Properties fetch failed:`, error);
+    return createSecureResponse({ error: 'Failed to fetch properties', correlationId }, 500, req);
   }
 }
 

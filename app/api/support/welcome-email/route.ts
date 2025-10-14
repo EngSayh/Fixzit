@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -29,6 +29,11 @@ const welcomeEmailSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
+// Check if email service is configured
+const isEmailConfigured = () => {
+  return !!(process.env.SENDGRID_API_KEY || process.env.AWS_SES_ACCESS_KEY || process.env.EMAIL_SERVICE_ENABLED);
+};
+
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
@@ -39,6 +44,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = welcomeEmailSchema.parse(await req.json());
+
+    // Check if email service is configured
+    if (!isEmailConfigured()) {
+      return createSecureResponse({
+        error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
+        status: 'not_configured'
+      }, 501, req); // 501 Not Implemented
+    }
 
     // In a real implementation, this would integrate with an email service
     // For now, we'll log the welcome email details
@@ -125,19 +138,21 @@ The Fixzit Enterprise Team
      */
     // await sendEmail({ to: body.email, subject: body.subject, html: emailTemplate });
 
-    return NextResponse.json({
+    return createSecureResponse({
       success: true,
       message: 'Welcome email queued for sending',
       emailId: `WEL-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       recipient: body.email,
       subject: body.subject
-    });
+    }, 200, req);
 
   } catch (error) {
-    console.error('Welcome email error:', error);
-    return NextResponse.json(
-      { error: 'Failed to send welcome email' },
-      { status: 500 }
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Welcome email error:`, error);
+    return createSecureResponse(
+      { error: 'Failed to send welcome email', correlationId },
+      500,
+      req
     );
   }
 }
@@ -158,12 +173,18 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Email parameter required' }, 400, req);
   }
 
-  // In a real implementation, this would check the database
-  // For now, return mock data
-  return NextResponse.json({
+  // Check if email service is configured
+  if (!isEmailConfigured()) {
+    return createSecureResponse({
+      error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
+      email,
+      status: 'not_configured'
+    }, 501, req); // 501 Not Implemented
+  }
+
+  // TODO: Implement actual database lookup for email delivery status
+  return createSecureResponse({
     email,
-    welcomeEmailsSent: 1,
-    lastSent: new Date().toISOString(),
-    status: 'sent'
-  });
+    status: 'service_configured_but_no_records'
+  }, 200, req);
 }

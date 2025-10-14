@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from 'crypto';
+
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
   EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
@@ -32,13 +34,30 @@ export type SimplePaymentRequest = {
 
 export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
 
+// PayTabs configuration - validation happens lazily at runtime
 const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
+  profileId: process.env.PAYTABS_PROFILE_ID,
+  serverKey: process.env.PAYTABS_SERVER_KEY,
   baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase('GLOBAL')
 };
 
+/**
+ * Validates that PayTabs credentials are configured
+ * @throws Error if credentials are missing
+ */
+function validatePayTabsConfig(): void {
+  if (!PAYTABS_CONFIG.profileId || !PAYTABS_CONFIG.serverKey) {
+    throw new Error(
+      'PayTabs credentials not configured. Please set PAYTABS_PROFILE_ID and PAYTABS_SERVER_KEY environment variables. ' +
+      'See documentation: https://docs.paytabs.com/setup'
+    );
+  }
+}
+
 export async function createPaymentPage(request: SimplePaymentRequest): Promise<SimplePaymentResponse> {
+  // Validate credentials before making API call
+  validatePayTabsConfig();
+  
   try {
     const payload = {
       profile_id: PAYTABS_CONFIG.profileId,
@@ -75,7 +94,7 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/request`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey,
+        'Authorization': PAYTABS_CONFIG.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -106,11 +125,14 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
 }
 
 export async function verifyPayment(tranRef: string): Promise<unknown> {
+  // Validate credentials before making API call
+  validatePayTabsConfig();
+  
   try {
     const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey,
+        'Authorization': PAYTABS_CONFIG.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -128,15 +150,48 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
   // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
   const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return timingSafeEqual(
+      Buffer.from(calculatedSignature, 'hex'),
+      Buffer.from(signature, 'hex')
+    );
+  } catch (_error) {
+    // If buffers are different lengths, timingSafeEqual will throw
+    return false;
+  }
 }
 
-function generateSignature(_payload: Record<string, unknown>): string {
-  // Implement according to PayTabs signature generation algorithm
-  // This is a placeholder - actual implementation depends on PayTabs docs
-  return '';
+function generateSignature(payload: Record<string, unknown>): string {
+  // Ensure server key is configured
+  if (!PAYTABS_CONFIG.serverKey) {
+    throw new Error('PayTabs server key is required for signature generation');
+  }
+
+  // Canonically serialize payload according to PayTabs specification:
+  // 1. Sort keys alphabetically
+  // 2. Exclude 'signature' field itself if present
+  // 3. Flatten nested objects (if any) before serialization
+  // 4. Join as key=value pairs with & delimiter
+  const sortedKeys = Object.keys(payload)
+    .filter(key => key !== 'signature') // Exclude signature field itself
+    .sort();
+    
+  const canonicalString = sortedKeys
+    .map(key => {
+      const value = payload[key];
+      // Convert to string, handling null/undefined
+      const stringValue = value != null ? String(value) : '';
+      return `${key}=${stringValue}`;
+    })
+    .join('&');
+
+  // Compute HMAC-SHA256 hex digest using the server key
+  const hmac = createHmac('sha256', PAYTABS_CONFIG.serverKey);
+  hmac.update(canonicalString);
+  return hmac.digest('hex');
 }
 
 // Payment methods supported in Saudi Arabia

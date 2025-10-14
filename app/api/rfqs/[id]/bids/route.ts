@@ -6,7 +6,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { nanoid } from "nanoid";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 // Comprehensive Bid interface matching all properties a bid can have
@@ -126,8 +126,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     return createSecureResponse(bid, 201, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to submit bid';
-    return createSecureResponse({ error: message }, 400, req);
+    return handleApiError(error);
   }
 }
 
@@ -162,7 +161,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(rfq.bids, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch bids';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
 }

@@ -88,8 +88,9 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
       });
       created++;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      errors.push({ row: i + 1, error: message });
+      const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+      console.error(`[${correlationId}] Work order import error for row ${i + 1}:`, error);
+      errors.push({ row: i + 1, error: 'Failed to import row' });
     }
   }
   

@@ -53,6 +53,7 @@ export async function GET() {
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
+    console.error('Database health check failed:', error);
     
     return NextResponse.json({
       status: 'unhealthy',
@@ -60,7 +61,7 @@ export async function GET() {
       connection: 'error',
       timestamp: new Date().toISOString(),
       responseTime,
-      error: error instanceof Error ? error.message : String(error)
+      error: 'Database connection failed'
     }, { status: 503 });
   }
 }

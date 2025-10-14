@@ -185,15 +185,16 @@ export async function POST(req: NextRequest) {
     let errorDetails = 'Please try again or contact our support team';
 
     if (error instanceof Error) {
+      // Log actual error server-side but don't expose to client
+      console.error('Job application error details:', error.message, error.stack);
       if (error.message.includes('fetch')) {
         errorMessage = 'Network error';
         errorDetails = 'Please check your internet connection and try again';
       } else if (error.message.includes('file')) {
         errorMessage = 'File processing error';
         errorDetails = 'There was an issue processing your file. Please try with a different file';
-      } else {
-        errorMessage = error.message;
       }
+      // Don't expose arbitrary error.message to client
     }
 
     return NextResponse.json(

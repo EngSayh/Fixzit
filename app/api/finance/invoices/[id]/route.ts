@@ -40,9 +40,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Invoice update failed:', error);
-    const message = error instanceof Error ? error.message : 'Failed to update invoice';
-    return createSecureResponse({ error: message }, 400, req);
+    return createSecureResponse({ error: 'Failed to update invoice' }, 400, req);
   }
 }
 

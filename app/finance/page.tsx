@@ -19,11 +19,16 @@ export default function FinancePage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Finance — Invoices</h1>
+        <h1 className="text-2xl font-bold">{t('finance.title', 'Finance — Invoices')}</h1>
         <CreateInvoice onCreated={()=>mutate()} />
       </div>
-      <div className="flex gap-2">
-        <Input placeholder="Search by number/customer" value={q} onChange={e=>setQ(e.target.value)} />
+      <div className="flex gap-2 mb-4">
+        <Input
+          placeholder={t('finance.searchPlaceholder', 'Search by number/customer')}
+          aria-label={t('finance.searchPlaceholder', 'Search by number/customer')}
+          value={q}
+          onChange={e=>setQ(e.target.value)}
+        />
         <Button onClick={()=>mutate()}>{t('common.search', 'Search')}</Button>
       </div>
 
@@ -36,10 +41,10 @@ export default function FinancePage() {
                 <span className="text-xs rounded-full px-2 py-1 border">{inv.status}</span>
               </div>
               <div className="text-sm text-slate-600">
-                Issue: {new Date(inv.issueDate).toLocaleDateString()} • Due: {new Date(inv.dueDate).toLocaleDateString()}
+                {t('finance.issue', 'Issue')}: {new Date(inv.issueDate).toLocaleDateString()} • {t('finance.due', 'Due')}: {new Date(inv.dueDate).toLocaleDateString()}
               </div>
               <Separator />
-              <div className="text-sm">Total: {inv.total} {inv.currency} (VAT {inv.vatAmount})</div>
+              <div className="text-sm">{t('finance.total', 'Total')}: {inv.total} {inv.currency} ({t('finance.vat', 'VAT')} {inv.vatAmount})</div>
               <div className="flex gap-2 pt-2">
                 <Action id={inv.id} action="POST" disabled={inv.status!=="DRAFT"} onDone={()=>mutate()} />
                 <Action id={inv.id} action="VOID" disabled={inv.status==="VOID"} onDone={()=>mutate()} />
@@ -89,39 +94,49 @@ function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button>{t('common.create', 'New Invoice')}</Button></DialogTrigger>
+      <DialogTrigger asChild><Button>{t('finance.newInvoice', 'New Invoice')}</Button></DialogTrigger>
       <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>{t('common.create', 'Create Invoice')}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t('finance.createInvoice', 'Create Invoice')}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs">Issue Date</label>
-              <Input type="date" value={issue} onChange={e=>setIssue(e.target.value)} />
+                        <div>
+                            <label htmlFor="issueDate" className="text-xs">{t('finance.issueDate', 'Issue Date')}</label>
+              <Input
+                id="issueDate"
+                type="date"
+                value={issue}
+                onChange={e => setIssue(e.target.value)}
+              />
             </div>
             <div>
-              <label className="text-xs">Due Date</label>
-              <Input type="date" value={due} onChange={e=>setDue(e.target.value)} />
+                            <label htmlFor="dueDate" className="text-xs">{t('finance.dueDate', 'Due Date')}</label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={due}
+                onChange={e => setDue(e.target.value)}
+              />
             </div>
           </div>
           <Separator />
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <div className="font-medium">Lines</div>
-              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:1, unitPrice:0, vatRate:15 }])}>{t('common.add', 'Add Line')}</Button>
+              <div className="font-medium">{t('finance.lines', 'Lines')}</div>
+              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:1, unitPrice:0, vatRate:15 }])}>{t('finance.addLine', 'Add Line')}</Button>
             </div>
             {lines.map((l, i)=>(
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
                 <div className="col-span-5">
-                  <Input placeholder="Description" value={l.description} onChange={e=>updateLine(i,"description",e.target.value)} />
+                  <Input placeholder={t('finance.description', 'Description')} value={l.description} onChange={e=>updateLine(i,"description",e.target.value)} />
                 </div>
                 <div className="col-span-2">
-                  <Input type="number" placeholder="Qty" value={l.qty} onChange={e=>updateLine(i,"qty",e.target.value)} />
+                  <Input type="number" placeholder={t('finance.qty', 'Qty')} value={l.qty} onChange={e=>updateLine(i,"qty",e.target.value)} />
                 </div>
                 <div className="col-span-2">
-                  <Input type="number" placeholder="Unit Price" value={l.unitPrice} onChange={e=>updateLine(i,"unitPrice",e.target.value)} />
+                  <Input type="number" placeholder={t('finance.unitPrice', 'Unit Price')} value={l.unitPrice} onChange={e=>updateLine(i,"unitPrice",e.target.value)} />
                 </div>
                 <div className="col-span-2">
-                  <Input type="number" placeholder="VAT %" value={l.vatRate} onChange={e=>updateLine(i,"vatRate",e.target.value)} />
+                  <Input type="number" placeholder={t('finance.vatPercent', 'VAT %')} value={l.vatRate} onChange={e=>updateLine(i,"vatRate",e.target.value)} />
                 </div>
                 <div className="col-span-1 text-right text-sm">
                   {(l.qty*l.unitPrice*(1+l.vatRate/100)).toFixed(2)}

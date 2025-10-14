@@ -27,82 +27,37 @@ try {
 }
 
 
-// AWS Secrets Manager support with fallback
-let jwtSecret: string | null = null;
+// Lazy initialization - only validate at runtime, not build time
+// JWT secret is loaded on first use, with fallback for development
+let JWT_SECRET: string | undefined;
 
-async function _getJWTSecret(): Promise<string> {
-  if (jwtSecret) {
-    return jwtSecret;
+function getJWTSecret(): string {
+  if (JWT_SECRET) {
+    return JWT_SECRET;
   }
 
-  // Try environment variable first
   const envSecret = process.env.JWT_SECRET?.trim();
   if (envSecret) {
-    jwtSecret = envSecret;
-    return jwtSecret;
+    JWT_SECRET = envSecret;
+    return JWT_SECRET;
   }
 
-  // Try AWS Secrets Manager if credentials are available
-  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-    try {
-      // Import AWS SDK dynamically to avoid errors if not installed
-      const AWS = await import('@aws-sdk/client-secrets-manager').catch(() => null);
-      if (AWS) {
-        const client = new AWS.SecretsManagerClient({
-          region: process.env.AWS_REGION || 'me-south-1'
-        });
-        
-        const command = new AWS.GetSecretValueCommand({
-          SecretId: 'fixzit-jwt-production'
-        });
-        
-        const response = await client.send(command);
-        if (response.SecretString) {
-          const secrets = JSON.parse(response.SecretString);
-          jwtSecret = secrets.JWT_SECRET;
-          console.log('✅ JWT secret loaded from AWS Secrets Manager');
-          return jwtSecret!;
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load JWT secret from AWS Secrets Manager:', error);
-    }
-  }
-
-  // Production environment MUST have JWT_SECRET configured
+  // CRITICAL: Production must have JWT_SECRET configured
   if (process.env.NODE_ENV === 'production') {
-    console.error('🚨 CRITICAL: JWT_SECRET environment variable is required in production');
-    console.error('Set JWT_SECRET in your environment or AWS Secrets Manager');
+    console.error('🚨 FATAL: JWT_SECRET is not configured in production environment');
+    console.error('🚨 Application cannot start without JWT_SECRET in production');
     throw new Error('JWT_SECRET is required in production environment');
   }
-
-  // Development fallback - generate ephemeral secret
-  const fallbackSecret = randomBytes(32).toString('hex');
-  console.warn('⚠️ JWT_SECRET not configured. Using ephemeral secret for development.');
-  console.warn('⚠️ This secret will change on restart. Set JWT_SECRET for persistence.');
-  jwtSecret = fallbackSecret;
-  return jwtSecret;
-}
-
-// Synchronous version for immediate use
-const JWT_SECRET = (() => {
-  const envSecret = process.env.JWT_SECRET?.trim();
-  if (envSecret) {
-    return envSecret;
-  }
-
-  // Production environment MUST have JWT_SECRET configured
-  if (process.env.NODE_ENV === 'production') {
-    console.error('🚨 CRITICAL: JWT_SECRET environment variable is required in production');
-    throw new Error('JWT_SECRET is required in production environment');
-  }
-
-  // Development fallback - generate ephemeral secret
+  
+  // Development/build-time fallback - generate ephemeral secret
+  // NOTE: Tokens will not persist across restarts in development
   const fallbackSecret = randomBytes(32).toString('hex');
   console.warn('⚠️ JWT_SECRET not set. Using ephemeral secret for development.');
   console.warn('⚠️ Set JWT_SECRET environment variable for session persistence.');
-  return fallbackSecret;
-})();
+  
+  JWT_SECRET = fallbackSecret;
+  return JWT_SECRET;
+}
 
 export interface AuthToken {
   id: string;
@@ -122,12 +77,12 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export function generateToken(payload: AuthToken): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  return jwt.sign(payload, getJWTSecret(), { expiresIn: '24h' });
 }
 
 export function verifyToken(token: string): AuthToken | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthToken;
+    return jwt.verify(token, getJWTSecret()) as AuthToken;
   } catch {
     return null;
   }
