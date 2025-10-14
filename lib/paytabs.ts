@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from 'crypto';
+
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
   EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
@@ -148,9 +150,18 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
   // Implement signature validation according to PayTabs documentation
-  // This is a simplified version - refer to PayTabs docs for actual implementation
   const calculatedSignature = generateSignature(payload);
-  return calculatedSignature === signature;
+  
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return timingSafeEqual(
+      Buffer.from(calculatedSignature, 'hex'),
+      Buffer.from(signature, 'hex')
+    );
+  } catch (_error) {
+    // If buffers are different lengths, timingSafeEqual will throw
+    return false;
+  }
 }
 
 function generateSignature(payload: Record<string, unknown>): string {
@@ -159,17 +170,26 @@ function generateSignature(payload: Record<string, unknown>): string {
     throw new Error('PayTabs server key is required for signature generation');
   }
 
-  // Import crypto for HMAC-SHA256
-  const crypto = require('crypto');
-
-  // Canonically serialize payload by sorting keys and joining as key=value
-  const sortedKeys = Object.keys(payload).sort();
+  // Canonically serialize payload according to PayTabs specification:
+  // 1. Sort keys alphabetically
+  // 2. Exclude 'signature' field itself if present
+  // 3. Flatten nested objects (if any) before serialization
+  // 4. Join as key=value pairs with & delimiter
+  const sortedKeys = Object.keys(payload)
+    .filter(key => key !== 'signature') // Exclude signature field itself
+    .sort();
+    
   const canonicalString = sortedKeys
-    .map(key => `${key}=${payload[key]}`)
+    .map(key => {
+      const value = payload[key];
+      // Convert to string, handling null/undefined
+      const stringValue = value != null ? String(value) : '';
+      return `${key}=${stringValue}`;
+    })
     .join('&');
 
   // Compute HMAC-SHA256 hex digest using the server key
-  const hmac = crypto.createHmac('sha256', PAYTABS_CONFIG.serverKey);
+  const hmac = createHmac('sha256', PAYTABS_CONFIG.serverKey);
   hmac.update(canonicalString);
   return hmac.digest('hex');
 }
