@@ -29,10 +29,11 @@
       "react",
       "react-dom",
       "next",
-      "google.maps"
+      "google.maps",
+      "jest"
     ],
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@/*": [
         "./*"

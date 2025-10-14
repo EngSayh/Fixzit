@@ -159,21 +159,36 @@ describe('useTranslation', () => {
   });
 
   describe('setLocale(string) normalization', () => {
-    it('setLocale is a function that updates locale', () => {
+    it('normalizes arabic variants to "ar"', () => {
       let captured: ReturnType<typeof useTranslation> | null = null;
       renderWithProvider((v) => (captured = v));
 
-      expect(captured).toBeTruthy();
-      expect(typeof captured!.setLocale).toBe('function');
+      captured!.setLocale('ar');
+      captured!.setLocale('AR');
+      captured!.setLocale('ar-sa');
+      captured!.setLocale('ar_SA');
+      expect(mockSetLocale).toHaveBeenCalledTimes(4);
+      expect(mockSetLocale).toHaveBeenNthCalledWith(1, 'ar');
+      expect(mockSetLocale).toHaveBeenNthCalledWith(2, 'ar');
+      expect(mockSetLocale).toHaveBeenNthCalledWith(3, 'ar');
+      expect(mockSetLocale).toHaveBeenNthCalledWith(4, 'ar');
     });
 
-    it('setLocale updates context', () => {
+    it('normalizes non-arabic or unknown to "en"', () => {
       vi.clearAllMocks();
       let captured: ReturnType<typeof useTranslation> | null = null;
       renderWithProvider((v) => (captured = v));
 
-      expect(captured).toBeTruthy();
-      expect(typeof captured!.setLocale).toBe('function');
+      captured!.setLocale('en');
+      captured!.setLocale('EN');
+      captured!.setLocale('en-gb');
+      captured!.setLocale('fr');
+      captured!.setLocale('pt-BR');
+      captured!.setLocale(''); // empty string edge case
+      expect(mockSetLocale).toHaveBeenCalledTimes(6);
+      for (let i = 1; i <= 6; i++) {
+        expect(mockSetLocale).toHaveBeenNthCalledWith(i, 'en');
+      }
     });
   });
 
