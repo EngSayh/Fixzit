@@ -1,10 +1,10 @@
 /**
  * Tests for SupportTicketPage
  *
- * Assumed test stack: Jest + React Testing Library + user-event + jest-dom (jsdom environment)
- * If the project uses Vitest, replace jest.fn with vi.fn, update imports accordingly, and ensure setup files are aligned.
+ * Test framework: Vitest + React Testing Library + user-event + jest-dom (jsdom environment)
  */
 
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -21,10 +21,10 @@ const originalAlert = global.alert as unknown as ReturnType<typeof vi.fn> | unde
 beforeEach(() => {
   // jsdom doesn't implement alert; we mock it
   // @ts-ignore
-  global.alert = jest.fn();
+  global.alert = vi.fn();
   // Default fetch mock resolves with ok=true
   // @ts-ignore
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 't_123' }) });
+  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 't_123' }) });
 });
 
 afterEach(() => {
@@ -37,7 +37,7 @@ afterEach(() => {
     // @ts-ignore
     delete global.alert;
   }
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 function fillRequiredFields() {

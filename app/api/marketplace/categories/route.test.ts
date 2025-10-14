@@ -1,24 +1,25 @@
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { GET } from './route';
 import { z } from 'zod';
 import { NextRequest } from 'next/server';
 
 // We will mock the database collections module.
 // Adjust mock syntax if using Vitest (vi.mock) instead of Jest.
-jest.mock('@/lib/db/collections', () => ({
-  getCollections: jest.fn(),
+vi.mock('@/lib/db/collections', () => ({
+  getCollections: vi.fn(),
 }));
 
 import { getCollections } from '@/lib/db/collections';
 
-type ProductsCollection = { distinct: jest.Mock };
+type ProductsCollection = { distinct: ReturnType<typeof vi.fn> };
 
 const makeCollections = (distinctValues: unknown[] = [], categoryDocs: any[] = []) => {
-  const toArray = jest.fn().mockResolvedValue(categoryDocs);
-  const sort = jest.fn().mockReturnValue({ toArray });
-  const find = jest.fn().mockReturnValue({ sort });
+  const toArray = vi.fn().mockResolvedValue(categoryDocs);
+  const sort = vi.fn().mockReturnValue({ toArray });
+  const find = vi.fn().mockReturnValue({ sort });
 
   const products: ProductsCollection = {
-    distinct: jest.fn().mockResolvedValue(distinctValues),
+    distinct: vi.fn().mockResolvedValue(distinctValues),
   };
 
   return {
@@ -33,7 +34,7 @@ describe('GET /api/marketplace/categories', () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     // Clone env to avoid leakage between tests
     process.env = { ...ORIGINAL_ENV };
   });
@@ -125,7 +126,7 @@ describe('GET /api/marketplace/categories', () => {
   test('responds with 400 on Zod validation error (mocked)', async () => {
     // Spy on ZodObject.parse to throw a ZodError for this invocation
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parseSpy = jest.spyOn((z as any).ZodObject.prototype, 'parse').mockImplementation(() => {
+    const parseSpy = vi.spyOn((z as any).ZodObject.prototype, 'parse').mockImplementation(() => {
       throw new z.ZodError([
         {
           code: 'custom',

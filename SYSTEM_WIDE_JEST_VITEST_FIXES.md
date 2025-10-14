@@ -311,32 +311,69 @@ Already included in Step 1.2
 
 ```bash
 #!/bin/bash
-# fix-jest-vitest-issues.sh
+# fix-jest-vitest-issues.sh - Complete Jest→Vitest Migration Script
 
 echo "🔧 Fixing Jest→Vitest migration issues..."
 
 # Fix 1: jest.Mock type assertions
-echo "1/4 Fixing jest.Mock type assertions..."
+echo "1/8 Fixing jest.Mock type assertions..."
 find . -type f \( -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" \) \
   -not -path "*/node_modules/*" \
   -exec sed -i 's/as jest\.Mock/as ReturnType<typeof vi.fn>/g' {} +
 
-# Fix 2: Documentation references (skip actual fixes in docs)
-echo "2/4 Updating documentation..."
+# Fix 2: Jest mock creation → Vitest
+echo "2/8 Converting Jest mock creation to Vitest..."
+find . -type f \( -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" \) \
+  -not -path "*/node_modules/*" \
+  -exec sed -i 's/jest\.fn()/vi.fn()/g' {} + \
+  -exec sed -i 's/jest\.spyOn(/vi.spyOn(/g' {} +
+
+# Fix 3: Jest mock utilities → Vitest
+echo "3/8 Converting Jest mock utilities to Vitest..."
+find . -type f \( -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" \) \
+  -not -path "*/node_modules/*" \
+  -exec sed -i 's/jest\.mock(/vi.mock(/g' {} + \
+  -exec sed -i 's/jest\.resetAllMocks()/vi.resetAllMocks()/g' {} + \
+  -exec sed -i 's/jest\.clearAllMocks()/vi.clearAllMocks()/g' {} + \
+  -exec sed -i 's/jest\.restoreAllMocks()/vi.restoreAllMocks()/g' {} + \
+  -exec sed -i 's/jest\.resetModules()/vi.resetModules()/g' {} +
+
+# Fix 4: Jest timers → Vitest
+echo "4/8 Converting Jest timers to Vitest..."
+find . -type f \( -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" \) \
+  -not -path "*/node_modules/*" \
+  -exec sed -i 's/jest\.useFakeTimers()/vi.useFakeTimers()/g' {} + \
+  -exec sed -i 's/jest\.useRealTimers()/vi.useRealTimers()/g' {} + \
+  -exec sed -i 's/jest\.advanceTimersByTime(/vi.advanceTimersByTime(/g' {} + \
+  -exec sed -i 's/jest\.runOnlyPendingTimers()/vi.runOnlyPendingTimers()/g' {} + \
+  -exec sed -i 's/jest\.setSystemTime(/vi.setSystemTime(/g' {} +
+
+# Fix 5: Jest module mocking → Vitest
+echo "5/8 Converting Jest module mocking to Vitest..."
+find . -type f \( -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" \) \
+  -not -path "*/node_modules/*" \
+  -exec sed -i 's/jest\.doMock(/vi.doMock(/g' {} + \
+  -exec sed -i 's/jest\.dontMock(/vi.unmock(/g' {} + \
+  -exec sed -i 's/jest\.requireActual(/vi.importActual(/g' {} + \
+  -exec sed -i 's/jest\.requireMock(/vi.importMock(/g' {} +
+
+# Fix 6: Documentation references (skip actual fixes in docs)
+echo "6/8 Updating documentation..."
 # Already fixed SUB_BATCH_1_2B_PROGRESS.md manually
 
-# Fix 3: Control char regex
-echo "3/4 Adding hasControlChars helper..."
+# Fix 7: Control char regex
+echo "7/8 Adding hasControlChars helper..."
 # Manual: Add helper function to language-options.test.ts
 
-# Fix 4: Report
-echo "4/4 Generating report..."
+# Fix 8: Report
+echo "8/8 Generating report..."
 echo "✅ Automated fixes complete"
 echo "⚠️  Manual fixes required:"
 echo "   - vi.importMock → direct imports (2 files)"
 echo "   - Control char helper function (1 file)"
 echo "   - MongoDB mock connect() (1 file)"
 echo "   - Math.random spy (1 file)"
+echo "   - Add vitest imports to files still using jest APIs"
 ```
 
 ---

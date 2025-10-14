@@ -1,14 +1,14 @@
 // If the import path for AIChatPage is different in your repo, update the dynamic import block below accordingly.
 
 /**
- * NOTE: Test framework
- * These tests assume Jest + @testing-library/react + @testing-library/jest-dom.
- * If your project uses Vitest, replace jest.fn/spyOn with vi.fn/vi.spyOn and ensure setup accordingly.
+ * NOTE: Test framework: Vitest
+ * These tests use @testing-library/react + @testing-library/jest-dom.
  */
 
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react'
 import { render, screen, fireEvent, act, within } from '@testing-library/react'
-import '@testing-library/jest-dom/extend-expect'
+import '@testing-library/jest-dom'
 
 // Attempt common locations. Update the import below to match actual file location if different.
 let AIChatPage: any
@@ -60,19 +60,19 @@ describe('AIChatPage', () => {
   const origClose = (window as any).close
 
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     // Mock fetch by default to a successful response
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       json: async () => ({ answer: 'This is a helpful response.' }),
     }) as any
     // Mock window.close to avoid errors in jsdom
-    ;(window as any).close = jest.fn()
+    ;(window as any).close = vi.fn()
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-    jest.clearAllMocks()
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+    vi.clearAllMocks()
     global.fetch = origFetch
     ;(window as any).close = origClose
   })
@@ -177,7 +177,7 @@ describe('AIChatPage', () => {
 
     // Fast-forward timers to resolve
     await act(async () => {
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
     })
     await flushPromises()
 
