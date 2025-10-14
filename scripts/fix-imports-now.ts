@@ -21,9 +21,10 @@ import fg from 'fast-glob';
         fixedCount++;
         if (fixedCount <= 10) console.log('Fixed: ' + file);
       }
-    } catch (e: any) {
-      console.error(`Failed to process ${file}:`, e?.message || e);
-      if (e?.stack) console.error(e.stack);
+    } catch (e: unknown) {
+      const error = e as { message?: string; stack?: string };
+      console.error(`Failed to process ${file}:`, error?.message || String(e));
+      if (error?.stack) console.error(error.stack);
     }
   }
   

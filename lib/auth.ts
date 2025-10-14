@@ -2,13 +2,37 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
+// Type definition for User document
+interface UserDocument {
+  _id: { toString(): string };
+  email: string;
+  password: string;
+  status: string;
+  role?: string;
+  orgId?: string;
+  personalInfo?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  professionalInfo?: {
+    role?: string;
+  };
+  [key: string]: unknown; // Allow additional fields
+}
+
+// Type definition for User model with MongoDB methods
+interface UserModel {
+  findOne: (query: Record<string, unknown>) => Promise<UserDocument | null>;
+  findById: (id: string) => Promise<UserDocument | null>;
+  [key: string]: unknown; // Allow additional MongoDB methods
+}
+
 // Use real Mongoose model for production
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let User: any; // MongoDB model with dynamic query methods
+let User: UserModel;
 
 try {
   const { User: UserModel } = require('@/modules/users/schema');
-  User = UserModel;
+  User = UserModel as UserModel;
 } catch (error) {
   const errorMessage = `CRITICAL: Failed to load User model from @/modules/users/schema - ${error instanceof Error ? error.message : String(error)}`;
   console.error(errorMessage);
@@ -116,8 +140,8 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
   const token = generateToken({
     id: user._id.toString(),
     email: user.email,
-    role: user.professionalInfo?.role || user.role,
-    orgId: user.orgId
+    role: user.professionalInfo?.role || user.role || 'USER',
+    orgId: user.orgId || ''
   });
 
   return {
@@ -125,9 +149,9 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     user: {
       id: user._id.toString(),
       email: user.email,
-      name: `${user.personalInfo?.firstName} ${user.personalInfo?.lastName}`,
-      role: user.professionalInfo?.role || user.role,
-      orgId: user.orgId
+      name: `${user.personalInfo?.firstName || ''} ${user.personalInfo?.lastName || ''}`.trim(),
+      role: user.professionalInfo?.role || user.role || 'USER',
+      orgId: user.orgId || ''
     }
   };
 }
@@ -149,9 +173,9 @@ export async function getUserFromToken(token: string) {
   return {
     id: user._id.toString(),
     email: user.email,
-    name: `${user.personalInfo?.firstName} ${user.personalInfo?.lastName}`,
-    role: user.professionalInfo?.role || user.role,
-    orgId: user.orgId
+    name: `${user.personalInfo?.firstName || ''} ${user.personalInfo?.lastName || ''}`.trim(),
+    role: user.professionalInfo?.role || user.role || 'USER',
+    orgId: user.orgId || ''
   };
 }
 
