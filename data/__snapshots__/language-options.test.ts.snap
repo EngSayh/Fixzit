@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`language-options data integrity > should provide a stable snapshot of codes and labels (sorted by code) 1`] = `
+[
+  "ar:العربية",
+  "en:English",
+]
+`;

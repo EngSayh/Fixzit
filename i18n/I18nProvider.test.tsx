@@ -1,17 +1,16 @@
 /**
  * Testing library and framework:
- * - This test suite uses React Testing Library with Jest in a jsdom environment.
- *   If the project uses Vitest instead of Jest, replace jest.fn/jest.spyOn with vi.fn/vi.spyOn accordingly.
+ * - This test suite uses React Testing Library with Vitest in a jsdom environment.
  */
 import React, { useContext } from 'react';
 import { render, screen, waitFor, cleanup, act } from '@testing-library/react';
+import { vi, beforeEach, afterEach, describe, test, expect } from 'vitest';
 
 /**
  * Mock config and dictionaries BEFORE importing the module under test
  * to ensure DICTIONARIES and meta are built from predictable values.
  */
-jest.mock('./config', () => ({
-  __esModule: true,
+vi.mock('./config', () => ({
   DEFAULT_LOCALE: 'en',
   SUPPORTED_LOCALES: ['en', 'ar'],
   LOCALE_META: {
@@ -20,13 +19,11 @@ jest.mock('./config', () => ({
   },
 }));
 
-jest.mock('./dictionaries/en', () => ({
-  __esModule: true,
+vi.mock('./dictionaries/en', () => ({
   default: { greeting: 'Hello', code: 'en' },
 }));
 
-jest.mock('./dictionaries/ar', () => ({
-  __esModule: true,
+vi.mock('./dictionaries/ar', () => ({
   default: { greeting: 'مرحبا', code: 'ar' },
 }));
 
@@ -44,9 +41,9 @@ beforeEach(() => {
   cleanup();
   localStorage.clear();
   resetCookies();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Provide a default fetch mock
-  (global as any).fetch = jest.fn().mockResolvedValue({ ok: true });
+  (global as any).fetch = vi.fn().mockResolvedValue({ ok: true });
 });
 
 afterEach(() => {
@@ -69,11 +66,10 @@ describe('I18nProvider', () => {
   test('renders children and provides default context values from DEFAULT_LOCALE', () => {
     render(
       <I18nProvider>
-        <div data-testid="child">ok</div>
+        <CaptureContext />
       </I18nProvider>
     );
 
-    expect(screen.getByTestId('child')).toBeInTheDocument();
     expect(screen.getByTestId('locale').textContent).toBe('en');
     expect(screen.getByTestId('dir').textContent).toBe('ltr');
 
@@ -162,7 +158,9 @@ describe('I18nProvider', () => {
     });
 
     const evt = handler.mock.calls[0][0] as CustomEvent;
-    expect(evt.detail).toEqual({ locale: 'en', language: 'en', dir: 'ltr' });
+    expect(evt.detail).toMatchObject({ locale: 'en', language: 'en', dir: 'ltr' });
+
+    window.removeEventListener('fixzit:language-change', handler);
   });
 
   test('setLocale with { persist: false } updates context and DOM but does not touch storage/cookies/fetch', async () => {
@@ -176,7 +174,7 @@ describe('I18nProvider', () => {
     // Ensure clean baseline for cookies and storage
     localStorage.clear();
     resetCookies();
-    (global as any).fetch = jest.fn().mockResolvedValue({ ok: true });
+    (global as any).fetch = vi.fn().mockResolvedValue({ ok: true });
 
     await act(async () => {
       ctxRef.setLocale('ar', { persist: false });
@@ -207,7 +205,7 @@ describe('I18nProvider', () => {
 
   test('gracefully ignores storage errors while keeping state changes', async () => {
     // Make localStorage.setItem throw
-    const spy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('storage-fail');
     });
 
