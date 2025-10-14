@@ -6,6 +6,30 @@ Reads TypeScript error output and removes duplicate sections
 
 import re
 import subprocess
+import os
+import sys
+
+def get_repo_root():
+    """Auto-detect repository root by looking for .git directory"""
+    current = os.path.dirname(os.path.abspath(__file__))
+    while current != '/':
+        if os.path.exists(os.path.join(current, '.git')):
+            return current
+        current = os.path.dirname(current)
+    # Fallback: try git command
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except:
+        print("ERROR: Could not detect repository root. Run from within git repository.", file=sys.stderr)
+        sys.exit(1)
+
+REPO_ROOT = get_repo_root()
 
 def get_duplicate_lines():
     """Get all duplicate line numbers from TypeScript errors"""
@@ -13,7 +37,7 @@ def get_duplicate_lines():
         ['npm', 'run', 'typecheck'],
         capture_output=True,
         text=True,
-        cwd='/workspaces/Fixzit'
+        cwd=REPO_ROOT
     )
     
     # Combine stdout and stderr
@@ -55,7 +79,7 @@ def find_section_end(lines, start_line):
 
 def remove_duplicates(filename):
     """Remove duplicate sections from a file"""
-    filepath = f'/workspaces/Fixzit/i18n/dictionaries/{filename}.ts'
+    filepath = os.path.join(REPO_ROOT, f'i18n/dictionaries/{filename}.ts')
     
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()

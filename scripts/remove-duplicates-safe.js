@@ -17,10 +17,46 @@ function removeDuplicates(filePath) {
   let currentDepth = 0;
   
   lines.forEach((line, index) => {
-    // Track depth by counting braces
-    const openBraces = (line.match(/{/g) || []).length;
-    const closeBraces = (line.match(/}/g) || []).length;
-    currentDepth += openBraces - closeBraces;
+    // Track depth by counting braces (string-aware)
+    // Simple state machine to ignore braces inside strings
+    let inString = false;
+    let stringChar = null;
+    let escaped = false;
+    let openCount = 0;
+    let closeCount = 0;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      
+      // Toggle string state
+      if ((char === '"' || char === "'" || char === '`') && !inString) {
+        inString = true;
+        stringChar = char;
+        continue;
+      } else if (char === stringChar && inString) {
+        inString = false;
+        stringChar = null;
+        continue;
+      }
+      
+      // Only count braces outside strings
+      if (!inString) {
+        if (char === '{') openCount++;
+        if (char === '}') closeCount++;
+      }
+    }
+    
+    currentDepth += openCount - closeCount;
     
     // Match key patterns:  key: value,
     const keyMatch = line.match(/^\s+(\w+):\s*(["{]|[\w]+)/);
@@ -38,7 +74,7 @@ function removeDuplicates(filePath) {
         // Mark this line and potentially the whole section for removal
         linesToRemove.add(index);
         
-        // If next line is opening brace, mark whole section
+        // If next line is opening brace, mark whole section (string-aware)
         if (index + 1 < lines.length && lines[index + 1].trim() === '{') {
           let braceDepth = 1;
           let i = index + 2;
@@ -46,8 +82,29 @@ function removeDuplicates(filePath) {
           
           while (i < lines.length && braceDepth > 0) {
             const l = lines[i];
-            if (l.includes('{')) braceDepth++;
-            if (l.includes('}')) braceDepth--;
+            
+            // Count braces outside strings
+            let inStr = false;
+            let strChar = null;
+            let esc = false;
+            
+            for (let j = 0; j < l.length; j++) {
+              const c = l[j];
+              if (esc) { esc = false; continue; }
+              if (c === '\\') { esc = true; continue; }
+              if ((c === '"' || c === "'" || c === '`') && !inStr) {
+                inStr = true;
+                strChar = c;
+              } else if (c === strChar && inStr) {
+                inStr = false;
+                strChar = null;
+              }
+              if (!inStr) {
+                if (c === '{') braceDepth++;
+                if (c === '}') braceDepth--;
+              }
+            }
+            
             linesToRemove.add(i);
             if (braceDepth === 0) break;
             i++;
