@@ -1,11 +1,12 @@
 /**
  * Tests for Candidate model: schema defaults and findByEmail behavior.
  *
- * Testing framework: Jest (TypeScript)
+ * Testing framework: Vitest
  * - We verify both mock DB path and real Mongoose path behaviors.
  */
 
-import type { Model } from 'mongoose'
+import { vi, describe, it, test, expect, beforeEach, afterEach } from 'vitest';
+import type { Model } from 'mongoose';
 
 // Important: we must import the module under test AFTER setting up the mocks
 
@@ -16,7 +17,7 @@ const resetModules = async () => {
 
 // A helper to dynamically import after setting mocks
 const importCandidate = async () => {
-  const mod = await import('@/models/candidate'); // adjust if actual path differs
+  const mod = await import('@/server/models/Candidate');
   return mod as any;
 };
 
@@ -41,6 +42,7 @@ const baseDoc = {
 // by intercepting mongoose.model('Candidate', ...) usage via jest.spyOn once imported.
 // To do this cleanly, we will mock mongoose before importing the module.
 
+describe('Candidate with Mock DB', () => {
   beforeEach(async () => {
     await resetModules();
 
@@ -79,7 +81,7 @@ const baseDoc = {
       }
     }
 
-    vi.doMock('@/models/candidate', () => ({
+    vi.doMock('@/server/models/Candidate', () => ({
       __esModule: true,
       CandidateRepo: MockCandidateRepo,
     }));
@@ -109,8 +111,10 @@ const baseDoc = {
     await Candidate.create({ ...baseDoc });
 
     const notFound = await Candidate.findByEmail('org-1', 'nonexistent@example.com');
+    expect(notFound).toBeFalsy();
   });
 
+  test('create applies schema defaults when fields are missing', async () => {
     const { Candidate } = await importCandidate();
     const created = await Candidate.create({ orgId: 'org-2', email: 'x@y.z' });
     expect(created.skills).toEqual([]);
@@ -120,6 +124,7 @@ const baseDoc = {
   });
 });
 
+describe('Candidate with Real Mongoose Model', () => {
   beforeEach(async () => {
     await resetModules();
 
@@ -140,8 +145,8 @@ const baseDoc = {
 
     const fakeModels: Record<string, any> = {};
 
-    vi.doMock('mongoose', () => {
-      const actual = vi.importActual('mongoose') as any;
+    vi.doMock('mongoose', async () => {
+      const actual = await vi.importActual('mongoose') as any;
       return {
         __esModule: true,
         ...actual,
