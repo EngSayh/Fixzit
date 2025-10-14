@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
     return handleApiError(error);
-  }
+}
 }
 
 export async function GET(req: NextRequest) {

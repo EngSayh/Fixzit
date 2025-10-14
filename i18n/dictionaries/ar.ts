@@ -26734,6 +26734,26 @@ const ar = {
     logistics: 'لوجستيات السيارات',
     jit: 'التسليم في الوقت المحدد',
   },
+
+  // Dashboard Page
+  dashboard: {
+    title: 'لوحة التحكم',
+    welcome: 'مرحباً بعودتك',
+    totalProperties: 'إجمالي العقارات',
+    openWorkOrders: 'أوامر العمل المفتوحة',
+    monthlyRevenue: 'الإيرادات الشهرية',
+    occupancyRate: 'معدل الإشغال',
+    recentWorkOrders: 'أوامر العمل الأخيرة',
+    recentTransactions: 'المعاملات الأخيرة',
+    acMaintenance: 'صيانة التكييف',
+    propertyTowerA: 'عقار برج A',
+    unit: 'وحدة',
+    monthlyRent: 'إيجار شهري',
+    tenant: 'مستأجر',
+    statusInProgress: 'قيد التنفيذ',
+    statusCompleted: 'مكتمل',
+    statusPending: 'معلق',
+  },
 };
 
 export default ar;

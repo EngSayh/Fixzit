@@ -9,11 +9,10 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Files to process
-const apiFiles = execSync('find app/api -name "*.ts" -type f')
+const apiFiles = execSync('find app/api -name "*.ts" -type f -print0')
   .toString()
-  .trim()
-  .split('\n')
-  .filter(f => f.endsWith('.ts'));
+  .split('\0')
+  .filter(f => f && f.endsWith('.ts'));
 
 let fixed = 0;
 let filesChanged = [];

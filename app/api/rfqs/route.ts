@@ -194,8 +194,8 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to fetch RFQs' }, 500, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
   }
 }
 

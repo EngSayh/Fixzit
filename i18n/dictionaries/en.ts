@@ -27555,6 +27555,26 @@ const en = {
     logistics: 'Automotive Logistics',
     jit: 'Just-In-Time Delivery',
   },
+
+  // Dashboard Page
+  dashboard: {
+    title: 'Dashboard',
+    welcome: 'Welcome back',
+    totalProperties: 'Total Properties',
+    openWorkOrders: 'Open Work Orders',
+    monthlyRevenue: 'Monthly Revenue',
+    occupancyRate: 'Occupancy Rate',
+    recentWorkOrders: 'Recent Work Orders',
+    recentTransactions: 'Recent Transactions',
+    acMaintenance: 'AC Maintenance',
+    propertyTowerA: 'Property Tower A',
+    unit: 'Unit',
+    monthlyRent: 'Monthly Rent',
+    tenant: 'Tenant',
+    statusInProgress: 'In Progress',
+    statusCompleted: 'Completed',
+    statusPending: 'Pending',
+  },
 };
 
 export default en;
