@@ -69,15 +69,25 @@ if (matches.length > 1) {
   }
 }
 
-// Remove any duplicate final export statements
-content = content.replace(/\n\s*export default en;?\s*$/gm, '');
+// Remove any trailing "export default en" statements at the actual file end
+// Use pattern without 'm' flag to match only at string end
+content = content.replace(/(\n\s*export default en;?\s*)+$/, '');
 
-// Ensure the file ends with a single semicolon after the closing brace
-if (!content.trim().endsWith('};')) {
-  // Find the last closing brace
-  const lastBraceIndex = content.lastIndexOf('}');
-  if (lastBraceIndex !== -1) {
+// Ensure the file ends properly after the last closing brace
+const lastBraceIndex = content.lastIndexOf('}');
+if (lastBraceIndex !== -1) {
+  // Extract content after the last brace
+  const suffix = content.substring(lastBraceIndex + 1);
+  
+  // Check if suffix contains only whitespace and/or comments
+  const hasOnlyWhitespaceOrComments = /^[\s\/\*]*$/.test(suffix);
+  
+  if (hasOnlyWhitespaceOrComments || suffix.trim() === '') {
+    // Safe to add semicolon
     content = content.substring(0, lastBraceIndex + 1) + ';\n';
+  } else {
+    // Preserve non-whitespace content, insert semicolon after last brace
+    content = content.substring(0, lastBraceIndex + 1) + ';' + suffix;
   }
 }
 

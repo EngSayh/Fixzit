@@ -29,6 +29,11 @@ const welcomeEmailSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
+// Check if email service is configured
+const isEmailConfigured = () => {
+  return !!(process.env.SENDGRID_API_KEY || process.env.AWS_SES_ACCESS_KEY || process.env.EMAIL_SERVICE_ENABLED);
+};
+
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
@@ -39,6 +44,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = welcomeEmailSchema.parse(await req.json());
+
+    // Check if email service is configured
+    if (!isEmailConfigured()) {
+      return NextResponse.json({
+        error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
+        status: 'not_configured'
+      }, { status: 501 }); // 501 Not Implemented
+    }
 
     // In a real implementation, this would integrate with an email service
     // For now, we'll log the welcome email details
@@ -158,11 +171,18 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Email parameter required' }, 400, req);
   }
 
+  // Check if email service is configured
+  if (!isEmailConfigured()) {
+    return NextResponse.json({
+      error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
+      email,
+      status: 'not_configured'
+    }, { status: 501 }); // 501 Not Implemented
+  }
+
   // TODO: Implement actual database lookup for email delivery status
-  // For now, return not found since email service is not integrated
   return NextResponse.json({
-    error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
     email,
-    status: 'not_configured'
-  }, { status: 501 }); // 501 Not Implemented
+    status: 'service_configured_but_no_records'
+  }, { status: 200 });
 }

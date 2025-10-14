@@ -153,16 +153,25 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
   return calculatedSignature === signature;
 }
 
-function generateSignature(_payload: Record<string, unknown>): string {
-  // Placeholder implementation for signature generation
-  // TODO: Implement according to PayTabs signature generation algorithm
-  // Refer to PayTabs API documentation: https://site.paytabs.com/en/docs/
-  // This should implement HMAC-SHA256 signature algorithm as per PayTabs specs
-  
-  // Return empty string for now to avoid breaking payment flows
-  // In production, this MUST be implemented properly
-  console.warn('PayTabs signature generation not implemented. This should be implemented before production use.');
-  return '';
+function generateSignature(payload: Record<string, unknown>): string {
+  // Ensure server key is configured
+  if (!PAYTABS_CONFIG.serverKey) {
+    throw new Error('PayTabs server key is required for signature generation');
+  }
+
+  // Import crypto for HMAC-SHA256
+  const crypto = require('crypto');
+
+  // Canonically serialize payload by sorting keys and joining as key=value
+  const sortedKeys = Object.keys(payload).sort();
+  const canonicalString = sortedKeys
+    .map(key => `${key}=${payload[key]}`)
+    .join('&');
+
+  // Compute HMAC-SHA256 hex digest using the server key
+  const hmac = crypto.createHmac('sha256', PAYTABS_CONFIG.serverKey);
+  hmac.update(canonicalString);
+  return hmac.digest('hex');
 }
 
 // Payment methods supported in Saudi Arabia
