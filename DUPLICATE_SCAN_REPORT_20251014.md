@@ -154,7 +154,7 @@ grep -r "remove-duplicates-v2\|fix-duplicates-manual" . --exclude-dir=node_modul
 ### Priority 2: Scanner Consolidation (MEDIUM)
 
 **Current State:** 2 scanner utilities
-```
+```bash
 scripts/scanner.js              (General purpose?)
 qa/scripts/scanDuplicates.mjs   (QA-specific?)
 ```
@@ -174,7 +174,7 @@ qa/scripts/scanDuplicates.mjs   (QA-specific?)
 ### Priority 3: Translation Scripts (LOW)
 
 **Current State:** 3 translation duplicate handlers
-```
+```bash
 scripts/fix-duplicate-keys.js          (Generic key duplicates)
 scripts/fix-en-duplicates.js           (English-specific)
 scripts/fix-translation-duplicates.js  (General translation duplicates)
@@ -216,7 +216,7 @@ grep -r "DuplicatePrevention" --exclude-dir=node_modules .
 ## 📁 Recommended Folder Structure
 
 ### Current:
-```
+```plaintext
 scripts/
   ├── cleanup-duplicate-imports.js
   ├── dedupe-merge.ts
