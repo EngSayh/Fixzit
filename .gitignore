@@ -9,6 +9,8 @@
 /playwright/.cache/
 /cypress/videos/
 /cypress/screenshots/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Local env & secrets
 .env
