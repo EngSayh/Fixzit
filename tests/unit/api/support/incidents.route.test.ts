@@ -1,6 +1,6 @@
 /**
  * Unit tests for /api/support/incidents route (POST).
- * Framework: Jest (ts-jest).
+ * Framework: Vitest
  *
  * We mock:
  * - next/server: NextResponse.json to return simple object with status + payload.
@@ -16,6 +16,7 @@
  * - Message composition with details/stack
  */
 
+import { vi, describe, it, expect, beforeEach, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server';
 
 vi.mock('next/server', () => {
@@ -48,45 +49,44 @@ vi.mock('@/server/models/SupportTicket', () => {
 
 // Import after mocks
 let POST: any;
-beforeAll(async () => {
-  try {
-    ({ POST } = await import('@/app/api/support/incidents/route'));
-  } catch {
-    try {
-      ({ POST } = await import('app/api/support/incidents/route'));
-    } catch {
-      try {
-        ({ POST } = await import('@/app/api/support/incidents/route'));
-      } catch {
-        // Not found; tests will throw a clear error in cases below.
-      }
-    }
-  }
-});
+let NextResponse: any;
+let getNativeDb: any;
+let SupportTicket: any;
 
-const { NextResponse } = vi.importMock('next/server') as { NextResponse: { json: ReturnType<typeof vi.fn> } };
-const { getNativeDb } = vi.importMock('@/lib/mongo') as { getNativeDb: ReturnType<typeof vi.fn> };
-const { SupportTicket } = vi.importMock('@/server/models/SupportTicket') as { SupportTicket: { create: ReturnType<typeof vi.fn> } };
+beforeAll(async () => {
+  // Import the route handler
+  ({ POST } = await import('@/app/api/support/incidents/route'));
+  
+  // Get references to mocked modules
+  ({ NextResponse } = await import('next/server'));
+  ({ getNativeDb } = await import('@/lib/mongo'));
+  ({ SupportTicket } = await import('@/server/models/SupportTicket'));
+});
 
 describe('POST /api/support/incidents', () => {
   const FIXED_DATE = new Date('2024-06-15T12:34:56.000Z');
+  let randomSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(FIXED_DATE);
-    vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+    randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
     NextResponse.json.mockClear();
     getNativeDb.mockClear();
     SupportTicket.create.mockClear();
   });
 
   afterEach(() => {
-    (Math.random as ReturnType<typeof vi.fn>).mockRestore?.();
+    randomSpy.mockRestore();
     vi.useRealTimers();
   });
 
   function mkReq(body: any): NextRequest {
-    return { json: async () => body } as unknown as NextRequest;
+    return { 
+      json: async () => body,
+      headers: new Map([['x-forwarded-for', '127.0.0.1']]),
+      url: 'http://localhost/api/support/incidents'
+    } as unknown as NextRequest;
   }
 
   it('creates incident and ticket with provided fields (happy path)', async () => {

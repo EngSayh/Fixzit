@@ -1,6 +1,7 @@
 // Tests for GET handler in API route (marketplace products by slug)
-// Framework: Jest-style
+// Framework: Vitest
 
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import type { NextRequest } from 'next/server';
 
 // Mock next/server to control NextResponse.json behavior
@@ -39,7 +40,7 @@ vi.mock('@/db/mongoose', () => {
   };
 });
 
-vi.mock('@/models/marketplace/Category', () => ({
+vi.mock('@/server/models/marketplace/Category', () => ({
   __esModule: true,
   default: { findOne: vi.fn() }
 }));
@@ -50,11 +51,19 @@ vi.mock('@/lib/marketplace/serializers', () => {
   };
 });
 
-import { GET } from '../../../../app/api/marketplace/products/[slug]/route';
+// Import after mocks
+let GET: any;
+let resolveMarketplaceContext: any;
+let findProductBySlug: any;
+let Category: any;
 
-const { resolveMarketplaceContext } = vi.importMock('@/lib/marketplace/context');
-const { findProductBySlug } = vi.importMock('@/lib/marketplace/search');
-const CategoryMod = vi.importMock('@/models/marketplace/Category');
+beforeAll(async () => {
+  ({ GET } = await import('../../../../app/api/marketplace/products/[slug]/route'));
+  ({ resolveMarketplaceContext } = await import('@/lib/marketplace/context'));
+  ({ findProductBySlug } = await import('@/lib/marketplace/search'));
+  const CategoryMod = await import('@/server/models/marketplace/Category');
+  Category = CategoryMod.default;
+});
 
 describe('API GET /marketplace/products/[slug] (current implementation)', () => {
   const callGET = async (slug: string) => {
@@ -64,12 +73,12 @@ describe('API GET /marketplace/products/[slug] (current implementation)', () => 
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (resolveMarketplaceContext as ReturnType<typeof vi.fn>).mockResolvedValue({ orgId: 'org1', tenantKey: 'demo-tenant' });
-    CategoryMod.default.findOne.mockResolvedValue(null);
+    resolveMarketplaceContext.mockResolvedValue({ orgId: 'org1', tenantKey: 'demo-tenant' });
+    Category.findOne.mockResolvedValue(null);
   });
 
   it('returns 404 when product is not found', async () => {
-    (findProductBySlug as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    findProductBySlug.mockResolvedValueOnce(null);
 
     const res: any = await callGET('unknown-slug');
 
@@ -82,8 +91,8 @@ describe('API GET /marketplace/products/[slug] (current implementation)', () => 
 
   it('returns ok=true with product and null category (happy path)', async () => {
     const product = { _id: 'p1', slug: 'toy', categoryId: 'c1' };
-    (findProductBySlug as ReturnType<typeof vi.fn>).mockResolvedValueOnce(product);
-    CategoryMod.default.findOne.mockResolvedValueOnce(null);
+    findProductBySlug.mockResolvedValueOnce(product);
+    Category.findOne.mockResolvedValueOnce(null);
 
     const res: any = await callGET('toy');
 
