@@ -74,8 +74,9 @@ async function run() {
     result.bytesWritten = opts.content.length;
     result.message = exists ? 'File overwritten' : 'File created';
     console.log(JSON.stringify(result, null, 2));
-  } catch (err: any) {
-    result.message = err?.message || String(err);
+  } catch (err: unknown) {
+    const error = err as { message?: string };
+    result.message = error?.message || String(err);
     console.error(result.message);
     process.exitCode = 1;
     console.log(JSON.stringify(result));

@@ -81,11 +81,12 @@ async function setupProductionIndexes() {
       try {
         await db.collection(collection).createIndex(index, options);
         console.log(`✅ Index created on ${collection}:`, Object.keys(index));
-      } catch (error: any) {
-        if (error.code === 85) {
+      } catch (error: unknown) {
+        const err = error as { code?: number; message?: string };
+        if (err.code === 85) {
           console.log(`⚠️  Index already exists on ${collection}:`, Object.keys(index));
         } else {
-          console.error(`❌ Failed to create index on ${collection}:`, error.message);
+          console.error(`❌ Failed to create index on ${collection}:`, err.message || String(error));
         }
       }
     }

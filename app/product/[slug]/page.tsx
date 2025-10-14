@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from 'next/link';
 
 import { headers } from 'next/headers';
@@ -9,7 +8,7 @@ async function fetchPdp(slug: string) {
     cache: 'no-store',
     headers: cookie ? { cookie } : undefined,
     credentials: 'include'
-  } as any);
+  } as RequestInit);
   return res.json();
 }
 
@@ -44,9 +43,9 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
             { key: 'UOM', value: p?.buy?.uom },
             { key: 'Min Qty', value: p?.buy?.minQty }
           ]
-            .filter((a: any) => a?.value !== undefined && a?.value !== null && String(a.value).trim() !== '')
+            .filter((a) => a?.value !== undefined && a?.value !== null && String(a.value).trim() !== '')
             .slice(0, 6)
-            .map((a: any, i: number) => (
+            .map((a, i: number) => (
               <li key={i}><b>{a.key}:</b> {String(a.value)}</li>
             ))}
         </ul>
