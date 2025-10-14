@@ -167,7 +167,7 @@ const TestWrapper = ({ children }) => (
 );
 
 // Mock only fetch, not SWR
-(global.fetch as jest.Mock).mockResolvedValueOnce({
+(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
   ok: true,
   json: async () => ({ items: [], page: 1, total: 0 }),
 });
