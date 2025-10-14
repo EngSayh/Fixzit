@@ -102,7 +102,9 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    return createSecureResponse({ error: "Internal server error" }, 500, req);
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Project creation failed:`, error);
+    return createSecureResponse({ error: "Internal server error", correlationId }, 500, req);
   }
 }export async function GET(req: NextRequest) {
   try {
@@ -152,8 +154,10 @@ export async function POST(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to fetch projects' }, 500, req);
+  } catch (error: unknown) {
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Projects fetch failed:`, error);
+    return createSecureResponse({ error: 'Failed to fetch projects', correlationId }, 500, req);
   }
 }
 

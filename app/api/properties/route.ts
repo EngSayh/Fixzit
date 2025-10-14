@@ -186,8 +186,10 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to fetch properties' }, 500, req);
+  } catch (error: unknown) {
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Properties fetch failed:`, error);
+    return createSecureResponse({ error: 'Failed to fetch properties', correlationId }, 500, req);
   }
 }
 

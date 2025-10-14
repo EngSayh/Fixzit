@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
 
     // Check if email service is configured
     if (!isEmailConfigured()) {
-      return NextResponse.json({
+      return createSecureResponse({
         error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
         status: 'not_configured'
-      }, { status: 501 }); // 501 Not Implemented
+      }, 501, req); // 501 Not Implemented
     }
 
     // In a real implementation, this would integrate with an email service
@@ -138,19 +138,21 @@ The Fixzit Enterprise Team
      */
     // await sendEmail({ to: body.email, subject: body.subject, html: emailTemplate });
 
-    return NextResponse.json({
+    return createSecureResponse({
       success: true,
       message: 'Welcome email queued for sending',
       emailId: `WEL-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       recipient: body.email,
       subject: body.subject
-    });
+    }, 200, req);
 
   } catch (error) {
-    console.error('Welcome email error:', error);
-    return NextResponse.json(
-      { error: 'Failed to send welcome email' },
-      { status: 500 }
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Welcome email error:`, error);
+    return createSecureResponse(
+      { error: 'Failed to send welcome email', correlationId },
+      500,
+      req
     );
   }
 }
@@ -173,16 +175,16 @@ export async function GET(req: NextRequest) {
 
   // Check if email service is configured
   if (!isEmailConfigured()) {
-    return NextResponse.json({
+    return createSecureResponse({
       error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
       email,
       status: 'not_configured'
-    }, { status: 501 }); // 501 Not Implemented
+    }, 501, req); // 501 Not Implemented
   }
 
   // TODO: Implement actual database lookup for email delivery status
-  return NextResponse.json({
+  return createSecureResponse({
     email,
     status: 'service_configured_but_no_records'
-  }, { status: 200 });
+  }, 200, req);
 }

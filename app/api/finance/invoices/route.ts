@@ -82,8 +82,9 @@ export async function GET(req: NextRequest) {
     const data = await svc.list(user.orgId, q, status);
     return createSecureResponse({ data }, 200, req);
   } catch (error) {
-    console.error('Invoice list failed:', error);
-    return createSecureResponse({ error: 'Failed to fetch invoices' }, 500, req);
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Invoice list failed:`, error);
+    return createSecureResponse({ error: 'Failed to fetch invoices', correlationId }, 500, req);
   }
 }
 
@@ -139,7 +140,9 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    return createSecureResponse({ error: 'Failed to create invoice' }, 400, req);
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Invoice creation failed:`, error);
+    return createSecureResponse({ error: 'Failed to create invoice', correlationId }, 400, req);
   }
 }
 

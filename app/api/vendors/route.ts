@@ -160,7 +160,8 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    console.error('GET /api/vendors error:', error);
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] GET /api/vendors error:`, error);
     return handleApiError(error);
   }
 }
