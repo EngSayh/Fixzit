@@ -8,16 +8,6 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// Pattern to match and replace
-const patterns = [
-  {
-    // Pattern: const message = error instanceof Error ? error.message : 'default';
-    // followed by: return createSecureResponse({ error: message }, status, req);
-    find: /const message = error instanceof Error \? error\.message : ['"]([^'"]+)['"];[\s\S]*?return createSecureResponse\(\{ error: message \}, (\d+), req\);/g,
-    replace: (match, defaultMsg, status) => `return createSecureResponse({ error: '${defaultMsg}' }, ${status}, req);`
-  }
-];
-
 // Files to process
 const apiFiles = execSync('find app/api -name "*.ts" -type f')
   .toString()
@@ -43,17 +33,8 @@ for (const file of apiFiles) {
     }
   );
 
-  // Also remove error parameter if unused
-  const finalContent = newContent.replace(
-    /\} catch \(error: unknown\) \{[\s\n\r\s]*return/g,
-    (match) => {
-      // Check if 'error' is used in the catch block
-      return '} catch (_error: unknown) {\n    return';
-    }
-  );
-
   if (newContent !== content) {
-    fs.writeFileSync(file, finalContent, 'utf8');
+    fs.writeFileSync(file, newContent, 'utf8');
     filesChanged.push(file);
     fixed++;
     console.log(`  ✓ Fixed: ${file}`);
