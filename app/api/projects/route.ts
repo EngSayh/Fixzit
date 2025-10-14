@@ -102,9 +102,17 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    return createSecureResponse({ error: "Internal server error" }, 500, req);
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/projects] Error creating project:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return createSecureResponse({ error: "Internal server error", correlationId }, 500, req);
   }
-}export async function GET(req: NextRequest) {
+}
+
+export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     
@@ -153,8 +161,9 @@ export async function POST(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch projects';
-    return createSecureResponse({ error: message }, 500, req);
+    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+    console.error(`[${correlationId}] Projects fetch failed:`, error);
+    return createSecureResponse({ error: 'Failed to fetch projects', correlationId }, 500, req);
   }
 }
 

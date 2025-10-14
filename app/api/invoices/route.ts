@@ -182,8 +182,25 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to create invoice';
-    return createSecureResponse({ error: message }, 400, req);
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/invoices] Error creating invoice:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    if (error instanceof z.ZodError) {
+      return createSecureResponse({ 
+        error: 'Validation failed',
+        details: error.issues,
+        correlationId
+      }, 422, req);
+    }
+    
+    return createSecureResponse({ 
+      error: 'Failed to create invoice',
+      correlationId
+    }, 500, req);
   }
 }
 
@@ -239,8 +256,16 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch invoices';
-    return createSecureResponse({ error: message }, 500, req);
+    const correlationId = crypto.randomUUID();
+    console.error('[GET /api/invoices] Error fetching invoices:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return createSecureResponse({ 
+      error: 'Failed to fetch invoices',
+      correlationId
+    }, 500, req);
   }
 }
 

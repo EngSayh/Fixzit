@@ -8,14 +8,18 @@ declare global {
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
 
-if (!MONGODB_URI) {
-  throw new Error(
-    'Please define the MONGODB_URI or DATABASE_URL environment variable inside .env.local'
-  );
+/**
+ * Validates MongoDB URI is configured
+ * Called at runtime (not at module load) to avoid build-time failures
+ */
+function validateMongoUri(): string {
+  if (!MONGODB_URI) {
+    throw new Error(
+      'Please define the MONGODB_URI or DATABASE_URL environment variable inside .env.local'
+    );
+  }
+  return MONGODB_URI;
 }
-
-// Type assertion after validation
-const validMongoUri = MONGODB_URI as string;
 
 /**
  * Unified MongoDB Connection Utility
@@ -38,8 +42,11 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     return global._mongooseConnection;
   }
 
+  // Validate URI at runtime (not at module load)
+  const mongoUri = validateMongoUri();
+
   try {
-    const connection = await mongoose.connect(validMongoUri, {
+    const connection = await mongoose.connect(mongoUri, {
       dbName: MONGODB_DB,
       bufferCommands: false,
       maxPoolSize: 10,

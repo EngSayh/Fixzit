@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createTenantSchema = z.object({
@@ -115,8 +115,8 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(tenant, 201, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 400, req);
+    console.error('POST /api/tenants error:', error);
+    return handleApiError(error);
   }
 }
 
@@ -166,8 +166,8 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+    console.error('GET /api/tenants error:', error);
+    return handleApiError(error);
   }
 }
 

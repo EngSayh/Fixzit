@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -11,6 +11,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+
+// Fallback translations for when context is not available
+const fallbackTranslations: Record<string, string> = {
+  'common.brand': 'FIXZIT ENTERPRISE',
+  'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
+  'nav.notifications': 'Notifications',
+  'common.unread': 'unread',
+  'common.noNotifications': 'No new notifications',
+  'common.loading': 'Loading...',
+  'common.allCaughtUp': "You're all caught up!",
+  'common.viewAll': 'View all notifications',
+  'nav.profile': 'Profile',
+  'nav.settings': 'Settings',
+  'common.logout': 'Sign out'
+};
 
 interface TopBarProps {
   role?: string;
@@ -48,113 +63,65 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
-  const normalizedRole = _role.toUpperCase();
-  const isGuest = normalizedRole === 'GUEST';
-
-  const { t } = useTranslation();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
 
+  // Call useTranslation unconditionally at top level (React Rules of Hooks)
+  const translationContext = useTranslation();
+  const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
+
   const router = useRouter();
 
-  const hasFetchedNotificationsRef = useRef(false);
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        setIsAuthenticated(response.ok);
+      } catch {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
+  // Define fetchNotifications before using it
   const fetchNotifications = useCallback(async () => {
-    if (isGuest) {
+    // Don't fetch notifications for guest users
+    if (!isAuthenticated) {
+      setNotifications([]);
       return;
     }
 
-    hasFetchedNotificationsRef.current = true;
     setLoading(true);
     try {
       const response = await fetch('/api/notifications?limit=5&read=false', {
-        headers: {
-          'x-user': JSON.stringify({
-            id: 'unknown',
-            role: normalizedRole,
-            tenantId: 'demo-tenant'
-          })
-        }
+        credentials: 'include' // Use session cookies instead of hardcoded guest
       });
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.items || []);
       } else {
-        // Use mock notifications if API fails
-        setNotifications([
-          {
-            id: '1',
-            title: 'Invoice Payment Received',
-            message: 'Payment for invoice INV-1234 has been processed successfully',
-            timestamp: new Date().toISOString(),
-            read: false,
-            priority: 'medium',
-            category: 'finance',
-            type: 'payment'
-          },
-          {
-            id: '2',
-            title: 'Property Inspection Due',
-            message: 'Monthly inspection for Tower A is scheduled for tomorrow',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            read: false,
-            priority: 'high',
-            category: 'maintenance',
-            type: 'inspection'
-          }
-        ]);
+        // Don't use mock notifications - just show empty
+        setNotifications([]);
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      // Use mock notifications as fallback
-      setNotifications([
-        {
-          id: '1',
-          title: 'Invoice Payment Received',
-          message: 'Payment for invoice INV-1234 has been processed successfully',
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'medium',
-          category: 'finance',
-          type: 'payment'
-        },
-        {
-          id: '2',
-          title: 'Property Inspection Due',
-          message: 'Monthly inspection for Tower A is scheduled for tomorrow',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          read: false,
-          priority: 'high',
-          category: 'maintenance',
-          type: 'inspection'
-        }
-      ]);
+      // Don't show mock notifications - just empty for guests
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
-  }, [isGuest, normalizedRole]);
+  }, [isAuthenticated]);
 
-  const hasNotifications = notifications.length > 0;
-
-  // Fetch notifications when dropdown opens
+  // Fetch notifications when dropdown opens (only if authenticated)
   useEffect(() => {
-    if (!notifOpen) {
-      return;
+    if (notifOpen && notifications.length === 0 && isAuthenticated) {
+      fetchNotifications();
     }
-
-    if (isGuest || hasNotifications || hasFetchedNotificationsRef.current) {
-      return;
-    }
-
-    fetchNotifications();
-  }, [notifOpen, isGuest, hasNotifications, fetchNotifications]);
-
-  useEffect(() => {
-    if (!notifOpen) {
-      hasFetchedNotificationsRef.current = false;
-    }
-  }, [notifOpen]);
+  }, [notifOpen, notifications.length, isAuthenticated, fetchNotifications]);
 
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
@@ -206,27 +173,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   };
 
-  const redirectToLogin = useCallback(() => {
-    const lang = typeof window !== 'undefined' ? localStorage.getItem('fxz.lang') : null;
-    const locale = typeof window !== 'undefined' ? localStorage.getItem('fxz.locale') : null;
-
-    const params = new URLSearchParams();
-    if (lang) params.set('lang', lang);
-    if (locale) params.set('locale', locale);
-
-    const queryString = params.toString();
-    const loginPath = queryString ? `/login?${queryString}` : '/login';
-
-    if (typeof window !== 'undefined') {
-      router.push(loginPath);
-      requestAnimationFrame(() => {
-        window.location.reload();
-      });
-    } else {
-      router.push(loginPath);
-    }
-  }, [router]);
-
   const handleLogout = async () => {
     try {
       // Call logout API to clear server-side session
@@ -257,20 +203,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (savedLang) localStorage.setItem('fxz.lang', savedLang);
       if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
-      // Clear session storage to remove cached incidents or temporary data
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.clear();
-      }
-
-      // Redirect to login page with a hard reload to fully reset the app state
-      redirectToLogin();
+      // Force a hard reload to clear all state and redirect to login
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
-      redirectToLogin();
+      // Still redirect even if API call fails - use hard reload
+      window.location.href = '/login';
     }
   };
-
-  const unreadCount = notifications.reduce((count, notification) => count + (notification.read ? 0 : 1), 0);
 
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
@@ -299,35 +239,21 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           <LanguageSelector variant="compact" />
           <CurrencySelector variant="compact" />
         </div>
-        {!isGuest && (
+        {/* Only show notifications for authenticated users */}
+        {isAuthenticated && (
           <div className="notification-container relative">
             <button
               onClick={() => setNotifOpen(!notifOpen)}
               className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
-              aria-expanded={notifOpen}
-              aria-controls="notifications-popover"
-              aria-describedby="notifications-summary"
-              aria-label={t('nav.notifications', 'Notifications')}
+              aria-label="Toggle notifications"
             >
               <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" aria-hidden="true"></span>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
               )}
             </button>
-            <span id="notifications-summary" className="sr-only">
-              {unreadCount > 0
-                ? `${unreadCount} ${t('common.unread', 'unread')}`
-                : t('common.noNotifications', 'No new notifications')}
-            </span>
             {notifOpen && (
-            <div
-              id="notifications-popover"
-              className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}
-              role="region"
-              aria-live="polite"
-              aria-atomic="true"
-              aria-label={t('nav.notifications', 'Notifications')}
-            >
+            <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'left-8' : 'right-8'}`}></div>
               <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200 ${isRTL ? 'left-8' : 'right-8'}`}></div>
@@ -336,8 +262,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {unreadCount > 0
-                      ? `${unreadCount} ${t('common.unread', 'unread')}`
+                    {notifications.filter(n => !n.read).length > 0
+                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
                       : t('common.noNotifications', 'No new notifications')
                     }
                   </div>

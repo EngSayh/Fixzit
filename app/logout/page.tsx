@@ -28,14 +28,12 @@ export default function LogoutPage() {
           }
         });
 
-        // Small delay to ensure API call completes
-        setTimeout(() => {
-          router.push('/login');
-        }, 100);
+        // Force a hard reload to clear all state and redirect to login
+        window.location.href = '/login';
       } catch (error) {
         console.error('Logout error:', error);
-        // Still redirect even if API call fails
-        router.push('/login');
+        // Still redirect even if API call fails - use hard reload
+        window.location.href = '/login';
       }
     };
 

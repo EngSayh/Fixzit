@@ -97,8 +97,17 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to create vendor';
-    return createSecureResponse({ error: message }, 400, req);
+    const correlationId = crypto.randomUUID();
+    console.error('[POST /api/vendors] Error creating vendor:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    const status = error instanceof z.ZodError ? 422 : 500;
+    return createSecureResponse({ 
+      error: 'Failed to create vendor',
+      correlationId
+    }, status, req);
   }
 }
 
@@ -151,8 +160,16 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch vendors';
-    return createSecureResponse({ error: message }, 500, req);
+    const correlationId = crypto.randomUUID();
+    console.error('[GET /api/vendors] Error fetching vendors:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return createSecureResponse({ 
+      error: 'Failed to fetch vendors',
+      correlationId
+    }, 500, req);
   }
 }
 

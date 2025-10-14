@@ -231,17 +231,15 @@ export async function POST(req: NextRequest) {
         name: 'RateLimited',
         code: 'HELP_ASK_RATE_LIMITED',
         userMessage: 'Too many requests, please wait a minute.',
-        devMessage: _err.message,
         correlationId: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
       }, { status: 429 });
     }
     const correlationId = (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
-    console.error('help/ask error', { correlationId});
+    console.error('help/ask error', { correlationId, error: _err });
     return NextResponse.json({
       name: 'HelpAskError',
       code: 'HELP_ASK_FAILED',
       userMessage: 'Unable to process your question. Please try again.',
-      devMessage: String((_err as Error)?.message ?? _err),
       correlationId
     }, { status: 500 });
   }

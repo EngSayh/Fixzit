@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import {zodValidationError, rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createRFQSchema = z.object({
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    return createSecureResponse({ error: "Internal server error" }, 500, req);
+    return handleApiError(error);
   }
 }
 
@@ -195,8 +195,7 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
 }
 

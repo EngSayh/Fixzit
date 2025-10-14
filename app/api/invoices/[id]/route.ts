@@ -6,7 +6,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError, zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const updateInvoiceSchema = z.object({
@@ -77,8 +77,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(invoice, 200, req);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
 }
 
@@ -205,12 +204,9 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   } catch (error: unknown) {
     // Distinguish validation errors from server errors
     if (error instanceof ZodError) {
-      return createSecureResponse({ error: error.message }, 400, req);
+      return zodValidationError(error, req);
     }
-    // Log and return 500 for non-validation errors
-    console.error('Invoice PATCH error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
 }
 
@@ -250,7 +246,6 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
     console.error('Invoice DELETE error:', error);
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return createSecureResponse({ error: message }, 500, req);
+    return handleApiError(error);
   }
 }

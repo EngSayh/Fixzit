@@ -11,34 +11,12 @@ import {
 
 export type Language = LanguageCode;
 
-type TranslationVars = Record<string, string | number>;
-
-/**
- * Escapes special characters in an interpolation key so it can be safely used in a regular expression.
- * The regex /[.*+?^${}()|[\]\\]/g matches all characters that have special meaning in regex patterns,
- * and replaces each with a backslash-prefixed version (e.g., "." becomes "\.").
- */
-const escapeInterpolationKey = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const applyInterpolation = (template: string, vars?: TranslationVars) => {
-  if (!vars) {
-    return template;
-  }
-
-  return Object.entries(vars).reduce((result, [varKey, value]) => {
-    const escapedKey = escapeInterpolationKey(varKey);
-    const pattern = new RegExp(`{{\\s*${escapedKey}\\s*}}`, 'g');
-    return result.replace(pattern, String(value));
-  }, template);
-};
-
 interface TranslationContextType {
   language: Language;
   locale: string;
   setLanguage: (lang: Language) => void;
   setLocale: (locale: string) => void;
-  t: (key: string, fallback?: string, vars?: TranslationVars) => string;
+  t: (key: string, fallback?: string) => string;
   isRTL: boolean;
 }
 
@@ -88,20 +66,15 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'لا توجد إشعارات جديدة',
     'common.allCaughtUp': 'لقد قرأت كل شيء!',
     'common.viewAll': 'عرض جميع الإشعارات',
-    'qa.testErrorBoundary': 'اختبار حدود الأخطاء',
-    'qa.panelTitle': 'اختبار الأخطاء',
-    'qa.runtimeError': 'خطأ وقت التشغيل',
-    'qa.asyncError': 'خطأ غير متزامن',
-    'qa.jsonError': 'خطأ في تحليل JSON',
-    'qa.networkError': 'خطأ في الشبكة',
-    'a11y.close': 'إغلاق',
-    // TopBar App Switcher
-    'topbar.appSwitcher.label': 'تبديل التطبيق',
-    'topbar.appSwitcher.ariaLabel': 'قائمة تبديل التطبيق',
-    'topbar.appSwitcher.entities': '{{count}} عنصر قابل للبحث',
-    'topbar.apps.fm': 'إدارة منشآت فيكزيت (FM)',
-    'topbar.apps.souq': 'سوق فيكزيت',
-    'topbar.apps.aqar': 'سوق عقار',
+    // TopBar search placeholders
+    'souq.search.placeholder': 'البحث في الكتالوج، الموردين، طلبات العروض، الطلبات...',
+    'aqar.search.placeholder': 'البحث في القوائم، المشاريع، الوكلاء...',
+    // App Switcher
+    'app.switchApplication': 'تبديل التطبيق',
+    'app.fm': 'إدارة المنشآت',
+    'app.souq': 'السوق',
+    'app.aqar': 'العقار',
+    'app.searchableEntities': 'كيانات قابلة للبحث',
     'common.cancel': 'إلغاء',
     'common.edit': 'تعديل',
     'common.delete': 'حذف',
@@ -295,25 +268,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.system': 'النظام',
     'settings.preferences.save': 'حفظ التفضيلات',
 
-    // Sidebar
-    'sidebar.account': 'الحساب',
-    'sidebar.role': 'الدور',
-    'sidebar.planLabel': 'الخطة',
-    'sidebar.preferences': 'التفضيلات',
-    'sidebar.help': 'المساعدة',
-    'sidebar.helpCenter': 'مركز المساعدة',
-    'sidebar.category.core': 'الأساسية',
-    'sidebar.category.fm': 'إدارة المنشآت',
-    'sidebar.category.procurement': 'المشتريات',
-    'sidebar.category.finance': 'المالية',
-    'sidebar.category.hr': 'الموارد البشرية',
-    'sidebar.category.crm': 'إدارة العلاقات',
-    'sidebar.category.marketplace': 'السوق',
-    'sidebar.category.support': 'الدعم',
-    'sidebar.category.compliance': 'الامتثال',
-    'sidebar.category.reporting': 'التقارير',
-    'sidebar.category.admin': 'الإدارة',
-
     // Footer
     'footer.brand': 'فيكزيت',
     'footer.description': 'إدارة المنشآت + الأسواق في منصة واحدة.',
@@ -328,6 +282,49 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.ticket': 'فتح تذكرة',
     'footer.backHome': 'العودة إلى الصفحة الرئيسية',
     'footer.copyright': 'فيكزيت. جميع الحقوق محفوظة.',
+
+    // Dashboard Page
+    'dashboard.title': 'لوحة التحكم',
+    'dashboard.welcome': 'مرحباً بعودتك',
+    'dashboard.totalProperties': 'إجمالي العقارات',
+    'dashboard.openWorkOrders': 'أوامر العمل المفتوحة',
+    'dashboard.monthlyRevenue': 'الإيرادات الشهرية',
+    'dashboard.occupancyRate': 'معدل الإشغال',
+    'dashboard.recentWorkOrders': 'أوامر العمل الأخيرة',
+    'dashboard.recentTransactions': 'المعاملات الأخيرة',
+    'dashboard.acMaintenance': 'صيانة التكييف',
+    'dashboard.propertyTowerA': 'عقار برج A',
+    'dashboard.unit': 'وحدة',
+    'dashboard.monthlyRent': 'إيجار شهري',
+    'dashboard.tenant': 'مستأجر',
+    'dashboard.statusInProgress': 'قيد التنفيذ',
+    'dashboard.statusCompleted': 'مكتمل',
+    'dashboard.statusPending': 'معلق',
+
+    // Finance Page
+    'finance.title': 'المالية - الفواتير',
+    'finance.searchPlaceholder': 'البحث برقم/عميل',
+    'finance.newInvoice': 'فاتورة جديدة',
+    'finance.createInvoice': 'إنشاء فاتورة',
+    'finance.issueDate': 'تاريخ الإصدار',
+    'finance.dueDate': 'تاريخ الاستحقاق',
+    'finance.issue': 'إصدار',
+    'finance.due': 'استحقاق',
+    'finance.total': 'الإجمالي',
+    'finance.lines': 'السطور',
+    'finance.addLine': 'إضافة سطر',
+    'finance.description': 'الوصف',
+    'finance.qty': 'الكمية',
+    'finance.unitPrice': 'سعر الوحدة',
+    'finance.vatPercent': 'ضريبة القيمة المضافة %',
+    'finance.vat': 'ضريبة القيمة المضافة',
+    'finance.post': 'ترحيل',
+    'finance.void': 'إلغاء',
+    'finance.status.draft': 'مسودة',
+    'finance.status.posted': 'مرحل',
+    'finance.status.void': 'ملغي',
+    'finance.allProperties': 'كل العقارات',
+    'finance.budgetSettings': 'إعدادات الميزانية',
   },
   en: {
       // Navigation
@@ -372,23 +369,15 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'No new notifications',
     'common.allCaughtUp': "You're all caught up!",
     'common.viewAll': 'View all notifications',
-    'qa.testErrorBoundary': 'Test Error Boundary',
-    'qa.panelTitle': 'Error Testing',
-    'qa.runtimeError': 'Runtime Error',
-    'qa.asyncError': 'Async Error',
-    'qa.jsonError': 'JSON Parse Error',
-    'qa.networkError': 'Network Error',
-    'a11y.close': 'Close',
-    // TopBar App Switcher
-    'topbar.appSwitcher.label': 'Switch Application',
-    'topbar.appSwitcher.ariaLabel': 'Switch application menu',
-    'topbar.appSwitcher.entities': '{{count}} searchable entities',
-    'topbar.apps.fm': 'Fixzit Facility Management (FM)',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     // TopBar search placeholders
     'souq.search.placeholder': 'Search catalog, vendors, RFQs, orders…',
     'aqar.search.placeholder': 'Search listings, projects, agents…',
+    // App Switcher
+    'app.switchApplication': 'Switch Application',
+    'app.fm': 'Facility Management',
+    'app.souq': 'Marketplace',
+    'app.aqar': 'Real Estate',
+    'app.searchableEntities': 'searchable entities',
     'common.cancel': 'Cancel',
     'common.edit': 'Edit',
     'common.delete': 'Delete',
@@ -582,25 +571,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.system': 'System',
     'settings.preferences.save': 'Save Preferences',
 
-    // Sidebar
-    'sidebar.account': 'Account',
-    'sidebar.role': 'Role',
-    'sidebar.planLabel': 'Plan',
-    'sidebar.preferences': 'Preferences',
-    'sidebar.help': 'Help',
-    'sidebar.helpCenter': 'Help Center',
-    'sidebar.category.core': 'Core',
-    'sidebar.category.fm': 'Facility Management',
-    'sidebar.category.procurement': 'Procurement',
-    'sidebar.category.finance': 'Finance',
-    'sidebar.category.hr': 'Human Resources',
-    'sidebar.category.crm': 'Customer Relations',
-    'sidebar.category.marketplace': 'Marketplace',
-    'sidebar.category.support': 'Support',
-    'sidebar.category.compliance': 'Compliance',
-    'sidebar.category.reporting': 'Reporting',
-    'sidebar.category.admin': 'Administration',
-
     // Footer
     'footer.brand': 'Fixzit',
     'footer.description': 'Facility management + marketplaces in one platform.',
@@ -615,6 +585,49 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.ticket': 'Open a ticket',
     'footer.backHome': 'Back to Home',
     'footer.copyright': 'Fixzit. All rights reserved.',
+
+    // Dashboard Page
+    'dashboard.title': 'Dashboard',
+    'dashboard.welcome': 'Welcome back',
+    'dashboard.totalProperties': 'Total Properties',
+    'dashboard.openWorkOrders': 'Open Work Orders',
+    'dashboard.monthlyRevenue': 'Monthly Revenue',
+    'dashboard.occupancyRate': 'Occupancy Rate',
+    'dashboard.recentWorkOrders': 'Recent Work Orders',
+    'dashboard.recentTransactions': 'Recent Transactions',
+    'dashboard.acMaintenance': 'AC Maintenance',
+    'dashboard.propertyTowerA': 'Property Tower A',
+    'dashboard.unit': 'Unit',
+    'dashboard.monthlyRent': 'Monthly Rent',
+    'dashboard.tenant': 'Tenant',
+    'dashboard.statusInProgress': 'In Progress',
+    'dashboard.statusCompleted': 'Completed',
+    'dashboard.statusPending': 'Pending',
+
+    // Finance Page
+    'finance.title': 'Finance — Invoices',
+    'finance.searchPlaceholder': 'Search by number/customer',
+    'finance.newInvoice': 'New Invoice',
+    'finance.createInvoice': 'Create Invoice',
+    'finance.issueDate': 'Issue Date',
+    'finance.dueDate': 'Due Date',
+    'finance.issue': 'Issue',
+    'finance.due': 'Due',
+    'finance.total': 'Total',
+    'finance.lines': 'Lines',
+    'finance.addLine': 'Add Line',
+    'finance.description': 'Description',
+    'finance.qty': 'Qty',
+    'finance.unitPrice': 'Unit Price',
+    'finance.vatPercent': 'VAT %',
+    'finance.vat': 'VAT',
+    'finance.post': 'POST',
+    'finance.void': 'VOID',
+    'finance.status.draft': 'DRAFT',
+    'finance.status.posted': 'POSTED',
+    'finance.status.void': 'VOID',
+    'finance.allProperties': 'All Properties',
+    'finance.budgetSettings': 'Budget Settings',
 
     // Careers
     'careers.title': 'Join Our Team',
@@ -691,19 +704,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'Aucune nouvelle notification',
     'common.allCaughtUp': 'Vous êtes à jour!',
     'common.viewAll': 'Voir toutes les notifications',
-    'qa.testErrorBoundary': "Tester la gestion des erreurs",
-    'qa.panelTitle': 'Tests d’erreur',
-    'qa.runtimeError': 'Erreur d’exécution',
-    'qa.asyncError': 'Erreur asynchrone',
-    'qa.jsonError': 'Erreur d’analyse JSON',
-    'qa.networkError': 'Erreur réseau',
-    'a11y.close': 'Fermer',
-    'topbar.appSwitcher.label': 'Changer d’application',
-    'topbar.appSwitcher.ariaLabel': 'Menu de changement d’application',
-    'topbar.appSwitcher.entities': '{{count}} entités recherchables',
-    'topbar.apps.fm': 'Fixzit Gestion des installations (FM)',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     'common.cancel': 'Annuler',
     'common.edit': 'Modifier',
     'common.delete': 'Supprimer',
@@ -775,24 +775,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.dark': 'Sombre',
     'settings.preferences.system': 'Système',
     'settings.preferences.save': 'Enregistrer les préférences',
-
-    'sidebar.account': 'Compte',
-    'sidebar.role': 'Rôle',
-    'sidebar.planLabel': 'Plan',
-    'sidebar.preferences': 'Préférences',
-    'sidebar.help': 'Aide',
-    'sidebar.helpCenter': 'Centre d’aide',
-    'sidebar.category.core': 'Principal',
-    'sidebar.category.fm': 'Gestion des installations',
-    'sidebar.category.procurement': 'Approvisionnement',
-    'sidebar.category.finance': 'Finance',
-    'sidebar.category.hr': 'Ressources humaines',
-    'sidebar.category.crm': 'Relation client',
-    'sidebar.category.marketplace': 'Marché',
-    'sidebar.category.support': 'Support',
-    'sidebar.category.compliance': 'Conformité',
-    'sidebar.category.reporting': 'Reporting',
-    'sidebar.category.admin': 'Administration',
 
     // Footer
     'footer.brand': 'Fixzit',
@@ -884,19 +866,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'Nenhuma nova notificação',
     'common.allCaughtUp': 'Você está em dia!',
     'common.viewAll': 'Ver todas as notificações',
-    'qa.testErrorBoundary': 'Testar limite de erro',
-    'qa.panelTitle': 'Testes de erro',
-    'qa.runtimeError': 'Erro em tempo de execução',
-    'qa.asyncError': 'Erro assíncrono',
-    'qa.jsonError': 'Erro de análise JSON',
-    'qa.networkError': 'Erro de rede',
-    'a11y.close': 'Fechar',
-    'topbar.appSwitcher.label': 'Alternar aplicação',
-    'topbar.appSwitcher.ariaLabel': 'Menu de alternância de aplicações',
-    'topbar.appSwitcher.entities': '{{count}} entidades pesquisáveis',
-    'topbar.apps.fm': 'Fixzit Gestão de Instalações (FM)',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     'common.cancel': 'Cancelar',
     'common.edit': 'Editar',
     'common.delete': 'Excluir',
@@ -968,24 +937,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.dark': 'Escuro',
     'settings.preferences.system': 'Sistema',
     'settings.preferences.save': 'Salvar preferências',
-
-    'sidebar.account': 'Conta',
-    'sidebar.role': 'Função',
-    'sidebar.planLabel': 'Plano',
-    'sidebar.preferences': 'Preferências',
-    'sidebar.help': 'Ajuda',
-    'sidebar.helpCenter': 'Central de ajuda',
-    'sidebar.category.core': 'Principal',
-    'sidebar.category.fm': 'Gestão de instalações',
-    'sidebar.category.procurement': 'Compras',
-    'sidebar.category.finance': 'Finanças',
-    'sidebar.category.hr': 'Recursos humanos',
-    'sidebar.category.crm': 'Relacionamento com clientes',
-    'sidebar.category.marketplace': 'Marketplace',
-    'sidebar.category.support': 'Suporte',
-    'sidebar.category.compliance': 'Conformidade',
-    'sidebar.category.reporting': 'Relatórios',
-    'sidebar.category.admin': 'Administração',
 
     // Footer
     'footer.brand': 'Fixzit',
@@ -1077,19 +1028,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'Нет новых уведомлений',
     'common.allCaughtUp': 'Вы в курсе!',
     'common.viewAll': 'Посмотреть все уведомления',
-    'qa.testErrorBoundary': 'Тест границы ошибок',
-    'qa.panelTitle': 'Тестирование ошибок',
-    'qa.runtimeError': 'Ошибка выполнения',
-    'qa.asyncError': 'Асинхронная ошибка',
-    'qa.jsonError': 'Ошибка разбора JSON',
-    'qa.networkError': 'Сетевая ошибка',
-    'a11y.close': 'Закрыть',
-    'topbar.appSwitcher.label': 'Переключить приложение',
-    'topbar.appSwitcher.ariaLabel': 'Меню переключения приложений',
-    'topbar.appSwitcher.entities': '{{count}} объектов для поиска',
-    'topbar.apps.fm': 'Fixzit Управление объектами (FM)',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     'common.cancel': 'Отмена',
     'common.edit': 'Редактировать',
     'common.delete': 'Удалить',
@@ -1161,24 +1099,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.dark': 'Темная',
     'settings.preferences.system': 'Система',
     'settings.preferences.save': 'Сохранить предпочтения',
-
-    'sidebar.account': 'Аккаунт',
-    'sidebar.role': 'Роль',
-    'sidebar.planLabel': 'План',
-    'sidebar.preferences': 'Предпочтения',
-    'sidebar.help': 'Помощь',
-    'sidebar.helpCenter': 'Центр поддержки',
-    'sidebar.category.core': 'Основное',
-    'sidebar.category.fm': 'Управление объектами',
-    'sidebar.category.procurement': 'Закупки',
-    'sidebar.category.finance': 'Финансы',
-    'sidebar.category.hr': 'HR',
-    'sidebar.category.crm': 'CRM',
-    'sidebar.category.marketplace': 'Маркетплейс',
-    'sidebar.category.support': 'Поддержка',
-    'sidebar.category.compliance': 'Соответствие',
-    'sidebar.category.reporting': 'Отчётность',
-    'sidebar.category.admin': 'Администрирование',
 
     // Footer
     'footer.brand': 'Fixzit',
@@ -1270,19 +1190,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'No hay nuevas notificaciones',
     'common.allCaughtUp': '¡Estás al día!',
     'common.viewAll': 'Ver todas las notificaciones',
-    'qa.testErrorBoundary': 'Probar el manejador de errores',
-    'qa.panelTitle': 'Pruebas de errores',
-    'qa.runtimeError': 'Error en tiempo de ejecución',
-    'qa.asyncError': 'Error asíncrono',
-    'qa.jsonError': 'Error de análisis JSON',
-    'qa.networkError': 'Error de red',
-    'a11y.close': 'Cerrar',
-    'topbar.appSwitcher.label': 'Cambiar aplicación',
-    'topbar.appSwitcher.ariaLabel': 'Menú para cambiar de aplicación',
-    'topbar.appSwitcher.entities': '{{count}} entidades buscables',
-    'topbar.apps.fm': 'Fixzit Gestión de Instalaciones (FM)',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     'common.cancel': 'Cancelar',
     'common.edit': 'Editar',
     'common.delete': 'Eliminar',
@@ -1354,24 +1261,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.dark': 'Oscuro',
     'settings.preferences.system': 'Sistema',
     'settings.preferences.save': 'Guardar preferencias',
-
-    'sidebar.account': 'Cuenta',
-    'sidebar.role': 'Rol',
-    'sidebar.planLabel': 'Plan',
-    'sidebar.preferences': 'Preferencias',
-    'sidebar.help': 'Ayuda',
-    'sidebar.helpCenter': 'Centro de ayuda',
-    'sidebar.category.core': 'Principal',
-    'sidebar.category.fm': 'Gestión de instalaciones',
-    'sidebar.category.procurement': 'Adquisiciones',
-    'sidebar.category.finance': 'Finanzas',
-    'sidebar.category.hr': 'Recursos humanos',
-    'sidebar.category.crm': 'Relaciones con clientes',
-    'sidebar.category.marketplace': 'Marketplace',
-    'sidebar.category.support': 'Soporte',
-    'sidebar.category.compliance': 'Cumplimiento',
-    'sidebar.category.reporting': 'Reportes',
-    'sidebar.category.admin': 'Administración',
 
     // Footer
     'footer.brand': 'Fixzit',
@@ -1460,19 +1349,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'کوئی نئی نوٹیفیکیشن نہیں',
     'common.allCaughtUp': 'آپ اپ ٹو ڈیٹ ہیں!',
     'common.viewAll': 'تمام نوٹیفیکیشنز دیکھیں',
-    'qa.testErrorBoundary': 'ایرر باؤنڈری ٹیسٹ کریں',
-    'qa.panelTitle': 'ایرر ٹیسٹنگ',
-    'qa.runtimeError': 'رَن ٹائم ایرر',
-    'qa.asyncError': 'غیر ہم وقت ایرر',
-    'qa.jsonError': 'JSON پارسنگ ایرر',
-    'qa.networkError': 'نیٹ ورک ایرر',
-    'a11y.close': 'بند کریں',
-    'topbar.appSwitcher.label': 'ایپ تبدیل کریں',
-    'topbar.appSwitcher.ariaLabel': 'ایپ تبدیل کرنے کا مینو',
-    'topbar.appSwitcher.entities': '{{count}} تلاش کی جانے والی اینٹٹیز',
-    'topbar.apps.fm': 'Fixzit فسیلٹی مینجمنٹ (FM)',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     'common.cancel': 'منسوخ',
     'common.edit': 'ترمیم',
     'common.delete': 'حذف',
@@ -1544,24 +1420,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.dark': 'تاریک',
     'settings.preferences.system': 'سسٹم',
     'settings.preferences.save': 'ترجیحات محفوظ کریں',
-
-    'sidebar.account': 'اکاؤنٹ',
-    'sidebar.role': 'کردار',
-    'sidebar.planLabel': 'پلان',
-    'sidebar.preferences': 'ترجیحات',
-    'sidebar.help': 'مدد',
-    'sidebar.helpCenter': 'مدد مرکز',
-    'sidebar.category.core': 'بنیادی',
-    'sidebar.category.fm': 'فسیلٹی مینجمنٹ',
-    'sidebar.category.procurement': 'خریداری',
-    'sidebar.category.finance': 'فنانس',
-    'sidebar.category.hr': 'انسانی وسائل',
-    'sidebar.category.crm': 'CRM',
-    'sidebar.category.marketplace': 'مارکیٹ پلیس',
-    'sidebar.category.support': 'سپورٹ',
-    'sidebar.category.compliance': 'تعمیل',
-    'sidebar.category.reporting': 'رپورٹنگ',
-    'sidebar.category.admin': 'انتظامیہ',
 
     // Footer
     'footer.brand': 'فکزٹ',
@@ -1650,19 +1508,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'कोई नई सूचनाएं नहीं',
     'common.allCaughtUp': 'आप अप टू डेट हैं!',
     'common.viewAll': 'सभी सूचनाएं देखें',
-    'qa.testErrorBoundary': 'त्रुटि सीमा का परीक्षण करें',
-    'qa.panelTitle': 'त्रुटि परीक्षण',
-    'qa.runtimeError': 'रनटाइम त्रुटि',
-    'qa.asyncError': 'असिंक्रोनस त्रुटि',
-    'qa.jsonError': 'JSON पार्स त्रुटि',
-    'qa.networkError': 'नेटवर्क त्रुटि',
-    'a11y.close': 'बंद करें',
-    'topbar.appSwitcher.label': 'एप्लिकेशन बदलें',
-    'topbar.appSwitcher.ariaLabel': 'एप्लिकेशन बदलने का मेनू',
-    'topbar.appSwitcher.entities': '{{count}} खोज योग्य इकाइयाँ',
-    'topbar.apps.fm': 'Fixzit सुविधा प्रबंधन (FM)',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     'common.cancel': 'रद्द करें',
     'common.edit': 'संपादित करें',
     'common.delete': 'मिटाएं',
@@ -1734,24 +1579,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.dark': 'गहरा',
     'settings.preferences.system': 'सिस्टम',
     'settings.preferences.save': 'वरीयताएं सहेजें',
-
-    'sidebar.account': 'खाता',
-    'sidebar.role': 'भूमिका',
-    'sidebar.planLabel': 'योजना',
-    'sidebar.preferences': 'वरीयताएं',
-    'sidebar.help': 'सहायता',
-    'sidebar.helpCenter': 'सहायता केंद्र',
-    'sidebar.category.core': 'कोर',
-    'sidebar.category.fm': 'सुविधा प्रबंधन',
-    'sidebar.category.procurement': 'खरीद',
-    'sidebar.category.finance': 'वित्त',
-    'sidebar.category.hr': 'मानव संसाधन',
-    'sidebar.category.crm': 'ग्राहक संबंध',
-    'sidebar.category.marketplace': 'मार्केटप्लेस',
-    'sidebar.category.support': 'समर्थन',
-    'sidebar.category.compliance': 'अनुपालन',
-    'sidebar.category.reporting': 'रिपोर्टिंग',
-    'sidebar.category.admin': 'प्रशासन',
 
     // Footer
     'footer.brand': 'फिक्जिट',
@@ -1840,19 +1667,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': '没有新通知',
     'common.allCaughtUp': '您已全部了解！',
     'common.viewAll': '查看所有通知',
-    'qa.testErrorBoundary': '测试错误边界',
-    'qa.panelTitle': '错误测试',
-    'qa.runtimeError': '运行时错误',
-    'qa.asyncError': '异步错误',
-    'qa.jsonError': 'JSON 解析错误',
-    'qa.networkError': '网络错误',
-    'a11y.close': '关闭',
-    'topbar.appSwitcher.label': '切换应用',
-    'topbar.appSwitcher.ariaLabel': '应用切换菜单',
-    'topbar.appSwitcher.entities': '{{count}} 个可搜索实体',
-    'topbar.apps.fm': 'Fixzit 设施管理（FM）',
-    'topbar.apps.souq': 'Fixzit Souq',
-    'topbar.apps.aqar': 'Aqar Souq',
     'common.cancel': '取消',
     'common.edit': '编辑',
     'common.delete': '删除',
@@ -1924,25 +1738,6 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.preferences.dark': '深色',
     'settings.preferences.system': '系统',
     'settings.preferences.save': '保存偏好',
-
-    // Sidebar
-    'sidebar.account': '账户',
-    'sidebar.role': '角色',
-    'sidebar.planLabel': '计划',
-    'sidebar.preferences': '偏好',
-    'sidebar.help': '帮助',
-    'sidebar.helpCenter': '帮助中心',
-    'sidebar.category.core': '核心',
-    'sidebar.category.fm': '设施管理',
-    'sidebar.category.procurement': '采购',
-    'sidebar.category.finance': '财务',
-    'sidebar.category.hr': '人力资源',
-    'sidebar.category.crm': '客户关系',
-    'sidebar.category.marketplace': '市场',
-    'sidebar.category.support': '支持',
-    'sidebar.category.compliance': '合规',
-    'sidebar.category.reporting': '报告',
-    'sidebar.category.admin': '管理',
 
     // Footer
     'footer.brand': 'Fixzit',
@@ -2069,14 +1864,14 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const locale = currentOption.locale;
   const isRTL = currentOption.dir === 'rtl';
 
-  const t = (key: string, fallback: string = key, vars?: TranslationVars): string => {
+  const t = (key: string, fallback: string = key): string => {
     try {
       const langData = translations[language as LanguageCode];
       const result = langData?.[key] || fallback;
-      return applyInterpolation(result, vars);
+      return result;
     } catch (error) {
       console.warn(`Translation error for key '${key}':`, error);
-      return applyInterpolation(fallback, vars);
+      return fallback;
     }
   };
 
@@ -2117,8 +1912,8 @@ export function useTranslation() {
             console.warn('Could not save locale preference:', error);
           }
         },
-        t: (key: string, fallback: string = key, vars?: TranslationVars): string => {
-          return applyInterpolation(fallback, vars);
+        t: (key: string, fallback: string = key): string => {
+          return fallback;
         },
         isRTL: true
       };
@@ -2134,9 +1929,7 @@ export function useTranslation() {
       locale: 'ar-SA',
       setLanguage: (_lang: Language) => {},
       setLocale: () => {},
-      t: (key: string, fallback: string = key, vars?: TranslationVars): string => {
-        return applyInterpolation(fallback, vars);
-      },
+      t: (key: string, fallback: string = key): string => fallback,
       isRTL: true
     };
   }
