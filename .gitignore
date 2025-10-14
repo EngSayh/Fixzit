@@ -33,6 +33,7 @@ Thumbs.db
 *.tgz
 *.gz
 *.bak
+*.backup
 *.tmp
 *.log
 
