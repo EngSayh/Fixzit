@@ -68,15 +68,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
 
-  // Safe translation function with fallback
-  let t: (key: string, fallback?: string) => string;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-  } catch {
-    // Fallback when translation context is not available
-    t = (key: string, fallback?: string) => fallbackTranslations[key] || fallback || key;
-  }
+  // Call useTranslation unconditionally at top level (React Rules of Hooks)
+  const translationContext = useTranslation();
+  const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
 
   const router = useRouter();
 

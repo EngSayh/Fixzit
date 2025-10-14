@@ -113,18 +113,10 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   const router = useRouter();
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
-  // Safe translation with fallback
-  let t: (key: string, fallback?: string) => string;
-  let translationIsRTL: boolean = false;
-  try {
-    const translationContext = useTranslation();
-    t = translationContext.t;
-    translationIsRTL = translationContext.isRTL;
-  } catch {
-    // Fallback translation function
-    t = (key: string, fallback?: string) => fallback || key;
-    translationIsRTL = false;
-  }
+  // Call useTranslation unconditionally at top level (React Rules of Hooks)
+  const translationContext = useTranslation();
+  const t = translationContext?.t ?? ((key: string, fallback?: string) => fallback || key);
+  const translationIsRTL = translationContext?.isRTL ?? false;
 
   const active = useMemo(() => pathname, [pathname]);
 

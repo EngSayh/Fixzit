@@ -6,6 +6,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { handleApiError } from '@/server/utils/errorHandler';
 
 const createAssetSchema = z.object({
   name: z.string().min(1),
@@ -109,8 +110,8 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(asset, 201, req);
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to create asset' }, 400, req);
+  } catch (error: unknown) {
+    return handleApiError('POST /api/assets', req, error);
   }
 }
 
@@ -181,8 +182,8 @@ export async function GET(req: NextRequest) {
       total: result[1],
       pages: Math.ceil(result[1] / limit)
     });
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to fetch assets' }, 500, req);
+  } catch (error: unknown) {
+    return handleApiError('GET /api/assets', req, error);
   }
 }
 
