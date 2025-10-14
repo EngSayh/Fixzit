@@ -38,7 +38,7 @@ type FetchResponse = {
   json: () => Promise<any>;
 };
 function mockFetchOnce(impl: (input: RequestInfo | URL, init?: RequestInit) => Promise<FetchResponse>) {
-  (global as any).fetch = jest.fn(impl);
+  (global as any).fetch = vi.fn(impl);
 }
 
 function setEnv(obj: Record<string, string | undefined>) {
@@ -219,7 +219,7 @@ describe('createPaymentPage', () => {
 
     // Throw error
     // @ts-ignore
-    global.fetch = jest.fn(async () => {
+    global.fetch = vi.fn(async () => {
       throw new Error('Network down');
     });
 
@@ -279,7 +279,7 @@ describe('verifyPayment', () => {
     const { verifyPayment } = lib;
 
     // @ts-ignore
-    global.fetch = jest.fn(async () => {
+    global.fetch = vi.fn(async () => {
       throw new Error('timeout');
     });
 
@@ -296,8 +296,8 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
     // @ts-ignore
     global.crypto = {
       subtle: {
-        importKey: jest.fn(async () => ({})),
-        sign: jest.fn(async (_algo: string, _key: any, _data: ArrayBuffer) => {
+        importKey: vi.fn(async () => ({})),
+        sign: vi.fn(async (_algo: string, _key: any, _data: ArrayBuffer) => {
           return signatureBytes.buffer;
         }),
       },
@@ -350,8 +350,8 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
     // @ts-ignore
     global.crypto = {
       subtle: {
-        importKey: jest.fn(async () => ({})),
-        sign: jest.fn(async () => { throw new Error('subtle failed'); }),
+        importKey: vi.fn(async () => ({})),
+        sign: vi.fn(async () => { throw new Error('subtle failed'); }),
       },
     };
     const res = await validateCallbackRaw('raw', '00');

@@ -8,14 +8,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // Import route handlers
 import { POST, GET } from "@/app/api/qa/alert/route";
 
-// We will mock the mongo module used by the route
+// Import MongoDB mock to access mocked functions
+import * as mongodbUnified from '@/lib/mongodb-unified';
 
-vi.mock('@/lib/mongodb-unified', () => {
-  return {
-    getDatabase: vi.fn(),
-    connectToDatabase: vi.fn(),
-  };
-});
+// We will mock the mongo module used by the route
+vi.mock('@/lib/mongodb-unified');
 
 // Type helper for building minimal NextRequest-like object
 
@@ -46,23 +43,12 @@ describe('QA Alert Route', () => {
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
-  // Pull mocked exports for type-safe updates inside tests
-
-  const mongoMod = () => require('@/lib/mongodb-unified') as {
-    getDatabase: ReturnType<typeof vi.fn>;
-    connectToDatabase: ReturnType<typeof vi.fn>;
-  };
-
   beforeEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Spy on console
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const mod = mongoMod();
-    mod.getDatabase.mockReset();
   });
 
   afterEach(() => {
@@ -72,7 +58,7 @@ describe('QA Alert Route', () => {
 
   describe('POST /api/qa/alert', () => {
     it('returns success with mock flag and logs when using mock DB', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       const event = 'button_click';
       const data = { id: 123, label: 'Save' };
@@ -98,7 +84,7 @@ describe('QA Alert Route', () => {
     });
 
     it('inserts alert into DB with forwarded IP and returns success', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       // Setup the chained collection/find/insertOne mock structure
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
@@ -146,7 +132,7 @@ describe('QA Alert Route', () => {
     });
 
     it('uses req.ip when x-forwarded-for header is missing', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const collection = vi.fn().mockReturnValue({ insertOne });
@@ -173,7 +159,7 @@ describe('QA Alert Route', () => {
     });
 
     it('returns 500 on DB insertion error', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       const insertOne = vi.fn().mockRejectedValue(new Error('insert failed'));
       const collection = vi.fn().mockReturnValue({ insertOne });
@@ -197,7 +183,7 @@ describe('QA Alert Route', () => {
     });
 
     it('returns 500 if parsing JSON body throws', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       const req = asNextRequest({
         json: () => Promise.reject(new Error('bad json')),
@@ -216,7 +202,7 @@ describe('QA Alert Route', () => {
 
   describe('GET /api/qa/alert', () => {
     it('returns empty list with mock flag when using mock DB', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       const req = asNextRequest({
         json: async () => ({}),
@@ -232,7 +218,7 @@ describe('QA Alert Route', () => {
     });
 
     it('fetches latest 50 alerts sorted by timestamp desc from DB', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       const docs = [{ event: 'e1' }, { event: 'e2' }];
 
@@ -265,7 +251,7 @@ describe('QA Alert Route', () => {
     });
 
     it('returns 500 when DB query fails', async () => {
-      const mod = mongoMod();
+      const mod = vi.mocked(mongodbUnified);
 
       const toArray = vi.fn().mockRejectedValue(new Error('query failed'));
       const limit = vi.fn().mockReturnValue({ toArray });

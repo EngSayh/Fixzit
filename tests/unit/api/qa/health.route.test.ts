@@ -41,7 +41,7 @@ function makeMongoMock(opts: MockOptions) {
       ? new Promise((_, reject) => setTimeout(() => reject(opts.dbReject), 0))
       : Promise.resolve();
 
-  const getDatabase = jest.fn(async () => ({
+  const getDatabase = vi.fn(async () => ({
     listCollections: () => ({
       toArray: async () => {
         if (opts.queryFail) {
@@ -61,9 +61,9 @@ function makeMongoMock(opts: MockOptions) {
 }
 
 async function loadRouteWithMocks(opts: MockOptions): Promise<RouteModule> {
-  jest.resetModules();
-  jest.doMock('next/server', () => mockNextServer(), { virtual: true });
-  jest.doMock('@/lib/mongodb-unified', () => makeMongoMock(opts), { virtual: true });
+  vi.resetModules();
+  vi.doMock('next/server', () => mockNextServer(), { virtual: true });
+  vi.doMock('@/lib/mongodb-unified', () => makeMongoMock(opts), { virtual: true });
 
   const candidates = [
     '../../../../src/app/api/qa/health/route',
@@ -91,9 +91,9 @@ async function loadRouteWithMocks(opts: MockOptions): Promise<RouteModule> {
 
 describe('api/qa/health route - GET', () => {
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-    jest.resetModules();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.resetModules();
     delete (process as any).env.npm_package_version;
   });
 
@@ -177,9 +177,9 @@ describe('api/qa/health route - GET', () => {
 
 describe('api/qa/health route - POST', () => {
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-    jest.resetModules();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.resetModules();
   });
 
     const res = await POST({} as any);

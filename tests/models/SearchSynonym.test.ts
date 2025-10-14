@@ -12,16 +12,16 @@ function withIsolatedModule<T>(env: Record<string, string | undefined>, mocks: {
     else (process.env as any)[k] = v as string
   })
 
-  jest.resetModules()
+  vi.resetModules()
   // Apply require mocks
   Object.entries(mocks).forEach(([mod, impl]) => {
-    jest.doMock(mod, () => impl, { virtual: true })
+    vi.doMock(mod, () => impl, { virtual: true })
   })
 
   try {
     return loader()
   } finally {
-    jest.dontMock("mongoose")
+    vi.unmock("mongoose")
     process.env = oldEnv
   }
 }
@@ -32,10 +32,10 @@ const modulePath = path.posix.normalize("@/models/SearchSynonym")
 
 describe("models/SearchSynonym - environment-based model selection", () => {
   afterEach(() => {
-    jest.resetModules()
-    jest.restoreAllMocks()
-    jest.clearAllMocks()
-    jest.dontMock("mongoose")
+    vi.resetModules()
+    vi.restoreAllMocks()
+    vi.clearAllMocks()
+    vi.unmock("mongoose")
   })
 
   test("uses mock DB when NODE_ENV=development and MONGODB_URI is undefined", () => {
@@ -44,7 +44,7 @@ describe("models/SearchSynonym - environment-based model selection", () => {
       {
         mongoose: {
           Schema: class {},
-          model: jest.fn(),
+          model: vi.fn(),
           models: {}
         }
       },
@@ -60,7 +60,7 @@ describe("models/SearchSynonym - environment-based model selection", () => {
       {
         mongoose: {
           Schema: class {},
-          model: jest.fn(),
+          model: vi.fn(),
           models: {}
         }
       },
@@ -73,8 +73,8 @@ describe("models/SearchSynonym - environment-based model selection", () => {
   test("uses real mongoose model when NODE_ENV\!=development (e.g., test) even if MONGODB_URI undefined", () => {
     const fakeSchema = {}
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
-    const mockIndex = jest.fn()
+    const mockSchemaCtor = vi.fn().mockImplementation(() => fakeSchema)
+    const mockIndex = vi.fn()
     (mockSchemaCtor as any).prototype = {}
     (mockSchemaCtor as any).prototype.index = mockIndex
 
@@ -96,8 +96,8 @@ describe("models/SearchSynonym - environment-based model selection", () => {
   test("reuses existing mongoose model if models.SearchSynonym exists", () => {
     const fakeSchema = {}
     const existingModel = { __kind: "ExistingMongooseModel", modelName: "SearchSynonym" }
-    const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
-    const mockIndex = jest.fn()
+    const mockSchemaCtor = vi.fn().mockImplementation(() => fakeSchema)
+    const mockIndex = vi.fn()
     (mockSchemaCtor as any).prototype = {}
     (mockSchemaCtor as any).prototype.index = mockIndex
 
@@ -106,7 +106,7 @@ describe("models/SearchSynonym - environment-based model selection", () => {
       {
         mongoose: {
           Schema: function(this: any, ...args: any[]) { return new (mockSchemaCtor as any)(...args) },
-          model: jest.fn(), // should not be called because models.SearchSynonym exists
+          model: vi.fn(), // should not be called because models.SearchSynonym exists
         }
       },
       () => require(modulePath)
@@ -118,10 +118,10 @@ describe("models/SearchSynonym - environment-based model selection", () => {
 
 describe("models/SearchSynonym - schema constraints", () => {
   afterEach(() => {
-    jest.resetModules()
-    jest.restoreAllMocks()
-    jest.clearAllMocks()
-    jest.dontMock("mongoose")
+    vi.resetModules()
+    vi.restoreAllMocks()
+    vi.clearAllMocks()
+    vi.unmock("mongoose")
   })
 
   test("defines locale enum ['en','ar'], term required, synonyms array of string, timestamps enabled", () => {
@@ -132,7 +132,7 @@ describe("models/SearchSynonym - schema constraints", () => {
       synonyms: [String]
     }
 
-    const indexSpy = jest.fn()
+    const indexSpy = vi.fn()
     class FakeSchema {
       public def: any
       public opts: any
@@ -148,7 +148,7 @@ describe("models/SearchSynonym - schema constraints", () => {
       {
         mongoose: {
           Schema: FakeSchema as any,
-          model: jest.fn().mockReturnValue({}),
+          model: vi.fn().mockReturnValue({}),
           models: {}
         }
       },
@@ -162,8 +162,8 @@ describe("models/SearchSynonym - schema constraints", () => {
   })
 
   test("index on (locale, term) is unique", () => {
-    const indexSpy = jest.fn()
-    const ctorSpy = jest.fn()
+    const indexSpy = vi.fn()
+    const ctorSpy = vi.fn()
     class FakeSchema {
       constructor(def: any, opts: any) {
         ctorSpy(def, opts)
@@ -176,7 +176,7 @@ describe("models/SearchSynonym - schema constraints", () => {
       {
         mongoose: {
           Schema: FakeSchema as any,
-          model: jest.fn().mockReturnValue({}),
+          model: vi.fn().mockReturnValue({}),
           models: {}
         }
       },
@@ -197,16 +197,16 @@ describe("models/SearchSynonym - schema constraints", () => {
 
 describe("models/SearchSynonym - negative and edge behaviors without DB", () => {
   afterEach(() => {
-    jest.resetModules()
-    jest.restoreAllMocks()
-    jest.clearAllMocks()
+    vi.resetModules()
+    vi.restoreAllMocks()
+    vi.clearAllMocks()
   })
 
   test("invalid environment combination: NODE_ENV=development with remote MONGODB_URI uses real model", () => {
     const fakeSchema = {}
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockSchemaCtor = jest.fn().mockImplementation(() => fakeSchema)
-    const mockIndex = jest.fn()
+    const mockSchemaCtor = vi.fn().mockImplementation(() => fakeSchema)
+    const mockIndex = vi.fn()
     (mockSchemaCtor as any).prototype = {}
     (mockSchemaCtor as any).prototype.index = mockIndex
 
