@@ -159,7 +159,7 @@ describe('AIChatPage', () => {
   test('disables input and button while loading', async () => {
     const Page = requireAIChat()
     // Slow fetch to keep loading state
-    ;(global.fetch as jest.Mock).mockImplementation(
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
       () =>
         new Promise((resolve) => {
           setTimeout(() => resolve({ json: async () => ({ answer: 'Delayed' }) }), 1000)
@@ -189,7 +189,7 @@ describe('AIChatPage', () => {
 
   test('handles API returning missing answer with fallback message', async () => {
     const Page = requireAIChat()
-    ;(global.fetch as jest.Mock).mockResolvedValue({
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       json: async () => ({}), // no answer
     })
     render(<Page />)
@@ -207,7 +207,7 @@ describe('AIChatPage', () => {
 
   test('shows error message when fetch throws', async () => {
     const Page = requireAIChat()
-    ;(global.fetch as jest.Mock).mockRejectedValue(new Error('network'))
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('network'))
     render(<Page />)
 
     const input = screen.getByPlaceholderText(/Ask me anything about Fixzit/i) as HTMLInputElement

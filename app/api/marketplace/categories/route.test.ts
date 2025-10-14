@@ -51,7 +51,7 @@ describe('GET /api/marketplace/categories', () => {
       { _id: { toString: () => '42' }, name: 'Gamma', slug: 'gamma', parentId: undefined, icon: undefined },
     ];
     const { mocks, value } = makeCollections(distinctValues, categoryDocs);
-    (getCollections as jest.Mock).mockResolvedValue(value);
+    (getCollections as ReturnType<typeof vi.fn>).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);
@@ -78,7 +78,7 @@ describe('GET /api/marketplace/categories', () => {
 
   test('uses provided tenantId from query params', async () => {
     const { mocks, value } = makeCollections(['x', 'y'], []);
-    (getCollections as jest.Mock).mockResolvedValue(value);
+    (getCollections as ReturnType<typeof vi.fn>).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories?tenantId=my-tenant' } as unknown as NextRequest;
     const res = await GET(req);
@@ -96,7 +96,7 @@ describe('GET /api/marketplace/categories', () => {
       { _id: { toString: () => 'b' }, name: 'B', slug: 'b', parentId: 'p', icon: 'icon-b.png' },
     ];
     const { mocks, value } = makeCollections([], categoryDocs);
-    (getCollections as jest.Mock).mockResolvedValue(value);
+    (getCollections as ReturnType<typeof vi.fn>).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);
@@ -112,7 +112,7 @@ describe('GET /api/marketplace/categories', () => {
   });
 
   test('handles internal errors from getCollections with 500', async () => {
-    (getCollections as jest.Mock).mockRejectedValue(new Error('DB unavailable'));
+    (getCollections as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB unavailable'));
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);
@@ -157,7 +157,7 @@ describe('GET /api/marketplace/categories', () => {
       { _id: 12345 as unknown, name: 'NameC', slug: 'slug-c', parentId: undefined, icon: 'c.svg' },
     ];
     const { value } = makeCollections(distinctValues, categoryDocs);
-    (getCollections as jest.Mock).mockResolvedValue(value);
+    (getCollections as ReturnType<typeof vi.fn>).mockResolvedValue(value);
 
     const req = { url: 'http://localhost/api/marketplace/categories' } as unknown as NextRequest;
     const res = await GET(req);

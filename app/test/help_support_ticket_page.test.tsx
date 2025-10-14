@@ -16,7 +16,7 @@ import SupportTicketPage from '../help/support-ticket/page';
 
 // Helpers to mock global APIs
 const originalFetch = global.fetch;
-const originalAlert = global.alert as unknown as jest.Mock | undefined;
+const originalAlert = global.alert as unknown as ReturnType<typeof vi.fn> | undefined;
 
 beforeEach(() => {
   // jsdom doesn't implement alert; we mock it
@@ -135,7 +135,7 @@ describe('SupportTicketPage', () => {
     });
 
     // Verify request details
-    const lastCall = (global.fetch as jest.Mock).mock.calls[0];
+    const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(lastCall[0]).toBe('/api/support/tickets');
     const options = lastCall[1];
     expect(options.method).toBe('POST');
@@ -192,7 +192,7 @@ describe('SupportTicketPage', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    const [, options] = (global.fetch as jest.Mock).mock.calls[0];
+    const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const body = JSON.parse(options.body);
     expect(body.requester).toBeDefined();
     expect(body.requester.phone).toBeUndefined();
@@ -200,7 +200,7 @@ describe('SupportTicketPage', () => {
 
   test('shows error alert and re-enables button when fetch fails (non-2xx)', async () => {
     // @ts-ignore
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, json: async () => ({}) });
 
     render(<SupportTicketPage />);
     fillRequiredFields();
@@ -224,7 +224,7 @@ describe('SupportTicketPage', () => {
 
   test('shows error alert if fetch throws', async () => {
     // @ts-ignore
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('network down'));
 
     render(<SupportTicketPage />);
     fillRequiredFields();
@@ -257,7 +257,7 @@ describe('SupportTicketPage', () => {
     let resolveFn: (v?: unknown) => void;
     const pending = new Promise(res => { resolveFn = res; });
     // @ts-ignore
-    (global.fetch as jest.Mock).mockImplementationOnce(() => pending);
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() => pending);
 
     render(<SupportTicketPage />);
     fillRequiredFields();

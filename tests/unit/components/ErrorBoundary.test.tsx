@@ -137,9 +137,9 @@ beforeEach(() => {
 afterEach(() => {
   jest.runOnlyPendingTimers();
   jest.useRealTimers();
-  (console.error as jest.Mock).mockRestore?.();
-  (console.log as jest.Mock).mockRestore?.();
-  (console.warn as jest.Mock).mockRestore?.();
+  (console.error as ReturnType<typeof vi.fn>).mockRestore?.();
+  (console.log as ReturnType<typeof vi.fn>).mockRestore?.();
+  (console.warn as ReturnType<typeof vi.fn>).mockRestore?.();
   jest.resetAllMocks();
 });
 
@@ -277,10 +277,10 @@ skipIfNoComponent('copyErrorDetails uses clipboard API and falls back to execCom
   await act(async () => {
     fireEvent.click(copyBtn);
   });
-  expect((navigator.clipboard.writeText as jest.Mock)).toHaveBeenCalled();
+  expect((navigator.clipboard.writeText as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
 
   // Simulate failure of clipboard API to trigger fallback
-  (navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(new Error('no clipboard'));
+  (navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('no clipboard'));
   // Mock document.execCommand fallback
   const execSpy = jest.spyOn(document, 'execCommand').mockImplementation(() => true);
 
@@ -338,8 +338,8 @@ skipIfNoComponent('attemptAutoFix: network error path shows message when offline
 
 skipIfNoComponent('logFixAttempt sends logging payload with URL and userAgent', async () => {
   // Trigger a runtime error (TypeError) which matches a fix path and causes logFixAttempt call
-  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true } as any); // for error logging
-  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true } as any); // for AUTO_FIX_ATTEMPT logging
+  (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true } as any); // for error logging
+  (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true } as any); // for AUTO_FIX_ATTEMPT logging
 
   await act(async () => {
     render(
@@ -350,7 +350,7 @@ skipIfNoComponent('logFixAttempt sends logging payload with URL and userAgent', 
   });
 
   // Verify that an AUTO_FIX_ATTEMPT event was sent
-  const calls = (global.fetch as jest.Mock).mock.calls.filter(([url]: any[]) => url === '/api/qa/log');
+  const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([url]: any[]) => url === '/api/qa/log');
   const last = calls[calls.length - 1];
   expect(last).toBeTruthy();
   const [, init] = last;

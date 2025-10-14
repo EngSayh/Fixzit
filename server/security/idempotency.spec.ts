@@ -79,7 +79,7 @@ describe('withIdempotency', () => {
 
     // With ttl clamped to 0, setTimeout should be scheduled with 0 delay
     expect(setTimeout).toHaveBeenCalled();
-    const lastCall = (setTimeout as unknown as jest.Mock).mock.calls.pop();
+    const lastCall = (setTimeout as unknown as ReturnType<typeof vi.fn>).mock.calls.pop();
     expect(lastCall?.[1]).toBe(0);
 
     // After timers run, subsequent call should execute again (no cache)

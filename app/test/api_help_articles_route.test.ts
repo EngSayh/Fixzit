@@ -123,7 +123,7 @@ function setupDbMocks({
   const cursor = buildMockCursor(items)
   coll.find.mockReturnValue(cursor)
 
-  ;(getDatabase as jest.Mock).mockResolvedValue({
+  ;(getDatabase as ReturnType<typeof vi.fn>).mockResolvedValue({
     collection: jest.fn(() => coll)
   })
 
@@ -268,7 +268,7 @@ describe('GET /api/help-articles', () => {
   })
 
   test('handles errors and returns 500 with error message', async () => {
-    ;(getDatabase as jest.Mock).mockRejectedValueOnce(new Error('boom'))
+    ;(getDatabase as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'))
     const res = await GET(makeReq('http://localhost/api/help-articles'))
     expect(res).toMatchObject({
       __mockResponse: true,

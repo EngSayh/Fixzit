@@ -87,7 +87,7 @@ type RFQResponse = {
   };
 }
 
-const mockedUseSWR = useSWR as unknown as jest.Mock
+const mockedUseSWR = useSWR as unknown as ReturnType<typeof vi.fn>
 
 const makeResponse = (items: RFQItem[] = []): RFQResponse => ({
   items,
