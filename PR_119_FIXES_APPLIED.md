@@ -1,7 +1,7 @@
 # PR #119 - CI Fixes Applied
 
 **Date:** October 14, 2025, 21:00  
-**PR:** https://github.com/EngSayh/Fixzit/pull/119  
+**PR:** [#119](https://github.com/EngSayh/Fixzit/pull/119)  
 **Branch:** `fix/standardize-test-framework-vitest`
 
 ## Critical Issues Fixed ✅
@@ -68,6 +68,7 @@ it('normalizes arabic variants to "ar"', () => {
   captured!.setLocale('AR');
   captured!.setLocale('ar-sa');
   captured!.setLocale('ar_SA');
+  // Verify mockSetLocale was called with 'ar' for all 4 Arabic variants
   expect(mockSetLocale).toHaveBeenNthCalledWith(1, 'ar');
   expect(mockSetLocale).toHaveBeenNthCalledWith(2, 'ar');
   expect(mockSetLocale).toHaveBeenNthCalledWith(3, 'ar');
@@ -81,7 +82,13 @@ it('normalizes non-arabic or unknown to "en"', () => {
   captured!.setLocale('fr');
   captured!.setLocale('pt-BR');
   captured!.setLocale(''); // empty string edge case
-  expect(mockSetLocale).toHaveBeenNthCalledWith(i, 'en'); // for all 6 calls
+  // Verify mockSetLocale was called with 'en' for all 6 locale variants
+  expect(mockSetLocale).toHaveBeenNthCalledWith(1, 'en');
+  expect(mockSetLocale).toHaveBeenNthCalledWith(2, 'en');
+  expect(mockSetLocale).toHaveBeenNthCalledWith(3, 'en');
+  expect(mockSetLocale).toHaveBeenNthCalledWith(4, 'en');
+  expect(mockSetLocale).toHaveBeenNthCalledWith(5, 'en');
+  expect(mockSetLocale).toHaveBeenNthCalledWith(6, 'en');
 });
 ```
 
