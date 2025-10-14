@@ -81,13 +81,14 @@ export async function GET(req: NextRequest) {
     }
 
     return createSecureResponse({ ok: true, user }, 200, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Distinguish authentication errors from other errors
     if (
-      (error && typeof error === 'object' &&
-        ((error.status && error.status === 401) ||
-         (error.code && error.code === 'UNAUTHORIZED') ||
-         (error.type && error.type === 'auth')))
+      error &&
+      typeof error === 'object' &&
+      ('status' in error && error.status === 401 ||
+       'code' in error && error.code === 'UNAUTHORIZED' ||
+       'type' in error && error.type === 'auth')
     ) {
       return unauthorizedError('Invalid or expired token');
     }
