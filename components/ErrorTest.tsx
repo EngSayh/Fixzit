@@ -9,6 +9,7 @@ export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
   const [qaEnabled, setQaEnabled] = useState(false);
   const [roleAuthorized, setRoleAuthorized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -28,6 +29,8 @@ export default function ErrorTest() {
         }
       } catch (error) {
         console.warn('Unable to verify user role for QA tools:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -50,6 +53,10 @@ export default function ErrorTest() {
   }, []);
 
   // Only show QA tools if both enabled AND user has authorized role
+  if (isLoading) {
+    return null; // Or a loading spinner if you prefer
+  }
+  
   if (!qaEnabled || !roleAuthorized) {
     return null;
   }

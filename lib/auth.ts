@@ -42,18 +42,18 @@ function getJWTSecret(): string {
     return JWT_SECRET;
   }
 
-  // Development/build-time fallback - generate ephemeral secret
-  // NOTE: In production runtime, this will work but tokens won't persist across restarts
-  // Always set JWT_SECRET in production environment variables
-  const fallbackSecret = randomBytes(32).toString('hex');
-  
+  // CRITICAL: Production must have JWT_SECRET configured
   if (process.env.NODE_ENV === 'production') {
-    console.warn('⚠️ WARNING: JWT_SECRET not configured in production. Using ephemeral secret.');
-    console.warn('⚠️ Tokens will not persist across server restarts. Set JWT_SECRET in environment.');
-  } else {
-    console.warn('⚠️ JWT_SECRET not set. Using ephemeral secret for development.');
-    console.warn('⚠️ Set JWT_SECRET environment variable for session persistence.');
+    console.error('🚨 FATAL: JWT_SECRET is not configured in production environment');
+    console.error('🚨 Application cannot start without JWT_SECRET in production');
+    throw new Error('JWT_SECRET is required in production environment');
   }
+  
+  // Development/build-time fallback - generate ephemeral secret
+  // NOTE: Tokens will not persist across restarts in development
+  const fallbackSecret = randomBytes(32).toString('hex');
+  console.warn('⚠️ JWT_SECRET not set. Using ephemeral secret for development.');
+  console.warn('⚠️ Set JWT_SECRET environment variable for session persistence.');
   
   JWT_SECRET = fallbackSecret;
   return JWT_SECRET;

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
+import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createVendorSchema = z.object({
@@ -160,9 +160,16 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] GET /api/vendors error:`, error);
-    return handleApiError(error);
+    const correlationId = crypto.randomUUID();
+    console.error('[GET /api/vendors] Error fetching vendors:', {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return createSecureResponse({ 
+      error: 'Failed to fetch vendors',
+      correlationId
+    }, 500, req);
   }
 }
 
