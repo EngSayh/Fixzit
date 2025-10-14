@@ -91,10 +91,19 @@ describe('language-options data integrity', () => {
   });
 
   it('no entries should have obviously invalid values', () => {
+    // Helper to check for control characters (Biome-friendly alternative to regex)
+    const hasControlChars = (s: string): boolean => {
+      for (let i = 0; i < s.length; i++) {
+        const code = s.charCodeAt(i);
+        if (code <= 31 || code === 127) return true;
+      }
+      return false;
+    };
+
     for (const lang of LANGUAGE_OPTIONS) {
       // label/code should not contain control characters
-      expect(/[\u0000-\u001F\u007F]/.test(lang.label)).toBe(false);
-      expect(/[\u0000-\u001F\u007F]/.test(lang.code)).toBe(false);
+      expect(hasControlChars(lang.label)).toBe(false);
+      expect(hasControlChars(lang.code)).toBe(false);
       // labels should be reasonably short and non-empty
       expect(lang.label.trim().length).toBeGreaterThan(0);
       expect(lang.label.length).toBeLessThanOrEqual(100);
