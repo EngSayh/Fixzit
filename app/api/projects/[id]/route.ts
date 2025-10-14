@@ -73,8 +73,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     return createSecureResponse(project, 200, req);
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to fetch project' }, 500, req);
+  } catch (error: unknown) {
+    console.error('GET /api/projects/[id] error:', error);
+    return handleApiError(error);
   }
 }
 

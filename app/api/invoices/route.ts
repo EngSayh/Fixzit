@@ -7,7 +7,7 @@ import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const createInvoiceSchema = z.object({
@@ -181,8 +181,9 @@ export async function POST(req: NextRequest) {
     });
 
     return createSecureResponse(invoice, 201, req);
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to create invoice' }, 400, req);
+  } catch (error: unknown) {
+    console.error('POST /api/invoices error:', error);
+    return handleApiError(error);
   }
 }
 
@@ -237,8 +238,9 @@ export async function GET(req: NextRequest) {
       total,
       pages: Math.ceil(total / limit)
     });
-  } catch (_error: unknown) {
-    return createSecureResponse({ error: 'Failed to fetch invoices' }, 500, req);
+  } catch (error: unknown) {
+    console.error('GET /api/invoices error:', error);
+    return handleApiError(error);
   }
 }
 

@@ -115,7 +115,8 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(tenant, 201, req);
   } catch (error: unknown) {
-    return handleApiError('POST /api/tenants', req, error);
+    console.error('POST /api/tenants error:', error);
+    return handleApiError(error);
   }
 }
 
@@ -165,7 +166,8 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit)
     });
   } catch (error: unknown) {
-    return handleApiError('GET /api/tenants', req, error);
+    console.error('GET /api/tenants error:', error);
+    return handleApiError(error);
   }
 }
 
