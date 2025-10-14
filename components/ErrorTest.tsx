@@ -3,15 +3,35 @@
 import { useEffect, useState } from 'react';
 
 const QA_FLAG_KEY = 'fxz.qa-tools';
+const ALLOWED_QA_ROLES = ['SUPER_ADMIN', 'QA', 'DEVELOPER', 'ADMIN'];
 
 export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
   const [qaEnabled, setQaEnabled] = useState(false);
+  const [roleAuthorized, setRoleAuthorized] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
+
+    // Check user role authorization
+    const checkRoleAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const data = await response.json();
+          const userRole = data.role;
+          if (ALLOWED_QA_ROLES.includes(userRole)) {
+            setRoleAuthorized(true);
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to verify user role for QA tools:', error);
+      }
+    };
+
+    checkRoleAuth();
 
     try {
       const params = new URLSearchParams(window.location.search);
@@ -29,7 +49,8 @@ export default function ErrorTest() {
     }
   }, []);
 
-  if (!qaEnabled) {
+  // Only show QA tools if both enabled AND user has authorized role
+  if (!qaEnabled || !roleAuthorized) {
     return null;
   }
 

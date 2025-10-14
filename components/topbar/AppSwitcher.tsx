@@ -64,7 +64,7 @@ export default function AppSwitcher() {
                   <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                     <div className="font-medium text-sm">{getAppName(appConfig.id)}</div>
                     <div className="text-xs text-gray-500">
-                      {appConfig.searchEntities.length} {t('app.searchableEntities', 'searchable entities')}
+                      {Array.isArray(appConfig.searchEntities) ? appConfig.searchEntities.length : 0} {t('app.searchableEntities', 'searchable entities')}
                     </div>
                   </div>
                   {isActive && (

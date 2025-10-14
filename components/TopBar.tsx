@@ -78,7 +78,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/session');
+        const response = await fetch('/api/auth/me');
         setIsAuthenticated(response.ok);
       } catch {
         setIsAuthenticated(false);
