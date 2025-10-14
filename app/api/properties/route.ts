@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     });
     if (error instanceof z.ZodError) {
       return createSecureResponse(
-        { error: 'Validation failed', details: error.errors, correlationId },
+        { error: 'Validation failed', details: error.issues, correlationId },
         400,
         req
       );

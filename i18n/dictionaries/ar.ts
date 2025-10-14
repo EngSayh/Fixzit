@@ -200,7 +200,7 @@ const ar = {
       cta3: 'عقار فيكزت',
     },
     features: {
-      title: 'حل كامل لإدارة المنشآت',
+      titleLanding: 'حل كامل لإدارة المنشآت',
     },
   },
   footer: {
@@ -226,7 +226,7 @@ const ar = {
       notifications: 'الإشعارات',
       preferences: 'التفضيلات',
     },
-    profile: {
+    profileSettings: {
       title: 'معلومات الملف الشخصي',
       firstName: 'الاسم الأول',
       lastName: 'الاسم الأخير',
@@ -235,8 +235,8 @@ const ar = {
       department: 'القسم',
       save: 'حفظ التغييرات',
     },
-    security: {
-      title: 'إعدادات الأمان',
+    securitySettings: {
+      titleSettings: 'إعدادات الأمان',
       currentPassword: 'كلمة المرور الحالية',
       newPassword: 'كلمة المرور الجديدة',
       confirmPassword: 'تأكيد كلمة المرور',
@@ -244,18 +244,18 @@ const ar = {
       twoFactorDesc: 'أضف طبقة أمان إضافية لحسابك',
       updatePassword: 'تحديث كلمة المرور',
     },
-    notifications: {
-      title: 'تفضيلات الإشعارات',
-      email: 'البريد الإلكتروني',
+    notificationsSettings: {
+      titleSettings: 'تفضيلات الإشعارات',
+      emailSettings: 'البريد الإلكتروني',
       sms: 'الرسائل النصية',
       push: 'الإشعارات المنبثقة',
       workOrders: 'أوامر العمل',
       maintenance: 'الصيانة',
       reports: 'التقارير',
-      save: 'حفظ التفضيلات',
+      saveSettings: 'حفظ التفضيلات',
     },
-    preferences: {
-      title: 'تفضيلات التطبيق',
+    preferencesSettings: {
+      titleSettings: 'تفضيلات التطبيق',
       language: 'اللغة',
       timezone: 'المنطقة الزمنية',
       theme: 'المظهر',
@@ -266,7 +266,7 @@ const ar = {
       light: 'فاتح',
       dark: 'داكن',
       system: 'النظام',
-      save: 'حفظ التفضيلات',
+      saveSettings: 'حفظ التفضيلات',
     },
   },
   login: {
@@ -1260,7 +1260,7 @@ const ar = {
   },
   files: {
     file: 'ملف',
-    files: 'ملفات',
+    files1: 'ملفات',
     document: 'مستند',
     documents: 'مستندات',
     attachment: 'مرفق',
@@ -1385,7 +1385,7 @@ const ar = {
     bankName: 'اسم البنك',
   },
   property: {
-    property: 'عقار',
+    property1: 'عقار',
     properties: 'عقارات',
     building: 'مبنى',
     buildings: 'مباني',
@@ -1427,7 +1427,7 @@ const ar = {
   },
   workOrders: {
     workOrder: 'أمر عمل',
-    workOrders: 'أوامر العمل',
+    workOrders1: 'أوامر العمل',
     task: 'مهمة',
     tasks: 'مهام',
     ticket: 'تذكرة',
@@ -1470,7 +1470,7 @@ const ar = {
   },
   tenants: {
     tenant: 'مستأجر',
-    tenants: 'مستأجرون',
+    tenants1: 'مستأجرون',
     landlord: 'المالك',
     lessor: 'المؤجر',
     lessee: 'المستأجر',
@@ -1554,7 +1554,7 @@ const ar = {
     equipment: 'معدات',
     material: 'مادة',
     materials: 'مواد',
-    inventory: 'المخزون',
+    inventory1: 'المخزون',
     stock: 'المخزون',
     quantity: 'الكمية',
     availableQuantity: 'الكمية المتاحة',
@@ -1641,7 +1641,7 @@ const ar = {
 
   facilities: {
     facility: 'منشأة',
-    facilities: 'منشآت',
+    facilities1: 'منشآت',
     building: 'مبنى',
     buildings: 'مباني',
     buildingSystems: 'أنظمة المباني',
@@ -1736,7 +1736,7 @@ const ar = {
   },
 
   analytics: {
-    analytics: 'التحليلات',
+    analytics1: 'التحليلات',
     report: 'تقرير',
     reports: 'التقارير',
     dashboard: 'لوحة التحكم',
@@ -1869,7 +1869,7 @@ const ar = {
   },
 
   emergency: {
-    emergency: 'طوارئ',
+    emergency1: 'طوارئ',
     emergencies: 'حالات طوارئ',
     incident: 'حادث',
     incidents: 'حوادث',
@@ -1907,7 +1907,7 @@ const ar = {
   },
 
   quality: {
-    quality: 'الجودة',
+    quality1: 'الجودة',
     qualityControl: 'مراقبة الجودة',
     qualityAssurance: 'ضمان الجودة',
     standard: 'معيار',
@@ -1954,7 +1954,7 @@ const ar = {
   },
 
   equipment: {
-    equipment: 'معدات',
+    equipment1: 'معدات',
     equipmentList: 'قائمة المعدات',
     asset: 'أصل',
     assets: 'أصول',
@@ -1999,7 +1999,7 @@ const ar = {
 
   locations: {
     location: 'الموقع',
-    locations: 'المواقع',
+    locations1: 'المواقع',
     site: 'موقع',
     sites: 'مواقع',
     region: 'منطقة',
@@ -2040,7 +2040,7 @@ const ar = {
   },
 
   access: {
-    access: 'الوصول',
+    access1: 'الوصول',
     accessControl: 'التحكم في الوصول',
     permission: 'صلاحية',
     permissions: 'صلاحيات',
@@ -2083,7 +2083,7 @@ const ar = {
   },
 
   subscription: {
-    subscription: 'اشتراك',
+    subscription1: 'اشتراك',
     subscriptions: 'اشتراكات',
     plan: 'خطة',
     plans: 'خطط',
@@ -2126,7 +2126,7 @@ const ar = {
 
   modules: {
     module: 'وحدة',
-    modules: 'وحدات',
+    modules1: 'وحدات',
     feature: 'ميزة',
     features: 'ميزات',
     addon: 'إضافة',
@@ -2158,7 +2158,7 @@ const ar = {
   },
 
   training: {
-    training: 'تدريب',
+    training1: 'تدريب',
     trainings: 'تدريبات',
     course: 'دورة',
     courses: 'دورات',
@@ -2198,7 +2198,7 @@ const ar = {
   },
 
   budget: {
-    budget: 'الميزانية',
+    budget1: 'الميزانية',
     budgets: 'الميزانيات',
     budgetPlanning: 'تخطيط الميزانية',
     annualBudget: 'الميزانية السنوية',
@@ -2233,7 +2233,7 @@ const ar = {
   },
 
   energy: {
-    energy: 'الطاقة',
+    energy1: 'الطاقة',
     energyManagement: 'إدارة الطاقة',
     electricity: 'الكهرباء',
     power: 'الطاقة',
@@ -2270,7 +2270,7 @@ const ar = {
   },
 
   sustainability: {
-    sustainability: 'الاستدامة',
+    sustainability1: 'الاستدامة',
     sustainable: 'مستدام',
     greenBuilding: 'مبنى أخضر',
     environmental: 'بيئي',
@@ -2298,7 +2298,7 @@ const ar = {
   },
 
   parking: {
-    parking: 'مواقف السيارات',
+    parking1: 'مواقف السيارات',
     parkingSpace: 'موقف سيارة',
     parkingSpaces: 'مواقف السيارات',
     parkingLot: 'ساحة انتظار',
@@ -2331,7 +2331,7 @@ const ar = {
   },
 
   hvac: {
-    hvac: 'التدفئة والتهوية وتكييف الهواء',
+    hvac1: 'التدفئة والتهوية وتكييف الهواء',
     heating: 'التدفئة',
     ventilation: 'التهوية',
     airConditioning: 'تكييف الهواء',
@@ -2362,7 +2362,7 @@ const ar = {
   },
 
   security: {
-    security: 'الأمن',
+    security1: 'الأمن',
     securitySystem: 'نظام الأمن',
     accessControl: 'التحكم في الوصول',
     surveillance: 'المراقبة',
@@ -2396,7 +2396,7 @@ const ar = {
   },
 
   cleaning: {
-    cleaning: 'التنظيف',
+    cleaning1: 'التنظيف',
     housekeeping: 'التدبير المنزلي',
     janitor: 'عامل نظافة',
     cleaner: 'منظف',
@@ -2428,7 +2428,7 @@ const ar = {
 
   elevators: {
     elevator: 'مصعد',
-    elevators: 'مصاعد',
+    elevators1: 'مصاعد',
     lift: 'مصعد',
     lifts: 'مصاعد',
     escalator: 'سلم متحرك',
@@ -2454,7 +2454,7 @@ const ar = {
   },
 
   plumbing: {
-    plumbing: 'السباكة',
+    plumbing1: 'السباكة',
     plumber: 'سباك',
     pipe: 'أنبوب',
     pipes: 'أنابيب',
@@ -2489,7 +2489,7 @@ const ar = {
   },
 
   electrical: {
-    electrical: 'كهربائي',
+    electrical1: 'كهربائي',
     electrician: 'كهربائي',
     electricity: 'الكهرباء',
     powerSupply: 'مصدر الطاقة',
@@ -2526,7 +2526,7 @@ const ar = {
   },
 
   insurance: {
-    insurance: 'التأمين',
+    insurance1: 'التأمين',
     insurancePolicy: 'بوليصة التأمين',
     coverage: 'التغطية',
     insured: 'المؤمن عليه',
@@ -2557,7 +2557,7 @@ const ar = {
 
   fireSafety: {
     fire: 'حريق',
-    fireSafety: 'السلامة من الحرائق',
+    fireSafety1: 'السلامة من الحرائق',
     fireExtinguisher: 'طفاية حريق',
     fireHose: 'خرطوم حريق',
     fireHydrant: 'صنبور إطفاء',
@@ -2593,7 +2593,7 @@ const ar = {
 
   keys: {
     key: 'مفتاح',
-    keys: 'مفاتيح',
+    keys1: 'مفاتيح',
     keyManagement: 'إدارة المفاتيح',
     masterKey: 'المفتاح الرئيسي',
     subMasterKey: 'المفتاح الفرعي الرئيسي',
@@ -2625,7 +2625,7 @@ const ar = {
   },
 
   automation: {
-    automation: 'الأتمتة',
+    automation1: 'الأتمتة',
     buildingAutomation: 'أتمتة المباني',
     bms: 'نظام إدارة المباني',
     buildingManagementSystem: 'نظام إدارة المباني',
@@ -2664,7 +2664,7 @@ const ar = {
 
   visitors: {
     visitor: 'زائر',
-    visitors: 'زوار',
+    visitors1: 'زوار',
     visitorManagement: 'إدارة الزوار',
     visitorLog: 'سجل الزوار',
     visitorBadge: 'شارة الزائر',
@@ -2694,7 +2694,7 @@ const ar = {
   },
 
   landscaping: {
-    landscaping: 'تنسيق الحدائق',
+    landscaping1: 'تنسيق الحدائق',
     landscape: 'المناظر الطبيعية',
     groundsKeeping: 'صيانة الأراضي',
     groundskeeper: 'عامل صيانة الأراضي',
@@ -2730,7 +2730,7 @@ const ar = {
   },
 
   waste: {
-    waste: 'نفايات',
+    waste1: 'نفايات',
     wasteManagement: 'إدارة النفايات',
     garbage: 'قمامة',
     trash: 'نفايات',
@@ -2764,7 +2764,7 @@ const ar = {
   },
 
   water: {
-    water: 'ماء',
+    water1: 'ماء',
     waterManagement: 'إدارة المياه',
     waterConservation: 'الحفاظ على المياه',
     waterUsage: 'استخدام المياه',
@@ -2797,7 +2797,7 @@ const ar = {
 
   roofing: {
     roof: 'سقف',
-    roofing: 'التسقيف',
+    roofing1: 'التسقيف',
     rooftop: 'سطح المبنى',
     roofMaintenance: 'صيانة السقف',
     roofInspection: 'فحص السقف',
@@ -2828,7 +2828,7 @@ const ar = {
 
   flooring: {
     floor: 'أرضية',
-    flooring: 'الأرضيات',
+    flooring1: 'الأرضيات',
     floorMaintenance: 'صيانة الأرضيات',
     floorCleaning: 'تنظيف الأرضيات',
     floorPolishing: 'تلميع الأرضيات',
@@ -2859,7 +2859,7 @@ const ar = {
 
   painting: {
     paint: 'طلاء',
-    painting: 'الطلاء',
+    painting1: 'الطلاء',
     painter: 'رسام',
     paintWork: 'أعمال الطلاء',
     repainting: 'إعادة الطلاء',
@@ -2894,7 +2894,7 @@ const ar = {
 
   windows: {
     window: 'نافذة',
-    windows: 'نوافذ',
+    windows1: 'نوافذ',
     windowCleaning: 'تنظيف النوافذ',
     windowWashing: 'غسل النوافذ',
     windowRepair: 'إصلاح النوافذ',
@@ -2927,7 +2927,7 @@ const ar = {
 
   doors: {
     door: 'باب',
-    doors: 'أبواب',
+    doors1: 'أبواب',
     doorRepair: 'إصلاح الأبواب',
     doorReplacement: 'استبدال الأبواب',
     doorMaintenance: 'صيانة الأبواب',
@@ -2959,7 +2959,7 @@ const ar = {
 
   walls: {
     wall: 'جدار',
-    walls: 'جدران',
+    walls1: 'جدران',
     wallRepair: 'إصلاح الجدران',
     wallMaintenance: 'صيانة الجدران',
     interiorWall: 'جدار داخلي',
@@ -2991,7 +2991,7 @@ const ar = {
 
   structural: {
     structure: 'هيكل',
-    structural: 'إنشائي',
+    structural1: 'إنشائي',
     structuralIntegrity: 'السلامة الإنشائية',
     foundation: 'أساس',
     foundations: 'أساسات',
@@ -3023,7 +3023,7 @@ const ar = {
   },
 
   mep: {
-    mep: 'الأنظمة الميكانيكية والكهربائية والسباكة',
+    mep1: 'الأنظمة الميكانيكية والكهربائية والسباكة',
     mechanical: 'ميكانيكي',
     electricalSystems: 'الأنظمة الكهربائية',
     plumbingSystems: 'أنظمة السباكة',
@@ -3053,7 +3053,7 @@ const ar = {
   },
 
   construction: {
-    construction: 'البناء',
+    construction1: 'البناء',
     constructionWork: 'أعمال البناء',
     buildingConstruction: 'بناء المباني',
     contractor: 'مقاول',
@@ -3084,7 +3084,7 @@ const ar = {
   },
 
   renovation: {
-    renovation: 'تجديد',
+    renovation1: 'تجديد',
     renovations: 'تجديدات',
     remodeling: 'إعادة تشكيل',
     refurbishment: 'تجديد',
@@ -3114,7 +3114,7 @@ const ar = {
   },
 
   accessibility: {
-    accessibility: 'إمكانية الوصول',
+    accessibility1: 'إمكانية الوصول',
     accessible: 'يمكن الوصول إليه',
     wheelchairAccess: 'وصول الكراسي المتحركة',
     wheelchair: 'كرسي متحرك',
@@ -3145,7 +3145,7 @@ const ar = {
   },
 
   comfort: {
-    comfort: 'الراحة',
+    comfort1: 'الراحة',
     comfortable: 'مريح',
     comfortLevel: 'مستوى الراحة',
     thermalComfort: 'الراحة الحرارية',
@@ -3173,7 +3173,7 @@ const ar = {
   },
 
   technology: {
-    technology: 'التكنولوجيا',
+    technology1: 'التكنولوجيا',
     tech: 'تقنية',
     informationTechnology: 'تكنولوجيا المعلومات',
     it: 'تكنولوجيا المعلومات',
@@ -3207,7 +3207,7 @@ const ar = {
   signage: {
     sign: 'لافتة',
     signs: 'لافتات',
-    signage: 'اللافتات',
+    signage1: 'اللافتات',
     wayfinding: 'إيجاد الطريق',
     directional: 'اتجاهي',
     directionalSign: 'لافتة اتجاهية',
@@ -3238,7 +3238,7 @@ const ar = {
 
   amenities: {
     amenity: 'وسيلة راحة',
-    amenities: 'وسائل الراحة',
+    amenities1: 'وسائل الراحة',
     facility: 'مرفق',
     facilities: 'مرافق',
     gym: 'صالة رياضية',
@@ -3269,7 +3269,7 @@ const ar = {
 
   appliances: {
     appliance: 'جهاز',
-    appliances: 'أجهزة',
+    appliances1: 'أجهزة',
     whiteGoods: 'الأجهزة المنزلية',
     refrigerator: 'ثلاجة',
     fridge: 'ثلاجة',
@@ -3297,7 +3297,7 @@ const ar = {
   },
 
   furniture: {
-    furniture: 'أثاث',
+    furniture1: 'أثاث',
     furnishings: 'مفروشات',
     furnish: 'تأثيث',
     furnished: 'مفروش',
@@ -3330,7 +3330,7 @@ const ar = {
 
   finishes: {
     finish: 'تشطيب',
-    finishes: 'تشطيبات',
+    finishes1: 'تشطيبات',
     finishing: 'التشطيب',
     surfaceFinish: 'تشطيب السطح',
     polished: 'مصقول',
@@ -3359,7 +3359,7 @@ const ar = {
 
   materials: {
     material: 'مادة',
-    materials: 'مواد',
+    materials1: 'مواد',
     buildingMaterials: 'مواد البناء',
     rawMaterials: 'مواد خام',
     wood: 'خشب',
@@ -3389,7 +3389,7 @@ const ar = {
 
   measurements: {
     measurement: 'قياس',
-    measurements: 'قياسات',
+    measurements1: 'قياسات',
     measure: 'قياس',
     dimension: 'بُعد',
     dimensions: 'أبعاد',
@@ -3419,7 +3419,7 @@ const ar = {
 
   quantities: {
     quantity: 'كمية',
-    quantities: 'كميات',
+    quantities1: 'كميات',
     amount: 'مبلغ',
     total: 'إجمالي',
     subtotal: 'مجموع جزئي',
@@ -3448,7 +3448,7 @@ const ar = {
   },
 
   safety: {
-    safety: 'السلامة',
+    safety1: 'السلامة',
     safe: 'آمن',
     unsafe: 'غير آمن',
     safeguard: 'حماية',
@@ -3479,7 +3479,7 @@ const ar = {
   },
 
   risk: {
-    risk: 'خطر',
+    risk1: 'خطر',
     risks: 'مخاطر',
     riskAssessment: 'تقييم المخاطر',
     riskManagement: 'إدارة المخاطر',
@@ -3517,7 +3517,7 @@ const ar = {
     nonCompliant: 'غير متوافق',
     regulation: 'لائحة',
     regulations: 'لوائح',
-    regulatory: 'تنظيمي',
+    regulatory1: 'تنظيمي',
     standard: 'معيار',
     standards: 'معايير',
     code: 'كود',
@@ -3546,7 +3546,7 @@ const ar = {
   documentation: {
     document: 'وثيقة',
     documents: 'وثائق',
-    documentation: 'التوثيق',
+    documentation1: 'التوثيق',
     file: 'ملف',
     files: 'ملفات',
     record: 'سجل',
@@ -3579,7 +3579,7 @@ const ar = {
   correspondence: {
     communication: 'التواصل',
     communicate: 'التواصل',
-    correspondence: 'المراسلات',
+    correspondence1: 'المراسلات',
     message: 'رسالة',
     messages: 'رسائل',
     email: 'بريد إلكتروني',
@@ -3608,7 +3608,7 @@ const ar = {
   },
 
   procurement: {
-    procurement: 'المشتريات',
+    procurement1: 'المشتريات',
     procure: 'شراء',
     purchasing: 'الشراء',
     purchase: 'شراء',
@@ -3639,7 +3639,7 @@ const ar = {
   },
 
   legal: {
-    legal: 'قانوني',
+    legal1: 'قانوني',
     law: 'قانون',
     attorney: 'محامي',
     lawyer: 'محامي',
@@ -3671,7 +3671,7 @@ const ar = {
   },
 
   business: {
-    business: 'الأعمال',
+    business1: 'الأعمال',
     businessUnit: 'وحدة الأعمال',
     enterprise: 'مؤسسة',
     corporation: 'شركة',
@@ -3702,7 +3702,7 @@ const ar = {
   },
 
   accounting: {
-    accounting: 'المحاسبة',
+    accounting1: 'المحاسبة',
     accountant: 'محاسب',
     bookkeeping: 'مسك الدفاتر',
     ledger: 'دفتر الأستاذ',
@@ -3735,7 +3735,7 @@ const ar = {
 
   taxation: {
     tax: 'ضريبة',
-    taxation: 'الضرائب',
+    taxation1: 'الضرائب',
     taxable: 'خاضع للضريبة',
     nonTaxable: 'غير خاضع للضريبة',
     taxExempt: 'معفى من الضريبة',
@@ -3764,7 +3764,7 @@ const ar = {
 
   banking: {
     bank: 'بنك',
-    banking: 'الخدمات المصرفية',
+    banking1: 'الخدمات المصرفية',
     bankAccount: 'حساب بنكي',
     account: 'حساب',
     accountNumber: 'رقم الحساب',
@@ -3794,7 +3794,7 @@ const ar = {
   },
 
   project: {
-    project: 'مشروع',
+    project1: 'مشروع',
     projects: 'مشاريع',
     projectManagement: 'إدارة المشاريع',
     projectManager: 'مدير المشروع',
@@ -3826,7 +3826,7 @@ const ar = {
   },
 
   performance: {
-    performance: 'الأداء',
+    performance1: 'الأداء',
     performanceMetric: 'مقياس الأداء',
     kpi: 'مؤشر الأداء الرئيسي',
     keyPerformanceIndicator: 'مؤشر الأداء الرئيسي',
@@ -3858,7 +3858,7 @@ const ar = {
 
   qualityControl: {
     quality: 'الجودة',
-    qualityControl: 'مراقبة الجودة',
+    qualityControl1: 'مراقبة الجودة',
     qualityAssurance: 'ضمان الجودة',
     qc: 'مراقبة الجودة',
     qa: 'ضمان الجودة',
@@ -3887,7 +3887,7 @@ const ar = {
   },
 
   employment: {
-    employment: 'التوظيف',
+    employment1: 'التوظيف',
     employee: 'موظف',
     employees: 'موظفون',
     employer: 'صاحب العمل',
@@ -3919,7 +3919,7 @@ const ar = {
   },
 
   compensation: {
-    compensation: 'التعويض',
+    compensation1: 'التعويض',
     salary: 'راتب',
     wage: 'أجر',
     wages: 'أجور',
@@ -3951,7 +3951,7 @@ const ar = {
   },
 
   attendance: {
-    attendance: 'الحضور',
+    attendance1: 'الحضور',
     timeTracking: 'تتبع الوقت',
     timesheet: 'جدول الوقت',
     clockIn: 'تسجيل الدخول',
@@ -3984,7 +3984,7 @@ const ar = {
 
   departments: {
     department: 'قسم',
-    departments: 'أقسام',
+    departments1: 'أقسام',
     division: 'شعبة',
     team: 'فريق',
     section: 'قسم',
@@ -4014,7 +4014,7 @@ const ar = {
 
   meetings: {
     meeting: 'اجتماع',
-    meetings: 'اجتماعات',
+    meetings1: 'اجتماعات',
     conference: 'مؤتمر',
     session: 'جلسة',
     gathering: 'تجمع',
@@ -4046,7 +4046,7 @@ const ar = {
 
   procedures: {
     procedure: 'إجراء',
-    procedures: 'إجراءات',
+    procedures1: 'إجراءات',
     process: 'عملية',
     processes: 'عمليات',
     workflow: 'سير العمل',
@@ -4076,7 +4076,7 @@ const ar = {
   },
 
   operations: {
-    operations: 'العمليات',
+    operations1: 'العمليات',
     operational: 'تشغيلي',
     operate: 'تشغيل',
     operation: 'عملية',
@@ -4107,7 +4107,7 @@ const ar = {
   },
 
   customer: {
-    customer: 'عميل',
+    customer1: 'عميل',
     customers: 'عملاء',
     client: 'عميل',
     clients: 'عملاء',
@@ -4146,7 +4146,7 @@ const ar = {
     subcontractor: 'مقاول فرعي',
     partner: 'شريك',
     thirdParty: 'طرف ثالث',
-    vendorManagement: 'إدارة الموردين',
+    vendorManagement1: 'إدارة الموردين',
     supplierRelationship: 'علاقة المورد',
     vendorSelection: 'اختيار البائع',
     prequalification: 'التأهيل المسبق',
@@ -4198,7 +4198,7 @@ const ar = {
   },
 
   workOrder: {
-    workOrder: 'أمر العمل',
+    workOrder1: 'أمر العمل',
     serviceRequest: 'طلب الخدمة',
     urgency: 'الإلحاح',
     priority: 'الأولوية',
@@ -4231,7 +4231,7 @@ const ar = {
   },
 
   preventiveMaintenance: {
-    preventiveMaintenance: 'الصيانة الوقائية',
+    preventiveMaintenance1: 'الصيانة الوقائية',
     scheduledMaintenance: 'الصيانة المجدولة',
     frequency: 'التردد',
     daily: 'يومياً',
@@ -4353,7 +4353,7 @@ const ar = {
   },
 
   utilities: {
-    utilities: 'المرافق',
+    utilities1: 'المرافق',
     electricityBill: 'فاتورة الكهرباء',
     waterBill: 'فاتورة المياه',
     gasBill: 'فاتورة الغاز',
@@ -4383,7 +4383,7 @@ const ar = {
   },
 
   realEstate: {
-    realEstate: 'العقارات',
+    realEstate1: 'العقارات',
     propertyType: 'نوع العقار',
     residential: 'سكني',
     commercial: 'تجاري',
@@ -4415,7 +4415,7 @@ const ar = {
   },
 
   valuation: {
-    valuation: 'التقييم',
+    valuation1: 'التقييم',
     appraisal: 'التقدير',
     marketValue: 'القيمة السوقية',
     fairValue: 'القيمة العادلة',
@@ -4671,7 +4671,7 @@ const ar = {
   },
 
   businessIntelligence: {
-    businessIntelligence: 'ذكاء الأعمال',
+    businessIntelligence1: 'ذكاء الأعمال',
     dataWarehouse: 'مستودع البيانات',
     datamart: 'سوق البيانات',
     olap: 'معالجة تحليلية عبر الإنترنت',
@@ -4703,7 +4703,7 @@ const ar = {
 
   auditTrail: {
     audit: 'التدقيق',
-    auditTrail: 'سجل التدقيق',
+    auditTrail1: 'سجل التدقيق',
     auditLog: 'سجل التدقيق',
     activity: 'سجل النشاط',
     change: 'سجل التغييرات',
@@ -4831,7 +4831,7 @@ const ar = {
   },
 
   monitoring: {
-    monitoring: 'المراقبة',
+    monitoring1: 'المراقبة',
     observability: 'الملاحظة',
     logging: 'التسجيل',
     tracing: 'التتبع',
@@ -4862,7 +4862,7 @@ const ar = {
   },
 
   infrastructure: {
-    infrastructure: 'البنية التحتية',
+    infrastructure1: 'البنية التحتية',
     server: 'الخادم',
     serverless: 'بدون خادم',
     virtual: 'الجهاز الافتراضي',
@@ -5019,7 +5019,7 @@ const ar = {
   },
 
   versionControl: {
-    versionControl: 'التحكم في الإصدارات',
+    versionControl1: 'التحكم في الإصدارات',
     git: 'Git',
     svn: 'SVN',
     repository: 'المستودع',
@@ -6422,7 +6422,7 @@ const ar = {
   },
 
   timeTracking: {
-    timeTracking: 'تتبع الوقت',
+    timeTracking1: 'تتبع الوقت',
     timesheet: 'جدول الوقت',
     hours: 'الساعات',
     minutes: 'الدقائق',
@@ -7122,7 +7122,7 @@ const ar = {
   },
 
   knowledgeBase: {
-    knowledgeBase: 'قاعدة المعرفة',
+    knowledgeBase1: 'قاعدة المعرفة',
     article: 'المقال',
     category: 'الفئة',
     topic: 'الموضوع',
@@ -13670,7 +13670,7 @@ const ar = {
   },
 
   cybersecurity: {
-    cybersecurity: 'الأمن السيبراني',
+    cybersecurity1: 'الأمن السيبراني',
     security: 'أمن المعلومات',
     infosec: 'أمن المعلومات',
     threat: 'التهديد',
@@ -15149,7 +15149,7 @@ const ar = {
   },
 
   microservices: {
-    microservices: 'الخدمات الصغيرة',
+    microservices1: 'الخدمات الصغيرة',
     architecture: 'بنية الخدمات الصغيرة',
     service: 'الخدمة',
     decomposition: 'تحليل الخدمة',
@@ -18162,7 +18162,7 @@ const ar = {
     tools: 'أدوات الجودة',
   },
   benchmarking: {
-    benchmarking: 'المقارنة المرجعية',
+    benchmarking1: 'المقارنة المرجعية',
     process: 'عملية المقارنة المرجعية',
     internal: 'المقارنة المرجعية الداخلية',
     competitive: 'المقارنة المرجعية التنافسية',
@@ -24886,7 +24886,7 @@ const ar = {
     infection: 'مكافحة العدوى',
     waste: 'إدارة النفايات الطبية',
     hazardous: 'المواد الخطرة',
-    emergency: 'التأهب للطوارئ',
+    emergencyHospitalManagement: 'التأهب للطوارئ',
     disaster: 'الاستجابة للكوارث',
   },
   patientCare: {
@@ -24981,7 +24981,7 @@ const ar = {
     title: 'الطب عن بعد',
     description: 'خدمات الصحة عن بعد والرعاية الصحية عن بُعد',
     telehealth: 'خدمات الصحة عن بعد',
-    telemedicine: 'الطب عن بعد',
+    telemedicine1: 'الطب عن بعد',
     virtual: 'الرعاية الافتراضية',
     remote: 'المراقبة عن بعد',
     video: 'استشارات الفيديو',
@@ -25514,7 +25514,7 @@ const ar = {
     training: 'تدريب الطوارئ',
     certification: 'شهادة الطوارئ',
   },
-  sustainability: {
+  sustainabilityExtended: {
     title: 'الاستدامة',
     description: 'البرامج البيئية والاستدامة',
     environmental: 'الإدارة البيئية',
@@ -25537,15 +25537,15 @@ const ar = {
     waste: 'إدارة النفايات',
     recycling: 'برامج إعادة التدوير',
     composting: 'التسميد',
-    reduction: 'تقليل النفايات',
+    reductionSustainability: 'تقليل النفايات',
     diversion: 'تحويل النفايات',
     landfill: 'تحويل مكب النفايات',
     hazardous: 'النفايات الخطرة',
     disposal: 'التخلص من النفايات',
     water: 'إدارة المياه',
-    conservation: 'الحفاظ على المياه',
-    efficiency: 'كفاءة المياه',
-    recycling: 'إعادة تدوير المياه',
+    conservationSustainability: 'الحفاظ على المياه',
+    efficiencySustainability: 'كفاءة المياه',
+    recyclingSustainability: 'إعادة تدوير المياه',
     harvesting: 'حصاد مياه الأمطار',
     treatment: 'معالجة المياه',
     quality: 'جودة المياه',
@@ -25566,7 +25566,7 @@ const ar = {
     metrics: 'مقاييس الاستدامة',
     kpi: 'مؤشرات الأداء البيئية',
   },
-  facilityOperations: {
+  facilityOperationsExtended: {
     title: 'عمليات المنشأة',
     description: 'عمليات إدارة المنشآت اليومية',
     operations: 'إدارة العمليات',
@@ -25619,7 +25619,7 @@ const ar = {
     cameras: 'أنظمة الكاميرات',
     alarms: 'أنظمة الإنذار',
   },
-  spaceManagement: {
+  spaceManagementExtended: {
     title: 'إدارة المساحات',
     description: 'تخطيط واستخدام المساحات',
     planning: 'تخطيط المساحات',
@@ -25700,7 +25700,7 @@ const ar = {
     unpacking: 'خدمات فك التعبئة',
     labeling: 'نظام الملصقات',
     inventory: 'جرد النقل',
-    tracking: 'تتبع العناصر',
+    trackingMoveManagement: 'تتبع العناصر',
     logistics: 'لوجستيات النقل',
     transportation: 'النقل',
     delivery: 'جدول التسليم',
@@ -25742,7 +25742,7 @@ const ar = {
     supplier: 'إدارة الموردين',
     vendor: 'علاقات الموردين',
     purchase: 'أوامر الشراء',
-    receiving: 'استلام البضائع',
+    receivingLogistics: 'استلام البضائع',
     inspection: 'فحص الجودة',
     storage: 'إدارة التخزين',
     picking: 'انتقاء الطلبات',
@@ -25807,7 +25807,7 @@ const ar = {
     emergency: 'خدمات الطوارئ',
     disaster: 'التعافي من الكوارث',
   },
-  insurance: {
+  insuranceExtended: {
     title: 'خدمات التأمين',
     description: 'إدارة عمليات التأمين والوثائق',
     policy: 'وثيقة التأمين',
@@ -26039,7 +26039,7 @@ const ar = {
     traffic: 'مراقبة الحركة الجوية',
     emergency: 'إجراءات الطوارئ',
   },
-  legal: {
+  legalExtended: {
     title: 'الخدمات القانونية',
     description: 'إدارة العمليات القانونية والامتثال',
     case: 'إدارة القضايا',
@@ -26190,7 +26190,7 @@ const ar = {
     anticheat: 'أنظمة مكافحة الغش',
     security: 'أمن الألعاب',
   },
-  cybersecurity: {
+  cybersecurityExtended: {
     title: 'الأمن السيبراني',
     description: 'إدارة عمليات الأمن والتهديدات',
     threat: 'اكتشاف التهديدات',
@@ -26564,7 +26564,7 @@ const ar = {
     title: 'الدفاع والأمن',
     description: 'العمليات الدفاعية وأنظمة الأمن',
     military: 'العمليات العسكرية',
-    defense: 'الأنظمة الدفاعية',
+    defense1: 'الأنظمة الدفاعية',
     security: 'العمليات الأمنية',
     intelligence: 'عمليات الاستخبارات',
     surveillance: 'أنظمة المراقبة',
@@ -26720,7 +26720,7 @@ const ar = {
     interior: 'تجميع الداخلية',
     seats: 'تجميع المقاعد',
     dashboard: 'تجميع لوحة القيادة',
-    trim: 'التشطيب الداخلي',
+    trimAutomotive: 'التشطيب الداخلي',
     glass: 'زجاج السيارات',
     lighting: 'أنظمة الإضاءة',
     safety: 'أنظمة السلامة',
@@ -26736,7 +26736,7 @@ const ar = {
   },
 
   // Dashboard Page
-  dashboard: {
+  dashboardApp: {
     title: 'لوحة التحكم',
     welcome: 'مرحباً بعودتك',
     totalProperties: 'إجمالي العقارات',

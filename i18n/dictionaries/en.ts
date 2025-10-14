@@ -181,7 +181,7 @@ const en = {
       cta3: 'Aqar Real Estate',
     },
     features: {
-      title: 'Complete Facility Management Solution',
+      titleLanding: 'Complete Facility Management Solution',
     },
   },
   footer: {
@@ -207,7 +207,7 @@ const en = {
       notifications: 'Notifications',
       preferences: 'Preferences',
     },
-    profile: {
+    profileSettings: {
       title: 'Profile Information',
       firstName: 'First Name',
       lastName: 'Last Name',
@@ -216,8 +216,8 @@ const en = {
       department: 'Department',
       save: 'Save Changes',
     },
-    security: {
-      title: 'Security Settings',
+    securitySettings: {
+      titleSettings: 'Security Settings',
       currentPassword: 'Current Password',
       newPassword: 'New Password',
       confirmPassword: 'Confirm Password',
@@ -225,18 +225,18 @@ const en = {
       twoFactorDesc: 'Add an extra layer of security to your account',
       updatePassword: 'Update Password',
     },
-    notifications: {
-      title: 'Notification Preferences',
-      email: 'Email',
+    notificationsSettings: {
+      titleSettings: 'Notification Preferences',
+      emailSettings: 'Email',
       sms: 'SMS',
       push: 'Push Notifications',
       workOrders: 'Work Orders',
       maintenance: 'Maintenance',
       reports: 'Reports',
-      save: 'Save Preferences',
+      saveSettings: 'Save Preferences',
     },
-    preferences: {
-      title: 'App Preferences',
+    preferencesSettings: {
+      titleSettings: 'App Preferences',
       language: 'Language',
       timezone: 'Timezone',
       theme: 'Theme',
@@ -247,7 +247,7 @@ const en = {
       light: 'Light',
       dark: 'Dark',
       system: 'System',
-      save: 'Save Preferences',
+      saveSettings: 'Save Preferences',
     },
   },
   login: {
@@ -1241,7 +1241,7 @@ const en = {
   },
   files: {
     file: 'File',
-    files: 'Files',
+    files1: 'Files',
     document: 'Document',
     documents: 'Documents',
     attachment: 'Attachment',
@@ -1366,7 +1366,7 @@ const en = {
     bankName: 'Bank Name',
   },
   property: {
-    property: 'Property',
+    property1: 'Property',
     properties: 'Properties',
     building: 'Building',
     buildings: 'Buildings',
@@ -1408,7 +1408,7 @@ const en = {
   },
   workOrders: {
     workOrder: 'Work Order',
-    workOrders: 'Work Orders',
+    workOrders1: 'Work Orders',
     task: 'Task',
     tasks: 'Tasks',
     ticket: 'Ticket',
@@ -1451,7 +1451,7 @@ const en = {
   },
   tenants: {
     tenant: 'Tenant',
-    tenants: 'Tenants',
+    tenants1: 'Tenants',
     landlord: 'Landlord',
     lessor: 'Lessor',
     lessee: 'Lessee',
@@ -1535,7 +1535,7 @@ const en = {
     equipment: 'Equipment',
     material: 'Material',
     materials: 'Materials',
-    inventory: 'Inventory',
+    inventory1: 'Inventory',
     stock: 'Stock',
     quantity: 'Quantity',
     availableQuantity: 'Available Quantity',
@@ -1622,7 +1622,7 @@ const en = {
 
   facilities: {
     facility: 'Facility',
-    facilities: 'Facilities',
+    facilities1: 'Facilities',
     building: 'Building',
     buildings: 'Buildings',
     buildingSystems: 'Building Systems',
@@ -1717,7 +1717,7 @@ const en = {
   },
 
   analytics: {
-    analytics: 'Analytics',
+    analytics1: 'Analytics',
     report: 'Report',
     reports: 'Reports',
     dashboard: 'Dashboard',
@@ -1850,7 +1850,7 @@ const en = {
   },
 
   emergency: {
-    emergency: 'Emergency',
+    emergency1: 'Emergency',
     emergencies: 'Emergencies',
     incident: 'Incident',
     incidents: 'Incidents',
@@ -1888,7 +1888,7 @@ const en = {
   },
 
   quality: {
-    quality: 'Quality',
+    quality1: 'Quality',
     qualityControl: 'Quality Control',
     qualityAssurance: 'Quality Assurance',
     standard: 'Standard',
@@ -1935,7 +1935,7 @@ const en = {
   },
 
   equipment: {
-    equipment: 'Equipment',
+    equipment1: 'Equipment',
     equipmentList: 'Equipment List',
     asset: 'Asset',
     assets: 'Assets',
@@ -1980,7 +1980,7 @@ const en = {
 
   locations: {
     location: 'Location',
-    locations: 'Locations',
+    locations1: 'Locations',
     site: 'Site',
     sites: 'Sites',
     region: 'Region',
@@ -2021,7 +2021,7 @@ const en = {
   },
 
   access: {
-    access: 'Access',
+    access1: 'Access',
     accessControl: 'Access Control',
     permission: 'Permission',
     permissions: 'Permissions',
@@ -2064,7 +2064,7 @@ const en = {
   },
 
   subscription: {
-    subscription: 'Subscription',
+    subscription1: 'Subscription',
     subscriptions: 'Subscriptions',
     plan: 'Plan',
     plans: 'Plans',
@@ -2107,7 +2107,7 @@ const en = {
 
   modules: {
     module: 'Module',
-    modules: 'Modules',
+    modules1: 'Modules',
     feature: 'Feature',
     features: 'Features',
     addon: 'Add-on',
@@ -2139,7 +2139,7 @@ const en = {
   },
 
   training: {
-    training: 'Training',
+    training1: 'Training',
     trainings: 'Trainings',
     course: 'Course',
     courses: 'Courses',
@@ -2179,7 +2179,7 @@ const en = {
   },
 
   budget: {
-    budget: 'Budget',
+    budget1: 'Budget',
     budgets: 'Budgets',
     budgetPlanning: 'Budget Planning',
     annualBudget: 'Annual Budget',
@@ -2214,7 +2214,7 @@ const en = {
   },
 
   energy: {
-    energy: 'Energy',
+    energy1: 'Energy',
     energyManagement: 'Energy Management',
     electricity: 'Electricity',
     power: 'Power',
@@ -2251,7 +2251,7 @@ const en = {
   },
 
   sustainability: {
-    sustainability: 'Sustainability',
+    sustainability1: 'Sustainability',
     sustainable: 'Sustainable',
     greenBuilding: 'Green Building',
     environmental: 'Environmental',
@@ -2279,7 +2279,7 @@ const en = {
   },
 
   parking: {
-    parking: 'Parking',
+    parking1: 'Parking',
     parkingSpace: 'Parking Space',
     parkingSpaces: 'Parking Spaces',
     parkingLot: 'Parking Lot',
@@ -2312,7 +2312,7 @@ const en = {
   },
 
   hvac: {
-    hvac: 'HVAC',
+    hvac1: 'HVAC',
     heating: 'Heating',
     ventilation: 'Ventilation',
     airConditioning: 'Air Conditioning',
@@ -2343,7 +2343,7 @@ const en = {
   },
 
   security: {
-    security: 'Security',
+    security1: 'Security',
     securitySystem: 'Security System',
     accessControl: 'Access Control',
     surveillance: 'Surveillance',
@@ -2377,7 +2377,7 @@ const en = {
   },
 
   cleaning: {
-    cleaning: 'Cleaning',
+    cleaning1: 'Cleaning',
     housekeeping: 'Housekeeping',
     janitor: 'Janitor',
     cleaner: 'Cleaner',
@@ -2409,7 +2409,7 @@ const en = {
 
   elevators: {
     elevator: 'Elevator',
-    elevators: 'Elevators',
+    elevators1: 'Elevators',
     lift: 'Lift',
     lifts: 'Lifts',
     escalator: 'Escalator',
@@ -2435,7 +2435,7 @@ const en = {
   },
 
   plumbing: {
-    plumbing: 'Plumbing',
+    plumbing1: 'Plumbing',
     plumber: 'Plumber',
     pipe: 'Pipe',
     pipes: 'Pipes',
@@ -2470,7 +2470,7 @@ const en = {
   },
 
   electrical: {
-    electrical: 'Electrical',
+    electrical1: 'Electrical',
     electrician: 'Electrician',
     electricity: 'Electricity',
     powerSupply: 'Power Supply',
@@ -2507,7 +2507,7 @@ const en = {
   },
 
   insurance: {
-    insurance: 'Insurance',
+    insurance1: 'Insurance',
     insurancePolicy: 'Insurance Policy',
     coverage: 'Coverage',
     insured: 'Insured',
@@ -2538,7 +2538,7 @@ const en = {
 
   fireSafety: {
     fire: 'Fire',
-    fireSafety: 'Fire Safety',
+    fireSafety1: 'Fire Safety',
     fireExtinguisher: 'Fire Extinguisher',
     fireHose: 'Fire Hose',
     fireHydrant: 'Fire Hydrant',
@@ -2574,7 +2574,7 @@ const en = {
 
   keys: {
     key: 'Key',
-    keys: 'Keys',
+    keys1: 'Keys',
     keyManagement: 'Key Management',
     masterKey: 'Master Key',
     subMasterKey: 'Sub Master Key',
@@ -2606,7 +2606,7 @@ const en = {
   },
 
   automation: {
-    automation: 'Automation',
+    automation1: 'Automation',
     buildingAutomation: 'Building Automation',
     bms: 'BMS',
     buildingManagementSystem: 'Building Management System',
@@ -2645,7 +2645,7 @@ const en = {
 
   visitors: {
     visitor: 'Visitor',
-    visitors: 'Visitors',
+    visitors1: 'Visitors',
     visitorManagement: 'Visitor Management',
     visitorLog: 'Visitor Log',
     visitorBadge: 'Visitor Badge',
@@ -2675,7 +2675,7 @@ const en = {
   },
 
   landscaping: {
-    landscaping: 'Landscaping',
+    landscaping1: 'Landscaping',
     landscape: 'Landscape',
     groundsKeeping: 'Grounds Keeping',
     groundskeeper: 'Groundskeeper',
@@ -2711,7 +2711,7 @@ const en = {
   },
 
   waste: {
-    waste: 'Waste',
+    waste1: 'Waste',
     wasteManagement: 'Waste Management',
     garbage: 'Garbage',
     trash: 'Trash',
@@ -2745,7 +2745,7 @@ const en = {
   },
 
   water: {
-    water: 'Water',
+    water1: 'Water',
     waterManagement: 'Water Management',
     waterConservation: 'Water Conservation',
     waterUsage: 'Water Usage',
@@ -2778,7 +2778,7 @@ const en = {
 
   roofing: {
     roof: 'Roof',
-    roofing: 'Roofing',
+    roofing1: 'Roofing',
     rooftop: 'Rooftop',
     roofMaintenance: 'Roof Maintenance',
     roofInspection: 'Roof Inspection',
@@ -2809,7 +2809,7 @@ const en = {
 
   flooring: {
     floor: 'Floor',
-    flooring: 'Flooring',
+    flooring1: 'Flooring',
     floorMaintenance: 'Floor Maintenance',
     floorCleaning: 'Floor Cleaning',
     floorPolishing: 'Floor Polishing',
@@ -2840,7 +2840,7 @@ const en = {
 
   painting: {
     paint: 'Paint',
-    painting: 'Painting',
+    painting1: 'Painting',
     painter: 'Painter',
     paintWork: 'Paint Work',
     repainting: 'Repainting',
@@ -2875,7 +2875,7 @@ const en = {
 
   windows: {
     window: 'Window',
-    windows: 'Windows',
+    windows1: 'Windows',
     windowCleaning: 'Window Cleaning',
     windowWashing: 'Window Washing',
     windowRepair: 'Window Repair',
@@ -2908,7 +2908,7 @@ const en = {
 
   doors: {
     door: 'Door',
-    doors: 'Doors',
+    doors1: 'Doors',
     doorRepair: 'Door Repair',
     doorReplacement: 'Door Replacement',
     doorMaintenance: 'Door Maintenance',
@@ -2940,7 +2940,7 @@ const en = {
 
   walls: {
     wall: 'Wall',
-    walls: 'Walls',
+    walls1: 'Walls',
     wallRepair: 'Wall Repair',
     wallMaintenance: 'Wall Maintenance',
     interiorWall: 'Interior Wall',
@@ -2972,7 +2972,7 @@ const en = {
 
   structural: {
     structure: 'Structure',
-    structural: 'Structural',
+    structural1: 'Structural',
     structuralIntegrity: 'Structural Integrity',
     foundation: 'Foundation',
     foundations: 'Foundations',
@@ -3004,7 +3004,7 @@ const en = {
   },
 
   mep: {
-    mep: 'MEP',
+    mep1: 'MEP',
     mechanical: 'Mechanical',
     electricalSystems: 'Electrical Systems',
     plumbingSystems: 'Plumbing Systems',
@@ -3034,7 +3034,7 @@ const en = {
   },
 
   construction: {
-    construction: 'Construction',
+    construction1: 'Construction',
     constructionWork: 'Construction Work',
     buildingConstruction: 'Building Construction',
     contractor: 'Contractor',
@@ -3065,7 +3065,7 @@ const en = {
   },
 
   renovation: {
-    renovation: 'Renovation',
+    renovation1: 'Renovation',
     renovations: 'Renovations',
     remodeling: 'Remodeling',
     refurbishment: 'Refurbishment',
@@ -3095,7 +3095,7 @@ const en = {
   },
 
   accessibility: {
-    accessibility: 'Accessibility',
+    accessibility1: 'Accessibility',
     accessible: 'Accessible',
     wheelchairAccess: 'Wheelchair Access',
     wheelchair: 'Wheelchair',
@@ -3126,7 +3126,7 @@ const en = {
   },
 
   comfort: {
-    comfort: 'Comfort',
+    comfort1: 'Comfort',
     comfortable: 'Comfortable',
     comfortLevel: 'Comfort Level',
     thermalComfort: 'Thermal Comfort',
@@ -3154,7 +3154,7 @@ const en = {
   },
 
   technology: {
-    technology: 'Technology',
+    technology1: 'Technology',
     tech: 'Tech',
     informationTechnology: 'Information Technology',
     it: 'IT',
@@ -3188,7 +3188,7 @@ const en = {
   signage: {
     sign: 'Sign',
     signs: 'Signs',
-    signage: 'Signage',
+    signage1: 'Signage',
     wayfinding: 'Wayfinding',
     directional: 'Directional',
     directionalSign: 'Directional Sign',
@@ -3219,7 +3219,7 @@ const en = {
 
   amenities: {
     amenity: 'Amenity',
-    amenities: 'Amenities',
+    amenities1: 'Amenities',
     facility: 'Facility',
     facilities: 'Facilities',
     gym: 'Gym',
@@ -3250,7 +3250,7 @@ const en = {
 
   appliances: {
     appliance: 'Appliance',
-    appliances: 'Appliances',
+    appliances1: 'Appliances',
     whiteGoods: 'White Goods',
     refrigerator: 'Refrigerator',
     fridge: 'Fridge',
@@ -3278,7 +3278,7 @@ const en = {
   },
 
   furniture: {
-    furniture: 'Furniture',
+    furniture1: 'Furniture',
     furnishings: 'Furnishings',
     furnish: 'Furnish',
     furnished: 'Furnished',
@@ -3311,7 +3311,7 @@ const en = {
 
   finishes: {
     finish: 'Finish',
-    finishes: 'Finishes',
+    finishes1: 'Finishes',
     finishing: 'Finishing',
     surfaceFinish: 'Surface Finish',
     polished: 'Polished',
@@ -3340,7 +3340,7 @@ const en = {
 
   materials: {
     material: 'Material',
-    materials: 'Materials',
+    materials1: 'Materials',
     buildingMaterials: 'Building Materials',
     rawMaterials: 'Raw Materials',
     wood: 'Wood',
@@ -3370,7 +3370,7 @@ const en = {
 
   measurements: {
     measurement: 'Measurement',
-    measurements: 'Measurements',
+    measurements1: 'Measurements',
     measure: 'Measure',
     dimension: 'Dimension',
     dimensions: 'Dimensions',
@@ -3400,7 +3400,7 @@ const en = {
 
   quantities: {
     quantity: 'Quantity',
-    quantities: 'Quantities',
+    quantities1: 'Quantities',
     amount: 'Amount',
     total: 'Total',
     subtotal: 'Subtotal',
@@ -3429,7 +3429,7 @@ const en = {
   },
 
   safety: {
-    safety: 'Safety',
+    safety1: 'Safety',
     safe: 'Safe',
     unsafe: 'Unsafe',
     safeguard: 'Safeguard',
@@ -3460,7 +3460,7 @@ const en = {
   },
 
   risk: {
-    risk: 'Risk',
+    risk1: 'Risk',
     risks: 'Risks',
     riskAssessment: 'Risk Assessment',
     riskManagement: 'Risk Management',
@@ -3498,7 +3498,7 @@ const en = {
     nonCompliant: 'Non-compliant',
     regulation: 'Regulation',
     regulations: 'Regulations',
-    regulatory: 'Regulatory',
+    regulatory1: 'Regulatory',
     standard: 'Standard',
     standards: 'Standards',
     code: 'Code',
@@ -3527,7 +3527,7 @@ const en = {
   documentation: {
     document: 'Document',
     documents: 'Documents',
-    documentation: 'Documentation',
+    documentation1: 'Documentation',
     file: 'File',
     files: 'Files',
     record: 'Record',
@@ -3560,7 +3560,7 @@ const en = {
   correspondence: {
     communication: 'Communication',
     communicate: 'Communicate',
-    correspondence: 'Correspondence',
+    correspondence1: 'Correspondence',
     message: 'Message',
     messages: 'Messages',
     email: 'Email',
@@ -3589,7 +3589,7 @@ const en = {
   },
 
   procurement: {
-    procurement: 'Procurement',
+    procurement1: 'Procurement',
     procure: 'Procure',
     purchasing: 'Purchasing',
     purchase: 'Purchase',
@@ -3620,7 +3620,7 @@ const en = {
   },
 
   legal: {
-    legal: 'Legal',
+    legal1: 'Legal',
     law: 'Law',
     attorney: 'Attorney',
     lawyer: 'Lawyer',
@@ -3652,7 +3652,7 @@ const en = {
   },
 
   business: {
-    business: 'Business',
+    business1: 'Business',
     businessUnit: 'Business Unit',
     enterprise: 'Enterprise',
     corporation: 'Corporation',
@@ -3683,7 +3683,7 @@ const en = {
   },
 
   accounting: {
-    accounting: 'Accounting',
+    accounting1: 'Accounting',
     accountant: 'Accountant',
     bookkeeping: 'Bookkeeping',
     ledger: 'Ledger',
@@ -3716,7 +3716,7 @@ const en = {
 
   taxation: {
     tax: 'Tax',
-    taxation: 'Taxation',
+    taxation1: 'Taxation',
     taxable: 'Taxable',
     nonTaxable: 'Non-taxable',
     taxExempt: 'Tax Exempt',
@@ -3745,7 +3745,7 @@ const en = {
 
   banking: {
     bank: 'Bank',
-    banking: 'Banking',
+    banking1: 'Banking',
     bankAccount: 'Bank Account',
     account: 'Account',
     accountNumber: 'Account Number',
@@ -3775,7 +3775,7 @@ const en = {
   },
 
   project: {
-    project: 'Project',
+    project1: 'Project',
     projects: 'Projects',
     projectManagement: 'Project Management',
     projectManager: 'Project Manager',
@@ -3807,7 +3807,7 @@ const en = {
   },
 
   performance: {
-    performance: 'Performance',
+    performance1: 'Performance',
     performanceMetric: 'Performance Metric',
     kpi: 'KPI',
     keyPerformanceIndicator: 'Key Performance Indicator',
@@ -3839,7 +3839,7 @@ const en = {
 
   qualityControl: {
     quality: 'Quality',
-    qualityControl: 'Quality Control',
+    qualityControl1: 'Quality Control',
     qualityAssurance: 'Quality Assurance',
     qc: 'QC',
     qa: 'QA',
@@ -3868,7 +3868,7 @@ const en = {
   },
 
   employment: {
-    employment: 'Employment',
+    employment1: 'Employment',
     employee: 'Employee',
     employees: 'Employees',
     employer: 'Employer',
@@ -3900,7 +3900,7 @@ const en = {
   },
 
   compensation: {
-    compensation: 'Compensation',
+    compensation1: 'Compensation',
     salary: 'Salary',
     wage: 'Wage',
     wages: 'Wages',
@@ -3932,7 +3932,7 @@ const en = {
   },
 
   attendance: {
-    attendance: 'Attendance',
+    attendance1: 'Attendance',
     timeTracking: 'Time Tracking',
     timesheet: 'Timesheet',
     clockIn: 'Clock In',
@@ -3965,7 +3965,7 @@ const en = {
 
   departments: {
     department: 'Department',
-    departments: 'Departments',
+    departments1: 'Departments',
     division: 'Division',
     team: 'Team',
     section: 'Section',
@@ -3995,7 +3995,7 @@ const en = {
 
   meetings: {
     meeting: 'Meeting',
-    meetings: 'Meetings',
+    meetings1: 'Meetings',
     conference: 'Conference',
     session: 'Session',
     gathering: 'Gathering',
@@ -4027,7 +4027,7 @@ const en = {
 
   procedures: {
     procedure: 'Procedure',
-    procedures: 'Procedures',
+    procedures1: 'Procedures',
     process: 'Process',
     processes: 'Processes',
     workflow: 'Workflow',
@@ -4057,7 +4057,7 @@ const en = {
   },
 
   operations: {
-    operations: 'Operations',
+    operations1: 'Operations',
     operational: 'Operational',
     operate: 'Operate',
     operation: 'Operation',
@@ -4088,7 +4088,7 @@ const en = {
   },
 
   customer: {
-    customer: 'Customer',
+    customer1: 'Customer',
     customers: 'Customers',
     client: 'Client',
     clients: 'Clients',
@@ -4127,7 +4127,7 @@ const en = {
     subcontractor: 'Subcontractor',
     partner: 'Partner',
     thirdParty: 'Third Party',
-    vendorManagement: 'Vendor Management',
+    vendorManagement1: 'Vendor Management',
     supplierRelationship: 'Supplier Relationship',
     vendorSelection: 'Vendor Selection',
     prequalification: 'Pre-qualification',
@@ -4179,7 +4179,7 @@ const en = {
   },
 
   workOrder: {
-    workOrder: 'Work Order',
+    workOrder1: 'Work Order',
     workOrders: 'Work Orders',
     serviceRequest: 'Service Request',
     maintenanceRequest: 'Maintenance Request',
@@ -4210,7 +4210,7 @@ const en = {
   },
 
   preventiveMaintenance: {
-    preventiveMaintenance: 'Preventive Maintenance',
+    preventiveMaintenance1: 'Preventive Maintenance',
     scheduledMaintenance: 'Scheduled Maintenance',
     plannedMaintenance: 'Planned Maintenance',
     maintenanceSchedule: 'Maintenance Schedule',
@@ -4242,7 +4242,7 @@ const en = {
   assetManagement: {
     asset: 'Asset',
     assets: 'Assets',
-    assetManagement: 'Asset Management',
+    assetManagement1: 'Asset Management',
     assetRegister: 'Asset Register',
     assetTracking: 'Asset Tracking',
     assetTag: 'Asset Tag',
@@ -4300,7 +4300,7 @@ const en = {
 
   leasing: {
     lease: 'Lease',
-    leasing: 'Leasing',
+    leasing1: 'Leasing',
     lessor: 'Lessor',
     lessee: 'Lessee',
     leaseAgreement: 'Lease Agreement',
@@ -4329,7 +4329,7 @@ const en = {
   },
 
   utilities: {
-    utilities: 'Utilities',
+    utilities1: 'Utilities',
     utility: 'Utility',
     electricityBill: 'Electricity Bill',
     waterBill: 'Water Bill',
@@ -4359,7 +4359,7 @@ const en = {
   },
 
   realEstate: {
-    realEstate: 'Real Estate',
+    realEstate1: 'Real Estate',
     property: 'Property',
     propertyType: 'Property Type',
     residential: 'Residential',
@@ -4389,7 +4389,7 @@ const en = {
   },
 
   valuation: {
-    valuation: 'Valuation',
+    valuation1: 'Valuation',
     appraisal: 'Appraisal',
     assessment: 'Assessment',
     marketValue: 'Market Value',
@@ -4643,7 +4643,7 @@ const en = {
   },
 
   businessIntelligence: {
-    businessIntelligence: 'Business Intelligence',
+    businessIntelligence1: 'Business Intelligence',
     dataWarehouse: 'Data Warehouse',
     datamart: 'Data Mart',
     olap: 'OLAP',
@@ -4675,7 +4675,7 @@ const en = {
 
   auditTrail: {
     audit: 'Audit',
-    auditTrail: 'Audit Trail',
+    auditTrail1: 'Audit Trail',
     auditLog: 'Audit Log',
     activity: 'Activity Log',
     change: 'Change Log',
@@ -4803,7 +4803,7 @@ const en = {
   },
 
   monitoring: {
-    monitoring: 'Monitoring',
+    monitoring1: 'Monitoring',
     observability: 'Observability',
     logging: 'Logging',
     tracing: 'Tracing',
@@ -4834,7 +4834,7 @@ const en = {
   },
 
   infrastructure: {
-    infrastructure: 'Infrastructure',
+    infrastructure1: 'Infrastructure',
     server: 'Server',
     serverless: 'Serverless',
     virtual: 'Virtual Machine',
@@ -4991,7 +4991,7 @@ const en = {
   },
 
   versionControl: {
-    versionControl: 'Version Control',
+    versionControl1: 'Version Control',
     git: 'Git',
     svn: 'SVN',
     repository: 'Repository',
@@ -6394,7 +6394,7 @@ const en = {
   },
 
   timeTracking: {
-    timeTracking: 'Time Tracking',
+    timeTracking1: 'Time Tracking',
     timesheet: 'Timesheet',
     hours: 'Hours',
     minutes: 'Minutes',
@@ -7094,7 +7094,7 @@ const en = {
   },
 
   knowledgeBase: {
-    knowledgeBase: 'Knowledge Base',
+    knowledgeBase1: 'Knowledge Base',
     article: 'Article',
     category: 'Category',
     topic: 'Topic',
@@ -14091,7 +14091,7 @@ const en = {
   },
 
   cybersecurity: {
-    cybersecurity: 'Cybersecurity',
+    cybersecurity1: 'Cybersecurity',
     security: 'Information Security',
     infosec: 'InfoSec',
     threat: 'Threat',
@@ -15570,7 +15570,7 @@ const en = {
   },
 
   microservices: {
-    microservices: 'Microservices',
+    microservices1: 'Microservices',
     architecture: 'Microservices Architecture',
     service: 'Service',
     decomposition: 'Service Decomposition',
@@ -18559,7 +18559,7 @@ const en = {
     tools: 'Quality Tools',
   },
   benchmarking: {
-    benchmarking: 'Benchmarking',
+    benchmarking1: 'Benchmarking',
     process: 'Benchmarking Process',
     internal: 'Internal Benchmarking',
     competitive: 'Competitive Benchmarking',
@@ -25453,7 +25453,7 @@ const en = {
     title: 'Telemedicine',
     description: 'Telehealth and Remote Healthcare Services',
     telehealth: 'Telehealth Services',
-    telemedicine: 'Telemedicine',
+    telemedicine1: 'Telemedicine',
     virtual: 'Virtual Care',
     remote: 'Remote Monitoring',
     video: 'Video Consultations',
@@ -25986,7 +25986,7 @@ const en = {
     training: 'Emergency Training',
     certification: 'Emergency Certification',
   },
-  sustainability: {
+  sustainabilityExtended: {
     title: 'Sustainability',
     description: 'Environmental and Sustainability Programs',
     environmental: 'Environmental Management',
@@ -26009,15 +26009,15 @@ const en = {
     waste: 'Waste Management',
     recycling: 'Recycling Programs',
     composting: 'Composting',
-    reduction: 'Waste Reduction',
+    reductionSustainability: 'Waste Reduction',
     diversion: 'Waste Diversion',
     landfill: 'Landfill Diversion',
     hazardous: 'Hazardous Waste',
     disposal: 'Waste Disposal',
     water: 'Water Management',
-    conservation: 'Water Conservation',
-    efficiency: 'Water Efficiency',
-    recycling: 'Water Recycling',
+    conservationSustainability: 'Water Conservation',
+    efficiencySustainability: 'Water Efficiency',
+    recyclingSustainability: 'Water Recycling',
     harvesting: 'Rainwater Harvesting',
     treatment: 'Water Treatment',
     quality: 'Water Quality',
@@ -26038,7 +26038,7 @@ const en = {
     metrics: 'Sustainability Metrics',
     kpi: 'Environmental KPIs',
   },
-  facilityOperations: {
+  facilityOperationsExtended: {
     title: 'Facility Operations',
     description: 'Daily Facility Management Operations',
     operations: 'Operations Management',
@@ -26091,7 +26091,7 @@ const en = {
     cameras: 'Camera Systems',
     alarms: 'Alarm Systems',
   },
-  spaceManagement: {
+  spaceManagementExtended: {
     title: 'Space Management',
     description: 'Space Planning and Utilization',
     planning: 'Space Planning',
@@ -26143,7 +26143,7 @@ const en = {
     server: 'Server Rooms',
     data: 'Data Centers',
   },
-  moveManagement: {
+  moveManagementExtended: {
     title: 'Move Management',
     description: 'Relocation and Move Coordination',
     planning: 'Move Planning',
@@ -26172,7 +26172,7 @@ const en = {
     unpacking: 'Unpacking Services',
     labeling: 'Labeling System',
     inventory: 'Move Inventory',
-    tracking: 'Item Tracking',
+    trackingMoveManagement: 'Item Tracking',
     logistics: 'Move Logistics',
     transportation: 'Transportation',
     delivery: 'Delivery Schedule',
@@ -26214,7 +26214,7 @@ const en = {
     supplier: 'Supplier Management',
     vendor: 'Vendor Relations',
     purchase: 'Purchase Orders',
-    receiving: 'Goods Receiving',
+    receivingLogistics: 'Goods Receiving',
     inspection: 'Quality Inspection',
     storage: 'Storage Management',
     picking: 'Order Picking',
@@ -26279,7 +26279,7 @@ const en = {
     emergency: 'Emergency Services',
     disaster: 'Disaster Recovery',
   },
-  insurance: {
+  insuranceExtended: {
     title: 'Insurance Services',
     description: 'Manage insurance operations and policies',
     policy: 'Insurance Policy',
@@ -26511,7 +26511,7 @@ const en = {
     traffic: 'Air Traffic Control',
     emergency: 'Emergency Procedures',
   },
-  legal: {
+  legalExtended: {
     title: 'Legal Services',
     description: 'Manage legal operations and compliance',
     case: 'Case Management',
@@ -26662,7 +26662,7 @@ const en = {
     anticheat: 'Anti-Cheat Systems',
     security: 'Game Security',
   },
-  cybersecurity: {
+  cybersecurityExtended: {
     title: 'Cybersecurity',
     description: 'Manage security operations and threats',
     threat: 'Threat Detection',
@@ -26859,7 +26859,7 @@ const en = {
     green: 'Green Building',
     leed: 'LEED Certification',
   },
-  architecture: {
+  architectureExtended: {
     title: 'Architecture & Design',
     description: 'Manage architectural projects and design workflows',
     design: 'Design Services',
@@ -26938,8 +26938,8 @@ const en = {
     revitalization: 'Urban Revitalization',
     regeneration: 'Urban Regeneration',
     gentrification: 'Gentrification',
-    community: 'Community Engagement',
-    public: 'Public Participation',
+    communityUrbanPlanning: 'Community Engagement',
+    publicUrbanPlanning: 'Public Participation',
     stakeholder: 'Stakeholder Engagement',
     survey: 'Community Survey',
     workshop: 'Planning Workshop',
@@ -26990,7 +26990,7 @@ const en = {
     circular: 'Circular Economy',
     extended: 'Extended Producer Responsibility',
   },
-  waterManagement: {
+  waterManagementExtended: {
     title: 'Water Management',
     description: 'Manage water resources and utilities',
     supply: 'Water Supply',
@@ -27385,7 +27385,7 @@ const en = {
     title: 'Defense & Security',
     description: 'Defense operations and security systems',
     military: 'Military Operations',
-    defense: 'Defense Systems',
+    defense1: 'Defense Systems',
     security: 'Security Operations',
     intelligence: 'Intelligence Operations',
     surveillance: 'Surveillance Systems',
@@ -27541,7 +27541,7 @@ const en = {
     interior: 'Interior Assembly',
     seats: 'Seat Assembly',
     dashboard: 'Dashboard Assembly',
-    trim: 'Interior Trim',
+    trimAutomotive: 'Interior Trim',
     glass: 'Automotive Glass',
     lighting: 'Lighting Systems',
     safety: 'Safety Systems',
@@ -27557,7 +27557,7 @@ const en = {
   },
 
   // Dashboard Page
-  dashboard: {
+  dashboardApp: {
     title: 'Dashboard',
     welcome: 'Welcome back',
     totalProperties: 'Total Properties',
