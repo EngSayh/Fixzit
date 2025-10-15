@@ -1,18 +1,10 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { SWRConfig, mutate as globalMutate } from 'swr';
 
 // Import the component from its actual location
 import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView';
-
-jest.mock('swr', () => {
-  // We'll provide a helper to control return values per test.
-  let current: any = { data: undefined, error: undefined, isLoading: false, mutate: jest.fn(), isValidating: false };
-  const useSWR = () => current;
-  (useSWR as any).__set = (next: any) => { current = { ...current, ...next }; };
-  (useSWR as any).__reset = () => { current = { data: undefined, error: undefined, isLoading: false, mutate: jest.fn(), isValidating: false }; };
-  return useSWR;
-});
 
 jest.mock('date-fns', () => {
   const actual = jest.requireActual('date-fns');
@@ -29,13 +21,21 @@ jest.mock('date-fns', () => {
   };
 });
 
+// Helper to wrap components with SWR cache that doesn't dedupe/revalidate during tests
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+    {children}
+  </SWRConfig>
+);
+
 // JSDOM has localStorage; ensure clean state
 beforeEach(() => {
   jest.useFakeTimers();
   (global as any).fetch = jest.fn();
   (window.localStorage as any).clear();
   (window as any).alert = jest.fn();
-  (require('swr') as any).__reset();
+  // Clear SWR cache before each test
+  globalMutate(() => true, undefined, { revalidate: false });
 });
 
 afterEach(() => {
@@ -48,49 +48,68 @@ const makeApiResponse = (items: any[], page = 1, limit = 10, total?: number) => 
 });
 
 describe('WorkOrdersView', () => {
-  test('renders default heading and description', () => {
-    const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse([]), isLoading: false, error: undefined, isValidating: false, mutate: jest.fn() });
+  test('renders default heading and description', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([]),
+    });
 
-    render(<WorkOrdersViewDefault />);
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    
     expect(screen.getByRole('heading', { name: /Work Orders/i })).toBeInTheDocument();
     expect(screen.getByText(/Manage and track work orders/i)).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
+    });
   });
 
-  test('renders custom heading and description via props', () => {
-    const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse([]) });
+  test('renders custom heading and description via props', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([]),
+    });
 
-    render(<WorkOrdersView heading="My WOs" description="Desc here" />);
+    render(<WorkOrdersView heading="My WOs" description="Desc here" />, { wrapper: TestWrapper });
+    
     expect(screen.getByRole('heading', { name: /My WOs/ })).toBeInTheDocument();
     expect(screen.getByText(/Desc here/)).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
+    });
   });
 
   test('shows loading card when isLoading and no data', () => {
-    const useSWR = require('swr');
-    useSWR.__set({ data: undefined, isLoading: true });
-
-    render(<WorkOrdersViewDefault />);
+    // Don't mock fetch - SWR will be in loading state initially
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
     expect(screen.getByText(/Loading work orders/i)).toBeInTheDocument();
   });
 
-  test('shows error card when error is present', () => {
-    const useSWR = require('swr');
-    useSWR.__set({ error: new Error('Network broken') });
+  test('shows error card when error is present', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network broken'));
 
-    render(<WorkOrdersViewDefault />);
-    expect(screen.getByText(/Network broken/)).toBeInTheDocument();
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    
+    await waitFor(() => {
+      expect(screen.getByText(/Network broken/)).toBeInTheDocument();
+    });
   });
 
-  test('shows empty state when no work orders and no error', () => {
-    const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse([]), isLoading: false });
+  test('shows empty state when no work orders and no error', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([]),
+    });
 
-    render(<WorkOrdersViewDefault />);
-    expect(screen.getByText(/No work orders match the current filters/i)).toBeInTheDocument();
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    
+    await waitFor(() => {
+      expect(screen.getByText(/No work orders match the current filters/i)).toBeInTheDocument();
+    });
   });
 
-  test('renders list items with badges and computed meta including overdue styling', () => {
+  test('renders list items with badges and computed meta including overdue styling', async () => {
     const now = Date.now();
     jest.spyOn(Date, 'now').mockReturnValue(now);
 
@@ -102,10 +121,17 @@ describe('WorkOrdersView', () => {
       { _id: '2', code: 'WO-2', title: 'Check HVAC', status: 'COMPLETED', priority: 'LOW', dueAt: future, slaMinutes: undefined, description: undefined, propertyId: '', assigneeVendorId: 'VND-9', category: undefined, createdAt: undefined },
     ];
 
-    const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse(items), isLoading: false });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse(items),
+    });
 
-    render(<WorkOrdersViewDefault />);
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText('Fix sink')).toBeInTheDocument();
+    });
 
     // Titles
     expect(screen.getByText('Fix sink')).toBeInTheDocument();
@@ -143,12 +169,17 @@ describe('WorkOrdersView', () => {
   });
 
   test('pagination controls reflect page and total pages; enabling/disabling works', async () => {
-    const useSWR = require('swr');
     // total=25, limit=10 => totalPages=3
-    useSWR.__set({ data: makeApiResponse([{ _id: '1', code: 'C', title: 'T', status: 'SUBMITTED', priority: 'MEDIUM' }], 1, 10, 25), isLoading: false });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([{ _id: '1', code: 'C', title: 'T', status: 'SUBMITTED', priority: 'MEDIUM' }], 1, 10, 25),
+    });
 
-    render(<WorkOrdersViewDefault />);
-    expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    
+    await waitFor(() => {
+      expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
+    });
 
     const prev = screen.getByRole('button', { name: /Previous/ });
     const next = screen.getByRole('button', { name: /Next/ });
@@ -156,106 +187,137 @@ describe('WorkOrdersView', () => {
     expect(prev).toBeDisabled();
     expect(next).not.toBeDisabled();
 
-    // Click next: since we mock SWR stateful returns, just verify the handler toggles disabled states by simulating state changes.
-    // Advance to page 2 by clicking "Next" and then update SWR data accordingly.
+    // Mock the fetch for page 2
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([{ _id: '2', code: 'C2', title: 'T2', status: 'SUBMITTED', priority: 'MEDIUM' }], 2, 10, 25),
+    });
+
     await userEvent.click(next);
 
-    // Simulate SWR data change that would happen when page updates
-    const swr = require('swr');
-    swr.__set({ data: makeApiResponse([{ _id: '2', code: 'C2', title: 'T2', status: 'SUBMITTED', priority: 'MEDIUM' }], 2, 10, 25) });
-    // Force re-render
-    render(<WorkOrdersViewDefault />);
-    expect(screen.getByText(/Page 2 of 3/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Page 2 of 3/)).toBeInTheDocument();
+    });
   });
 
   test('refresh button calls mutate', async () => {
-    const mutate = jest.fn();
-    const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse([]), isValidating: false, mutate });
-
-    render(<WorkOrdersViewDefault />);
-    const refresh = screen.getByRole('button', { name: /Refresh/ });
-    await userEvent.click(refresh);
-    expect(mutate).toHaveBeenCalled();
-  });
-
-  test('status and priority filters update query (via SWR key) when changed', async () => {
-    // We'll not assert the URL directly since we mock useSWR; instead, we track state changes by ensuring SWR receives new key.
-    // To do this, temporarily un-mock useSWR and spy on global.fetch to capture requested URL.
-    jest.resetModules();
-
-    // Replace module with a wrapper that exposes last key
-    let lastKey: any = null;
-    jest.doMock('swr', () => {
-      return (key: any) => {
-        lastKey = key;
-        return { data: { items: [], page: 1, limit: 10, total: 0 }, isLoading: false, error: undefined, mutate: jest.fn(), isValidating: false };
+    let fetchCallCount = 0;
+    (global.fetch as jest.Mock).mockImplementation(async () => {
+      fetchCallCount++;
+      return {
+        ok: true,
+        json: async () => makeApiResponse([]),
       };
     });
 
-    const { default: Component } = require('../WorkOrdersView.test');
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    
+    await waitFor(() => {
+      expect(fetchCallCount).toBe(1); // Initial fetch
+    });
 
-    render(<Component />);
+    const refresh = screen.getByRole('button', { name: /Refresh/ });
+    await userEvent.click(refresh);
+    
+    await waitFor(() => {
+      expect(fetchCallCount).toBe(2); // Refetch after clicking refresh
+    });
+  });
+
+  test('status and priority filters update query (via SWR key) when changed', async () => {
+    // Track fetch URLs to verify query parameters
+    const fetchedUrls: string[] = [];
+    (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
+      fetchedUrls.push(url);
+      return {
+        ok: true,
+        json: async () => makeApiResponse([]),
+      };
+    });
+
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+
+    // Wait for initial fetch
+    await waitFor(() => {
+      expect(fetchedUrls.length).toBeGreaterThan(0);
+    });
 
     // Open status select and choose "Submitted"
-    // The shadcn Select renders trigger buttons; we can input by finding placeholder text
-    const statusTrigger = screen.getByPlaceholderText('Status');
+    const statusTrigger = screen.getByRole('combobox', { name: /status/i });
     await userEvent.click(statusTrigger);
     await userEvent.click(screen.getByText('Submitted'));
 
-    const priorityTrigger = screen.getByPlaceholderText('Priority');
+    // Verify fetch was called with status parameter
+    await waitFor(() => {
+      const lastUrl = fetchedUrls[fetchedUrls.length - 1];
+      expect(lastUrl).toMatch(/status=SUBMITTED/);
+    });
+
+    const priorityTrigger = screen.getByRole('combobox', { name: /priority/i });
     await userEvent.click(priorityTrigger);
     await userEvent.click(screen.getByText('High'));
 
-    // After selecting, SWR key should include both params
+    // Verify fetch was called with both parameters
     await waitFor(() => {
-      expect(typeof lastKey === 'string' ? lastKey : '').toMatch(/status=SUBMITTED/);
-      expect(typeof lastKey === 'string' ? lastKey : '').toMatch(/priority=HIGH/);
+      const lastUrl = fetchedUrls[fetchedUrls.length - 1];
+      expect(lastUrl).toMatch(/status=SUBMITTED/);
+      expect(lastUrl).toMatch(/priority=HIGH/);
     });
   });
 
   test('search input debounces and updates query only after 350ms', async () => {
-    jest.resetModules();
-    let lastKey: any = null;
-    jest.doMock('swr', () => {
-      return (key: any) => {
-        lastKey = key;
-        return { data: { items: [], page: 1, limit: 10, total: 0 }, isLoading: false, error: undefined, mutate: jest.fn(), isValidating: false };
+    const fetchedUrls: string[] = [];
+    (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
+      fetchedUrls.push(url);
+      return {
+        ok: true,
+        json: async () => makeApiResponse([]),
       };
     });
-    const { default: Component } = require('../WorkOrdersView.test');
 
-    render(<Component />);
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+
+    // Wait for initial fetch
+    await waitFor(() => {
+      expect(fetchedUrls.length).toBe(1);
+    });
 
     const input = screen.getByPlaceholderText(/Search by title or description/i);
     await userEvent.type(input, 'leak');
 
     // Immediately after typing, query should not include q (debounced)
-    expect(lastKey).toMatch(/\/api\/work-orders\?limit=10&page=1$/);
+    expect(fetchedUrls[fetchedUrls.length - 1]).not.toMatch(/q=leak/);
 
     // Advance time by 349ms => still not updated
     await act(async () => { jest.advanceTimersByTime(349); });
-    expect(lastKey).toMatch(/\/api\/work-orders\?limit=10&page=1$/);
+    expect(fetchedUrls[fetchedUrls.length - 1]).not.toMatch(/q=leak/);
 
     // Advance to 350ms => update should include q=leak
     await act(async () => { jest.advanceTimersByTime(1); });
-    expect(lastKey).toMatch(/q=leak/);
+    
+    await waitFor(() => {
+      const lastUrl = fetchedUrls[fetchedUrls.length - 1];
+      expect(lastUrl).toMatch(/q=leak/);
+    });
   });
 
   test('POST create: success closes dialog, resets form, and calls onCreated (via mutate)', async () => {
-    const useSWR = require('swr');
-    const mutate = jest.fn();
-    useSWR.__set({ data: makeApiResponse([]), isLoading: false, mutate });
-
-    // Mock fetch for POST success
+    let fetchCallCount = 0;
+    // Mock fetch for both GET (initial) and POST
     (global.fetch as jest.Mock).mockImplementation(async (url: string, init?: RequestInit) => {
       if (typeof url === 'string' && url.startsWith('/api/work-orders') && init?.method === 'POST') {
         return new Response('{}', { status: 200 });
       }
+      fetchCallCount++;
       return new Response(JSON.stringify(makeApiResponse([])), { status: 200 });
     });
 
-    render(<WorkOrdersViewDefault />);
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+
+    // Wait for initial data load
+    await waitFor(() => {
+      expect(fetchCallCount).toBe(1);
+    });
 
     // Open dialog
     await userEvent.click(screen.getByRole('button', { name: /New Work Order/ }));
@@ -268,8 +330,9 @@ describe('WorkOrdersView', () => {
     // Submit
     await userEvent.click(screen.getByRole('button', { name: /^Create$/ }));
 
+    // Wait for mutate to refetch
     await waitFor(() => {
-      expect(mutate).toHaveBeenCalled();
+      expect(fetchCallCount).toBe(2);
     });
 
     // Dialog should close — button should be visible again for opening
@@ -277,9 +340,6 @@ describe('WorkOrdersView', () => {
   });
 
   test('POST create: failure shows alert with error message', async () => {
-    const useSWR = require('swr');
-    useSWR.__set({ data: makeApiResponse([]), isLoading: false, mutate: jest.fn() });
-
     (global.fetch as jest.Mock).mockImplementation(async (url: string, init?: RequestInit) => {
       if (typeof url === 'string' && url.startsWith('/api/work-orders') && init?.method === 'POST') {
         return new Response('Bad Request: Missing stuff', { status: 400 });
@@ -287,7 +347,12 @@ describe('WorkOrdersView', () => {
       return new Response(JSON.stringify(makeApiResponse([])), { status: 200 });
     });
 
-    render(<WorkOrdersViewDefault />);
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
+    });
 
     await userEvent.click(screen.getByRole('button', { name: /New Work Order/ }));
     const titleInput = screen.getByLabelText(/Title \*/);
@@ -300,25 +365,20 @@ describe('WorkOrdersView', () => {
   });
 
   test('fetch headers include Authorization when token present and x-user is set', async () => {
-    const useSWR = require('swr');
-    useSWR.__set({ data: undefined, isLoading: true, mutate: jest.fn() });
-
     window.localStorage.setItem('fixzit_token', 'tkn-123');
     window.localStorage.setItem('x-user', JSON.stringify({ id: 'u1', role: 'ADMIN', tenantId: 'demo-tenant' }));
 
     (global.fetch as jest.Mock).mockResolvedValue(new Response(JSON.stringify(makeApiResponse([])), { status: 200 }));
 
-    render(<WorkOrdersViewDefault />);
+    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
 
-    // Allow initial effect to set clientReady and SWR to trigger fetch
-    await act(async () => {
-      jest.advanceTimersByTime(0);
-      await Promise.resolve();
+    // Wait for fetch to be called
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
     });
 
     // Verify fetch called with headers containing Authorization and x-user
-    expect(global.fetch).toHaveBeenCalled();
-    const lastCall = (global.fetch as jest.Mock).mock.calls.pop();
+    const lastCall = (global.fetch as jest.Mock).mock.calls[0];
     expect(lastCall).toBeTruthy();
     const options = lastCall[1] as RequestInit;
     const headers = (options?.headers ?? {}) as Record<string, string>;

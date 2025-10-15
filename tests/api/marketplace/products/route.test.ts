@@ -1,10 +1,11 @@
 // Tests for GET handler in API route (marketplace products by slug)
-// Framework: Jest-style
+// Framework: Vitest
 
+import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import type { NextRequest } from 'next/server';
 
 // Mock next/server to control NextResponse.json behavior
-jest.mock('next/server', () => {
+vi.mock('next/server', () => {
   return {
     // Minimal stub for NextRequest type usage; not used by implementation
     NextRequest: class {},
@@ -21,40 +22,48 @@ jest.mock('next/server', () => {
 });
 
 // Mock dependencies used by the current route implementation
-jest.mock('@/lib/marketplace/context', () => {
+vi.mock('@/lib/marketplace/context', () => {
   return {
-    resolveMarketplaceContext: jest.fn()
+    resolveMarketplaceContext: vi.fn()
   };
 });
 
-jest.mock('@/lib/marketplace/search', () => {
+vi.mock('@/lib/marketplace/search', () => {
   return {
-    findProductBySlug: jest.fn()
+    findProductBySlug: vi.fn()
   };
 });
 
-jest.mock('@/db/mongoose', () => {
+vi.mock('@/db/mongoose', () => {
   return {
-    dbConnect: jest.fn()
+    dbConnect: vi.fn()
   };
 });
 
-jest.mock('@/models/marketplace/Category', () => ({
+vi.mock('@/server/models/marketplace/Category', () => ({
   __esModule: true,
-  default: { findOne: jest.fn() }
+  default: { findOne: vi.fn() }
 }));
 
-jest.mock('@/lib/marketplace/serializers', () => {
+vi.mock('@/lib/marketplace/serializers', () => {
   return {
     serializeCategory: (doc: any) => doc
   };
 });
 
-import { GET } from '../../../../app/api/marketplace/products/[slug]/route';
+// Import after mocks
+let GET: any;
+let resolveMarketplaceContext: any;
+let findProductBySlug: any;
+let Category: any;
 
-const { resolveMarketplaceContext } = jest.requireMock('@/lib/marketplace/context');
-const { findProductBySlug } = jest.requireMock('@/lib/marketplace/search');
-const CategoryMod = jest.requireMock('@/models/marketplace/Category');
+beforeAll(async () => {
+  ({ GET } = await import('../../../../app/api/marketplace/products/[slug]/route'));
+  ({ resolveMarketplaceContext } = await import('@/lib/marketplace/context'));
+  ({ findProductBySlug } = await import('@/lib/marketplace/search'));
+  const CategoryMod = await import('@/server/models/marketplace/Category');
+  Category = CategoryMod.default;
+});
 
 describe('API GET /marketplace/products/[slug] (current implementation)', () => {
   const callGET = async (slug: string) => {
@@ -63,13 +72,13 @@ describe('API GET /marketplace/products/[slug] (current implementation)', () => 
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (resolveMarketplaceContext as jest.Mock).mockResolvedValue({ orgId: 'org1', tenantKey: 'demo-tenant' });
-    CategoryMod.default.findOne.mockResolvedValue(null);
+    vi.clearAllMocks();
+    resolveMarketplaceContext.mockResolvedValue({ orgId: 'org1', tenantKey: 'demo-tenant' });
+    Category.findOne.mockResolvedValue(null);
   });
 
   it('returns 404 when product is not found', async () => {
-    (findProductBySlug as jest.Mock).mockResolvedValueOnce(null);
+    findProductBySlug.mockResolvedValueOnce(null);
 
     const res: any = await callGET('unknown-slug');
 
@@ -82,8 +91,8 @@ describe('API GET /marketplace/products/[slug] (current implementation)', () => 
 
   it('returns ok=true with product and null category (happy path)', async () => {
     const product = { _id: 'p1', slug: 'toy', categoryId: 'c1' };
-    (findProductBySlug as jest.Mock).mockResolvedValueOnce(product);
-    CategoryMod.default.findOne.mockResolvedValueOnce(null);
+    findProductBySlug.mockResolvedValueOnce(product);
+    Category.findOne.mockResolvedValueOnce(null);
 
     const res: any = await callGET('toy');
 

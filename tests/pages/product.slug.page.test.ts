@@ -14,7 +14,7 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 
 // Mock next/link to a passthrough anchor for test querying
-jest.mock('next/link', () => ({
+vi.mock('next/link', () => ({
   __esModule: true,
   default: ({ href, className, children }: any) => React.createElement('a', { href, className }, children),
 }));
@@ -101,12 +101,12 @@ async function renderServerComponent(Comp: any, props: any) {
 
 describe('ProductPage (server component) and fetchPdp', () => {
   const originalEnv = process.env;
-  let fetchSpy: jest.SpyInstance;
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
     process.env = { ...originalEnv };
-    fetchSpy = jest.spyOn(global, 'fetch' as any);
+    fetchSpy = vi.spyOn(global, 'fetch' as any);
   });
 
   afterEach(() => {

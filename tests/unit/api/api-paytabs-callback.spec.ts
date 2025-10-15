@@ -61,13 +61,13 @@ import { describe, test, it, expect, jest, beforeEach, beforeAll, afterEach } fr
 
 // We partially mock next/server to intercept NextResponse.json calls.
 
-const mockGenerateZATCAQR = jest.fn(async () => ({ base64: 'mock-qr-base64' }));
-const mockValidateCallbackRaw = jest.fn(() => true);
+const mockGenerateZATCAQR = vi.fn(async () => ({ base64: 'mock-qr-base64' }));
+const mockValidateCallbackRaw = vi.fn(() => true);
 
 // Partial mock for NextResponse.json to capture body and options
 type JsonCall = { body: any; init?: ResponseInit };
 const jsonCalls: JsonCall[] = [];
-const mockNextResponseJson = jest.fn((body: any, init?: ResponseInit) => {
+const mockNextResponseJson = vi.fn((body: any, init?: ResponseInit) => {
   jsonCalls.push({ body, init });
   // Construct a real Response to keep behavior consistent
   const status = init?.status ?? 200;
@@ -78,9 +78,9 @@ const mockNextResponseJson = jest.fn((body: any, init?: ResponseInit) => {
 });
 
 // Mock: next/server
-jest.mock('next/server', () => {
+vi.mock('next/server', () => {
   // Return actual NextRequest for type compatibility but override NextResponse.json
-  const actual = jest.requireActual('next/server');
+  const actual = vi.importActual('next/server');
   return {
     ...actual,
     NextResponse: {
@@ -91,12 +91,12 @@ jest.mock('next/server', () => {
 });
 
 // Mock: '@/lib/zatca'
-jest.mock('@/lib/zatca', () => ({
+vi.mock('@/lib/zatca', () => ({
   generateZATCAQR: (...args: any[]) => mockGenerateZATCAQR(...args),
 }));
 
 // Mock: '@/lib/paytabs'
-jest.mock('@/lib/paytabs', () => ({
+vi.mock('@/lib/paytabs', () => ({
   validateCallbackRaw: (...args: any[]) => mockValidateCallbackRaw(...args),
 }));
 
@@ -122,7 +122,7 @@ describe('API PayTabs Callback - POST', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     jsonCalls.length = 0;
   });
 

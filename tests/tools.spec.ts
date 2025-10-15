@@ -37,20 +37,20 @@ beforeAll(async () => {
 
 // Mocks for external dependencies used by the module
 // crypto.randomUUID
-jest.unstable_mockModule("crypto", () => ({
-  randomUUID: jest.fn(() => "uuid-1234"),
+vi.mock("crypto", () => ({
+  randomUUID: vi.fn(() => "uuid-1234"),
 }));
 
 // path
-const pathJoin = jest.fn((...parts: string[]) => parts.join("/"));
-jest.unstable_mockModule("path", () => ({
+const pathJoin = vi.fn((...parts: string[]) => parts.join("/"));
+vi.mock("path", () => ({
   default: { join: pathJoin },
 }));
 
 // fs promises
-const mkdirMock = jest.fn().mockResolvedValue(undefined);
-const writeFileMock = jest.fn().mockResolvedValue(undefined);
-jest.unstable_mockModule("fs", () => ({
+const mkdirMock = vi.fn().mockResolvedValue(undefined);
+const writeFileMock = vi.fn().mockResolvedValue(undefined);
+vi.mock("fs", () => ({
   promises: {
     mkdir: mkdirMock,
     writeFile: writeFileMock,
@@ -58,20 +58,20 @@ jest.unstable_mockModule("fs", () => ({
 }));
 
 // db (ensure awaiting a promise)
-const dbThen = jest.fn();
+const dbThen = vi.fn();
 const dbPromise = Promise.resolve().then(dbThen);
-jest.unstable_mockModule("@/lib/mongo", () => ({
+vi.mock("@/lib/mongo", () => ({
   db: dbPromise,
 }));
 
 // Models
-const workOrderCreate = jest.fn();
-const workOrderFind = jest.fn();
-const workOrderFindOneAndUpdate = jest.fn();
+const workOrderCreate = vi.fn();
+const workOrderFind = vi.fn();
+const workOrderFindOneAndUpdate = vi.fn();
 
-const ownerStatementFind = jest.fn();
+const ownerStatementFind = vi.fn();
 
-jest.unstable_mockModule("@/server/models/WorkOrder", () => ({
+vi.mock("@/server/models/WorkOrder", () => ({
   WorkOrder: {
     create: workOrderCreate,
     find: workOrderFind,
@@ -79,15 +79,15 @@ jest.unstable_mockModule("@/server/models/WorkOrder", () => ({
   },
 }));
 
-jest.unstable_mockModule("@/server/models/OwnerStatement", () => ({
+vi.mock("@/server/models/OwnerStatement", () => ({
   OwnerStatement: {
     find: ownerStatementFind,
   },
 }));
 
 // Policy
-const getPermittedTools = jest.fn();
-jest.unstable_mockModule("./policy", () => ({
+const getPermittedTools = vi.fn();
+vi.mock("./policy", () => ({
   getPermittedTools,
 }));
 
@@ -150,7 +150,7 @@ describe("detectToolFromMessage", () => {
 
 describe("executeTool routing and permission checks", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test("rejects unsupported tools", async () => {
@@ -170,11 +170,11 @@ describe("executeTool routing and permission checks", () => {
 
 describe("createWorkOrder", () => {
   beforeEach(() => {
-    jest.useFakeTimers().setSystemTime(new Date("2025-05-06T12:00:00Z"));
-    jest.clearAllMocks();
+    vi.useFakeTimers().setSystemTime(new Date("2025-05-06T12:00:00Z"));
+    vi.clearAllMocks();
   });
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test("validates title length", async () => {
@@ -228,7 +228,7 @@ describe("createWorkOrder", () => {
 
 describe("listMyWorkOrders", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getPermittedTools.mockReturnValue(["listMyWorkOrders"]);
   });
 
@@ -269,7 +269,7 @@ describe("listMyWorkOrders", () => {
 
 describe("dispatchWorkOrder", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getPermittedTools.mockReturnValue(["dispatchWorkOrder"]);
   });
 
@@ -319,7 +319,7 @@ describe("dispatchWorkOrder", () => {
 
 describe("scheduleVisit", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getPermittedTools.mockReturnValue(["scheduleVisit"]);
   });
 
@@ -357,7 +357,7 @@ describe("scheduleVisit", () => {
 
 describe("uploadWorkOrderPhoto", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getPermittedTools.mockReturnValue(["uploadWorkOrderPhoto"]);
   });
 
@@ -417,7 +417,7 @@ describe("uploadWorkOrderPhoto", () => {
 
 describe("ownerStatements", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getPermittedTools.mockReturnValue(["ownerStatements"]);
   });
 

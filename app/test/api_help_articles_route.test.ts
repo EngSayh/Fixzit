@@ -1,20 +1,20 @@
 /**
  * Tests for the Help Articles GET route.
  *
- * Testing library and framework: Jest (ts-jest/Node environment assumed).
- * If using Vitest, replace jest.* with vi.* and adjust mocks accordingly.
+ * Testing library and framework: Vitest
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { vi, describe, it, test, expect, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 
 // We will mock "next/server" to control NextResponse.json behavior and avoid Next runtime dependencies
-jest.mock('next/server', () => {
+vi.mock('next/server', () => {
   return {
     // We only need the type for NextRequest; at runtime, GET only uses req.url, so we pass a minimal object.
     NextRequest: class {},
     NextResponse: {
-      json: jest.fn((data: any, init?: ResponseInit) => {
+      json: vi.fn((data: any, init?: ResponseInit) => {
         // Return a plain object that resembles a minimal Response for ease of assertions
         return {
           __mockResponse: true,
@@ -26,14 +26,13 @@ jest.mock('next/server', () => {
   }
 })
 
-const { NextResponse } = jest.requireMock('next/server')
-
 // Mock the database module imported as "@/lib/mongodb-unified"
-jest.mock('@/lib/mongodb-unified', () => ({
-  getDatabase: jest.fn()
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: vi.fn()
 }))
 
 import { getDatabase } from '@/lib/mongodb-unified'
+import { NextResponse } from 'next/server'
 
 // Import the route handler under test.
 // Try common Next.js route locations; adjust if your project structure differs.
@@ -77,13 +76,13 @@ beforeAll(async () => {
 })
 
 afterEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
 })
 
 type MockColl = {
-  createIndex: jest.Mock
-  find: jest.Mock
-  countDocuments: jest.Mock
+  createIndex: ReturnType<typeof vi.fn>
+  find: ReturnType<typeof vi.fn>
+  countDocuments: ReturnType<typeof vi.fn>
 }
 
 function buildMockCursor(items: any[] = []) {
@@ -91,19 +90,19 @@ function buildMockCursor(items: any[] = []) {
     _sortArg: undefined,
     _skipArg: undefined,
     _limitArg: undefined,
-    sort: jest.fn(function (this: any, arg: any) {
+    sort: vi.fn(function (this: any, arg: any) {
       chain._sortArg = arg
       return chain
     }),
-    skip: jest.fn(function (this: any, n: number) {
+    skip: vi.fn(function (this: any, n: number) {
       chain._skipArg = n
       return chain
     }),
-    limit: jest.fn(function (this: any, n: number) {
+    limit: vi.fn(function (this: any, n: number) {
       chain._limitArg = n
       return chain
     }),
-    toArray: jest.fn(async () => items)
+    toArray: vi.fn(async () => items)
   }
   return chain
 }
@@ -116,15 +115,15 @@ function setupDbMocks({
   total?: number
 }) {
   const coll: MockColl = {
-    createIndex: jest.fn(async () => ({ ok: 1 })),
-    find: jest.fn(),
-    countDocuments: jest.fn(async () => total)
+    createIndex: vi.fn(async () => ({ ok: 1 })),
+    find: vi.fn(),
+    countDocuments: vi.fn(async () => total)
   }
   const cursor = buildMockCursor(items)
   coll.find.mockReturnValue(cursor)
 
-  ;(getDatabase as jest.Mock).mockResolvedValue({
-    collection: jest.fn(() => coll)
+  ;(getDatabase as ReturnType<typeof vi.fn>).mockResolvedValue({
+    collection: vi.fn(() => coll)
   })
 
   return { coll, cursor }
@@ -268,7 +267,7 @@ describe('GET /api/help-articles', () => {
   })
 
   test('handles errors and returns 500 with error message', async () => {
-    ;(getDatabase as jest.Mock).mockRejectedValueOnce(new Error('boom'))
+    ;(getDatabase as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'))
     const res = await GET(makeReq('http://localhost/api/help-articles'))
     expect(res).toMatchObject({
       __mockResponse: true,

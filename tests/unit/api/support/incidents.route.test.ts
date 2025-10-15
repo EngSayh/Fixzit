@@ -1,6 +1,6 @@
 /**
  * Unit tests for /api/support/incidents route (POST).
- * Framework: Jest (ts-jest).
+ * Framework: Vitest
  *
  * We mock:
  * - next/server: NextResponse.json to return simple object with status + payload.
@@ -16,12 +16,13 @@
  * - Message composition with details/stack
  */
 
+import { vi, describe, it, expect, beforeEach, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server';
 
-jest.mock('next/server', () => {
+vi.mock('next/server', () => {
   return {
     NextResponse: {
-      json: jest.fn((payload: any, init?: { status?: number }) => ({
+      json: vi.fn((payload: any, init?: { status?: number }) => ({
         ok: true,
         status: init?.status ?? 200,
         json: payload
@@ -30,63 +31,62 @@ jest.mock('next/server', () => {
   };
 });
 
-jest.mock('@/lib/mongo', () => {
-  const insertOne = jest.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
-  const collection = jest.fn().mockReturnValue({ insertOne });
-  const getNativeDb = jest.fn().mockResolvedValue({ collection });
+vi.mock('@/lib/mongo', () => {
+  const insertOne = vi.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
+  const collection = vi.fn().mockReturnValue({ insertOne });
+  const getNativeDb = vi.fn().mockResolvedValue({ collection });
   const db = Promise.resolve(true);
   return { db, getNativeDb };
 });
 
-jest.mock('@/server/models/SupportTicket', () => {
+vi.mock('@/server/models/SupportTicket', () => {
   return {
     SupportTicket: {
-      create: jest.fn(async (doc: any) => ({ ...doc, code: doc.code || 'SUP-2024-99999' })),
+      create: vi.fn(async (doc: any) => ({ ...doc, code: doc.code || 'SUP-2024-99999' })),
     },
   };
 });
 
 // Import after mocks
 let POST: any;
-beforeAll(async () => {
-  try {
-    ({ POST } = await import('@/app/api/support/incidents/route'));
-  } catch {
-    try {
-      ({ POST } = await import('app/api/support/incidents/route'));
-    } catch {
-      try {
-        ({ POST } = await import('@/app/api/support/incidents/route'));
-      } catch {
-        // Not found; tests will throw a clear error in cases below.
-      }
-    }
-  }
-});
+let NextResponse: any;
+let getNativeDb: any;
+let SupportTicket: any;
 
-const { NextResponse } = jest.requireMock('next/server') as { NextResponse: { json: jest.Mock } };
-const { getNativeDb } = jest.requireMock('@/lib/mongo') as { getNativeDb: jest.Mock };
-const { SupportTicket } = jest.requireMock('@/server/models/SupportTicket') as { SupportTicket: { create: jest.Mock } };
+beforeAll(async () => {
+  // Import the route handler
+  ({ POST } = await import('@/app/api/support/incidents/route'));
+  
+  // Get references to mocked modules
+  ({ NextResponse } = await import('next/server'));
+  ({ getNativeDb } = await import('@/lib/mongo'));
+  ({ SupportTicket } = await import('@/server/models/SupportTicket'));
+});
 
 describe('POST /api/support/incidents', () => {
   const FIXED_DATE = new Date('2024-06-15T12:34:56.000Z');
+  let randomSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(FIXED_DATE);
-    jest.spyOn(Math, 'random').mockReturnValue(0.123456789);
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_DATE);
+    randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
     NextResponse.json.mockClear();
     getNativeDb.mockClear();
     SupportTicket.create.mockClear();
   });
 
   afterEach(() => {
-    (Math.random as jest.Mock).mockRestore?.();
-    jest.useRealTimers();
+    randomSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   function mkReq(body: any): NextRequest {
-    return { json: async () => body } as unknown as NextRequest;
+    return { 
+      json: async () => body,
+      headers: new Map([['x-forwarded-for', '127.0.0.1']]),
+      url: 'http://localhost/api/support/incidents'
+    } as unknown as NextRequest;
   }
 
   it('creates incident and ticket with provided fields (happy path)', async () => {
@@ -165,8 +165,8 @@ describe('POST /api/support/incidents', () => {
     const res = await POST(mkReq(body));
 
     const expectedIncPrefix = `INC-${FIXED_DATE.getFullYear()}-`;
-    const payload = (NextResponse.json as jest.Mock).mock.calls[0][0];
-    const statusInit = (NextResponse.json as jest.Mock).mock.calls[0][1];
+    const payload = (NextResponse.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const statusInit = (NextResponse.json as ReturnType<typeof vi.fn>).mock.calls[0][1];
     expect(statusInit).toEqual({ status: 202 });
     expect(payload.ok).toBe(true);
     expect(payload.incidentId).toMatch(/^INC-2024-[A-Z0-9]{6}$/);

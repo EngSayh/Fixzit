@@ -10,7 +10,30 @@ if (typeof global !== 'undefined') {
 // The global test functions are already available through @types/jest
 // No need to redeclare them to avoid type conflicts
 
-// Using real MongoDB for all tests
+// Mock MongoDB unified module globally
+vi.mock('@/lib/mongodb-unified', () => {
+  const createMockCollection = () => ({
+    insertOne: vi.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mock-id' }),
+    find: vi.fn().mockReturnValue({
+      sort: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      toArray: vi.fn().mockResolvedValue([]),
+    }),
+    findOne: vi.fn().mockResolvedValue(null),
+    updateOne: vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ acknowledged: true, deletedCount: 1 }),
+    countDocuments: vi.fn().mockResolvedValue(0),
+  });
+  
+  const mockDb = {
+    collection: vi.fn(() => createMockCollection()),
+  };
+  
+  return {
+    getDatabase: vi.fn(() => mockDb),
+    connectToDatabase: vi.fn().mockResolvedValue({ db: () => mockDb }),
+  };
+});
 
 // Environment setup
 // NODE_ENV is read-only, managed by test runner

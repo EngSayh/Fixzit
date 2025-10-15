@@ -71,10 +71,10 @@ describe('GET /api/public/rfqs', () => {
     delete process.env.NEXT_PUBLIC_MARKETPLACE_TENANT;
 
     // Reset chain methods for each test
-    (mockFindChain.sort as jest.Mock).mockReturnValue(mockFindChain);
-    (mockFindChain.skip as jest.Mock).mockReturnValue(mockFindChain);
-    (mockFindChain.limit as jest.Mock).mockReturnValue(mockFindChain);
-    (mockFindChain.lean as jest.Mock).mockResolvedValue([]);
+    (mockFindChain.sort as ReturnType<typeof vi.fn>).mockReturnValue(mockFindChain);
+    (mockFindChain.skip as ReturnType<typeof vi.fn>).mockReturnValue(mockFindChain);
+    (mockFindChain.limit as ReturnType<typeof vi.fn>).mockReturnValue(mockFindChain);
+    (mockFindChain.lean as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     RFQMock.countDocuments.mockResolvedValue(0);
   });
 
@@ -227,7 +227,7 @@ describe('GET /api/public/rfqs', () => {
       updatedAt: '2023-01-03T11:22:33.000Z'
     };
 
-    (mockFindChain.lean as jest.Mock).mockResolvedValue([sample]);
+    (mockFindChain.lean as ReturnType<typeof vi.fn>).mockResolvedValue([sample]);
     RFQMock.countDocuments.mockResolvedValue(1);
 
     const req = makeRequest({});
@@ -298,7 +298,7 @@ describe('GET /api/public/rfqs', () => {
       updatedAt: undefined
     };
 
-    (mockFindChain.lean as jest.Mock).mockResolvedValue([sample]);
+    (mockFindChain.lean as ReturnType<typeof vi.fn>).mockResolvedValue([sample]);
     RFQMock.countDocuments.mockResolvedValue(1);
 
     const req = makeRequest({});
@@ -319,7 +319,7 @@ describe('GET /api/public/rfqs', () => {
   });
 
   it('returns 500 on unexpected errors', async () => {
-    (mockFindChain.lean as jest.Mock).mockRejectedValue(new Error('db down'));
+    (mockFindChain.lean as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db down'));
 
     const req = makeRequest({});
     const res = await GET(req);

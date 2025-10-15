@@ -2,7 +2,7 @@
  * Tests for ErrorBoundary component
  *
  * Test framework/libraries:
- * - Jest as the test runner and assertion library
+ * - Vitest as the test runner and assertion library
  * - @testing-library/react for React component testing
  * - JSDOM environment for DOM APIs (window, navigator, localStorage)
  *
@@ -12,10 +12,11 @@
  *   copy-to-clipboard fallbacks. Mocks are used for fetch and window APIs.
  */
 
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 
-jest.mock('next/dynamic', () => {
+vi.mock('next/dynamic', () => {
   // Return a passthrough component to avoid dynamic import behavior in tests
   return (factory: any, _opts: any) => {
     const Mock = React.forwardRef<any, any>((props, _ref) => {
@@ -66,7 +67,7 @@ try {
 
 const setupDOMGlobals = () => {
   Object.defineProperty(window, 'location', {
-    value: { reload: jest.fn(), href: 'https://example.com/app' },
+    value: { reload: vi.fn(), href: 'https://example.com/app' },
     writable: true
   });
 
@@ -76,10 +77,10 @@ const setupDOMGlobals = () => {
   const storage = () => {
     let store: Record<string, string> = {};
     return {
-      getItem: jest.fn((k: string) => store[k] ?? null),
-      setItem: jest.fn((k: string, v: string) => { store[k] = v; }),
-      removeItem: jest.fn((k: string) => { delete store[k]; }),
-      clear: jest.fn(() => { store = {}; })
+      getItem: vi.fn((k: string) => store[k] ?? null),
+      setItem: vi.fn((k: string, v: string) => { store[k] = v; }),
+      removeItem: vi.fn((k: string) => { delete store[k]; }),
+      clear: vi.fn(() => { store = {}; })
     };
   };
 
@@ -99,7 +100,7 @@ const setupDOMGlobals = () => {
 
   // clipboard mock
   (global as any).navigator.clipboard = {
-    writeText: jest.fn().mockResolvedValue(undefined)
+    writeText: vi.fn().mockResolvedValue(undefined)
   };
 
   // performance memory may not exist in JSDOM
@@ -122,25 +123,25 @@ const OkChild: React.FC = () => <div data-testid="ok">OK</div>;
 const skipIfNoComponent = (ErrorBoundary == null ? test.skip : test);
 
 beforeEach(() => {
-  jest.useFakeTimers();
-  jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress React error logs
-  jest.spyOn(console, 'log').mockImplementation(() => {});
-  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.useFakeTimers();
+  vi.spyOn(console, 'error').mockImplementation(() => {}); // suppress React error logs
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
   setupDOMGlobals();
   // Mock fetch globally
-  global.fetch = jest.fn().mockResolvedValue({
+  global.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({}),
   } as any);
 });
 
 afterEach(() => {
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
-  (console.error as jest.Mock).mockRestore?.();
-  (console.log as jest.Mock).mockRestore?.();
-  (console.warn as jest.Mock).mockRestore?.();
-  jest.resetAllMocks();
+  vi.runOnlyPendingTimers();
+  vi.useRealTimers();
+  (console.error as ReturnType<typeof vi.fn>).mockRestore?.();
+  (console.log as ReturnType<typeof vi.fn>).mockRestore?.();
+  (console.warn as ReturnType<typeof vi.fn>).mockRestore?.();
+  vi.resetAllMocks();
 });
 
 skipIfNoComponent('renders children when no error occurs', () => {
@@ -277,12 +278,12 @@ skipIfNoComponent('copyErrorDetails uses clipboard API and falls back to execCom
   await act(async () => {
     fireEvent.click(copyBtn);
   });
-  expect((navigator.clipboard.writeText as jest.Mock)).toHaveBeenCalled();
+  expect((navigator.clipboard.writeText as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
 
   // Simulate failure of clipboard API to trigger fallback
-  (navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(new Error('no clipboard'));
+  (navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('no clipboard'));
   // Mock document.execCommand fallback
-  const execSpy = jest.spyOn(document, 'execCommand').mockImplementation(() => true);
+  const execSpy = vi.spyOn(document, 'execCommand').mockImplementation(() => true);
 
   await act(async () => {
     fireEvent.click(copyBtn);
@@ -338,8 +339,8 @@ skipIfNoComponent('attemptAutoFix: network error path shows message when offline
 
 skipIfNoComponent('logFixAttempt sends logging payload with URL and userAgent', async () => {
   // Trigger a runtime error (TypeError) which matches a fix path and causes logFixAttempt call
-  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true } as any); // for error logging
-  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true } as any); // for AUTO_FIX_ATTEMPT logging
+  (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true } as any); // for error logging
+  (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true } as any); // for AUTO_FIX_ATTEMPT logging
 
   await act(async () => {
     render(
@@ -350,7 +351,7 @@ skipIfNoComponent('logFixAttempt sends logging payload with URL and userAgent', 
   });
 
   // Verify that an AUTO_FIX_ATTEMPT event was sent
-  const calls = (global.fetch as jest.Mock).mock.calls.filter(([url]: any[]) => url === '/api/qa/log');
+  const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([url]: any[]) => url === '/api/qa/log');
   const last = calls[calls.length - 1];
   expect(last).toBeTruthy();
   const [, init] = last;

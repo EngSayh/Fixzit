@@ -281,10 +281,11 @@ We've sent a welcome email to ${email} with registration instructions and next s
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description *
             </label>
             <textarea
+              id="description"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all h-32 resize-none"
               placeholder="Please provide detailed information about your issue or request..."
               value={text}
