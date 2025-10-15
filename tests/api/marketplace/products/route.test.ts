@@ -1,7 +1,7 @@
 // Tests for GET handler in API route (marketplace products by slug)
 // Framework: Vitest
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import type { NextRequest } from 'next/server';
 
 // Mock next/server to control NextResponse.json behavior

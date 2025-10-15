@@ -30,6 +30,17 @@
       "react-dom",
       "next",
       "google.maps",
+      // IMPORTANT: "jest" types retained intentionally
+      // Reason: 10+ test files still use Jest APIs (jest.mock, jest.fn, etc.)
+      // Removing this would cause TypeScript compilation errors in:
+      //   - app/product/[slug]/__tests__/page.spec.tsx
+      //   - app/fm/marketplace/page.test.tsx
+      //   - app/marketplace/page.test.tsx
+      //   - app/api/marketplace/search/route.test.ts
+      //   - Plus more in server/ and lib/
+      // These files are outside the scope of PR #119 (Jest→Vitest hybrid migration)
+      // They will be migrated in a follow-up PR
+      // See: COMPREHENSIVE_FIXES_SUMMARY.md for details on this PR's scope
       "jest"
     ],
     "baseUrl": ".",
