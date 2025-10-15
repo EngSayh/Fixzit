@@ -130,24 +130,3 @@ export function getResponsiveClasses(screenInfo: ScreenInfo) {
     desktopOptimizations: isDesktop ? 'hover:shadow-lg' : ''
   };
 }
-
-// DEPRECATED: Use useResponsive from ResponsiveContext instead
-// This is kept for backward compatibility only
-export function useResponsiveLegacy() {
-  const { screenInfo } = useScreenSize();
-
-  return {
-    isMobile: screenInfo.isMobile,
-    isTablet: screenInfo.isTablet,
-    isDesktop: screenInfo.isDesktop,
-    isLarge: screenInfo.isLarge,
-    isSmallScreen: screenInfo.isSmall,
-    isTouchDevice: screenInfo.isTouchDevice,
-    showSidebar: !screenInfo.isMobile && !screenInfo.isTablet,
-    responsiveClasses: getResponsiveClasses(screenInfo),
-    screenInfo
-  };
-}
-
-// Alias for backward compatibility - prefer importing from ResponsiveContext
-export const useResponsive = useResponsiveLegacy;
