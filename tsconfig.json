@@ -89,7 +89,11 @@
     "tests",
     "vitest.config.ts",
     "qa/tests",
-    "vitest.config.ts",
-    "vitest.setup.ts"
+    "vitest.setup.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**"
   ]
 }
