@@ -1,0 +1,148 @@
+{
+  "total": 17,
+  "summary": {
+    "completed": 5,
+    "ready": 2,
+    "manual": 7,
+    "review": 2,
+    "docs": 1
+  },
+  "prs": [
+    {
+      "id": 1,
+      "title": "fix: remove console.log/debug/info/warn statements",
+      "count": 1225,
+      "status": "completed",
+      "branch": "fix/remove-console-statements",
+      "category": "consoleLog"
+    },
+    {
+      "id": 2,
+      "title": "fix: replace console.error with proper logging system",
+      "count": 327,
+      "status": "ready",
+      "branch": "fix/console-error-to-logger",
+      "category": "consoleError"
+    },
+    {
+      "id": 3,
+      "title": "fix: remove type casts to any (307 instances)",
+      "count": 307,
+      "status": "manual",
+      "branch": "fix/remove-type-cast-any",
+      "category": "asAny"
+    },
+    {
+      "id": 4,
+      "title": "fix: replace any type with proper types (288 instances)",
+      "count": 288,
+      "status": "manual",
+      "branch": "fix/remove-any-type-usage",
+      "category": "anyType"
+    },
+    {
+      "id": 5,
+      "title": "refactor: improve process.exit() usage (192 instances)",
+      "count": 192,
+      "status": "manual",
+      "branch": "fix/refactor-process-exit",
+      "category": "processExit"
+    },
+    {
+      "id": 6,
+      "title": "fix: replace hardcoded localhost with env variables (103 instances)",
+      "count": 103,
+      "status": "ready",
+      "branch": "fix/replace-hardcoded-localhost",
+      "category": "localhost"
+    },
+    {
+      "id": 7,
+      "title": "fix: remove unnecessary eslint-disable comments (59 instances)",
+      "count": 59,
+      "status": "manual",
+      "branch": "fix/cleanup-eslint-disables",
+      "category": "eslintDisable"
+    },
+    {
+      "id": 8,
+      "title": "fix: remove @ts-ignore comments and fix type issues (54 instances)",
+      "count": 54,
+      "status": "manual",
+      "branch": "fix/cleanup-ts-ignore",
+      "category": "tsIgnore"
+    },
+    {
+      "id": 9,
+      "title": "fix: remove console.warn statements (43 instances)",
+      "count": 43,
+      "status": "completed",
+      "branch": "fix/remove-console-warn",
+      "category": "consoleWarn"
+    },
+    {
+      "id": 10,
+      "title": "fix: review @ts-expect-error usage (25 instances)",
+      "count": 25,
+      "status": "manual",
+      "branch": "fix/cleanup-ts-expect-error",
+      "category": "tsExpectError"
+    },
+    {
+      "id": 11,
+      "title": "fix: remove console.info statements (7 instances)",
+      "count": 7,
+      "status": "completed",
+      "branch": "fix/remove-console-info",
+      "category": "consoleInfo"
+    },
+    {
+      "id": 12,
+      "title": "security: review dangerouslySetInnerHTML usage (5 instances)",
+      "count": 5,
+      "status": "review",
+      "branch": "fix/security-dangerous-html",
+      "category": "dangerousHTML"
+    },
+    {
+      "id": 13,
+      "title": "docs: track TODO comments (5 instances)",
+      "count": 5,
+      "status": "docs",
+      "branch": "fix/document-todo-comments",
+      "category": "todoComments"
+    },
+    {
+      "id": 14,
+      "title": "fix: remove console.debug statements (4 instances)",
+      "count": 4,
+      "status": "completed",
+      "branch": "fix/remove-console-debug",
+      "category": "consoleDebug"
+    },
+    {
+      "id": 15,
+      "title": "fix: add proper error handling to empty catch blocks (4 instances)",
+      "count": 4,
+      "status": "completed",
+      "branch": "fix/empty-catch-blocks",
+      "category": "emptyCatch"
+    },
+    {
+      "id": 16,
+      "title": "fix: enable TypeScript checking (2 instances)",
+      "count": 2,
+      "status": "manual",
+      "branch": "fix/cleanup-ts-nocheck",
+      "category": "tsNoCheck"
+    },
+    {
+      "id": 17,
+      "title": "security: review eval() usage (1 instance)",
+      "count": 1,
+      "status": "review",
+      "branch": "fix/review-eval-usage",
+      "category": "evalUsage"
+    }
+  ]
+}
