@@ -124,7 +124,7 @@ Address: Riyadh, Saudi Arabia`,
       });
       
       if (response.ok) {
-        console.log(`✅ Seeded page: ${page.slug}`);
+
       } else {
         console.error(`❌ Failed to seed ${page.slug}:`, await response.text());
       }
@@ -178,7 +178,7 @@ const seedHelpArticles = async () => {
       });
       
       if (response.ok) {
-        console.log(`✅ Seeded help article: ${article.slug}`);
+
       } else {
         console.error(`❌ Failed to seed ${article.slug}:`, await response.text());
       }
@@ -189,12 +189,12 @@ const seedHelpArticles = async () => {
 };
 
 // Run the seeding
-console.log('🌱 Starting CMS seeding...');
+
 seedPages().then(() => {
-  console.log('🌱 Seeding help articles...');
+
   return seedHelpArticles();
 }).then(() => {
-  console.log('✅ Seeding complete!');
+
   process.exit(0);
 }).catch(error => {
   console.error('❌ Seeding failed:', error);

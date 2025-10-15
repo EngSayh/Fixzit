@@ -9,18 +9,16 @@ async function getAuthToken() {
     });
     return res.data.token;
   } catch (e) {
-    console.log('❌ AUTH FAILED - Backend not running?');
+
     return null;
   }
 }
 
 async function testAllEndpoints() {
-  console.log('\n🔍 COMPLETE SCOPE VERIFICATION - ALL 80+ ENDPOINTS\n');
-  console.log('=' * 60);
-  
+
   const token = await getAuthToken();
   if (!token) {
-    console.log('❌ Cannot proceed without authentication');
+
     return;
   }
   
@@ -178,9 +176,7 @@ async function testAllEndpoints() {
   let totalEndpoints = 0;
   let moduleResults = [];
   
-  for (const module of allModules) {
-    console.log(`\n📦 ${module.name.toUpperCase()} MODULE (${module.target} endpoints)`);
-    console.log('-'.repeat(50));
+  for (const module of allModules) {} MODULE (${module.target} endpoints)`););
     
     let moduleWorking = 0;
     
@@ -207,14 +203,14 @@ async function testAllEndpoints() {
         );
         
         if (hasRealData) {
-          console.log(`✅ ${test.name}`);
+
           moduleWorking++;
           totalWorking++;
         } else {
-          console.log(`❌ ${test.name} - PLACEHOLDER/FAKE`);
+
         }
       } catch (error) {
-        console.log(`❌ ${test.name} - ERROR/NOT IMPLEMENTED`);
+
       }
       totalEndpoints++;
     }
@@ -226,34 +222,22 @@ async function testAllEndpoints() {
       total: module.target,
       percentage: modulePercentage
     });
-    
-    console.log(`📊 ${module.name}: ${moduleWorking}/${module.target} = ${modulePercentage}%`);
+
   }
   
-  const overallPercentage = Math.round((totalWorking / totalEndpoints) * 100);
-  
-  console.log('\n' + '='.repeat(60));
-  console.log('📊 COMPLETE SCOPE VERIFICATION RESULTS');
-  console.log('='.repeat(60));
+  const overallPercentage = Math.round((totalWorking / totalEndpoints) * 100);););
   
   moduleResults.forEach(result => {
-    const status = result.percentage >= 95 ? '✅' : result.percentage >= 50 ? '⚠️' : '❌';
-    console.log(`${status} ${result.name}: ${result.working}/${result.total} (${result.percentage}%)`);
-  });
-  
-  console.log('\n' + '='.repeat(60));
-  console.log(`🎯 OVERALL COMPLETION: ${totalWorking}/${totalEndpoints} = ${overallPercentage}%`);
-  console.log('='.repeat(60));
+    const status = result.percentage >= 95 ? '✅' : result.percentage >= 50 ? '⚠️' : '❌';`);
+  });););
   
   if (overallPercentage >= 95) {
-    console.log('✅ PHASE 1 TRULY COMPLETE - Can proceed to Phase 2');
+
   } else if (overallPercentage >= 50) {
-    console.log('⚠️ SIGNIFICANT WORK NEEDED - Fix broken endpoints');
+
   } else {
-    console.log('❌ PHASE 1 LARGELY INCOMPLETE - Major implementation required');
-  }
-  
-  console.log(`\n🚨 RULE: Cannot claim completion or move to Phase 2 until ≥95% (${Math.ceil(totalEndpoints * 0.95)} endpoints working)`);
+
+  }} endpoints working)`);
   
   return overallPercentage;
 }

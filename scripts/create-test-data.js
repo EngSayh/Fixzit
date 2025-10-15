@@ -14,7 +14,6 @@ const Invoice = require('./models/Invoice');
 
 async function createTestData() {
   try {
-    console.log('🚀 Creating test data...');
 
     // Create admin user
     const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
@@ -38,7 +37,6 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Admin user created:', admin.email);
 
     // Create test property
     const property = await Property.findOneAndUpdate(
@@ -55,7 +53,6 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Test property created:', property.name);
 
     // Create test work order
     const workOrder = await WorkOrder.findOneAndUpdate(
@@ -73,7 +70,6 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Test work order created:', workOrder.workOrderNumber);
 
     // Create test vendor
     const vendor = await Vendor.findOneAndUpdate(
@@ -89,7 +85,6 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Test vendor created:', vendor.name);
 
     // Create test invoice
     const invoice = await Invoice.findOneAndUpdate(
@@ -112,7 +107,6 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Test invoice created:', invoice.invoiceNumber);
 
     // Count all collections
     const counts = {
@@ -123,14 +117,9 @@ async function createTestData() {
       invoices: await Invoice.countDocuments()
     };
 
-    console.log('\n📊 Database Status:');
     Object.entries(counts).forEach(([collection, count]) => {
-      console.log(`✅ ${collection}: ${count} documents`);
-    });
 
-    console.log('\n🎯 Test Credentials:');
-    console.log('Email: admin@fixzit.com');
-    console.log('Password: [REDACTED - check .env.local]');
+    });
 
     mongoose.connection.close();
     process.exit(0);
@@ -141,5 +130,4 @@ async function createTestData() {
 }
 
 createTestData();
-
 

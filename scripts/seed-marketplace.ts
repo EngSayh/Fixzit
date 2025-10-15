@@ -50,7 +50,6 @@ export async function main() {
   const { synonyms, products } = getSeedData(tenantId);
 
   // eslint-disable-next-line no-console
-  console.log(`[Marketplace seed] Preparing data for tenant: ${tenantId}`);
 
   synonyms.forEach((synonym) => {
     upsert(
@@ -68,8 +67,7 @@ export async function main() {
     );
   });
 
-  // eslint-disable-next-line no-console
-  console.log('✔ Marketplace seed complete (MockDB)');
+  // eslint-disable-next-line no-console');
 }
 
 export default main;

@@ -14,11 +14,11 @@ const colors = {
 };
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-  info: (msg) => console.log(`${colors.cyan}ℹ️  ${msg}${colors.reset}`),
-  header: (msg) => console.log(`\n${colors.bright}${colors.cyan}${'='.repeat(50)}\n${msg}\n${'='.repeat(50)}${colors.reset}\n`)
+  success: (msg) =>,
+  warning: (msg) =>,
+  error: (msg) =>,
+  info: (msg) =>,
+  header: (msg) =>}\n${msg}\n${'='.repeat(50)}${colors.reset}\n`)
 };
 
 // Fixes to apply

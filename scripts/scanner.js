@@ -61,13 +61,6 @@ class FixzitScanner {
 
   // Main scan function
   async scan() {
-    console.log(`${colors.cyan}${colors.bold}
-╔══════════════════════════════════════════════════════════╗
-║          FIXZIT SOUQ COMPREHENSIVE CODE SCANNER         ║
-╚══════════════════════════════════════════════════════════╝
-${colors.reset}`);
-
-    console.log(`${colors.blue}Starting comprehensive scan...${colors.reset}\n`);
 
     try {
       // 1. File System Scan
@@ -172,8 +165,7 @@ ${colors.reset}`);
 
   // 1. FILE SYSTEM SCAN
   async scanFileSystem() {
-    console.log(`${colors.yellow}📁 Scanning file system...${colors.reset}`);
-    
+
     const scanDir = async (dir) => {
       try {
         const items = await fs.readdir(dir, { withFileTypes: true });
@@ -199,13 +191,12 @@ ${colors.reset}`);
     };
     
     await scanDir(config.projectRoot);
-    console.log(`  ✓ Scanned ${config.stats.filesScanned} files\n`);
+
   }
 
   // 2. SECURITY VULNERABILITIES SCAN
   async scanSecurity() {
-    console.log(`${colors.yellow}🔒 Scanning security vulnerabilities...${colors.reset}`);
-    
+
     const securityPatterns = [
       // Authentication Issues
       { pattern: /jwt\.sign([^,]+,\s*['"][^'"]+['"]\s*,\s*\{[^}]*\})/gi, issue: 'JWT without expiration', severity: Severity.CRITICAL },
@@ -245,14 +236,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ Security scan complete\n`);
+
   }
 
   // 3. ROUTE CONFIGURATION SCAN
   async scanRoutes() {
-    console.log(`${colors.yellow}🛣️  Scanning route configuration...${colors.reset}`);
-    
+
     const routePatterns = [
       // Missing authentication
       { pattern: /router\.(get|post|put|delete|patch)\s*([^,]*,\s*(?!.*auth)/g, issue: 'Route without authentication', severity: Severity.CRITICAL },
@@ -285,14 +274,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ Route scan complete\n`);
+
   }
 
   // 4. DATABASE ISSUES SCAN
   async scanDatabase() {
-    console.log(`${colors.yellow}🗄️  Scanning database issues...${colors.reset}`);
-    
+
     const dbPatterns = [
       // N+1 Queries
       { pattern: /\.map\s*([^)]*await\s+[^)]*\.(find|query|select)/g, issue: 'N+1 query pattern detected', severity: Severity.HIGH },
@@ -322,14 +309,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ Database scan complete\n`);
+
   }
 
   // 5. API & INTEGRATION SCAN
   async scanAPIs() {
-    console.log(`${colors.yellow}🔌 Scanning API & integrations...${colors.reset}`);
-    
+
     const apiPatterns = [
       // Missing error handling
       { pattern: /fetch([^)]+)(?!\.then(|\.catch(|await)/g, issue: 'Fetch without error handling', severity: Severity.HIGH },
@@ -360,14 +345,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ API scan complete\n`);
+
   }
 
   // 6. PERFORMANCE SCAN
   async scanPerformance() {
-    console.log(`${colors.yellow}🚀 Scanning performance issues...${colors.reset}`);
-    
+
     const performancePatterns = [
       // React performance
       { pattern: /useEffect([^,]+)/g, issue: 'useEffect without dependencies', severity: Severity.MEDIUM },
@@ -396,14 +379,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ Performance scan complete\n`);
+
   }
 
   // 7. TYPESCRIPT ERRORS SCAN
   async scanTypeScriptErrors() {
-    console.log(`${colors.yellow}📝 Scanning TypeScript/JavaScript errors...${colors.reset}`);
-    
+
     const tsPatterns = [
       // Type errors
       { pattern: /any(?:\[\])?(?:\s*[,;]|\s*))/g, issue: 'Using "any" type', severity: Severity.LOW },
@@ -434,14 +415,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ TypeScript scan complete\n`);
+
   }
 
   // 8. DEPENDENCIES SCAN
   async scanDependencies() {
-    console.log(`${colors.yellow}📦 Scanning dependencies...${colors.reset}`);
-    
+
     try {
       // Check package.json
       const packagePath = path.join(config.projectRoot, 'package.json');
@@ -471,14 +450,12 @@ ${colors.reset}`);
     } catch (err) {
       // package.json might not exist
     }
-    
-    console.log(`  ✓ Dependencies scan complete\n`);
+
   }
 
   // 9. MULTI-TENANT SCAN
   async scanMultiTenant() {
-    console.log(`${colors.yellow}🏢 Scanning multi-tenant issues...${colors.reset}`);
-    
+
     const tenantPatterns = [
       // Missing tenant isolation
       { pattern: /(?:find|query|select)(?!.*tenant|.*where.*tenant)/gi, issue: 'Query without tenant filter', severity: Severity.CRITICAL },
@@ -504,14 +481,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ Multi-tenant scan complete\n`);
+
   }
 
   // 10. LOCALIZATION SCAN
   async scanLocalization() {
-    console.log(`${colors.yellow}🌍 Scanning localization & RTL issues...${colors.reset}`);
-    
+
     const i18nPatterns = [
       // Hardcoded text
       { pattern: />([A-Z][a-z]+(?:\s+[a-z]+)+)</g, issue: 'Hardcoded English text in JSX', severity: Severity.LOW },
@@ -538,14 +513,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ Localization scan complete\n`);
+
   }
 
   // 11. ZATCA COMPLIANCE SCAN
   async scanZATCACompliance() {
-    console.log(`${colors.yellow}⚖️  Scanning ZATCA compliance...${colors.reset}`);
-    
+
     const zatcaPatterns = [
       // Missing ZATCA features
       { pattern: /invoice(?!.*zatca|.*qr|.*xml)/gi, issue: 'Invoice without ZATCA compliance', severity: Severity.CRITICAL },
@@ -570,14 +543,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ ZATCA scan complete\n`);
+
   }
 
   // 12. CODE QUALITY SCAN
   async scanCodeQuality() {
-    console.log(`${colors.yellow}🔧 Scanning code quality...${colors.reset}`);
-    
+
     const qualityPatterns = [
       // Long functions
       { pattern: /function[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, issue: 'Long function detected', severity: Severity.LOW },
@@ -606,14 +577,12 @@ ${colors.reset}`);
         }
       }
     }
-    
-    console.log(`  ✓ Code quality scan complete\n`);
+
   }
 
   // 13. TESTING COVERAGE SCAN
   async scanTestCoverage() {
-    console.log(`${colors.yellow}🧪 Scanning testing coverage...${colors.reset}`);
-    
+
     let testFiles = 0;
     let sourceFiles = 0;
     
@@ -643,66 +612,42 @@ ${colors.reset}`);
         file: 'Test Coverage',
         issue: 'No test files found'
       });
-    }
-    
-    console.log(`  ✓ Testing scan complete (${testCoverage.toFixed(1)}% coverage)\n`);
+    }}% coverage)\n`);
   }
 
   // Generate comprehensive report
   async generateReport() {
-    console.log(`${colors.cyan}${colors.bold}
-╔══════════════════════════════════════════════════════════╗
-║                    SCAN RESULTS SUMMARY                 ║
-╚══════════════════════════════════════════════════════════╝${colors.reset}`);
-    
-    // Statistics
-    console.log(`${colors.blue}📊 Statistics:${colors.reset}`);
-    console.log(`  Files Scanned: ${config.stats.filesScanned}`);
-    console.log(`  Total Lines: ${config.stats.totalLines.toLocaleString()}`);
-    console.log(`  Total Issues: ${config.stats.totalIssues}`);
-    console.log();
-    
+
+    // Statistics}`);
+
     // Issues by severity
-    console.log(`${colors.blue}🔍 Issues by Severity:${colors.reset}`);
-    console.log(`  ${colors.red}● Critical: ${config.stats.critical}${colors.reset}`);
-    console.log(`  ${colors.yellow}● High: ${config.stats.high}${colors.reset}`);
-    console.log(`  ${colors.blue}● Medium: ${config.stats.medium}${colors.reset}`);
-    console.log(`  ${colors.green}● Low: ${config.stats.low}${colors.reset}`);
-    console.log();
-    
+
     // Critical issues details
-    if (config.stats.critical > 0) {
-      console.log(`${colors.red}${colors.bold}⚠️  CRITICAL ISSUES (Immediate Action Required):${colors.reset}`);
+    if (config.stats.critical > 0) {:${colors.reset}`);
       const criticalIssues = this.issues.filter(i => i.severity === Severity.CRITICAL).slice(0, 10);
       
       criticalIssues.forEach((issue, index) => {
-        console.log(`  ${index + 1}. ${colors.red}[${issue.type}] ${issue.issue}${colors.reset}`);
-        console.log(`     📁 ${issue.file}`);
-        if (issue.lines && issue.lines.length > 0) {
-          console.log(`     📍 Lines: ${issue.lines.slice(0, 5).join(', ')}${issue.lines.length > 5 ? '...' : ''}`);
+
+        if (issue.lines && issue.lines.length > 0) {.join(', ')}${issue.lines.length > 5 ? '...' : ''}`);
         }
         if (issue.count && issue.count > 1) {
-          console.log(`     🔢 Occurrences: ${issue.count}`);
+
         }
-        console.log();
+
       });
       
-      if (this.issues.filter(i => i.severity === Severity.CRITICAL).length > 10) {
-        console.log(`     ... and ${this.issues.filter(i => i.severity === Severity.CRITICAL).length - 10} more critical issues`);
-        console.log();
+      if (this.issues.filter(i => i.severity === Severity.CRITICAL).length > 10) {.length - 10} more critical issues`);
+
       }
     }
     
     // High priority issues
-    if (config.stats.high > 0) {
-      console.log(`${colors.yellow}🔥 HIGH PRIORITY ISSUES (Top 5):${colors.reset}`);
+    if (config.stats.high > 0) {:${colors.reset}`);
       const highIssues = this.issues.filter(i => i.severity === Severity.HIGH).slice(0, 5);
       
-      highIssues.forEach((issue, index) => {
-        console.log(`  ${index + 1}. [${issue.type}] ${issue.issue}`);
-        console.log(`     📁 ${path.basename(issue.file)}`);
+      highIssues.forEach((issue, index) => {}`);
       });
-      console.log();
+
     }
     
     // System health score
@@ -716,35 +661,28 @@ ${colors.reset}`);
     const healthScore = Math.max(0, maxPossibleScore - totalPenalty);
     
     const healthColor = healthScore >= 80 ? colors.green : 
-                        healthScore >= 60 ? colors.yellow : colors.red;
-    
-    console.log(`${colors.blue}🏥 System Health Score: ${healthColor}${healthScore.toFixed(0)}/100${colors.reset}`);
+                        healthScore >= 60 ? colors.yellow : colors.red;}/100${colors.reset}`);
     
     if (healthScore < 50) {
-      console.log(`${colors.red}🚨 CRITICAL: System health is below acceptable threshold!${colors.reset}`);
+
     } else if (healthScore < 70) {
-      console.log(`${colors.yellow}⚠️  WARNING: System health needs improvement${colors.reset}`);
+
     } else if (healthScore >= 90) {
-      console.log(`${colors.green}✅ EXCELLENT: System is in good health${colors.reset}`);
+
     }
-    
-    console.log();
-    
+
     // Recommendations
-    console.log(`${colors.blue}💡 Top Recommendations:${colors.reset}`);
+
     if (config.stats.critical > 0) {
-      console.log(`  1. 🔴 Fix ${config.stats.critical} critical security issues immediately`);
+
     }
     if (config.stats.high > 5) {
-      console.log(`  2. 🟡 Address high-priority performance and database issues`);
+
     }
     if (config.stats.medium > 10) {
-      console.log(`  3. 🔵 Improve code quality and add proper error handling`);
-    }
-    console.log(`  4. 🧪 Implement comprehensive testing (current coverage is low)`);
-    console.log(`  5. 🔒 Review and enhance security measures across all modules`);
-    console.log();
-    
+
+    }`);
+
     // Save detailed report
     const report = {
       timestamp: new Date().toISOString(),
@@ -762,16 +700,13 @@ ${colors.reset}`);
     
     const reportPath = path.join(config.projectRoot, 'fixzit-scan-report.json');
     await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
-    
-    console.log(`${colors.green}✅ Full report saved to: ${reportPath}${colors.reset}`);
-    console.log();
-    
+
     // Exit code based on critical issues
     if (config.stats.critical > 0) {
-      console.log(`${colors.red}❌ SCAN FAILED: Critical issues found. DO NOT DEPLOY.${colors.reset}`);
+
       process.exit(1);
     } else {
-      console.log(`${colors.green}✅ SCAN PASSED: No critical issues found.${colors.reset}`);
+
       process.exit(0);
     }
   }

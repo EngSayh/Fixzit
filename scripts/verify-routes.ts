@@ -23,7 +23,6 @@ function crawl(dir: string, pathParts: string[] = []) {
 try { crawl(APP, []); } catch { /* app dir might not exist */ }
 
 const unique = Array.from(new Set(pages.length ? pages : ["/"]));
-console.log("Discovered routes:", unique);
 
 (async () => {
   let failures = 0;
@@ -35,7 +34,7 @@ console.log("Discovered routes:", unique);
         failures++;
         console.error(`❌ ${res.status} ${url}`);
       } else {
-        console.log(`✅ ${res.status} ${url}`);
+
       }
     } catch (e) {
       failures++;
@@ -46,6 +45,6 @@ console.log("Discovered routes:", unique);
     console.error(`Route failures: ${failures}`);
     process.exit(1);
   } else {
-    console.log("All discovered routes OK ✅");
+
   }
 })();

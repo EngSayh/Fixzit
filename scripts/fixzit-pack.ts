@@ -86,8 +86,7 @@ ${readmes}
 
 Approx Tokens: ~${approxTokenCount(totalChars)}
 `;
-  fs.writeFileSync(path.join(outDir, 'MANIFEST.md'), summary, 'utf8');
-  console.log(pc.green(`Built pack "${task}": ~${approxTokenCount(totalChars)} tokens, ${manifest.length} files.`));
+  fs.writeFileSync(path.join(outDir, 'MANIFEST.md'), summary, 'utf8');} tokens, ${manifest.length} files.`));
 }
 
 (async () => {

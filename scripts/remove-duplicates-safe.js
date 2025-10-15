@@ -7,8 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 function removeDuplicates(filePath) {
-  console.log(`\n📝 Processing: ${filePath}`);
-  
+
   const content = fs.readFileSync(filePath, 'utf8');
   const lines = content.split('\n');
   
@@ -68,8 +67,7 @@ function removeDuplicates(filePath) {
       
       if (seenKeys.has(keyId)) {
         // Duplicate found - mark for removal
-        const firstOccurrence = seenKeys.get(keyId);
-        console.log(`   ⚠️  Duplicate '${key}' at line ${lineNum} (first at ${firstOccurrence.line})`);
+        const firstOccurrence = seenKeys.get(keyId);`);
         
         // Mark this line and potentially the whole section for removal
         linesToRemove.add(index);
@@ -117,7 +115,7 @@ function removeDuplicates(filePath) {
   });
   
   if (linesToRemove.size === 0) {
-    console.log(`   ✅ No duplicates found`);
+
     return 0;
   }
   
@@ -126,24 +124,17 @@ function removeDuplicates(filePath) {
   
   // Write back
   fs.writeFileSync(filePath, newLines.join('\n'), 'utf8');
-  
-  console.log(`   ✅ Removed ${linesToRemove.size} lines`);
+
   return linesToRemove.size;
 }
 
 function main() {
   const enPath = path.join(process.cwd(), 'i18n/dictionaries/en.ts');
-  const arPath = path.join(process.cwd(), 'i18n/dictionaries/ar.ts');
-  
-  console.log('🔧 Removing duplicate keys (structure-aware)...');
+  const arPath = path.join(process.cwd(), 'i18n/dictionaries/ar.ts');...');
   
   const enRemoved = removeDuplicates(enPath);
   const arRemoved = removeDuplicates(arPath);
-  
-  console.log(`\n📊 Summary:`);
-  console.log(`   en.ts: ${enRemoved} lines removed`);
-  console.log(`   ar.ts: ${arRemoved} lines removed`);
-  console.log(`\n✅ Done! Run 'npm run typecheck' to verify.`);
+
 }
 
 main();

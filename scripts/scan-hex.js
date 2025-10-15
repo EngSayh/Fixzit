@@ -91,9 +91,7 @@ const PATTERNS = [
 // ============================================================================
 
 function scanFiles() {
-  console.log('🎨 Fixzit Brand Color Scanner');
-  console.log('================================\n');
-  
+
   // Get all files to scan
   let files = [];
   try {
@@ -108,12 +106,10 @@ function scanFiles() {
   }
   
   if (files.length === 0) {
-    console.log('⚠️  No files found to scan');
+
     return;
   }
-  
-  console.log(`📁 Scanning ${files.length} files...\n`);
-  
+
   const violations = [];
   const banned = [];
   
@@ -157,9 +153,7 @@ function scanFiles() {
   
   // Report results
   if (banned.length === 0 && violations.length === 0) {
-    console.log('✅ All colors are approved!');
-    console.log(`   Scanned: ${files.length} files`);
-    console.log(`   Violations: 0\n`);
+
     process.exit(0);
   }
   

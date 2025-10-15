@@ -53,7 +53,7 @@ function revertHtmlEntities(filePath) {
     
     if (content !== modified) {
       fs.writeFileSync(filePath, modified);
-      console.log(`✅ Fixed HTML entities in ${filePath}`);
+
       return true;
     }
     
@@ -65,13 +65,10 @@ function revertHtmlEntities(filePath) {
 }
 
 function main() {
-  console.log('🔧 Fixing HTML entities in JavaScript files...\n');
-  
+
   const rootDir = process.cwd();
   const files = getAllFiles(rootDir);
-  
-  console.log(`📁 Found ${files.length} JavaScript files to check\n`);
-  
+
   let processedCount = 0;
   let modifiedCount = 0;
   
@@ -82,8 +79,7 @@ function main() {
       modifiedCount++;
     }
   }
-  
-  console.log(`\n✨ Completed! Fixed ${modifiedCount} out of ${processedCount} files`);
+
 }
 
 if (require.main === module) {

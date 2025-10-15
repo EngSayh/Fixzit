@@ -13,17 +13,17 @@ async function testEndpoint(path, description) {
     };
 
     const req = http.request(options, (res) => {
-      console.log(`✅ ${description}: ${res.statusCode} ${res.statusMessage}`);
+
       resolve({ success: true, status: res.statusCode, path });
     });
 
     req.on('error', (err) => {
-      console.log(`❌ ${description}: ${err.message}`);
+
       resolve({ success: false, error: err.message, path });
     });
 
     req.on('timeout', () => {
-      console.log(`⏱️  ${description}: Timeout after 5s`);
+
       req.destroy();
       resolve({ success: false, error: 'Timeout', path });
     });
@@ -33,8 +33,7 @@ async function testEndpoint(path, description) {
 }
 
 async function runE2ETests() {
-  console.log('🚀 Starting E2E System Tests...\n');
-  
+
   const testRoutes = [
     ['/', 'Homepage'],
     ['/login', 'Login Page'],
@@ -64,20 +63,15 @@ async function runE2ETests() {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  console.log('\n📊 Test Summary:');
   const successful = results.filter(r => r.success && r.status < 500).length;
-  const total = results.length;
-  
-  console.log(`✅ Successful: ${successful}/${total} (${Math.round(successful/total*100)}%)`);
+  const total = results.length;}%)`);
   
   if (successful < total) {
-    console.log('\n❌ Failed Routes:');
-    results.filter(r => !r.success || r.status >= 500).forEach(r => {
-      console.log(`   ${r.path} - ${r.error || r.status}`);
-    });
-  }
 
-  console.log(`\n🎯 Target: 100% completions - Current: ${Math.round(successful/total*100)}%`);
+    results.filter(r => !r.success || r.status >= 500).forEach(r => {
+
+    });
+  }}%`);
   
   return successful / total;
 }

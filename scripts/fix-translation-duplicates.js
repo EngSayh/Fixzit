@@ -70,18 +70,14 @@ function fixDuplicates(filePath) {
 
   // Write fixed content
   if (fixes.length > 0) {
-    fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
-    console.log(`Fixed ${fixes.length} duplicates in ${path.basename(filePath)}:`);
+    fs.writeFileSync(filePath, lines.join('\n'), 'utf8');}:`);
     fixes.forEach(f => {
-      console.log(`  Line ${f.line}: ${f.oldKey} → ${f.newKey}`);
+
     });
-  } else {
-    console.log(`No duplicates found in ${path.basename(filePath)}`);
+  } else {}`);
   }
 }
 
-console.log('Fixing duplicate keys in translation dictionaries...\n');
 fixDuplicates(enPath);
-console.log('');
+
 fixDuplicates(arPath);
-console.log('\nDone!');

@@ -49,16 +49,14 @@ async function run() {
     const exists = fs.existsSync(opts.filePath);
     
     if (exists && !opts.overwrite) {
-      result.message = 'File exists. Use --overwrite';
-      console.log(JSON.stringify(result));
+      result.message = 'File exists. Use --overwrite';);
       process.exitCode = 1;
       return;
     }
     
     if (opts.dryRun) {
       result.message = 'Dry-run: would create file';
-      result.success = true;
-      console.log(JSON.stringify(result));
+      result.success = true;);
       return;
     }
     
@@ -72,14 +70,12 @@ async function run() {
     
     result.success = true;
     result.bytesWritten = opts.content.length;
-    result.message = exists ? 'File overwritten' : 'File created';
-    console.log(JSON.stringify(result, null, 2));
+    result.message = exists ? 'File overwritten' : 'File created';);
   } catch (err: unknown) {
     const error = err as { message?: string };
     result.message = error?.message || String(err);
     console.error(result.message);
-    process.exitCode = 1;
-    console.log(JSON.stringify(result));
+    process.exitCode = 1;);
   }
 }
 

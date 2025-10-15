@@ -27,7 +27,6 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Admin user created:', admin.email);
 
     // Create test property
     const property = await Property.findOneAndUpdate(
@@ -43,7 +42,6 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Test property created:', property.name);
 
     // Create test work order
     const workOrder = await WorkOrder.findOneAndUpdate(
@@ -60,17 +58,11 @@ async function createTestData() {
       },
       { upsert: true, new: true }
     );
-    console.log('✅ Test work order created:', workOrder.workOrderNumber);
 
     // Count totals
     const userCount = await User.countDocuments();
     const propertyCount = await Property.countDocuments();
     const workOrderCount = await WorkOrder.countDocuments();
-
-    console.log('\n📊 Database Status:');
-    console.log(`- Users: ${userCount}`);
-    console.log(`- Properties: ${propertyCount}`);
-    console.log(`- Work Orders: ${workOrderCount}`);
 
     process.exit(0);
   } catch (error) {

@@ -28,6 +28,6 @@ for (const f of files) {
 
   if (changed) {
     fs.writeFileSync(f, recast.print(ast).code, 'utf8');
-    console.log(`Rewired Mongo import in ${f}`);
+
   }
 }

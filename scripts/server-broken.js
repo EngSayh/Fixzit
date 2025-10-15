@@ -12,14 +12,8 @@ app.get('/', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`✅ Fixzit Enterprise Platform running on http://localhost:${PORT}`);
-    console.log('🎯 Features:');
-    console.log('   - Landing page with 3 buttons (Yellow Arabic, White Souq, Blue Access)');
-    console.log('   - Monday.com style interface');
-    console.log('   - RTL support for Arabic');
-    console.log('   - All 13 FM modules structure');
-    console.log('   - Your exact brand colors');
+app.listen(PORT, () => {');
+
 });
 
 // Mount ALL existing routes - THESE FILES ALREADY EXIST
@@ -40,5 +34,3 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/system', require('./routes/system'));
 app.use('/api/administration', require('./routes/admin'));
 app.use('/api/pm', require('./routes/pm'));
-
-console.log("✅ All 13 module routes mounted");

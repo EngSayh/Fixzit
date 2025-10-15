@@ -27,9 +27,7 @@ class SystemAuditScanner {
   // ==========================================
   // MAIN AUDIT FUNCTION
   // ==========================================
-  async runCompleteAudit() {
-    console.log('🔍 STARTING COMPLETE SYSTEM AUDIT...\n');
-    console.log('=' .repeat(80));
+  async runCompleteAudit() {);
     
     // 1. Scan all source files
     await this.scanSourceFiles();
@@ -57,8 +55,7 @@ class SystemAuditScanner {
   // 1. SCAN SOURCE FILES
   // ==========================================
   async scanSourceFiles() {
-    console.log('\n📁 SCANNING SOURCE FILES...\n');
-    
+
     const directories = [
       './routes',
       './models', 
@@ -221,8 +218,7 @@ class SystemAuditScanner {
   // 2. TEST ALL API ENDPOINTS
   // ==========================================
   async testAllEndpoints() {
-    console.log('\n🌐 TESTING ALL API ENDPOINTS...\n');
-    
+
     for (const endpoint of this.requiredEndpoints) {
       try {
         const response = await axios({
@@ -292,8 +288,7 @@ class SystemAuditScanner {
   // 3. CHECK DATABASE MODELS
   // ==========================================
   async checkDatabaseModels() {
-    console.log('\n💾 CHECKING DATABASE MODELS...\n');
-    
+
     for (const model of this.requiredModels) {
       const modelPath = `./models/${model.name}.js`;
       
@@ -340,8 +335,7 @@ class SystemAuditScanner {
   // 4. VERIFY BUSINESS LOGIC
   // ==========================================
   async verifyBusinessLogic() {
-    console.log('\n⚙️ VERIFYING BUSINESS LOGIC...\n');
-    
+
     // Check Work Order SLA calculation
     if (!this.checkFileContains('./routes/workorders.js', 'calculateSLA')) {
       this.issues.errors.push({
@@ -401,8 +395,7 @@ class SystemAuditScanner {
   // 5. SECURITY AUDIT
   // ==========================================
   async securityAudit() {
-    console.log('\n🔒 SECURITY AUDIT...\n');
-    
+
     // Check for exposed secrets
     const configFiles = ['./config.js', './.env', './server.js'];
     
@@ -449,8 +442,7 @@ class SystemAuditScanner {
   // 6. PERFORMANCE CHECK
   // ==========================================
   async performanceCheck() {
-    console.log('\n⚡ PERFORMANCE CHECK...\n');
-    
+
     // Check for missing pagination
     const routeFiles = fs.readdirSync('./routes');
     for (const file of routeFiles) {
@@ -483,85 +475,51 @@ class SystemAuditScanner {
   // ==========================================
   // GENERATE REPORT
   // ==========================================
-  generateReport() {
-    console.log('\n' + '=' .repeat(80));
-    console.log('📊 SYSTEM AUDIT REPORT');
-    console.log('=' .repeat(80) + '\n');
+  generateReport() {); + '\n');
     
     const totalIssues = Object.values(this.issues).reduce((sum, arr) => sum + arr.length, 0);
-    
-    console.log(`🔴 TOTAL ISSUES FOUND: ${totalIssues}\n`);
-    
+
     // Critical Errors
-    if (this.issues.errors.length > 0) {
-      console.log(`\n❌ CRITICAL ERRORS (${this.issues.errors.length}):`);
-      console.log('-'.repeat(80));
-      this.issues.errors.forEach((error, i) => {
-        console.log(`${i + 1}. ${JSON.stringify(error, null, 2)}`);
+    if (this.issues.errors.length > 0) {:`););
+      this.issues.errors.forEach((error, i) => {}`);
       });
     }
     
     // Security Issues
-    if (this.issues.security.length > 0) {
-      console.log(`\n🔒 SECURITY ISSUES (${this.issues.security.length}):`);
-      console.log('-'.repeat(80));
-      this.issues.security.forEach((issue, i) => {
-        console.log(`${i + 1}. ${JSON.stringify(issue, null, 2)}`);
+    if (this.issues.security.length > 0) {:`););
+      this.issues.security.forEach((issue, i) => {}`);
       });
     }
     
     // Missing APIs
-    if (this.issues.missingAPIs.length > 0) {
-      console.log(`\n📡 MISSING APIs (${this.issues.missingAPIs.length}):`);
-      console.log('-'.repeat(80));
-      this.issues.missingAPIs.forEach((api, i) => {
-        console.log(`${i + 1}. ${JSON.stringify(api, null, 2)}`);
+    if (this.issues.missingAPIs.length > 0) {:`););
+      this.issues.missingAPIs.forEach((api, i) => {}`);
       });
     }
     
     // Placeholders
-    if (this.issues.placeholders.length > 0) {
-      console.log(`\n📝 PLACEHOLDER RESPONSES (${this.issues.placeholders.length}):`);
-      console.log('-'.repeat(80));
-      this.issues.placeholders.forEach((placeholder, i) => {
-        console.log(`${i + 1}. ${JSON.stringify(placeholder, null, 2)}`);
+    if (this.issues.placeholders.length > 0) {:`););
+      this.issues.placeholders.forEach((placeholder, i) => {}`);
       });
     }
     
     // Performance Issues
-    if (this.issues.performance.length > 0) {
-      console.log(`\n⚡ PERFORMANCE ISSUES (${this.issues.performance.length}):`);
-      console.log('-'.repeat(80));
-      this.issues.performance.forEach((perf, i) => {
-        console.log(`${i + 1}. ${JSON.stringify(perf, null, 2)}`);
+    if (this.issues.performance.length > 0) {:`););
+      this.issues.performance.forEach((perf, i) => {}`);
       });
     }
     
     // Shortcuts
-    if (this.issues.shortcuts.length > 0) {
-      console.log(`\n⚠️ INCOMPLETE IMPLEMENTATIONS (${this.issues.shortcuts.length}):`);
-      console.log('-'.repeat(80));
-      this.issues.shortcuts.slice(0, 10).forEach((shortcut, i) => {
-        console.log(`${i + 1}. ${JSON.stringify(shortcut, null, 2)}`);
+    if (this.issues.shortcuts.length > 0) {:`););
+      this.issues.shortcuts.slice(0, 10).forEach((shortcut, i) => {}`);
       });
       if (this.issues.shortcuts.length > 10) {
-        console.log(`... and ${this.issues.shortcuts.length - 10} more`);
+
       }
     }
     
-    // Summary
-    console.log('\n' + '=' .repeat(80));
-    console.log('📊 SUMMARY:');
-    console.log('=' .repeat(80));
-    console.log(`Critical Errors: ${this.issues.errors.length}`);
-    console.log(`Security Issues: ${this.issues.security.length}`);
-    console.log(`Missing APIs: ${this.issues.missingAPIs.length}`);
-    console.log(`Placeholder Responses: ${this.issues.placeholders.length}`);
-    console.log(`Performance Issues: ${this.issues.performance.length}`);
-    console.log(`Incomplete Implementations: ${this.issues.shortcuts.length}`);
-    console.log(`Warnings: ${this.issues.warnings.length}`);
-    console.log(`Duplicate Routes: ${this.issues.duplicates.length}`);
-    
+    // Summary););
+
     // Save report to file
     const report = {
       timestamp: new Date().toISOString(),
@@ -570,7 +528,7 @@ class SystemAuditScanner {
     };
     
     fs.writeFileSync('./audit-report.json', JSON.stringify(report, null, 2));
-    console.log('\n✅ Full report saved to audit-report.json');
+
   }
 
   // ==========================================

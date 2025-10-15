@@ -237,8 +237,7 @@ const initialUsers = [
 async function seedUsers() {
   try {
     await db;
-    console.log('🌱 Seeding users...');
-    
+
     for (const userData of initialUsers) {
       const existingUser = await (User as any).findOne({ email: userData.email });
       
@@ -250,13 +249,12 @@ async function seedUsers() {
         };
         
         await (User as any).create(userWithHashedPassword);
-        console.log(`✅ Created user: ${userData.email}`);
+
       } else {
-        console.log(`⏭️  User already exists: ${userData.email}`);
+
       }
     }
-    
-    console.log('✅ User seeding completed!');
+
   } catch (error) {
     console.error('❌ Error seeding users:', error);
   }

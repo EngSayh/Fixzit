@@ -15,7 +15,7 @@ async function testSanitize() {
 
 async function run() {
   await testSanitize();
-  console.log('OK: sanitize');
+
 }
 
 run().catch((e) => { console.error(e); process.exit(1); });

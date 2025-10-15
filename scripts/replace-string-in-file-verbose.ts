@@ -187,8 +187,7 @@ async function run() {
   if (files.size === 0) {
     const msg = `No files matched for patterns: ${opts.paths.join(", ")}`;
     console.error(`❌ ${msg}`);
-    process.exitCode = 2;
-    console.log(JSON.stringify({ success: false, message: msg, totalFiles: 0, totalReplacements: 0 }));
+    process.exitCode = 2;);
     return;
   }
 
@@ -286,15 +285,12 @@ async function run() {
     includeDot: opts.includeDot,
     autoUnescape: opts.autoUnescape,
     details: results,
-  };
-
-  console.log(JSON.stringify(summary, null, 2));
+  };);
 }
 
 run().catch((err) => {
   const msg = err?.message || String(err);
   console.error(`💥 FATAL ERROR: ${msg}`);
   console.error(err.stack);
-  process.exitCode = 1;
-  console.log(JSON.stringify({ success: false, message: msg }));
+  process.exitCode = 1;);
 });

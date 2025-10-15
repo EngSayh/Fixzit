@@ -19,7 +19,7 @@ import fg from 'fast-glob';
       if (content !== original) {
         writeFileSync(file, content, 'utf-8');
         fixedCount++;
-        if (fixedCount <= 10) console.log('Fixed: ' + file);
+        if (fixedCount <= 10)
       }
     } catch (e: unknown) {
       const error = e as { message?: string; stack?: string };
@@ -27,6 +27,5 @@ import fg from 'fast-glob';
       if (error?.stack) console.error(error.stack);
     }
   }
-  
-  console.log('\n✅ Fixed ' + fixedCount + ' files');
+
 })();

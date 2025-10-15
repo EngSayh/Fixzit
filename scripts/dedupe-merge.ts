@@ -37,8 +37,7 @@ function fingerprint(code: string) {
   for (const group of dupGroups) {
     report += `## Group (${group.length} files)\n` + group.map(g => `- ${g}`).join('\n') + '\n\n';
   }
-  fs.writeFileSync(reportPath, report, 'utf8');
-  console.log(pc.yellow(`Report written to ${reportPath}`));
+  fs.writeFileSync(reportPath, report, 'utf8'););
 
   if (mode === 'apply') {
     for (const group of dupGroups) {
@@ -52,10 +51,8 @@ function fingerprint(code: string) {
         if (f === canonical) continue;
         const rel = path.relative(path.dirname(f), canonical).replace(/\\/g,'/');
         const code = `export * from '${rel.startsWith('.') ? rel : './' + rel}';\nexport { default } from '${rel.startsWith('.') ? rel : './' + rel}';\n`;
-        fs.writeFileSync(f, code, 'utf8');
-        console.log(pc.green(`Rewired duplicate to canonical: ${f} -> ${canonical}`));
+        fs.writeFileSync(f, code, 'utf8'););
       }
-    }
-    console.log(pc.green('De-dupe apply complete (non-destructive re-exports).'));
+    }.'));
   }
 })();

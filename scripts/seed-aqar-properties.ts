@@ -54,7 +54,6 @@ async function run() {
       );
     }
 
-    console.log('Seeded Aqar sample properties');
     process.exit(0);
   } catch (e) {
     console.error(e);

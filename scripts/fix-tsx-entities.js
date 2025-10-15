@@ -36,7 +36,7 @@ function fixTsxFile(filePath) {
     
     if (content !== modified) {
       fs.writeFileSync(filePath, modified);
-      console.log(`✅ Fixed ${filePath}`);
+
       return true;
     }
     
@@ -48,11 +48,9 @@ function fixTsxFile(filePath) {
 }
 
 function main() {
-  console.log('🔧 Fixing HTML entities in TSX files...\n');
-  
+
   const files = getAllTsxFiles('./app');
-  console.log(`📁 Found ${files.length} TSX files to check\n`);
-  
+
   let modifiedCount = 0;
   
   for (const file of files) {
@@ -60,8 +58,7 @@ function main() {
       modifiedCount++;
     }
   }
-  
-  console.log(`\n✨ Fixed ${modifiedCount} TSX files`);
+
 }
 
 if (require.main === module) {

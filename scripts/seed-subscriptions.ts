@@ -115,7 +115,6 @@ async function run() {
     },
   ]);
 
-  console.log('✅ Seed complete.');
   await mongoose.disconnect();
 }
 

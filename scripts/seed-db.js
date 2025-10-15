@@ -14,7 +14,7 @@ const seedScript = async () => {
 
 seedScript()
   .then(() => {
-    console.log('Seeding completed successfully');
+
     process.exit(0);
   })
   .catch((error) => {

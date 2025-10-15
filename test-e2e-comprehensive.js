@@ -18,7 +18,7 @@ const failures = [];
 function test(name, fn) {
   return fn()
     .then(() => {
-      console.log(`✅ ${name}`);
+
       passedTests++;
     })
     .catch((err) => {
@@ -60,8 +60,7 @@ async function testMongoDB() {
   if (collections.length === 0) {
     throw new Error('No collections found in database');
   }
-  
-  console.log(`  📊 Found ${collections.length} collections`);
+
   await mongoose.disconnect();
 }
 
@@ -89,16 +88,14 @@ async function testAPI(path, method = 'GET', body = null, expectedStatus = 200) 
   return JSON.parse(res.data);
 }
 
-async function runTests() {
-  console.log('\n🚀 COMPREHENSIVE E2E TEST SUITE\n');
-  console.log('━'.repeat(60));
+async function runTests() {);
   
   // MongoDB Tests
-  console.log('\n📊 MONGODB TESTS');
+
   await test('MongoDB Connection', testMongoDB);
   
   // Page Tests
-  console.log('\n🌐 PAGE TESTS');
+
   await test('Homepage', () => testPage('/', 'Fixzit'));
   await test('Login Page', () => testPage('/login', 'Login'));
   await test('Dashboard', () => testPage('/dashboard', 'Dashboard'));
@@ -110,11 +107,11 @@ async function runTests() {
   await test('Reports', () => testPage('/reports', 'Reports'));
   
   // API Health Tests
-  console.log('\n🔧 API HEALTH TESTS');
+
   await test('API Health Endpoint', () => testAPI('/api/health'));
   
   // Auth API Tests
-  console.log('\n🔐 AUTH API TESTS');
+
   await test('Auth Status (Unauthenticated)', async () => {
     try {
       await testAPI('/api/auth/status', 'GET', null, 401);
@@ -127,11 +124,11 @@ async function runTests() {
   });
   
   // Work Orders API Tests
-  console.log('\n📋 WORK ORDERS API TESTS');
+
   await test('Work Orders List API', () => testAPI('/api/work-orders'));
   
   // Validation Tests (using fixed ATS endpoint)
-  console.log('\n✅ VALIDATION TESTS');
+
   await test('ATS Public Post Validation (Missing Title)', async () => {
     try {
       await testAPI('/api/ats/public-post', 'POST', {}, 400);
@@ -141,8 +138,7 @@ async function runTests() {
   });
   
   await test('ATS Public Post Validation (Valid Data)', async () => {
-    if (process.env.ATS_ENABLED !== 'true') {
-      console.log('  ⏭️  Skipping (ATS_ENABLED not true)');
+    if (process.env.ATS_ENABLED !== 'true') {');
       return;
     }
     await testAPI('/api/ats/public-post', 'POST', {
@@ -153,7 +149,7 @@ async function runTests() {
   });
   
   // Business Logic Tests
-  console.log('\n💼 BUSINESS LOGIC TESTS');
+
   await test('Duplicate Detection (Work Orders)', async () => {
     const response = await testAPI('/api/work-orders');
     if (response.workOrders && response.workOrders.length > 0) {
@@ -166,7 +162,7 @@ async function runTests() {
   });
   
   // Error Handling Tests
-  console.log('\n🚨 ERROR HANDLING TESTS');
+
   await test('404 for Invalid Route', async () => {
     try {
       await testAPI('/api/nonexistent-endpoint', 'GET', null, 404);
@@ -176,7 +172,7 @@ async function runTests() {
   });
   
   // Performance Tests
-  console.log('\n⚡ PERFORMANCE TESTS');
+
   await test('Homepage Load Time < 2s', async () => {
     const start = Date.now();
     await httpRequest(BASE_URL);
@@ -184,34 +180,26 @@ async function runTests() {
     if (duration > 2000) {
       throw new Error(`Load time ${duration}ms exceeds 2000ms`);
     }
-    console.log(`  ⏱️  Load time: ${duration}ms`);
+
   });
   
   // Security Tests
-  console.log('\n🔒 SECURITY TESTS');
+
   await test('CORS Headers Present', async () => {
     const res = await httpRequest(`${BASE_URL}/api/health`);
     if (!res.headers['x-content-type-options']) {
-      console.warn('  ⚠️  Missing X-Content-Type-Options header');
+
     }
   });
   
-  // Summary
-  console.log('\n' + '━'.repeat(60));
-  console.log('\n📊 TEST SUMMARY\n');
-  console.log(`✅ Passed: ${passedTests}`);
-  console.log(`❌ Failed: ${failedTests}`);
-  console.log(`📈 Success Rate: ${((passedTests / (passedTests + failedTests)) * 100).toFixed(1)}%`);
+  // Summary);) * 100).toFixed(1)}%`);
   
   if (failures.length > 0) {
-    console.log('\n❌ FAILURES:\n');
+
     failures.forEach(f => {
-      console.log(`  • ${f.test}`);
-      console.log(`    ${f.error}`);
+
     });
-  }
-  
-  console.log('\n' + '━'.repeat(60));
+  });
   
   process.exit(failedTests > 0 ? 1 : 0);
 }

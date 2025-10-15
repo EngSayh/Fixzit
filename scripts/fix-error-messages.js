@@ -17,8 +17,6 @@ const apiFiles = execSync('find app/api -name "*.ts" -type f -print0')
 let fixed = 0;
 let filesChanged = [];
 
-console.log(`\n🔍 Processing ${apiFiles.length} API route files...`);
-
 for (const file of apiFiles) {
   let content = fs.readFileSync(file, 'utf8');
   let changed = false;
@@ -36,15 +34,11 @@ for (const file of apiFiles) {
     fs.writeFileSync(file, newContent, 'utf8');
     filesChanged.push(file);
     fixed++;
-    console.log(`  ✓ Fixed: ${file}`);
+
   }
 }
 
-console.log(`\n✅ Complete!`);
-console.log(`   Fixed ${fixed} files`);
-console.log(`   Total checked: ${apiFiles.length}`);
-
 if (filesChanged.length > 0) {
-  console.log(`\n📝 Files modified:`);
-  filesChanged.forEach(f => console.log(`   - ${f}`));
+
+  filesChanged.forEach(f =>);
 }

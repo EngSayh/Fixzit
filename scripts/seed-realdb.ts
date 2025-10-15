@@ -114,9 +114,7 @@ async function main() {
       },
     },
     { upsert: true, new: true }
-  );
-
-  console.log('✅ Real DB seed complete (FM):', {
+  );:', {
     tenantId,
     properties: createdProps.map(p => ({ id: p._id?.toString?.() || p.id, code: p.code, name: p.name })),
   });

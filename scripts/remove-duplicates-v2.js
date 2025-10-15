@@ -14,8 +14,7 @@ const files = [
 ];
 
 function removeDuplicates(filePath) {
-  console.log(`\n📝 Processing: ${filePath}`);
-  
+
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.split('\n');
   
@@ -49,8 +48,7 @@ function removeDuplicates(filePath) {
       
       if (seenKeys.has(uniqueKey)) {
         // Found duplicate!
-        const firstOccurrence = seenKeys.get(uniqueKey);
-        console.log(`   ⚠️  Duplicate '${keyName}' at line ${i + 1} (first at ${firstOccurrence + 1})`);
+        const firstOccurrence = seenKeys.get(uniqueKey);`);
         
         // Mark the start of duplicate section
         inDuplicateSection = true;
@@ -81,7 +79,7 @@ function removeDuplicates(filePath) {
         if (endDepth <= Math.floor((lines[duplicateStart].match(/^(\s*)/) || ['', ''])[1].length / 2)) {
           duplicateRanges.push({ start: duplicateStart, end: i });
           inDuplicateSection = false;
-          console.log(`      ↳ Removing lines ${duplicateStart + 1}-${i + 1}`);
+
         }
       }
     }
@@ -97,9 +95,7 @@ function removeDuplicates(filePath) {
     newLines.splice(start, removeCount);
     totalRemoved += removeCount;
   }
-  
-  console.log(`   ✅ Removed ${totalRemoved} lines`);
-  
+
   // Write back
   fs.writeFileSync(filePath, newLines.join('\n'), 'utf-8');
   
@@ -107,7 +103,7 @@ function removeDuplicates(filePath) {
 }
 
 // Process files
-console.log('🔍 Removing duplicate keys...\n');
+
 let totalRemovedEn = 0;
 let totalRemovedAr = 0;
 
@@ -117,7 +113,3 @@ for (const file of files) {
   if (file.includes('ar.ts')) totalRemovedAr = removed;
 }
 
-console.log(`\n📊 Summary:`);
-console.log(`   en.ts: ${totalRemovedEn} lines removed`);
-console.log(`   ar.ts: ${totalRemovedAr} lines removed`);
-console.log(`\n✅ Done! Run 'npm run typecheck' to verify.`);

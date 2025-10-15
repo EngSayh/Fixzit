@@ -296,11 +296,8 @@ class ProjectAnalyzer {
   }
 
   // Generate analysis report
-  async generateReport() {
-    console.log('\n🔍 Analyzing FIXZIT SOUQ Project...\n');
-    console.log(`📁 Project Path: ${path.resolve(CONFIG.projectPath)}`);
-    console.log('⏳ This may take a few minutes for large projects...\n');
-    
+  async generateReport() {}`);
+
     // Start analysis
     await this.analyzeDirectory(CONFIG.projectPath);
     
@@ -647,70 +644,57 @@ class ProjectAnalyzer {
   }
 
   // Print console summary
-  printSummary(report) {
-    console.log('\n📊 FIXZIT SOUQ PROJECT ANALYSIS COMPLETE\n');
-    console.log('=' .repeat(60));
-    console.log(`📁 Total Project Size: ${report.summary.totalSizeFormatted}`);
-    console.log(`📄 Files Analyzed: ${report.summary.fileCount.toLocaleString()}`);
-    console.log(`📂 Folders Scanned: ${report.summary.folderCount.toLocaleString()}`);
-    console.log('=' .repeat(60));
+  printSummary(report) {);}`);}`););
     
     // Bloat Analysis
-    console.log('\n🗑️  BLOAT SOURCES:');
+
     const sortedBloat = Object.entries(report.bloatAnalysis)
       .sort((a, b) => b[1].size - a[1].size);
     
-    for (const [folder, data] of sortedBloat) {
-      console.log(`   ${folder.padEnd(15)} ${data.sizeFormatted.padStart(10)} (${data.percentage}%)`);
+    for (const [folder, data] of sortedBloat) {} ${data.sizeFormatted.padStart(10)} (${data.percentage}%)`);
     }
     
     // Top large files
-    console.log('\n📊 TOP 10 LARGEST FILES:');
+
     for (let i = 0; i < Math.min(10, report.largeFiles.length); i++) {
       const file = report.largeFiles[i];
-      const marker = file.isVeryLarge ? '🔴' : '🟡';
-      console.log(`   ${marker} ${file.sizeFormatted.padStart(10)} ${file.path}`);
+      const marker = file.isVeryLarge ? '🔴' : '🟡';} ${file.path}`);
     }
     
     // Extension stats
-    console.log('\n📦 TOP FILE EXTENSIONS:');
+
     const topExts = Object.entries(report.extensionStats).slice(0, 5);
     for (const [ext, data] of topExts) {
-      const percentage = ((data.totalSize / report.summary.totalSize) * 100).toFixed(1);
-      console.log(`   ${(ext || 'none').padEnd(10)} ${this.formatBytes(data.totalSize).padStart(10)} (${percentage}%)`);
+      const percentage = ((data.totalSize / report.summary.totalSize) * 100).toFixed(1);.padEnd(10)} ${this.formatBytes(data.totalSize).padStart(10)} (${percentage}%)`);
     }
     
     // Recommendations
-    console.log('\n💡 QUICK CLEANUP RECOMMENDATIONS:');
+
     const totalBloat = Object.values(report.bloatAnalysis).reduce((sum, data) => sum + data.size, 0);
     const bloatPercentage = ((totalBloat / report.summary.totalSize) * 100).toFixed(1);
     
     if (bloatPercentage > 70) {
-      console.log('   🔴 CRITICAL: Over 70% of project is bloat!');
+
     } else if (bloatPercentage > 50) {
-      console.log('   🟡 WARNING: Over 50% of project is bloat');
+
     } else {
-      console.log('   🟢 GOOD: Reasonable bloat levels');
+
     }
     
     // Specific recommendations
     if (report.bloatAnalysis.node_modules) {
-      console.log(`   • Clean node_modules: rm -rf node_modules && npm install`);
+
     }
     if (report.bloatAnalysis['.next']) {
-      console.log(`   • Clean Next.js cache: rm -rf .next`);
+
     }
     if (report.largeFiles.filter(f => f.extension === '.log').length > 0) {
-      console.log(`   • Remove log files: find . -name "*.log" -delete`);
+
     }
     if (report.orphanPackages.length > 0) {
-      console.log(`   • Found ${report.orphanPackages.length} orphan packages to review`);
+
     }
-    
-    console.log('\n📄 REPORTS GENERATED:');
-    console.log(`   • JSON Report: ${CONFIG.outputFile}`);
-    console.log(`   • HTML Report: ${CONFIG.htmlReport}`);
-    console.log('\n🎯 Open the HTML report in your browser for interactive analysis!');
+
   }
 }
 

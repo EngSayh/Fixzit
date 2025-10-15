@@ -72,19 +72,18 @@ const Product = mongoose.model('Product', productSchema);
 
 async function seedDatabase() {
   try {
-    console.log('Connecting to MongoDB...');
+
     await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB');
 
     // Clear existing data
-    console.log('Clearing existing data...');
+
     await User.deleteMany({});
     await Category.deleteMany({});
     await Vendor.deleteMany({});
     await Product.deleteMany({});
 
     // Create users
-    console.log('Creating users...');
+
     const hashedPassword = await bcrypt.hash('password123', 10);
     
     const adminUser = await User.create({
@@ -112,7 +111,7 @@ async function seedDatabase() {
     });
 
     // Create categories
-    console.log('Creating categories...');
+
     const categories = await Category.create([
       { name: 'HVAC', slug: 'hvac', icon: 'hvac' },
       { name: 'Plumbing', slug: 'plumbing', icon: 'plumbing' },
@@ -123,7 +122,7 @@ async function seedDatabase() {
     ]);
 
     // Create vendor
-    console.log('Creating vendors...');
+
     const vendor = await Vendor.create({
       tenantId: 'default',
       userId: vendorUser._id,
@@ -138,7 +137,7 @@ async function seedDatabase() {
     });
 
     // Create products
-    console.log('Creating products...');
+
     const products = [
       // HVAC Products
       {
@@ -290,17 +289,11 @@ async function seedDatabase() {
 
     await Product.create(products);
 
-    console.log('✅ Database seeded successfully!');
-    console.log('\nTest credentials:');
-    console.log('- Admin: admin@fixzit.co / password123');
-    console.log('- Vendor: vendor@fixzit.co / password123');
-    console.log('- Customer: customer@fixzit.co / password123');
-
   } catch (error) {
     console.error('Error seeding database:', error);
   } finally {
     await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
+
   }
 }
 

@@ -12,8 +12,7 @@ async function createTextIndex() {
   
   try {
     await client.connect();
-    console.log('✓ Connected to MongoDB');
-    
+
     const db = client.db();
     const collection = db.collection('projects');
     
@@ -21,8 +20,7 @@ async function createTextIndex() {
     const collections = await db.listCollections({ name: 'projects' }).toArray();
     
     if (collections.length === 0) {
-      console.log('⚠ Projects collection does not exist yet - will be created on first insert');
-      console.log('✓ Index will be created automatically when collection is populated');
+
       return;
     }
     
@@ -33,7 +31,7 @@ async function createTextIndex() {
     );
     
     if (hasTextIndex) {
-      console.log('✓ Text index already exists on projects collection');
+
     } else {
       // Create text index on name and description fields
       await collection.createIndex(
@@ -44,14 +42,13 @@ async function createTextIndex() {
           default_language: 'english'
         }
       );
-      console.log('✓ Created text index on projects.name and projects.description');
+
     }
     
     // List all indexes for verification
     const allIndexes = await collection.indexes();
-    console.log('\nCurrent indexes on projects collection:');
-    allIndexes.forEach(idx => {
-      console.log(`  - ${idx.name}: ${JSON.stringify(idx.key)}`);
+
+    allIndexes.forEach(idx => {}`);
     });
     
   } catch (error) {
@@ -59,7 +56,7 @@ async function createTextIndex() {
     process.exit(1);
   } finally {
     await client.close();
-    console.log('\n✓ Connection closed');
+
   }
 }
 

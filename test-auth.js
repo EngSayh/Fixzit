@@ -35,7 +35,7 @@ function log(message, type = 'info') {
     info: colors.cyan,
     test: colors.blue
   };
-  console.log(`${typeColors[type]}[${timestamp}] ${message}${colors.reset}`);
+
 }
 
 function makeRequest(url, options = {}) {
@@ -108,7 +108,7 @@ async function testSessionEndpoint() {
       return true;
     } else {
       log(`Session endpoint returned unexpected status: ${response.status}`, 'warning');
-      console.log('Response:', response.data);
+
       return false;
     }
   } catch (error) {
@@ -123,7 +123,7 @@ async function testNextAuthEndpoint() {
     const response = await makeRequest(`${BASE_URL}/api/auth/providers`);
     log(`NextAuth providers endpoint status: ${response.status}`, 'info');
     if (response.data) {
-      console.log('Available providers:', response.data);
+
     }
     return true;
   } catch (error) {
@@ -161,7 +161,7 @@ async function testLogin(user) {
       return true;
     } else {
       log(`Direct login status: ${loginResponse.status}`, 'info');
-      console.log('Response:', loginResponse.data);
+
     }
 
     // Test NextAuth callback endpoint
@@ -187,10 +187,7 @@ async function testLogin(user) {
   }
 }
 
-async function runTests() {
-  console.log(colors.bright + '\n' + '='.repeat(60));
-  console.log('   FIXZIT SOUQ - Authentication Test Suite');
-  console.log('='.repeat(60) + colors.reset + '\n');
+async function runTests() {); + colors.reset + '\n');
 
   let passed = 0;
   let failed = 0;
@@ -205,18 +202,12 @@ async function runTests() {
   if (await testNextAuthEndpoint()) passed++; else failed++;
   
   // Test 4: Login Tests
-  console.log(colors.bright + '\n--- Login Tests ---' + colors.reset);
+
   for (const user of TEST_USERS) {
     if (await testLogin(user)) passed++; else failed++;
   }
 
-  // Summary
-  console.log(colors.bright + '\n' + '='.repeat(60));
-  console.log('   TEST SUMMARY');
-  console.log('='.repeat(60) + colors.reset);
-  console.log(`${colors.green}✓ Passed: ${passed}${colors.reset}`);
-  console.log(`${colors.red}✗ Failed: ${failed}${colors.reset}`);
-  console.log(`Total: ${passed + failed}\n`);
+  // Summary); + colors.reset);
 
   if (failed === 0) {
     log('All tests passed! Authentication is working.', 'success');

@@ -8,8 +8,6 @@ const path = require('path');
 
 const EN_FILE = path.join(__dirname, '../i18n/dictionaries/en.ts');
 
-console.log('🔧 Fixing en.ts duplicates and structure...');
-
 // Read the file
 let content = fs.readFileSync(EN_FILE, 'utf-8');
 
@@ -20,14 +18,11 @@ content = content.replace(/^>{7}.*$/gm, '');
 
 // Extract all object definitions
 const objectPattern = /(?:export default|const \w+\s*=)\s*\{/g;
-const matches = [...content.matchAll(objectPattern)];
-
-console.log(`Found ${matches.length} top-level object(s)`);
+const matches = [...content.matchAll(objectPattern)];`);
 
 // If we have multiple exports, we need to merge them
 if (matches.length > 1) {
-  console.log('⚠️  Multiple top-level objects detected. Merging...');
-  
+
   // Parse the file more carefully to extract all key-value pairs
   // For now, let's remove duplicate export statements
   
@@ -38,7 +33,7 @@ if (matches.length > 1) {
   if (firstExportIndex !== -1 && constEnIndex !== -1) {
     if (firstExportIndex < constEnIndex) {
       // Remove const en declaration
-      console.log('Removing duplicate const en declaration...');
+
       const lines = content.split('\n');
       const newLines = [];
       let inConstEn = false;
@@ -94,9 +89,6 @@ if (lastBraceIndex !== -1) {
 // Write the fixed content back
 fs.writeFileSync(EN_FILE, content, 'utf-8');
 
-console.log('✅ Fixed en.ts structure');
-console.log('📊 Running TypeScript check...');
-
 // Run a quick TypeScript check
 const { execSync } = require('child_process');
 try {
@@ -104,14 +96,11 @@ try {
     cwd: path.join(__dirname, '..'),
     stdio: 'pipe'
   });
-  console.log('✅ TypeScript validation passed');
-} catch (error) {
-  console.log('⚠️  TypeScript validation found issues (will be fixed in next step)');
+
+} catch (error) {');
   const output = error.stdout?.toString() || error.stderr?.toString() || '';
   const duplicateErrors = output.match(/Duplicate identifier '(\w+)'/g);
   if (duplicateErrors) {
-    console.log(`Found ${duplicateErrors.length} duplicate key errors`);
+
   }
 }
-
-console.log('✅ en.ts fix complete!');

@@ -282,7 +282,10 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         source: 'ErrorBoundary',
         category: 'UI_ERROR'
       })
-    }).catch(() => {}); // Fire and forget
+    }).catch((error) => {
+  // TODO: Add proper error handling
+  console.error('Operation failed:', error);
+}); // Fire and forget
   };
 
   private attemptAutoFix = async (error: Error) => {
@@ -336,7 +339,10 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         event: 'AUTO_FIX_ATTEMPT',
         data: logEntry
       })
-    }).catch(() => {}); // Fire and forget
+    }).catch((error) => {
+  // TODO: Add proper error handling
+  console.error('Operation failed:', error);
+}); // Fire and forget
   };
 
   private forceRefresh = () => {

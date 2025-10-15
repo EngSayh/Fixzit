@@ -16,9 +16,7 @@ class ProductionCheck {
     this.failed = 0;
   }
 
-  async runAllChecks() {
-    console.log('🔍 PRODUCTION READINESS CHECK\n');
-    console.log('='.repeat(50));
+  async runAllChecks() {);
     
     await this.checkEnvironmentVariables();
     await this.checkDependencies();
@@ -32,8 +30,7 @@ class ProductionCheck {
   }
 
   async checkEnvironmentVariables() {
-    console.log('\n📋 Checking Environment Variables...');
-    
+
     const required = [
       'NODE_ENV',
       'MONGODB_URI', 
@@ -56,13 +53,12 @@ class ProductionCheck {
     
     for (const env of optional) {
       const exists = process.env[env] !== undefined;
-      console.log(`  ${exists ? '✅' : '⚠️'} Optional: ${env} ${exists ? 'SET' : 'NOT SET'}`);
+
     }
   }
 
   async checkDependencies() {
-    console.log('\n📋 Checking Dependencies...');
-    
+
     try {
       const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
       this.check('package.json exists', true);
@@ -77,8 +73,7 @@ class ProductionCheck {
   }
 
   async checkSecurity() {
-    console.log('\n📋 Checking Security...');
-    
+
     // Check JWT secret strength
     const jwtSecret = process.env.JWT_SECRET;
     this.check('JWT_SECRET exists', !!jwtSecret);
@@ -94,16 +89,14 @@ class ProductionCheck {
   }
 
   async checkPerformance() {
-    console.log('\n📋 Checking Performance...');
-    
+
     this.check('Compression enabled', this.codeContains('server.js', 'compression'));
     this.check('Database connection pooling', this.codeContains('server.js', 'maxPoolSize'));
     this.check('Static file caching', this.codeContains('server.js', 'static'));
   }
 
   async checkAPI() {
-    console.log('\n📋 Checking API...');
-    
+
     try {
       // Check if server is running
       const response = await fetch('http://localhost:5000/health');
@@ -124,8 +117,7 @@ class ProductionCheck {
   }
 
   async checkDatabase() {
-    console.log('\n📋 Checking Database...');
-    
+
     const mongoUri = process.env.MONGODB_URI;
     this.check('MongoDB URI configured', !!mongoUri);
     this.check('MongoDB URI uses SSL', mongoUri && mongoUri.includes('ssl=true'));
@@ -135,10 +127,10 @@ class ProductionCheck {
   check(name, condition) {
     if (condition) {
       this.passed++;
-      console.log(`  ✅ ${name}`);
+
     } else {
       this.failed++;
-      console.log(`  ❌ ${name}`);
+
     }
     
     this.checks.push({ name, passed: condition });
@@ -171,28 +163,18 @@ class ProductionCheck {
     }
   }
 
-  printResults() {
-    console.log('\n' + '='.repeat(50));
-    console.log('🎯 PRODUCTION READINESS RESULTS');
-    console.log('='.repeat(50));
-    console.log(`✅ Passed: ${this.passed}`);
-    console.log(`❌ Failed: ${this.failed}`);
-    
+  printResults() {););
+
     const total = this.passed + this.failed;
     const percentage = total > 0 ? Math.round((this.passed / total) * 100) : 0;
-    console.log(`📊 Success Rate: ${percentage}%`);
-    
+
     if (this.failed === 0) {
-      console.log('\n🎉 PRODUCTION READY!');
-      console.log('🚀 All checks passed - safe to deploy!');
+
     } else {
-      console.log('\n⚠️  NOT READY FOR PRODUCTION');
-      console.log('❌ Please fix the failed checks before deployment');
-      
-      console.log('\nFailed checks:');
+
       this.checks
         .filter(c => !c.passed)
-        .forEach(c => console.log(`  - ${c.name}`));
+        .forEach(c =>);
     }
     
     return this.failed === 0;

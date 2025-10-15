@@ -108,7 +108,7 @@ function applyFixes(filePath) {
       const newContent = content.replace(fix.pattern, fix.replacement);
       
       if (newContent !== content) {
-        console.log(`  ✅ Applied: ${fix.name}`);
+
         content = newContent;
         fileFixed = true;
         stats.fixesApplied++;
@@ -131,51 +131,39 @@ function applyFixes(filePath) {
 /**
  * Main execution
  */
-function main() {
-  console.log('🚀 Starting ESLint Error Fix Script');
-  console.log(`📁 Processing directory: ${process.cwd()}`);
-  console.log(`🔍 Extensions: ${CONFIG.extensions.join(', ')}`);
-  console.log(`📝 Dry run: ${CONFIG.dryRun ? 'YES' : 'NO'}\n`);
-  
+function main() {}`);}`);
+
   // Get all files to process
   const files = getAllFiles('.');
-  console.log(`📊 Found ${files.length} files to process\n`);
-  
+
   // Process each file
   for (const file of files) {
     stats.filesProcessed++;
-    console.log(`🔧 Processing: ${file}`);
-    
+
     const wasFixed = applyFixes(file);
     if (!wasFixed) {
-      console.log('  ℹ️  No fixes needed');
+
     }
   }
   
   // Summary
-  console.log('\n📈 Summary:');
-  console.log(`   Files processed: ${stats.filesProcessed}`);
-  console.log(`   Fixes applied: ${stats.fixesApplied}`);
-  console.log(`   Errors: ${stats.errors.length}`);
-  
+
   if (stats.errors.length > 0) {
-    console.log('\n❌ Errors encountered:');
+
     stats.errors.forEach(({ file, error }) => {
-      console.log(`   ${file}: ${error}`);
+
     });
   }
   
   // Run ESLint check
-  console.log('\n🔍 Running ESLint check...');
+
   exec('npx eslint . --ext .ts,.tsx,.js,.jsx', (error, stdout, stderr) => {
     if (error) {
-      console.log('ESLint found remaining issues:');
-      console.log(stdout);
+
     } else {
-      console.log('✅ ESLint check passed!');
+
     }
-    
-    console.log('\n🎉 ESLint fix script completed!');
+
   });
 }
 

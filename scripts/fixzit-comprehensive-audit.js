@@ -411,32 +411,13 @@ function generateReport() {
   auditResults.fixedIssues = issuesFixed;
   auditResults.remainingIssues = issuesFound;
   
-  // Console output
-  console.log('\n' + colors.bright + colors.cyan + '════════════════════════════════════════════════════════════════');
-  console.log('                 FIXZIT SOUQ AUDIT REPORT V2                    ');
-  console.log('                    POST-FIX ANALYSIS                           ');
-  console.log('════════════════════════════════════════════════════════════════' + colors.reset);
-  
-  console.log('\n' + colors.bright + '📊 SUMMARY' + colors.reset);
-  console.log('├─ Timestamp: ' + auditResults.timestamp);
-  console.log('├─ Files Scanned: ' + auditResults.statistics.totalFiles);
-  console.log('├─ Files with Issues: ' + colors.red + auditResults.statistics.filesWithIssues + colors.reset);
-  console.log('├─ Files Fixed: ' + colors.green + auditResults.statistics.filesFixed + colors.reset);
-  console.log('├─ Security Score: ' + getScoreColor(auditResults.statistics.securityScore) + auditResults.statistics.securityScore + '%' + colors.reset);
-  console.log('└─ Total Issues: ' + colors.yellow + issuesFound + colors.reset + ' remaining (from 620 original)');
-  
-  console.log('\n' + colors.bright + '✅ FIXES APPLIED' + colors.reset);
-  console.log('├─ Issues Fixed: ' + colors.green + issuesFixed + colors.reset);
-  console.log('├─ Success Rate: ' + colors.green + Math.round((issuesFixed / 620) * 100) + '%' + colors.reset);
-  console.log('└─ Improvement: ' + colors.green + (620 - issuesFound) + ' issues resolved' + colors.reset);
+  // Console output + auditResults.statistics.securityScore + '%' + colors.reset);'); * 100) + '%' + colors.reset); + ' issues resolved' + colors.reset);
   
   // Show remaining issues by category
-  console.log('\n' + colors.bright + '🔴 REMAINING ISSUES' + colors.reset);
-  
+
   Object.keys(auditResults.categories).forEach(category => {
     const issues = auditResults.categories[category].filter(i => !i.fixed);
-    if (issues.length > 0) {
-      console.log('\n' + colors.yellow + category.toUpperCase() + ' (' + issues.length + ')' + colors.reset);
+    if (issues.length > 0) { + ' (' + issues.length + ')' + colors.reset);
       
       // Group by file
       const byFile = {};
@@ -447,9 +428,9 @@ function generateReport() {
       });
       
       Object.keys(byFile).slice(0, 5).forEach(file => {
-        console.log('  📁 ' + file);
+
         byFile[file].slice(0, 3).forEach(issue => {
-          console.log('     └─ ' + issue.issue);
+
         });
       });
     }
@@ -458,36 +439,30 @@ function generateReport() {
   // Show improvements
   const improvements = auditResults.categories.improvements.filter(i => i.fixed);
   if (improvements.length > 0) {
-    console.log('\n' + colors.bright + colors.green + '✨ IMPROVEMENTS IMPLEMENTED' + colors.reset);
+
     improvements.slice(0, 10).forEach(imp => {
-      console.log('  ✓ ' + imp.issue);
+
     });
-    if (improvements.length > 10) {
-      console.log('  ... and ' + (improvements.length - 10) + ' more');
+    if (improvements.length > 10) { + ' more');
     }
   }
   
   // Recommendations
-  console.log('\n' + colors.bright + '💡 RECOMMENDATIONS' + colors.reset);
+
   if (auditResults.categories.syntaxErrors.length > 0) {
-    console.log('  🔴 ' + colors.red + 'CRITICAL: Fix syntax errors immediately' + colors.reset);
+
   }
   if (auditResults.categories.security.filter(i => !i.fixed).length > 0) {
-    console.log('  🟡 HIGH: Complete security middleware implementation');
+
   }
   if (auditResults.categories.errors.filter(i => !i.fixed).length > 0) {
-    console.log('  🟡 MEDIUM: Add error handling to remaining async operations');
+
   }
-  console.log('  🟢 LOW: Replace remaining console.log with logger');
-  
+
   // Save JSON report
   const reportPath = path.join(process.cwd(), 'audit-report-v2.json');
-  fs.writeFileSync(reportPath, JSON.stringify(auditResults, null, 2));
-  console.log('\n' + colors.green + '📄 Full report saved to: ' + reportPath + colors.reset);
-  
-  console.log('\n' + colors.bright + colors.cyan + '════════════════════════════════════════════════════════════════' + colors.reset);
-  console.log(colors.bright + 'OVERALL STATUS: ' + getOverallStatus() + colors.reset);
-  console.log(colors.cyan + '════════════════════════════════════════════════════════════════' + colors.reset + '\n');
+  fs.writeFileSync(reportPath, JSON.stringify(auditResults, null, 2)); + colors.reset);
+
 }
 
 function getScoreColor(score) {
@@ -510,14 +485,13 @@ function getOverallStatus() {
 // ==============================================================
 
 async function main() {
-  console.log(colors.cyan + 'Starting Fixzit Souq Audit v2...' + colors.reset);
-  
+
   // Check main directories
   const dirsToScan = ['routes', 'models', 'middleware', 'services', 'utils'];
   
   dirsToScan.forEach(dir => {
     if (fs.existsSync(dir)) {
-      console.log('Scanning ' + dir + '...');
+
       scanDirectory(dir, '');
     }
   });

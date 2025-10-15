@@ -18,19 +18,16 @@ async function getAuthToken() {
     });
     return res.data.token;
   } catch (e) {
-    console.log('❌ AUTH FAILED - Backend not running?');
+
     return null;
   }
 }
 
-async function verifyPropertyOwnerFeatures() {
-  console.log('\n' + colors.blue + '=' .repeat(80) + colors.reset);
-  console.log(colors.blue + '🏢 PROPERTY OWNER & SUBSCRIPTION SYSTEM VERIFICATION' + colors.reset);
-  console.log(colors.blue + '=' .repeat(80) + colors.reset + '\n');
+async function verifyPropertyOwnerFeatures() { + colors.reset); + colors.reset + '\n');
 
   const token = await getAuthToken();
   if (!token) {
-    console.log('❌ Cannot proceed without authentication');
+
     return 0;
   }
   
@@ -46,9 +43,7 @@ async function verifyPropertyOwnerFeatures() {
 
   // ==========================
   // 1. PROPERTY OWNER FEATURES
-  // ==========================
-  console.log(colors.yellow + '\n1️⃣ PROPERTY OWNER ROLE FEATURES' + colors.reset);
-  console.log('-'.repeat(60));
+  // ==========================);
 
   const ownerTests = [
     {
@@ -92,19 +87,17 @@ async function verifyPropertyOwnerFeatures() {
     try {
       const passed = await test.test();
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
-      console.log(`  ${status} ${test.name}`);
+
       results.propertyOwner.push({ name: test.name, passed });
     } catch (e) {
-      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}: ${e.message}`);
+
       results.propertyOwner.push({ name: test.name, passed: false });
     }
   }
 
   // ==========================
   // 2. DEPUTY MANAGEMENT
-  // ==========================
-  console.log(colors.yellow + '\n2️⃣ DEPUTY SYSTEM' + colors.reset);
-  console.log('-'.repeat(60));
+  // ==========================);
 
   const deputyTests = [
     {
@@ -139,19 +132,17 @@ async function verifyPropertyOwnerFeatures() {
     try {
       const passed = await test.test();
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
-      console.log(`  ${status} ${test.name}`);
+
       results.deputy.push({ name: test.name, passed });
     } catch (e) {
-      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+
       results.deputy.push({ name: test.name, passed: false });
     }
   }
 
   // ==========================
   // 3. SUBSCRIPTION MANAGEMENT
-  // ==========================
-  console.log(colors.yellow + '\n3️⃣ CORPORATE SUBSCRIPTION SYSTEM' + colors.reset);
-  console.log('-'.repeat(60));
+  // ==========================);
 
   const subscriptionTests = [
     {
@@ -202,19 +193,17 @@ async function verifyPropertyOwnerFeatures() {
     try {
       const passed = await test.test();
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
-      console.log(`  ${status} ${test.name}`);
+
       results.subscription.push({ name: test.name, passed });
     } catch (e) {
-      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+
       results.subscription.push({ name: test.name, passed: false });
     }
   }
 
   // ==========================
   // 4. DoA (DELEGATION OF AUTHORITY)
-  // ==========================
-  console.log(colors.yellow + '\n4️⃣ DELEGATION OF AUTHORITY (DoA) SYSTEM' + colors.reset);
-  console.log('-'.repeat(60));
+  // ========================== SYSTEM' + colors.reset););
 
   const doaTests = [
     {
@@ -264,19 +253,17 @@ async function verifyPropertyOwnerFeatures() {
     try {
       const passed = await test.test();
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
-      console.log(`  ${status} ${test.name}`);
+
       results.doa.push({ name: test.name, passed });
     } catch (e) {
-      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+
       results.doa.push({ name: test.name, passed: false });
     }
   }
 
   // ==========================
   // 5. REVENUE TRACKING
-  // ==========================
-  console.log(colors.yellow + '\n5️⃣ PROPERTY REVENUE TRACKING' + colors.reset);
-  console.log('-'.repeat(60));
+  // ==========================);
 
   const revenueTests = [
     {
@@ -313,20 +300,17 @@ async function verifyPropertyOwnerFeatures() {
     try {
       const passed = await test.test();
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
-      console.log(`  ${status} ${test.name}`);
+
       results.revenue.push({ name: test.name, passed });
     } catch (e) {
-      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+
       results.revenue.push({ name: test.name, passed: false });
     }
   }
 
   // ==========================
   // SUMMARY
-  // ==========================
-  console.log('\n' + colors.blue + '=' .repeat(80) + colors.reset);
-  console.log(colors.blue + '📊 VERIFICATION SUMMARY' + colors.reset);
-  console.log(colors.blue + '=' .repeat(80) + colors.reset + '\n');
+  // ========================== + colors.reset); + colors.reset + '\n');
 
   let totalTests = 0;
   let totalPassed = 0;
@@ -337,31 +321,14 @@ async function verifyPropertyOwnerFeatures() {
     totalPassed += passed;
     
     const percentage = Math.round((passed / tests.length) * 100);
-    const icon = percentage === 100 ? '✅' : percentage > 50 ? '⚠️' : '❌';
-    
-    console.log(`  ${icon} ${category.toUpperCase()}: ${passed}/${tests.length} (${percentage}%)`);
+    const icon = percentage === 100 ? '✅' : percentage > 50 ? '⚠️' : '❌';}: ${passed}/${tests.length} (${percentage}%)`);
   }
 
-  const overallPercentage = Math.round((totalPassed / totalTests) * 100);
-
-  console.log('\n' + colors.yellow + '📈 OVERALL CRITICAL FEATURES:' + colors.reset);
-  console.log(`  Total Tests: ${totalTests}`);
-  console.log(`  Passed: ${totalPassed} (${overallPercentage}%)`);
-  console.log(`  Failed: ${totalTests - totalPassed}`);
+  const overallPercentage = Math.round((totalPassed / totalTests) * 100);`);
 
   if (overallPercentage < 50) {
-    console.log('\n' + colors.red + '❌ CRITICAL SYSTEMS ARE MISSING!' + colors.reset);
-    console.log('The system is NOT ready without:');
-    console.log('  - Property Owner dashboard and approval system');
-    console.log('  - Deputy management for delegation');
-    console.log('  - Corporate subscription/billing for SaaS model');
-    console.log('  - DoA approval workflows');
-    console.log('  - Revenue tracking for property owners');
-    console.log('\n' + colors.yellow + 'ACTION REQUIRED:' + colors.reset);
-    console.log('Search chat history for: "property owner", "deputy", "subscription", "DoA", "revenue"');
-  }
 
-  console.log('\n' + colors.blue + '=' .repeat(80) + colors.reset + '\n');
+  } + colors.reset + '\n');
 
   return overallPercentage;
 }

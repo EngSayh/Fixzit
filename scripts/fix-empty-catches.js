@@ -10,7 +10,7 @@ let totalFixes = 0;
 
 function fixEmptyCatches(directory) {
   if (!fs.existsSync(directory)) {
-    console.log(`Directory ${directory} does not exist, skipping...`);
+
     return;
   }
 
@@ -94,7 +94,7 @@ function fixEmptyCatches(directory) {
       
       if (fileFixCount > 0) {
         fs.writeFileSync(fullPath, content);
-        console.log(`✅ Fixed ${fileFixCount} empty catch blocks in: ${fullPath}`);
+
         fixedFiles++;
         totalFixes += fileFixCount;
       }
@@ -102,24 +102,14 @@ function fixEmptyCatches(directory) {
   });
 }
 
-console.log('🔧 Starting to fix empty catch blocks...');
-console.log('=============================================');
-
 // Fix all JavaScript files in these directories
 const dirsToFix = ['routes', 'models', 'services', 'middleware', 'utils'];
 
 dirsToFix.forEach(dir => {
-  console.log(`\n📁 Processing directory: ${dir}`);
+
   fixEmptyCatches(dir);
 });
 
-console.log('\n=============================================');
-console.log('📊 EMPTY CATCH BLOCKS FIX SUMMARY');
-console.log('=============================================');
-console.log(`Files modified: ${fixedFiles}`);
-console.log(`Total fixes applied: ${totalFixes}`);
-console.log('✅ Empty catch blocks fixed successfully!');
-
 if (totalFixes === 0) {
-  console.log('ℹ️  No empty catch blocks found or all already properly handled');
+
 }

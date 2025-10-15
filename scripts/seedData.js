@@ -14,12 +14,10 @@ const PropertyOwner = require('../models/PropertyOwner');
 
 const seedDatabase = async () => {
   try {
-    console.log('🌱 Starting database seeding...');
-    
+
     // Production safety guard
     if (process.env.NODE_ENV === 'production') {
-      console.log('❌ SEEDING BLOCKED: Cannot run seeding in production environment');
-      console.log('   Set NODE_ENV to development or remove this check to proceed');
+
       process.exit(1);
     }
     
@@ -28,7 +26,6 @@ const seedDatabase = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
-    console.log('✅ Connected to MongoDB');
 
     // Clear existing data (for demo purposes)
     await Promise.all([
@@ -41,7 +38,6 @@ const seedDatabase = async () => {
       Subscription.deleteMany({}),
       PropertyOwner.deleteMany({})
     ]);
-    console.log('🧹 Cleared existing data');
 
     // Create Organizations & Tenants
     const organizations = [];
@@ -64,7 +60,7 @@ const seedDatabase = async () => {
       });
       
       organizations.push({ org, tenant });
-      console.log(`📊 Created Organization ${i} and Tenant ${i}`);
+
     }
 
     // Create deterministic admin account first
@@ -78,7 +74,6 @@ const seedDatabase = async () => {
       tenantId: adminOrg.tenant._id,
       status: 'active'
     });
-    console.log('🔑 Created deterministic admin account: admin@fixzit.co / Admin@1234');
 
     // Create Users
     const users = [{ user: adminUser, org: adminOrg.org, tenant: adminOrg.tenant }];
@@ -104,7 +99,6 @@ const seedDatabase = async () => {
         users.push({ user, org, tenant });
       }
     }
-    console.log(`👥 Created ${users.length} users across all organizations`);
 
     // Create Properties
     const properties = [];
@@ -147,7 +141,6 @@ const seedDatabase = async () => {
         properties.push({ property, org, tenant });
       }
     }
-    console.log(`🏢 Created ${properties.length} properties`);
 
     // Create Property Owners
     for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
@@ -164,7 +157,6 @@ const seedDatabase = async () => {
         });
       }
     }
-    console.log('🏠 Created property owners');
 
     // Create Work Orders
     const workOrders = [];
@@ -197,7 +189,6 @@ const seedDatabase = async () => {
         workOrders.push(workOrder);
       }
     }
-    console.log(`🔧 Created ${workOrders.length} work orders`);
 
     // Create Vendors
     const vendors = [];
@@ -236,7 +227,6 @@ const seedDatabase = async () => {
         vendors.push(vendor);
       }
     }
-    console.log(`🏪 Created ${vendors.length} vendors`);
 
     // Create Subscriptions
     const plans = ['basic', 'standard', 'pro', 'enterprise'];
@@ -276,24 +266,14 @@ const seedDatabase = async () => {
         }
       });
     }
-    console.log('💳 Created subscriptions for all organizations');
 
-    // Summary
-    console.log('\n🎉 Database seeding completed successfully!');
-    console.log('📊 Summary:');
-    console.log(`   • ${organizations.length} Organizations & Tenants`);
-    console.log(`   • ${users.length} Users (all roles)`);
-    console.log(`   • ${properties.length} Properties`);
-    console.log(`   • ${workOrders.length} Work Orders`);
-    console.log(`   • ${vendors.length} Vendors`);
-    console.log(`   • ${organizations.length} Subscriptions`);
-    console.log('\n✨ System ready for testing!');
+    // Summary`);
 
   } catch (error) {
     console.error('❌ Seeding failed:', error);
   } finally {
     await mongoose.disconnect();
-    console.log('🔌 Disconnected from MongoDB');
+
     process.exit(0);
   }
 };

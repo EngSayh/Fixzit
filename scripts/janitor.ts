@@ -49,7 +49,7 @@ function main() {
   const toMove = entries.filter(shouldMove);
 
   if (!toMove.length) {
-    console.log("Nothing to move. Root is clean ✅");
+
     return;
   }
   if (!existsSync(ARCHIVE_DIR)) mkdirSync(ARCHIVE_DIR, { recursive: true });
@@ -59,12 +59,10 @@ function main() {
     const dst = join(ROOT, ARCHIVE_DIR, f);
     try {
       renameSync(src, dst);
-      console.log(`Moved: ${f} -> ${ARCHIVE_DIR}/`);
-    } catch (e) {
-      console.warn(`Skip (could not move): ${f}`, e);
+
+    } catch (e) {: ${f}`, e);
     }
-  }
-  console.log(`\nDone. Moved ${toMove.length} file(s) into ${ARCHIVE_DIR}`);
+  } into ${ARCHIVE_DIR}`);
 }
 
 main();

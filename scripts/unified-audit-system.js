@@ -29,7 +29,7 @@ class FixzitEcosystem {
   }
 
   async initialize() {
-    console.log('🚀 Initializing FIXZIT ENTERPRISE ECOSYSTEM...\n');
+
     await this.authenticate();
     return this;
   }
@@ -40,9 +40,7 @@ class FixzitEcosystem {
         email: 'admin@fixzit.com',
         password: 'admin123'
       });
-      this.authToken = response.data.token;
-      console.log('✅ Unified authentication successful');
-      console.log(`👤 Role: ${response.data.user.role} (Cross-platform access)\n`);
+      this.authToken = response.data.token;\n`);
     } catch (error) {
       throw new Error(`Authentication failed: ${error.message}`);
     }
@@ -248,8 +246,6 @@ class MasterAuditSystem {
   }
 
   async runCompleteAudit(ecosystem) {
-    console.log('🔍 STARTING COMPLETE FIXZIT ENTERPRISE ECOSYSTEM AUDIT');
-    console.log('=====================================================\n');
 
     const startTime = Date.now();
     
@@ -294,9 +290,7 @@ class MasterAuditSystem {
   }
 
   async auditIntegratedPlatforms(ecosystem) {
-    console.log('📊 AUDITING INTEGRATED PLATFORM ECOSYSTEM');
-    console.log('------------------------------------------');
-    
+
     const results = {
       fm: await this.auditPlatformFace('FM', ecosystem.platforms.FM, ecosystem.authToken),
       souq: await this.auditPlatformFace('SOUQ', ecosystem.platforms.SOUQ, ecosystem.authToken),
@@ -308,8 +302,7 @@ class MasterAuditSystem {
   }
 
   async auditPlatformFace(platformName, platform, authToken) {
-    console.log(`🔎 Auditing ${platformName} Platform Face...`);
-    
+
     const moduleResults = [];
     let passedModules = 0;
     
@@ -326,9 +319,7 @@ class MasterAuditSystem {
       completionRate: Math.round((passedModules / platform.modules.length) * 100),
       moduleResults,
       status: passedModules === platform.modules.length ? 'FULLY_OPERATIONAL' : 'PARTIAL'
-    };
-
-    console.log(`  ✅ ${platformName}: ${passedModules}/${platform.modules.length} modules operational (${platformResult.completionRate}%)`);
+    };`);
     
     return platformResult;
   }
@@ -380,22 +371,18 @@ class MasterAuditSystem {
   }
 
   async auditBridges(ecosystem) {
-    console.log('\n🌉 AUDITING CROSS-PLATFORM BRIDGES');
-    console.log('----------------------------------');
-    
+
     const bridgeResults = [];
     let connectedBridges = 0;
     
     for (const bridge of ecosystem.bridges.bridges) {
-      console.log(`  Testing ${bridge.from} → ${bridge.to} bridge...`);
-      
+
       const result = await ecosystem.bridges.testBridge(bridge, ecosystem.authToken);
       
-      if (result.success) {
-        console.log(`    ✅ Connected (${result.latency}ms)`);
+      if (result.success) {`);
         connectedBridges++;
       } else {
-        console.log(`    ❌ ${result.error}`);
+
       }
       
       bridgeResults.push({
@@ -414,10 +401,8 @@ class MasterAuditSystem {
     };
   }
 
-  async auditUnifiedRoles(ecosystem) {
-    console.log('\n👥 AUDITING UNIFIED ROLE MATRIX (14 ROLES)');
-    console.log('------------------------------------------');
-    
+  async auditUnifiedRoles(ecosystem) {');
+
     const roleResults = [];
     let validRoles = 0;
     
@@ -425,10 +410,10 @@ class MasterAuditSystem {
       const roleTest = await this.testUnifiedRole(roleConfig, ecosystem.authToken);
       
       if (roleTest.valid) {
-        console.log(`  ✅ ${roleConfig.role}: Cross-platform access verified`);
+
         validRoles++;
       } else {
-        console.log(`  ❌ ${roleConfig.role}: Issues detected`);
+
       }
       
       roleResults.push({
@@ -449,9 +434,7 @@ class MasterAuditSystem {
   }
 
   async auditTechnicalInfrastructure(ecosystem) {
-    console.log('\n⚙️ AUDITING TECHNICAL INFRASTRUCTURE');
-    console.log('-----------------------------------');
-    
+
     const checks = [
       { name: 'MongoDB Connection', test: () => this.checkDatabase() },
       { name: 'JWT Authentication', test: () => this.checkAuthentication(ecosystem.authToken) },
@@ -466,10 +449,10 @@ class MasterAuditSystem {
       try {
         const result = await check.test();
         results[check.name] = { status: 'PASS', result };
-        console.log(`  ✅ ${check.name}`);
+
       } catch (error) {
         results[check.name] = { status: 'FAIL', error: error.message };
-        console.log(`  ❌ ${check.name}: ${error.message}`);
+
       }
     }
 
@@ -477,9 +460,7 @@ class MasterAuditSystem {
   }
 
   async auditUnifiedDatabase(ecosystem) {
-    console.log('\n💾 AUDITING UNIFIED DATABASE');
-    console.log('----------------------------');
-    
+
     try {
       // Test core collections with real data
       const collections = [
@@ -507,14 +488,13 @@ class MasterAuditSystem {
             recordCount: count,
             hasData: count > 0
           };
-          
-          console.log(`  ✅ ${collection.name}: ${count} records`);
+
         } catch (error) {
           results[collection.name] = {
             status: 'ERROR',
             error: error.message
           };
-          console.log(`  ❌ ${collection.name}: ${error.message}`);
+
         }
       }
 
@@ -533,9 +513,7 @@ class MasterAuditSystem {
   }
 
   async auditIntegratedWorkflows(ecosystem) {
-    console.log('\n🔄 AUDITING INTEGRATED WORKFLOWS');
-    console.log('-------------------------------');
-    
+
     const workflows = [
       {
         name: 'FM Work Order Lifecycle',
@@ -564,13 +542,13 @@ class MasterAuditSystem {
           steps: workflow.steps,
           result
         };
-        console.log(`  ✅ ${workflow.name}: ${workflow.steps.length} steps verified`);
+
       } catch (error) {
         results[workflow.name] = {
           status: 'BROKEN',
           error: error.message
         };
-        console.log(`  ❌ ${workflow.name}: ${error.message}`);
+
       }
     }
 
@@ -578,8 +556,6 @@ class MasterAuditSystem {
   }
 
   generateUnifiedReport(auditData) {
-    console.log('\n📋 GENERATING UNIFIED ECOSYSTEM REPORT');
-    console.log('=====================================\n');
 
     // Calculate overall ecosystem health
     const platformHealth = this.calculatePlatformHealth(auditData.platforms);
@@ -708,43 +684,22 @@ class MasterAuditSystem {
     return recommendations;
   }
 
-  printExecutiveReport(report) {
-    console.log('🏆 FIXZIT ENTERPRISE ECOSYSTEM HEALTH REPORT');
-    console.log('===========================================');
-    console.log(`🎯 Overall Health: ${report.health.overall}% (${report.health.status})`);
-    console.log(`📊 Platform Integration: ${report.health.platforms}%`);
-    console.log(`🌉 Bridge Connectivity: ${report.health.bridges}%`);
-    console.log(`👥 Role System: ${report.health.roles}%`);
-    console.log(`📅 Audit Duration: ${report.auditDuration}`);
-    
-    console.log('\n📈 PLATFORM COMPLETION:');
-    console.log(`   FM (Facility Management): ${report.platforms.fm.completionRate}%`);
-    console.log(`   SOUQ (Marketplace): ${report.platforms.souq?.completionRate || 0}%`);
-    console.log(`   AQAR (Property): ${report.platforms.aqar?.completionRate || 0}%`);
-    
-    console.log('\n💾 DATABASE STATUS:');
-    console.log(`   Total Records: ${report.database.totalRecords || 0}`);
-    console.log(`   Using Real Data: ${report.database.usingRealData ? 'YES' : 'NO'}`);
-    
-    console.log('\n🔗 CROSS-PLATFORM BRIDGES:');
-    console.log(`   Connected: ${report.bridges.connectedBridges}/${report.bridges.totalBridges}`);
-    
+  printExecutiveReport(report) {`);: ${report.platforms.fm.completionRate}%`);: ${report.platforms.souq?.completionRate || 0}%`);: ${report.platforms.aqar?.completionRate || 0}%`);
+
     if (report.summary.keyStrengths.length > 0) {
-      console.log('\n✅ KEY STRENGTHS:');
+
       report.summary.keyStrengths.forEach(strength => {
-        console.log(`   • ${strength}`);
+
       });
     }
     
     if (report.summary.criticalIssues.length > 0) {
-      console.log('\n⚠️ CRITICAL ISSUES:');
+
       report.summary.criticalIssues.forEach(issue => {
-        console.log(`   • ${issue}`);
+
       });
     }
-    
-    console.log(`\n🎯 ECOSYSTEM STATUS: ${report.summary.ecosystemReadiness}`);
-    console.log('\n==========================================\n');
+
   }
 
   // Mock test methods for demonstration

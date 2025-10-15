@@ -61,9 +61,7 @@ function main(options = {}) {
       shouldForceFailure = true;
     } else {
       // eslint-disable-next-line no-console
-      console.warn(
-        `[${correlationId}] Ignoring FIXZIT_BIBLE_FORCE_WRITE_ERROR because NODE_ENV is '${process.env.NODE_ENV ?? ''}'`
-      );
+
     }
   }
 
@@ -79,7 +77,7 @@ function main(options = {}) {
 
   fsModule.writeFileSync(OUT_FILE, content, 'utf8');
   // eslint-disable-next-line no-console
-  console.log(`[${correlationId}] ✔ Marketplace Bible generated at`, OUT_FILE);
+
   return OUT_FILE;
 }
 

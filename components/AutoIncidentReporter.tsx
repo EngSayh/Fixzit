@@ -30,7 +30,10 @@ export default function AutoIncidentReporter(){
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
         if ('sendBeacon' in navigator && typeof navigator.sendBeacon === 'function' && navigator.sendBeacon(url, blob)) return;
       } catch {}
-      fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});
+      fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch((error) => {
+  // TODO: Add proper error handling
+  console.error('Operation failed:', error);
+});
     };
 
     const onErr = (ev: ErrorEvent) => {

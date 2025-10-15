@@ -156,13 +156,10 @@ async function enhanceFile(filePath) {
   try {
     let content = fs.readFileSync(filePath, 'utf8');
     
-    if (!needsEnhancement(filePath, content)) {
-      console.log(`✅ SKIP: ${filePath} (already enhanced)`);
+    if (!needsEnhancement(filePath, content)) {`);
       return { enhanced: false, reason: 'already-done' };
     }
-    
-    console.log(`🔧 ENHANCING: ${filePath}`);
-    
+
     // Apply enhancements
     content = addMissingImports(content);
     content = addRateLimiting(content, filePath);
@@ -171,12 +168,7 @@ async function enhanceFile(filePath) {
     
     // Write back
     fs.writeFileSync(filePath, content, 'utf8');
-    
-    console.log(`   ✓ Added imports`);
-    console.log(`   ✓ Added rate limiting`);
-    console.log(`   ✓ Added OpenAPI docs`);
-    console.log(`   ✓ Replaced responses`);
-    
+
     return { enhanced: true, filePath };
   } catch (error) {
     console.error(`❌ ERROR: ${filePath}`, error.message);
@@ -197,14 +189,9 @@ async function findAllRoutes() {
 
 // Main execution
 async function main() {
-  console.log('🚀 RAPID API ROUTE ENHANCEMENT');
-  console.log('================================\n');
-  
+
   const allRoutes = await findAllRoutes();
-  console.log(`📊 Found ${allRoutes.length} total route files`);
-  console.log(`📊 Already enhanced: ${ENHANCED_ROUTES.size} routes`);
-  console.log(`📊 Remaining: ${allRoutes.length - ENHANCED_ROUTES.size} routes\n`);
-  
+
   const results = {
     enhanced: [],
     skipped: [],
@@ -226,27 +213,14 @@ async function main() {
     // Small delay to avoid overwhelming the system
     await new Promise(resolve => setTimeout(resolve, 50));
   }
-  
-  console.log('\n================================');
-  console.log('📊 ENHANCEMENT COMPLETE');
-  console.log('================================');
-  console.log(`✅ Enhanced: ${results.enhanced.length} routes`);
-  console.log(`⏭️  Skipped: ${results.skipped.length} routes`);
-  console.log(`❌ Errors: ${results.errors.length} routes`);
-  
+
   if (results.errors.length > 0) {
-    console.log('\n❌ ERRORS:');
+
     results.errors.forEach(({ path, error }) => {
-      console.log(`   ${path}: ${error}`);
+
     });
   }
-  
-  console.log('\n💡 Next steps:');
-  console.log('   1. Review enhanced routes for correctness');
-  console.log('   2. Adjust rate limits based on route sensitivity');
-  console.log('   3. Enhance OpenAPI docs with full schemas');
-  console.log('   4. Run: git add app/api && git commit -m "feat: batch enhance API routes"');
-  console.log('   5. Run: npm run lint && npm run build');
+
 }
 
 // Run if called directly

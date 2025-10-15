@@ -1,0 +1,6 @@
+File,Line,Code
+"app/api/support/welcome-email/route.ts",185,"// TODO: Implement actual database lookup for email delivery status"
+"scripts/phase1-truth-verifier.js",252,"content.includes('// TODO') ||"
+"scripts/reality-check.js",134,"content.includes('// TODO') ||"
+"smart-merge-conflicts.ts",138,"'// TODO: Review this merge - both sides had changes',"
+"app/api/support/welcome-email/route.ts",185,"// TODO: Implement actual database lookup for email delivery status"

@@ -58,9 +58,7 @@ const DEFAULT_TENANT_ID = (() => {
 
   if (!isValid) {
     // eslint-disable-next-line no-console
-    console.warn(
-      `[MarketplaceSeed] Invalid MARKETPLACE_DEFAULT_TENANT value "${envValue}". Falling back to "${DEFAULT_TENANT_FALLBACK}".`
-    );
+
     return DEFAULT_TENANT_FALLBACK;
   }
 

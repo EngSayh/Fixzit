@@ -145,7 +145,6 @@ async function run() {
   await Order.deleteMany({ orgId });
   await RFQ.deleteMany({ orgId });
 
-  console.log('Marketplace seed complete');
   process.exit(0);
 }
 
@@ -153,5 +152,4 @@ run().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-
 

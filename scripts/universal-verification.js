@@ -9,14 +9,13 @@ async function getAuthToken() {
     });
     return res.data.token;
   } catch (e) {
-    console.log('❌ AUTH FAILED - Backend not running?');
+
     return null;
   }
 }
 
 async function verifyPhaseCompletion(phase) {
-  console.log(`\n🔍 VERIFYING ${phase} IMPLEMENTATION...\n`);
-  
+
   const token = await getAuthToken();
   if (!token) return 0;
   
@@ -81,17 +80,16 @@ async function verifyPhaseCompletion(phase) {
   for (const test of (tests[phase] || [])) {
     try {
       const result = await test.test();
-      console.log(`${test.name}: ${result}`);
+
       if (result.includes('✅')) realCount++;
       totalCount++;
     } catch (e) {
-      console.log(`${test.name}: ❌ ERROR/NOT IMPLEMENTED`);
+
       totalCount++;
     }
   }
   
-  const percentage = Math.round((realCount / totalCount) * 100);
-  console.log(`\n📊 ${phase.toUpperCase()} REAL COMPLETION: ${percentage}%\n`);
+  const percentage = Math.round((realCount / totalCount) * 100);} REAL COMPLETION: ${percentage}%\n`);
   
   return percentage;
 }
@@ -102,10 +100,8 @@ async function verifyPhaseCompletion(phase) {
   const phase2 = await verifyPhaseCompletion('phase2');
   
   if (phase1 < 100) {
-    console.log('❌ PHASE 1 INCOMPLETE - FIX THIS FIRST!');
-    console.log('SEARCH FOR: "workOrderSchema", "generateZATCAQR", "RFQSchema"');
+
   } else if (phase2 < 100) {
-    console.log('✅ Phase 1 Complete');
-    console.log('🔧 Working on Phase 2 - Mobile Apps');
+
   }
 })();

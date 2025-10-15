@@ -7,10 +7,9 @@ require('dotenv').config();
 
 async function fixNullPropertyCodes() {
   try {
-    console.log('🔗 Connecting to MongoDB...');
+
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
-    
+
     const db = mongoose.connection.db;
     
     // Find properties with null propertyCode
@@ -21,9 +20,7 @@ async function fixNullPropertyCodes() {
         { propertyCode: '' }
       ]
     }).toArray();
-    
-    console.log(`🔍 Found ${nullProperties.length} properties with null/missing propertyCode`);
-    
+
     if (nullProperties.length > 0) {
       // Generate property codes for null values
       for (let i = 0; i < nullProperties.length; i++) {
@@ -47,13 +44,10 @@ async function fixNullPropertyCodes() {
           { _id: property._id },
           { $set: { propertyCode: newCode } }
         );
-        
-        console.log(`✅ Updated property ${property._id} with code: ${newCode}`);
+
       }
     }
-    
-    console.log('\n🏢 Now creating property indexes with cleaned data...');
-    
+
     // Create property indexes
     await db.collection('properties').createIndex({ organization: 1, ownerId: 1 });
     await db.collection('properties').createIndex({ propertyCode: 1 }, { unique: true });
@@ -61,15 +55,13 @@ async function fixNullPropertyCodes() {
     await db.collection('properties').createIndex({ organization: 1, type: 1 });
     await db.collection('properties').createIndex({ 'address.city': 1, 'address.district': 1 });
     await db.collection('properties').createIndex({ createdAt: -1 });
-    
-    console.log('✅ Property indexes created successfully!');
-    
+
   } catch (error) {
     console.error('❌ Error fixing property codes:', error);
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log('🔚 Disconnected from MongoDB');
+
     process.exit(0);
   }
 }

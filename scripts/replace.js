@@ -9,14 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 function showHelp() {
-  console.log(`
-Replace String in Files - Simple Interface
 
-Usage:
-  node scripts/replace.js <path> <search> <replace> [options]
-
-Arguments:
-  path      File path or glob pattern (required)
   search    String or regex to search for (required)
   replace   Replacement string (required)
 

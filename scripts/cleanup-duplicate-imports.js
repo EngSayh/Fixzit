@@ -6,8 +6,6 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🧹 CLEANING UP DUPLICATE IMPORTS...\n');
-
 const routesDir = path.join(process.cwd(), 'routes');
 const files = fs.readdirSync(routesDir).filter(f => f.endsWith('.js'));
 
@@ -23,8 +21,7 @@ files.forEach(file => {
   const hasEnhancedAuthImport = content.includes("require('../middleware/enhancedAuth')");
   
   if (hasAuthImport && hasEnhancedAuthImport) {
-    console.log(`🔴 ${file} - Has duplicate imports!`);
-    
+
     // Remove the enhancedAuth import line entirely
     content = content.replace(/.*require(['"]\.\.\/middleware\/enhancedAuth['"\].*\n/g, '');
     
@@ -37,12 +34,11 @@ files.forEach(file => {
     
     if (content !== originalContent) {
       fs.writeFileSync(filePath, content);
-      console.log(`✅ ${file} - Removed duplicate imports`);
+
       cleanedCount++;
     }
   } else if (hasEnhancedAuthImport && !hasAuthImport) {
-    console.log(`⚠️  ${file} - Only has enhancedAuth import, converting...`);
-    
+
     // Convert enhancedAuth import to regular auth import
     content = content.replace(
       /const\s*{\s*authenticate[^}]*}\s*=\s*require(['"]\.\.\/middleware\/enhancedAuth['"\]);?/g,
@@ -55,11 +51,9 @@ files.forEach(file => {
     
     if (content !== originalContent) {
       fs.writeFileSync(filePath, content);
-      console.log(`✅ ${file} - Converted to standard auth import`);
+
       cleanedCount++;
     }
   }
 });
 
-console.log(`\n📊 CLEANED UP ${cleanedCount} FILES\n`);
-console.log('🚀 Ready to restart server!\n');

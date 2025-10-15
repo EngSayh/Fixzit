@@ -11,7 +11,7 @@ let routesFixed = 0;
 
 function applyAuthToRoutes(directory) {
   if (!fs.existsSync(directory)) {
-    console.log(`Directory ${directory} does not exist, skipping...`);
+
     return;
   }
 
@@ -95,7 +95,7 @@ function applyAuthToRoutes(directory) {
       
       if (fileModifications > 0) {
         fs.writeFileSync(fullPath, content);
-        console.log(`✅ Applied ${fileModifications} security fixes to: ${fullPath}`);
+
         modifiedFiles++;
         routesFixed += fileModifications;
       }
@@ -103,24 +103,14 @@ function applyAuthToRoutes(directory) {
   });
 }
 
-console.log('🔒 Applying authentication middleware to all routes...');
-console.log('=======================================================');
-
 // Apply authentication to all route files
 const routeDirectories = ['routes'];
 
 routeDirectories.forEach(dir => {
-  console.log(`\n📁 Processing directory: ${dir}`);
+
   applyAuthToRoutes(dir);
 });
 
-console.log('\n=======================================================');
-console.log('📊 AUTHENTICATION APPLICATION SUMMARY');
-console.log('=======================================================');
-console.log(`Files modified: ${modifiedFiles}`);
-console.log(`Security fixes applied: ${routesFixed}`);
-console.log('✅ Authentication middleware applied successfully!');
-
 if (routesFixed === 0) {
-  console.log('ℹ️  All routes already have proper authentication or were skipped');
+
 }

@@ -2,8 +2,6 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('📦 COMBINING ALL 15 MODELS FROM 3 PARTS...\n');
-
 // Read all three parts
 const modelFiles = [
   './attached_assets/All Project Codes Phase 1/backend-models-complete.js',
@@ -19,7 +17,7 @@ const Schema = mongoose.Schema;
 
 // Extract model schemas from each file
 modelFiles.forEach((file, index) => {
-  console.log(`Reading Part ${index + 1}: ${file}`);
+
   const content = fs.readFileSync(file, 'utf8');
   
   // Extract just the schema definitions (between const ModelSchema and before module.exports)
@@ -73,13 +71,12 @@ module.exports = {
 
 // Save the complete models file
 fs.writeFileSync('./models/index.js', allModelCode);
-console.log('\n✅ Successfully combined all 15 models into models/index.js');
 
 // List all exported models
-console.log('\n📋 Exported Models:');
+
 const modelList = [
   'Organization', 'User', 'Property', 'WorkOrder', 'Invoice',
   'Vendor', 'RFQ', 'Inventory', 'Contract', 'Employee',
   'Ticket', 'Notification', 'Compliance', 'ReportTemplate', 'AuditLog'
 ];
-modelList.forEach((model, i) => console.log(`  ${i+1}. ${model}`));
+modelList.forEach((model, i) =>);

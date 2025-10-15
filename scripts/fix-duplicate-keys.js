@@ -8,8 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 function fixDuplicateKeys(filePath) {
-  console.log(`\n🔍 Processing: ${filePath}`);
-  
+
   const content = fs.readFileSync(filePath, 'utf8');
   const lines = content.split('\n');
   
@@ -36,17 +35,15 @@ function fixDuplicateKeys(filePath) {
       
       if (seen.has(key)) {
         duplicates.push({ key, line: i + 1 });
-        console.log(`   ⚠️  Duplicate found: '${key}' at line ${i + 1}`);
+
       } else {
         seen.add(key);
       }
     }
   }
-  
-  console.log(`\n📊 Found ${duplicates.length} duplicate keys`);
-  
+
   if (duplicates.length === 0) {
-    console.log('   ✅ No duplicates found!');
+
     return 0;
   }
   
@@ -58,16 +55,12 @@ function fixDuplicateKeys(filePath) {
     }
     duplicatesByKey[dup.key].push(dup.line);
   }
-  
-  console.log(`\n🔧 Processing duplicates...`);
-  
+
   for (const [key, lineNumbers] of Object.entries(duplicatesByKey)) {
     // Sort line numbers and keep the last one
     lineNumbers.sort((a, b) => a - b);
     const toKeep = lineNumbers[lineNumbers.length - 1];
-    const toDelete = lineNumbers.slice(0, -1);
-    
-    console.log(`   📝 '${key}': Keeping line ${toKeep}, removing lines ${toDelete.join(', ')}`);
+    const toDelete = lineNumbers.slice(0, -1);}`);
     
     // Mark sections for removal (key line + all lines until next key or closing bracket)
     for (const lineNum of toDelete) {
@@ -105,22 +98,18 @@ function fixDuplicateKeys(filePath) {
   
   // Sort removal ranges in reverse order to maintain indices
   toRemove.sort((a, b) => b.start - a.start);
-  
-  console.log(`\n🗑️  Removing ${toRemove.length} duplicate sections...`);
-  
+
   // Remove duplicate sections
   let modifiedLines = [...lines];
   for (const range of toRemove) {
-    console.log(`   Removing lines ${range.start + 1} to ${range.end + 1}`);
+
     modifiedLines.splice(range.start, range.end - range.start + 1);
   }
   
   // Write back to file
   const newContent = modifiedLines.join('\n');
   fs.writeFileSync(filePath, newContent, 'utf8');
-  
-  console.log(`\n✅ Fixed! Removed ${toRemove.length} duplicate sections`);
-  
+
   return toRemove.length;
 }
 
@@ -128,15 +117,7 @@ function fixDuplicateKeys(filePath) {
 const enPath = path.join(__dirname, '../i18n/dictionaries/en.ts');
 const arPath = path.join(__dirname, '../i18n/dictionaries/ar.ts');
 
-console.log('🚀 Starting duplicate key removal...\n');
-
 const enFixed = fixDuplicateKeys(enPath);
-const arFixed = fixDuplicateKeys(arPath);
-
-console.log(`\n${'='.repeat(60)}`);
-console.log(`✅ COMPLETE!`);
-console.log(`   en.ts: ${enFixed} sections removed`);
-console.log(`   ar.ts: ${arFixed} sections removed`);
-console.log(`${'='.repeat(60)}\n`);
+const arFixed = fixDuplicateKeys(arPath);}`);}\n`);
 
 process.exit(0);

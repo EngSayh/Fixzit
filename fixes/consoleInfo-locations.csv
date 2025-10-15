@@ -1,0 +1,8 @@
+File,Line,Code
+"qa/consoleHijack.ts",3,"const orig = { error: console.error, warn: console.warn, info: console.info };"
+"qa/consoleHijack.ts",3,"const orig = { error: console.error, warn: console.warn, info: console.info };"
+"qa/consoleHijack.ts",10,"console.info  = wrap('info');"
+"qa/consoleHijack.ts",11,"return () => { console.error = orig.error; console.warn = orig.warn; console.info = orig.info; };"
+"qa/consoleHijack.ts",11,"return () => { console.error = orig.error; console.warn = orig.warn; console.info = orig.info; };"
+"qa/consoleHijack.ts",3,"const orig = { error: console.error, warn: console.warn, info: console.info };"
+"qa/consoleHijack.ts",11,"return () => { console.error = orig.error; console.warn = orig.warn; console.info = orig.info; };"

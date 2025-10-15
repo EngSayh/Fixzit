@@ -221,27 +221,27 @@ class CrossPlatformBridges {
   }
 
   syncFMToSouq() {
-    console.log('✅ Syncing FM RFQs to Souq marketplace...');
+
     return true;
   }
 
   syncSouqToFM() {
-    console.log('✅ Creating FM Work Orders from Souq service orders...');
+
     return true;
   }
 
   syncFMToAqar() {
-    console.log('✅ Syncing properties to Aqar listings...');
+
     return true;
   }
 
   syncAqarToFM() {
-    console.log('✅ Converting Aqar maintenance requests to FM tickets...');
+
     return true;
   }
 
   syncAqarToSouq() {
-    console.log('✅ Sourcing services for Aqar listings from Souq...');
+
     return true;
   }
 }
@@ -264,7 +264,6 @@ class MasterAuditSystem {
    * Runs all checks across all platforms
    */
   async runCompleteAudit() {
-    console.log('🔍 Starting COMPLETE FIXZIT ECOSYSTEM AUDIT...\n');
 
     const results = {
       timestamp: new Date(),
@@ -291,7 +290,7 @@ class MasterAuditSystem {
   // ========== PLATFORM AUDITS ==========
 
   async auditFM() {
-    console.log('📊 Auditing Facility Management Platform...');
+
     const results = [];
 
     for (const module of this.fm.modules) {
@@ -321,7 +320,7 @@ class MasterAuditSystem {
   }
 
   async auditSouq() {
-    console.log('🛒 Auditing Fixzit Souq Platform...');
+
     const results = [];
 
     for (const module of this.souq.modules) {
@@ -351,7 +350,7 @@ class MasterAuditSystem {
   }
 
   async auditAqar() {
-    console.log('🏠 Auditing Aqar Souq Platform...');
+
     const results = [];
 
     for (const module of this.aqar.modules) {
@@ -383,7 +382,7 @@ class MasterAuditSystem {
   // ========== CROSS-PLATFORM AUDITS ==========
 
   async auditBridges() {
-    console.log('🌉 Auditing Cross-Platform Bridges...');
+
     const results = [];
 
     for (const bridge of this.bridges.bridges) {
@@ -404,8 +403,7 @@ class MasterAuditSystem {
     };
   }
 
-  async auditRoles() {
-    console.log('👥 Auditing Role Matrix (14 Roles)...');
+  async auditRoles() {...');
     const results = [];
 
     for (const roleConfig of COMPLETE_ROLE_MATRIX) {
@@ -429,8 +427,7 @@ class MasterAuditSystem {
   }
 
   async auditTechnical() {
-    console.log('⚙️ Auditing Technical Requirements...');
-    
+
     return {
       multiTenant: await this.checkMultiTenancy(),
       authentication: await this.checkAuth(),
@@ -449,8 +446,7 @@ class MasterAuditSystem {
   }
 
   async auditDatabase() {
-    console.log('💾 Auditing Database...');
-    
+
     return {
       mockData: this.checkMockDataUsage(),
       realDatabase: await this.checkRealDatabase(),
@@ -462,8 +458,7 @@ class MasterAuditSystem {
   }
 
   async auditUI() {
-    console.log('🎨 Auditing UI/UX Requirements...');
-    
+
     return {
       colors: this.checkColorScheme(),
       landingPage: this.checkLandingPage(),
@@ -476,8 +471,7 @@ class MasterAuditSystem {
   }
 
   async auditWorkflows() {
-    console.log('🔄 Auditing Critical Workflows...');
-    
+
     return {
       fmWorkflow: await this.testWorkOrderFlow(),
       souqWorkflow: await this.testRFQFlow(),
@@ -486,8 +480,7 @@ class MasterAuditSystem {
   }
 
   async auditCompliance() {
-    console.log('📋 Auditing Compliance...');
-    
+
     return {
       zatca: await this.checkZATCACompliance(),
       gdpr: await this.checkGDPRCompliance(),
@@ -642,38 +635,8 @@ class MasterAuditSystem {
     return results.every(r => r.status === 'PASS') ? 'PASS' : 'FAIL';
   }
 
-  printResults(results) {
-    console.log('\n==================================================');
-    console.log('🎯 FIXZIT ECOSYSTEM AUDIT RESULTS');
-    console.log('==================================================');
-    
-    console.log('\n📊 PLATFORM SCORES:');
-    console.log(`   FM (Facility Management): ${results.score.breakdown.fm}%`);
-    console.log(`   SOUQ (Marketplace): ${results.score.breakdown.souq}%`);
-    console.log(`   AQAR (Real Estate): ${results.score.breakdown.aqar}%`);
-    
-    console.log('\n🌉 CROSS-PLATFORM BRIDGES:');
-    console.log(`   Connected: ${results.bridges.connectedBridges}/${results.bridges.totalBridges}`);
-    
-    console.log('\n👥 ROLE MATRIX:');
-    console.log(`   Configured: ${results.roles.rolesConfigured}/${results.roles.totalRoles} roles`);
-    
-    console.log('\n⚡ PERFORMANCE:');
-    console.log(`   Load Time: ${results.technical.performance.loadTime}ms`);
-    console.log(`   API Latency: ${results.technical.performance.apiLatency}ms`);
-    console.log(`   DB Performance: ${results.technical.performance.dbQueries}ms`);
-    
-    console.log('\n🎨 UI/UX COMPLIANCE:');
-    console.log(`   Color Scheme: ✅ Fixzit Brand Colors`);
-    console.log(`   Landing Page: ✅ 3-Button Layout`);
-    console.log(`   RTL Support: ✅ Arabic Ready`);
-    
-    console.log('\n📋 COMPLIANCE STATUS:');
-    console.log(`   ZATCA: ✅ ${results.compliance.zatca.status}`);
-    console.log(`   GDPR: ✅ ${results.compliance.gdpr.status}`);
-    
-    console.log(`\n🏆 OVERALL SCORE: ${results.score.overall}%`);
-    console.log('==================================================\n');
+  printResults(results) {: ${results.score.breakdown.fm}%`);: ${results.score.breakdown.souq}%`);: ${results.score.breakdown.aqar}%`);
+
   }
 }
 
@@ -684,10 +647,7 @@ class MasterAuditSystem {
 async function runFullAudit() {
   const auditor = new MasterAuditSystem();
   const results = await auditor.runCompleteAudit();
-  
-  console.log('✅ Audit completed successfully!');
-  console.log(`📊 Full results available in audit object`);
-  
+
   return results;
 }
 

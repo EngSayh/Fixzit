@@ -9,7 +9,6 @@ import { connectToDatabase, disconnectFromDatabase } from '@/lib/mongodb-unified
 import { ObjectId } from 'mongodb';
 
 async function validateProductionConfig() {
-  console.log('🔧 Validating Production MongoDB Configuration...\n');
 
   // Check required environment variables
   const requiredEnvs = [
@@ -35,9 +34,9 @@ async function validateProductionConfig() {
 
   // Test connection
   try {
-    console.log('🔌 Testing MongoDB connection...');
+
     await connectToDatabase();
-    console.log('✅ MongoDB connection successful');
+
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error);
     process.exit(1);
@@ -45,11 +44,9 @@ async function validateProductionConfig() {
     await disconnectFromDatabase();
   }
 
-  console.log('✅ Production configuration validated successfully\n');
 }
 
 async function setupProductionIndexes() {
-  console.log('🗂️  Setting up production indexes...\n');
 
   try {
     await connectToDatabase();
@@ -79,26 +76,22 @@ async function setupProductionIndexes() {
 
     for (const { collection, index, options = {} } of indexes) {
       try {
-        await db.collection(collection).createIndex(index, options);
-        console.log(`✅ Index created on ${collection}:`, Object.keys(index));
+        await db.collection(collection).createIndex(index, options););
       } catch (error: unknown) {
         const err = error as { code?: number; message?: string };
-        if (err.code === 85) {
-          console.log(`⚠️  Index already exists on ${collection}:`, Object.keys(index));
+        if (err.code === 85) {);
         } else {
           console.error(`❌ Failed to create index on ${collection}:`, err.message || String(error));
         }
       }
     }
 
-    console.log('✅ Production indexes setup complete\n');
   } finally {
     await disconnectFromDatabase();
   }
 }
 
 async function createDefaultTenant() {
-  console.log('👥 Setting up default tenant...\n');
 
   try {
     await connectToDatabase();
@@ -117,37 +110,25 @@ async function createDefaultTenant() {
     // Check if default org already exists
     const existing = await db.collection('organizations').findOne({ isDefault: true });
     if (existing) {
-      console.log('⚠️  Default organization already exists:', existing.name);
+
       return;
     }
 
-    await db.collection('organizations').insertOne(defaultOrg);
-    console.log('✅ Default organization created:', orgId.toString());
+    await db.collection('organizations').insertOne(defaultOrg););
 
-    // Update environment with default tenant ID
-    console.log(`📝 Add this to your .env.local: DEFAULT_TENANT_ID=${orgId.toString()}`);
+    // Update environment with default tenant ID}`);
 
   } finally {
     await disconnectFromDatabase();
   }
 }
 
-async function main() {
-  console.log('🚀 MongoDB Production Deployment Setup\n');
-  console.log('=' .repeat(50));
+async function main() {);
 
   try {
     await validateProductionConfig();
     await setupProductionIndexes();
-    await createDefaultTenant();
-
-    console.log('=' .repeat(50));
-    console.log('✅ Production deployment setup complete!');
-    console.log('\nNext steps:');
-    console.log('1. Run: npm run verify:db:deploy');
-    console.log('2. Run: npm run test:e2e:db');
-    console.log('3. Deploy to production');
-    console.log('4. Verify: GET /api/health/database');
+    await createDefaultTenant(););
 
   } catch (error) {
     console.error('💥 Production setup failed:', error);

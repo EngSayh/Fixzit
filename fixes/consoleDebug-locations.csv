@@ -1,0 +1,5 @@
+File,Line,Code
+"lib/marketplace/context.ts",47,"console.debug('Marketplace context header fallback failed', { key, correlationId, message });"
+"lib/marketplace/context.ts",65,"console.debug('Marketplace context cookie fallback failed', { key, correlationId, message });"
+"lib/marketplace/serverFetch.ts",25,"console.debug('[MarketplaceFetch] headers() unavailable', { correlationId, message });"
+"lib/marketplace/serverFetch.ts",61,"console.debug('[MarketplaceFetch] cookies() unavailable', { correlationId: errorCorrelationId, message });"

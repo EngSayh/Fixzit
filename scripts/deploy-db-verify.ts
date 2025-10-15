@@ -27,7 +27,7 @@ class DatabaseVerifier {
   private async runTest(testName: string, testFn: () => Promise<any>): Promise<void> {
     const startTime = Date.now();
     try {
-      console.log(`🧪 Testing: ${testName}...`);
+
       const result = await testFn();
       const duration = Date.now() - startTime;
       
@@ -37,8 +37,7 @@ class DatabaseVerifier {
         duration,
         details: result
       });
-      
-      console.log(`✅ ${testName} - ${duration}ms`);
+
     } catch (error) {
       const duration = Date.now() - startTime;
       this.results.push({
@@ -47,8 +46,7 @@ class DatabaseVerifier {
         duration,
         error: error instanceof Error ? error.message : String(error)
       });
-      
-      console.log(`❌ ${testName} - Failed in ${duration}ms: ${error}`);
+
     }
   }
 
@@ -237,50 +235,35 @@ class DatabaseVerifier {
     });
   }
 
-  generateReport(): void {
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 DATABASE DEPLOYMENT VERIFICATION REPORT');
-    console.log('='.repeat(60));
+  generateReport(): void {););
     
     const totalTests = this.results.length;
     const passedTests = this.results.filter(r => r.passed).length;
     const failedTests = totalTests - passedTests;
-    const totalTime = this.results.reduce((sum, r) => sum + r.duration, 0);
-    
-    console.log(`\n📈 Summary:`);
-    console.log(`   Total Tests: ${totalTests}`);
-    console.log(`   Passed: ${passedTests} ✅`);
-    console.log(`   Failed: ${failedTests} ${failedTests > 0 ? '❌' : '✅'}`);
-    console.log(`   Success Rate: ${Math.round((passedTests / totalTests) * 100)}%`);
-    console.log(`   Total Time: ${totalTime}ms`);
-    
+    const totalTime = this.results.reduce((sum, r) => sum + r.duration, 0); * 100)}%`);
+
     if (failedTests > 0) {
-      console.log(`\n❌ Failed Tests:`);
+
       this.results.filter(r => !r.passed).forEach(result => {
-        console.log(`   • ${result.test}: ${result.error}`);
+
       });
     }
-    
-    console.log(`\n✅ Passed Tests:`);
-    this.results.filter(r => r.passed).forEach(result => {
-      console.log(`   • ${result.test} (${result.duration}ms)`);
-    });
-    
-    console.log('\n' + '='.repeat(60));
+
+    this.results.filter(r => r.passed).forEach(result => {`);
+    }););
     
     // Exit with appropriate code
     if (failedTests > 0) {
-      console.log('❌ DEPLOYMENT VERIFICATION FAILED');
+
       process.exit(1);
     } else {
-      console.log('✅ DEPLOYMENT VERIFICATION PASSED');
+
       process.exit(0);
     }
   }
 
   async runAllVerifications(): Promise<void> {
-    console.log('🚀 Starting Database Deployment Verification...\n');
-    
+
     try {
       await this.verifyEnvironmentConfig();
       await this.verifyConnection();
@@ -294,7 +277,7 @@ class DatabaseVerifier {
       try {
         await disconnectFromDatabase();
       } catch (error) {
-        console.log('Warning: Error during disconnect:', error);
+
       }
     }
     

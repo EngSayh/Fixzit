@@ -13,8 +13,7 @@ app.use((req, res, next) => {
 // Proxy API calls to backend
 app.use('/api', async (req, res) => {
     const backendUrl = `http://localhost:5000${req.originalUrl}`;
-    console.log(`🔗 Proxying: ${req.method} ${backendUrl}`);
-    
+
     try {
         const response = await fetch(backendUrl, {
             method: req.method,
@@ -40,11 +39,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(3000, () => {
-    console.log('✅ Fixzit Frontend running on http://localhost:3000');
-    console.log('🔗 Connecting to Backend API at http://localhost:5000');
-    console.log('📱 Features:');
-    console.log('   - Landing page with 3 buttons');
-    console.log('   - Monday.com style interface');
-    console.log('   - RTL Arabic support');
-    console.log('   - Connected to working backend API');
+
 });

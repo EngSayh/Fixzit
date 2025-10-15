@@ -1,0 +1,2 @@
+File,Line,Code
+"scripts/scanner.js",213,"{ pattern: /eval\s*\(/g, issue: 'eval() usage detected', severity: Severity.CRITICAL },"

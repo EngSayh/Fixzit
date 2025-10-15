@@ -35,16 +35,11 @@ function addCheck(name, status, severity, message) {
   
   const statusColor = status ? colors.green + '✅' : colors.red + '❌';
   const severityColor = severity === 'critical' ? colors.red : 
-                       severity === 'high' ? colors.yellow : colors.cyan;
-  
-  console.log(`${statusColor} ${severityColor}[${severity.toUpperCase()}]${colors.reset} ${name}: ${message}`);
+                       severity === 'high' ? colors.yellow : colors.cyan;}]${colors.reset} ${name}: ${message}`);
 }
 
-console.log(colors.bright + colors.cyan + '🔐 FIXZIT SOUQ SECURITY AUDIT' + colors.reset);
-console.log('═══════════════════════════════════════════════════════');
-
 // 1. Check JWT Secret Security
-console.log('\n' + colors.bright + '1. JWT Security Configuration' + colors.reset);
+
 try {
   require('dotenv').config();
   const jwtSecret = process.env.JWT_SECRET;
@@ -63,7 +58,7 @@ try {
 }
 
 // 2. Check Authentication Middleware
-console.log('\n' + colors.bright + '2. Authentication Middleware' + colors.reset);
+
 try {
   const authPath = path.join(__dirname, 'middleware', 'auth.js');
   if (!fs.existsSync(authPath)) {
@@ -97,7 +92,7 @@ try {
 }
 
 // 3. Check Input Validation
-console.log('\n' + colors.bright + '3. Input Validation Security' + colors.reset);
+
 try {
   const validationPath = path.join(__dirname, 'middleware', 'validation.js');
   if (!fs.existsSync(validationPath)) {
@@ -124,7 +119,7 @@ try {
 }
 
 // 4. Check Package Dependencies
-console.log('\n' + colors.bright + '4. Security Package Dependencies' + colors.reset);
+
 try {
   const packagePath = path.join(__dirname, 'package.json');
   if (fs.existsSync(packagePath)) {
@@ -151,7 +146,7 @@ try {
 }
 
 // 5. Check Environment Security
-console.log('\n' + colors.bright + '5. Environment Configuration' + colors.reset);
+
 try {
   if (fs.existsSync('.env')) {
     const envContent = fs.readFileSync('.env', 'utf8');
@@ -184,26 +179,17 @@ const passedChecks = auditResults.checks.filter(c => c.status).length;
 auditResults.securityScore = totalChecks > 0 ? Math.round((passedChecks / totalChecks) * 100) : 0;
 
 // Display results
-console.log('\n' + colors.bright + colors.cyan + '🎯 SECURITY AUDIT RESULTS' + colors.reset);
-console.log('═══════════════════════════════════════════════════════');
-console.log(`📊 Security Score: ${auditResults.securityScore >= 80 ? colors.green : auditResults.securityScore >= 60 ? colors.yellow : colors.red}${auditResults.securityScore}%${colors.reset}`);
-console.log(`✅ Passed Checks: ${colors.green}${passedChecks}${colors.reset}/${totalChecks}`);
-console.log(`🚨 Critical Issues: ${auditResults.criticalIssues > 0 ? colors.red : colors.green}${auditResults.criticalIssues}${colors.reset}`);
 
 if (auditResults.criticalIssues === 0 && auditResults.securityScore >= 80) {
-  console.log('\n' + colors.green + colors.bright + '🎉 SECURITY STATUS: EXCELLENT' + colors.reset);
-  console.log(colors.green + '   Your Fixzit Souq platform is properly secured!' + colors.reset);
+
 } else if (auditResults.criticalIssues === 0) {
-  console.log('\n' + colors.yellow + colors.bright + '⚠️  SECURITY STATUS: GOOD' + colors.reset);
-  console.log(colors.yellow + '   Most security measures implemented, minor improvements needed' + colors.reset);
+
 } else {
-  console.log('\n' + colors.red + colors.bright + '🚨 SECURITY STATUS: CRITICAL ISSUES FOUND' + colors.reset);
-  console.log(colors.red + '   Immediate action required to fix critical vulnerabilities!' + colors.reset);
+
 }
 
 // Save detailed report
 const reportFile = `security-audit-${new Date().toISOString().split('T')[0]}.json`;
 fs.writeFileSync(reportFile, JSON.stringify(auditResults, null, 2));
-console.log(`\n📄 Detailed report saved to: ${reportFile}`);
 
 process.exit(auditResults.criticalIssues > 0 ? 1 : 0);

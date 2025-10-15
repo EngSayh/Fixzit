@@ -23,7 +23,7 @@ try { crawl(API_DIR, []); } catch { /* no api dir */ }
 
 (async () => {
   if (!endpoints.length) {
-    console.log("No API routes found. Skipping.");
+
     process.exit(0);
   }
   let failures = 0;
@@ -36,7 +36,7 @@ try { crawl(API_DIR, []); } catch { /* no api dir */ }
           failures++;
           console.error(`❌ ${m} ${res.status} ${url}`);
         } else {
-          console.log(`✅ ${m} ${res.status} ${url}`);
+
         }
       } catch (e) {
         failures++;

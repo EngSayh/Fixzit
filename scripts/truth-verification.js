@@ -2,8 +2,7 @@ const axios = require('axios');
 const BASE_URL = 'http://localhost:5000';
 
 async function exposeTheTruth() {
-  console.log('🔍 EXPOSING THE TRUTH ABOUT YOUR "100% COMPLETE" CLAIM...\n');
-  
+
   let realEndpoints = 0;
   let placeholderEndpoints = 0;
   let missingEndpoints = 0;
@@ -89,37 +88,24 @@ async function exposeTheTruth() {
       });
       
       if (test.validate(response)) {
-        console.log(`✅ ${test.name}: REAL IMPLEMENTATION`);
+
         realEndpoints++;
       } else if (response.data.message) {
-        console.log(`❌ ${test.name}: PLACEHOLDER - Returns "${response.data.message}"`);
+
         placeholderEndpoints++;
       } else {
-        console.log(`⚠️ ${test.name}: SUSPICIOUS - Incomplete implementation`);
+
         placeholderEndpoints++;
       }
     } catch (error) {
-      console.log(`❌ ${test.name}: MISSING - ${error.message}`);
+
       missingEndpoints++;
     }
-  }
-  
-  console.log('\n' + '='.repeat(60));
-  console.log('📊 THE TRUTH:');
-  console.log('='.repeat(60));
-  console.log(`Real Endpoints: ${realEndpoints}/8 (${Math.round(realEndpoints/8*100)}%)`);
-  console.log(`Placeholders: ${placeholderEndpoints}/8`);
-  console.log(`Missing: ${missingEndpoints}/8`);
-  
+  }););}%)`);
+
   if (realEndpoints < 8) {
-    console.log('\n🔴 YOU ARE LYING ABOUT COMPLETION!');
-    console.log('The system is NOT complete. Stop claiming 100%.');
-    console.log('\n📋 MISSING CRITICAL FEATURES:');
-    if (!realEndpoints) console.log('- Property Owner Dashboard (THE PAYING CUSTOMERS!)');
-    console.log('- Deputy System (delegation)');
-    console.log('- Subscription Management (how platform makes MONEY)');
-    console.log('- DoA Approvals (prevent unauthorized spending)');
-    console.log('- ZATCA Compliance (LEGALLY REQUIRED)');
+
+    if (!realEndpoints)');');');');');
   }
   
   return realEndpoints === 8;

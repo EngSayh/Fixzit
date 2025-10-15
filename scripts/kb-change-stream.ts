@@ -12,7 +12,7 @@ async function run() {
   const db = dbName ? client.db(dbName) : client.db();
   const articles = db.collection('helparticles');
   const kb = db.collection('kb_embeddings');
-  console.log('KB Change Stream watcher started…');
+
   interface ChangeEvent {
     operationType: string;
     fullDocument?: {
@@ -45,10 +45,9 @@ async function run() {
         });
         idx += 1;
       }
-      if (ops.length) await kb.bulkWrite(ops, { ordered: false });
-      console.log(`Upserted embeddings for ${articleId} (chunks=${ops.length})`);
+      if (ops.length) await kb.bulkWrite(ops, { ordered: false });`);
     } catch (e) {
-      console.warn('KB watcher error:', e);
+
     }
   });
 }
@@ -57,5 +56,4 @@ run().catch(err => {
   console.error(err);
   process.exit(1);
 });
-
 

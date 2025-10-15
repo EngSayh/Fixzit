@@ -1,0 +1,5 @@
+File,Line,Code
+"packages/fixzit-souq-server/server.js",122,"connectDatabase().catch(() => {});"
+"components/AutoIncidentReporter.tsx",33,"fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});"
+"components/ErrorBoundary.tsx",285,"}).catch(() => {}); // Fire and forget"
+"components/ErrorBoundary.tsx",339,"}).catch(() => {}); // Fire and forget"

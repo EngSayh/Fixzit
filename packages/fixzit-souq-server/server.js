@@ -119,7 +119,10 @@ app.use((err, req, res, next) => {
 });
 
 // Start server immediately; connect to DB in background
-connectDatabase().catch(() => {});
+connectDatabase().catch((error) => {
+  // TODO: Add proper error handling
+  console.error('Operation failed:', error);
+});
 
 app.listen(PORT, () => {
     console.log(`✅ Fixzit Souq Server running on port ${PORT}`);

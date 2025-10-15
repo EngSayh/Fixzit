@@ -127,10 +127,9 @@ function generateOpenAPIDoc(routePath, method, existingJSDoc) {
  * Enhances a single route file
  */
 function enhanceRoute(filePath) {
-  console.log(`\n🔧 Enhancing: ${filePath}`);
-  
+
   if (!fs.existsSync(filePath)) {
-    console.log(`❌ File not found: ${filePath}`);
+
     return false;
   }
   
@@ -138,7 +137,7 @@ function enhanceRoute(filePath) {
   
   // Check if already enhanced
   if (isAlreadyEnhanced(content)) {
-    console.log(`✅ Already enhanced, skipping`);
+
     return false;
   }
   
@@ -147,14 +146,7 @@ function enhanceRoute(filePath) {
   
   // Note: Full enhancement would require AST parsing
   // For now, just add imports and flag for manual review
-  
-  console.log(`⚠️  Imports added, needs manual OpenAPI docs and rate limiting logic`);
-  console.log(`   Please review and add:`);
-  console.log(`   1. Rate limiting at start of handler`);
-  console.log(`   2. OpenAPI documentation above handler`);
-  console.log(`   3. Replace NextResponse.json with createSecureResponse`);
-  console.log(`   4. Replace manual errors with standardized handlers`);
-  
+
   return true;
 }
 
@@ -165,8 +157,7 @@ function main() {
   const args = process.argv.slice(2);
   
   if (args.length === 0) {
-    console.log('❌ Usage: node scripts/auto-enhance-routes.js <route-file>');
-    console.log('   Example: node scripts/auto-enhance-routes.js app/api/work-orders/route.ts');
+
     process.exit(1);
   }
   

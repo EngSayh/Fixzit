@@ -48,7 +48,7 @@ async function collectDocs(globs: string[]): Promise<DocInput[]> {
 
 async function pushDocs(docs: DocInput[]) {
   if (!docs.length) {
-    console.log('No documents found for ingestion.');
+
     return;
   }
   const endpoint = process.env.COPILOT_INDEX_ENDPOINT || 'http://localhost:3000/api/copilot/knowledge';
@@ -68,7 +68,7 @@ async function pushDocs(docs: DocInput[]) {
   }
 
   const json = await response.json();
-  console.log(`Indexed ${json.count ?? docs.length} documents into Copilot knowledge base.`);
+
 }
 
 async function main() {

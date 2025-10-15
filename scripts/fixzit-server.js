@@ -17,7 +17,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 FIXZIT SOUQ running on port ${PORT}`);
-  console.log(`✅ Serving static files from public/ directory`);
-  console.log(`🌐 Access: http://localhost:${PORT}`);
+
 });

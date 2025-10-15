@@ -52,8 +52,6 @@ router.get('/health', (req, res) => {
 module.exports = router;
 `;
         fs.writeFileSync(filePath, content);
-        console.log(`✅ Created ${routeFile}`);
+
     }
 });
-
-console.log('✅ All routes fixed');

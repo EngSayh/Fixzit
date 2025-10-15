@@ -130,9 +130,7 @@ async function seedDatabase() {
       role: 'admin',
       organization: 'Fixzit'
     });
-    
-    console.log('Admin user created. Password stored securely in environment variables.');
-    
+
     // Create test users with hashed passwords
     const testUsers = [
       { name: 'Property Manager', email: 'manager@test.com', role: 'manager' },
@@ -148,10 +146,9 @@ async function seedDatabase() {
         password: hashed,
         organization: 'Test Org'
       });
-      console.log(\`Created \${userData.role} with secure password\`);
+
     }
-    
-    console.log('Database seeded successfully');
+
   } catch (error) {
     console.error('Seeding error:', error);
   }
@@ -160,7 +157,7 @@ async function seedDatabase() {
 module.exports = seedDatabase;`;
 
   await fs.writeFile('database/seed-fixed.js', seedFile);
-  console.log('✅ Fixed database/seed.js - removed hardcoded passwords');
+
 }
 
 async function fixServerJS() {
@@ -228,11 +225,11 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(\`Server running securely on port \${PORT}\`);
+
 });`;
 
   await fs.writeFile('server-fixed.js', serverFile);
-  console.log('✅ Fixed server.js - added proper CORS configuration and security middleware');
+
 }
 
 async function fixPublicAppJS() {
@@ -324,18 +321,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });`;
 
   await fs.writeFile('public/app-fixed.js', appFile);
-  console.log('✅ Fixed public/app.js - removed localStorage token storage and innerHTML XSS vulnerabilities');
+
 }
 
 async function createEnvExample() {
   await fs.writeFile('.env.example', SECURITY_CONFIG.ENV_TEMPLATE);
-  console.log('✅ Created .env.example with secure configuration template');
+
 }
 
 // Main execution
 async function applySecurityFixes() {
-  console.log('🔒 Applying FIXZIT SOUQ Security Fixes...\n');
-  
+
   try {
     // Ensure directories exist
     await fs.mkdir('database', { recursive: true });
@@ -346,14 +342,7 @@ async function applySecurityFixes() {
     await fixServerJS();
     await fixPublicAppJS();
     await createEnvExample();
-    
-    console.log('\n🎉 Security fixes applied successfully!');
-    console.log('\n📋 Next steps:');
-    console.log('1. Install security packages: npm install helmet express-rate-limit express-mongo-sanitize cookie-parser isomorphic-dompurify');
-    console.log('2. Create .env file: cp .env.example .env');
-    console.log('3. Replace files with fixed versions');
-    console.log('4. Restart your application');
-    
+
   } catch (error) {
     console.error('❌ Error applying security fixes:', error);
   }

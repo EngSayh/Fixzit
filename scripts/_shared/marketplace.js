@@ -203,11 +203,11 @@ export function log(level, message, ...args) {
       console.error(prefix, message, ...args);
       break;
     case 'warn':
-      console.warn(prefix, message, ...args);
+
       break;
     case 'info':
     default:
-      console.log(prefix, message, ...args);
+
       break;
   }
 }

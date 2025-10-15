@@ -159,7 +159,7 @@ async function enhanceRoute(filePath) {
   const analysis = await analyzeRoute(filePath);
   
   if (!analysis.needsEnhancement) {
-    console.log(`✓ ${filePath} - Already enhanced`);
+
     return { enhanced: false, analysis };
   }
   
@@ -216,11 +216,11 @@ async function enhanceRoute(filePath) {
   
   if (APPLY && changes.length > 0) {
     await fs.writeFile(filePath, content, 'utf-8');
-    console.log(`✓ ${filePath}`);
-    changes.forEach(change => console.log(`  - ${change}`));
+
+    changes.forEach(change =>);
   } else if (DRY_RUN) {
-    console.log(`[DRY RUN] ${filePath}`);
-    changes.forEach(change => console.log(`  - ${change}`));
+
+    changes.forEach(change =>);
   }
   
   return { enhanced: true, analysis, changes };
@@ -296,8 +296,7 @@ function replaceErrorPatterns(content) {
 
 // Main execution
 async function main() {
-  console.log('🚀 API Routes Enhancement Tool\n');
-  
+
   let routes;
   
   if (SINGLE_ROUTE) {
@@ -309,9 +308,7 @@ async function main() {
       ignore: ['**/node_modules/**', '**/*.test.ts', '**/*.FIXED.ts']
     });
   }
-  
-  console.log(`Found ${routes.length} API routes\n`);
-  
+
   const results = {
     total: routes.length,
     enhanced: 0,
@@ -332,27 +329,18 @@ async function main() {
       results.errors++;
     }
   }
-  
-  console.log('\n📊 Summary:');
-  console.log(`  Total routes: ${results.total}`);
-  console.log(`  Enhanced: ${results.enhanced}`);
-  console.log(`  Already good: ${results.alreadyGood}`);
-  console.log(`  Errors: ${results.errors}`);
-  
+
   if (DRY_RUN) {
-    console.log('\n⚠️  This was a dry run. Use --apply to make changes.');
+
   } else if (APPLY) {
-    console.log('\n✅ Changes applied successfully!');
+
   } else {
-    console.log('\n💡 Use --dry-run to preview or --apply to make changes.');
+
   }
 }
 
 if (!DRY_RUN && !APPLY && !SINGLE_ROUTE) {
-  console.log('Usage:');
-  console.log('  node scripts/enhance-api-routes.js --dry-run  # Preview changes');
-  console.log('  node scripts/enhance-api-routes.js --apply    # Apply changes');
-  console.log('  node scripts/enhance-api-routes.js --route=/path/to/route.ts  # Single route');
+
   process.exit(1);
 }
 
