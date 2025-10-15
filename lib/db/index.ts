@@ -99,6 +99,8 @@ export async function ensureCoreIndexes(): Promise<void> {
     }
   ];
 
+  const failures: Array<{ collection: string; error: Error }> = [];
+
   for (const { collection, indexes: collIndexes } of indexes) {
     try {
       const coll = db.collection(collection);
@@ -130,12 +132,20 @@ export async function ensureCoreIndexes(): Promise<void> {
     } catch (err) {
       // Log collection-level errors with context
       const error = err as Error;
+      failures.push({ collection, error });
       console.error(`Failed to create indexes for collection ${collection}:`, {
         message: error.message,
         stack: error.stack
       });
       // Don't throw - allow other collections to be processed
     }
+  }
+  // Index creation process complete (check logs for any failures)
+
+  // If any collections failed, throw a summary error
+  if (failures.length > 0) {
+    const collectionList = failures.map(f => f.collection).join(', ');
+    throw new Error(`Index creation failed for ${failures.length} collection(s): ${collectionList}`);
   }
 
   // Index creation complete
