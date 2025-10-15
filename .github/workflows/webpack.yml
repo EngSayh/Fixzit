@@ -6,23 +6,53 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    
     strategy:
       matrix:
-        node-version: [20.x, 22.x]
+        node-version: [20.x]
+      fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-    - name: Install and Build
-      run: |
-        npm install
-        npm run build
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: TypeScript Typecheck
+        run: npm run typecheck
+        continue-on-error: false
+
+      - name: ESLint Check
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          NODE_ENV: production
+          
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build-${{ matrix.node-version }}
+          path: |
+            .next
+            !.next/cache
+          retention-days: 1

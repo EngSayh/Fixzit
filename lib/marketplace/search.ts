@@ -123,15 +123,14 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
   }
 
   if (filters.minPrice != null || filters.maxPrice != null) {
-    query['buy.price'] = {};
+    const priceQuery: { $gte?: number; $lte?: number } = {};
     if (filters.minPrice != null) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (query['buy.price'] as any).$gte = filters.minPrice;
+      priceQuery.$gte = filters.minPrice;
     }
     if (filters.maxPrice != null) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (query['buy.price'] as any).$lte = filters.maxPrice;
+      priceQuery.$lte = filters.maxPrice;
     }
+    query['buy.price'] = priceQuery;
   }
 
   const limit = Math.min(Math.max(filters.limit ?? 24, 1), 100);

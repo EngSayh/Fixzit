@@ -28,8 +28,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     const translationContext = useTranslation();
     language = translationContext.language;
     isRTL = translationContext.isRTL;
-  } catch (error) {
-    console.warn('Translation context not available in ClientLayout:', error);
+  } catch {
+    // Translation context not available in ClientLayout - using defaults
   }
 
   // Update document attributes when language changes

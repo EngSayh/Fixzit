@@ -47,7 +47,6 @@ export class AutoFixManager {
           }
         },
         fix: async () => {
-          console.log('🔧 Fixing auth API...');
           // Clear auth cache and retry
           if (typeof window !== 'undefined') {
             localStorage.removeItem('fxz.auth');
@@ -72,7 +71,6 @@ export class AutoFixManager {
           }
         },
         fix: async () => {
-          console.log('🔧 Fixing help API...');
           // Clear any cached help data
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('fxz.help.cache');
@@ -96,7 +94,6 @@ export class AutoFixManager {
           }
         },
         fix: async () => {
-          console.log('🔧 Fixing notifications API...');
           // Clear notification cache
           if (typeof window !== 'undefined') {
             localStorage.removeItem('fxz.notifications');
@@ -122,7 +119,6 @@ export class AutoFixManager {
           }
         },
         fix: async () => {
-          console.log('🔧 Fixing database connection...');
           // Force database reconnection
           try {
             await fetch('/api/qa/reconnect', { method: 'POST' });
@@ -144,7 +140,6 @@ export class AutoFixManager {
           return navigator.onLine;
         },
         fix: async () => {
-          console.log('🔧 Network offline - waiting for connection...');
           return new Promise((resolve) => {
             const checkOnline = () => {
               if (navigator.onLine) {
@@ -191,7 +186,6 @@ export class AutoFixManager {
           }
         },
         fix: async () => {
-          console.log('🔧 Fixing localStorage...');
           // Clear corrupted data
           if (typeof window !== 'undefined') {
             localStorage.clear();
@@ -221,7 +215,6 @@ export class AutoFixManager {
           }
         },
         fix: async () => {
-          console.log('🔧 Fixing session management...');
           if (typeof window !== 'undefined') {
             localStorage.removeItem('fxz.auth');
             localStorage.removeItem('fxz.user');
@@ -244,21 +237,27 @@ export class AutoFixManager {
         const duration = Date.now() - startTime;
 
         if (!isHealthy) {
-          console.log(`❌ ${check.name} failed, attempting fix...`);
-
           let fixApplied = false;
+          let fixError: string | undefined;
           if (check.fix) {
             try {
               fixApplied = await check.fix();
-            } catch (fixError) {
-              console.error(`❌ Fix failed for ${check.name}:`, fixError);
+            } catch (err) {
+              // Capture fix failure for diagnostics
+              const errorMsg = err instanceof Error ? err.message : String(err);
+              fixError = `Fix attempt failed: ${errorMsg}`;
+              
+              // Log for development/debugging (not in production)
+              if (process.env.NODE_ENV !== 'production') {
+                console.debug(`[AutoFix] ${check.id} fix failed:`, err);
+              }
             }
           }
 
           results.push({
             checkId: check.id,
             success: false,
-            error: `${check.name} check failed`,
+            error: fixError || `${check.name} check failed`,
             fixApplied,
             timestamp: new Date().toISOString(),
             duration
@@ -290,7 +289,6 @@ export class AutoFixManager {
     if (this.isRunning) return;
 
     this.isRunning = true;
-    console.log('🤖 Auto-fix monitoring started');
 
     this.intervalId = setInterval(async () => {
       const results = await this.runHealthCheck();
@@ -298,8 +296,6 @@ export class AutoFixManager {
       // Log results
       const failedCount = results.filter(r => !r.success).length;
       if (failedCount > 0) {
-        console.warn(`⚠️ ${failedCount} health checks failed, auto-fixes applied`);
-
         // Send alert to QA system
         this.sendAlert(results);
       }
@@ -310,7 +306,6 @@ export class AutoFixManager {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.isRunning = false;
-      console.log('⏹️ Auto-fix monitoring stopped');
     }
   }
 
@@ -365,8 +360,6 @@ export class AutoFixManager {
 
   // Emergency recovery
   public async emergencyRecovery(): Promise<void> {
-    console.log('🚨 Emergency recovery initiated');
-
     if (typeof window !== 'undefined') {
       // Clear all caches
       localStorage.clear();

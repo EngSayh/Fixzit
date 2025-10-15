@@ -121,18 +121,74 @@ export default function HelpWidget() {
               <div>
                 <h4 className="font-medium text-gray-900 mb-1">Popular Topics</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <button className="text-left text-blue-600 hover:text-blue-700">Work Orders</button>
-                  <button className="text-left text-blue-600 hover:text-blue-700">Properties</button>
-                  <button className="text-left text-blue-600 hover:text-blue-700">Vendors</button>
-                  <button className="text-left text-blue-600 hover:text-blue-700">Invoices</button>
+                  <a 
+                    href="/help/work-orders"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-left text-blue-600 hover:text-blue-700"
+                    aria-label="View Work Orders documentation (opens in a new tab)"
+                  >
+                    Work Orders
+                  </a>
+                  <a 
+                    href="/help/properties"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-left text-blue-600 hover:text-blue-700"
+                    aria-label="View Properties documentation (opens in a new tab)"
+                  >
+                    Properties
+                  </a>
+                  <a 
+                    href="/help/vendors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-left text-blue-600 hover:text-blue-700"
+                    aria-label="View Vendors documentation (opens in a new tab)"
+                  >
+                    Vendors
+                  </a>
+                  <a 
+                    href="/help/invoices"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-left text-blue-600 hover:text-blue-700"
+                    aria-label="View Invoices documentation (opens in a new tab)"
+                  >
+                    Invoices
+                  </a>
                 </div>
               </div>
               <div>
                 <h4 className="font-medium text-gray-900 mb-1">Quick Links</h4>
                 <div className="space-y-1">
-                  <button className="block text-blue-600 hover:text-blue-700">Getting Started</button>
-                  <button className="block text-blue-600 hover:text-blue-700">Video Tutorials</button>
-                  <button className="block text-blue-600 hover:text-blue-700">Best Practices</button>
+                  <a 
+                    href="/help/getting-started"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-blue-600 hover:text-blue-700"
+                    aria-label="View Getting Started guide (opens in a new tab)"
+                  >
+                    Getting Started
+                  </a>
+                  <a 
+                    href="/help/video-tutorials"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-blue-600 hover:text-blue-700"
+                    aria-label="View Video Tutorials (opens in a new tab)"
+                  >
+                    Video Tutorials
+                  </a>
+                  <a 
+                    href="/help/best-practices"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-blue-600 hover:text-blue-700"
+                    aria-label="View Best Practices guide (opens in a new tab)"
+                  >
+                    Best Practices
+                  </a>
                 </div>
               </div>
             </div>
