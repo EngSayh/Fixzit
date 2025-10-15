@@ -45,29 +45,31 @@ for FILE in "${FILES[@]}"; do
   # Backup
   cp "$FILE" "$FILE.bak"
   
-  # 1. Replace Jest mock creation
-  sed -i 's/jest\.fn()/vi.fn()/g' "$FILE"
-  sed -i 's/jest\.spyOn(/vi.spyOn(/g' "$FILE"
+  # 1. Replace Jest mock creation (using portable .bak extension)
+  sed -i.tmp 's/jest\.fn()/vi.fn()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.spyOn(/vi.spyOn(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
   
   # 2. Replace Jest mock utilities
-  sed -i 's/jest\.mock(/vi.mock(/g' "$FILE"
-  sed -i 's/jest\.resetAllMocks()/vi.resetAllMocks()/g' "$FILE"
-  sed -i 's/jest\.clearAllMocks()/vi.clearAllMocks()/g' "$FILE"
-  sed -i 's/jest\.restoreAllMocks()/vi.restoreAllMocks()/g' "$FILE"
-  sed -i 's/jest\.resetModules()/vi.resetModules()/g' "$FILE"
+  sed -i.tmp 's/jest\.mock(/vi.mock(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.resetAllMocks()/vi.resetAllMocks()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.clearAllMocks()/vi.clearAllMocks()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.restoreAllMocks()/vi.restoreAllMocks()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.resetModules()/vi.resetModules()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
   
   # 3. Replace Jest timers
-  sed -i 's/jest\.useFakeTimers()/vi.useFakeTimers()/g' "$FILE"
-  sed -i 's/jest\.useRealTimers()/vi.useRealTimers()/g' "$FILE"
-  sed -i 's/jest\.advanceTimersByTime(/vi.advanceTimersByTime(/g' "$FILE"
-  sed -i 's/jest\.runOnlyPendingTimers()/vi.runOnlyPendingTimers()/g' "$FILE"
-  sed -i 's/jest\.setSystemTime(/vi.setSystemTime(/g' "$FILE"
+  sed -i.tmp 's/jest\.useFakeTimers()/vi.useFakeTimers()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.useRealTimers()/vi.useRealTimers()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.advanceTimersByTime(/vi.advanceTimersByTime(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.runOnlyPendingTimers()/vi.runOnlyPendingTimers()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.setSystemTime(/vi.setSystemTime(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
   
   # 4. Replace Jest module mocking
-  sed -i 's/jest\.doMock(/vi.doMock(/g' "$FILE"
-  sed -i 's/jest\.dontMock(/vi.unmock(/g' "$FILE"
-  sed -i 's/jest\.requireActual(/vi.importActual(/g' "$FILE"
-  sed -i 's/jest\.requireMock(/vi.importMock(/g' "$FILE"
+  sed -i.tmp 's/jest\.doMock(/vi.doMock(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.dontMock(/vi.unmock(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  sed -i.tmp 's/jest\.requireActual(/vi.importActual(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
+  # NOTE: jest.requireMock → vi.importMock is DEPRECATED and returns Promise
+  # Skip automatic conversion - must be handled manually
+  # sed -i.tmp 's/jest\.requireMock(/vi.importMock(/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
   
   # Count changes
   AFTER=$(grep -c "jest\." "$FILE" 2>/dev/null || true)
@@ -79,10 +81,12 @@ for FILE in "${FILES[@]}"; do
   if [ "$AFTER" -gt 0 ]; then
     echo "   ⚠️  $AFTER jest.* calls remain (may need manual review):"
     grep -n "jest\." "$FILE" | head -5 || true
+    echo "   📋 Backup preserved at: $FILE.bak (for manual review)"
+  else
+    # Only remove backup if no manual review needed
+    rm "$FILE.bak"
+    echo "   ✨ Backup removed (migration complete)"
   fi
-  
-  # Remove backup if successful
-  rm "$FILE.bak"
 done
 
 echo ""
@@ -93,7 +97,10 @@ echo ""
 echo "⚠️  Next steps:"
 echo "   1. Add Vitest imports to files (import { vi, describe, it, expect } from 'vitest')"
 echo "   2. Update file headers to indicate Vitest framework"
-echo "   3. Run tests to verify: pnpm test <file> --run"
-echo "   4. Check for any remaining jest.* references"
+echo "   3. ⚠️  IMPORTANT: jest.requireMock requires manual handling"
+echo "      - vi.importMock is DEPRECATED and returns a Promise"
+echo "      - Replace with synchronous vi.mock patterns or convert to async if needed"
+echo "   4. Run tests to verify: pnpm test <file> --run"
+echo "   5. Check for any remaining jest.* references"
 echo ""
 echo "Verify with: grep -r 'jest\\.' app/ server/ tests/ --include='*.test.*' --include='*.spec.*' | wc -l"

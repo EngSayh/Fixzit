@@ -5,7 +5,7 @@
  * These tests use @testing-library/react + @testing-library/jest-dom.
  */
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react'
 import { render, screen, fireEvent, act, within } from '@testing-library/react'
 import '@testing-library/jest-dom'

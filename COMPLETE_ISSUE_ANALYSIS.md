@@ -10,7 +10,7 @@
 
 | Category | Count | Status |
 |----------|-------|--------|
-| **Already Fixed (This Session)** | 39+ | ✅ Complete |
+| **Already Fixed (This Session)** | 42+ | ✅ Complete |
 | **Path Resolution Issues** | 6 | 🔴 P0 - TypeScript editor errors |
 | **Syntax/Import Errors** | 18 | 🔴 P0 - candidate.test.ts broken |
 | **Deprecation Warnings** | 1 | 🟡 P1 - Low priority |
@@ -19,7 +19,7 @@
 
 ---
 
-## ✅ Issues Already Fixed This Session (39+)
+## ✅ Issues Already Fixed This Session (42+)
 
 ### 1. vi.importMock Deprecation ✅
 **Fixed:** 6 occurrences in 2 files
@@ -50,7 +50,10 @@
 ## 🔴 P0: TypeScript Path Resolution in Test Files (6 errors)
 
 ### Problem
-TypeScript editor cannot resolve `@/` path aliases in dynamic imports within test files. These are **editor-only errors** - tests actually run fine with Vitest's path resolution.
+TypeScript editor cannot resolve `@/` path aliases in dynamic imports within test files. These are **editor-only errors** - tests actually run fine with Vitest's path resolution, but they prevent proper IDE type checking and autocomplete.
+
+### Root Cause
+The `tsconfig.json` doesn't include test files in its compilation context, so TypeScript can't apply the `paths` configuration to resolve `@/` aliases in `.ts` test files.
 
 ### Affected Files
 
@@ -80,12 +83,19 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
 
 ### Solutions (Choose One)
 
-**Option A: Add skipLibCheck to tsconfig.json** (Recommended)
+**Option A: Update tsconfig.json to include test files** (Recommended)
 ```json
 {
   "compilerOptions": {
-    "skipLibCheck": true  // Silences these editor errors
-  }
+    // ...existing options...
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "tests/**/*"  // Add this line
+  ]
 }
 ```
 
@@ -94,20 +104,28 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "skipLibCheck": true,
-    "noUnusedLocals": false
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
-  "include": ["tests/**/*", "app/**/test/**/*"]
+  "include": [
+    "tests/**/*",
+    "app/**/test/**/*",
+    "**/*.ts",
+    "**/*.tsx"
+  ]
 }
 ```
+Then configure your editor to use `tsconfig.test.json` for test files.
 
 **Option C: Use relative imports instead of @/ aliases**
 ```typescript
-// Not recommended - breaks consistency
+// Not recommended - breaks consistency with rest of codebase
 const CategoryMod = await import('../../../../server/models/marketplace/Category');
 ```
 
-**Recommendation:** Option A - Add `skipLibCheck: true` to main tsconfig.json. This is standard for test files and doesn't affect runtime.
+**Note:** `skipLibCheck: true` does NOT fix this issue. That option only suppresses diagnostics in `.d.ts` declaration files, not module resolution errors in `.ts` source files.
+
+**Recommendation:** Option A - Add `"tests/**/*"` to the `include` array in `tsconfig.json`. This enables proper type checking and path resolution for all test files.
 
 ---
 
@@ -118,7 +136,7 @@ File has critical syntax and import errors preventing it from loading.
 
 ### Errors Found
 
-#### Missing Vitest Imports (14 occurrences)
+#### Missing Vitest Imports (12 occurrences)
 ```typescript
 // Lines 14, 47, 82, 92, 127, 134, 144, 145, 162, 163, 176, 194
 // Error: Cannot find name 'vi'

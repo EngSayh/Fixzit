@@ -353,9 +353,10 @@ echo "5/8 Converting Jest module mocking to Vitest..."
 find . -type f \( -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" \) \
   -not -path "*/node_modules/*" \
   -exec sed -i 's/jest\.doMock(/vi.doMock(/g' {} + \
-  -exec sed -i 's/jest\.dontMock(/vi.unmock(/g' {} + \
-  -exec sed -i 's/jest\.requireActual(/vi.importActual(/g' {} + \
-  -exec sed -i 's/jest\.requireMock(/vi.importMock(/g' {} +
+  -exec sed -i 's/jest\.dontMock(/vi.unmock(/g' {} +
+  # NOTE: jest.requireActual and jest.requireMock require manual handling
+  # vi.importActual is OK, but vi.importMock is DEPRECATED and returns Promise
+  # DO NOT use automated replacement for these - handle manually
 
 # Fix 6: Documentation references (skip actual fixes in docs)
 echo "6/8 Updating documentation..."
@@ -369,6 +370,8 @@ echo "7/8 Adding hasControlChars helper..."
 echo "8/8 Generating report..."
 echo "✅ Automated fixes complete"
 echo "⚠️  Manual fixes required:"
+echo "   - jest.requireMock → requires manual handling (vi.importMock is deprecated)"
+echo "   - Suggest: Replace with synchronous vi.mock patterns or async import + vi.importMock if truly needed"
 echo "   - vi.importMock → direct imports (2 files)"
 echo "   - Control char helper function (1 file)"
 echo "   - MongoDB mock connect() (1 file)"

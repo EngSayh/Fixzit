@@ -3,7 +3,7 @@
  * Framework: Vitest
  * Libraries: @testing-library/react, @testing-library/jest-dom
  */
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, test, expect, beforeEach } from 'vitest';
 import React from 'react'
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
