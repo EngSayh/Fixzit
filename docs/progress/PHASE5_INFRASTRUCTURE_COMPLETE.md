@@ -66,13 +66,22 @@
 ## 🛠️ Technical Setup
 
 ### Environment Configuration (.env)
+
+**Generate a secure JWT secret:**
+```bash
+openssl rand -hex 32
+```
+
+**Then configure your .env:**
 ```env
 NODE_ENV=development
 NEXT_PUBLIC_APP_URL=http://localhost:3001
 MONGODB_URI=mongodb://fixzit_admin:fixzit_secure_password_2025@localhost:27017/fixzit?authSource=admin
 MONGODB_DB=fixzit
-JWT_SECRET=c8f5e9a1b2d3c4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9
+JWT_SECRET=<your-generated-secret>
 ```
+
+⚠️ **Security Note**: Never commit real secrets to version control. Use environment variables or a secrets manager.
 
 ### Docker Services
 ```bash
