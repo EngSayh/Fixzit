@@ -112,14 +112,29 @@ export async function ensureCoreIndexes(): Promise<void> {
           });
         } catch (error: unknown) {
           const mongoError = error as { code?: number; message?: string };
-          // Silently skip if index already exists (codes 85, 86)
-          if (!(mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists'))) {
-            // Ignore other index creation warnings too
+          // Skip if index already exists (codes 85, 86)
+          if (mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists')) {
+            // Index already exists - this is expected, skip silently
+            continue;
           }
+          // Log all other errors for observability
+          console.error(`Failed to create index on ${collection}:`, {
+            index: JSON.stringify(indexSpec.key),
+            error: mongoError.message || 'Unknown error',
+            code: mongoError.code
+          });
+          // Rethrow to propagate the error
+          throw error;
         }
       }
-    } catch {
-      // Silently handle collection-level errors
+    } catch (err) {
+      // Log collection-level errors with context
+      const error = err as Error;
+      console.error(`Failed to create indexes for collection ${collection}:`, {
+        message: error.message,
+        stack: error.stack
+      });
+      // Don't throw - allow other collections to be processed
     }
   }
 

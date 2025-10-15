@@ -238,18 +238,26 @@ export class AutoFixManager {
 
         if (!isHealthy) {
           let fixApplied = false;
+          let fixError: string | undefined;
           if (check.fix) {
             try {
               fixApplied = await check.fix();
-            } catch {
-              // Fix failed silently
+            } catch (err) {
+              // Capture fix failure for diagnostics
+              const errorMsg = err instanceof Error ? err.message : String(err);
+              fixError = `Fix attempt failed: ${errorMsg}`;
+              
+              // Log for development/debugging (not in production)
+              if (process.env.NODE_ENV !== 'production') {
+                console.debug(`[AutoFix] ${check.id} fix failed:`, err);
+              }
             }
           }
 
           results.push({
             checkId: check.id,
             success: false,
-            error: `${check.name} check failed`,
+            error: fixError || `${check.name} check failed`,
             fixApplied,
             timestamp: new Date().toISOString(),
             duration

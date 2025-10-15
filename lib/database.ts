@@ -42,12 +42,16 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-process.on('uncaughtException', async () => {
+process.on('uncaughtException', async (err) => {
+  console.error('💥 Uncaught exception:', err);
+  console.error('Stack:', err.stack);
   await cleanup();
   process.exit(1);
 });
 
-process.on('unhandledRejection', async () => {
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('💥 Unhandled rejection at:', promise);
+  console.error('Reason:', reason);
   await cleanup();
   process.exit(1);
 });
