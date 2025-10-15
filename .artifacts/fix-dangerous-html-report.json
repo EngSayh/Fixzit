@@ -1,0 +1,27 @@
+{
+  "category": "dangerouslySetInnerHTML",
+  "totalInstances": 2,
+  "fixesApplied": 0,
+  "alreadySafe": 2,
+  "needsReview": 0,
+  "details": [
+    {
+      "file": "app/cms/[slug]/page.tsx",
+      "line": 45,
+      "before": "dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(page.content) }}",
+      "after": null,
+      "severity": "safe",
+      "reason": "Uses sanitization function",
+      "action": "No fix needed - already safe"
+    },
+    {
+      "file": "app/help/[slug]/page.tsx",
+      "line": 47,
+      "before": "dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(a.content) }}",
+      "after": null,
+      "severity": "safe",
+      "reason": "Uses sanitization function",
+      "action": "No fix needed - already safe"
+    }
+  ]
+}

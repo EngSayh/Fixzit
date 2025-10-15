@@ -42,7 +42,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
           <article 
             className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]" 
-            dangerouslySetInnerHTML={{ __html: await renderMarkdown(page.content) }} 
+            dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(page.content) }} 
           />
           
           <div className="mt-8 pt-6 border-t border-gray-200">
