@@ -27,8 +27,8 @@ export default function ErrorTest() {
             setRoleAuthorized(true);
           }
         }
-      } catch (error) {
-        console.warn('Unable to verify user role for QA tools:', error);
+      } catch {
+        // Unable to verify user role for QA tools
       } finally {
         setIsLoading(false);
       }
@@ -47,8 +47,8 @@ export default function ErrorTest() {
       if (localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
         setQaEnabled(true);
       }
-    } catch (error) {
-      console.warn('Unable to initialize QA error test tools:', error);
+    } catch {
+      // Unable to initialize QA error test tools
     }
   }, []);
 
