@@ -55,9 +55,20 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
 
+  // CI-only optimizations to prevent build worker crashes in GitHub Actions
+  // ⚠️ WARNING: These settings hurt local/dev performance - ONLY apply in CI!
+  // In local dev, these would make your dev server significantly slower
+  ...(process.env.CI === 'true' && {
+    experimental: {
+      workerThreads: false, // Prevents SIGTERM in constrained CI environments
+      cpus: 1               // Single-threaded mode for CI stability
+    }
+  }),
+
   // TypeScript and ESLint
   typescript: {
     ignoreBuildErrors: false,
+    tsconfigPath: './tsconfig.json'
   },
   eslint: {
     ignoreDuringBuilds: false,

@@ -43,38 +43,35 @@
       // See: COMPREHENSIVE_FIXES_SUMMARY.md for details on this PR's scope
       "jest"
     ],
-    "baseUrl": ".",
     "ignoreDeprecations": "5.0",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
       ],
       "@/server/*": [
-        "server/*"
+        "./server/*"
       ],
       "@modules/*": [
-        "src/modules/*"
+        "./src/modules/*"
       ],
       "@components/*": [
-        "src/components/*"
+        "./src/components/*"
       ],
       "@lib/*": [
-        "src/lib/*"
+        "./src/lib/*"
       ],
       "@hooks/*": [
-        "src/hooks/*"
+        "./src/hooks/*"
       ],
       "@schemas/*": [
-        "src/schemas/*"
+        "./src/schemas/*"
       ],
       "@types/*": [
-        "src/types/*"
-      ],
-      "@/types/*": [
-        "src/types/*"
+        "./src/types/*"
       ],
       "@utils/*": [
-        "src/utils/*"
+        "./src/utils/*"
       ]
     }
   },
