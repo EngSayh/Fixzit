@@ -33,11 +33,13 @@ const cleanup = async () => {
 };
 
 process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
   await cleanup();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
+  console.log('Received SIGINT, shutting down gracefully...');
   await cleanup();
   process.exit(0);
 });
