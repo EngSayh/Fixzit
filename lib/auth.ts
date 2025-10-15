@@ -42,7 +42,7 @@ try {
     process.exit(1);
   }
   
-  console.warn('Development/test environment detected: using fallback User implementation');
+  // Development/test environment detected: using fallback User implementation
   // Lightweight fallback for development/test only
   User = {
     findOne: async (_query: Record<string, unknown>) => null,
@@ -75,9 +75,9 @@ function getJWTSecret(): string {
   
   // Development/build-time fallback - generate ephemeral secret
   // NOTE: Tokens will not persist across restarts in development
+  // WARNING: JWT_SECRET not set. Using ephemeral secret for development.
+  // Set JWT_SECRET environment variable for session persistence.
   const fallbackSecret = randomBytes(32).toString('hex');
-  console.warn('⚠️ JWT_SECRET not set. Using ephemeral secret for development.');
-  console.warn('⚠️ Set JWT_SECRET environment variable for session persistence.');
   
   JWT_SECRET = fallbackSecret;
   return JWT_SECRET;

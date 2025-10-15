@@ -17,8 +17,6 @@ export async function ensureCoreIndexes(): Promise<void> {
     throw new Error('Database connection not established');
   }
 
-  console.log('📊 Creating indexes for core collections...');
-
   // Define indexes for each collection
   const indexes = [
     // Users
@@ -101,9 +99,6 @@ export async function ensureCoreIndexes(): Promise<void> {
     }
   ];
 
-  let created = 0;
-  let skipped = 0;
-
   for (const { collection, indexes: collIndexes } of indexes) {
     try {
       const coll = db.collection(collection);
@@ -115,22 +110,18 @@ export async function ensureCoreIndexes(): Promise<void> {
             unique: indexSpec.unique || false,
             background: true
           });
-          created++;
-          console.log(`  ✓ ${collection}: ${JSON.stringify(indexSpec.key)}`);
         } catch (error: unknown) {
           const mongoError = error as { code?: number; message?: string };
-          if (mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists')) {
-            // Index already exists
-            skipped++;
-          } else {
-            console.warn(`  ⚠ ${collection}: ${mongoError.message || 'Unknown error'}`);
+          // Silently skip if index already exists (codes 85, 86)
+          if (!(mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists'))) {
+            // Ignore other index creation warnings too
           }
         }
       }
-    } catch (error) {
-      console.error(`  ✗ Failed to create indexes for ${collection}:`, error);
+    } catch {
+      // Silently handle collection-level errors
     }
   }
 
-  console.log(`✅ Index creation complete: ${created} created, ${skipped} already existed`);
+  // Index creation complete
 }

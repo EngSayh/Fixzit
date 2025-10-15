@@ -72,8 +72,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       pattern: /Failed to execute 'json' on 'Response'/,
       type: 'JSON_PARSE_ERROR',
       autoFix: async (_error: Error) => {
-        console.log('🔧 Auto-fixing JSON parsing error...');
-
         // Clear localStorage cache that might be corrupted
         try {
           localStorage.clear();
@@ -87,7 +85,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log('⚠️ JSON fix fallback triggered');
         this.forceRefresh();
       }
     },
@@ -97,8 +94,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       pattern: /Module not found|Can't resolve/,
       type: 'MODULE_NOT_FOUND',
       autoFix: async (_error: Error) => {
-        console.log('🔧 Auto-fixing module resolution...');
-
         // Try to clear module cache
         try {
           if (typeof window !== 'undefined') {
@@ -119,7 +114,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log('⚠️ Module fix fallback triggered');
         this.showErrorMessage('Module loading failed. Please refresh the page.');
       }
     },
@@ -129,8 +123,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       pattern: /fetch.*failed|Network request failed/,
       type: 'NETWORK_ERROR',
       autoFix: async (_error: Error) => {
-        console.log('🔧 Auto-fixing network error...');
-
         try {
           // Wait and retry
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -147,7 +139,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log('⚠️ Network fix fallback triggered');
         this.showErrorMessage('Network error. Please check your connection and try again.');
       }
     },
@@ -157,8 +148,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       pattern: /hydration|Hydration failed/,
       type: 'HYDRATION_ERROR',
       autoFix: async (_error: Error) => {
-        console.log('🔧 Auto-fixing hydration error...');
-
         try {
           // Force client-side rendering mode
           localStorage.setItem('fxz.render', 'client');
@@ -169,7 +158,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log('⚠️ Hydration fix fallback triggered');
         this.showErrorMessage('Rendering error. Please refresh the page.');
       }
     },
@@ -179,8 +167,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       pattern: /TypeError|ReferenceError/,
       type: 'RUNTIME_ERROR',
       autoFix: async (_error: Error) => {
-        console.log('🔧 Auto-fixing runtime error...');
-
         try {
           // Clear application state
           localStorage.removeItem('fxz.auth');
@@ -198,7 +184,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         }
       },
       fallback: () => {
-        console.log('⚠️ Runtime fix fallback triggered');
         this.showErrorMessage('Application error. Please refresh and try again.');
       }
     }
@@ -215,13 +200,6 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
   componentDidCatch(error: unknown, errorInfo: React.ErrorInfo) {
     const err = error as Error;
-    console.error('🚨 UI Error Caught:', {
-      error: err,
-      message: err?.message,
-      stack: err?.stack,
-      componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString()
-    });
 
     // Generate comprehensive error report
     const errorReport = this.generateErrorReport(err, errorInfo);
@@ -286,12 +264,8 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   };
 
   private attemptAutoFix = async (error: Error) => {
-    console.log('🤖 Attempting auto-fix for:', error.message);
-
     for (const fix of this.errorFixes) {
       if (fix.pattern.test(error.message)) {
-        console.log(`🔧 Applying ${fix.type} fix...`);
-
         try {
           const success = await fix.autoFix(error);
 
