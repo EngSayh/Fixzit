@@ -55,9 +55,17 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
 
+  // Experimental optimizations for CI/CD stability
+  experimental: {
+    // Reduce worker threads for CI stability - prevents SIGTERM during type checking
+    workerThreads: false,
+    cpus: 1
+  },
+
   // TypeScript and ESLint
   typescript: {
     ignoreBuildErrors: false,
+    tsconfigPath: './tsconfig.json'
   },
   eslint: {
     ignoreDuringBuilds: false,
