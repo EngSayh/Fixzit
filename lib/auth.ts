@@ -6,10 +6,12 @@ import { randomBytes } from 'crypto';
 interface UserDocument {
   _id: { toString(): string };
   email: string;
-  password: string;
-  status: string;
+  passwordHash: string;
+  isActive?: boolean;
+  status?: string;
   role?: string;
-  orgId?: string;
+  orgId?: { toString(): string } | string;
+  name?: string;
   personalInfo?: {
     firstName?: string;
     lastName?: string;
@@ -20,9 +22,15 @@ interface UserDocument {
   [key: string]: unknown; // Allow additional fields
 }
 
+// Type definition for Mongoose Query with select method
+interface UserQuery {
+  select: (fields: string) => Promise<UserDocument | null>;
+  then: (onfulfilled?: ((value: UserDocument | null) => unknown) | null, onrejected?: ((reason: unknown) => unknown) | null) => Promise<UserDocument | null>;
+}
+
 // Type definition for User model with MongoDB methods
 interface UserModel {
-  findOne: (query: Record<string, unknown>) => Promise<UserDocument | null>;
+  findOne: (query: Record<string, unknown>) => UserQuery;
   findById: (id: string) => Promise<UserDocument | null>;
   [key: string]: unknown; // Allow additional MongoDB methods
 }
@@ -32,7 +40,7 @@ let User: UserModel;
 
 try {
   const { User: UserModel } = require('@/modules/users/schema');
-  User = UserModel as UserModel;
+  User = UserModel;
 } catch (error) {
   const errorMessage = `CRITICAL: Failed to load User model from @/modules/users/schema - ${error instanceof Error ? error.message : String(error)}`;
   console.error(errorMessage);
@@ -45,7 +53,13 @@ try {
   // Development/test environment detected: using fallback User implementation
   // Lightweight fallback for development/test only
   User = {
-    findOne: async (_query: Record<string, unknown>) => null,
+    findOne: (_query: Record<string, unknown>) => ({
+      select: async (_fields: string) => null,
+      then: async (onfulfilled?: ((value: UserDocument | null) => unknown) | null) => {
+        const result = null;
+        return onfulfilled ? (onfulfilled(result) as Promise<UserDocument | null>) : Promise.resolve(result);
+      }
+    }),
     findById: async (_id: string) => null
   };
 }
@@ -117,23 +131,25 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 
   let user;
   if (loginType === 'personal') {
-    user = await User.findOne({ email: emailOrEmployeeNumber });
+    user = await User.findOne({ email: emailOrEmployeeNumber }).select('+passwordHash');
   } else {
     // For corporate login, search by employee number (username field)
-    user = await User.findOne({ username: emailOrEmployeeNumber });
+    user = await User.findOne({ username: emailOrEmployeeNumber }).select('+passwordHash');
   }
 
   if (!user) {
     throw new Error('Invalid credentials');
   }
 
-  const isValid = await verifyPassword(password, user.password);
+  const isValid = await verifyPassword(password, user.passwordHash);
 
   if (!isValid) {
     throw new Error('Invalid credentials');
   }
 
-  if (user.status !== 'ACTIVE') {
+  // Check if user is active (handle both status and isActive fields)
+  const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
+  if (!isUserActive) {
     throw new Error('Account is not active');
   }
 
@@ -141,7 +157,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     id: user._id.toString(),
     email: user.email,
     role: user.professionalInfo?.role || user.role || 'USER',
-    orgId: user.orgId || ''
+    orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
   });
 
   return {
@@ -151,7 +167,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
       email: user.email,
       name: `${user.personalInfo?.firstName || ''} ${user.personalInfo?.lastName || ''}`.trim(),
       role: user.professionalInfo?.role || user.role || 'USER',
-      orgId: user.orgId || ''
+      orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
     }
   };
 }
@@ -175,7 +191,7 @@ export async function getUserFromToken(token: string) {
     email: user.email,
     name: `${user.personalInfo?.firstName || ''} ${user.personalInfo?.lastName || ''}`.trim(),
     role: user.professionalInfo?.role || user.role || 'USER',
-    orgId: user.orgId || ''
+    orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
   };
 }
 
