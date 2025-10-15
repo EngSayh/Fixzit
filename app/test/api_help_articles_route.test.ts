@@ -26,14 +26,13 @@ vi.mock('next/server', () => {
   }
 })
 
-const { NextResponse } = await vi.importMock<typeof import('next/server')>('next/server')
-
 // Mock the database module imported as "@/lib/mongodb-unified"
 vi.mock('@/lib/mongodb-unified', () => ({
   getDatabase: vi.fn()
 }))
 
 import { getDatabase } from '@/lib/mongodb-unified'
+import { NextResponse } from 'next/server'
 
 // Import the route handler under test.
 // Try common Next.js route locations; adjust if your project structure differs.
