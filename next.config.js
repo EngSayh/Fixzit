@@ -55,12 +55,15 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
 
-  // Experimental optimizations for CI/CD stability
-  experimental: {
-    // Reduce worker threads for CI stability - prevents SIGTERM during type checking
-    workerThreads: false,
-    cpus: 1
-  },
+  // CI-only optimizations to prevent build worker crashes in GitHub Actions
+  // ⚠️ WARNING: These settings hurt local/dev performance - ONLY apply in CI!
+  // In local dev, these would make your dev server significantly slower
+  ...(process.env.CI === 'true' && {
+    experimental: {
+      workerThreads: false, // Prevents SIGTERM in constrained CI environments
+      cpus: 1               // Single-threaded mode for CI stability
+    }
+  }),
 
   // TypeScript and ESLint
   typescript: {

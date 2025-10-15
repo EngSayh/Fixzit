@@ -8,7 +8,7 @@
 ### Primary Issue: Next.js Build Worker Termination
 **Error**: `Next.js build worker exited with code: null and signal: SIGTERM`  
 **Build Log Evidence**:
-```
+```log
 build (20.x/22.x) UNKNOWN STEP Failed to compile.
 Type error: Invalid value for '--ignoreDeprecations'.
 Next.js build worker exited with code: 1 and signal: null
@@ -43,23 +43,33 @@ Next.js build worker exited with code: 1 and signal: null
 #### Fix 1.1: Optimize Next.js Build for CI
 **File**: `next.config.js`
 
-Add build optimizations to prevent SIGTERM:
+⚠️ **CRITICAL WARNING**: These experimental settings MUST only be applied in CI environments!
+Applying them globally will significantly degrade local development performance.
+
+Add CI-conditional build optimizations to prevent SIGTERM:
 
 ```javascript
-// Add to nextConfig object:
-experimental: {
-  // Reduce worker threads for CI stability
-  workerThreads: false,
-  cpus: 1
-},
+// Add to nextConfig object (CI-ONLY with conditional):
+// ⚠️ WARNING: Only apply in CI - hurts local/dev performance!
+...(process.env.CI === 'true' && {
+  experimental: {
+    workerThreads: false, // Prevents SIGTERM in constrained CI environments
+    cpus: 1               // Single-threaded mode for CI stability
+  }
+}),
 
 // Modify TypeScript config:
 typescript: {
   ignoreBuildErrors: false,
-  // Add timeout to prevent hanging
   tsconfigPath: './tsconfig.json'
 },
 ```
+
+**Why CI-only?**
+- `workerThreads: false` disables parallel processing → 3-5x slower local builds
+- `cpus: 1` forces single-threaded execution → no benefit outside constrained CI
+- Local dev has sufficient resources, doesn't need these workarounds
+- CI environments have resource limits that cause worker thread crashes
 
 #### Fix 1.2: Update Webpack Workflow
 **File**: `.github/workflows/webpack.yml`
