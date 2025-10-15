@@ -18,11 +18,8 @@ async function getHeaderBaseUrl() {
   let headerList: Awaited<ReturnType<typeof headers>> | undefined;
   try {
     headerList = await headers();
-  } catch (error) {
-    const correlationId = randomUUID();
-    const message = error instanceof Error ? error.message : String(error);
-    // eslint-disable-next-line no-console
-    console.debug('[MarketplaceFetch] headers() unavailable', { correlationId, message });
+  } catch {
+    // headers() unavailable
     headerList = undefined;
   }
   if (!headerList) {
@@ -54,11 +51,8 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   try {
     const cookieStore = await cookies();
     authCookieValue = cookieStore.get('fixzit_auth')?.value;
-  } catch (error) {
-    errorCorrelationId = randomUUID();
-    const message = error instanceof Error ? error.message : String(error);
-    // eslint-disable-next-line no-console
-    console.debug('[MarketplaceFetch] cookies() unavailable', { correlationId: errorCorrelationId, message });
+  } catch {
+    // cookies() unavailable
     authCookieValue = undefined;
   }
   const headersInit = new Headers(init?.headers ?? {});
