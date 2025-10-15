@@ -54,15 +54,6 @@ export async function POST(req: NextRequest) {
     }
 
     // In a real implementation, this would integrate with an email service
-    // For now, we'll log the welcome email details
-    console.log('📧 Welcome Email Request:', {
-      to: body.email,
-      subject: body.subject,
-      errorId: body.errorId,
-      registrationLink: body.registrationLink,
-      timestamp: new Date().toISOString()
-    });
-
     // Simulate email sending delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 

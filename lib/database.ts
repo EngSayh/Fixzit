@@ -27,32 +27,27 @@ const cleanup = async () => {
   try {
     const { disconnectFromDatabase } = await import('@/lib/mongodb-unified');
     await disconnectFromDatabase();
-    console.log('✅ MongoDB connection closed gracefully');
-  } catch (error) {
-    console.error('❌ Error during database cleanup:', error);
+  } catch {
+    // Error during database cleanup
   }
 };
 
 process.on('SIGTERM', async () => {
-  console.log('📡 Received SIGTERM, starting graceful shutdown...');
   await cleanup();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('📡 Received SIGINT, starting graceful shutdown...');
   await cleanup();
   process.exit(0);
 });
 
-process.on('uncaughtException', async (error) => {
-  console.error('💥 Uncaught exception:', error);
+process.on('uncaughtException', async () => {
   await cleanup();
   process.exit(1);
 });
 
-process.on('unhandledRejection', async (reason, promise) => {
-  console.error('💥 Unhandled rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', async () => {
   await cleanup();
   process.exit(1);
 });
