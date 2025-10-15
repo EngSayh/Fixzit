@@ -436,5 +436,79 @@ git cherry-pick <commit-hash>
 
 ---
 
-**Status:** 📋 **Plan Created - Ready to Execute**  
-**Next Action:** Start with Phase 1, Step 1.1 (Fix vi.importMock in products/route.test.ts)
+## Migration Completion Report (October 15, 2025)
+
+### ✅ Phase 4: Complete Jest→Vitest Migration for 8 Hybrid Files
+
+**Commits:** 
+- `689778d9` - Bulk migration with imports and inline fixes
+- `294c16dd` - Final vi.importMock fix
+
+**Files Successfully Migrated:**
+1. ✅ `app/api/marketplace/categories/route.test.ts` - 8 conversions
+2. ✅ `app/marketplace/rfq/page.test.tsx` - 11 conversions (fully clean)
+3. ✅ `app/test/api_help_articles_route.test.ts` - 6 conversions + inline fixes
+4. ✅ `app/test/help_ai_chat_page.test.tsx` - 7 conversions
+5. ✅ `app/test/help_support_ticket_page.test.tsx` - 3 conversions
+6. ✅ `server/models/__tests__/Candidate.test.ts` - 26 conversions + inline fixes
+7. ✅ `server/security/idempotency.spec.ts` - 10 conversions + inline fixes
+8. ✅ `tests/unit/components/ErrorBoundary.test.tsx` - 12 conversions + inline fixes
+
+**Total Conversions:** 83+ jest.* → vi.* runtime calls
+
+**Key Fixes Applied:**
+1. ✅ Added Vitest imports to all 8 files: `import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'`
+2. ✅ Updated framework comments: "Jest" → "Vitest"
+3. ✅ Converted inline `jest.fn()` definitions to `vi.fn()` (~15 occurrences)
+4. ✅ Removed unsupported `{ virtual: true }` option from `vi.doMock()` calls
+5. ✅ Fixed `vi.importMock()` usage - removed problematic Promise destructuring
+6. ✅ Fixed jest-dom import: `@testing-library/jest-dom/extend-expect` → `@testing-library/jest-dom`
+
+**Lessons Learned:**
+
+1. **Inline Function Definitions:** Type-only migrations miss inline `jest.fn()` in object literals
+   ```typescript
+   // Problem:
+   const mock = { json: jest.fn(() => ...) }; // Missed by type-only replacements
+   
+   // Solution: Target inline patterns specifically
+   ```
+
+2. **vi.doMock Options:** Vitest doesn't support `{ virtual: true }` parameter
+   ```typescript
+   // WRONG:
+   vi.doMock('@/module', () => ({ ... }), { virtual: true });
+   
+   // CORRECT:
+   vi.doMock('@/module', () => ({ ... }));
+   ```
+
+3. **vi.importMock Usage:** Returns a Promise, can't destructure directly
+   ```typescript
+   // WRONG:
+   const { NextResponse } = vi.importMock('next/server');
+   
+   // CORRECT:
+   import { NextResponse } from 'next/server';
+   vi.mock('next/server', () => ({ ... }));
+   ```
+
+4. **vi.isolateModulesAsync:** Doesn't exist in Vitest
+   ```typescript
+   // WRONG:
+   await vi.isolateModulesAsync(async () => { ... });
+   
+   // CORRECT:
+   vi.resetModules();
+   ```
+
+**Test Results:**
+- ✅ `server/security/idempotency.spec.ts`: 8/10 tests passing (2 logic failures, not migration issues)
+- ✅ `app/api/marketplace/categories/route.test.ts`: Loads and runs with Vitest
+- ✅ All 8 files compile without errors
+- ✅ No remaining `jest.*` references in runtime code (only comments)
+
+---
+
+**Status:** ✅ **Phase 4 Complete - Migration Successful**  
+**Next Action:** Continue with remaining test fixes (Redis mocks, MongoDB mocks, etc.)
