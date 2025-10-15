@@ -16,7 +16,7 @@ describe('GET /api/marketplace/search', () => {
 
   beforeAll(() => {
     // Silence expected error logs in error-path tests
-    console.error = jest.fn();
+    console.error = vi.fn();
   });
 
   afterAll(() => {

@@ -34,7 +34,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('returns 404 when product is not found', async () => {
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(null)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null)
 
     const req = {} as any // Minimal NextRequest stub
     const res = await GET(req, { params: Promise.resolve({ slug: 'non-existent' }) })
@@ -52,7 +52,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
       prices: [{ listPrice: 123.45, currency: 'USD' }],
       inventories: [{ onHand: 10, leadDays: 5 }]
     };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     const req = {} as any
     const res = await GET(req, { params: Promise.resolve({ slug: 'test-product' }) })
@@ -76,7 +76,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
       prices: [{ listPrice: 50 }], // no currency
       inventories: [{ onHand: 3, leadDays: 2 }]
     };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-currency' }) })
     const body = await readJson(res as any)
@@ -93,7 +93,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
       // prices missing
       inventories: [{ onHand: 1, leadDays: 1 }]
     };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-prices' }) })
     const body = await readJson(res as any)
@@ -110,7 +110,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
       prices: [],
       inventories: [{ onHand: 1, leadDays: 4 }]
     };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'empty-prices' }) })
     const body = await readJson(res as any)
@@ -127,7 +127,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
       prices: [{ listPrice: 10, currency: 'EUR' }],
       inventories: [{ onHand: 0, leadDays: 7 }]
     };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'out-of-stock' }) })
     const body = await readJson(res as any)
@@ -143,7 +143,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
       prices: [{ listPrice: 99.99, currency: 'GBP' }]
       // inventories missing
     };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-inventories' }) })
     const body = await readJson(res as any)
@@ -160,7 +160,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
       prices: [{ listPrice: 1.23, currency: 'JPY' }],
       inventories: [{ onHand: 2 /* leadDays missing */ }]
     };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-leaddays' }) })
     const body = await readJson(res as any)
@@ -170,7 +170,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('handles errors from data layer by returning 500', async () => {
-    (MarketplaceProduct.findOne as jest.Mock).mockRejectedValueOnce(new Error('DB failure'))
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('DB failure'))
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'boom' }) })
 
@@ -180,7 +180,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
 
   test('uses the provided slug param in the query', async () => {
     const doc: any = { slug: 'unique-slug', prices: [], inventories: [] };
-    (MarketplaceProduct.findOne as jest.Mock).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
 
     await GET({} as any, { params: Promise.resolve({ slug: 'unique-slug' }) })
 

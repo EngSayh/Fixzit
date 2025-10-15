@@ -1,8 +1,9 @@
 /**
  * Tests for withIdempotency, createIdempotencyKey, and stableStringify behaviors
- * Framework: Jest (ts-jest or Babel transform is assumed in repo)
+ * Framework: Vitest
  */
 
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createHash } from 'crypto';
 
 // Import from the module under test.
@@ -18,26 +19,26 @@ const { withIdempotency, createIdempotencyKey } = Impl as unknown as {
 
 // Utility to advance timers safely
 const advanceTimersBy = async (ms: number) => {
-  jest.advanceTimersByTime(ms);
+  vi.advanceTimersByTime(ms);
   // allow pending microtasks to flush
   await Promise.resolve();
 };
 
 describe('withIdempotency', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.spyOn(global, 'setTimeout'); // observe scheduling behavior
+    vi.useFakeTimers();
+    vi.spyOn(global, 'setTimeout'); // observe scheduling behavior
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   test('returns same promise for concurrent calls with same key before first resolves', async () => {
     const key = 'K1';
     let resolveFn!: (v: number) => void;
-    const exec = jest.fn(() => new Promise<number>(res => { resolveFn = res; }));
+    const exec = vi.fn(() => new Promise<number>(res => { resolveFn = res; }));
     const p1 = withIdempotency(key, exec);
     const p2 = withIdempotency(key, exec);
 
@@ -51,7 +52,7 @@ describe('withIdempotency', () => {
 
   test('subsequent calls within TTL return same resolved promise; after TTL, exec runs again', async () => {
     const key = 'K2';
-    const exec = jest.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
+    const exec = vi.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
 
     const p1 = withIdempotency(key, exec, 1000);
     await expect(p1).resolves.toBe('first');
@@ -71,7 +72,7 @@ describe('withIdempotency', () => {
 
   test('negative TTL clamps to 0 and triggers immediate expiry scheduling', async () => {
     const key = 'K3';
-    const exec = jest.fn().mockResolvedValue('ok');
+    const exec = vi.fn().mockResolvedValue('ok');
 
     const p = withIdempotency(key, exec, -500);
     await expect(p).resolves.toBe('ok');
@@ -79,7 +80,7 @@ describe('withIdempotency', () => {
 
     // With ttl clamped to 0, setTimeout should be scheduled with 0 delay
     expect(setTimeout).toHaveBeenCalled();
-    const lastCall = (setTimeout as unknown as jest.Mock).mock.calls.pop();
+    const lastCall = (setTimeout as unknown as ReturnType<typeof vi.fn>).mock.calls.pop();
     expect(lastCall?.[1]).toBe(0);
 
     // After timers run, subsequent call should execute again (no cache)
@@ -91,7 +92,7 @@ describe('withIdempotency', () => {
 
   test('non-finite TTL uses default TTL and de-duplicates within that window', async () => {
     const key = 'K4';
-    const exec = jest.fn().mockResolvedValue('default-ttl');
+    const exec = vi.fn().mockResolvedValue('default-ttl');
     const p1 = withIdempotency(key, exec, Number.POSITIVE_INFINITY); // non-finite -> default
     await expect(p1).resolves.toBe('default-ttl');
     expect(exec).toHaveBeenCalledTimes(1);
@@ -121,8 +122,8 @@ describe('withIdempotency', () => {
   });
 
   test('different keys are isolated', async () => {
-    const execA = jest.fn().mockResolvedValue('A');
-    const execB = jest.fn().mockResolvedValue('B');
+    const execA = vi.fn().mockResolvedValue('A');
+    const execB = vi.fn().mockResolvedValue('B');
 
     const pA1 = withIdempotency('A', execA, 1000);
     const pB1 = withIdempotency('B', execB, 1000);

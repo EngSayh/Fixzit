@@ -34,20 +34,20 @@ testRunner.mock("./wo.schema", () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mocked = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  woCreate: (repo as any).woCreate as jest.Mock,
+  woCreate: (repo as any).woCreate as ReturnType<typeof vi.fn>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  woUpdate: (repo as any).woUpdate as jest.Mock,
+  woUpdate: (repo as any).woUpdate as ReturnType<typeof vi.fn>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  woGet: (repo as any).woGet as jest.Mock,
+  woGet: (repo as any).woGet as ReturnType<typeof vi.fn>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  woList: (repo as any).woList as jest.Mock,
-  audit: audit as unknown as jest.Mock,
-  withIdempotency: withIdempotency as unknown as jest.Mock,
-  createIdempotencyKey: createIdempotencyKey as unknown as jest.Mock,
+  woList: (repo as any).woList as ReturnType<typeof vi.fn>,
+  audit: audit as unknown as ReturnType<typeof vi.fn>,
+  withIdempotency: withIdempotency as unknown as ReturnType<typeof vi.fn>,
+  createIdempotencyKey: createIdempotencyKey as unknown as ReturnType<typeof vi.fn>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  WoCreateParse: (WoCreate as any).parse as jest.Mock,
+  WoCreateParse: (WoCreate as any).parse as ReturnType<typeof vi.fn>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  WoUpdateParse: (WoUpdate as any).parse as jest.Mock,
+  WoUpdateParse: (WoUpdate as any).parse as ReturnType<typeof vi.fn>,
 };
 
 describe("wo.service", () => {

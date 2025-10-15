@@ -1,22 +1,23 @@
 /**
  * Tests for Candidate model: schema defaults and findByEmail behavior.
  *
- * Testing framework: Jest (TypeScript)
+ * Testing framework: Vitest
  * - We verify both mock DB path and real Mongoose path behaviors.
  */
 
-import type { Model } from 'mongoose'
+import { vi, describe, it, test, expect, beforeEach, afterEach } from 'vitest';
+import type { Model } from 'mongoose';
 
 // Important: we must import the module under test AFTER setting up the mocks
 
 // Utility to reset module registry between scenarios
 const resetModules = async () => {
-  jest.resetModules();
+  vi.resetModules();
 };
 
 // A helper to dynamically import after setting mocks
 const importCandidate = async () => {
-  const mod = await import('@/models/candidate'); // adjust if actual path differs
+  const mod = await import('@/server/models/Candidate');
   return mod as any;
 };
 
@@ -41,10 +42,11 @@ const baseDoc = {
 // by intercepting mongoose.model('Candidate', ...) usage via jest.spyOn once imported.
 // To do this cleanly, we will mock mongoose before importing the module.
 
+describe('Candidate with Mock DB', () => {
   beforeEach(async () => {
     await resetModules();
 
-    jest.doMock('@/lib/mongo', () => ({
+    vi.doMock('@/lib/mongo', () => ({
       __esModule: true,
     }));
 
@@ -79,7 +81,7 @@ const baseDoc = {
       }
     }
 
-    jest.doMock('@/models/candidate', () => ({
+    vi.doMock('@/server/models/Candidate', () => ({
       __esModule: true,
       CandidateRepo: MockCandidateRepo,
     }));
@@ -88,8 +90,8 @@ const baseDoc = {
   afterEach(async () => {
     // reset mock DB storage
     // @ts-ignore
-    jest.clearAllMocks();
-    jest.resetModules();
+    vi.clearAllMocks();
+    vi.resetModules();
   });
 
   test('findByEmail returns first matching candidate when multiple exist', async () => {
@@ -109,8 +111,10 @@ const baseDoc = {
     await Candidate.create({ ...baseDoc });
 
     const notFound = await Candidate.findByEmail('org-1', 'nonexistent@example.com');
+    expect(notFound).toBeFalsy();
   });
 
+  test('create applies schema defaults when fields are missing', async () => {
     const { Candidate } = await importCandidate();
     const created = await Candidate.create({ orgId: 'org-2', email: 'x@y.z' });
     expect(created.skills).toEqual([]);
@@ -120,17 +124,18 @@ const baseDoc = {
   });
 });
 
+describe('Candidate with Real Mongoose Model', () => {
   beforeEach(async () => {
     await resetModules();
 
-    jest.doMock('@/lib/mongo', () => ({
+    vi.doMock('@/lib/mongo', () => ({
       __esModule: true,
     }));
 
     // We will stub mongoose.model and the returned RealCandidate with spies.
     // The module uses: const RealCandidate = models.Candidate || model('Candidate', CandidateSchema);
     // So we need to ensure either models.Candidate exists or model() returns a fake with findOne.
-    const fakeFindOne = jest.fn();
+    const fakeFindOne = vi.fn();
 
     const fakeRealModel: Partial<Model<any>> & Record<string, any> = {
       findOne: fakeFindOne,
@@ -140,8 +145,8 @@ const baseDoc = {
 
     const fakeModels: Record<string, any> = {};
 
-    jest.doMock('mongoose', () => {
-      const actual = jest.requireActual('mongoose') as any;
+    vi.doMock('mongoose', async () => {
+      const actual = await vi.importActual('mongoose') as any;
       return {
         __esModule: true,
         ...actual,
@@ -158,8 +163,8 @@ const baseDoc = {
   });
 
   afterEach(async () => {
-    jest.clearAllMocks();
-    jest.resetModules();
+    vi.clearAllMocks();
+    vi.resetModules();
   });
 
   test('findByEmail calls RealCandidate.findOne with correct filter', async () => {
@@ -172,7 +177,7 @@ const baseDoc = {
       (mongoose as any).models?.Candidate ??
       (mongoose as any).model('Candidate');
 
-    const findOneSpy = jest.spyOn(RealCandidate, 'findOne').mockResolvedValue({ ...baseDoc });
+    const findOneSpy = vi.spyOn(RealCandidate, 'findOne').mockResolvedValue({ ...baseDoc });
 
     const doc = await Candidate.findByEmail('org-1', 'ada@example.com');
     expect(findOneSpy).toHaveBeenCalledTimes(1);
@@ -190,7 +195,7 @@ const baseDoc = {
       (mongoose as any).models?.Candidate ??
       (mongoose as any).model('Candidate');
 
-    const findOneSpy = jest.spyOn(RealCandidate, 'findOne').mockResolvedValue(null);
+    const findOneSpy = vi.spyOn(RealCandidate, 'findOne').mockResolvedValue(null);
 
     const doc = await Candidate.findByEmail('org-1', 'missing@example.com');
     expect(findOneSpy).toHaveBeenCalledWith({ orgId: 'org-1', email: 'missing@example.com' });

@@ -60,12 +60,12 @@ class InMemoryMockDatabase {
 
 // Capture console output
 
-let consoleSpy: jest.SpyInstance
+let consoleSpy: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
   // Reset the singleton state between tests
   InMemoryMockDatabase.getInstance().reset()
-  consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+  consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 })
 
 afterEach(() => {
@@ -130,7 +130,7 @@ describe('seed-marketplace script', () => {
 
     try {
       const t0 = Date.now()
-      jest.spyOn(Date, 'now').mockReturnValue(t0 + 5_000)
+      vi.spyOn(Date, 'now').mockReturnValue(t0 + 5_000)
 
       const updated = mod.upsert(
         'searchsynonyms',
