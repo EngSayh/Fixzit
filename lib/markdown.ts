@@ -17,8 +17,7 @@ export async function renderMarkdownSanitized(markdown: string): Promise<string>
   const file = await unified()
     .use(remarkParse)
     .use(remarkRehype)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .use(rehypeSanitize, schema as any)
+    .use(rehypeSanitize as never, schema)
     .use(rehypeStringify)
     .process(markdown || '');
   return String(file);
