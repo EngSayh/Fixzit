@@ -1,69 +1,28 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { User } from '@/server/models/User';
+import { db } from '@/lib/mongo';
 
 // Type definition for User document
 interface UserDocument {
   _id: { toString(): string };
   email: string;
-  passwordHash: string;
+  password: string; // Changed from passwordHash
   isActive?: boolean;
   status?: string;
   role?: string;
   orgId?: { toString(): string } | string;
   name?: string;
-  personalInfo?: {
+  personal?: { // Changed from personalInfo
     firstName?: string;
     lastName?: string;
   };
-  professionalInfo?: {
+  professional?: { // Changed from professionalInfo
     role?: string;
   };
   [key: string]: unknown; // Allow additional fields
 }
-
-// Type definition for Mongoose Query with select method
-interface UserQuery {
-  select: (fields: string) => Promise<UserDocument | null>;
-  then: (onfulfilled?: ((value: UserDocument | null) => unknown) | null, onrejected?: ((reason: unknown) => unknown) | null) => Promise<UserDocument | null>;
-}
-
-// Type definition for User model with MongoDB methods
-interface UserModel {
-  findOne: (query: Record<string, unknown>) => UserQuery;
-  findById: (id: string) => Promise<UserDocument | null>;
-  [key: string]: unknown; // Allow additional MongoDB methods
-}
-
-// Use real Mongoose model for production
-let User: UserModel;
-
-try {
-  const { User: UserModel } = require('@/modules/users/schema');
-  User = UserModel;
-} catch (error) {
-  const errorMessage = `CRITICAL: Failed to load User model from @/modules/users/schema - ${error instanceof Error ? error.message : String(error)}`;
-  console.error(errorMessage);
-  
-  if (process.env.NODE_ENV === 'production') {
-    console.error('Authentication system cannot start without User model in production');
-    process.exit(1);
-  }
-  
-  // Development/test environment detected: using fallback User implementation
-  // Lightweight fallback for development/test only
-  User = {
-    findOne: (_query: Record<string, unknown>) => ({
-      select: async (_fields: string) => null,
-      then: async (onfulfilled?: ((value: UserDocument | null) => unknown) | null) => {
-        const result = null;
-        return onfulfilled ? (onfulfilled(result) as Promise<UserDocument | null>) : Promise.resolve(result);
-      }
-    }),
-    findById: async (_id: string) => null
-  };
-}
-
 
 // Lazy initialization - only validate at runtime, not build time
 // JWT secret is loaded on first use, with fallback for development
@@ -127,21 +86,22 @@ export function verifyToken(token: string): AuthToken | null {
 }
 
 export async function authenticateUser(emailOrEmployeeNumber: string, password: string, loginType: 'personal' | 'corporate' = 'personal') {
-  // Database connection handled by model layer
+  // Ensure database connection is established
+  await db;
 
   let user;
   if (loginType === 'personal') {
-    user = await User.findOne({ email: emailOrEmployeeNumber }).select('+passwordHash');
+    user = await User.findOne({ email: emailOrEmployeeNumber });
   } else {
     // For corporate login, search by employee number (username field)
-    user = await User.findOne({ username: emailOrEmployeeNumber }).select('+passwordHash');
+    user = await User.findOne({ username: emailOrEmployeeNumber });
   }
 
   if (!user) {
     throw new Error('Invalid credentials');
   }
 
-  const isValid = await verifyPassword(password, user.passwordHash);
+  const isValid = await verifyPassword(password, user.password);
 
   if (!isValid) {
     throw new Error('Invalid credentials');
@@ -156,7 +116,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
   const token = generateToken({
     id: user._id.toString(),
     email: user.email,
-    role: user.professionalInfo?.role || user.role || 'USER',
+    role: user.professional?.role || user.role || 'USER',
     orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
   });
 
@@ -165,8 +125,8 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     user: {
       id: user._id.toString(),
       email: user.email,
-      name: `${user.personalInfo?.firstName || ''} ${user.personalInfo?.lastName || ''}`.trim(),
-      role: user.professionalInfo?.role || user.role || 'USER',
+      name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim(),
+      role: user.professional?.role || user.role || 'USER',
       orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
     }
   };
@@ -189,8 +149,8 @@ export async function getUserFromToken(token: string) {
   return {
     id: user._id.toString(),
     email: user.email,
-    name: `${user.personalInfo?.firstName || ''} ${user.personalInfo?.lastName || ''}`.trim(),
-    role: user.professionalInfo?.role || user.role || 'USER',
+    name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim(),
+    role: user.professional?.role || user.role || 'USER',
     orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
   };
 }
