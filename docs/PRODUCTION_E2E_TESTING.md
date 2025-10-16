@@ -39,12 +39,19 @@ HR_PASSWORD         # HR Manager password
 
 **Option B: Environment File** (Local testing only)
 ```bash
-# Create .env.production (gitignored!)
-cat > .env.production << 'EOF'
+# Create .env.production.test (gitignored!)
+cat > .env.production.test << 'EOF'
 PRODUCTION_URL=https://your-url.com
 ADMIN_EMAIL=test-admin@company.com
 ADMIN_PASSWORD=your-secure-password
-# ... all variables
+PM_EMAIL=test-pm@company.com
+PM_PASSWORD=your-secure-password
+TENANT_EMAIL=test-tenant@company.com
+TENANT_PASSWORD=your-secure-password
+VENDOR_EMAIL=test-vendor@company.com
+VENDOR_PASSWORD=your-secure-password
+HR_EMAIL=test-hr@company.com
+HR_PASSWORD=your-secure-password
 EOF
 ```
 
@@ -62,9 +69,14 @@ node scripts/testing/e2e-production-test.js
 PRODUCTION_URL=https://fixzit-souq.com \
 ADMIN_EMAIL=admin@example.com \
 ADMIN_PASSWORD=yourpassword \
-node scripts/testing/e2e-production-test.js
-
-# Option 3: Quick test (public pages only, no credentials needed)
+PM_EMAIL=pm@example.com \
+PM_PASSWORD=pmpassword \
+TENANT_EMAIL=tenant@example.com \
+TENANT_PASSWORD=tenantpassword \
+VENDOR_EMAIL=vendor@example.com \
+VENDOR_PASSWORD=vendorpassword \
+HR_EMAIL=hr@example.com \
+HR_PASSWORD=hrpassword \
 node scripts/testing/e2e-production-test.js
 ```
 

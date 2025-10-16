@@ -281,13 +281,13 @@ async function testPage(page, token, user) {
       // Forbidden - user doesn't have permission
       testResult.status = 'BLOCKED';
       testResult.result = 'HTTP 403 - Access denied (insufficient permissions)';
-      // This is not necessarily a failure - it's expected for some role/page combinations
-      passedTests++;
+      failedTests++;
     } else if (res.redirected) {
       // Redirected (likely to login or different page)
       testResult.status = 'REDIRECT';
       testResult.result = `HTTP ${res.statusCode} - Redirected`;
       passedTests++;
+    } else {
     } else {
       testResult.status = 'FAIL';
       testResult.result = `HTTP ${res.statusCode}`;

@@ -244,19 +244,39 @@ async function testLogin(userType, credentials) {
       return test;
     }
 
-    const { execSync } = require('child_process');
+    const { spawnSync } = require('child_process');
     const loginData = JSON.stringify({
       email: credentials.email,
       password: credentials.password
     });
 
-    const curlCommand = `curl -s -w "\\n%{http_code}" -X POST \\
-      -H "Content-Type: application/json" \\
-      -d '${loginData}' \\
-      --max-time 30 \\
-      "${CONFIG.baseUrl}/api/auth/login"`;
+    // Use spawnSync with stdin to avoid shell injection from passwords with quotes
+    const curl = spawnSync('curl', [
+      '-s',
+      '-w',
+      '\n%{http_code}',
+      '-X',
+      'POST',
+      '-H',
+      'Content-Type: application/json',
+      '-d',
+      '@-', // Read from stdin
+      '--max-time',
+      '30',
+      `${CONFIG.baseUrl}/api/auth/login`
+    ], {
+      input: loginData,
+      encoding: 'utf-8'
+    });
 
-    const output = execSync(curlCommand, { encoding: 'utf-8' });
+    if (curl.error) {
+      throw curl.error;
+    }
+    if (curl.status !== 0) {
+      throw new Error(curl.stderr || `curl exited with status ${curl.status}`);
+    }
+
+    const output = curl.stdout;
     const lines = output.trim().split('\n');
     const statusCode = parseInt(lines[lines.length - 1]);
     const responseBody = lines.slice(0, -1).join('\n');
