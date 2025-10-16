@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -85,8 +85,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   // Call useTranslation unconditionally at top level (React Rules of Hooks)
   const translationContext = useTranslation();
   const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
-
-  const router = useRouter();
 
   // Check authentication status on mount
   useEffect(() => {
