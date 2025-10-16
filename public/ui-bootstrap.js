@@ -88,8 +88,9 @@
     // Navigation function alias
     window.navigateTo = window.showModule;
 
-    // Backend Login Function  
-    window.loginToBackend = async function(email = "admin@test.com", password = "password123") {
+    // Backend Login Function
+    // Note: Default parameters are for testing only, not production use
+    window.loginToBackend = async function(email = "admin@test.com", password = "") {
         try {
             const response = await fetch(`${window.API_URL || 'http://localhost:5000'}/api/auth/login`, {
                 method: "POST",
@@ -177,7 +178,7 @@
                 e.preventDefault();
                 
                 const email = document.getElementById('loginEmail')?.value || 'admin@test.com';
-                const password = document.getElementById('loginPassword')?.value || 'password123';
+                const password = document.getElementById('loginPassword')?.value || ''; // No default password for security
                 
                 try {
                     const success = await loginToBackend(email, password);

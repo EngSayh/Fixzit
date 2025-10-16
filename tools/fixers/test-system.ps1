@@ -82,9 +82,22 @@ catch {
 Write-Host "`n🔐 1. Testing Authentication..." -ForegroundColor Cyan
 
 # Test login
+# Get credentials from environment or prompt
+$testEmail = $env:TEST_EMAIL
+if (-not $testEmail) {
+    $testEmail = Read-Host "Enter test email (default: admin@fixzit.co)"
+    if ([string]::IsNullOrWhiteSpace($testEmail)) { $testEmail = "admin@fixzit.co" }
+}
+
+$testPassword = $env:TEST_PASSWORD
+if (-not $testPassword) {
+    $securePassword = Read-Host "Enter test password" -AsSecureString
+    $testPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+}
+
 $loginBody = @{
-    email = "admin@fixzit.co"
-    password = "admin123"
+    email = $testEmail
+    password = $testPassword
 } | ConvertTo-Json
 
 $loginResponse = Test-Endpoint -Name "Admin Login" -Method "POST" -Url "$baseUrlBackend/api/auth/login" -Body $loginBody
