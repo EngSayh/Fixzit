@@ -42,8 +42,7 @@ const OrganizationSchema = new Schema<IOrganization>({
     required: [true, 'Organization name is required'],
     trim: true,
     minlength: [2, 'Organization name must be at least 2 characters'],
-    maxlength: [100, 'Organization name cannot exceed 100 characters'],
-    index: true
+    maxlength: [100, 'Organization name cannot exceed 100 characters']
   },
   nameAr: { 
     type: String,
@@ -54,15 +53,13 @@ const OrganizationSchema = new Schema<IOrganization>({
     type: String, 
     enum: ['Standard', 'Premium', 'Enterprise'],
     default: 'Standard',
-    required: true,
-    index: true
+    required: true
   },
   status: {
     type: String,
     enum: ['active', 'inactive', 'suspended', 'trial'],
     default: 'active',
-    required: true,
-    index: true
+    required: true
   },
   logoUrl: String,
   email: { type: String, trim: true, lowercase: true },
@@ -82,7 +79,7 @@ const OrganizationSchema = new Schema<IOrganization>({
     language: { type: String, default: 'en' },
     currency: { type: String, default: 'SAR' }
   },
-  isActive: { type: Boolean, default: true, index: true },
+  isActive: { type: Boolean, default: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' }
 }, { 

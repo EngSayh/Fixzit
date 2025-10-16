@@ -33,8 +33,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     schema.add({
       orgId: { 
         type: String, 
-        required: true, 
-        index: true 
+        required: true
       }
     });
   }

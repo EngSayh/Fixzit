@@ -34,7 +34,7 @@ const WorkOrderSchema = new Schema({
   // orgId: { type: String, required: true, index: true },
   
   // Basic Information
-  workOrderNumber: { type: String, required: true, unique: true },
+  workOrderNumber: { type: String, required: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
   type: { type: String, enum: WorkOrderType, required: true },
@@ -42,7 +42,7 @@ const WorkOrderSchema = new Schema({
   subcategory: String,
   
   // Priority and SLA
-  priority: { type: String, enum: Priority, required: true, default: "MEDIUM", index: true },
+  priority: { type: String, enum: Priority, required: true, default: "MEDIUM" },
   urgency: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"], default: "MEDIUM" },
   impact: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"], default: "MEDIUM" },
   
@@ -59,7 +59,7 @@ const WorkOrderSchema = new Schema({
 
   // Location Information
   location: {
-    propertyId: { type: String, required: true, index: true },
+    propertyId: { type: String, required: true },
     unitNumber: String,
     floor: String,
     building: String,
@@ -122,7 +122,7 @@ const WorkOrderSchema = new Schema({
   },
 
   // Status and Workflow
-  status: { type: String, enum: WorkOrderStatus, required: true, default: "DRAFT", index: true },
+  status: { type: String, enum: WorkOrderStatus, required: true, default: "DRAFT" },
   workflow: {
     requiresApproval: { type: Boolean, default: false },
     approver: String,

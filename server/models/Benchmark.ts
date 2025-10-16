@@ -21,7 +21,6 @@ const BenchmarkSchema = new Schema(
       type: Types.ObjectId, 
       ref: 'Organization',
       required: true,
-      index: true 
     },
   },
   { timestamps: true }

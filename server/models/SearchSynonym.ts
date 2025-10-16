@@ -1,7 +1,7 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
 const SearchSynonymSchema = new Schema({
-  locale: { type: String, enum: ['en','ar'], required: true, index: true },
+  locale: { type: String, enum: ['en','ar'], required: true },
   term: { type: String, required: true },
   synonyms: [String]
 }, { timestamps: true });

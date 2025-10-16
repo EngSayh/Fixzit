@@ -21,7 +21,7 @@ export interface MarketplaceAttributeSet {
 
 const AttributeSetSchema = new Schema<MarketplaceAttributeSet>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
     title: { type: String, required: true, trim: true },
     items: [
       {
@@ -37,6 +37,9 @@ const AttributeSetSchema = new Schema<MarketplaceAttributeSet>(
   },
   { timestamps: true }
 );
+
+// Indexes for efficient tenant-scoped queries
+AttributeSetSchema.index({ orgId: 1 });
 
 const AttributeSetModel =
   (models.MarketplaceAttributeSet as Model<MarketplaceAttributeSet> | undefined) ||

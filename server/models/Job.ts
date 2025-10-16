@@ -13,8 +13,8 @@ const JobSchema = new Schema({
   title: { type: String, required: true },
   department: { type: String },
   jobType: { type: String, enum: JobTypes, default: 'full-time' },
-  status: { type: String, enum: JobStatuses, default: 'draft', index: true },
-  visibility: { type: String, enum: JobVisibilities, default: 'internal', index: true },
+  status: { type: String, enum: JobStatuses, default: 'draft' },
+  visibility: { type: String, enum: JobVisibilities, default: 'internal' },
   location: {
     city: { type: String },
     country: { type: String },
@@ -43,6 +43,7 @@ const JobSchema = new Schema({
 
 JobSchema.index({ slug: 1 }, { unique: true });
 JobSchema.index({ title: 'text', description: 'text', requirements: 'text', skills: 'text', tags: 'text' });
+JobSchema.index({ orgId: 1, status: 1 });
 
 export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
 

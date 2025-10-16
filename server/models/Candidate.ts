@@ -1,11 +1,11 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
 
 const CandidateSchema = new Schema({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: String, required: true },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true },
-  emailLower: { type: String, required: true, index: true },
+  emailLower: { type: String, required: true },
   phone: { type: String },
   location: { type: String },
   linkedin: { type: String },

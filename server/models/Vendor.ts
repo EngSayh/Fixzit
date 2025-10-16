@@ -4,12 +4,12 @@ const VendorStatus = ["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLIST
 const VendorType = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"] as const;
 
 const VendorSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  type: { type: String, enum: VendorType, required: true, index: true },
+  type: { type: String, enum: VendorType, required: true },
 
   // Contact Information
   contact: {
@@ -53,7 +53,7 @@ const VendorSchema = new Schema({
   },
 
   // Approval Status
-  status: { type: String, enum: VendorStatus, default: "PENDING", index: true },
+  status: { type: String, enum: VendorStatus, default: "PENDING" },
   approval: {
     approvedBy: String,
     approvedAt: Date,

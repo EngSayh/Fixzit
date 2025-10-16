@@ -7,7 +7,7 @@ const ComplianceStatus = ["COMPLIANT", "NON_COMPLIANT", "PENDING_REVIEW", "UNDER
 
 const OrganizationSchema = new Schema({
   // Primary identifier for multi-tenancy
-  orgId: { type: String, required: true, unique: true, index: true },
+  orgId: { type: String, required: true, unique: true },
 
   // Basic Information
   name: { type: String, required: true },

@@ -9,15 +9,15 @@ const Message = new Schema({
 }, { _id: false });
 
 const SupportTicketSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
-  code: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
+  code: { type: String, required: true },
   subject: { type: String, required: true },
-  module: { type: String, enum: ["FM","Souq","Aqar","Account","Billing","Other"], default: "Other", index: true },
-  type:   { type: String, enum: ["Bug","Feature","Complaint","Billing","Access","Other"], default: "Other", index: true },
-  priority: { type: String, enum: ["Low","Medium","High","Urgent"], default: "Medium", index: true },
-  category: { type: String, enum: ["Technical","Feature Request","Billing","Account","General","Bug Report"], default: "General", index: true },
-  subCategory: { type: String, enum: ["Bug Report","Performance Issue","UI Error","API Error","Database Error","New Feature","Enhancement","Integration","Customization","Mobile App","Invoice Issue","Payment Error","Subscription","Refund","Pricing","Login Issue","Password Reset","Profile Update","Permissions","Access Denied","Documentation","Training","Support","Feedback","Other","Critical Bug","Minor Bug","Cosmetic Issue","Data Error","Security Issue"], default: "Other", index: true },
-  status: { type: String, enum: ["New","Open","Waiting","Resolved","Closed"], default: "New", index: true },
+  module: { type: String, enum: ["FM","Souq","Aqar","Account","Billing","Other"], default: "Other" },
+  type:   { type: String, enum: ["Bug","Feature","Complaint","Billing","Access","Other"], default: "Other" },
+  priority: { type: String, enum: ["Low","Medium","High","Urgent"], default: "Medium" },
+  category: { type: String, enum: ["Technical","Feature Request","Billing","Account","General","Bug Report"], default: "General" },
+  subCategory: { type: String, enum: ["Bug Report","Performance Issue","UI Error","API Error","Database Error","New Feature","Enhancement","Integration","Customization","Mobile App","Invoice Issue","Payment Error","Subscription","Refund","Pricing","Login Issue","Password Reset","Profile Update","Permissions","Access Denied","Documentation","Training","Support","Feedback","Other","Critical Bug","Minor Bug","Cosmetic Issue","Data Error","Security Issue"], default: "Other" },
+  status: { type: String, enum: ["New","Open","Waiting","Resolved","Closed"], default: "New" },
   createdByUserId: { type: String },
   requester: { name:String, email:String, phone:String },
   messages: { type: [Message], default: [] },

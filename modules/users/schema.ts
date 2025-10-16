@@ -19,19 +19,18 @@ export interface IUser extends Document {
 }
 
 const UserSchema = new Schema<IUser>({
-  orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
   email: { type: String, required: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true, select: false },
   name: { type: String, required: true, trim: true },
   role: {
     type: String,
     enum: ['super_admin', 'corporate_admin', 'management', 'finance', 'hr', 'employee', 'property_owner', 'technician', 'tenant', 'vendor', 'guest'],
-    required: true,
-    index: true
+    required: true
   },
-  employeeId: { type: String, trim: true, sparse: true, index: true },
+  employeeId: { type: String, trim: true, sparse: true },
   permissions: [{ type: String }],
-  isActive: { type: Boolean, default: true, index: true },
+  isActive: { type: Boolean, default: true },
   emailVerifiedAt: Date,
   lastLoginAt: Date,
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },

@@ -6,7 +6,6 @@ const ServiceAgreementSchema = new Schema(
       type: Types.ObjectId,
       ref: 'Organization',
       required: true,
-      index: true
     },
     subscriber_type: { 
       type: String, 

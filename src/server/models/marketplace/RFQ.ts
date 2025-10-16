@@ -27,8 +27,8 @@ export interface MarketplaceRFQ {
 
 const RFQSchema = new Schema<MarketplaceRFQ>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
-    requesterId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
+    requesterId: { type: Schema.Types.ObjectId, required: true },
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     categoryId: { type: Schema.Types.ObjectId },
@@ -36,7 +36,7 @@ const RFQSchema = new Schema<MarketplaceRFQ>(
     budget: { type: Number },
     currency: { type: String, default: 'SAR' },
     deadline: { type: Date },
-    status: { type: String, enum: ['OPEN', 'CLOSED', 'AWARDED'], default: 'OPEN', index: true },
+    status: { type: String, enum: ['OPEN', 'CLOSED', 'AWARDED'], default: 'OPEN' },
     bids: [
       {
         vendorId: { type: Schema.Types.ObjectId, required: true },

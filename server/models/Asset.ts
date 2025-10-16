@@ -6,7 +6,7 @@ const AssetType = ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GE
 const MaintenanceType = ["PREVENTIVE", "CORRECTIVE", "PREDICTIVE", "INSPECTION"] as const;
 
 const AssetSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true }, // Asset ID
@@ -14,14 +14,14 @@ const AssetSchema = new Schema({
   description: { type: String },
 
   // Classification
-  type: { type: String, enum: AssetType, required: true, index: true },
+  type: { type: String, enum: AssetType, required: true },
   category: { type: String, required: true }, // Subcategory
   manufacturer: { type: String },
   model: { type: String },
   serialNumber: { type: String },
 
   // Location
-  propertyId: { type: String, required: true, index: true }, // Reference to Property model
+  propertyId: { type: String, required: true }, // Reference to Property model
   location: {
     building: String,
     floor: String,
@@ -59,14 +59,12 @@ const AssetSchema = new Schema({
   status: {
     type: String,
     enum: ["ACTIVE", "MAINTENANCE", "OUT_OF_SERVICE", "DECOMMISSIONED"],
-    default: "ACTIVE",
-    index: true
+    default: "ACTIVE"
   },
   criticality: {
     type: String,
     enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
-    default: "MEDIUM",
-    index: true
+    default: "MEDIUM"
   },
 
   // Maintenance History

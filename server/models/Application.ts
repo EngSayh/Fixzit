@@ -42,10 +42,10 @@ const SnapshotSchema = new Schema({
 }, { _id: false });
 
 const ApplicationSchema = new Schema({
-  orgId: { type: String, required: true, index: true },
-  jobId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Job' },
-  candidateId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Candidate' },
-  stage: { type: String, enum: ApplicationStages, default: 'applied', index: true },
+  orgId: { type: String, required: true },
+  jobId: { type: Schema.Types.ObjectId, required: true, ref: 'Job' },
+  candidateId: { type: Schema.Types.ObjectId, required: true, ref: 'Candidate' },
+  stage: { type: String, enum: ApplicationStages, default: 'applied' },
   score: { type: Number, default: 0 },
   source: { type: String, default: 'careers' },
   answers: { type: [Schema.Types.Mixed], default: [] },
