@@ -3,16 +3,20 @@
 ## Ready to Test? Start Here! 👇
 
 ### 1. Start the Dev Server
+
 ```bash
 cd /workspaces/Fixzit
 pnpm dev
 ```
-**Server URL:** http://localhost:3000 (or 3001/3002 if port in use)
+
+**Server URL:** <http://localhost:3000> (or 3001/3002 if port in use)
 
 ---
 
 ### 2. Verify Authentication Works
+
 Test Super Admin login:
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -20,6 +24,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -35,6 +40,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 ---
 
 ### 3. Test All 14 Users (Quick Verification)
+
 Copy and paste this entire block:
 
 ```bash
@@ -71,7 +77,8 @@ done
 ### 4. Begin Browser E2E Testing
 
 #### Open Browser
-Navigate to: **http://localhost:3000/login**
+
+Navigate to: **<http://localhost:3000/login>**
 
 #### Testing Checklist (50 minutes per user)
 
@@ -116,6 +123,7 @@ Navigate to: **http://localhost:3000/login**
    - [ ] Cannot access protected pages
 
 #### Document Results
+
 After each user, update `/docs/E2E_TEST_RESULTS.md`:
 
 ```markdown
@@ -133,24 +141,27 @@ After each user, update `/docs/E2E_TEST_RESULTS.md`:
 ### 5. Testing Order (Recommended)
 
 #### Session 1 (4 hours) - Admin & Management
-1. Super Admin (superadmin@fixzit.co)
-2. Corporate Admin (corp.admin@fixzit.co)
-3. Property Manager (property.manager@fixzit.co)
-4. Operations Dispatcher (ops.dispatcher@fixzit.co)
-5. Supervisor (supervisor@fixzit.co)
+
+1. Super Admin (<superadmin@fixzit.co>)
+2. Corporate Admin (<corp.admin@fixzit.co>)
+3. Property Manager (<property.manager@fixzit.co>)
+4. Operations Dispatcher (<ops.dispatcher@fixzit.co>)
+5. Supervisor (<supervisor@fixzit.co>)
 
 #### Session 2 (4 hours) - Operational Roles
-6. Internal Technician (tech.internal@fixzit.co)
-7. Vendor Admin (vendor.admin@fixzit.co)
-8. Vendor Technician (vendor.tech@fixzit.co)
-9. Tenant/Resident (tenant.resident@fixzit.co)
-10. Owner/Landlord (owner.landlord@fixzit.co)
+
+6. Internal Technician (<tech.internal@fixzit.co>)
+7. Vendor Admin (<vendor.admin@fixzit.co>)
+8. Vendor Technician (<vendor.tech@fixzit.co>)
+9. Tenant/Resident (<tenant.resident@fixzit.co>)
+10. Owner/Landlord (<owner.landlord@fixzit.co>)
 
 #### Session 3 (3.5 hours) - Support & Compliance
-11. Finance Manager (finance.manager@fixzit.co)
-12. HR Manager (hr.manager@fixzit.co)
-13. Helpdesk Agent (helpdesk.agent@fixzit.co)
-14. Auditor/Compliance (auditor.compliance@fixzit.co)
+
+11. Finance Manager (<finance.manager@fixzit.co>)
+12. HR Manager (<hr.manager@fixzit.co>)
+13. Helpdesk Agent (<helpdesk.agent@fixzit.co>)
+14. Auditor/Compliance (<auditor.compliance@fixzit.co>)
 
 ---
 
@@ -209,20 +220,20 @@ pnpm lint
 
 | # | Email | Role | Organization |
 |---|-------|------|--------------|
-| 1 | superadmin@fixzit.co | super_admin | platform-org-001 |
-| 2 | corp.admin@fixzit.co | corporate_admin | acme-corp-001 |
-| 3 | property.manager@fixzit.co | property_manager | acme-corp-001 |
-| 4 | ops.dispatcher@fixzit.co | operations_dispatcher | acme-corp-001 |
-| 5 | supervisor@fixzit.co | supervisor | acme-corp-001 |
-| 6 | tech.internal@fixzit.co | technician_internal | acme-corp-001 |
-| 7 | vendor.admin@fixzit.co | vendor_admin | acme-corp-001 |
-| 8 | vendor.tech@fixzit.co | vendor_technician | acme-corp-001 |
-| 9 | tenant.resident@fixzit.co | tenant_resident | acme-corp-001 |
-| 10 | owner.landlord@fixzit.co | owner_landlord | acme-corp-001 |
-| 11 | finance.manager@fixzit.co | finance_manager | acme-corp-001 |
-| 12 | hr.manager@fixzit.co | hr_manager | acme-corp-001 |
-| 13 | helpdesk.agent@fixzit.co | helpdesk_agent | acme-corp-001 |
-| 14 | auditor.compliance@fixzit.co | auditor_compliance | acme-corp-001 |
+| 1 | <superadmin@fixzit.co> | super_admin | platform-org-001 |
+| 2 | <corp.admin@fixzit.co> | corporate_admin | acme-corp-001 |
+| 3 | <property.manager@fixzit.co> | property_manager | acme-corp-001 |
+| 4 | <ops.dispatcher@fixzit.co> | operations_dispatcher | acme-corp-001 |
+| 5 | <supervisor@fixzit.co> | supervisor | acme-corp-001 |
+| 6 | <tech.internal@fixzit.co> | technician_internal | acme-corp-001 |
+| 7 | <vendor.admin@fixzit.co> | vendor_admin | acme-corp-001 |
+| 8 | <vendor.tech@fixzit.co> | vendor_technician | acme-corp-001 |
+| 9 | <tenant.resident@fixzit.co> | tenant_resident | acme-corp-001 |
+| 10 | <owner.landlord@fixzit.co> | owner_landlord | acme-corp-001 |
+| 11 | <finance.manager@fixzit.co> | finance_manager | acme-corp-001 |
+| 12 | <hr.manager@fixzit.co> | hr_manager | acme-corp-001 |
+| 13 | <helpdesk.agent@fixzit.co> | helpdesk_agent | acme-corp-001 |
+| 14 | <auditor.compliance@fixzit.co> | auditor_compliance | acme-corp-001 |
 
 ---
 
@@ -262,7 +273,7 @@ pnpm lint
 
 ---
 
-## 🚦 Ready? Let's Go!
+## 🚦 Ready? Let's Go
 
 **Start with Step 1 above** ☝️
 
@@ -271,6 +282,7 @@ Good luck with the testing! 🚀
 ---
 
 **Need Help?**
+
 - All authentication bugs are fixed ✅
 - Test users are seeded and ready ✅
 - Documentation is comprehensive ✅

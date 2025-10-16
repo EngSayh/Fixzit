@@ -81,5 +81,6 @@
     "**/.next/**": true,
     "**/build/**": true,
     "**/.turbo/**": true
-  }
+  },
+  "chatgpt.openOnStartup": true
 }
