@@ -34,7 +34,7 @@ export default function ResponsiveLayout({
   const showSidebar = sidebar && (screenInfo.isDesktop || screenInfo.isLarge || sidebarOpen);
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>
+    <div className={`min-h-screen flex flex-col bg-gray-50 ${className}`}>
       {/* Header */}
       {header && (
         <div className="sticky top-0 z-40">
@@ -52,7 +52,7 @@ export default function ResponsiveLayout({
         </button>
       )}
 
-      <div className="flex">
+      <div className="flex flex-1">
         {/* Sidebar */}
         {sidebar && (
           <div className={`
@@ -74,17 +74,17 @@ export default function ResponsiveLayout({
 
         {/* Main content */}
         <main className={`
-          flex-1 transition-all duration-300
+          flex-1 flex flex-col transition-all duration-300
           ${sidebar && (screenInfo.isMobile || screenInfo.isTablet) && sidebarOpen ? 'ml-0' : ''}
           ${sidebar && screenInfo.isDesktop ? 'ml-0' : ''}
         `}>
-          <div className={`${responsiveClasses.container} py-6`}>
+          <div className={`${responsiveClasses.container} py-6 flex-1`}>
             {children}
           </div>
         </main>
       </div>
 
-      {/* Footer */}
+      {/* Footer - sticky at bottom */}
       {footer && (
         <div className="mt-auto">
           {footer}
