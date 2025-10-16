@@ -2,24 +2,54 @@
 
 ## Overview
 
-This suite tests your **live production system** at `https://fixzit-souq.com` (or your configured URL).
+This suite tests your **live production system** with comprehensive security and proper secrets management.
+
+**🔒 IMPORTANT:** This script now **requires** all environment variables to be set. No default values are used for security.
+
+**📚 For complete secrets management guide, see:** [`PRODUCTION_E2E_SECRETS_MANAGEMENT.md`](PRODUCTION_E2E_SECRETS_MANAGEMENT.md)
+
+## Prerequisites
+
+### Required Environment Variables (ALL REQUIRED):
+```bash
+PRODUCTION_URL      # Production URL
+ADMIN_EMAIL         # Admin user email
+ADMIN_PASSWORD      # Admin user password
+PM_EMAIL            # Property Manager email
+PM_PASSWORD         # Property Manager password
+TENANT_EMAIL        # Tenant user email
+TENANT_PASSWORD     # Tenant user password
+VENDOR_EMAIL        # Vendor user email
+VENDOR_PASSWORD     # Vendor user password
+HR_EMAIL            # HR Manager email
+HR_PASSWORD         # HR Manager password
+```
+
+**Note:** The script will exit with an error if any variable is missing.
 
 ## Setup
 
-### 1. Configure Production URL and Credentials
+### 1. Configure Secrets (Choose One Method)
 
-Edit `.env.production.test` with your actual production details:
-
+**Option A: GitHub Secrets** (Recommended for CI/CD)
 ```bash
-# Set your production URL
-PRODUCTION_URL=https://your-actual-domain.com
-
-# Add real test user credentials
-ADMIN_EMAIL=admin@yourdomain.com
-ADMIN_PASSWORD=your-secure-password
-
-# Add more users as needed
+# Add to: Settings → Secrets and variables → Actions
+# Add all 11 required variables
 ```
+
+**Option B: Environment File** (Local testing only)
+```bash
+# Create .env.production (gitignored!)
+cat > .env.production << 'EOF'
+PRODUCTION_URL=https://your-url.com
+ADMIN_EMAIL=test-admin@company.com
+ADMIN_PASSWORD=your-secure-password
+# ... all variables
+EOF
+```
+
+**Option C: HashiCorp Vault / AWS Secrets Manager**
+See [`PRODUCTION_E2E_SECRETS_MANAGEMENT.md`](PRODUCTION_E2E_SECRETS_MANAGEMENT.md) for full guide
 
 ### 2. Run the Tests
 

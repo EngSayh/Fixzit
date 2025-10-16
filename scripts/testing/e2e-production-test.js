@@ -4,39 +4,94 @@
  * Production E2E Test Suite
  * Tests the live production system at the provided URL
  * Tests all pages with all user roles
+ * 
+ * REQUIRED ENVIRONMENT VARIABLES:
+ *   PRODUCTION_URL     - Production URL to test
+ *   ADMIN_EMAIL        - Admin user email
+ *   ADMIN_PASSWORD     - Admin user password
+ *   PM_EMAIL           - Property Manager email
+ *   PM_PASSWORD        - Property Manager password
+ *   TENANT_EMAIL       - Tenant user email
+ *   TENANT_PASSWORD    - Tenant user password
+ *   VENDOR_EMAIL       - Vendor user email
+ *   VENDOR_PASSWORD    - Vendor user password
+ *   HR_EMAIL           - HR Manager email
+ *   HR_PASSWORD        - HR Manager password
+ * 
+ * Usage:
+ *   Set environment variables in your CI/CD secrets or .env file
+ *   Then run: node scripts/testing/e2e-production-test.js
+ * 
+ * Security:
+ *   - Never hardcode credentials
+ *   - Use permission-scoped test accounts
+ *   - Rotate credentials regularly in your secrets manager
+ *   - Store in GitHub Secrets, GitLab CI/CD variables, or Vault
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Configuration - UPDATE THESE WITH YOUR PRODUCTION VALUES
+// Validate required environment variables
+const REQUIRED_ENV_VARS = [
+  'PRODUCTION_URL',
+  'ADMIN_EMAIL', 'ADMIN_PASSWORD',
+  'PM_EMAIL', 'PM_PASSWORD',
+  'TENANT_EMAIL', 'TENANT_PASSWORD',
+  'VENDOR_EMAIL', 'VENDOR_PASSWORD',
+  'HR_EMAIL', 'HR_PASSWORD'
+];
+
+const missingVars = REQUIRED_ENV_VARS.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('❌ ERROR: Missing required environment variables\n');
+  console.error('The following environment variables must be set:');
+  missingVars.forEach(varName => {
+    console.error(`  - ${varName}`);
+  });
+  console.error('\nPlease configure these in your CI/CD secrets or environment.');
+  console.error('Example:');
+  console.error('  export PRODUCTION_URL=https://your-production-url.com');
+  console.error('  export ADMIN_EMAIL=admin@example.com');
+  console.error('  export ADMIN_PASSWORD=secure_password');
+  console.error('  # ... set all required variables\n');
+  console.error('For security:');
+  console.error('  - Use GitHub Secrets, GitLab CI variables, or Vault');
+  console.error('  - Never commit credentials to version control');
+  console.error('  - Use dedicated test accounts with minimal permissions');
+  console.error('  - Rotate credentials regularly\n');
+  process.exit(1);
+}
+
+// Configuration - ALL VALUES FROM ENVIRONMENT (NO DEFAULTS)
 const CONFIG = {
-  baseUrl: process.env.PRODUCTION_URL || 'https://fixzit-souq.com',
+  baseUrl: process.env.PRODUCTION_URL,
   timeout: 30000,
   testUsers: {
     admin: {
-      email: process.env.ADMIN_EMAIL || 'admin@fixzit-souq.com',
-      password: process.env.ADMIN_PASSWORD || '',
+      email: process.env.ADMIN_EMAIL,
+      password: process.env.ADMIN_PASSWORD,
       role: 'admin'
     },
     propertyManager: {
-      email: process.env.PM_EMAIL || 'pm@fixzit-souq.com',
-      password: process.env.PM_PASSWORD || '',
+      email: process.env.PM_EMAIL,
+      password: process.env.PM_PASSWORD,
       role: 'property_manager'
     },
     tenant: {
-      email: process.env.TENANT_EMAIL || 'tenant@fixzit-souq.com',
-      password: process.env.TENANT_PASSWORD || '',
+      email: process.env.TENANT_EMAIL,
+      password: process.env.TENANT_PASSWORD,
       role: 'tenant'
     },
     vendor: {
-      email: process.env.VENDOR_EMAIL || 'vendor@fixzit-souq.com',
-      password: process.env.VENDOR_PASSWORD || '',
+      email: process.env.VENDOR_EMAIL,
+      password: process.env.VENDOR_PASSWORD,
       role: 'vendor'
     },
     hrManager: {
-      email: process.env.HR_EMAIL || 'hr@fixzit-souq.com',
-      password: process.env.HR_PASSWORD || '',
+      email: process.env.HR_EMAIL,
+      password: process.env.HR_PASSWORD,
       role: 'hr_manager'
     }
   },
@@ -76,11 +131,12 @@ const results = {
 /**
  * Test a single page with HTTP request
  */
-async function testPageHttp(url, testName, userRole = 'anonymous') {
+async function testPageHttp(url, testName, userRole = 'anonymous', pageRequiresAuth = false) {
   const test = {
     testName,
     userRole,
     url,
+    requiresAuth: pageRequiresAuth,
     timestamp: new Date().toISOString(),
     status: 'pending'
   };
@@ -88,37 +144,64 @@ async function testPageHttp(url, testName, userRole = 'anonymous') {
   try {
     console.log(`\n🧪 Testing: ${testName} (${userRole})`);
     console.log(`   URL: ${url}`);
+    console.log(`   Requires Auth: ${pageRequiresAuth ? 'Yes' : 'No'}`);
 
     const startTime = Date.now();
     
     // Use curl for HTTP testing (works in any environment)
     const { execSync } = require('child_process');
     
-    const curlCommand = `curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "${url}"`;
-    const output = execSync(curlCommand, { encoding: 'utf-8' }).trim();
+    // Added -S flag to show errors and 2>&1 to capture stderr
+    const curlCommand = `curl -sS -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "${url}" 2>&1`;
+    
+    let output, curlError = null;
+    try {
+      output = execSync(curlCommand, { encoding: 'utf-8' }).trim();
+    } catch (err) {
+      // Capture curl errors for diagnostics
+      curlError = err.stdout || err.stderr || err.message;
+      output = curlError;
+    }
+    
     const [statusCode, responseTime] = output.split('|');
     
     const duration = Date.now() - startTime;
 
-    test.statusCode = parseInt(statusCode);
-    test.responseTime = parseFloat(responseTime) * 1000; // Convert to ms
+    test.statusCode = parseInt(statusCode) || 0;
+    test.responseTime = responseTime ? parseFloat(responseTime) * 1000 : duration;
     test.duration = duration;
+    
+    if (curlError) {
+      test.curlError = curlError;
+      test.diagnostics = `Curl error: ${curlError}`;
+    }
 
-    // Determine if test passed
+    // Determine if test passed based on expected auth requirement
     if (test.statusCode >= 200 && test.statusCode < 400) {
       test.status = 'passed';
       test.message = `✅ Page loaded successfully (${test.statusCode})`;
       console.log(`   ✅ PASSED: ${test.statusCode} in ${test.responseTime.toFixed(0)}ms`);
       results.summary.passed++;
     } else if (test.statusCode === 401 || test.statusCode === 403) {
-      test.status = 'passed'; // Expected for auth-required pages
-      test.message = `✅ Auth required as expected (${test.statusCode})`;
-      console.log(`   ✅ PASSED: ${test.statusCode} (auth required)`);
-      results.summary.passed++;
+      // Only treat 401/403 as pass if auth is explicitly required
+      if (pageRequiresAuth) {
+        test.status = 'passed';
+        test.message = `✅ Auth required as expected (${test.statusCode})`;
+        console.log(`   ✅ PASSED: ${test.statusCode} (auth required)`);
+        results.summary.passed++;
+      } else {
+        test.status = 'failed';
+        test.message = `❌ Unexpected auth error on public page (${test.statusCode})`;
+        console.log(`   ❌ FAILED: ${test.statusCode} - Public page should not require auth`);
+        results.summary.failed++;
+      }
     } else {
       test.status = 'failed';
       test.message = `❌ Unexpected status code: ${test.statusCode}`;
       console.log(`   ❌ FAILED: ${test.statusCode}`);
+      if (test.diagnostics) {
+        console.log(`   📋 Diagnostics: ${test.diagnostics}`);
+      }
       results.summary.failed++;
     }
 
@@ -235,7 +318,7 @@ async function runTests() {
   // Test 1: Public pages (no auth)
   console.log('\n📋 TEST SECTION 1: PUBLIC PAGES (No Authentication)\n');
   for (const page of CONFIG.pages.filter(p => !p.requiresAuth)) {
-    await testPageHttp(`${CONFIG.baseUrl}${page.path}`, page.name, 'anonymous');
+    await testPageHttp(`${CONFIG.baseUrl}${page.path}`, page.name, 'anonymous', false);
   }
 
   // Test 2: Login functionality for each user type
@@ -247,7 +330,7 @@ async function runTests() {
   // Test 3: Protected pages (should redirect or return 401/403)
   console.log('\n\n📋 TEST SECTION 3: PROTECTED PAGES (Should require auth)\n');
   for (const page of CONFIG.pages.filter(p => p.requiresAuth)) {
-    await testPageHttp(`${CONFIG.baseUrl}${page.path}`, page.name, 'anonymous');
+    await testPageHttp(`${CONFIG.baseUrl}${page.path}`, page.name, 'anonymous', true);
   }
 
   // Test 4: Health checks and API endpoints
