@@ -1,0 +1,593 @@
+{
+  "summary": {
+    "date": "2025-10-16T03:42:01.603Z",
+    "baseUrl": "http://localhost:3000",
+    "totalTests": 14,
+    "passedTests": 0,
+    "failedTests": 14,
+    "successRate": "0.00",
+    "durationSeconds": "140.06"
+  },
+  "userStats": {
+    "super_admin": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "corporate_admin": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "property_manager": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "operations_dispatcher": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "supervisor": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "technician_internal": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "vendor_admin": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "vendor_technician": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "tenant_resident": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "owner_landlord": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "finance_manager": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "hr_manager": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "helpdesk_agent": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "auditor_compliance": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    }
+  },
+  "pageStats": {
+    "/": {
+      "name": "Landing Page",
+      "failed": 0,
+      "total": 0
+    },
+    "/login": {
+      "name": "Login Page",
+      "failed": 0,
+      "total": 0
+    },
+    "/signup": {
+      "name": "Signup Page",
+      "failed": 0,
+      "total": 0
+    },
+    "/forgot-password": {
+      "name": "Forgot Password",
+      "failed": 0,
+      "total": 0
+    },
+    "/dashboard": {
+      "name": "Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/profile": {
+      "name": "Profile",
+      "failed": 0,
+      "total": 0
+    },
+    "/settings": {
+      "name": "Settings",
+      "failed": 0,
+      "total": 0
+    },
+    "/notifications": {
+      "name": "Notifications",
+      "failed": 0,
+      "total": 0
+    },
+    "/logout": {
+      "name": "Logout",
+      "failed": 0,
+      "total": 0
+    },
+    "/work-orders": {
+      "name": "Work Orders List",
+      "failed": 0,
+      "total": 0
+    },
+    "/work-orders/new": {
+      "name": "New Work Order",
+      "failed": 0,
+      "total": 0
+    },
+    "/work-orders/board": {
+      "name": "Work Orders Board",
+      "failed": 0,
+      "total": 0
+    },
+    "/work-orders/approvals": {
+      "name": "Work Order Approvals",
+      "failed": 0,
+      "total": 0
+    },
+    "/work-orders/history": {
+      "name": "Service History",
+      "failed": 0,
+      "total": 0
+    },
+    "/work-orders/pm": {
+      "name": "Preventive Maintenance",
+      "failed": 0,
+      "total": 0
+    },
+    "/finance": {
+      "name": "Finance Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/finance/invoices/new": {
+      "name": "New Invoice",
+      "failed": 0,
+      "total": 0
+    },
+    "/finance/payments/new": {
+      "name": "New Payment",
+      "failed": 0,
+      "total": 0
+    },
+    "/finance/expenses/new": {
+      "name": "New Expense",
+      "failed": 0,
+      "total": 0
+    },
+    "/finance/budgets/new": {
+      "name": "New Budget",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm": {
+      "name": "FM Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/dashboard": {
+      "name": "FM Dashboard Alt",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/work-orders": {
+      "name": "FM Work Orders",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/properties": {
+      "name": "FM Properties",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/assets": {
+      "name": "FM Assets",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/tenants": {
+      "name": "FM Tenants",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/vendors": {
+      "name": "FM Vendors",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/invoices": {
+      "name": "FM Invoices",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/projects": {
+      "name": "FM Projects",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/maintenance": {
+      "name": "FM Maintenance",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/rfqs": {
+      "name": "FM RFQs",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/orders": {
+      "name": "FM Orders",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/marketplace": {
+      "name": "FM Marketplace",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/finance": {
+      "name": "FM Finance",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/hr": {
+      "name": "FM HR",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/support": {
+      "name": "FM Support",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/support/tickets": {
+      "name": "FM Support Tickets",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/system": {
+      "name": "FM System",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/reports": {
+      "name": "FM Reports",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/compliance": {
+      "name": "FM Compliance",
+      "failed": 0,
+      "total": 0
+    },
+    "/fm/crm": {
+      "name": "FM CRM",
+      "failed": 0,
+      "total": 0
+    },
+    "/properties": {
+      "name": "Properties",
+      "failed": 0,
+      "total": 0
+    },
+    "/properties/units": {
+      "name": "Property Units",
+      "failed": 0,
+      "total": 0
+    },
+    "/properties/leases": {
+      "name": "Property Leases",
+      "failed": 0,
+      "total": 0
+    },
+    "/properties/inspections": {
+      "name": "Property Inspections",
+      "failed": 0,
+      "total": 0
+    },
+    "/properties/documents": {
+      "name": "Property Documents",
+      "failed": 0,
+      "total": 0
+    },
+    "/marketplace/search": {
+      "name": "Marketplace Search",
+      "failed": 0,
+      "total": 0
+    },
+    "/marketplace/cart": {
+      "name": "Shopping Cart",
+      "failed": 0,
+      "total": 0
+    },
+    "/marketplace/checkout": {
+      "name": "Checkout",
+      "failed": 0,
+      "total": 0
+    },
+    "/marketplace/orders": {
+      "name": "Marketplace Orders",
+      "failed": 0,
+      "total": 0
+    },
+    "/marketplace/rfq": {
+      "name": "Marketplace RFQ",
+      "failed": 0,
+      "total": 0
+    },
+    "/marketplace/vendor": {
+      "name": "Vendor Portal",
+      "failed": 0,
+      "total": 0
+    },
+    "/marketplace/admin": {
+      "name": "Marketplace Admin",
+      "failed": 0,
+      "total": 0
+    },
+    "/aqar": {
+      "name": "Aqar Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/aqar/properties": {
+      "name": "Aqar Properties",
+      "failed": 0,
+      "total": 0
+    },
+    "/aqar/map": {
+      "name": "Aqar Map",
+      "failed": 0,
+      "total": 0
+    },
+    "/souq": {
+      "name": "Souq Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/souq/catalog": {
+      "name": "Souq Catalog",
+      "failed": 0,
+      "total": 0
+    },
+    "/souq/vendors": {
+      "name": "Souq Vendors",
+      "failed": 0,
+      "total": 0
+    },
+    "/hr": {
+      "name": "HR Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/hr/ats/jobs/new": {
+      "name": "Post New Job",
+      "failed": 0,
+      "total": 0
+    },
+    "/careers": {
+      "name": "Careers Page",
+      "failed": 0,
+      "total": 0
+    },
+    "/help": {
+      "name": "Help Center",
+      "failed": 0,
+      "total": 0
+    },
+    "/help/ai-chat": {
+      "name": "AI Chat Support",
+      "failed": 0,
+      "total": 0
+    },
+    "/help/support-ticket": {
+      "name": "Create Support Ticket",
+      "failed": 0,
+      "total": 0
+    },
+    "/help/tutorial/getting-started": {
+      "name": "Getting Started Tutorial",
+      "failed": 0,
+      "total": 0
+    },
+    "/support": {
+      "name": "Support Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/support/my-tickets": {
+      "name": "My Support Tickets",
+      "failed": 0,
+      "total": 0
+    },
+    "/admin": {
+      "name": "Admin Panel",
+      "failed": 0,
+      "total": 0
+    },
+    "/admin/cms": {
+      "name": "Admin CMS",
+      "failed": 0,
+      "total": 0
+    },
+    "/vendors": {
+      "name": "Vendors",
+      "failed": 0,
+      "total": 0
+    },
+    "/vendor/dashboard": {
+      "name": "Vendor Dashboard",
+      "failed": 0,
+      "total": 0
+    },
+    "/crm": {
+      "name": "CRM",
+      "failed": 0,
+      "total": 0
+    },
+    "/compliance": {
+      "name": "Compliance",
+      "failed": 0,
+      "total": 0
+    },
+    "/reports": {
+      "name": "Reports",
+      "failed": 0,
+      "total": 0
+    },
+    "/system": {
+      "name": "System",
+      "failed": 0,
+      "total": 0
+    }
+  },
+  "detailedResults": [
+    {
+      "user": "Super Admin",
+      "role": "super_admin",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:39:51.546Z"
+    },
+    {
+      "user": "Corporate Admin",
+      "role": "corporate_admin",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:40:01.548Z"
+    },
+    {
+      "user": "Property Manager",
+      "role": "property_manager",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:40:11.554Z"
+    },
+    {
+      "user": "Operations Dispatcher",
+      "role": "operations_dispatcher",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:40:21.558Z"
+    },
+    {
+      "user": "Supervisor",
+      "role": "supervisor",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:40:31.563Z"
+    },
+    {
+      "user": "Internal Technician",
+      "role": "technician_internal",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:40:41.569Z"
+    },
+    {
+      "user": "Vendor Admin",
+      "role": "vendor_admin",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:40:51.573Z"
+    },
+    {
+      "user": "Vendor Technician",
+      "role": "vendor_technician",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:41:01.577Z"
+    },
+    {
+      "user": "Tenant/Resident",
+      "role": "tenant_resident",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:41:11.580Z"
+    },
+    {
+      "user": "Owner/Landlord",
+      "role": "owner_landlord",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:41:21.583Z"
+    },
+    {
+      "user": "Finance Manager",
+      "role": "finance_manager",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:41:31.587Z"
+    },
+    {
+      "user": "HR Manager",
+      "role": "hr_manager",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:41:41.593Z"
+    },
+    {
+      "user": "Helpdesk Agent",
+      "role": "helpdesk_agent",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:41:51.597Z"
+    },
+    {
+      "user": "Auditor/Compliance",
+      "role": "auditor_compliance",
+      "page": "LOGIN",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "result": "Login failed: Request timeout",
+      "timestamp": "2025-10-16T03:42:01.601Z"
+    }
+  ]
+}
