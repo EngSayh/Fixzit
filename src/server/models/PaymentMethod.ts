@@ -13,7 +13,7 @@ const PaymentMethodSchema = new Schema(
       // Note: required conditionally in validation - see validate hook below
     },
     gateway: { type: String, default: 'PAYTABS' },
-    pt_token: { type: String, index: true },
+    pt_token: { type: String },
     pt_masked_card: String,
     pt_customer_email: String,
   },

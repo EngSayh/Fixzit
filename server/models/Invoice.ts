@@ -4,12 +4,12 @@ const InvoiceStatus = ["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID"
 const InvoiceType = ["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"] as const;
 
 const InvoiceSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
 
   // Basic Information
-  number: { type: String, required: true, unique: true },
-  type: { type: String, enum: InvoiceType, required: true, index: true },
-  status: { type: String, enum: InvoiceStatus, default: "DRAFT", index: true },
+  number: { type: String, required: true },
+  type: { type: String, enum: InvoiceType, required: true },
+  status: { type: String, enum: InvoiceStatus, default: "DRAFT" },
 
   // Parties
   issuer: {

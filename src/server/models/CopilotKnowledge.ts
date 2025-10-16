@@ -1,16 +1,16 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
 const KnowledgeSchema = new Schema({
-  tenantId: { type: String, index: true, default: null },
-  roles: { type: [String], index: true, default: [] },
-  locale: { type: String, index: true, default: "en" },
+  tenantId: { type: String, default: null },
+  roles: { type: [String], default: [] },
+  locale: { type: String, default: "en" },
   title: { type: String, required: true },
   slug: { type: String, required: true },
   tags: { type: [String], default: [] },
   source: { type: String },
   content: { type: String, required: true },
   embedding: { type: [Number], default: [] },
-  checksum: { type: String, index: true },
+  checksum: { type: String },
   createdBy: { type: String },
   updatedBy: { type: String }
 }, {

@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Schema, model, models } from 'mongoose';
 import { withIdempotency } from "@/server/security/idempotency";
+// Import the main WorkOrder model instead of defining a duplicate schema
+import { WorkOrder } from "@/server/models/WorkOrder";
 
 const _VALID_TRANSITIONS: Record<string, string[]> = {
   NEW: ["ASSIGNED","CANCELLED"],
@@ -11,25 +12,9 @@ const _VALID_TRANSITIONS: Record<string, string[]> = {
   CANCELLED: []
 };
 
-// Work Order schema
-const WorkOrderSchema = new Schema({
-  code: { type: String, required: true, unique: true },
-  title: { type: String, required: true },
-  description: String,
-  status: { type: String, enum: ['draft', 'open', 'in-progress', 'completed', 'cancelled'], default: 'draft' },
-  priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
-  tenantId: { type: String, required: true, index: true },
-  assignedTo: String,
-  requestedBy: { type: String, required: true },
-  propertyId: String,
-  estimatedCost: Number,
-  actualCost: Number,
-  scheduledDate: Date,
-  completedDate: Date,
-  notes: String,
-}, { timestamps: true });
-
-const WorkOrder = models.WorkOrder || model('WorkOrder', WorkOrderSchema);
+// DUPLICATE SCHEMA REMOVED: Now using the main WorkOrder model from server/models/WorkOrder.ts
+// This fixes the mongoose duplicate schema registration issue where two different schemas
+// were both trying to register as 'WorkOrder' model
 
 export interface WorkOrderInput {
   title: string;

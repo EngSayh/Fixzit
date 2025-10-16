@@ -1,11 +1,11 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
 const CmsPageSchema = new Schema({
-  tenantId: { type: String, required: true, index: true }, // Required for tenant isolation
-  slug: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true }, // Required for tenant isolation
+  slug: { type: String, required: true },
   title: { type: String, required: true },
-  content: { type: String, required: true }, // Markdown
-  status: { type: String, enum: ["DRAFT","PUBLISHED"], default: "PUBLISHED", index: true },
+  content: { type: String, required: true },
+  status: { type: String, enum: ["DRAFT","PUBLISHED"], default: "PUBLISHED" },
   updatedBy: { type: String },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });

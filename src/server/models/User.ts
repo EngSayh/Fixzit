@@ -192,7 +192,7 @@ const UserSchema = new Schema({
   },
 
   // Status & Workflow
-  status: { type: String, enum: UserStatus, default: "ACTIVE", index: true },
+  status: { type: String, enum: UserStatus, default: "ACTIVE" },
   workflow: {
     createdBy: String,
     approvedBy: String,

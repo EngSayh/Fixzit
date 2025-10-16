@@ -29,8 +29,8 @@ export interface ICustomer extends Document {
 }
 
 const CustomerSchema = new Schema<ICustomer>({
-  organizationId: { type: String, required: true, index: true },
-  tenantId: { type: String, required: true, index: true },
+  organizationId: { type: String, required: true },
+  tenantId: { type: String, required: true },
   name: { type: String, required: true },
   email: { type: String },
   phone: { type: String },

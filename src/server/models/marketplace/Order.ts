@@ -56,14 +56,13 @@ export interface MarketplaceOrder {
 
 const OrderSchema = new Schema<MarketplaceOrder>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
-    buyerUserId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
+    buyerUserId: { type: Schema.Types.ObjectId, required: true },
     vendorId: { type: Schema.Types.ObjectId },
     status: {
       type: String,
       enum: ['CART', 'PENDING', 'APPROVAL', 'CONFIRMED', 'FULFILLED', 'DELIVERED', 'CANCELLED'],
       default: 'CART',
-      index: true
     },
     lines: [
       {

@@ -15,7 +15,7 @@ const PropertySchema = new Schema({
   description: { type: String },
 
   // Classification
-  type: { type: String, enum: PropertyType, required: true, index: true },
+  type: { type: String, enum: PropertyType, required: true },
   subtype: { type: String }, // Apartment, Villa, Office, Retail, etc.
 
   // Location

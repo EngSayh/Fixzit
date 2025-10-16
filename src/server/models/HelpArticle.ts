@@ -1,13 +1,13 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
 const HelpArticleSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
-  slug: { type:String, required:true, index:true },
+  tenantId: { type: String, required: true },
+  slug: { type:String, required:true },
   title: { type:String, required:true },
-  content: { type:String, required:true }, // Markdown
-  category: { type:String, index:true },
-  tags: { type: [String], default: [], index:true },
-  status: { type:String, enum:["DRAFT","PUBLISHED"], default:"PUBLISHED", index:true },
+  content: { type:String, required:true },
+  category: { type:String },
+  tags: { type: [String], default: [] },
+  status: { type:String, enum:["DRAFT","PUBLISHED"], default:"PUBLISHED" },
   routeHints: { type:[String], default: [] },
   updatedBy: { type:String },
   updatedAt: { type:Date, default: Date.now }

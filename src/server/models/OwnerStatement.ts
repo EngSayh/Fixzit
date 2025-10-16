@@ -1,9 +1,9 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 
 const OwnerStatementSchema = new Schema({
-  tenantId: { type: String, index: true, required: true },
-  ownerId: { type: String, index: true, required: true },
-  propertyId: { type: String, index: true },
+  tenantId: { type: String, required: true },
+  ownerId: { type: String, required: true },
+  propertyId: { type: String },
   period: { type: String, required: true },
   year: { type: Number, required: true },
   currency: { type: String, default: "SAR" },

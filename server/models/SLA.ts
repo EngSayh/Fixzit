@@ -4,7 +4,7 @@ const SLAType = ["RESPONSE_TIME", "RESOLUTION_TIME", "UPTIME", "AVAILABILITY", "
 const SLAPriority = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 
 const SLASchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true },
@@ -12,9 +12,9 @@ const SLASchema = new Schema({
   description: { type: String },
 
   // Classification
-  type: { type: String, enum: SLAType, required: true, index: true },
+  type: { type: String, enum: SLAType, required: true },
   category: { type: String, required: true }, // Work Orders, Maintenance, etc.
-  priority: { type: String, enum: SLAPriority, required: true, index: true },
+  priority: { type: String, enum: SLAPriority, required: true },
 
   // Targets
   targets: {
@@ -141,7 +141,6 @@ const SLASchema = new Schema({
     type: String,
     enum: ["DRAFT", "PENDING_APPROVAL", "ACTIVE", "SUSPENDED", "EXPIRED"],
     default: "DRAFT",
-    index: true
   },
   approval: {
     required: Boolean,

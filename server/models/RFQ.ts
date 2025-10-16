@@ -4,7 +4,7 @@ const RFQStatus = ["DRAFT", "PUBLISHED", "BIDDING", "CLOSED", "AWARDED", "CANCEL
 const BidStatus = ["SUBMITTED", "UNDER_REVIEW", "ACCEPTED", "REJECTED", "WITHDRAWN"] as const;
 
 const RFQSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true },
@@ -12,7 +12,7 @@ const RFQSchema = new Schema({
   description: { type: String, required: true },
 
   // Classification
-  category: { type: String, required: true, index: true }, // Construction, Maintenance, etc.
+  category: { type: String, required: true }, // Construction, Maintenance, etc.
   subcategory: String,
   type: { type: String, enum: ["GOODS", "SERVICES", "WORKS"], default: "WORKS" },
 
@@ -169,7 +169,7 @@ const RFQSchema = new Schema({
   },
 
   // Status & Workflow
-  status: { type: String, enum: RFQStatus, default: "DRAFT", index: true },
+  status: { type: String, enum: RFQStatus, default: "DRAFT" },
   workflow: {
     createdBy: String,
     approvedBy: String,

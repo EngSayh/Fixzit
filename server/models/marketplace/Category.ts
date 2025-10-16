@@ -16,7 +16,7 @@ export interface MarketplaceCategory {
 
 const CategorySchema = new Schema<MarketplaceCategory>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
     name: {
       en: { type: String, required: true, trim: true },
       ar: { type: String, trim: true }

@@ -1,7 +1,7 @@
 import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
 
 const EmployeeSchema = new Schema({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: String, required: true },
   personal: {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },

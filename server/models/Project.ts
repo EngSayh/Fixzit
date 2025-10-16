@@ -4,13 +4,13 @@ const _ProjectStatus = ["PLANNING", "APPROVED", "IN_PROGRESS", "ON_HOLD", "COMPL
 const ProjectType = ["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"] as const;
 
 const ProjectSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   description: { type: String },
-  type: { type: String, enum: ProjectType, required: true, index: true },
+  type: { type: String, enum: ProjectType, required: true },
 
   // Location
   propertyId: String, // Reference to Property model

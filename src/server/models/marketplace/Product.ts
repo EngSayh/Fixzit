@@ -51,9 +51,9 @@ export interface MarketplaceProduct {
 
 const ProductSchema = new Schema<MarketplaceProduct>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
-    vendorId: { type: Schema.Types.ObjectId, index: true },
-    categoryId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
+    vendorId: { type: Schema.Types.ObjectId },
+    categoryId: { type: Schema.Types.ObjectId, required: true },
     sku: { type: String, required: true, trim: true },
     slug: { type: String, required: true, trim: true },
     title: {
@@ -87,7 +87,7 @@ const ProductSchema = new Schema<MarketplaceProduct>(
       avg: { type: Number, default: 0 },
       count: { type: Number, default: 0 }
     },
-    status: { type: String, enum: ['ACTIVE', 'DRAFT', 'ARCHIVED'], default: 'ACTIVE', index: true }
+    status: { type: String, enum: ['ACTIVE', 'DRAFT', 'ARCHIVED'], default: 'ACTIVE' }
   },
   { timestamps: true }
 );

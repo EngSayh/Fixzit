@@ -4,12 +4,12 @@ const TenantType = ["INDIVIDUAL", "COMPANY", "GOVERNMENT"] as const;
 const LeaseStatus = ["ACTIVE", "EXPIRED", "TERMINATED", "RENEWAL_PENDING", "UNDER_NEGOTIATION"] as const;
 
 const TenantSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
 
   // Basic Information
   code: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  type: { type: String, enum: TenantType, required: true, index: true },
+  type: { type: String, enum: TenantType, required: true },
 
   // Contact Information
   contact: {
