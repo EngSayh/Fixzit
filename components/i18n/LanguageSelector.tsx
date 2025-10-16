@@ -114,7 +114,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
 
       {open && (
         <div
-          className={`absolute z-[9999] mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${
+          className={`absolute z-[100] mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${
             isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'
           } animate-in slide-in-from-top-2 duration-200`}
         >

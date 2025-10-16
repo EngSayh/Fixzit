@@ -64,7 +64,7 @@ export default function AppSwitcher() {
       </button>
 
       {open && (
-        <div className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] animate-in slide-in-from-top-2 duration-200`}>
+        <div className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-2xl border border-gray-200 z-[100] animate-in slide-in-from-top-2 duration-200`}>
           {/* Arrow pointer */}
           <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'right-8' : 'left-8'}`}></div>
           
