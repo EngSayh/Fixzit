@@ -5,7 +5,7 @@ import { APPS, type AppKey } from '@/config/topbar-modules';
 import { useTranslation } from '@/contexts/TranslationContext';
 import Link from 'next/link';
 import { ChevronDown, Building2, Store, Landmark } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const appIcons = {
   fm: Building2,
@@ -20,6 +20,31 @@ export default function AppSwitcher() {
 
   const Icon = appIcons[app];
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (open && !target.closest('.app-switcher-container')) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (open && event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [open]);
+
   // Get translated app name
   const getAppName = (appId: string) => {
     const appConfig = APPS[appId as AppKey];
@@ -27,7 +52,7 @@ export default function AppSwitcher() {
   };
 
   return (
-    <div className={`relative ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className={`app-switcher-container relative ${isRTL ? 'text-right' : 'text-left'}`}>
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
@@ -39,11 +64,14 @@ export default function AppSwitcher() {
       </button>
 
       {open && (
-        <div className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50`}>
+        <div className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] animate-in slide-in-from-top-2 duration-200`}>
+          {/* Arrow pointer */}
+          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'right-8' : 'left-8'}`}></div>
+          
           <div className="p-3 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-900">{t('app.switchApplication', 'Switch Application')}</h3>
           </div>
-          <div className="p-2">
+          <div className="p-2 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {Object.values(APPS).map((appConfig) => {
               const AppIcon = appIcons[appConfig.id];
               const isActive = app === appConfig.id;
