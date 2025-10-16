@@ -23,6 +23,66 @@ HR_EMAIL            # HR Manager email
 HR_PASSWORD         # HR Manager password
 ```
 
+### Automation-Only Secrets (CI/CD):
+
+These secrets are **only required for automated workflows** (GitHub Actions rotation job, secret updates, etc.). They are **NOT** required for running the E2E tests manually.
+
+```bash
+# ADMIN_TOKEN - API authentication token for production password updates
+# Type: JWT Bearer token or API key
+# Purpose: Authenticates API calls that update user passwords during rotation
+# Scopes/Roles Required:
+#   - user:write or user:update permission
+#   - Minimal scope: only password update endpoint access
+#   - Should be a service account token, not a user's personal token
+# Creation:
+#   1. Create a dedicated service account in your production system
+#   2. Assign ONLY password update permissions (no read/delete)
+#   3. Generate API token via: /api/service-accounts/create-token
+#   4. Store in GitHub Secrets as: ADMIN_TOKEN
+# Security Best Practices:
+#   - Rotate every 90 days (same schedule as user passwords)
+#   - Use short-lived tokens if your API supports it (24-48 hour TTL)
+#   - Monitor usage logs for unexpected API calls
+#   - Revoke immediately if compromised
+
+# REPO_ACCESS_TOKEN - GitHub token for updating repository secrets
+# Type: GitHub Personal Access Token (PAT) or Fine-Grained PAT
+# Purpose: Allows GitHub Actions to update repository secrets programmatically
+# Required Permissions (Fine-Grained PAT Recommended):
+#   - Repository: Secrets (Read and Write)
+#   - Scope: Only this repository (not all repos)
+# Minimal Scopes for Classic PAT:
+#   - repo (full control of private repositories)
+#   - Note: Classic PATs are broader; use Fine-Grained for least privilege
+# Creation (Fine-Grained PAT - Recommended):
+#   1. Go to: GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens
+#   2. Click "Generate new token"
+#   3. Name: "E2E Secret Rotation Bot"
+#   4. Expiration: 90 days (match rotation schedule)
+#   5. Repository access: Only select "EngSayh/Fixzit"
+#   6. Permissions → Repository → Secrets: Read and Write
+#   7. Generate and copy token
+#   8. Store in GitHub Secrets as: REPO_ACCESS_TOKEN
+# Creation (Classic PAT - Alternative):
+#   1. Go to: GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+#   2. Generate with 'repo' scope
+#   3. Store in GitHub Secrets as: REPO_ACCESS_TOKEN
+# Security Best Practices:
+#   - Rotate every 90 days (set expiration when creating)
+#   - Use Fine-Grained PAT with minimal permissions (Secrets read/write only)
+#   - Never commit this token to code or logs
+#   - Use GitHub's built-in token scanning protection
+#   - Consider using GitHub Apps instead for better auditability
+
+# Usage in CI/CD:
+#   - Used by: .github/workflows/rotate-secrets.yml
+#   - ADMIN_TOKEN: Calls production API to update user passwords
+#   - REPO_ACCESS_TOKEN: Updates GitHub Secrets with new passwords via actions-set-secret
+#   - Both tokens should be stored as GitHub Repository Secrets
+#   - Both should be rotated on the same 90-day schedule as user credentials
+```
+
 ### Why All Variables Are Required:
 - ✅ **No hardcoded defaults** - Prevents credential exposure
 - ✅ **Fail-fast validation** - Script exits immediately if any variable is missing
