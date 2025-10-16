@@ -1,0 +1,82 @@
+name: Build and Upload Source Maps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build with source maps
+        run: npm run build
+        env:
+          CI: 'true'
+          NODE_ENV: production
+          # Add your environment variables here
+          # MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          # etc.
+      
+      - name: Upload source maps to Sentry (if configured)
+        if: env.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          # Install Sentry CLI
+          npm install -g @sentry/cli
+          
+          # Upload source maps
+          sentry-cli releases new "$GITHUB_SHA"
+          sentry-cli releases files "$GITHUB_SHA" upload-sourcemaps .next --rewrite
+          sentry-cli releases finalize "$GITHUB_SHA"
+          
+          echo "✅ Source maps uploaded to Sentry"
+      
+      # Alternative: Upload to custom error tracking service
+      # - name: Upload source maps to custom service
+      #   run: |
+      #     # Example: Upload .map files to your own service
+      #     find .next -name "*.map" -type f | while read mapfile; do
+      #       curl -X POST \
+      #         -F "file=@$mapfile" \
+      #         -H "Authorization: Bearer ${{ secrets.ERROR_TRACKING_TOKEN }}" \
+      #         https://your-error-tracking-service.com/api/sourcemaps
+      #     done
+      
+      - name: Archive source maps as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-maps
+          path: .next/**/*.map
+          retention-days: 30
+      
+      - name: Build summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Production build completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Source maps generated" >> $GITHUB_STEP_SUMMARY
+          
+          # Count source maps
+          MAP_COUNT=$(find .next -name "*.map" -type f | wc -l)
+          echo "📊 Source maps generated: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate total size
+          TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + | grep total$ | awk '{print $1}')
+          echo "💾 Total source map size: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
