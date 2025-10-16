@@ -169,7 +169,7 @@ We've sent a welcome email to ${email} with registration instructions and next s
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto min-h-screen">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4 overflow-y-auto min-h-screen">
       <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 relative mx-auto my-4 md:my-8">
         {/* Close button */}
         <button

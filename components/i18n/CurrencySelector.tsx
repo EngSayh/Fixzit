@@ -127,7 +127,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
 
       {open && (
         <div
-          className={`absolute z-[9999] mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'} animate-in slide-in-from-top-2 duration-200`}
+          className={`absolute z-[100] mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'} animate-in slide-in-from-top-2 duration-200`}
         >
           {/* Arrow pointer */}
           <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
