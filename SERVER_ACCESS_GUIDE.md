@@ -2,10 +2,30 @@
 
 ## ✅ Server Status
 
-- **Running**: Yes (PID 574815)
-- **Port**: 3000
-- **Binding**: 0.0.0.0 (accepting all connections)
-- **Health**: HTTP 200 OK ✅
+To check if the server is running, use these commands:
+
+### Check Running Process
+```bash
+# Check if server process is running
+ps aux | grep "[n]ode.*server.js"
+# or
+pgrep -f "node.*server.js"
+```
+
+### Verify Listening Port
+```bash
+# Check if port 3000 is listening
+netstat -tlnp 2>/dev/null | grep :3000
+# or
+ss -tlnp 2>/dev/null | grep :3000
+```
+
+### Test Health Endpoint
+```bash
+# Test if server is responding
+curl -I http://localhost:3000
+# Should return: HTTP/1.1 200 OK
+```
 
 ## 🌐 Access URLs
 
@@ -25,7 +45,7 @@ GitHub Codespaces automatically forwards port 3000. Here's how to access it:
 1. Look at the **PORTS** tab in VS Code (bottom panel)
 2. Find port **3000**
 3. Click the **🌐 globe icon** or **"Open in Browser"**
-4. The URL will be: `https://crispy-garbanzo-r4xrj46ggv97c5j9r-3000.app.github.dev`
+4. VS Code will open the forwarded URL in your browser
 
 #### Method 2: Manual URL Construction
 
@@ -35,11 +55,13 @@ Your Codespace URL format:
 https://{CODESPACE_NAME}-{PORT}.{DOMAIN}
 ```
 
-For this codespace:
+Example format:
 
 ```
-https://crispy-garbanzo-r4xrj46ggv97c5j9r-3000.app.github.dev
+https://<your-codespace-name>-3000.app.github.dev
 ```
+
+Replace `<your-codespace-name>` with your actual Codespace name (visible in the terminal prompt or `$CODESPACE_NAME` environment variable).
 
 #### Method 3: VS Code Command Palette
 
