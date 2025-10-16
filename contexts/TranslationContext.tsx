@@ -50,6 +50,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.settings': 'الإعدادات',
     'nav.preferences': 'التفضيلات',
 
+    // Sidebar
+    'sidebar.role': 'الدور',
+    'sidebar.planLabel': 'الخطة',
+    'sidebar.account': 'الحساب',
+    'sidebar.help': 'المساعدة',
+    'sidebar.helpCenter': 'مركز المساعدة',
+
     // Common
     'common.search': 'بحث',
     'common.search.placeholder': 'البحث في أوامر العمل، العقارات، المستأجرين...',
@@ -352,6 +359,13 @@ const translations: Record<Language, Record<string, string>> = {
       'nav.profile': 'Profile',
     'nav.settings': 'Settings',
     'nav.preferences': 'Preferences',
+
+    // Sidebar
+    'sidebar.role': 'Role',
+    'sidebar.planLabel': 'Plan',
+    'sidebar.account': 'Account',
+    'sidebar.help': 'Help',
+    'sidebar.helpCenter': 'Help Center',
 
     // Common
     'common.search': 'Search',
@@ -688,6 +702,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.settings': 'Paramètres',
     'nav.preferences': 'Préférences',
 
+    // Sidebar
+    'sidebar.role': 'Rôle',
+    'sidebar.planLabel': 'Plan',
+    'sidebar.account': 'Compte',
+    'sidebar.help': 'Aide',
+    'sidebar.helpCenter': "Centre d'aide",
+
     // Common
     'common.search': 'Rechercher',
     'common.search.placeholder': 'Rechercher des ordres de travail, des propriétés, des locataires...',
@@ -849,6 +870,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.profile': 'Perfil',
     'nav.settings': 'Configurações',
     'nav.preferences': 'Preferências',
+
+    // Sidebar
+    'sidebar.role': 'Função',
+    'sidebar.planLabel': 'Plano',
+    'sidebar.account': 'Conta',
+    'sidebar.help': 'Ajuda',
+    'sidebar.helpCenter': 'Centro de Ajuda',
 
     // Common
     'common.search': 'Pesquisar',
@@ -1012,6 +1040,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.settings': 'Настройки',
     'nav.preferences': 'Предпочтения',
 
+    // Sidebar
+    'sidebar.role': 'Роль',
+    'sidebar.planLabel': 'План',
+    'sidebar.account': 'Учетная запись',
+    'sidebar.help': 'Помощь',
+    'sidebar.helpCenter': 'Центр помощи',
+
     // Common
     'common.search': 'Поиск',
     'common.search.placeholder': 'Поиск рабочих заказов, свойств, арендаторов...',
@@ -1174,6 +1209,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.settings': 'Configuraciones',
     'nav.preferences': 'Preferencias',
 
+    // Sidebar
+    'sidebar.role': 'Rol',
+    'sidebar.planLabel': 'Plan',
+    'sidebar.account': 'Cuenta',
+    'sidebar.help': 'Ayuda',
+    'sidebar.helpCenter': 'Centro de Ayuda',
+
     // Common
     'common.search': 'Buscar',
     'common.search.placeholder': 'Buscar órdenes de trabajo, propiedades, inquilinos...',
@@ -1332,6 +1374,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.profile': 'پروفائل',
     'nav.settings': 'سیٹنگز',
     'nav.preferences': 'ترجیحات',
+
+    // Sidebar
+    'sidebar.role': 'کردار',
+    'sidebar.planLabel': 'منصوبہ',
+    'sidebar.account': 'اکاؤنٹ',
+    'sidebar.help': 'مدد',
+    'sidebar.helpCenter': 'مدد کا مرکز',
 
     // Common
     'common.search': 'تلاش',
@@ -1492,6 +1541,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.settings': 'सेटिंग्स',
     'nav.preferences': 'वरीयताएँ',
 
+    // Sidebar
+    'sidebar.role': 'भूमिका',
+    'sidebar.planLabel': 'योजना',
+    'sidebar.account': 'खाता',
+    'sidebar.help': 'सहायता',
+    'sidebar.helpCenter': 'सहायता केंद्र',
+
     // Common
     'common.search': 'खोज',
     'common.search.placeholder': 'कार्य आदेश, संपत्तियां, किरायेदार खोजें...',
@@ -1650,6 +1706,13 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.profile': '个人资料',
     'nav.settings': '设置',
     'nav.preferences': '偏好设置',
+
+    // Sidebar
+    'sidebar.role': '角色',
+    'sidebar.planLabel': '计划',
+    'sidebar.account': '账户',
+    'sidebar.help': '帮助',
+    'sidebar.helpCenter': '帮助中心',
 
     // Common
     'common.search': '搜索',
