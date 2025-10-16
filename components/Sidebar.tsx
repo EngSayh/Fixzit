@@ -1,6 +1,6 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import {
@@ -118,6 +118,21 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
   const active = useMemo(() => pathname, [pathname]);
 
+  // Check authentication status
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        setIsAuthenticated(response.ok);
+      } catch {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
+
   // Get allowed modules based on role and subscription
   const getAllowedModules = (userRole: string, userSubscription: string) => {
     const roleModules = ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS] || [];
@@ -213,17 +228,19 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
           </nav>
         </div>
 
-        {/* Help & Support */}
-        <div className="border-t border-white/20 pt-4 mt-4">
-          <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.help', 'Help')}</div>
-          <button
-            onClick={() => router.push('/help')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
-          >
-            <Headphones className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">{t('sidebar.helpCenter', 'Help Center')}</span>
-          </button>
-        </div>
+        {/* Help & Support - Only for authenticated users */}
+        {isAuthenticated && (
+          <div className="border-t border-white/20 pt-4 mt-4">
+            <div className={`text-xs font-medium text-gray-400 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.help', 'Help')}</div>
+            <button
+              onClick={() => router.push('/help')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 text-gray-300 hover:bg-white/10 hover:text-white hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+            >
+              <Headphones className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">{t('sidebar.helpCenter', 'Help Center')}</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
