@@ -9,14 +9,14 @@
 
 ## 📋 Table of Contents
 
-1. [Initial Problem](#initial-problem)
-2. [Root Cause Analysis](#root-cause-analysis)
-3. [Comprehensive Solutions Implemented](#comprehensive-solutions-implemented)
-4. [All Commits](#all-commits)
-5. [CodeRabbit Review & Fixes](#coderabbit-review--fixes)
-6. [Files Created/Modified](#files-createdmodified)
-7. [Testing & Verification](#testing--verification)
-8. [Final Status](#final-status)
+1. [Initial Problem](#-initial-problem)
+2. [Root Cause Analysis](#-root-cause-analysis)
+3. [Comprehensive Solutions Implemented](#-comprehensive-solutions-implemented)
+4. [All Commits](#-all-commits)
+5. [CodeRabbit Review & Fixes](#phase-4-coderabbit-review-responses)
+6. [Files Created/Modified](#-files-createdmodified)
+7. [Testing & Verification](#-testing--verification)
+8. [Final Status](#-final-status)
 
 ---
 
@@ -590,7 +590,7 @@ const curl = spawnSync('curl', [
 ### Pull Request:
 
 
-- **PR #128:** https://github.com/EngSayh/Fixzit/pull/128
+- **PR #128:** [fix(typescript): Remove invalid ignoreDeprecations setting](https://github.com/EngSayh/Fixzit/pull/128)
 - **Branch:** `fix/tsconfig-ignoreDeprecations-5.9`
 - **Status:** Ready for Review
 
