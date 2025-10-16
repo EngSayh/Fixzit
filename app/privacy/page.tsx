@@ -5,21 +5,10 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { Shield, Lock, Eye, FileText, Mail, Phone } from 'lucide-react';
 
 /**
- * Privacy Policy Page (Public View)
- * 
- * Displays privacy policy content managed through CMS admin interface.
- * Fetches from /api/cms/pages/privacy and falls back to default content.
- * Supports RTL languages and responsive design.
- * 
- * @returns Privacy policy page with hero, info cards, content, and contact sections
+ * Default privacy policy content shown when CMS content is not available or not published.
+ * Defined at module level to prevent recreation on each render.
  */
-export default function PrivacyPage() {
-  const { t, isRTL } = useTranslation();
-  const [content, setContent] = useState<string>('');
-  const [title, setTitle] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-
-  const defaultContent = `# Privacy Policy
+const DEFAULT_PRIVACY_CONTENT = `# Privacy Policy
 
 **Last Updated:** October 16, 2025
 
@@ -44,6 +33,21 @@ Access, correct, delete, export your data, and opt-out of marketing communicatio
 ## Contact
 For privacy inquiries: privacy@fixzit.com | Phone: +971 XX XXX XXXX`;
 
+/**
+ * Privacy Policy Page (Public View)
+ * 
+ * Displays privacy policy content managed through CMS admin interface.
+ * Fetches from /api/cms/pages/privacy and falls back to default content.
+ * Supports RTL languages and responsive design.
+ * 
+ * @returns Privacy policy page with hero, info cards, content, and contact sections
+ */
+export default function PrivacyPage() {
+  const { t, isRTL } = useTranslation();
+  const [content, setContent] = useState<string>('');
+  const [title, setTitle] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
   const loadPrivacyPolicy = useCallback(async () => {
     try {
       const response = await fetch('/api/cms/pages/privacy');
@@ -55,20 +59,20 @@ For privacy inquiries: privacy@fixzit.com | Phone: +971 XX XXX XXXX`;
           setContent(data.content);
         } else {
           setTitle(t('privacy.title', 'Privacy Policy'));
-          setContent(defaultContent);
+          setContent(DEFAULT_PRIVACY_CONTENT);
         }
       } else {
         setTitle(t('privacy.title', 'Privacy Policy'));
-        setContent(defaultContent);
+        setContent(DEFAULT_PRIVACY_CONTENT);
       }
     } catch (err) {
       console.error('Error fetching privacy policy:', err);
       setTitle(t('privacy.title', 'Privacy Policy'));
-      setContent(defaultContent);
+      setContent(DEFAULT_PRIVACY_CONTENT);
     } finally {
       setLoading(false);
     }
-  }, [t, defaultContent]);
+  }, [t]);
 
   useEffect(() => {
     loadPrivacyPolicy();
