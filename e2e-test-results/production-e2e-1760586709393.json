@@ -1,0 +1,208 @@
+{
+  "startTime": "2025-10-16T03:51:48.133Z",
+  "environment": "production",
+  "baseUrl": "https://fixzit-souq.com",
+  "tests": [
+    {
+      "testName": "Landing Page",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/",
+      "timestamp": "2025-10-16T03:51:48.150Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/\""
+    },
+    {
+      "testName": "Login Page",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/login",
+      "timestamp": "2025-10-16T03:51:48.617Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/login\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/login\""
+    },
+    {
+      "testName": "Marketplace",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/marketplace",
+      "timestamp": "2025-10-16T03:51:48.868Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/marketplace\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/marketplace\""
+    },
+    {
+      "testName": "Help Center",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/help",
+      "timestamp": "2025-10-16T03:51:49.124Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/help\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/help\""
+    },
+    {
+      "testName": "Careers",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/careers",
+      "timestamp": "2025-10-16T03:51:49.144Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/careers\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/careers\""
+    },
+    {
+      "testName": "Login as admin",
+      "userRole": "admin",
+      "url": "https://fixzit-souq.com/api/auth/login",
+      "timestamp": "2025-10-16T03:51:49.164Z",
+      "status": "skipped",
+      "message": "⚠️ No password configured"
+    },
+    {
+      "testName": "Login as propertyManager",
+      "userRole": "propertyManager",
+      "url": "https://fixzit-souq.com/api/auth/login",
+      "timestamp": "2025-10-16T03:51:49.164Z",
+      "status": "skipped",
+      "message": "⚠️ No password configured"
+    },
+    {
+      "testName": "Login as tenant",
+      "userRole": "tenant",
+      "url": "https://fixzit-souq.com/api/auth/login",
+      "timestamp": "2025-10-16T03:51:49.164Z",
+      "status": "skipped",
+      "message": "⚠️ No password configured"
+    },
+    {
+      "testName": "Login as vendor",
+      "userRole": "vendor",
+      "url": "https://fixzit-souq.com/api/auth/login",
+      "timestamp": "2025-10-16T03:51:49.164Z",
+      "status": "skipped",
+      "message": "⚠️ No password configured"
+    },
+    {
+      "testName": "Login as hrManager",
+      "userRole": "hrManager",
+      "url": "https://fixzit-souq.com/api/auth/login",
+      "timestamp": "2025-10-16T03:51:49.164Z",
+      "status": "skipped",
+      "message": "⚠️ No password configured"
+    },
+    {
+      "testName": "Dashboard",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/dashboard",
+      "timestamp": "2025-10-16T03:51:49.164Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/dashboard\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/dashboard\""
+    },
+    {
+      "testName": "Properties",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/properties",
+      "timestamp": "2025-10-16T03:51:49.181Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/properties\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/properties\""
+    },
+    {
+      "testName": "Work Orders",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/work-orders",
+      "timestamp": "2025-10-16T03:51:49.197Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/work-orders\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/work-orders\""
+    },
+    {
+      "testName": "Tenants",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/tenants",
+      "timestamp": "2025-10-16T03:51:49.213Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/tenants\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/tenants\""
+    },
+    {
+      "testName": "Vendors",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/vendors",
+      "timestamp": "2025-10-16T03:51:49.231Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/vendors\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/vendors\""
+    },
+    {
+      "testName": "RFQs",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/rfqs",
+      "timestamp": "2025-10-16T03:51:49.248Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/rfqs\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/rfqs\""
+    },
+    {
+      "testName": "Finance",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/finance",
+      "timestamp": "2025-10-16T03:51:49.265Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/finance\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/finance\""
+    },
+    {
+      "testName": "HR Employees",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/hr/employees",
+      "timestamp": "2025-10-16T03:51:49.282Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/hr/employees\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/hr/employees\""
+    },
+    {
+      "testName": "HR Attendance",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/hr/attendance",
+      "timestamp": "2025-10-16T03:51:49.300Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/hr/attendance\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/hr/attendance\""
+    },
+    {
+      "testName": "Settings",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/settings",
+      "timestamp": "2025-10-16T03:51:49.319Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/settings\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/settings\""
+    },
+    {
+      "testName": "API Health Check",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/api/health",
+      "timestamp": "2025-10-16T03:51:49.349Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/api/health\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/api/health\""
+    },
+    {
+      "testName": "Database Health Check",
+      "userRole": "anonymous",
+      "url": "https://fixzit-souq.com/api/health/database",
+      "timestamp": "2025-10-16T03:51:49.371Z",
+      "status": "failed",
+      "error": "Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/api/health/database\"",
+      "message": "❌ Error: Command failed: curl -s -o /dev/null -w \"%{http_code}|%{time_total}\" -L --max-time 30 \"https://fixzit-souq.com/api/health/database\""
+    }
+  ],
+  "summary": {
+    "total": 22,
+    "passed": 0,
+    "failed": 17,
+    "skipped": 5
+  },
+  "endTime": "2025-10-16T03:51:49.392Z",
+  "duration": 1259
+}
