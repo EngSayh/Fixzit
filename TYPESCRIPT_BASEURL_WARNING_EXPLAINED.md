@@ -39,8 +39,6 @@
 | **Project** | ^5.9.3 | ❌ No |
 
 ### The Problem:
-
-### The Problem:
 - If we **add** `"ignoreDeprecations": "6.0"` → CLI fails with TS5103 error
 - If we **remove** it → VS Code shows deprecation warning
 - **Can't satisfy both** with current TypeScript versions
@@ -100,11 +98,7 @@
 **Cons:** Warning visible in VS Code  
 **Status:** **Current approach**
 
-**Status:** **Current approach**
-
 ### Option 2: **Upgrade TypeScript to 6.0**
-**What:** Upgrade project TypeScript to match VS Code  
-**Pros:** Warning can be silenced properly  
 **Cons:** Breaking changes, requires testing  
 **Command:**
 
@@ -162,19 +156,13 @@ But this requires:
 **A:** No. It's purely informational.
 
 ### Q: Will my builds fail?
-
-### Q: Will my builds fail?
 **A:** No. Builds compile successfully.
-
-### Q: Is this a security issue?
 
 ### Q: Is this a security issue?
 **A:** No. It's just a deprecation notice.
 
 ### Q: Should I fix it immediately?
 **A:** No. You have until TypeScript 7.0 (not released yet, probably 2026+).
-
-### Q: Why didn't this show before?
 
 ### Q: Why didn't this show before?
 **A:** It was being suppressed by `ignoreDeprecations`, which we removed to fix the TS5103 error.
