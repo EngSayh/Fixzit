@@ -45,4 +45,7 @@ UserSchema.index({ orgId: 1, email: 1 }, { unique: true });
 UserSchema.index({ orgId: 1, employeeId: 1 }, { unique: true, sparse: true });
 UserSchema.index({ role: 1, isActive: 1 });
 
-export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+const UserModel = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+
+export { UserModel as User };
+export default UserModel;

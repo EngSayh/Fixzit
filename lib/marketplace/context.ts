@@ -22,11 +22,8 @@ async function decodeToken(token?: string | null) {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
     return payload;
-  } catch (error) {
-    const correlationId = randomUUID();
-    const message = error instanceof Error ? error.message : String(error);
-    // eslint-disable-next-line no-console
-    console.warn('Failed to decode marketplace JWT payload', { correlationId, message });
+  } catch {
+    // Failed to decode marketplace JWT payload
     return undefined;
   }
 }
@@ -40,11 +37,8 @@ async function readHeaderValue(req: NextRequest | Request | null | undefined, ke
   try {
     const serverHeaders = await headers();
     return serverHeaders.get(key) ?? undefined;
-  } catch (error) {
-    const correlationId = randomUUID();
-    const message = error instanceof Error ? error.message : String(error);
-    // eslint-disable-next-line no-console
-    console.debug('Marketplace context header fallback failed', { key, correlationId, message });
+  } catch {
+    // Marketplace context header fallback failed
     return undefined;
   }
 }
@@ -58,11 +52,8 @@ async function readCookieValue(req: NextRequest | null | undefined, key: string)
   try {
     const cookieStore = await cookies();
     return cookieStore.get(key)?.value;
-  } catch (error) {
-    const correlationId = randomUUID();
-    const message = error instanceof Error ? error.message : String(error);
-    // eslint-disable-next-line no-console
-    console.debug('Marketplace context cookie fallback failed', { key, correlationId, message });
+  } catch {
+    // Marketplace context cookie fallback failed
     return undefined;
   }
 }

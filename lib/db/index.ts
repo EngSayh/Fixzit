@@ -17,8 +17,6 @@ export async function ensureCoreIndexes(): Promise<void> {
     throw new Error('Database connection not established');
   }
 
-  console.log('📊 Creating indexes for core collections...');
-
   // Define indexes for each collection
   const indexes = [
     // Users
@@ -101,8 +99,7 @@ export async function ensureCoreIndexes(): Promise<void> {
     }
   ];
 
-  let created = 0;
-  let skipped = 0;
+  const failures: Array<{ collection: string; error: Error }> = [];
 
   for (const { collection, indexes: collIndexes } of indexes) {
     try {
@@ -115,22 +112,41 @@ export async function ensureCoreIndexes(): Promise<void> {
             unique: indexSpec.unique || false,
             background: true
           });
-          created++;
-          console.log(`  ✓ ${collection}: ${JSON.stringify(indexSpec.key)}`);
         } catch (error: unknown) {
           const mongoError = error as { code?: number; message?: string };
+          // Skip if index already exists (codes 85, 86)
           if (mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists')) {
-            // Index already exists
-            skipped++;
-          } else {
-            console.warn(`  ⚠ ${collection}: ${mongoError.message || 'Unknown error'}`);
+            // Index already exists - this is expected, skip silently
+            continue;
           }
+          // Log all other errors for observability
+          console.error(`Failed to create index on ${collection}:`, {
+            index: JSON.stringify(indexSpec.key),
+            error: mongoError.message || 'Unknown error',
+            code: mongoError.code
+          });
+          // Rethrow to propagate the error
+          throw error;
         }
       }
-    } catch (error) {
-      console.error(`  ✗ Failed to create indexes for ${collection}:`, error);
+    } catch (err) {
+      // Log collection-level errors with context
+      const error = err as Error;
+      failures.push({ collection, error });
+      console.error(`Failed to create indexes for collection ${collection}:`, {
+        message: error.message,
+        stack: error.stack
+      });
+      // Don't throw - allow other collections to be processed
     }
   }
+  // Index creation process complete (check logs for any failures)
 
-  console.log(`✅ Index creation complete: ${created} created, ${skipped} already existed`);
+  // If any collections failed, throw a summary error
+  if (failures.length > 0) {
+    const collectionList = failures.map(f => f.collection).join(', ');
+    throw new Error(`Index creation failed for ${failures.length} collection(s): ${collectionList}`);
+  }
+
+  // Index creation complete
 }
