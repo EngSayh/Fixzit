@@ -255,6 +255,28 @@ AWS_S3_BUCKET=your-bucket-name
 
 Press `Ctrl+X`, then `Y`, then `Enter` to save.
 
+#### ⚠️ Security Warning: Protect Your Environment Variables
+
+**IMPORTANT**: Never commit `.env.local` to version control!
+
+1. **Verify `.gitignore`**: Ensure `.env.local` is listed in your `.gitignore` file. Add it if missing:
+   ```bash
+   echo ".env.local" >> .gitignore
+   ```
+
+2. **Restrict file permissions**: Make the file readable only by the owner:
+   ```bash
+   chmod 600 .env.local
+   ```
+
+3. **Use strong secrets**: Generate random secrets with a secure tool:
+   ```bash
+   # Generate a secure secret (use this for NEXTAUTH_SECRET)
+   openssl rand -base64 32
+   ```
+
+4. **Separate credentials**: Use different passwords/keys for production and development. Never reuse production credentials in development environments.
+
 #### Build the Application:
 ```bash
 npm run build
@@ -526,14 +548,50 @@ jobs:
             pm2 restart fixzit
 ```
 
-**Set up secrets in GitHub**:
-1. Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
-2. Add these secrets:
-   - `VPS_HOST`: Your VPS IP address
-   - `VPS_USERNAME`: Usually `root`
-   - `VPS_SSH_KEY`: Your private SSH key (from `~/.ssh/id_ed25519`)
+**Set up deploy key and GitHub secrets**:
 
-Now every push to `main` will auto-deploy! 🚀
+⚠️ **Security Best Practice**: Never use your personal SSH key for automation. Create a dedicated deploy key instead.
+
+1. **Generate a dedicated deploy key** (on your local machine):
+   ```bash
+   # Create a dedicated key pair for deployment
+   ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "fixzit-deploy"
+   # Press Enter when prompted for passphrase (no passphrase for CI/CD)
+   ```
+
+2. **Copy the public key to your VPS**:
+   ```bash
+   # Copy the public key
+   cat ~/.ssh/deploy_key.pub
+   
+   # SSH to your VPS and add it to authorized_keys
+   ssh root@YOUR_VPS_IP
+   mkdir -p ~/.ssh
+   chmod 700 ~/.ssh
+   echo "YOUR_PUBLIC_KEY_HERE" >> ~/.ssh/authorized_keys
+   chmod 600 ~/.ssh/authorized_keys
+   exit
+   ```
+
+3. **Add secrets to GitHub**:
+   - Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
+   - Add these secrets:
+     - `VPS_HOST`: Your VPS IP address
+     - `VPS_USERNAME`: Usually `root` or your deploy user
+     - `DEPLOY_SSH_KEY`: The **private** deploy key (from `~/.ssh/deploy_key`, NOT your personal key)
+   
+   ```bash
+   # Display the private key to copy to GitHub Secrets
+   cat ~/.ssh/deploy_key
+   ```
+
+4. **Security notes**:
+   - ⚠️ Never use personal SSH keys (`~/.ssh/id_ed25519`) for automation
+   - 🔒 The deploy key should only have access to the deployment server
+   - 🔄 Rotate the deploy key periodically (every 90-180 days)
+   - 🗑️ Revoke the key immediately if compromised
+
+Now every push to `main` will auto-deploy securely! 🚀
 
 ---
 

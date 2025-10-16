@@ -10,10 +10,11 @@ NC='\033[0m' # No Color
 show_status() {
     echo -e "${YELLOW}=== Server Status ===${NC}"
     
-    # Check if server is running
-    if ps aux | grep "node.*server.js" | grep -v grep > /dev/null; then
+    # Check if server is running using specific pattern
+    # Use [n]ode trick to avoid matching grep itself
+    if ps aux | grep "[n]ode.*\.next/standalone/server\.js" > /dev/null; then
         echo -e "${GREEN}✓ Server is running${NC}"
-        ps aux | grep "node.*server.js" | grep -v grep | awk '{print "  PID: " $2 " | Memory: " $6 " KB"}'
+        ps aux | grep "[n]ode.*\.next/standalone/server\.js" | awk '{print "  PID: " $2 " | Memory: " $6 " KB"}'
     else
         echo -e "${RED}✗ Server is not running${NC}"
     fi
@@ -50,10 +51,10 @@ show_status() {
 start_server() {
     echo -e "${YELLOW}=== Starting Server ===${NC}"
     
-    # Kill any existing server
-    if ps aux | grep "node.*server.js" | grep -v grep > /dev/null; then
+    # Kill any existing server using specific pattern
+    if ps aux | grep "[n]ode.*\.next/standalone/server\.js" > /dev/null; then
         echo "Stopping existing server..."
-        pkill -f "node.*server.js"
+        pkill -f "\.next/standalone/server\.js"
         sleep 2
     fi
     
@@ -67,8 +68,8 @@ start_server() {
     
     sleep 3
     
-    # Verify
-    if ps aux | grep "node.*server.js" | grep -v grep > /dev/null; then
+    # Verify using specific pattern
+    if ps aux | grep "[n]ode.*\.next/standalone/server\.js" > /dev/null; then
         echo -e "${GREEN}✓ Server started successfully${NC}"
         show_status
     else
@@ -79,8 +80,9 @@ start_server() {
 
 stop_server() {
     echo -e "${YELLOW}=== Stopping Server ===${NC}"
-    if ps aux | grep "node.*server.js" | grep -v grep > /dev/null; then
-        pkill -f "node.*server.js"
+    # Use specific pattern to match only the intended server process
+    if ps aux | grep "[n]ode.*\.next/standalone/server\.js" > /dev/null; then
+        pkill -f "\.next/standalone/server\.js"
         sleep 1
         echo -e "${GREEN}✓ Server stopped${NC}"
     else
