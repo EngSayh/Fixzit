@@ -288,8 +288,6 @@ async function testPage(page, token, user) {
       testResult.result = `HTTP ${res.statusCode} - Redirected`;
       passedTests++;
     } else {
-    } else {
-      testResult.status = 'FAIL';
       testResult.result = `HTTP ${res.statusCode}`;
       failedTests++;
     }
