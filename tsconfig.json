@@ -43,7 +43,7 @@
       // See: COMPREHENSIVE_FIXES_SUMMARY.md for details on this PR's scope
       "jest"
     ],
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": [
