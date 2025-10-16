@@ -38,6 +38,13 @@ echo "   PORT: $PORT"
 echo "   HOSTNAME: $HOSTNAME"
 echo "   MongoDB: ${MONGODB_URI:0:30}..."
 
+# Copy static files to standalone (required for Next.js standalone mode)
+echo ""
+echo "📦 Copying static assets to standalone..."
+cp -r .next/static .next/standalone/.next/ 2>/dev/null || echo "   ⚠️ Static files already exist or not built"
+cp -r public .next/standalone/ 2>/dev/null || echo "   ⚠️ Public files already exist or not found"
+echo "✅ Static assets ready"
+
 # Start server in background
 nohup node .next/standalone/server.js > logs/server.log 2>&1 &
 SERVER_PID=$!
