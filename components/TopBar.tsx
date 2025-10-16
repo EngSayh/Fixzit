@@ -65,6 +65,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Close all popups helper
+  const closeAllPopups = useCallback(() => {
+    setNotifOpen(false);
+    setUserOpen(false);
+  }, []);
+
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
 
@@ -128,22 +134,29 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
 
-      // Check if the click is inside the notification container
+      // Check if the click is inside any popup container
       const isInsideNotification = target.closest('.notification-container');
+      const isInsideUserMenu = target.closest('.user-menu-container');
 
-      // If popup is open and click is outside notification container, close it
+      // Close notification if click is outside and it's open
       if (notifOpen && !isInsideNotification) {
         setNotifOpen(false);
+      }
+
+      // Close user menu if click is outside and it's open
+      if (userOpen && !isInsideUserMenu) {
+        setUserOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (notifOpen && event.key === 'Escape') {
-        setNotifOpen(false);
+      if (event.key === 'Escape') {
+        closeAllPopups();
       }
     };
 
-    if (notifOpen) {
+    // Add listeners if any popup is open
+    if (notifOpen || userOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleKeyDown);
       return () => {
@@ -151,7 +164,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         document.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [notifOpen]);
+  }, [notifOpen, userOpen, closeAllPopups]);
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
@@ -243,7 +256,10 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         {isAuthenticated && (
           <div className="notification-container relative">
             <button
-              onClick={() => setNotifOpen(!notifOpen)}
+              onClick={() => {
+                setUserOpen(false); // Close user menu when opening notifications
+                setNotifOpen(!notifOpen);
+              }}
               className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
               aria-label="Toggle notifications"
             >
@@ -253,10 +269,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               )}
             </button>
             {notifOpen && (
-            <div className={`notification-container absolute top-full mt-2 w-80 max-w-[calc(100vw-1rem)] md:w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
+            <div className={`absolute top-full mt-2 w-80 max-w-[calc(100vw-2rem)] sm:w-96 md:w-80 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[9999] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'}`}>
               {/* Arrow pointer - hidden on mobile */}
-              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white ${isRTL ? 'left-8' : 'right-8'}`}></div>
-              <div className={`hidden md:block absolute -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200 ${isRTL ? 'left-8' : 'right-8'}`}></div>
+              <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
 
               <div className="p-3 border-b border-gray-200 flex items-center justify-between">
                 <div>
@@ -279,7 +294,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 </button>
               </div>
 
-              <div className="max-h-80 overflow-y-auto">
+              <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {loading ? (
                   <div className="p-3 text-center text-gray-500">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-300 mx-auto"></div>
@@ -348,17 +363,39 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             )}
           </div>
         )}
-        <div className="relative">
-          <button onClick={() => setUserOpen(!userOpen)} className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md">
+        <div className="user-menu-container relative">
+          <button 
+            onClick={() => {
+              setNotifOpen(false); // Close notifications when opening user menu
+              setUserOpen(!userOpen);
+            }} 
+            className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
+            aria-label="Toggle user menu"
+          >
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
           </button>
           {userOpen && (
-            <div className={`absolute top-10 w-44 bg-white text-gray-800 rounded-lg shadow-lg p-1 z-50 ${isRTL ? 'left-0 right-auto' : 'right-0'}`}>
-              <a className="block px-3 py-2 hover:bg-gray-50 rounded" href="/profile">{t('nav.profile', 'Profile')}</a>
-              <a className="block px-3 py-2 hover:bg-gray-50 rounded" href="/settings">{t('nav.settings', 'Settings')}</a>
-              <div className="border-t my-1" />
+            <div className={`absolute top-full mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[9999] animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'}`}>
+              {/* Arrow pointer - hidden on mobile */}
+              <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
+              
+              <a 
+                className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors" 
+                href="/profile"
+                onClick={() => setUserOpen(false)}
+              >
+                {t('nav.profile', 'Profile')}
+              </a>
+              <a 
+                className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors" 
+                href="/settings"
+                onClick={() => setUserOpen(false)}
+              >
+                {t('nav.settings', 'Settings')}
+              </a>
+              <div className="border-t my-1 mx-2" />
               <button
-                className="block w-full text-left px-3 py-2 hover:bg-gray-50 text-red-600 rounded"
+                className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors"
                 onClick={handleLogout}
               >
                 {t('common.logout', 'Sign out')}

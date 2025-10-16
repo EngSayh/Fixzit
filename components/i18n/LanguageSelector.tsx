@@ -55,8 +55,18 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
       }
     };
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [open]);
 
   const buttonPadding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
@@ -104,10 +114,12 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
 
       {open && (
         <div
-          className={`absolute z-50 mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-lg ${dropdownWidth} ${
-            isRTL ? 'left-0' : 'right-0'
-          }`}
+          className={`absolute z-[9999] mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${
+            isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'
+          } animate-in slide-in-from-top-2 duration-200`}
         >
+          {/* Arrow pointer */}
+          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
           <div className="relative mb-2">
             <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-gray-400 ${isRTL ? 'right-2' : 'left-2'}`} aria-hidden="true" focusable="false" />
             <input
@@ -119,7 +131,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
               aria-label={t('i18n.filterLanguages', 'Type to filter languages')}
             />
           </div>
-          <ul className="max-h-72 overflow-auto" role="listbox">
+          <ul className="max-h-72 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" role="listbox">
             {filtered.map(option => (
               <li key={option.locale}>
                 <button
