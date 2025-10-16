@@ -19,7 +19,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
+  const authRoutes = new Set<string>(['/login', '/forgot-password', '/signup', '/reset-password']);
   const isLandingPage = publicRoutes.has(pathname);
+  const isAuthPage = authRoutes.has(pathname) || pathname.startsWith('/login') || pathname.startsWith('/signup');
   // Safe translation access with fallback
   let language = 'ar';
   let isRTL = false;
@@ -39,15 +41,17 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   }, [language, isRTL]);
 
   useEffect(() => {
+    // Skip role fetching for auth pages
+    if (isAuthPage) {
+      setRole('guest');
+      setLoading(false);
+      return;
+    }
+
     const fetchUserRole = async () => {
       try {
-        // First check localStorage for cached role
-        const cachedRole = localStorage.getItem('fixzit-role');
-        if (cachedRole && cachedRole !== 'guest') {
-          setRole(cachedRole);
-          setLoading(false);
-          return;
-        }
+        // Don't check localStorage for cached role - always verify with server
+        // This prevents auto-login behavior
 
         // Fetch current user from API
         const response = await fetch('/api/auth/me', {
@@ -59,8 +63,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           if (data.user && data.user.role) {
             const userRole = data.user.role;
             setRole(userRole);
-            // Cache the role in localStorage
+            // Cache the role in localStorage only after successful verification
             localStorage.setItem('fixzit-role', userRole);
+          } else {
+            // No user data even though response was ok
+            setRole('guest');
+            localStorage.setItem('fixzit-role', 'guest');
           }
         } else {
           // If no valid session, ensure role is guest
@@ -77,10 +85,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     };
 
     fetchUserRole();
-  }, []);
+  }, [isAuthPage]);
 
   // Show loading state while fetching user data
-  if (loading) {
+  if (loading && !isAuthPage) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
         <TopBar role={role} />
@@ -97,6 +105,15 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             <Footer />
           </main>
         </div>
+      </div>
+    );
+  }
+
+  // For auth pages (login, signup, etc), render without TopBar/Sidebar
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {children}
       </div>
     );
   }
