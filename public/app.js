@@ -138,10 +138,11 @@ class FixzitApp {
                 loginFooter.style.display = 'block';
             }
             
-            // Pre-fill credentials only in development
+            // Pre-fill credentials only in development (NOT FOR PRODUCTION)
+            // Removed hardcoded password for security. Use browser autofill or password manager.
             if (emailInput && passwordInput) {
                 emailInput.value = 'admin@fixzit.com';
-                passwordInput.value = 'Admin@1234';
+                // Password must be entered manually - no default for security
             }
         } else {
             // Hide demo credentials in production
