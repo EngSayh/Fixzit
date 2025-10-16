@@ -82,5 +82,13 @@
     "**/build/**": true,
     "**/.turbo/**": true
   },
-  "chatgpt.openOnStartup": true
+  "chatgpt.openOnStartup": true,
+  "powershell.promptToUpdatePowerShell": false,
+  "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
+  "typescript.tsserver.maxTsServerMemory": 2048,
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "extensions.experimental.affinity": {
+    "ms-vscode.powershell": 0
+  }
 }
