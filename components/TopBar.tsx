@@ -253,7 +253,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       )}
       
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <QuickActions />
+        {/* Only show QuickActions for authenticated users */}
+        {isAuthenticated && <QuickActions />}
         <div className="flex items-center gap-2">
           <LanguageSelector variant="compact" />
           <CurrencySelector variant="compact" />
