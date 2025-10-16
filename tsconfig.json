@@ -43,7 +43,8 @@
       // See: COMPREHENSIVE_FIXES_SUMMARY.md for details on this PR's scope
       "jest"
     ],
-    "ignoreDeprecations": "6.0",
+  // NOTE: removed "ignoreDeprecations" to avoid TS5103 errors when the
+  // local TypeScript version doesn't support the configured value.
     "baseUrl": ".",
     "paths": {
       "@/*": [
