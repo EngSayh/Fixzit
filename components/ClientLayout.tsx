@@ -125,7 +125,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       <AutoFixInitializer />
       <ResponsiveLayout
         header={<TopBar role={role} />}
-        sidebar={!isLandingPage ? <Sidebar role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
+        sidebar={!isLandingPage ? <Sidebar key={`sidebar-${language}-${isRTL}`} role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
         showSidebarToggle={!isLandingPage}
         footer={<Footer />}
       >
