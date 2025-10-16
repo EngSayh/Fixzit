@@ -1,0 +1,320 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - banner [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: FIXZIT ENTERPRISE
+          - button "Switch Application" [ref=e19] [cursor=pointer]:
+            - img [ref=e20] [cursor=pointer]
+            - generic [ref=e24] [cursor=pointer]: Facility Management
+            - img [ref=e25] [cursor=pointer]
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - textbox "Global search" [ref=e33]
+          - generic [ref=e34]:
+            - img [ref=e35]
+            - generic [ref=e37]: K
+        - generic [ref=e38]:
+          - button "Quick actions" [ref=e40] [cursor=pointer]:
+            - img [ref=e41] [cursor=pointer]
+            - generic [ref=e42] [cursor=pointer]: Quick Actions
+            - img [ref=e43] [cursor=pointer]
+          - generic [ref=e45]:
+            - button "Select language English (EN)" [ref=e47] [cursor=pointer]:
+              - img [ref=e48] [cursor=pointer]
+              - generic [ref=e51] [cursor=pointer]:
+                - generic [ref=e52] [cursor=pointer]: 🇺🇸
+                - generic [ref=e53] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e55] [cursor=pointer]:
+              - img [ref=e56] [cursor=pointer]
+              - generic [ref=e59] [cursor=pointer]:
+                - generic [ref=e60] [cursor=pointer]: 🇸🇦
+                - generic [ref=e61] [cursor=pointer]: SAR
+          - button [ref=e63] [cursor=pointer]:
+            - img [ref=e64] [cursor=pointer]
+            - img [ref=e67] [cursor=pointer]
+      - generic [ref=e69]:
+        - complementary [ref=e71]:
+          - generic [ref=e72]:
+            - generic [ref=e73]: FIXZIT ENTERPRISE
+            - navigation
+            - generic [ref=e74]:
+              - generic [ref=e75]: Account
+              - navigation [ref=e76]:
+                - button "Profile" [ref=e77] [cursor=pointer]:
+                  - img [ref=e78] [cursor=pointer]
+                  - generic [ref=e82] [cursor=pointer]: Profile
+                - button "Settings" [ref=e83] [cursor=pointer]:
+                  - img [ref=e84] [cursor=pointer]
+                  - generic [ref=e87] [cursor=pointer]: Settings
+                - button "Notifications" [ref=e88] [cursor=pointer]:
+                  - img [ref=e89] [cursor=pointer]
+                  - generic [ref=e92] [cursor=pointer]: Notifications
+            - generic [ref=e93]:
+              - generic [ref=e94]: Preferences
+              - generic [ref=e95]:
+                - button "Select language English (EN)" [ref=e97] [cursor=pointer]:
+                  - img [ref=e98] [cursor=pointer]
+                  - generic [ref=e101] [cursor=pointer]:
+                    - generic [ref=e102] [cursor=pointer]: 🇺🇸
+                    - generic [ref=e103] [cursor=pointer]: EN
+                - button "Select currency SAR" [ref=e105] [cursor=pointer]:
+                  - img [ref=e106] [cursor=pointer]
+                  - generic [ref=e109] [cursor=pointer]:
+                    - generic [ref=e110] [cursor=pointer]: 🇸🇦
+                    - generic [ref=e111] [cursor=pointer]: SAR
+            - generic [ref=e112]:
+              - generic [ref=e113]: Help
+              - button "Help Center" [ref=e114] [cursor=pointer]:
+                - img [ref=e115] [cursor=pointer]
+                - generic [ref=e117] [cursor=pointer]: Help Center
+        - main [ref=e118]:
+          - generic [ref=e120]:
+            - generic [ref=e122]:
+              - heading "Fixzit Knowledge Center" [level=1] [ref=e123]
+              - paragraph [ref=e124]: Interactive tutorials, guides, and resources to master Fixzit Enterprise
+              - generic [ref=e125]:
+                - button "Ask AI Assistant" [ref=e126] [cursor=pointer]:
+                  - img [ref=e127] [cursor=pointer]
+                  - text: Ask AI Assistant
+                - button "Create Support Ticket" [ref=e130] [cursor=pointer]:
+                  - img [ref=e131] [cursor=pointer]
+                  - text: Create Support Ticket
+                - link "View My Tickets" [ref=e132] [cursor=pointer]:
+                  - /url: /support/my-tickets
+                  - img [ref=e133] [cursor=pointer]
+                  - text: View My Tickets
+            - generic [ref=e136]:
+              - generic [ref=e137]:
+                - heading "Interactive Tutorials" [level=2] [ref=e138]
+                - paragraph [ref=e139]: Learn Fixzit step-by-step with our guided tutorials
+              - generic [ref=e140]:
+                - generic [ref=e141]:
+                  - generic [ref=e143]:
+                    - generic [ref=e144]:
+                      - img [ref=e145]
+                      - generic [ref=e149]: Facility Management
+                      - img [ref=e150]
+                    - heading "Getting Started with Fixzit FM" [level=3] [ref=e152]
+                    - paragraph [ref=e153]: Learn the basics of facility management in Fixzit
+                  - generic [ref=e154]:
+                    - generic [ref=e155]:
+                      - generic [ref=e156]:
+                        - img [ref=e157]
+                        - text: 15 min
+                      - generic [ref=e159]: Beginner
+                    - button "Start Tutorial" [ref=e160] [cursor=pointer]:
+                      - text: Start Tutorial
+                      - img [ref=e161] [cursor=pointer]
+                - generic [ref=e164]:
+                  - generic [ref=e166]:
+                    - generic [ref=e167]:
+                      - img [ref=e168]
+                      - generic [ref=e170]: Work Orders
+                    - heading "Creating Your First Work Order" [level=3] [ref=e171]
+                    - paragraph [ref=e172]: Step-by-step guide to create and assign work orders
+                  - generic [ref=e173]:
+                    - generic [ref=e174]:
+                      - generic [ref=e175]:
+                        - img [ref=e176]
+                        - text: 10 min
+                      - generic [ref=e178]: Beginner
+                    - button "Start Tutorial" [ref=e179] [cursor=pointer]:
+                      - text: Start Tutorial
+                      - img [ref=e180] [cursor=pointer]
+                - generic [ref=e183]:
+                  - generic [ref=e185]:
+                    - generic [ref=e186]:
+                      - img [ref=e187]
+                      - generic [ref=e190]: Procurement
+                    - heading "Vendor Management Best Practices" [level=3] [ref=e191]
+                    - paragraph [ref=e192]: Learn how to manage vendors and procurement processes
+                  - generic [ref=e193]:
+                    - generic [ref=e194]:
+                      - generic [ref=e195]:
+                        - img [ref=e196]
+                        - text: 20 min
+                      - generic [ref=e198]: Intermediate
+                    - button "Start Tutorial" [ref=e199] [cursor=pointer]:
+                      - text: Start Tutorial
+                      - img [ref=e200] [cursor=pointer]
+                - generic [ref=e203]:
+                  - generic [ref=e205]:
+                    - generic [ref=e206]:
+                      - img [ref=e207]
+                      - generic [ref=e212]: Customer Service
+                    - heading "Tenant Relations & Communication" [level=3] [ref=e213]
+                    - paragraph [ref=e214]: Master tenant communication and relationship management
+                  - generic [ref=e215]:
+                    - generic [ref=e216]:
+                      - generic [ref=e217]:
+                        - img [ref=e218]
+                        - text: 12 min
+                      - generic [ref=e220]: Beginner
+                    - button "Start Tutorial" [ref=e221] [cursor=pointer]:
+                      - text: Start Tutorial
+                      - img [ref=e222] [cursor=pointer]
+                - generic [ref=e225]:
+                  - generic [ref=e227]:
+                    - generic [ref=e228]:
+                      - img [ref=e229]
+                      - generic [ref=e231]: Finance
+                    - heading "Financial Reporting & Invoicing" [level=3] [ref=e232]
+                    - paragraph [ref=e233]: Complete guide to financial management in Fixzit
+                  - generic [ref=e234]:
+                    - generic [ref=e235]:
+                      - generic [ref=e236]:
+                        - img [ref=e237]
+                        - text: 25 min
+                      - generic [ref=e239]: Intermediate
+                    - button "Start Tutorial" [ref=e240] [cursor=pointer]:
+                      - text: Start Tutorial
+                      - img [ref=e241] [cursor=pointer]
+              - button "View All Tutorials →" [ref=e245] [cursor=pointer]
+            - generic [ref=e247]:
+              - generic [ref=e248]:
+                - heading "Help Articles" [level=2] [ref=e249]
+                - paragraph [ref=e250]: Quick answers to common questions and detailed guides
+              - generic [ref=e251]:
+                - generic [ref=e253]:
+                  - img [ref=e255]
+                  - generic [ref=e258]:
+                    - heading "How to Create Properties" [level=3] [ref=e259]
+                    - paragraph [ref=e260]: Learn how to add and manage properties in the system
+                    - generic [ref=e261]:
+                      - generic [ref=e262]:
+                        - generic [ref=e263]: Properties
+                        - generic [ref=e264]: •
+                        - generic [ref=e265]: 5 min read
+                      - link "Read More" [ref=e266] [cursor=pointer]:
+                        - /url: /help/article/1
+                        - text: Read More
+                        - img [ref=e267] [cursor=pointer]
+                - generic [ref=e270]:
+                  - img [ref=e272]
+                  - generic [ref=e274]:
+                    - heading "Work Order Lifecycle" [level=3] [ref=e275]
+                    - paragraph [ref=e276]: Understanding the complete work order process
+                    - generic [ref=e277]:
+                      - generic [ref=e278]:
+                        - generic [ref=e279]: Work Orders
+                        - generic [ref=e280]: •
+                        - generic [ref=e281]: 8 min read
+                      - link "Read More" [ref=e282] [cursor=pointer]:
+                        - /url: /help/article/2
+                        - text: Read More
+                        - img [ref=e283] [cursor=pointer]
+                - generic [ref=e286]:
+                  - img [ref=e288]
+                  - generic [ref=e291]:
+                    - heading "Vendor Onboarding Process" [level=3] [ref=e292]
+                    - paragraph [ref=e293]: How to add new vendors to your system
+                    - generic [ref=e294]:
+                      - generic [ref=e295]:
+                        - generic [ref=e296]: Vendors
+                        - generic [ref=e297]: •
+                        - generic [ref=e298]: 6 min read
+                      - link "Read More" [ref=e299] [cursor=pointer]:
+                        - /url: /help/article/3
+                        - text: Read More
+                        - img [ref=e300] [cursor=pointer]
+                - generic [ref=e303]:
+                  - img [ref=e305]
+                  - generic [ref=e307]:
+                    - heading "Invoice Generation & Payment" [level=3] [ref=e308]
+                    - paragraph [ref=e309]: Complete guide to invoicing and payment processing
+                    - generic [ref=e310]:
+                      - generic [ref=e311]:
+                        - generic [ref=e312]: Finance
+                        - generic [ref=e313]: •
+                        - generic [ref=e314]: 10 min read
+                      - link "Read More" [ref=e315] [cursor=pointer]:
+                        - /url: /help/article/4
+                        - text: Read More
+                        - img [ref=e316] [cursor=pointer]
+              - button "View All Articles →" [ref=e319] [cursor=pointer]
+            - generic [ref=e321]:
+              - generic [ref=e322]:
+                - heading "System Overview" [level=2] [ref=e323]
+                - paragraph [ref=e324]: Understand how Fixzit Enterprise works
+              - generic [ref=e325]:
+                - generic [ref=e326]:
+                  - img [ref=e328]
+                  - heading "Properties" [level=3] [ref=e332]
+                  - paragraph [ref=e333]: Manage residential and commercial properties with comprehensive tools
+                - generic [ref=e334]:
+                  - img [ref=e336]
+                  - heading "Work Orders" [level=3] [ref=e338]
+                  - paragraph [ref=e339]: Create, assign, and track maintenance requests with SLA management
+                - generic [ref=e340]:
+                  - img [ref=e342]
+                  - heading "Vendors" [level=3] [ref=e347]
+                  - paragraph [ref=e348]: Source materials, manage vendors, and streamline procurement
+                - generic [ref=e349]:
+                  - img [ref=e351]
+                  - heading "Finance" [level=3] [ref=e353]
+                  - paragraph [ref=e354]: Handle invoicing, payments, and financial reporting
+      - contentinfo [ref=e356]:
+        - generic [ref=e357]:
+          - generic [ref=e358]:
+            - generic [ref=e359]: Fixzit
+            - link "Back to Home" [ref=e360] [cursor=pointer]:
+              - /url: /
+              - img [ref=e361] [cursor=pointer]
+              - generic [ref=e364] [cursor=pointer]: Back to Home
+            - generic [ref=e365]:
+              - button "Select language English (EN)" [ref=e367] [cursor=pointer]:
+                - img [ref=e368] [cursor=pointer]
+                - generic [ref=e371] [cursor=pointer]:
+                  - generic [ref=e372] [cursor=pointer]: 🇺🇸
+                  - generic [ref=e373] [cursor=pointer]: EN
+              - button "Select currency SAR" [ref=e375] [cursor=pointer]:
+                - img [ref=e376] [cursor=pointer]
+                - generic [ref=e379] [cursor=pointer]:
+                  - generic [ref=e380] [cursor=pointer]: 🇸🇦
+                  - generic [ref=e381] [cursor=pointer]: SAR
+          - generic [ref=e382]:
+            - generic [ref=e383]:
+              - generic [ref=e384]: Company
+              - list [ref=e385]:
+                - listitem [ref=e386]:
+                  - link "About" [ref=e387] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e388]:
+                  - link "Careers" [ref=e389] [cursor=pointer]:
+                    - /url: /careers
+            - generic [ref=e390]:
+              - generic [ref=e391]: Legal
+              - list [ref=e392]:
+                - listitem [ref=e393]:
+                  - link "Privacy" [ref=e394] [cursor=pointer]:
+                    - /url: /cms/privacy
+                - listitem [ref=e395]:
+                  - link "Terms" [ref=e396] [cursor=pointer]:
+                    - /url: /cms/terms
+            - generic [ref=e397]:
+              - generic [ref=e398]: Support
+              - list [ref=e399]:
+                - listitem [ref=e400]:
+                  - link "Help Center" [ref=e401] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e402]:
+                  - button "Open a ticket" [ref=e403] [cursor=pointer]
+          - generic [ref=e404]:
+            - generic [ref=e405]: © 2025 Fixzit. All rights reserved.
+            - generic [ref=e406]:
+              - link "Privacy" [ref=e407] [cursor=pointer]:
+                - /url: /cms/privacy
+              - link "Terms" [ref=e408] [cursor=pointer]:
+                - /url: /cms/terms
+              - link "Support" [ref=e409] [cursor=pointer]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e411] [cursor=pointer]:
+      - img [ref=e412] [cursor=pointer]
+```

@@ -1,0 +1,163 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - banner [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: FIXZIT ENTERPRISE
+          - button "Switch Application" [ref=e19] [cursor=pointer]:
+            - img [ref=e20] [cursor=pointer]
+            - generic [ref=e25] [cursor=pointer]: Marketplace
+            - img [ref=e26] [cursor=pointer]
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - textbox "Global search" [ref=e34]
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - generic [ref=e38]: K
+        - generic [ref=e39]:
+          - button "Quick actions" [ref=e41] [cursor=pointer]:
+            - img [ref=e42] [cursor=pointer]
+            - generic [ref=e43] [cursor=pointer]: Quick Actions
+            - img [ref=e44] [cursor=pointer]
+          - generic [ref=e46]:
+            - button "Select language English (EN)" [ref=e48] [cursor=pointer]:
+              - img [ref=e49] [cursor=pointer]
+              - generic [ref=e52] [cursor=pointer]:
+                - generic [ref=e53] [cursor=pointer]: 🇺🇸
+                - generic [ref=e54] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e56] [cursor=pointer]:
+              - img [ref=e57] [cursor=pointer]
+              - generic [ref=e60] [cursor=pointer]:
+                - generic [ref=e61] [cursor=pointer]: 🇸🇦
+                - generic [ref=e62] [cursor=pointer]: SAR
+          - button [ref=e64] [cursor=pointer]:
+            - img [ref=e65] [cursor=pointer]
+            - img [ref=e68] [cursor=pointer]
+      - button [ref=e70] [cursor=pointer]:
+        - img [ref=e71] [cursor=pointer]
+      - generic [ref=e72]:
+        - complementary [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]: FIXZIT ENTERPRISE
+            - navigation
+            - generic [ref=e76]:
+              - generic [ref=e77]: Account
+              - navigation [ref=e78]:
+                - button "Profile" [ref=e79] [cursor=pointer]:
+                  - img [ref=e80] [cursor=pointer]
+                  - generic [ref=e84] [cursor=pointer]: Profile
+                - button "Settings" [ref=e85] [cursor=pointer]:
+                  - img [ref=e86] [cursor=pointer]
+                  - generic [ref=e89] [cursor=pointer]: Settings
+                - button "Notifications" [ref=e90] [cursor=pointer]:
+                  - img [ref=e91] [cursor=pointer]
+                  - generic [ref=e94] [cursor=pointer]: Notifications
+            - generic [ref=e95]:
+              - generic [ref=e96]: Preferences
+              - generic [ref=e97]:
+                - button "Select language English (EN)" [ref=e99] [cursor=pointer]:
+                  - img [ref=e100] [cursor=pointer]
+                  - generic [ref=e103] [cursor=pointer]:
+                    - generic [ref=e104] [cursor=pointer]: 🇺🇸
+                    - generic [ref=e105] [cursor=pointer]: EN
+                - button "Select currency SAR" [ref=e107] [cursor=pointer]:
+                  - img [ref=e108] [cursor=pointer]
+                  - generic [ref=e111] [cursor=pointer]:
+                    - generic [ref=e112] [cursor=pointer]: 🇸🇦
+                    - generic [ref=e113] [cursor=pointer]: SAR
+            - generic [ref=e114]:
+              - generic [ref=e115]: Help
+              - button "Help Center" [ref=e116] [cursor=pointer]:
+                - img [ref=e117] [cursor=pointer]
+                - generic [ref=e119] [cursor=pointer]: Help Center
+        - main [ref=e120]:
+          - main [ref=e124]:
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - paragraph [ref=e127]: Fixzit Souq
+                - heading "Facilities, MRO & Construction Marketplace" [level=1] [ref=e128]
+                - paragraph [ref=e129]: Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.
+                - generic [ref=e130]:
+                  - generic [ref=e131]: Rapid RFQ
+                  - generic [ref=e132]: Work Order linked orders
+                  - generic [ref=e133]: Finance ready invoices
+              - generic [ref=e134]:
+                - heading "Live Operational KPIs" [level=2] [ref=e135]
+                - generic [ref=e136]:
+                  - generic [ref=e137]:
+                    - paragraph [ref=e138]: Open approvals
+                    - paragraph [ref=e139]: "3"
+                  - generic [ref=e140]:
+                    - paragraph [ref=e141]: Pending deliveries
+                    - paragraph [ref=e142]: "7"
+                  - generic [ref=e143]:
+                    - paragraph [ref=e144]: Finance ready
+                    - paragraph [ref=e145]: "5"
+            - generic [ref=e147]:
+              - heading "Featured for your organisation" [level=2] [ref=e148]
+              - link "View all" [ref=e149] [cursor=pointer]:
+                - /url: /marketplace/search
+      - contentinfo [ref=e151]:
+        - generic [ref=e152]:
+          - generic [ref=e153]:
+            - generic [ref=e154]: Fixzit
+            - link "Back to Home" [ref=e155] [cursor=pointer]:
+              - /url: /
+              - img [ref=e156] [cursor=pointer]
+              - generic [ref=e159] [cursor=pointer]: Back to Home
+            - generic [ref=e160]:
+              - button "Select language English (EN)" [ref=e162] [cursor=pointer]:
+                - img [ref=e163] [cursor=pointer]
+                - generic [ref=e166] [cursor=pointer]:
+                  - generic [ref=e167] [cursor=pointer]: 🇺🇸
+                  - generic [ref=e168] [cursor=pointer]: EN
+              - button "Select currency SAR" [ref=e170] [cursor=pointer]:
+                - img [ref=e171] [cursor=pointer]
+                - generic [ref=e174] [cursor=pointer]:
+                  - generic [ref=e175] [cursor=pointer]: 🇸🇦
+                  - generic [ref=e176] [cursor=pointer]: SAR
+          - generic [ref=e177]:
+            - generic [ref=e178]:
+              - generic [ref=e179]: Company
+              - list [ref=e180]:
+                - listitem [ref=e181]:
+                  - link "About" [ref=e182] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e183]:
+                  - link "Careers" [ref=e184] [cursor=pointer]:
+                    - /url: /careers
+            - generic [ref=e185]:
+              - generic [ref=e186]: Legal
+              - list [ref=e187]:
+                - listitem [ref=e188]:
+                  - link "Privacy" [ref=e189] [cursor=pointer]:
+                    - /url: /cms/privacy
+                - listitem [ref=e190]:
+                  - link "Terms" [ref=e191] [cursor=pointer]:
+                    - /url: /cms/terms
+            - generic [ref=e192]:
+              - generic [ref=e193]: Support
+              - list [ref=e194]:
+                - listitem [ref=e195]:
+                  - link "Help Center" [ref=e196] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e197]:
+                  - button "Open a ticket" [ref=e198] [cursor=pointer]
+          - generic [ref=e199]:
+            - generic [ref=e200]: © 2025 Fixzit. All rights reserved.
+            - generic [ref=e201]:
+              - link "Privacy" [ref=e202] [cursor=pointer]:
+                - /url: /cms/privacy
+              - link "Terms" [ref=e203] [cursor=pointer]:
+                - /url: /cms/terms
+              - link "Support" [ref=e204] [cursor=pointer]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e206] [cursor=pointer]:
+      - img [ref=e207] [cursor=pointer]
+```

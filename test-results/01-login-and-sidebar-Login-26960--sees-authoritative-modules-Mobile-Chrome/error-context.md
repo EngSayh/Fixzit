@@ -1,0 +1,246 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - banner [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: FIXZIT ENTERPRISE
+          - button "Switch Application" [ref=e19] [cursor=pointer]:
+            - img [ref=e20] [cursor=pointer]
+            - generic [ref=e24] [cursor=pointer]: Facility Management
+            - img [ref=e25] [cursor=pointer]
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - textbox "Global search" [ref=e33]
+          - generic [ref=e34]:
+            - img [ref=e35]
+            - generic [ref=e37]: K
+        - generic [ref=e38]:
+          - button "Quick actions" [ref=e40] [cursor=pointer]:
+            - img [ref=e41] [cursor=pointer]
+            - generic [ref=e42] [cursor=pointer]: Quick Actions
+            - img [ref=e43] [cursor=pointer]
+          - generic [ref=e45]:
+            - button "Select language English (EN)" [ref=e47] [cursor=pointer]:
+              - img [ref=e48] [cursor=pointer]
+              - generic [ref=e51] [cursor=pointer]:
+                - generic [ref=e52] [cursor=pointer]: 🇺🇸
+                - generic [ref=e53] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e55] [cursor=pointer]:
+              - img [ref=e56] [cursor=pointer]
+              - generic [ref=e59] [cursor=pointer]:
+                - generic [ref=e60] [cursor=pointer]: 🇸🇦
+                - generic [ref=e61] [cursor=pointer]: SAR
+          - button [ref=e63] [cursor=pointer]:
+            - img [ref=e64] [cursor=pointer]
+            - img [ref=e67] [cursor=pointer]
+      - button [ref=e69] [cursor=pointer]:
+        - img [ref=e70] [cursor=pointer]
+      - generic [ref=e71]:
+        - complementary [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: FIXZIT ENTERPRISE
+            - navigation
+            - generic [ref=e75]:
+              - generic [ref=e76]: Account
+              - navigation [ref=e77]:
+                - button "Profile" [ref=e78] [cursor=pointer]:
+                  - img [ref=e79] [cursor=pointer]
+                  - generic [ref=e83] [cursor=pointer]: Profile
+                - button "Settings" [ref=e84] [cursor=pointer]:
+                  - img [ref=e85] [cursor=pointer]
+                  - generic [ref=e88] [cursor=pointer]: Settings
+                - button "Notifications" [ref=e89] [cursor=pointer]:
+                  - img [ref=e90] [cursor=pointer]
+                  - generic [ref=e93] [cursor=pointer]: Notifications
+            - generic [ref=e94]:
+              - generic [ref=e95]: Preferences
+              - generic [ref=e96]:
+                - button "Select language English (EN)" [ref=e98] [cursor=pointer]:
+                  - img [ref=e99] [cursor=pointer]
+                  - generic [ref=e102] [cursor=pointer]:
+                    - generic [ref=e103] [cursor=pointer]: 🇺🇸
+                    - generic [ref=e104] [cursor=pointer]: EN
+                - button "Select currency SAR" [ref=e106] [cursor=pointer]:
+                  - img [ref=e107] [cursor=pointer]
+                  - generic [ref=e110] [cursor=pointer]:
+                    - generic [ref=e111] [cursor=pointer]: 🇸🇦
+                    - generic [ref=e112] [cursor=pointer]: SAR
+            - generic [ref=e113]:
+              - generic [ref=e114]: Help
+              - button "Help Center" [ref=e115] [cursor=pointer]:
+                - img [ref=e116] [cursor=pointer]
+                - generic [ref=e118] [cursor=pointer]: Help Center
+        - main [ref=e119]:
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - button "Select language English (EN)" [ref=e127] [cursor=pointer]:
+                  - img [ref=e128] [cursor=pointer]
+                  - generic [ref=e131] [cursor=pointer]:
+                    - generic [ref=e132] [cursor=pointer]: 🇺🇸
+                    - generic [ref=e133] [cursor=pointer]: English
+                - button "Select currency SAR" [ref=e135] [cursor=pointer]:
+                  - img [ref=e136] [cursor=pointer]
+                  - generic [ref=e139] [cursor=pointer]:
+                    - generic [ref=e140] [cursor=pointer]: 🇸🇦
+                    - generic [ref=e141] [cursor=pointer]: SAR
+              - link "← Back to Home" [ref=e142] [cursor=pointer]:
+                - /url: /
+            - generic [ref=e143]:
+              - generic [ref=e144]:
+                - heading "Welcome Back" [level=2] [ref=e145]
+                - paragraph [ref=e146]: Sign in to your Fixzit account
+              - generic [ref=e147]:
+                - button "Personal Email" [ref=e148] [cursor=pointer]
+                - button "Corporate Account" [ref=e149] [cursor=pointer]
+                - button "SSO Login" [ref=e150] [cursor=pointer]
+              - generic [ref=e151]:
+                - generic [ref=e152]:
+                  - generic [ref=e153]: Personal Email
+                  - generic [ref=e154]:
+                    - img [ref=e155]
+                    - textbox "Personal Email" [ref=e158]: admin@fixzit.co
+                - generic [ref=e159]:
+                  - generic [ref=e160]: Password
+                  - generic [ref=e161]:
+                    - img [ref=e162]
+                    - textbox "Password" [active] [ref=e165]: admin123
+                    - button "Show password" [ref=e166] [cursor=pointer]:
+                      - img [ref=e167] [cursor=pointer]
+                - link "Forgot password?" [ref=e171] [cursor=pointer]:
+                  - /url: /forgot-password
+                - button "Sign In" [ref=e172] [cursor=pointer]:
+                  - generic [ref=e173] [cursor=pointer]:
+                    - img [ref=e174] [cursor=pointer]
+                    - text: Sign In
+              - generic [ref=e177]:
+                - generic [ref=e178]:
+                  - heading "Personal Email Accounts:" [level=3] [ref=e179]
+                  - generic [ref=e180]:
+                    - button "Super Admin Full system access superadmin@fixzit.co / password123" [ref=e181] [cursor=pointer]:
+                      - generic [ref=e182] [cursor=pointer]:
+                        - img [ref=e183] [cursor=pointer]
+                        - generic [ref=e185] [cursor=pointer]:
+                          - generic [ref=e186] [cursor=pointer]: Super Admin
+                          - generic [ref=e187] [cursor=pointer]: Full system access
+                        - img [ref=e188] [cursor=pointer]
+                      - generic [ref=e190] [cursor=pointer]: superadmin@fixzit.co / password123
+                    - button "Admin Administrative access admin@fixzit.co / password123" [ref=e191] [cursor=pointer]:
+                      - generic [ref=e192] [cursor=pointer]:
+                        - img [ref=e193] [cursor=pointer]
+                        - generic [ref=e196] [cursor=pointer]:
+                          - generic [ref=e197] [cursor=pointer]: Admin
+                          - generic [ref=e198] [cursor=pointer]: Administrative access
+                        - img [ref=e199] [cursor=pointer]
+                      - generic [ref=e201] [cursor=pointer]: admin@fixzit.co / password123
+                    - button "Property Manager Property management manager@fixzit.co / password123" [ref=e202] [cursor=pointer]:
+                      - generic [ref=e203] [cursor=pointer]:
+                        - img [ref=e204] [cursor=pointer]
+                        - generic [ref=e208] [cursor=pointer]:
+                          - generic [ref=e209] [cursor=pointer]: Property Manager
+                          - generic [ref=e210] [cursor=pointer]: Property management
+                        - img [ref=e211] [cursor=pointer]
+                      - generic [ref=e213] [cursor=pointer]: manager@fixzit.co / password123
+                    - button "Tenant Tenant portal access tenant@fixzit.co / password123" [ref=e214] [cursor=pointer]:
+                      - generic [ref=e215] [cursor=pointer]:
+                        - img [ref=e216] [cursor=pointer]
+                        - generic [ref=e221] [cursor=pointer]:
+                          - generic [ref=e222] [cursor=pointer]: Tenant
+                          - generic [ref=e223] [cursor=pointer]: Tenant portal access
+                        - img [ref=e224] [cursor=pointer]
+                      - generic [ref=e226] [cursor=pointer]: tenant@fixzit.co / password123
+                    - button "Vendor Vendor marketplace access vendor@fixzit.co / password123" [ref=e227] [cursor=pointer]:
+                      - generic [ref=e228] [cursor=pointer]:
+                        - img [ref=e229] [cursor=pointer]
+                        - generic [ref=e234] [cursor=pointer]:
+                          - generic [ref=e235] [cursor=pointer]: Vendor
+                          - generic [ref=e236] [cursor=pointer]: Vendor marketplace access
+                        - img [ref=e237] [cursor=pointer]
+                      - generic [ref=e239] [cursor=pointer]: vendor@fixzit.co / password123
+                - generic [ref=e240]:
+                  - heading "Corporate Account (Employee Number):" [level=3] [ref=e241]
+                  - generic [ref=e242]:
+                    - 'button "Property Manager (Corporate) Corporate account access Employee #: EMP001 / password123" [ref=e243] [cursor=pointer]':
+                      - generic [ref=e244] [cursor=pointer]:
+                        - img [ref=e245] [cursor=pointer]
+                        - generic [ref=e249] [cursor=pointer]:
+                          - generic [ref=e250] [cursor=pointer]: Property Manager (Corporate)
+                          - generic [ref=e251] [cursor=pointer]: Corporate account access
+                        - img [ref=e252] [cursor=pointer]
+                      - generic [ref=e254] [cursor=pointer]: "Employee #: EMP001 / password123"
+                    - 'button "Admin (Corporate) Corporate administrative access Employee #: EMP002 / password123" [ref=e255] [cursor=pointer]':
+                      - generic [ref=e256] [cursor=pointer]:
+                        - img [ref=e257] [cursor=pointer]
+                        - generic [ref=e260] [cursor=pointer]:
+                          - generic [ref=e261] [cursor=pointer]: Admin (Corporate)
+                          - generic [ref=e262] [cursor=pointer]: Corporate administrative access
+                        - img [ref=e263] [cursor=pointer]
+                      - generic [ref=e265] [cursor=pointer]: "Employee #: EMP002 / password123"
+              - paragraph [ref=e267]:
+                - text: Don't have an account?
+                - link "Create new account" [ref=e268] [cursor=pointer]:
+                  - /url: /signup
+      - contentinfo [ref=e270]:
+        - generic [ref=e271]:
+          - generic [ref=e272]:
+            - generic [ref=e273]: Fixzit
+            - link "Back to Home" [ref=e274] [cursor=pointer]:
+              - /url: /
+              - img [ref=e275] [cursor=pointer]
+              - generic [ref=e278] [cursor=pointer]: Back to Home
+            - generic [ref=e279]:
+              - button "Select language English (EN)" [ref=e281] [cursor=pointer]:
+                - img [ref=e282] [cursor=pointer]
+                - generic [ref=e285] [cursor=pointer]:
+                  - generic [ref=e286] [cursor=pointer]: 🇺🇸
+                  - generic [ref=e287] [cursor=pointer]: EN
+              - button "Select currency SAR" [ref=e289] [cursor=pointer]:
+                - img [ref=e290] [cursor=pointer]
+                - generic [ref=e293] [cursor=pointer]:
+                  - generic [ref=e294] [cursor=pointer]: 🇸🇦
+                  - generic [ref=e295] [cursor=pointer]: SAR
+          - generic [ref=e296]:
+            - generic [ref=e297]:
+              - generic [ref=e298]: Company
+              - list [ref=e299]:
+                - listitem [ref=e300]:
+                  - link "About" [ref=e301] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e302]:
+                  - link "Careers" [ref=e303] [cursor=pointer]:
+                    - /url: /careers
+            - generic [ref=e304]:
+              - generic [ref=e305]: Legal
+              - list [ref=e306]:
+                - listitem [ref=e307]:
+                  - link "Privacy" [ref=e308] [cursor=pointer]:
+                    - /url: /cms/privacy
+                - listitem [ref=e309]:
+                  - link "Terms" [ref=e310] [cursor=pointer]:
+                    - /url: /cms/terms
+            - generic [ref=e311]:
+              - generic [ref=e312]: Support
+              - list [ref=e313]:
+                - listitem [ref=e314]:
+                  - link "Help Center" [ref=e315] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e316]:
+                  - button "Open a ticket" [ref=e317] [cursor=pointer]
+          - generic [ref=e318]:
+            - generic [ref=e319]: © 2025 Fixzit. All rights reserved.
+            - generic [ref=e320]:
+              - link "Privacy" [ref=e321] [cursor=pointer]:
+                - /url: /cms/privacy
+              - link "Terms" [ref=e322] [cursor=pointer]:
+                - /url: /cms/terms
+              - link "Support" [ref=e323] [cursor=pointer]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e325] [cursor=pointer]:
+      - img [ref=e326] [cursor=pointer]
+```
