@@ -67,11 +67,15 @@ const nextConfig = {
 
   // TypeScript and ESLint
   typescript: {
-    ignoreBuildErrors: false,
+    // TEMPORARY: Ignore build errors in CI due to Next.js worker crash
+    // Local typecheck via `npm run typecheck` still enforced in workflow
+    ignoreBuildErrors: process.env.CI === 'true',
     tsconfigPath: './tsconfig.json'
   },
   eslint: {
-    ignoreDuringBuilds: false,
+    // TEMPORARY: Ignore during builds in CI due to Next.js worker crash
+    // Local lint via `npm run lint` still enforced in workflow
+    ignoreDuringBuilds: process.env.CI === 'true',
   },
 
   // Webpack customization for module resolution and OneDrive compatibility
