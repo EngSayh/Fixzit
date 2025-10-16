@@ -1,0 +1,145 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - banner [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: FIXZIT ENTERPRISE
+          - button "Switch Application" [ref=e19] [cursor=pointer]:
+            - img [ref=e20] [cursor=pointer]
+            - generic [ref=e24] [cursor=pointer]: Facility Management
+            - img [ref=e25] [cursor=pointer]
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - textbox "Global search" [ref=e33]
+          - generic [ref=e34]:
+            - img [ref=e35]
+            - generic [ref=e37]: K
+        - generic [ref=e38]:
+          - button "Quick actions" [ref=e40] [cursor=pointer]:
+            - img [ref=e41] [cursor=pointer]
+            - generic [ref=e42] [cursor=pointer]: Quick Actions
+            - img [ref=e43] [cursor=pointer]
+          - generic [ref=e45]:
+            - button "Select language English (EN)" [ref=e47] [cursor=pointer]:
+              - img [ref=e48] [cursor=pointer]
+              - generic [ref=e51] [cursor=pointer]:
+                - generic [ref=e52] [cursor=pointer]: 🇺🇸
+                - generic [ref=e53] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e55] [cursor=pointer]:
+              - img [ref=e56] [cursor=pointer]
+              - generic [ref=e59] [cursor=pointer]:
+                - generic [ref=e60] [cursor=pointer]: 🇸🇦
+                - generic [ref=e61] [cursor=pointer]: SAR
+          - button [ref=e63] [cursor=pointer]:
+            - img [ref=e64] [cursor=pointer]
+            - img [ref=e67] [cursor=pointer]
+      - main [ref=e70]:
+        - generic [ref=e72]:
+          - generic [ref=e74]:
+            - heading "Fixzit Enterprise Platform" [level=1] [ref=e75]
+            - paragraph [ref=e76]: Unified Facility Management + Marketplace Solution for modern property operations
+            - generic [ref=e77]:
+              - button "Access Fixzit FM" [ref=e78] [cursor=pointer]
+              - button "Fixzit Souq" [ref=e79] [cursor=pointer]
+              - button "Aqar Real Estate" [ref=e80] [cursor=pointer]
+          - generic [ref=e82]:
+            - heading "Complete Facility Management Solution" [level=2] [ref=e83]
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - heading "Property Management" [level=3] [ref=e86]
+                - paragraph [ref=e87]: Manage your real estate portfolio, track occupancy, and handle tenant relations
+                - link "Explore →" [ref=e88] [cursor=pointer]:
+                  - /url: /fm/properties
+              - generic [ref=e89]:
+                - heading "Work Orders" [level=3] [ref=e90]
+                - paragraph [ref=e91]: Create, assign, and track maintenance requests with SLA management
+                - link "Explore →" [ref=e92] [cursor=pointer]:
+                  - /url: /fm/work-orders
+              - generic [ref=e93]:
+                - heading "Vendors & RFQs" [level=3] [ref=e94]
+                - paragraph [ref=e95]: Source materials, manage vendors, and streamline procurement
+                - link "Explore →" [ref=e96] [cursor=pointer]:
+                  - /url: /fm/vendors
+              - generic [ref=e97]:
+                - heading "Finance & Billing" [level=3] [ref=e98]
+                - paragraph [ref=e99]: Handle invoicing, payments, and financial reporting
+                - link "Explore →" [ref=e100] [cursor=pointer]:
+                  - /url: /fm/finance
+              - generic [ref=e101]:
+                - heading "CRM & Tenants" [level=3] [ref=e102]
+                - paragraph [ref=e103]: Manage tenant relationships and customer service
+                - link "Explore →" [ref=e104] [cursor=pointer]:
+                  - /url: /fm/crm
+              - generic [ref=e105]:
+                - heading "Analytics & Reports" [level=3] [ref=e106]
+                - paragraph [ref=e107]: Gain insights with comprehensive reporting and analytics
+                - link "Explore →" [ref=e108] [cursor=pointer]:
+                  - /url: /fm/analytics
+          - generic [ref=e110]:
+            - heading "Ready to transform your facility management?" [level=2] [ref=e111]
+            - paragraph [ref=e112]: Join thousands of properties already using Fixzit to streamline operations
+            - button "Get Started Today" [ref=e113] [cursor=pointer]
+      - contentinfo [ref=e115]:
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e118]: Fixzit
+            - link "Back to Home" [ref=e119] [cursor=pointer]:
+              - /url: /
+              - img [ref=e120] [cursor=pointer]
+              - generic [ref=e123] [cursor=pointer]: Back to Home
+            - generic [ref=e124]:
+              - button "Select language English (EN)" [ref=e126] [cursor=pointer]:
+                - img [ref=e127] [cursor=pointer]
+                - generic [ref=e130] [cursor=pointer]:
+                  - generic [ref=e131] [cursor=pointer]: 🇺🇸
+                  - generic [ref=e132] [cursor=pointer]: EN
+              - button "Select currency SAR" [ref=e134] [cursor=pointer]:
+                - img [ref=e135] [cursor=pointer]
+                - generic [ref=e138] [cursor=pointer]:
+                  - generic [ref=e139] [cursor=pointer]: 🇸🇦
+                  - generic [ref=e140] [cursor=pointer]: SAR
+          - generic [ref=e141]:
+            - generic [ref=e142]:
+              - generic [ref=e143]: Company
+              - list [ref=e144]:
+                - listitem [ref=e145]:
+                  - link "About" [ref=e146] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e147]:
+                  - link "Careers" [ref=e148] [cursor=pointer]:
+                    - /url: /careers
+            - generic [ref=e149]:
+              - generic [ref=e150]: Legal
+              - list [ref=e151]:
+                - listitem [ref=e152]:
+                  - link "Privacy" [ref=e153] [cursor=pointer]:
+                    - /url: /cms/privacy
+                - listitem [ref=e154]:
+                  - link "Terms" [ref=e155] [cursor=pointer]:
+                    - /url: /cms/terms
+            - generic [ref=e156]:
+              - generic [ref=e157]: Support
+              - list [ref=e158]:
+                - listitem [ref=e159]:
+                  - link "Help Center" [ref=e160] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e161]:
+                  - button "Open a ticket" [ref=e162] [cursor=pointer]
+          - generic [ref=e163]:
+            - generic [ref=e164]: © 2025 Fixzit. All rights reserved.
+            - generic [ref=e165]:
+              - link "Privacy" [ref=e166] [cursor=pointer]:
+                - /url: /cms/privacy
+              - link "Terms" [ref=e167] [cursor=pointer]:
+                - /url: /cms/terms
+              - link "Support" [ref=e168] [cursor=pointer]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e170] [cursor=pointer]:
+      - img [ref=e171] [cursor=pointer]
+```

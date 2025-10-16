@@ -1,0 +1,324 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - banner [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: FIXZIT ENTERPRISE
+          - button "Switch Application" [ref=e19] [cursor=pointer]:
+            - img [ref=e20] [cursor=pointer]
+            - generic [ref=e25] [cursor=pointer]: Marketplace
+            - img [ref=e26] [cursor=pointer]
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - textbox "Global search" [ref=e34]
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - generic [ref=e38]: K
+        - generic [ref=e39]:
+          - button "Quick actions" [ref=e41] [cursor=pointer]:
+            - img [ref=e42] [cursor=pointer]
+            - generic [ref=e43] [cursor=pointer]: Quick Actions
+            - img [ref=e44] [cursor=pointer]
+          - generic [ref=e46]:
+            - button "Select language English (EN)" [ref=e48] [cursor=pointer]:
+              - img [ref=e49] [cursor=pointer]
+              - generic [ref=e52] [cursor=pointer]:
+                - generic [ref=e53] [cursor=pointer]: 🇺🇸
+                - generic [ref=e54] [cursor=pointer]: EN
+            - button "Select currency SAR" [ref=e56] [cursor=pointer]:
+              - img [ref=e57] [cursor=pointer]
+              - generic [ref=e60] [cursor=pointer]:
+                - generic [ref=e61] [cursor=pointer]: 🇸🇦
+                - generic [ref=e62] [cursor=pointer]: SAR
+          - button [ref=e64] [cursor=pointer]:
+            - img [ref=e65] [cursor=pointer]
+            - img [ref=e68] [cursor=pointer]
+      - button [ref=e70] [cursor=pointer]:
+        - img [ref=e71] [cursor=pointer]
+      - generic [ref=e72]:
+        - complementary [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]: FIXZIT ENTERPRISE
+            - navigation
+            - generic [ref=e76]:
+              - generic [ref=e77]: Account
+              - navigation [ref=e78]:
+                - button "Profile" [ref=e79] [cursor=pointer]:
+                  - img [ref=e80] [cursor=pointer]
+                  - generic [ref=e84] [cursor=pointer]: Profile
+                - button "Settings" [ref=e85] [cursor=pointer]:
+                  - img [ref=e86] [cursor=pointer]
+                  - generic [ref=e89] [cursor=pointer]: Settings
+                - button "Notifications" [ref=e90] [cursor=pointer]:
+                  - img [ref=e91] [cursor=pointer]
+                  - generic [ref=e94] [cursor=pointer]: Notifications
+            - generic [ref=e95]:
+              - generic [ref=e96]: Preferences
+              - generic [ref=e97]:
+                - button "Select language English (EN)" [ref=e99] [cursor=pointer]:
+                  - img [ref=e100] [cursor=pointer]
+                  - generic [ref=e103] [cursor=pointer]:
+                    - generic [ref=e104] [cursor=pointer]: 🇺🇸
+                    - generic [ref=e105] [cursor=pointer]: EN
+                - button "Select currency SAR" [ref=e107] [cursor=pointer]:
+                  - img [ref=e108] [cursor=pointer]
+                  - generic [ref=e111] [cursor=pointer]:
+                    - generic [ref=e112] [cursor=pointer]: 🇸🇦
+                    - generic [ref=e113] [cursor=pointer]: SAR
+            - generic [ref=e114]:
+              - generic [ref=e115]: Help
+              - button "Help Center" [ref=e116] [cursor=pointer]:
+                - img [ref=e117] [cursor=pointer]
+                - generic [ref=e119] [cursor=pointer]: Help Center
+        - main [ref=e120]:
+          - generic [ref=e124]:
+            - generic [ref=e127]:
+              - link "Fixzit Souq" [ref=e129] [cursor=pointer]:
+                - /url: /souq
+              - generic [ref=e130]:
+                - link "Sign In" [ref=e131] [cursor=pointer]:
+                  - /url: /login
+                  - img [ref=e132] [cursor=pointer]
+                  - text: Sign In
+                - link "Sign Up" [ref=e135] [cursor=pointer]:
+                  - /url: /login
+                  - img [ref=e136] [cursor=pointer]
+                  - text: Sign Up
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - generic [ref=e141]:
+                  - generic [ref=e142]:
+                    - img [ref=e143]
+                    - textbox "Search products, categories, or vendors..." [ref=e146]
+                  - generic [ref=e147]:
+                    - combobox [ref=e148]:
+                      - option "All Categories" [selected]
+                      - option "Construction Materials"
+                      - option "Electrical"
+                      - option "Safety & PPE"
+                      - option "Mechanical"
+                      - option "Furniture"
+                      - option "Security"
+                    - combobox [ref=e149]:
+                      - option "Relevance" [selected]
+                      - 'option "Price: Low to High"'
+                      - 'option "Price: High to Low"'
+                      - option "Highest Rated"
+                      - option "Newest First"
+                - generic [ref=e150]:
+                  - generic [ref=e151]: 6 results found
+                  - generic [ref=e152]:
+                    - img [ref=e153]
+                    - generic [ref=e155]: Filters applied
+              - generic [ref=e156]:
+                - generic [ref=e157]:
+                  - generic [ref=e158]:
+                    - img "Steel Rebar 12mm" [ref=e159]
+                    - generic [ref=e161]: "-8%"
+                    - button [ref=e162] [cursor=pointer]:
+                      - img [ref=e163] [cursor=pointer]
+                  - generic [ref=e165]:
+                    - heading "Steel Rebar 12mm" [level=3] [ref=e166]
+                    - paragraph [ref=e167]: Construction Materials
+                    - generic [ref=e168]:
+                      - generic [ref=e169]:
+                        - img [ref=e170]
+                        - generic [ref=e172]: "4.5"
+                      - generic [ref=e173]: (128)
+                    - generic [ref=e174]:
+                      - generic [ref=e175]:
+                        - generic [ref=e176]: SAR 2,450
+                        - generic [ref=e177]: SAR 2,650
+                      - generic [ref=e178]: In Stock
+                    - generic [ref=e179]:
+                      - button "View Details" [ref=e180] [cursor=pointer]
+                      - button "Add to Cart" [ref=e181] [cursor=pointer]:
+                        - img [ref=e182] [cursor=pointer]
+                        - text: Add to Cart
+                    - generic [ref=e186]: "Sold by: SteelCorp Ltd"
+                - generic [ref=e187]:
+                  - generic [ref=e188]:
+                    - img "LED Light Fixtures 60W" [ref=e189]
+                    - generic [ref=e190]:
+                      - generic [ref=e191]: New
+                      - generic [ref=e192]: "-16%"
+                    - button [ref=e193] [cursor=pointer]:
+                      - img [ref=e194] [cursor=pointer]
+                  - generic [ref=e196]:
+                    - heading "LED Light Fixtures 60W" [level=3] [ref=e197]
+                    - paragraph [ref=e198]: Electrical
+                    - generic [ref=e199]:
+                      - generic [ref=e200]:
+                        - img [ref=e201]
+                        - generic [ref=e203]: "4.2"
+                      - generic [ref=e204]: (89)
+                    - generic [ref=e205]:
+                      - generic [ref=e206]:
+                        - generic [ref=e207]: SAR 185
+                        - generic [ref=e208]: SAR 220
+                      - generic [ref=e209]: In Stock
+                    - generic [ref=e210]:
+                      - button "View Details" [ref=e211] [cursor=pointer]
+                      - button "Add to Cart" [ref=e212] [cursor=pointer]:
+                        - img [ref=e213] [cursor=pointer]
+                        - text: Add to Cart
+                    - generic [ref=e217]: "Sold by: LightTech Solutions"
+                - generic [ref=e218]:
+                  - generic [ref=e219]:
+                    - img "Safety Equipment Set" [ref=e220]
+                    - generic [ref=e222]: "-13%"
+                    - button [ref=e223] [cursor=pointer]:
+                      - img [ref=e224] [cursor=pointer]
+                  - generic [ref=e226]:
+                    - heading "Safety Equipment Set" [level=3] [ref=e227]
+                    - paragraph [ref=e228]: Safety & PPE
+                    - generic [ref=e229]:
+                      - generic [ref=e230]:
+                        - img [ref=e231]
+                        - generic [ref=e233]: "4.8"
+                      - generic [ref=e234]: (234)
+                    - generic [ref=e235]:
+                      - generic [ref=e236]:
+                        - generic [ref=e237]: SAR 450
+                        - generic [ref=e238]: SAR 520
+                      - generic [ref=e239]: In Stock
+                    - generic [ref=e240]:
+                      - button "View Details" [ref=e241] [cursor=pointer]
+                      - button "Add to Cart" [ref=e242] [cursor=pointer]:
+                        - img [ref=e243] [cursor=pointer]
+                        - text: Add to Cart
+                    - generic [ref=e247]: "Sold by: SafetyFirst Inc"
+                - generic [ref=e248]:
+                  - generic [ref=e249]:
+                    - img "HVAC System Complete" [ref=e250]
+                    - button [ref=e251] [cursor=pointer]:
+                      - img [ref=e252] [cursor=pointer]
+                  - generic [ref=e254]:
+                    - heading "HVAC System Complete" [level=3] [ref=e255]
+                    - paragraph [ref=e256]: Mechanical
+                    - generic [ref=e257]:
+                      - generic [ref=e258]:
+                        - img [ref=e259]
+                        - generic [ref=e261]: "4.6"
+                      - generic [ref=e262]: (67)
+                    - generic [ref=e263]:
+                      - generic [ref=e265]: SAR 8,900
+                      - generic [ref=e266]: In Stock
+                    - generic [ref=e267]:
+                      - button "View Details" [ref=e268] [cursor=pointer]
+                      - button "Add to Cart" [ref=e269] [cursor=pointer]:
+                        - img [ref=e270] [cursor=pointer]
+                        - text: Add to Cart
+                    - generic [ref=e274]: "Sold by: ClimateTech Pro"
+                - generic [ref=e275]:
+                  - generic [ref=e276]:
+                    - img "Office Furniture Bundle" [ref=e277]
+                    - generic [ref=e279]: "-16%"
+                    - button [ref=e280] [cursor=pointer]:
+                      - img [ref=e281] [cursor=pointer]
+                  - generic [ref=e283]:
+                    - heading "Office Furniture Bundle" [level=3] [ref=e284]
+                    - paragraph [ref=e285]: Furniture
+                    - generic [ref=e286]:
+                      - generic [ref=e287]:
+                        - img [ref=e288]
+                        - generic [ref=e290]: "4.3"
+                      - generic [ref=e291]: (156)
+                    - generic [ref=e292]:
+                      - generic [ref=e293]:
+                        - generic [ref=e294]: SAR 3,200
+                        - generic [ref=e295]: SAR 3,800
+                      - generic [ref=e296]: Out of Stock
+                    - generic [ref=e297]:
+                      - button "View Details" [ref=e298] [cursor=pointer]
+                      - button "Add to Cart" [disabled] [ref=e299]:
+                        - img [ref=e300]
+                        - text: Add to Cart
+                    - generic [ref=e304]: "Sold by: Workspace Solutions"
+                - generic [ref=e305]:
+                  - generic [ref=e306]:
+                    - img "Security Camera System" [ref=e307]
+                    - button [ref=e308] [cursor=pointer]:
+                      - img [ref=e309] [cursor=pointer]
+                  - generic [ref=e311]:
+                    - heading "Security Camera System" [level=3] [ref=e312]
+                    - paragraph [ref=e313]: Security
+                    - generic [ref=e314]:
+                      - generic [ref=e315]:
+                        - img [ref=e316]
+                        - generic [ref=e318]: "4.7"
+                      - generic [ref=e319]: (203)
+                    - generic [ref=e320]:
+                      - generic [ref=e322]: SAR 1,250
+                      - generic [ref=e323]: In Stock
+                    - generic [ref=e324]:
+                      - button "View Details" [ref=e325] [cursor=pointer]
+                      - button "Add to Cart" [ref=e326] [cursor=pointer]:
+                        - img [ref=e327] [cursor=pointer]
+                        - text: Add to Cart
+                    - generic [ref=e331]: "Sold by: SecureGuard Systems"
+            - paragraph [ref=e335]: Browse our catalog freely. Sign in to add to cart, place orders, and access exclusive deals.
+      - contentinfo [ref=e337]:
+        - generic [ref=e338]:
+          - generic [ref=e339]:
+            - generic [ref=e340]: Fixzit
+            - link "Back to Home" [ref=e341] [cursor=pointer]:
+              - /url: /
+              - img [ref=e342] [cursor=pointer]
+              - generic [ref=e345] [cursor=pointer]: Back to Home
+            - generic [ref=e346]:
+              - button "Select language English (EN)" [ref=e348] [cursor=pointer]:
+                - img [ref=e349] [cursor=pointer]
+                - generic [ref=e352] [cursor=pointer]:
+                  - generic [ref=e353] [cursor=pointer]: 🇺🇸
+                  - generic [ref=e354] [cursor=pointer]: EN
+              - button "Select currency SAR" [ref=e356] [cursor=pointer]:
+                - img [ref=e357] [cursor=pointer]
+                - generic [ref=e360] [cursor=pointer]:
+                  - generic [ref=e361] [cursor=pointer]: 🇸🇦
+                  - generic [ref=e362] [cursor=pointer]: SAR
+          - generic [ref=e363]:
+            - generic [ref=e364]:
+              - generic [ref=e365]: Company
+              - list [ref=e366]:
+                - listitem [ref=e367]:
+                  - link "About" [ref=e368] [cursor=pointer]:
+                    - /url: /cms/about
+                - listitem [ref=e369]:
+                  - link "Careers" [ref=e370] [cursor=pointer]:
+                    - /url: /careers
+            - generic [ref=e371]:
+              - generic [ref=e372]: Legal
+              - list [ref=e373]:
+                - listitem [ref=e374]:
+                  - link "Privacy" [ref=e375] [cursor=pointer]:
+                    - /url: /cms/privacy
+                - listitem [ref=e376]:
+                  - link "Terms" [ref=e377] [cursor=pointer]:
+                    - /url: /cms/terms
+            - generic [ref=e378]:
+              - generic [ref=e379]: Support
+              - list [ref=e380]:
+                - listitem [ref=e381]:
+                  - link "Help Center" [ref=e382] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e383]:
+                  - button "Open a ticket" [ref=e384] [cursor=pointer]
+          - generic [ref=e385]:
+            - generic [ref=e386]: © 2025 Fixzit. All rights reserved.
+            - generic [ref=e387]:
+              - link "Privacy" [ref=e388] [cursor=pointer]:
+                - /url: /cms/privacy
+              - link "Terms" [ref=e389] [cursor=pointer]:
+                - /url: /cms/terms
+              - link "Support" [ref=e390] [cursor=pointer]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e392] [cursor=pointer]:
+      - img [ref=e393] [cursor=pointer]
+```
