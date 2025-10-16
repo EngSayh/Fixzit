@@ -263,9 +263,20 @@ Once MongoDB connection is restored, each user will be tested against all applic
    Expected: At least 14 users
 
 4. **Re-run E2E Test Suite**
+   
+   **⚠️ REQUIRED:** Set E2E_TEST_PASSWORD environment variable
    ```bash
+   # Set password for test accounts (required for security)
+   export E2E_TEST_PASSWORD=yourpassword
+   
+   # Run the test suite
    node scripts/testing/e2e-all-users-all-pages.js
+   
+   # Or run inline:
+   E2E_TEST_PASSWORD=yourpassword node scripts/testing/e2e-all-users-all-pages.js
    ```
+   
+   **Note:** The script will exit with an error if E2E_TEST_PASSWORD is not set.
 
 ### If Users Don't Exist
 

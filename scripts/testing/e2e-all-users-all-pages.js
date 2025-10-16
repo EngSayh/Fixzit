@@ -2,13 +2,38 @@
 /**
  * COMPREHENSIVE E2E TEST SUITE - ALL USERS, ALL PAGES
  * Tests authentication, page access, and permissions for all 14 user roles
- * Run with: node scripts/testing/e2e-all-users-all-pages.js
+ * 
+ * REQUIRED ENVIRONMENT VARIABLE:
+ *   E2E_TEST_PASSWORD - Password for all test accounts (must be set for security)
+ * 
+ * Usage:
+ *   E2E_TEST_PASSWORD=yourpassword node scripts/testing/e2e-all-users-all-pages.js
+ *   
+ * Or set in environment:
+ *   export E2E_TEST_PASSWORD=yourpassword
+ *   node scripts/testing/e2e-all-users-all-pages.js
  */
 
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+
+// Validate required environment variables
+if (!process.env.E2E_TEST_PASSWORD) {
+  console.error('❌ ERROR: E2E_TEST_PASSWORD environment variable is not set');
+  console.error('');
+  console.error('This test suite requires a password for authentication.');
+  console.error('Please set the E2E_TEST_PASSWORD environment variable:');
+  console.error('');
+  console.error('  export E2E_TEST_PASSWORD=yourpassword');
+  console.error('  node scripts/testing/e2e-all-users-all-pages.js');
+  console.error('');
+  console.error('Or run inline:');
+  console.error('  E2E_TEST_PASSWORD=yourpassword node scripts/testing/e2e-all-users-all-pages.js');
+  console.error('');
+  process.exit(1);
+}
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const OUTPUT_DIR = path.join(__dirname, '../../e2e-test-results');
@@ -149,11 +174,17 @@ const results = [];
 function httpRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
+    let req;
+    
     const timeout = setTimeout(() => {
+      // Abort the request to prevent socket leaks
+      if (req) {
+        req.destroy(); // Terminates the connection immediately
+      }
       reject(new Error('Request timeout'));
     }, 10000); // 10 second timeout
     
-    const req = lib.request(url, options, (res) => {
+    req = lib.request(url, options, (res) => {
       clearTimeout(timeout);
       let data = '';
       res.on('data', (chunk) => data += chunk);
@@ -186,7 +217,7 @@ async function login(user) {
       },
       body: JSON.stringify({
         email: user.email,
-        password: 'Password123'
+        password: process.env.E2E_TEST_PASSWORD
       })
     });
     
