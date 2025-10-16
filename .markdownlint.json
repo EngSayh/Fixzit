@@ -1,0 +1,21 @@
+{
+  "default": true,
+  "MD013": false,
+  "MD033": false,
+  "MD034": true,
+  "MD040": true,
+  "MD041": false,
+  "MD046": false,
+  "MD024": {
+    "siblings_only": true
+  },
+  "line-length": false,
+  "no-inline-html": false,
+  "no-bare-urls": true,
+  "fenced-code-language": true,
+  "first-line-heading": false,
+  "code-block-style": false,
+  "no-duplicate-heading": {
+    "siblings_only": true
+  }
+}
