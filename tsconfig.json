@@ -19,6 +19,7 @@
     "jsx": "preserve",
     "incremental": true,
     "downlevelIteration": true,
+    "ignoreDeprecations": "6.0",
     "plugins": [
       {
         "name": "next"
@@ -43,12 +44,9 @@
       // See: COMPREHENSIVE_FIXES_SUMMARY.md for details on this PR's scope
       "jest"
     ],
-    // NOTE: baseUrl is deprecated and will be removed in TypeScript 7.0
-    // We cannot use "ignoreDeprecations" because:
-    // - TypeScript 5.9.3 (CLI) doesn't support "6.0" value (causes TS5103)
-    // - VS Code uses TypeScript 6.0 which requires "6.0" to silence warning
-    // The deprecation warning is harmless - baseUrl still works in TS 5.x and 6.x
-    // Migration to path mappings without baseUrl should be done before TS 7.0
+    // NOTE: baseUrl is deprecated and will stop functioning in TypeScript 7.0
+    // Using "ignoreDeprecations": "6.0" to silence the warning as recommended by Microsoft
+    // See: https://aka.ms/ts6 for migration information
     "baseUrl": ".",
     "paths": {
       "@/*": [
