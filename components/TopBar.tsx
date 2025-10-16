@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -8,7 +8,7 @@ import AppSwitcher from './topbar/AppSwitcher';
 import GlobalSearch from './topbar/GlobalSearch';
 import QuickActions from './topbar/QuickActions';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 
@@ -65,11 +65,19 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const router = useRouter();
+  const pathname = usePathname();
+
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
     setNotifOpen(false);
     setUserOpen(false);
   }, []);
+
+  // Close dropdowns when route changes
+  useEffect(() => {
+    closeAllPopups();
+  }, [pathname, closeAllPopups]);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -269,7 +277,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               )}
             </button>
             {notifOpen && (
-            <div className={`absolute top-full mt-2 w-80 max-w-[calc(100vw-2rem)] sm:w-96 md:w-80 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[9999] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'}`}>
+            <div className={`absolute top-full mt-2 w-80 max-w-[calc(100vw-2rem)] sm:w-96 md:w-80 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'}`}>
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
 
@@ -375,7 +383,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
           </button>
           {userOpen && (
-            <div className={`absolute top-full mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[9999] animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'}`}>
+            <div className={`absolute top-full mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'}`}>
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
               
