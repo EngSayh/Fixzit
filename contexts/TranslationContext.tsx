@@ -109,6 +109,14 @@ const translations: Record<Language, Record<string, string>> = {
     'common.or': 'أو',
     'common.selected': 'محدد',
     'common.ifApplicable': 'إن وجد',
+    'common.quickActions': 'إجراءات سريعة',
+    'common.analytics': 'التحليلات',
+    'common.days': 'أيام',
+    'common.settings': 'الإعدادات',
+    'common.reports': 'التقارير',
+    'common.filter': 'تصفية',
+    'common.location': 'الموقع',
+    'common.description': 'الوصف',
 
     // Login Page
     'login.title': 'تسجيل الدخول إلى فيكزيت',
@@ -929,6 +937,14 @@ const translations: Record<Language, Record<string, string>> = {
     'common.or': 'OR',
     'common.selected': 'Selected',
     'common.ifApplicable': 'If applicable',
+    'common.quickActions': 'Quick Actions',
+    'common.analytics': 'Analytics',
+    'common.days': 'days',
+    'common.settings': 'Settings',
+    'common.reports': 'Reports',
+    'common.filter': 'Filter',
+    'common.location': 'Location',
+    'common.description': 'Description',
 
     // Login Page
     'login.title': 'Login to Fixzit',
