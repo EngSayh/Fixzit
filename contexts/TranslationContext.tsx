@@ -107,6 +107,8 @@ const translations: Record<Language, Record<string, string>> = {
     'common.forgotPassword': 'نسيت كلمة المرور؟',
     'common.signUp': 'إنشاء حساب',
     'common.or': 'أو',
+    'common.selected': 'محدد',
+    'common.ifApplicable': 'إن وجد',
 
     // Login Page
     'login.title': 'تسجيل الدخول إلى فيكزيت',
@@ -638,6 +640,37 @@ const translations: Record<Language, Record<string, string>> = {
     'workOrders.new.titlePlaceholder': 'أدخل عنوان أمر العمل...',
     'workOrders.new.locationPlaceholder': 'رقم الوحدة أو الموقع المحدد...',
     'workOrders.new.descriptionPlaceholder': 'اوصف المشكلة أو العمل المطلوب...',
+    'workOrders.new.basicInfo': 'المعلومات الأساسية',
+    'workOrders.new.propertyLocation': 'العقار والموقع',
+    'workOrders.new.assignmentScheduling': 'التعيين والجدولة',
+    
+    // Work Orders - Priority
+    'workOrders.priority': 'الأولوية',
+    'workOrders.selectPriority': 'اختر الأولوية',
+    'workOrders.priority.p1': 'P1 - حرج',
+    'workOrders.priority.p2': 'P2 - عالي',
+    'workOrders.priority.p3': 'P3 - متوسط',
+    'workOrders.priority.p4': 'P4 - منخفض',
+    
+    // Work Orders - Common Fields
+    'common.property': 'العقار',
+    'common.selectProperty': 'اختر العقار',
+    'workOrders.assignTo': 'تعيين إلى',
+    'workOrders.selectTechnician': 'اختر الفني',
+    'common.dueDate': 'تاريخ الاستحقاق',
+    
+    // Work Orders - Attachments & Actions
+    'workOrders.attachments': 'المرفقات',
+    'workOrders.dropFiles': 'أسقط الملفات هنا أو انقر للتحميل',
+    'common.chooseFiles': 'اختر الملفات',
+    'workOrders.createFromTemplate': 'إنشاء من قالب',
+    'workOrders.emergencyContact': 'اتصال طوارئ',
+    'workOrders.costCalculator': 'حاسبة التكلفة',
+    
+    // Work Orders - Recent Activity
+    'workOrders.recentActivity': 'النشاط الأخير',
+    'workOrders.formAutoSaved': 'تم الحفظ التلقائي للنموذج',
+    'workOrders.propertySelected': 'تم اختيار العقار',
   },
   en: {
       // Navigation
@@ -723,6 +756,8 @@ const translations: Record<Language, Record<string, string>> = {
     'common.forgotPassword': 'Forgot password?',
     'common.signUp': 'Sign up',
     'common.or': 'OR',
+    'common.selected': 'Selected',
+    'common.ifApplicable': 'If applicable',
 
     // Login Page
     'login.title': 'Login to Fixzit',
@@ -1286,6 +1321,37 @@ const translations: Record<Language, Record<string, string>> = {
     'workOrders.new.titlePlaceholder': 'Enter work order title...',
     'workOrders.new.locationPlaceholder': 'Unit number or specific location...',
     'workOrders.new.descriptionPlaceholder': 'Describe the issue or work required...',
+    'workOrders.new.basicInfo': 'Basic Information',
+    'workOrders.new.propertyLocation': 'Property & Location',
+    'workOrders.new.assignmentScheduling': 'Assignment & Scheduling',
+    
+    // Work Orders - Priority
+    'workOrders.priority': 'Priority',
+    'workOrders.selectPriority': 'Select Priority',
+    'workOrders.priority.p1': 'P1 - Critical',
+    'workOrders.priority.p2': 'P2 - High',
+    'workOrders.priority.p3': 'P3 - Medium',
+    'workOrders.priority.p4': 'P4 - Low',
+    
+    // Work Orders - Common Fields
+    'common.property': 'Property',
+    'common.selectProperty': 'Select Property',
+    'workOrders.assignTo': 'Assign To',
+    'workOrders.selectTechnician': 'Select Technician',
+    'common.dueDate': 'Due Date',
+    
+    // Work Orders - Attachments & Actions
+    'workOrders.attachments': 'Attachments',
+    'workOrders.dropFiles': 'Drop files here or click to upload',
+    'common.chooseFiles': 'Choose Files',
+    'workOrders.createFromTemplate': 'Create from Template',
+    'workOrders.emergencyContact': 'Emergency Contact',
+    'workOrders.costCalculator': 'Cost Calculator',
+    
+    // Work Orders - Recent Activity
+    'workOrders.recentActivity': 'Recent Activity',
+    'workOrders.formAutoSaved': 'Form auto-saved',
+    'workOrders.propertySelected': 'Property selected',
   },
 };
 
