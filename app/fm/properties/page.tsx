@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -39,6 +40,7 @@ interface PropertyItem {
 }
 
 export default function PropertiesPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -55,19 +57,19 @@ export default function PropertiesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Property Management</h1>
-          <p className="text-gray-600">Real estate portfolio and tenant management</p>
+          <h1 className="text-3xl font-bold">{t('fm.properties.title', 'Property Management')}</h1>
+          <p className="text-gray-600">{t('fm.properties.subtitle', 'Real estate portfolio and tenant management')}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-green-600 hover:bg-green-700">
               <Plus className="w-4 h-4 mr-2" />
-              New Property
+              {t('fm.properties.newProperty', 'New Property')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Add New Property</DialogTitle>
+              <DialogTitle>{t('fm.properties.addProperty', 'Add New Property')}</DialogTitle>
             </DialogHeader>
             <CreatePropertyForm onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
@@ -82,7 +84,7 @@ export default function PropertiesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search properties..."
+                  placeholder={t('fm.properties.searchProperties', 'Search properties...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
@@ -91,20 +93,20 @@ export default function PropertiesPage() {
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Property Type" />
+                <SelectValue placeholder={t('fm.properties.propertyType', 'Property Type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="RESIDENTIAL">Residential</SelectItem>
-                <SelectItem value="COMMERCIAL">Commercial</SelectItem>
-                <SelectItem value="INDUSTRIAL">Industrial</SelectItem>
-                <SelectItem value="MIXED_USE">Mixed Use</SelectItem>
-                <SelectItem value="LAND">Land</SelectItem>
+                <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
+                <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
+                <SelectItem value="COMMERCIAL">{t('fm.properties.commercial', 'Commercial')}</SelectItem>
+                <SelectItem value="INDUSTRIAL">{t('fm.properties.industrial', 'Industrial')}</SelectItem>
+                <SelectItem value="MIXED_USE">{t('fm.properties.mixedUse', 'Mixed Use')}</SelectItem>
+                <SelectItem value="LAND">{t('fm.properties.land', 'Land')}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
-              View Map
+              {t('fm.properties.viewMap', 'View Map')}
             </Button>
           </div>
         </CardContent>
@@ -122,11 +124,11 @@ export default function PropertiesPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Building2 className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Properties Found</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first property to the portfolio.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
+            <p className="text-gray-600 mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
             <Button onClick={() => setCreateOpen(true)} className="bg-green-600 hover:bg-green-700">
               <Plus className="w-4 h-4 mr-2" />
-              Add Property
+              {t('fm.properties.addProperty', 'Add Property')}
             </Button>
           </CardContent>
         </Card>
@@ -136,6 +138,8 @@ export default function PropertiesPage() {
 }
 
 function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => void }) {
+  const { t } = useTranslation();
+  
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'RESIDENTIAL':
@@ -166,6 +170,23 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
     }
   };
 
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'RESIDENTIAL':
+        return t('fm.properties.residential', 'Residential');
+      case 'COMMERCIAL':
+        return t('fm.properties.commercial', 'Commercial');
+      case 'INDUSTRIAL':
+        return t('fm.properties.industrial', 'Industrial');
+      case 'MIXED_USE':
+        return t('fm.properties.mixedUse', 'Mixed Use');
+      case 'LAND':
+        return t('fm.properties.land', 'Land');
+      default:
+        return type?.toLowerCase() || '';
+    }
+  };
+
   const occupancyRate = property.details?.occupancyRate || 0;
   const totalUnits = property.units?.length || 0;
   const occupiedUnits = property.units?.filter((u) => u.status === 'OCCUPIED').length || 0;
@@ -182,7 +203,7 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
             </div>
           </div>
           <Badge className={getTypeColor(property.type || '')}>
-            {property.type?.toLowerCase() || ''}
+            {getTypeLabel(property.type || '')}
           </Badge>
         </div>
       </CardHeader>
@@ -194,20 +215,20 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Total Area:</span>
-            <span className="text-sm font-medium">{property.details?.totalArea || 'N/A'} sqm</span>
+            <span className="text-sm text-gray-600">{t('fm.properties.totalArea', 'Total Area')}:</span>
+            <span className="text-sm font-medium">{property.details?.totalArea || t('properties.leases.na', 'N/A')} sqm</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Units:</span>
-            <span className="text-sm font-medium">{totalUnits} units</span>
+            <span className="text-sm text-gray-600">{t('fm.properties.units', 'Units')}:</span>
+            <span className="text-sm font-medium">{totalUnits} {t('fm.properties.units', 'units')}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Occupancy:</span>
+            <span className="text-sm text-gray-600">{t('fm.properties.occupancy', 'Occupancy')}:</span>
             <span className="text-sm font-medium">{occupancyRate}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Monthly Rent:</span>
-            <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || 'N/A'} SAR</span>
+            <span className="text-sm text-gray-600">{t('fm.properties.monthlyRent', 'Monthly Rent')}:</span>
+            <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || t('properties.leases.na', 'N/A')} SAR</span>
           </div>
         </div>
 
@@ -215,14 +236,14 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Status:</span>
+            <span className="text-sm text-gray-600">{t('fm.properties.status', 'Status')}:</span>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm font-medium">Active</span>
+              <span className="text-sm font-medium">{t('fm.properties.active', 'Active')}</span>
             </div>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Tenants:</span>
+            <span className="text-sm text-gray-600">{t('fm.properties.tenants', 'Tenants')}:</span>
             <span className="text-sm font-medium">{occupiedUnits}/{totalUnits}</span>
           </div>
         </div>
@@ -244,6 +265,8 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
 }
 
 function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
+  const { t } = useTranslation();
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -322,7 +345,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Property Name *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.propertyName', 'Property Name')} *</label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -330,24 +353,24 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Type *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
-              <SelectValue placeholder="Select type" />
+              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="RESIDENTIAL">Residential</SelectItem>
-              <SelectItem value="COMMERCIAL">Commercial</SelectItem>
-              <SelectItem value="INDUSTRIAL">Industrial</SelectItem>
-              <SelectItem value="MIXED_USE">Mixed Use</SelectItem>
-              <SelectItem value="LAND">Land</SelectItem>
+              <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
+              <SelectItem value="COMMERCIAL">{t('fm.properties.commercial', 'Commercial')}</SelectItem>
+              <SelectItem value="INDUSTRIAL">{t('fm.properties.industrial', 'Industrial')}</SelectItem>
+              <SelectItem value="MIXED_USE">{t('fm.properties.mixedUse', 'Mixed Use')}</SelectItem>
+              <SelectItem value="LAND">{t('fm.properties.land', 'Land')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Description</label>
+        <label className="block text-sm font-medium mb-1">{t('fm.properties.description', 'Description')}</label>
         <Textarea
           value={formData.description}
           onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -356,7 +379,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Street Address *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.streetAddress', 'Street Address')} *</label>
           <Input
             value={formData.address.street}
             onChange={(e) => setFormData({...formData, address: {...formData.address, street: e.target.value}})}
@@ -364,7 +387,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">City *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.city', 'City')} *</label>
           <Input
             value={formData.address.city}
             onChange={(e) => setFormData({...formData, address: {...formData.address, city: e.target.value}})}
@@ -375,7 +398,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Region *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.region', 'Region')} *</label>
           <Input
             value={formData.address.region}
             onChange={(e) => setFormData({...formData, address: {...formData.address, region: e.target.value}})}
@@ -383,7 +406,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Postal Code</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.postalCode', 'Postal Code')}</label>
           <Input
             value={formData.address.postalCode}
             onChange={(e) => setFormData({...formData, address: {...formData.address, postalCode: e.target.value}})}
@@ -393,7 +416,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Total Area (sqm)</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.totalArea', 'Total Area')} (sqm)</label>
           <Input
             type="number"
             value={formData.details.totalArea}
@@ -401,7 +424,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Built Area (sqm)</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.builtArea', 'Built Area')} (sqm)</label>
           <Input
             type="number"
             value={formData.details.builtArea}
@@ -412,7 +435,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Bedrooms</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.bedrooms', 'Bedrooms')}</label>
           <Input
             type="number"
             value={formData.details.bedrooms}
@@ -420,7 +443,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Bathrooms</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.bathrooms', 'Bathrooms')}</label>
           <Input
             type="number"
             value={formData.details.bathrooms}
@@ -428,7 +451,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Floors</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.floors', 'Floors')}</label>
           <Input
             type="number"
             value={formData.details.floors}
@@ -439,7 +462,7 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-green-600 hover:bg-green-700">
-          Create Property
+          {t('fm.properties.createProperty', 'Create Property')}
         </Button>
       </div>
     </form>
