@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
+import { WORK_ORDER_FSM, WOStatus } from "@/domain/fm/fm.behavior";
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -45,6 +46,40 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const body = schema.parse(await req.json());
   const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  // Get current status and target status
+  const currentStatus = wo.status as string;
+  const targetStatus = body.to;
+
+  // Validate FSM transition using FM behavior spec
+  const transition = WORK_ORDER_FSM.transitions.find(
+    t => t.from === currentStatus && t.to === targetStatus
+  );
+
+  if (transition) {
+    // Validate required media
+    if (transition.requireMedia) {
+      const attachments = (wo as { attachments?: unknown[] }).attachments || [];
+      if (attachments.length === 0) {
+        return createSecureResponse({
+          error: "Media required",
+          message: `${transition.requireMedia.join(', ')} photos are required for this transition`,
+          required: `Upload ${transition.requireMedia.join(' and ')} photos before proceeding`
+        }, 400, req);
+      }
+    }
+
+    // Validate technician assignment guard
+    if (transition.guard === 'technicianAssigned') {
+      if (!wo.assigneeUserId && !(wo as { assigneeVendorId?: unknown }).assigneeVendorId) {
+        return createSecureResponse({
+          error: "Assignment required",
+          message: "Work order must be assigned to a technician before proceeding",
+          required: "Assign a technician or vendor before transitioning"
+        }, 400, req);
+      }
+    }
+  }
 
   // Role gate by target state
   const need: Record<string,"STATUS"|"VERIFY"|"CLOSE"> = {
