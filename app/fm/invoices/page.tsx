@@ -190,7 +190,7 @@ export default function InvoicesPage() {
                 <SelectValue placeholder={t('fm.properties.status', 'Status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t('common.allStatus', 'All Status')}</SelectItem>
+                <SelectItem value="">{t('common.all', 'All Status')}</SelectItem>
                 <SelectItem value="DRAFT">{t('fm.invoices.draft', 'Draft')}</SelectItem>
                 <SelectItem value="SENT">{t('fm.invoices.sent', 'Sent')}</SelectItem>
                 <SelectItem value="VIEWED">{t('fm.invoices.viewed', 'Viewed')}</SelectItem>

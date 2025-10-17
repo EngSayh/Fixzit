@@ -14,6 +14,54 @@ import { useTranslation } from '@/contexts/TranslationContext';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
+// Helper functions
+const getTypeIcon = (type: string) => {
+  switch (type) {
+    case 'SUPPLIER':
+      return <ShoppingCart className="w-5 h-5" />;
+    case 'CONTRACTOR':
+      return <Wrench className="w-5 h-5" />;
+    case 'SERVICE_PROVIDER':
+      return <Users className="w-5 h-5" />;
+    case 'CONSULTANT':
+      return <Building2 className="w-5 h-5" />;
+    default:
+      return <Truck className="w-5 h-5" />;
+  }
+};
+
+const getTypeColor = (type: string) => {
+  switch (type) {
+    case 'SUPPLIER':
+      return 'bg-blue-100 text-blue-800';
+    case 'CONTRACTOR':
+      return 'bg-green-100 text-green-800';
+    case 'SERVICE_PROVIDER':
+      return 'bg-purple-100 text-purple-800';
+    case 'CONSULTANT':
+      return 'bg-orange-100 text-orange-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'APPROVED':
+      return 'bg-green-100 text-green-800';
+    case 'PENDING':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'SUSPENDED':
+      return 'bg-red-100 text-red-800';
+    case 'REJECTED':
+      return 'bg-gray-100 text-gray-800';
+    case 'BLACKLISTED':
+      return 'bg-black text-white';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
 interface Vendor {
   _id: string;
   name?: string;
@@ -111,7 +159,7 @@ export default function VendorsPage() {
                 <SelectValue placeholder={t('fm.properties.status', 'Status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t('common.allStatus', 'All Status')}</SelectItem>
+                <SelectItem value="">{t('common.all', 'All Status')}</SelectItem>
                 <SelectItem value="PENDING">{t('fm.vendors.pending', 'Pending')}</SelectItem>
                 <SelectItem value="APPROVED">{t('fm.vendors.approved', 'Approved')}</SelectItem>
                 <SelectItem value="SUSPENDED">{t('fm.vendors.suspended', 'Suspended')}</SelectItem>
@@ -150,53 +198,6 @@ export default function VendorsPage() {
 
 function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
   const { t } = useTranslation();
-  
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'SUPPLIER':
-        return <ShoppingCart className="w-5 h-5" />;
-      case 'CONTRACTOR':
-        return <Wrench className="w-5 h-5" />;
-      case 'SERVICE_PROVIDER':
-        return <Users className="w-5 h-5" />;
-      case 'CONSULTANT':
-        return <Building2 className="w-5 h-5" />;
-      default:
-        return <Truck className="w-5 h-5" />;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'SUPPLIER':
-        return 'bg-blue-100 text-blue-800';
-      case 'CONTRACTOR':
-        return 'bg-green-100 text-green-800';
-      case 'SERVICE_PROVIDER':
-        return 'bg-purple-100 text-purple-800';
-      case 'CONSULTANT':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return 'bg-green-100 text-green-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'SUSPENDED':
-        return 'bg-red-100 text-red-800';
-      case 'REJECTED':
-        return 'bg-gray-100 text-gray-800';
-      case 'BLACKLISTED':
-        return 'bg-black text-white';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -227,7 +228,7 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
 
         <div className="flex items-center text-sm">
           <Star className="w-4 h-4 mr-1 text-yellow-500" />
-          <span className="font-medium">{vendor.performance?.rating || t('properties.leases.na', 'N/A')}</span>
+          <span className="font-medium">{vendor.performance?.rating || t('common.na', 'N/A')}</span>
           <span className="text-gray-600 ml-2">
             ({vendor.performance?.completedProjects || 0} {t('fm.vendors.projects', 'projects')})
           </span>
@@ -242,7 +243,7 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">{t('fm.vendors.responseTime', 'Response Time')}:</span>
-            <span className="text-sm font-medium">{vendor.performance?.averageResponseTime || t('properties.leases.na', 'N/A')} hrs</span>
+            <span className="text-sm font-medium">{vendor.performance?.averageResponseTime || t('common.na', 'N/A')} hrs</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">{t('fm.vendors.specializations', 'Specializations')}:</span>

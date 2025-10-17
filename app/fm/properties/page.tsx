@@ -216,7 +216,7 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">{t('fm.properties.totalArea', 'Total Area')}:</span>
-            <span className="text-sm font-medium">{property.details?.totalArea || t('properties.leases.na', 'N/A')} sqm</span>
+            <span className="text-sm font-medium">{property.details?.totalArea || t('common.na', 'N/A')} sqm</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">{t('fm.properties.units', 'Units')}:</span>
@@ -228,7 +228,7 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">{t('fm.properties.monthlyRent', 'Monthly Rent')}:</span>
-            <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || t('properties.leases.na', 'N/A')} SAR</span>
+            <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || t('common.na', 'N/A')} SAR</span>
           </div>
         </div>
 
