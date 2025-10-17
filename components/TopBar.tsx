@@ -382,7 +382,19 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
           </button>
           {userOpen && (
-            <div className={`absolute top-full mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 ${isRTL ? 'left-0 sm:left-auto sm:right-0' : 'right-0'}`}>
+            <div 
+              className="absolute top-full mt-2 w-48 max-w-[calc(100vw-2rem)] bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
+              style={{
+                // Consolidate all positioning logic in style prop
+                ...(screenInfo.isMobile 
+                  ? (isRTL ? { left: '0' } : { right: '0' })
+                  : { 
+                      left: isRTL ? '0' : 'auto',
+                      right: isRTL ? 'auto' : '0'
+                    }
+                )
+              }}
+            >
               {/* Arrow pointer - hidden on mobile */}
               <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
               

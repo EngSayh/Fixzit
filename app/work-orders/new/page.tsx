@@ -11,12 +11,12 @@ export default function NewWorkOrderPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">New Work Order</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Create a new work order for maintenance or services</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.new.title', 'New Work Order')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.new.subtitle', 'Create a new work order for maintenance or services')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
-          <button className="btn-primary">Create Work Order</button>
+          <button className="btn-primary">{t('workOrders.board.createWO', 'Create Work Order')}</button>
         </div>
       </div>
 
@@ -29,11 +29,11 @@ export default function NewWorkOrderPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Work Order Title *
+                  {t('workOrders.title', 'Work Order Title')} *
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter work order title..."
+                  placeholder={t('workOrders.new.titlePlaceholder', 'Enter work order title...')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
@@ -68,11 +68,11 @@ export default function NewWorkOrderPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Unit/Location
+                  {t('common.location', 'Unit/Location')}
                 </label>
                 <input
                   type="text"
-                  placeholder="Unit number or specific location..."
+                  placeholder={t('workOrders.new.locationPlaceholder', 'Unit number or specific location...')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
@@ -83,11 +83,11 @@ export default function NewWorkOrderPage() {
             <h3 className="text-lg font-semibold mb-4">Description</h3>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Work Description *
+                {t('common.description', 'Work Description')} *
               </label>
               <textarea
                 rows={4}
-                placeholder="Describe the work that needs to be done..."
+                placeholder={t('workOrders.new.descriptionPlaceholder', 'Describe the work that needs to be done...')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
               />
             </div>

@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function WorkOrdersBoardPage() {
+  const { t } = useTranslation();
   const workOrders = [
     {
       id: 'WO-1001',
@@ -50,12 +54,12 @@ export default function WorkOrdersBoardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Work Orders Board</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Track and assign work orders across all properties</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.board.title', 'Work Orders Board')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.board.description', 'Track and assign work orders across all properties')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Filter</button>
-          <button className="btn-primary">+ New Work Order</button>
+          <button className="btn-secondary">{t('workOrders.filter', 'Filter')}</button>
+          <button className="btn-primary">+ {t('workOrders.board.newWO', 'New Work Order')}</button>
         </div>
       </div>
 
@@ -64,7 +68,7 @@ export default function WorkOrdersBoardPage() {
         {/* Pending */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Pending</h3>
+            <h3 className="font-semibold text-gray-800">{t('workOrders.pending', 'Pending')}</h3>
             <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">2</span>
           </div>
           <div className="space-y-3">
@@ -90,7 +94,7 @@ export default function WorkOrdersBoardPage() {
         {/* In Progress */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">In Progress</h3>
+            <h3 className="font-semibold text-gray-800">{t('workOrders.inProgress', 'In Progress')}</h3>
             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">1</span>
           </div>
           <div className="space-y-3">
@@ -116,7 +120,7 @@ export default function WorkOrdersBoardPage() {
         {/* Scheduled */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Scheduled</h3>
+            <h3 className="font-semibold text-gray-800">{t('workOrders.scheduled', 'Scheduled')}</h3>
             <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">1</span>
           </div>
           <div className="space-y-3">
@@ -142,43 +146,43 @@ export default function WorkOrdersBoardPage() {
         {/* Completed */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Completed</h3>
+            <h3 className="font-semibold text-gray-800">{t('workOrders.completed', 'Completed')}</h3>
             <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">0</span>
           </div>
           <div className="text-center py-8">
             <div className="text-green-400 mb-2">✅</div>
-            <p className="text-sm text-gray-600">No completed work orders</p>
+            <p className="text-sm text-gray-600">{t('workOrders.board.noCompleted', 'No completed work orders')}</p>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📝</div>
-            <div className="text-sm font-medium">Create WO</div>
+            <div className="text-sm font-medium">{t('workOrders.board.createWO', 'Create WO')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">👥</div>
-            <div className="text-sm font-medium">Assign Tech</div>
+            <div className="text-sm font-medium">{t('workOrders.board.assignTech', 'Assign Tech')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📅</div>
-            <div className="text-sm font-medium">Schedule</div>
+            <div className="text-sm font-medium">{t('workOrders.board.schedule', 'Schedule')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm font-medium">Reports</div>
+            <div className="text-sm font-medium">{t('workOrders.reports', 'Reports')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔍</div>
-            <div className="text-sm font-medium">Search</div>
+            <div className="text-sm font-medium">{t('common.search', 'Search')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
-            <div className="text-sm font-medium">Settings</div>
+            <div className="text-sm font-medium">{t('workOrders.settings', 'Settings')}</div>
           </button>
         </div>
       </div>
