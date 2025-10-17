@@ -15,6 +15,7 @@
 **Root Cause**: GitHub Codespaces default tier (2 cores / 8GB RAM) has insufficient resources for Next.js 15 production builds.
 
 **What Happened**:
+
 - Next.js build needs: ~2-3GB RAM
 - VS Code extensions need: ~1.5GB RAM
 - System + other processes: ~2GB RAM
@@ -37,6 +38,7 @@
 **Best for**: Fast development, testing, local control
 
 **Steps**:
+
 1. Clone repo to MacBook: `git clone https://github.com/EngSayh/Fixzit.git`
 2. Run setup script: `./setup-local-dev.sh`
 3. Build and test: `npm run build` (should complete in 15-25 seconds)
@@ -50,11 +52,13 @@
 **Best for**: Production deployment, using existing hosting, cost savings
 
 **Requirements**:
+
 - GoDaddy VPS or Dedicated Server
 - SSH access to server
 - Node.js 18+ support
 
 **Steps**:
+
 1. Determine your GoDaddy hosting type
 2. Follow deployment guide for your plan
 3. Configure DNS (if needed)
@@ -69,6 +73,7 @@
 **Best for**: Quick deployment, don't want to manage servers
 
 **Steps**:
+
 1. Install Vercel CLI: `npm install -g vercel`
 2. Deploy: `vercel --prod`
 3. Connect your GoDaddy domain in Vercel dashboard
@@ -92,23 +97,30 @@
 ## Common Questions
 
 ### Q: Why can't I use GoDaddy Shared Hosting?
+
 **A**: Shared hosting doesn't support Node.js applications. You need VPS, Dedicated, or use static export.
 
 ### Q: Do I need Vercel if I have GoDaddy?
+
 **A**: No! You can deploy directly to GoDaddy VPS. Vercel is just easier but optional.
 
 ### Q: How do I get <30 second builds?
+
 **A**: Build on proper hardware:
+
 - ✅ MacBook Pro: 15-25 seconds
 - ✅ GitHub Codespaces (4-core/16GB): 30-45 seconds
 - ✅ Vercel/production servers: 25-35 seconds
 - ❌ GitHub Codespaces (2-core/8GB): 106+ seconds or fails
 
 ### Q: Should I rebuild my Codespace?
+
 **A**: Only if you want to continue developing in Codespaces. If you'll use your MacBook for development, no need to rebuild.
 
 ### Q: What's the fastest way to production?
-**A**: 
+
+**A**:
+
 1. If you have GoDaddy VPS → Follow GODADDY_DEPLOYMENT_GUIDE.md (1 hour)
 2. If you want easiest setup → Use Vercel (5 minutes)
 3. If you want best performance → Build on MacBook, deploy anywhere (30 minutes)
@@ -118,11 +130,13 @@
 ## Next Steps
 
 **Tell me:**
+
 1. ✅ What GoDaddy hosting do you have? (VPS, Shared, Dedicated, or not sure)
 2. ✅ What's your domain name?
 3. ✅ Do you have SSH access to your server?
 
 **Then I can:**
+
 - Give you exact commands for your setup
 - Create deployment scripts
 - Configure auto-deployment

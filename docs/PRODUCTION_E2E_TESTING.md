@@ -10,7 +10,8 @@ This suite tests your **live production system** with comprehensive security and
 
 ## Prerequisites
 
-### Required Environment Variables (ALL REQUIRED):
+### Required Environment Variables (ALL REQUIRED)
+
 ```bash
 PRODUCTION_URL      # Production URL
 ADMIN_EMAIL         # Admin user email
@@ -32,12 +33,14 @@ HR_PASSWORD         # HR Manager password
 ### 1. Configure Secrets (Choose One Method)
 
 **Option A: GitHub Secrets** (Recommended for CI/CD)
+
 ```bash
 # Add to: Settings → Secrets and variables → Actions
 # Add all 11 required variables
 ```
 
 **Option B: Environment File** (Local testing only)
+
 ```bash
 # Create .env.production.test (gitignored!)
 cat > .env.production.test << 'EOF'
@@ -83,6 +86,7 @@ node scripts/testing/e2e-production-test.js
 ## What Gets Tested
 
 ### 1. Public Pages (No Authentication)
+
 - ✅ Landing Page (/)
 - ✅ Login Page (/login)
 - ✅ Marketplace (/marketplace)
@@ -90,6 +94,7 @@ node scripts/testing/e2e-production-test.js
 - ✅ Careers (/careers)
 
 ### 2. Login Functionality
+
 - ✅ Admin login
 - ✅ Property Manager login
 - ✅ Tenant login
@@ -97,6 +102,7 @@ node scripts/testing/e2e-production-test.js
 - ✅ HR Manager login
 
 ### 3. Protected Pages (Auth Required)
+
 - ✅ Dashboard (/dashboard)
 - ✅ Properties (/properties)
 - ✅ Work Orders (/work-orders)
@@ -109,6 +115,7 @@ node scripts/testing/e2e-production-test.js
 - ✅ Settings (/settings)
 
 ### 4. API Health Checks
+
 - ✅ API Health (/api/health)
 - ✅ Database Health (/api/health/database)
 
@@ -266,7 +273,8 @@ jobs:
 ## Support
 
 For issues or questions:
+
 - Check the test report in `e2e-test-results/`
 - Review production logs
 - Check GitHub Issues
-- Contact: support@fixzit-souq.com
+- Contact: <support@fixzit-souq.com>

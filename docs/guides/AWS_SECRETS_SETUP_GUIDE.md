@@ -9,6 +9,7 @@ aws configure
 ```
 
 Enter your real AWS credentials:
+
 - **AWS Access Key ID**: Replace `your_access_key` with your actual key
 - **AWS Secret Access Key**: Replace `your_secret_key` with your actual key  
 - **Default region name**: `me-south-1` (already correct)
@@ -23,6 +24,7 @@ Once AWS CLI is configured, run the setup script:
 ```
 
 This script will:
+
 - ✅ Verify AWS CLI configuration
 - 🔑 Create the JWT secret in AWS Secrets Manager
 - 🧪 Test secret retrieval
@@ -31,6 +33,7 @@ This script will:
 ## STEP 3: UPDATE YOUR APPLICATION
 
 ### Add AWS SDK Dependency
+
 ```bash
 npm install aws-sdk
 # or
@@ -38,6 +41,7 @@ yarn add aws-sdk
 ```
 
 ### Create Secret Management Module
+
 ```javascript
 // lib/secrets.js
 const AWS = require('aws-sdk');
@@ -71,6 +75,7 @@ module.exports = { getJWTSecret };
 ```
 
 ### Update Your JWT Configuration
+
 ```javascript
 // In your main app file
 const { getJWTSecret } = require('./lib/secrets');
@@ -108,6 +113,7 @@ AWS_REGION=me-south-1
 ## STEP 5: DOCKER DEPLOYMENT UPDATE
 
 ### Update docker-compose.yml
+
 ```yaml
 services:
   web:
@@ -119,7 +125,9 @@ services:
 ```
 
 ### IAM Policy for Secrets Access
+
 Your AWS user/role needs this policy:
+
 ```json
 {
     "Version": "2012-10-17",

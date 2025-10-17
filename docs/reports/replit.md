@@ -1,14 +1,17 @@
 # Fixzit - Comprehensive Service Company
 
 ## Overview
+
 Fixzit Enterprise is a comprehensive property and facility management platform with integrated marketplace functionality. The unified system combines traditional property management operations with a complete Fixzit Souq marketplace for vendor management, product catalog, and RFQ bidding systems. Built with Next.js, TypeScript, and PostgreSQL, it handles real estate operations, tenant management, property administration, contract management, maintenance ticketing, payment processing, and marketplace oversight. The system supports multi-language (English/Arabic) functionality with RTL text support, enterprise-grade role-based access control, and complete multi-vendor service booking platform. It also includes an HR service management system, a referral program, and enhanced financial management features.
 
 ## User Preferences
+
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
 ### Frontend Architecture
+
 - **Framework**: Next.js 14 (App Router) with React 18 and TypeScript.
 - **UI Components**: Monday.com-inspired dashboard with responsive design and role-based interfaces.
 - **Authentication**: NextAuth.js with Google/Apple OAuth and credential providers.
@@ -17,17 +20,20 @@ Preferred communication style: Simple, everyday language.
 - **Branding**: Fixzit Enterprise theme with specific color schemes (Blue #0078D4, Orange #F6851F, Green #00A859, Yellow #FFB400) and Monday.com styling.
 
 ### Backend Architecture
+
 - **API Layer**: Next.js API routes with TypeScript and secure request handling.
 - **Authentication System**: NextAuth.js with bcrypt password hashing and OAuth integration.
 - **Data Access Layer**: Prisma ORM with PostgreSQL database and connection pooling.
 - **Role-Based Access Control**: Enterprise-grade user system (tenant, manager, admin) with page-level access restrictions and permission-based routing.
 
 ### Database Design
+
 - **Primary Database**: PostgreSQL with Prisma ORM and structured relational schema.
 - **Core Entities**: Users, Properties, Units, Contracts, WorkOrders, Payments, Sessions, Service Providers, HR Services, Referrals.
 - **Data Models**: TypeScript interfaces with Prisma-generated types for type-safe database operations.
 
 ### Key Features & Modules
+
 - **User Management**: Multi-role authentication, profile management, and user verification.
 - **Property & Contract Management**: Inventory tracking, digital contract lifecycle management, and tenant portal.
 - **Maintenance Operations**: Ticket management with SLA workflow, assignment capabilities, and photo uploads.
@@ -45,6 +51,7 @@ Preferred communication style: Simple, everyday language.
 - **Role-Based Access Control**: Admin-only page protection using email allowlists and token authentication, with SUPER_ADMIN access to both property management and marketplace systems.
 
 ### Design Patterns
+
 - **Modular Architecture**: Separated concerns for auth, database, utilities, and business logic.
 - **Translation Layer**: Centralized internationalization system.
 - **Database Abstraction**: Utility functions for query execution and transaction management.
@@ -54,6 +61,7 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### Core Technologies
+
 - **Next.js 14**: Full-stack React framework with App Router.
 - **React 18**: Frontend library with hooks and server components.
 - **TypeScript**: Type-safe development.
@@ -62,18 +70,21 @@ Preferred communication style: Simple, everyday language.
 - **NextAuth.js**: Authentication and session management.
 
 ### Third-Party Services
+
 - **Google OAuth**: Authentication provider.
 - **Apple OAuth**: Authentication provider.
 - **Twilio**: SMS service for OTP and notifications.
 - **SendGrid**: Email services for reports and notifications.
 
 ### Development Libraries
+
 - **TailwindCSS**: Utility-first CSS framework.
 - **Lucide React**: Icon library.
 - **Date-fns**: Date manipulation.
 - **Zod**: Schema validation.
 
 ### Integration Points
+
 - **SMS Gateway**: Twilio API.
 - **Email Services**: SendGrid and SMTP.
 - **Interactive Maps**: Folium.
@@ -85,6 +96,7 @@ Preferred communication style: Simple, everyday language.
 ## Recent Updates
 
 ### Fixzit Souq Marketplace Integration (COMPLETED ✅)
+
 - **Complete Marketplace System**: Successfully integrated Fixzit Souq V4 marketplace into Fixzit Enterprise as unified Super Admin module
 - **Backend Integration**: All marketplace API routes operational (vendors, products, RFQs) with SUPER_ADMIN authorization and PostgreSQL/Prisma integration
 - **Frontend Components**: MarketplaceDashboard, VendorManagement, ProductManagement, and RFQManagement components fully functional
@@ -94,12 +106,14 @@ Preferred communication style: Simple, everyday language.
 - **Operational Status**: Both property management and marketplace systems running perfectly with no errors
 
 ### New Standalone Fixzit Souq Materials Received (September 11, 2025)
+
 - **Replit Deployment Guide**: Complete setup instructions for standalone deployment
 - **Backend API Structure**: Node.js/Express server with 13+ route modules for MongoDB-based system
 - **Complete Module Package**: All 15 React components (9,250+ lines of code) for standalone system
 - **Project Summary**: ZIP structure and multiple deployment options (Replit, Docker, AWS)
 
 ### Module 21 & 22 Implementation
+
 - **Per-Tenant Weekly Reports**: Comprehensive HTML reports with ZIP bundling for multi-tenant deployments
 - **Notifications Admin UI**: Dedicated Streamlit page for managing email recipients, Slack webhooks, and attachment preferences
 - **Role-Based Access Control**: Admin-only access protection using environment-driven email allowlists and token authentication

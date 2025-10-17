@@ -13,6 +13,7 @@
 ## ✅ **MAJOR ACHIEVEMENT: Zero TypeScript Errors**
 
 ### Before and After
+
 ```
 TypeScript Compilation:
   Before:  313 errors ❌
@@ -60,6 +61,7 @@ The codebase now compiles cleanly!
 ## ⚠️ **CHALLENGE: ESLint 'any' Warnings**
 
 ### Current State
+
 ```
 ESLint 'any' Warnings:
   Start:   229
@@ -72,6 +74,7 @@ ESLint 'any' Warnings:
 **The Hard Truth:** Automated batch replacement of `any` → `unknown` **breaks TypeScript compilation**.
 
 #### What We Tried
+
 ```bash
 # ❌ Attempt 1: Batch replace all catch(error: any)
 find app/api -exec sed -i 's/error: any/error: unknown/g' {} \;
@@ -119,6 +122,7 @@ Result: 55 new TypeScript errors!
 ### Category 1: Catch Blocks (~55 instances)
 
 **Problem Files:**
+
 - `app/api/admin/price-tiers/route.ts` (6 errors access)
 - `app/api/assets/[id]/route.ts` (3 instances)
 - `app/api/auth/login/route.ts` (2 - ZodError type)
@@ -127,6 +131,7 @@ Result: 55 new TypeScript errors!
 - +45 more files
 
 **Pattern 1: Direct Property Access**
+
 ```typescript
 // ❌ Current (causes TS error with unknown):
 } catch (error: any) {
@@ -144,6 +149,7 @@ Result: 55 new TypeScript errors!
 ```
 
 **Pattern 2: ZodError Checks**
+
 ```typescript
 // ❌ Current (fails type check):
 } catch (error: any) {
@@ -168,6 +174,7 @@ Result: 55 new TypeScript errors!
 ### Category 2: Map Callbacks (~35 instances)
 
 **Common Pattern:**
+
 ```typescript
 // ❌ Current:
 jobs.map((j: any) => `<item>${j.title}</item>`)
@@ -182,6 +189,7 @@ categories.map((c: Record<string, unknown>) => ({
 ```
 
 **Files:**
+
 - `app/api/feeds/*.ts` (2)
 - `app/api/aqar/map/route.ts` (1)
 - `app/api/public/rfqs/route.ts` (2)
@@ -195,6 +203,7 @@ categories.map((c: Record<string, unknown>) => ({
 ### Category 3: Component Props & State (~25 instances)
 
 **Common Pattern:**
+
 ```typescript
 // ❌ Current:
 const [data, setData] = useState<any>(null);
@@ -213,6 +222,7 @@ function Component({ item }: ComponentProps) { }
 ```
 
 **Files:**
+
 - `app/support/my-tickets/page.tsx` (2)
 - `app/marketplace/*.tsx` (4)
 - `app/fm/rfqs/page.tsx` (3)
@@ -225,6 +235,7 @@ function Component({ item }: ComponentProps) { }
 **Status:** ✅ **ACCEPTABLE - NO FIX NEEDED**
 
 Test mocks legitimately use `any` for flexibility:
+
 ```typescript
 // ✅ Acceptable in tests:
 jest.fn((x: any) => x)
@@ -240,16 +251,19 @@ const mockComponent = ({ props }: any) => <div />;
 ### Option A: Complete Full Refactor (14 hours)
 
 **Pros:**
+
 - Achieves <20 'any' target
 - Significantly improves type safety
 - Prevents future type errors
 
 **Cons:**
+
 - Time-intensive (14 hours)
 - Risk of introducing bugs
 - Requires extensive testing
 
 **Steps:**
+
 1. Phase 1: Fix 55 catch blocks with type guards (3.5h)
 2. Phase 2: Fix 35 map callbacks (1h)
 3. Phase 3: Add 25 component interfaces (2h)
@@ -263,6 +277,7 @@ const mockComponent = ({ props }: any) => <div />;
 **Target:** Get to 50 'any' warnings (78% reduction)
 
 **Focus on high-impact areas:**
+
 1. Fix API route catch blocks only (30 files, 2h)
 2. Fix page component maps (15 files, 45min)
 3. Fix obvious function parameters (10 files, 30min)
@@ -271,23 +286,27 @@ const mockComponent = ({ props }: any) => <div />;
 **Result:** 228 → ~50 'any' warnings
 
 **Pros:**
+
 - Achievable in single session
 - Focuses on user-facing code
 - Still maintains zero TypeScript errors
 
 **Cons:**
+
 - Doesn't hit <20 target
 - Leaves lib/component 'any' types
 
 ### Option C: Ship Current State
 
 **Current Achievement:**
+
 - ✅ Zero TypeScript errors (was blocking deployment)
 - ✅ Codebase compiles cleanly
 - ✅ All critical type issues resolved
 - ⚠️ 228 'any' warnings (style issue, not blocker)
 
 **Recommendation:**
+
 1. Merge PR #99 now (zero errors is huge win!)
 2. Create new issue: "Reduce ESLint 'any' warnings from 228 to <20"
 3. Break into module-specific PRs:
@@ -316,6 +335,7 @@ Status: Ready for review (zero TS errors ✅)
 ## 🎓 Lessons Learned
 
 ### 1. **Batch Replacements Are Dangerous**
+
 ```bash
 # ❌ Don't do this:
 sed 's/any/unknown/g' **/*.ts
@@ -337,11 +357,13 @@ sed 's/any/unknown/g' **/*.ts
 ### 3. **Progressive Enhancement Is Better Than Big Bang**
 
 Instead of:
+
 ```
 229 'any' → <20 'any' in one PR (fails)
 ```
 
 Do:
+
 ```
 229 → 150 (API routes)
 150 → 100 (pages)
@@ -371,22 +393,26 @@ Each as separate, reviewable PR
 ### Ship It! 🚀
 
 **What We Achieved:**
+
 - ✅ **ZERO TypeScript compilation errors** (was 313)
 - ✅ Codebase is now **deployable**
 - ✅ **7 critical files** fixed with proper type safety
 - ✅ Comprehensive documentation of remaining work
 
 **What's Left:**
+
 - 228 'any' warnings (style/quality issue, not blocker)
 - Needs 14 hours for full fix OR 3 hours for pragmatic fix
 - Better suited for incremental follow-up PRs
 
 **Action Items:**
+
 1. **Merge PR #99** (establishes zero-error baseline)
 2. **Create Issue**: "Reduce 'any' types: 228 → <20" with breakdown
 3. **Schedule Follow-up**: Assign to sprint for incremental fixes
 
 **Rationale:**
+
 - Zero TypeScript errors is the critical milestone ✅
 - ESLint 'any' warnings don't block deployment
 - Incremental approach reduces risk and improves reviewability

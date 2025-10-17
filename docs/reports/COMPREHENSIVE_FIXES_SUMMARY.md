@@ -15,6 +15,7 @@ Completed comprehensive fixes across documentation, test imports, multi-tenant c
 ### 1. Documentation Accuracy Fixes
 
 #### COMPLETE_ISSUE_ANALYSIS.md
+
 - **Line 121-127:** Fixed occurrence count discrepancy
   - Changed "14 occurrences" → "12 occurrences"
   - Matches the 12 line numbers actually listed in the code block
@@ -24,6 +25,7 @@ Completed comprehensive fixes across documentation, test imports, multi-tenant c
   - Eliminates 3-issue discrepancy with detailed breakdown
 
 #### SYSTEM_WIDE_JEST_VITEST_FIXES.md
+
 - **Lines 357-358:** Removed deprecated vi.importMock conversions
   - Deleted sed commands converting `jest.requireMock` → `vi.importMock`
   - Reason: `vi.importMock` is deprecated and returns Promise
@@ -37,6 +39,7 @@ Completed comprehensive fixes across documentation, test imports, multi-tenant c
 ### 2. Test Import Fixes (3 files)
 
 #### app/marketplace/rfq/page.test.tsx
+
 **Problem:** Imported `it` but used `test()` global throughout file  
 **Fix:** Added `test` to Vitest import
 
@@ -53,6 +56,7 @@ import { vi, describe, it, test, expect, beforeEach } from 'vitest';
 ---
 
 #### app/test/api_help_articles_route.test.ts
+
 **Problem:** Imported `beforeEach` but file uses `beforeAll`, `afterEach`, and `test`  
 **Fix:** Updated import to match actual usage
 
@@ -64,7 +68,8 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { vi, describe, it, test, expect, beforeAll, afterEach } from 'vitest';
 ```
 
-**Impact:** 
+**Impact:**
+
 - Removes unused `beforeEach` import
 - Adds missing lifecycle hooks and test function
 - Prevents undefined reference errors
@@ -72,6 +77,7 @@ import { vi, describe, it, test, expect, beforeAll, afterEach } from 'vitest';
 ---
 
 #### app/test/help_ai_chat_page.test.tsx
+
 **Problem:** Imported `it` but used `test()` throughout file  
 **Fix:** Replaced `it` with `test` in import
 
@@ -92,6 +98,7 @@ import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 #### lib/marketplace/context.ts (Complete Rewrite)
 
 **Problem:** Function returned hardcoded values with no request context
+
 ```typescript
 // BEFORE:
 export async function resolveMarketplaceContext(): Promise<MarketplaceContext> {
@@ -112,7 +119,9 @@ export async function resolveMarketplaceContext(
 ```
 
 **New Features:**
+
 1. **RequestContext Interface**
+
    ```typescript
    export interface RequestContext {
      headers?: Headers | Record<string, string | string[] | undefined>;
@@ -129,9 +138,11 @@ export async function resolveMarketplaceContext(
    - **Priority 4:** Throw error (no silent fallback to defaults)
 
 3. **JWT Decode Utility**
+
    ```typescript
    function decodeJWT(token: string): Record<string, string>
    ```
+
    - Extracts `orgId`, `org_id`, or `organizationId`
    - Extracts `tenantKey`, `tenant_key`, or `tenant`
    - Handles multiple claim name variations
@@ -149,6 +160,7 @@ export async function resolveMarketplaceContext(
    - Warning on suspicious/default values
 
 **Impact:**
+
 - ✅ Enables true multi-tenant routing
 - ✅ Request-scoped org/tenant extraction
 - ✅ Proper error handling instead of silent defaults
@@ -164,12 +176,14 @@ export async function resolveMarketplaceContext(
 **Fix 1: Portable sed Usage**
 
 **Problem:** `sed -i` not portable between GNU and BSD sed
+
 ```bash
 # BEFORE (non-portable):
 sed -i 's/jest\.fn()/vi.fn()/g' "$FILE"
 ```
 
 **Fix:** Use `.tmp` extension pattern
+
 ```bash
 # AFTER (portable):
 sed -i.tmp 's/jest\.fn()/vi.fn()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/null || true
@@ -182,12 +196,14 @@ sed -i.tmp 's/jest\.fn()/vi.fn()/g' "$FILE" && mv "$FILE.tmp" "$FILE" 2>/dev/nul
 **Fix 2: Conditional Backup Removal**
 
 **Problem:** Always removed `.bak` backup even when manual review needed
+
 ```bash
 # BEFORE:
 rm "$FILE.bak"  # Always removes
 ```
 
 **Fix:** Only remove when migration complete
+
 ```bash
 # AFTER:
 if [ "$AFTER" -gt 0 ]; then
@@ -205,12 +221,14 @@ fi
 **Fix 3: Remove Deprecated vi.importMock Conversion**
 
 **Problem:** Script converted `jest.requireMock` → `vi.importMock` (deprecated)
+
 ```bash
 # BEFORE (introduces deprecated API):
 sed -i 's/jest\.requireMock(/vi.importMock(/g' {} +
 ```
 
 **Fix:** Commented out with explanation
+
 ```bash
 # AFTER:
 # NOTE: jest.requireMock → vi.importMock is DEPRECATED and returns Promise
@@ -219,13 +237,15 @@ sed -i 's/jest\.requireMock(/vi.importMock(/g' {} +
 ```
 
 **Updated Script Output:**
+
 ```bash
 echo "   3. ⚠️  IMPORTANT: jest.requireMock requires manual handling"
 echo "      - vi.importMock is DEPRECATED and returns a Promise"
 echo "      - Replace with synchronous vi.mock patterns or convert to async if needed"
 ```
 
-**Impact:** 
+**Impact:**
+
 - Prevents introduction of deprecated APIs
 - Warns maintainers about manual handling
 - Suggests proper alternatives
@@ -235,16 +255,19 @@ echo "      - Replace with synchronous vi.mock patterns or convert to async if n
 ## Verification
 
 ### Compilation
+
 ✅ All 8 files compile without errors  
 ✅ TypeScript happy with all changes  
 ✅ No new lint errors introduced
 
 ### Test Coverage
+
 - ✅ `app/marketplace/rfq/page.test.tsx` - Can now reference `test()`
 - ✅ `app/test/api_help_articles_route.test.ts` - Has required lifecycle hooks
 - ✅ `app/test/help_ai_chat_page.test.tsx` - Imports match usage
 
 ### Multi-Tenant Context
+
 - ✅ No more hardcoded defaults
 - ✅ Request parameter required (enforced)
 - ✅ Priority hierarchy implemented
@@ -252,6 +275,7 @@ echo "      - Replace with synchronous vi.mock patterns or convert to async if n
 - ✅ JWT decode utility functional
 
 ### Migration Script
+
 - ✅ Portable sed usage (GNU/BSD compatible)
 - ✅ Conditional backup handling
 - ✅ No deprecated API introduction
@@ -279,6 +303,7 @@ echo "      - Replace with synchronous vi.mock patterns or convert to async if n
 **Date:** October 15, 2025
 
 **Changes:**
+
 - 8 files changed
 - 211 insertions (+)
 - 48 deletions (-)
@@ -290,24 +315,28 @@ echo "      - Replace with synchronous vi.mock patterns or convert to async if n
 ## Impact Assessment
 
 ### Code Quality
+
 - ✅ Improved documentation accuracy
 - ✅ Fixed import/usage mismatches
 - ✅ Enhanced script portability
 - ✅ Removed hardcoded defaults
 
 ### Security
+
 - ✅ Multi-tenant context now request-scoped
 - ✅ No silent fallbacks to defaults
 - ✅ JWT validation and error handling
 - ✅ Comprehensive logging for auditing
 
 ### Maintainability
+
 - ✅ Scripts work across platforms
 - ✅ Backups preserved when needed
 - ✅ No deprecated APIs introduced
 - ✅ Clear warnings for manual steps
 
 ### Testing
+
 - ✅ All test files can run
 - ✅ Imports match usage
 - ✅ No undefined references
@@ -318,11 +347,13 @@ echo "      - Replace with synchronous vi.mock patterns or convert to async if n
 ## Next Steps
 
 ### Immediate
+
 1. ✅ All fixes applied
 2. ✅ Changes committed and pushed
 3. ✅ Documentation updated
 
 ### Follow-up (Separate PRs)
+
 1. Update call sites of `resolveMarketplaceContext()` to pass RequestContext
 2. Test multi-tenant context resolution with real requests
 3. Add unit tests for JWT decode utility

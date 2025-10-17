@@ -1,29 +1,32 @@
 === PayTabs Duplicate Analysis ===
 
 ## ./docs/inventory/paytabs-duplicates.md
+
 3 ./docs/inventory/paytabs-duplicates.md
 === PayTabs Duplicate Analysis ===
 
 ## ./docs/inventory/paytabs-duplicates.md
+
 3 ./docs/inventory/paytabs-duplicates.md
 
 ## ./lib/paytabs.config.ts
+
 7 ./lib/paytabs.config.ts
 import 'server-only';
 export const PAYTABS_CONFIG = {
   profileId: process.env.PAYTABS_PROFILE_ID || '',
   serverKey: process.env.PAYTABS_SERVER_KEY || '',
-  baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa'
+  baseUrl: process.env.PAYTABS_BASE_URL || '<https://secure.paytabs.sa>'
 };
 
-
 ## ./lib/paytabs.ts
+
 207 ./lib/paytabs.ts
 const REGIONS: Record<string,string> = {
-  KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
-  EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
-  JORDAN:'https://secure-jordan.paytabs.com', KUWAIT:'https://secure-kuwait.paytabs.com',
-  GLOBAL:'https://secure-global.paytabs.com'
+  KSA: '<https://secure.paytabs.sa>', UAE: '<https://secure.paytabs.com>',
+  EGYPT:'<https://secure-egypt.paytabs.com>', OMAN:'<https://secure-oman.paytabs.com>',
+  JORDAN:'<https://secure-jordan.paytabs.com>', KUWAIT:'<https://secure-kuwait.paytabs.com>',
+  GLOBAL:'<https://secure-global.paytabs.com>'
 };
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
@@ -41,13 +44,16 @@ export async function createHppRequest(region:string, payload:any) {
 }
 
 ## ./qa/tests/README-paytabs-unit-tests.md
+
 15 ./qa/tests/README-paytabs-unit-tests.md
 PayTabs unit-style tests
 
 Framework in use
+
 - Playwright Test (@playwright/test) — reusing the project's existing test runner. No new dependencies are introduced.
 
 What’s covered
+
 - paytabsBase: region URL resolution and fallbacks
 - createHppRequest: request shape, headers, and error propagation
 - createPaymentPage: payload correctness, formatting, language/shipping flags, fallbacks, edge cases (amounts, characters)
@@ -56,21 +62,25 @@ What’s covered
 - Constants and helpers: PAYMENT_METHODS, CURRENCIES, and getAvailablePaymentMethods structure
 
 Notes
+
 - Global fetch is stubbed per-test to avoid real network calls.
 - Environment variables that are read once at module import (via PAYTABS_CONFIG) are set within each test file before importing the module. Playwright runs each spec file in an isolated worker process, ensuring clean state across files.
+
 ## ./qa/tests/api-paytabs-callback.spec.ts
+
 279 ./qa/tests/api-paytabs-callback.spec.ts
 /**
- * Tests for PayTabs callback API route.
- *
- * Framework: Jest-style (describe/it/expect). If using Vitest, replace jest.fn with vi.fn and adjust mocks accordingly.
- *
- * Scenarios covered:
- * - Invalid signature -> 401 with { ok: false, error: 'Invalid signature' }
- * - Success path (resp_status 'A') with valid positive amount -> 200, status 'PAID', calls generateZATCAQR with correct args
- * - Success path with invalid amount (NaN / <= 0) -> 400 with { ok: false, error: 'Invalid amount' }
- * - Failure path (non-'A' status) -> 200 with status 'FAILED', does not call generateZATCAQR
- * - Malformed JSON body -> 500 with { ok: false, error: 'Callback processing failed' }
+
+- Tests for PayTabs callback API route.
+-
+- Framework: Jest-style (describe/it/expect). If using Vitest, replace jest.fn with vi.fn and adjust mocks accordingly.
+-
+- Scenarios covered:
+- - Invalid signature -> 401 with { ok: false, error: 'Invalid signature' }
+- - Success path (resp_status 'A') with valid positive amount -> 200, status 'PAID', calls generateZATCAQR with correct args
+- - Success path with invalid amount (NaN / <= 0) -> 400 with { ok: false, error: 'Invalid amount' }
+- - Failure path (non-'A' status) -> 200 with status 'FAILED', does not call generateZATCAQR
+- - Malformed JSON body -> 500 with { ok: false, error: 'Callback processing failed' }
  */
 
 import type { NextRequest } from 'next/server';
@@ -82,6 +92,7 @@ let POST: (req: NextRequest) => Promise<Response>;
 // If your project uses a different path, update TARGET_ROUTE_PATH.
 
 ## ./qa/tests/lib-paytabs.base-and-hpp.spec.ts
+
 113 ./qa/tests/lib-paytabs.base-and-hpp.spec.ts
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
@@ -103,15 +114,15 @@ test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
     expect(paytabsBase('' as any)).toBe('https://secure-global.paytabs.com');
     expect(paytabsBase(null as any)).toBe('https://secure-global.paytabs.com');
 
-
 ## ./qa/tests/lib-paytabs.create-payment.custom-base.spec.ts
+
 98 ./qa/tests/lib-paytabs.create-payment.custom-base.spec.ts
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
 
 test.describe('lib/paytabs - custom base URL via env', () => {
   test('createPaymentPage uses PAYTABS_BASE_URL when provided', async () => {
-    process.env.PAYTABS_BASE_URL = 'https://custom.paytabs.example';
+    process.env.PAYTABS_BASE_URL = '<https://custom.paytabs.example>';
     process.env.PAYTABS_PROFILE_ID = 'custom-profile';
     process.env.PAYTABS_SERVER_KEY = 'custom-key';
 
@@ -128,6 +139,7 @@ test.describe('lib/paytabs - custom base URL via env', () => {
       await createPaymentPage({
 
 ## ./qa/tests/lib-paytabs.create-payment.default.spec.ts
+
 269 ./qa/tests/lib-paytabs.create-payment.default.spec.ts
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
@@ -151,11 +163,13 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
         city: 'Riyadh',
 
 ## ./qa/tests/lib-paytabs.spec.ts
+
 403 ./qa/tests/lib-paytabs.spec.ts
 /**
- * Tests for PayTabs integration helpers.
- * Testing framework: Jest (ts-jest or Babel/Jest setup assumed).
- * If your project uses Vitest/Mocha, adapt describe/it/expect/mocking accordingly.
+
+- Tests for PayTabs integration helpers.
+- Testing framework: Jest (ts-jest or Babel/Jest setup assumed).
+- If your project uses Vitest/Mocha, adapt describe/it/expect/mocking accordingly.
  */
 
  // We will dynamically import the module under test using a relative path guess.
@@ -174,6 +188,7 @@ const PAYTABS_HELPERS_MODULE_PATH = '../../lib-paytabs'; // <-- Update this path
 function loadModule() {
 
 ## ./qa/tests/lib-paytabs.verify-and-utils.spec.ts
+
 67 ./qa/tests/lib-paytabs.verify-and-utils.spec.ts
 // Framework: Playwright Test (@playwright/test)
 import { test, expect } from '@playwright/test';
@@ -197,6 +212,7 @@ test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
     expect(PAYMENT_METHODS).toMatchObject({
 
 ## ./services/paytabs.ts
+
 104 ./services/paytabs.ts
 import PaymentMethod from '../db/models/PaymentMethod';
 import Subscription from '../db/models/Subscription';
@@ -220,22 +236,23 @@ export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
     tran_ref: data?.tran_ref || data?.tranRef,
 
 ## ./src/lib/paytabs.config.ts
+
 7 ./src/lib/paytabs.config.ts
 import 'server-only';
 export const PAYTABS_CONFIG = {
   profileId: process.env.PAYTABS_PROFILE_ID || '',
   serverKey: process.env.PAYTABS_SERVER_KEY || '',
-  baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa'
+  baseUrl: process.env.PAYTABS_BASE_URL || '<https://secure.paytabs.sa>'
 };
 
-
 ## ./src/lib/paytabs.ts
+
 207 ./src/lib/paytabs.ts
 const REGIONS: Record<string,string> = {
-  KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
-  EGYPT:'https://secure-egypt.paytabs.com', OMAN:'https://secure-oman.paytabs.com',
-  JORDAN:'https://secure-jordan.paytabs.com', KUWAIT:'https://secure-kuwait.paytabs.com',
-  GLOBAL:'https://secure-global.paytabs.com'
+  KSA: '<https://secure.paytabs.sa>', UAE: '<https://secure.paytabs.com>',
+  EGYPT:'<https://secure-egypt.paytabs.com>', OMAN:'<https://secure-oman.paytabs.com>',
+  JORDAN:'<https://secure-jordan.paytabs.com>', KUWAIT:'<https://secure-kuwait.paytabs.com>',
+  GLOBAL:'<https://secure-global.paytabs.com>'
 };
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
@@ -253,6 +270,7 @@ export async function createHppRequest(region:string, payload:any) {
 }
 
 ## ./src/services/paytabs.ts
+
 104 ./src/services/paytabs.ts
 import PaymentMethod from '../db/models/PaymentMethod';
 import Subscription from '../db/models/Subscription';
@@ -276,13 +294,15 @@ export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
     tran_ref: data?.tran_ref || data?.tranRef,
 
 ## ./tests/paytabs.test.ts
+
 379 ./tests/paytabs.test.ts
 /**
- * Comprehensive tests for PayTabs integration helpers.
- * Testing library/framework: Vitest
- *
- * These tests attempt to import the PayTabs module from common paths.
- * If import fails, adjust the candidate paths in importPaytabs() to match your project.
+
+- Comprehensive tests for PayTabs integration helpers.
+- Testing library/framework: Vitest
+-
+- These tests attempt to import the PayTabs module from common paths.
+- If import fails, adjust the candidate paths in importPaytabs() to match your project.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -297,20 +317,21 @@ beforeEach(() => {
   process.env = { ...ORIGINAL_ENV };
 });
 
-
 ## ./tests/unit/api/api-paytabs-callback.spec.ts
+
 283 ./tests/unit/api/api-paytabs-callback.spec.ts
 /**
- * Tests for PayTabs callback API route.
- *
- * Framework: Jest-style (describe/it/expect). If using Vitest, replace jest.fn with vi.fn and adjust mocks accordingly.
- *
- * Scenarios covered:
- * - Invalid signature -> 401 with { ok: false, error: 'Invalid signature' }
- * - Success path (resp_status 'A') with valid positive amount -> 200, status 'PAID', calls generateZATCAQR with correct args
- * - Success path with invalid amount (NaN / <= 0) -> 400 with { ok: false, error: 'Invalid amount' }
- * - Failure path (non-'A' status) -> 200 with status 'FAILED', does not call generateZATCAQR
- * - Malformed JSON body -> 500 with { ok: false, error: 'Callback processing failed' }
+
+- Tests for PayTabs callback API route.
+-
+- Framework: Jest-style (describe/it/expect). If using Vitest, replace jest.fn with vi.fn and adjust mocks accordingly.
+-
+- Scenarios covered:
+- - Invalid signature -> 401 with { ok: false, error: 'Invalid signature' }
+- - Success path (resp_status 'A') with valid positive amount -> 200, status 'PAID', calls generateZATCAQR with correct args
+- - Success path with invalid amount (NaN / <= 0) -> 400 with { ok: false, error: 'Invalid amount' }
+- - Failure path (non-'A' status) -> 200 with status 'FAILED', does not call generateZATCAQR
+- - Malformed JSON body -> 500 with { ok: false, error: 'Callback processing failed' }
  */
 
 import type { NextRequest } from 'next/server';
@@ -322,10 +343,12 @@ let POST: (req: NextRequest) => Promise<Response>;
 // If your project uses a different path, update TARGET_ROUTE_PATH.
 
 ## ./tests/unit/api/api-paytabs.spec.ts
+
 223 ./tests/unit/api/api-paytabs.spec.ts
 /**
- * Tests for PayTabs payment page creation route handler (POST).
- * Framework: Jest (TypeScript). If using Vitest, replace jest.* with vi.* equivalents.
+
+- Tests for PayTabs payment page creation route handler (POST).
+- Framework: Jest (TypeScript). If using Vitest, replace jest.*with vi.* equivalents.
  */
 import { describe, test, expect, jest, beforeEach, beforeAll, afterEach } from '@jest/globals';
 import type { NextRequest } from 'next/server'

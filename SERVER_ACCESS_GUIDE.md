@@ -5,6 +5,7 @@
 To check if the server is running, use these commands:
 
 ### Check Running Process
+
 ```bash
 # Check if server process is running
 ps aux | grep "[n]ode.*server.js"
@@ -13,6 +14,7 @@ pgrep -f "node.*server.js"
 ```
 
 ### Verify Listening Port
+
 ```bash
 # Check if port 3000 is listening
 netstat -tlnp 2>/dev/null | grep :3000
@@ -21,6 +23,7 @@ ss -tlnp 2>/dev/null | grep :3000
 ```
 
 ### Test Health Endpoint
+
 ```bash
 # Test if server is responding
 curl -I http://localhost:3000

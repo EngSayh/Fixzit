@@ -23,6 +23,7 @@
 **The 348 'any' types cannot be batch-fixed safely.**  
 
 Each `any` requires:
+
 1. Understanding the actual type expected
 2. Creating proper TypeScript interfaces
 3. Updating function signatures
@@ -45,7 +46,9 @@ Each `any` requires:
 ## 🎯 RECOMMENDED APPROACH
 
 ### Option 1: Pragmatic (RECOMMENDED)
+
 **Accept current state, iterate post-launch**
+
 - 423 warnings are NON-BLOCKING
 - System functions perfectly
 - Fix 'any' types gradually over 2-3 months
@@ -53,7 +56,9 @@ Each `any` requires:
 - **Deploy**: TODAY
 
 ### Option 2: Hybrid (BALANCED)
+
 **Fix easy wins now, iterate on 'any' types later**
+
 - Fix 68 unused variables (3-4 hours)
 - Fix React hooks + escapes (45 min)
 - Leave 348 'any' types for gradual improvement
@@ -62,7 +67,9 @@ Each `any` requires:
 - **Deploy**: Tomorrow
 
 ### Option 3: Absolute Perfection (YOUR CHOICE)
+
 **Fix ALL 423 warnings before launch**
+
 - Systematically replace every 'any' with proper types
 - Requires deep analysis of each occurrence
 - High risk of introducing bugs
@@ -74,7 +81,9 @@ Each `any` requires:
 ## 📋 IF YOU CHOOSE OPTION 3: ACTION PLAN
 
 ### Week 1: API Routes (25-30 hours)
+
 **Day 1-2**: Fix 'any' in 50 API route files (15 hours)
+
 - app/api/admin/* (10 files, 15 'any')
 - app/api/aqar/* (5 files, 8 'any')
 - app/api/assets/* (10 files, 12 'any')
@@ -82,6 +91,7 @@ Each `any` requires:
 - app/api/auth/* (5 files, 8 'any')
 
 **Day 3-4**: Continue API routes (10 hours)
+
 - app/api/billing/* (8 files, 15 'any')
 - app/api/copilot/* (5 files, 12 'any')
 - app/api/help/* (5 files, 25 'any')
@@ -89,22 +99,28 @@ Each `any` requires:
 - app/api/kb/* (5 files, 10 'any')
 
 **Day 5**: Remaining API routes (5 hours)
+
 - app/api/marketplace/* (10 files, 15 'any')
 - app/api/notifications/* (5 files, 8 'any')
 - app/api/payments/* (8 files, 12 'any')
 - app/api/work-orders/* (15 files, 20 'any')
 
 ### Week 2: Components & Lib (15-20 hours)
+
 **Day 6-7**: Components (10 hours)
+
 - components/* (30 files, 50 'any')
 
 **Day 8**: Lib files (5 hours)
+
 - lib/* (15 files, 25 'any')
 
 **Day 9**: Server models (3 hours)
+
 - src/server/models/* (5 files, 10 'any')
 
 **Day 10**: Final fixes (2 hours)
+
 - Unused variables (68 items)
 - React hooks (3 items)
 - Escape characters (2 items)
@@ -115,6 +131,7 @@ Each `any` requires:
 ## 🛠️ HOW TO FIX 'ANY' TYPES
 
 ### Pattern 1: Error Handling
+
 ```typescript
 // ❌ BEFORE
 } catch (err: any) {
@@ -132,6 +149,7 @@ Each `any` requires:
 ```
 
 ### Pattern 2: Request Bodies
+
 ```typescript
 // ❌ BEFORE
 const body: any = await req.json();
@@ -148,6 +166,7 @@ const name = body.name;
 ```
 
 ### Pattern 3: Database Queries
+
 ```typescript
 // ❌ BEFORE
 const filter: any = { orgId: user.orgId };
@@ -160,6 +179,7 @@ const items = await coll.find(filter).toArray();
 ```
 
 ### Pattern 4: API Responses
+
 ```typescript
 // ❌ BEFORE
 const data: any = await response.json();
@@ -182,6 +202,7 @@ return data.result;
 ## 📈 PROGRESS TRACKING
 
 Create a spreadsheet:
+
 | File | 'any' Count | Status | Time Spent | Notes |
 |------|-------------|--------|------------|-------|
 | app/api/admin/discounts/route.ts | 2 | ⬜ TODO | - | - |
@@ -189,6 +210,7 @@ Create a spreadsheet:
 | ... | ... | ... | ... | ... |
 
 Track as you go:
+
 - ⬜ TODO
 - 🟡 IN PROGRESS
 - ✅ DONE
@@ -200,11 +222,13 @@ Track as you go:
 **Given your demand for absolute perfection, you have 2 realistic choices:**
 
 ### Choice A: AI-Assisted Marathon (40-50 hours)
+
 - I systematically fix warnings while you review
 - You approve batches of changes
 - Risk: Fatigue, potential mistakes from rushed work
 
 ### Choice B: Pragmatic Perfection (RECOMMENDED)
+
 1. **NOW**: Fix E2E tests (6-10 hours) - blocking for quality
 2. **NOW**: Create database indexes (1-2 hours) - blocking for performance  
 3. **NOW**: Setup monitoring (3-4 hours) - blocking for production

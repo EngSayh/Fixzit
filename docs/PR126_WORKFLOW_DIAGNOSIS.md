@@ -7,17 +7,20 @@
 ## Fixes Applied ✅
 
 ### Fix #1: Workflow Configuration (de8130de)
+
 - Copied webpack.yml from PR #127 (timeout, caching, split steps)
 - Copied next.config.js CI-only settings
 - Copied tsconfig.json ignoreDeprecations fix
 
 ### Fix #2: Package Lock Sync (b8a5d23a)
+
 - **Root Cause**: package.json had @sendgrid/mail + jscpd added
 - **Error**: "Missing: @sendgrid/mail@8.1.6 from lock file" (45+ packages missing)
 - **Solution**: Ran `npm install --package-lock-only`
 - **Result**: package-lock.json regenerated with 815 new lines
 
 ### Fix #3: Remove pnpm-lock.yaml (e97e5e92)
+
 - **Root Cause**: pnpm-lock.yaml existed on PR #126 but not on main
 - **Error**: "Unable to locate executable file: pnpm"
 - **Solution**: `git rm pnpm-lock.yaml` (13,431 lines deleted)
@@ -39,11 +42,13 @@ All 4 workflows still failing after fixes:
 ## Investigation Status 🔍
 
 ### Unable to Access Logs
+
 - `gh run view <id> --log-failed` → "log not found" (still processing)
 - `gh api .../logs` → HTTP 404 (not available yet)
-- GitHub UI: https://github.com/EngSayh/Fixzit/actions/runs/18537944688
+- GitHub UI: <https://github.com/EngSayh/Fixzit/actions/runs/18537944688>
 
 ### Local Testing
+
 - `npm ci --prefer-offline --no-audit` → **TIMED OUT** (>25 seconds)
 - Possible issue: npm install is extremely slow due to 1404 packages
 - CI timeout: 15 minutes (should be enough, but slow installs could delay other steps)
@@ -51,21 +56,25 @@ All 4 workflows still failing after fixes:
 ## Next Steps 📋
 
 ### Option A: Wait for Logs (5-10 minutes)
+
 - GitHub logs typically available within 5-10 minutes of workflow completion
 - Once available: `gh run view 18537944688 --log-failed`
 - Identify exact failure point and error message
 
 ### Option B: Check Workflow Run in Browser
-- URL: https://github.com/EngSayh/Fixzit/actions/runs/18537944688
+
+- URL: <https://github.com/EngSayh/Fixzit/actions/runs/18537944688>
 - View real-time logs if still running
 - Check step-by-step breakdown
 
 ### Option C: Verify Locally
+
 - Run full build locally: `npm ci && npm run typecheck && npm run lint && npm run build`
 - Compare with workflow steps
 - Identify any local-vs-CI differences
 
 ### Option D: Compare with Main Branch
+
 - Main branch has 2 workflow failures
 - Check if same root cause affects both main and PR #126
 - May need global fix across all branches
@@ -93,10 +102,12 @@ b07ad600 docs: final progress report - Phase 1 complete + comprehensive error an
 ## Dependencies Verified ✅
 
 package.json includes:
+
 - `@sendgrid/mail` (email service)
 - `jscpd` (duplicate code detection)
 
 package-lock.json includes:
+
 - All jscpd dependencies
 - All @sendgrid dependencies
 - 1404 total packages
@@ -130,6 +141,7 @@ package-lock.json includes:
    - `docs/progress/` - Progress reports
 
 3. **TypeScript Errors in node_modules**: Local `tsc --noEmit` shows errors in node_modules type definitions:
+
    ```
    node_modules/@types/d3-scale/index.d.ts(2549,13): error TS1010: '*/' expected.
    node_modules/@types/d3-shape/index.d.ts(2485,45): error TS1110: Type expected.
@@ -137,6 +149,7 @@ package-lock.json includes:
    node_modules/@types/react/index.d.ts(3105,12): error TS1005: '}' expected.
    node_modules/csstype/index.d.ts(1394,38): error TS1010: '*/' expected.
    ```
+
    These are TypeScript 5.9.3 breaking changes with older type definitions.
 
 4. **GitHub Logs Unavailable**: Even after 10+ minutes and multiple retry attempts:
@@ -147,23 +160,27 @@ package-lock.json includes:
 ## Hypotheses (Ranked by Likelihood) 🎯
 
 ### #1: Code Changes Break Build (HIGH)
+
 - PR #126 changed `app/api/support/welcome-email/route.ts`
 - Added SendGrid email functionality
 - May have syntax errors or missing env vars causing build failure
 - **Evidence**: Only 3 .ts/.tsx files changed, this is one of them
 
 ### #2: File Reorganization Breaks Imports (MEDIUM)
+
 - 100+ files moved from root to docs/ subdirectories
 - Build process may reference moved files
 - Scripts may import from old paths
 - **Evidence**: Massive rename operation could break internal tooling
 
 ### #3: TypeScript node_modules Corruption (MEDIUM)
+
 - Local tsc shows errors in node_modules/@types
 - CI may hit same errors during typecheck step
 - **Evidence**: Multiple node_modules type definition errors
 
 ### #4: New Dependencies Break CI (LOW)
+
 - jscpd/SendGrid/ts-prune may have peer dependency conflicts
 - package-lock.json may be incomplete despite regeneration
 - **Evidence**: Successfully regenerated package-lock.json with all deps
@@ -171,24 +188,28 @@ package-lock.json includes:
 ## Recommendation ⚠️
 
 ### Option A: Check Browser UI (IMMEDIATE)
-1. Open: https://github.com/EngSayh/Fixzit/actions/runs/18538221327
+
+1. Open: <https://github.com/EngSayh/Fixzit/actions/runs/18538221327>
 2. Manually review error messages in GitHub UI
 3. Identify exact failing step
 4. Report findings
 
 ### Option B: Revert to Known Good State (SAFE)
+
 1. Create new branch from main
 2. Cherry-pick ONLY workflow fixes (de8130de)
 3. Skip file reorganization and code changes
 4. Test if workflows pass
 
 ### Option C: Incremental Testing (THOROUGH)
+
 1. Revert welcome-email route changes
 2. Test if build passes
 3. If yes: Fix welcome-email code
 4. If no: Investigate file reorganization impact
 
 ### Option D: Compare Commits Directly (ANALYTICAL)
+
 ```bash
 # Get exact diff between PR #127 and PR #126
 git diff feat/batch2-code-improvements..feat/batch1-file-organization

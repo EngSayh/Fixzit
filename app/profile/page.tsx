@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { User, Settings, Shield, Bell } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type TabType = 'account' | 'notifications' | 'security';
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('account');
   const [user, setUser] = useState({
     name: 'Admin User',
@@ -37,9 +39,9 @@ export default function ProfilePage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      toast.success('Account settings saved successfully!');
+      toast.success(t('profile.toast.accountSaved', 'Account settings saved successfully!'));
     } catch (_error) {
-      toast.error('Failed to save account settings');
+      toast.error(t('profile.toast.accountError', 'Failed to save account settings'));
     }
   };
 
@@ -47,21 +49,21 @@ export default function ProfilePage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      toast.success('Notification preferences updated!');
+      toast.success(t('profile.toast.notificationsSaved', 'Notification preferences updated!'));
     } catch (_error) {
-      toast.error('Failed to update notifications');
+      toast.error(t('profile.toast.notificationsError', 'Failed to update notifications'));
     }
   };
 
   const handleSaveSecurity = async () => {
     if (securitySettings.newPassword !== securitySettings.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('profile.toast.passwordMismatch', 'Passwords do not match'));
       return;
     }
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      toast.success('Security settings updated!');
+      toast.success(t('profile.toast.securitySaved', 'Security settings updated!'));
       setSecuritySettings({
         ...securitySettings,
         currentPassword: '',
@@ -69,7 +71,7 @@ export default function ProfilePage() {
         confirmPassword: ''
       });
     } catch (_error) {
-      toast.error('Failed to update security settings');
+      toast.error(t('profile.toast.securityError', 'Failed to update security settings'));
     }
   };
 
@@ -78,8 +80,8 @@ export default function ProfilePage() {
       <Toaster position="top-right" />
       
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">My Profile</h1>
-        <p className="text-gray-600">Manage your account settings and preferences</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('profile.title', 'My Profile')}</h1>
+        <p className="text-gray-600">{t('profile.subtitle', 'Manage your account settings and preferences')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -99,12 +101,12 @@ export default function ProfilePage() {
 
             <div className="mt-6 space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-sm text-gray-600">Member Since</span>
+                <span className="text-sm text-gray-600">{t('profile.card.memberSince', 'Member Since')}</span>
                 <span className="text-sm font-medium">{user.joinDate}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-sm text-gray-600">Account Status</span>
-                <span className="text-sm font-medium text-green-600">Active</span>
+                <span className="text-sm text-gray-600">{t('profile.card.accountStatus', 'Account Status')}</span>
+                <span className="text-sm font-medium text-green-600">{t('profile.card.active', 'Active')}</span>
               </div>
             </div>
           </div>
@@ -123,7 +125,7 @@ export default function ProfilePage() {
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  Account Settings
+                  {t('profile.tabs.account', 'Account Settings')}
                 </button>
                 <button
                   onClick={() => setActiveTab('notifications')}
@@ -133,7 +135,7 @@ export default function ProfilePage() {
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  Notifications
+                  {t('profile.tabs.notifications', 'Notifications')}
                 </button>
                 <button
                   onClick={() => setActiveTab('security')}
@@ -143,7 +145,7 @@ export default function ProfilePage() {
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  Security
+                  {t('profile.tabs.security', 'Security')}
                 </button>
               </div>
             </div>
@@ -154,7 +156,7 @@ export default function ProfilePage() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
+                      {t('profile.account.fullName', 'Full Name')}
                     </label>
                     <input
                       type="text"
@@ -166,7 +168,7 @@ export default function ProfilePage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
+                      {t('profile.account.email', 'Email Address')}
                     </label>
                     <input
                       type="email"
@@ -178,7 +180,7 @@ export default function ProfilePage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
+                      {t('profile.account.phone', 'Phone Number')}
                     </label>
                     <input
                       type="tel"
@@ -200,13 +202,13 @@ export default function ProfilePage() {
                       })}
                       className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
                     >
-                      Cancel
+                      {t('profile.account.cancel', 'Cancel')}
                     </button>
                     <button
                       onClick={handleSaveAccount}
                       className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90"
                     >
-                      Save Changes
+                      {t('profile.account.save', 'Save Changes')}
                     </button>
                   </div>
                 </div>
@@ -216,10 +218,10 @@ export default function ProfilePage() {
               {activeTab === 'notifications' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Notification Channels</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.notifications.channels', 'Notification Channels')}</h3>
                     <div className="space-y-3">
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">Email Notifications</span>
+                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.email', 'Email Notifications')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.emailNotifications}
@@ -231,7 +233,7 @@ export default function ProfilePage() {
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">Push Notifications</span>
+                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.push', 'Push Notifications')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.pushNotifications}
@@ -243,7 +245,7 @@ export default function ProfilePage() {
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">SMS Notifications</span>
+                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.sms', 'SMS Notifications')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.smsNotifications}
@@ -258,10 +260,10 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Event Notifications</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.notifications.events', 'Event Notifications')}</h3>
                     <div className="space-y-3">
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">Work Order Updates</span>
+                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.workOrders', 'Work Order Updates')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.workOrderUpdates}
@@ -273,7 +275,7 @@ export default function ProfilePage() {
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">Maintenance Alerts</span>
+                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.maintenance', 'Maintenance Alerts')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.maintenanceAlerts}
@@ -285,7 +287,7 @@ export default function ProfilePage() {
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">Invoice Reminders</span>
+                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.invoices', 'Invoice Reminders')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.invoiceReminders}
@@ -304,7 +306,7 @@ export default function ProfilePage() {
                       onClick={handleSaveNotifications}
                       className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90"
                     >
-                      Save Preferences
+                      {t('profile.notifications.save', 'Save Preferences')}
                     </button>
                   </div>
                 </div>
@@ -314,11 +316,11 @@ export default function ProfilePage() {
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.security.changePassword', 'Change Password')}</h3>
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Current Password
+                          {t('profile.security.currentPassword', 'Current Password')}
                         </label>
                         <input
                           type="password"
@@ -332,7 +334,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          New Password
+                          {t('profile.security.newPassword', 'New Password')}
                         </label>
                         <input
                           type="password"
@@ -346,7 +348,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Confirm New Password
+                          {t('profile.security.confirmPassword', 'Confirm New Password')}
                         </label>
                         <input
                           type="password"
@@ -362,11 +364,11 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Two-Factor Authentication</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.security.twoFactor', 'Two-Factor Authentication')}</h3>
                     <label className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                       <div>
-                        <span className="text-sm font-medium text-gray-700 block">Enable 2FA</span>
-                        <span className="text-xs text-gray-500">Add an extra layer of security to your account</span>
+                        <span className="text-sm font-medium text-gray-700 block">{t('profile.security.enable2FA', 'Enable 2FA')}</span>
+                        <span className="text-xs text-gray-500">{t('profile.security.2FADesc', 'Add an extra layer of security to your account')}</span>
                       </div>
                       <input
                         type="checkbox"
@@ -385,7 +387,7 @@ export default function ProfilePage() {
                       onClick={handleSaveSecurity}
                       className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90"
                     >
-                      Update Security
+                      {t('profile.security.update', 'Update Security')}
                     </button>
                   </div>
                 </div>
@@ -397,24 +399,24 @@ export default function ProfilePage() {
 
       {/* Quick Actions */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.quickActions.title', 'Quick Actions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link href="/settings" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <Settings className="h-6 w-6 text-[#0061A8] mb-2" />
-            <h3 className="font-medium text-gray-900">System Settings</h3>
-            <p className="text-sm text-gray-600">Configure application preferences</p>
+            <h3 className="font-medium text-gray-900">{t('profile.quickActions.system', 'System Settings')}</h3>
+            <p className="text-sm text-gray-600">{t('profile.quickActions.systemDesc', 'Configure application preferences')}</p>
           </Link>
 
           <Link href="/notifications" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <Bell className="h-6 w-6 text-[#00A859] mb-2" />
-            <h3 className="font-medium text-gray-900">Notification Settings</h3>
-            <p className="text-sm text-gray-600">Manage alerts and notifications</p>
+            <h3 className="font-medium text-gray-900">{t('profile.quickActions.notifications', 'Notification Settings')}</h3>
+            <p className="text-sm text-gray-600">{t('profile.quickActions.notificationsDesc', 'Manage alerts and notifications')}</p>
           </Link>
 
           <Link href="/security" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <Shield className="h-6 w-6 text-[#FFB400] mb-2" />
-            <h3 className="font-medium text-gray-900">Security Settings</h3>
-            <p className="text-sm text-gray-600">Password and access management</p>
+            <h3 className="font-medium text-gray-900">{t('profile.quickActions.security', 'Security Settings')}</h3>
+            <p className="text-sm text-gray-600">{t('profile.quickActions.securityDesc', 'Password and access management')}</p>
           </Link>
         </div>
       </div>

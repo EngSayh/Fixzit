@@ -22,7 +22,8 @@
 
 ## 🤔 Why This Warning Appeared Yesterday
 
-### Timeline:
+### Timeline
+
 1. **Before:** Had `"ignoreDeprecations": "6.0"` in tsconfig.json
 2. **Issue:** This caused **TS5103 error** (Invalid value for '--ignoreDeprecations')
 3. **Fix Attempt:** Removed the setting to fix TS5103
@@ -38,7 +39,8 @@
 | **VS Code** | 6.0.x | ✅ Yes - Requires it to silence warning |
 | **Project** | ^5.9.3 | ❌ No |
 
-### The Problem:
+### The Problem
+
 - If we **add** `"ignoreDeprecations": "6.0"` → CLI fails with TS5103 error
 - If we **remove** it → VS Code shows deprecation warning
 - **Can't satisfy both** with current TypeScript versions
@@ -47,14 +49,15 @@
 
 ## ✅ The Solution: Accept the Warning
 
-### Why This is OK:
+### Why This is OK
 
 1. **✅ It's Just a Warning** - Not an error, doesn't block anything
 2. **✅ Code Still Works** - baseUrl works fine in TypeScript 5.x and 6.x
 3. **✅ Builds Pass** - No impact on compilation or production builds
 4. **✅ Informational** - Just telling you to plan migration before TS 7.0
 
-### What the Warning Means:
+### What the Warning Means
+
 - `baseUrl` will be **removed in TypeScript 7.0** (future version)
 - You should plan to migrate to path mappings without baseUrl
 - But for now (TS 5.x and 6.x), it works perfectly fine
@@ -63,7 +66,8 @@
 
 ## 🛠️ What We Did
 
-### Current Configuration (`tsconfig.json`):
+### Current Configuration (`tsconfig.json`)
+
 ```jsonc
 {
   "compilerOptions": {
@@ -82,7 +86,8 @@
 }
 ```
 
-### Status:
+### Status
+
 - ✅ CLI compilation: **Works** (no TS5103 error)
 - ⚠️ VS Code: **Shows warning** (informational only)
 - ✅ Builds: **Pass**
@@ -93,12 +98,14 @@
 ## 🎯 Three Ways to Handle This
 
 ### Option 1: **Do Nothing** ✅ (Recommended)
+
 **What:** Accept the warning in VS Code  
 **Pros:** No issues, everything works  
 **Cons:** Warning visible in VS Code  
 **Status:** **Current approach**
 
 ### Option 2: **Upgrade TypeScript to 6.0**
+
 **Cons:** Breaking changes, requires testing  
 **Command:**
 
@@ -108,6 +115,7 @@ npm install typescript@^6.0.0
 ```
 
 ### Option 3: **Migrate Away from baseUrl**
+
 **What:** Refactor to use path mappings without baseUrl  
 **Pros:** Future-proof for TypeScript 7.0  
 **Cons:** Significant refactoring required  
@@ -119,7 +127,8 @@ npm install typescript@^6.0.0
 
 When you're ready to remove `baseUrl` before TypeScript 7.0:
 
-### Current Structure:
+### Current Structure
+
 ```jsonc
 {
   "baseUrl": ".",
@@ -130,7 +139,8 @@ When you're ready to remove `baseUrl` before TypeScript 7.0:
 }
 ```
 
-### Migrated Structure:
+### Migrated Structure
+
 ```jsonc
 {
   // Remove baseUrl
@@ -142,6 +152,7 @@ When you're ready to remove `baseUrl` before TypeScript 7.0:
 ```
 
 But this requires:
+
 1. Testing all imports across the entire codebase
 2. Verifying build tools handle new paths correctly
 3. Updating any build scripts or configurations
@@ -153,22 +164,29 @@ But this requires:
 ## ❓ FAQ
 
 ### Q: Is this blocking anything?
+
 **A:** No. It's purely informational.
 
 ### Q: Will my builds fail?
+
 **A:** No. Builds compile successfully.
 
 ### Q: Is this a security issue?
+
 **A:** No. It's just a deprecation notice.
 
 ### Q: Should I fix it immediately?
+
 **A:** No. You have until TypeScript 7.0 (not released yet, probably 2026+).
 
 ### Q: Why didn't this show before?
+
 **A:** It was being suppressed by `ignoreDeprecations`, which we removed to fix the TS5103 error.
 
 ### Q: Can I hide the warning in VS Code?
+
 **A:** Yes, but it requires either:
+
 - Upgrading to TypeScript 6.0+ (project-wide change)
 - Disabling TypeScript diagnostics for this rule (not recommended)
 
@@ -191,6 +209,7 @@ But this requires:
 **The warning is expected and harmless.**
 
 You have three choices:
+
 1. ✅ **Accept it** (recommended - no action needed)
 2. **Upgrade to TypeScript 6.0** (requires testing)
 3. **Migrate away from baseUrl** (significant work)

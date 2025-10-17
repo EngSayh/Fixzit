@@ -8,13 +8,15 @@ The `replace-string-in-file` tool has been completely fixed and tested. It now w
 
 ## What Was Wrong
 
-### Original Issues:
+### Original Issues
+
 1. **Tool reported success but made no changes** - The classic "lying tool" problem
 2. **Capture groups ($1, $2) were being dropped** - Regex replacements didn't work
 3. **Shell escaping was confusing** - Users had to fight with backslashes
 4. **No clear success/failure reporting** - Tool said "success" even when nothing changed
 
-### Root Causes:
+### Root Causes
+
 1. **Broken normalization function** - Was converting `$1` to `$$1`, breaking capture groups
 2. **Success always true** - Didn't check if replacements actually happened
 3. **Poor shell escaping handling** - Double-escaped patterns weren't handled
@@ -28,6 +30,7 @@ The `replace-string-in-file` tool has been completely fixed and tested. It now w
 **File**: `scripts/replace-string-in-file.ts`
 
 **Key Changes**:
+
 - ✅ **Removed broken normalization** - No longer mangles `$1`, `$2` capture groups
 - ✅ **Auto-unescape feature** - Automatically handles `\\d` → `\d`, `\\(` → `\(` etc.
 - ✅ **Proper success reporting** - `success: false` when no replacements made
@@ -150,6 +153,7 @@ npx tsx scripts/replace-string-in-file.ts \
 ### Auto-Unescape (Default: ON)
 
 The tool automatically converts double-escaped regex sequences:
+
 - `\\d` → `\d` (digit)
 - `\\(` → `\(` (literal paren)
 - `\\s` → `\s` (whitespace)
@@ -171,6 +175,7 @@ To disable: `--no-auto-unescape`
 ```
 
 If no matches found:
+
 ```json
 {
   "success": false,  // ← Honest reporting!
@@ -202,6 +207,7 @@ $content | Set-Content -Path "file.txt" -Encoding UTF8
 ```
 
 **Existing helpers**:
+
 - `Write-HereDoc.ps1` - Helper script
 - `PowerShell-Profile-Enhancement.ps1` - Profile functions
 - `POWERSHELL_HEREDOC_CONFIGURED.md` - Complete guide
@@ -210,13 +216,15 @@ $content | Set-Content -Path "file.txt" -Encoding UTF8
 
 ## Files Created/Modified
 
-### Created:
+### Created
+
 - ✅ `scripts/replace-string-in-file.ts` - Main tool (rewritten)
 - ✅ `scripts/replace.js` - Simple wrapper
 - ✅ `test-tool.sh` - Test suite
 - ✅ `TOOL_FIXED_FINAL.md` - This document
 
-### Modified:
+### Modified
+
 - ✅ `package.json` - Added `replace:in-file` script
 
 ---
@@ -229,6 +237,7 @@ bash test-tool.sh
 ```
 
 Expected output:
+
 ```
 === TEST 1: Simple literal replacement ===
 Result: Simple: goodbye world

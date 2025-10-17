@@ -6,6 +6,7 @@
 ## SendGrid Configuration
 
 ### API Key Details
+
 - **Service**: Twilio SendGrid
 - **Account Type**: Trial (expires November 1, 2025)
 - **API Key Name**: Fixzit App connection
@@ -14,11 +15,13 @@
 ### Required Secrets
 
 #### 1. SENDGRID_API_KEY
+
 ```
 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
 ```
 
 #### 2. FROM_EMAIL
+
 ```
 noreply@fixzit.co
 ```
@@ -28,7 +31,7 @@ noreply@fixzit.co
 ### Via GitHub Web Interface
 
 1. **Navigate to Repository Settings**
-   - Go to: https://github.com/EngSayh/Fixzit
+   - Go to: <https://github.com/EngSayh/Fixzit>
    - Click **Settings** tab
    - Click **Secrets and variables** → **Actions**
 
@@ -83,6 +86,7 @@ gh secret list --repo EngSayh/Fixzit
 ```
 
 Expected output:
+
 ```
 SENDGRID_API_KEY  Updated YYYY-MM-DD
 FROM_EMAIL        Updated YYYY-MM-DD
@@ -105,6 +109,6 @@ FROM_EMAIL        Updated YYYY-MM-DD
 
 ## Support
 
-- SendGrid Dashboard: https://app.sendgrid.com/
-- API Documentation: https://docs.sendgrid.com/
+- SendGrid Dashboard: <https://app.sendgrid.com/>
+- API Documentation: <https://docs.sendgrid.com/>
 - Account: Trial - upgrade required before Nov 1, 2025

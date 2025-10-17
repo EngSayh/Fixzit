@@ -1,6 +1,7 @@
 # 🔐 REMOTE KEY MANAGEMENT - JWT SECRET STORAGE
 
 ## GENERATED JWT SECRET
+
 **Secret to Store**: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
 
 ---
@@ -10,6 +11,7 @@
 Since you have AWS configuration, this is likely your best option:
 
 ### Store Secret in AWS Secrets Manager
+
 ```bash
 # Install AWS CLI if not installed
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -28,6 +30,7 @@ aws secretsmanager create-secret \
 ```
 
 ### Update Application to Use AWS Secrets Manager
+
 ```javascript
 // lib/aws-secrets.js
 const AWS = require('aws-sdk');
@@ -50,6 +53,7 @@ module.exports = { getSecret };
 ```
 
 ### Update Your Environment Configuration
+
 ```javascript
 // In your app initialization
 const { getSecret } = require('./lib/aws-secrets');
@@ -64,6 +68,7 @@ process.env.JWT_SECRET = jwtSecret;
 ## 🔧 OPTION 2: GITHUB SECRETS (FOR CI/CD)
 
 ### Add to Repository Secrets
+
 1. Go to your GitHub repository: `https://github.com/EngSayh/Fixzit`
 2. Navigate to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
@@ -71,6 +76,7 @@ process.env.JWT_SECRET = jwtSecret;
 5. Value: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
 
 ### Update GitHub Actions Workflow
+
 ```yaml
 # .github/workflows/deploy.yml
 name: Deploy
@@ -96,12 +102,14 @@ jobs:
 ## 🔧 OPTION 3: DOCKER SECRETS
 
 ### Create Docker Secret
+
 ```bash
 # Create the secret file
 echo "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267" | docker secret create jwt_secret -
 ```
 
 ### Update docker-compose.yml
+
 ```yaml
 version: '3.8'
 
@@ -123,6 +131,7 @@ secrets:
 ```
 
 ### Update Application to Read Docker Secret
+
 ```javascript
 // In your app
 const fs = require('fs');
@@ -143,6 +152,7 @@ const jwtSecret = getJWTSecret();
 ## 🔧 OPTION 4: AZURE KEY VAULT
 
 ### Install Azure CLI and Store Secret
+
 ```bash
 # Install Azure CLI
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
@@ -165,6 +175,7 @@ az keyvault secret set \
 ## 🔧 OPTION 5: HASHICORP VAULT
 
 ### Install and Configure Vault
+
 ```bash
 # Install Vault
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
@@ -186,9 +197,11 @@ vault kv put secret/fixzit jwt-secret="6c042711c6357e833e41b9e439337fe58476d801f
 ## 📋 RECOMMENDED IMPLEMENTATION STEPS
 
 ### 1. Choose Your Platform
+
 Based on your existing AWS configuration, I recommend **AWS Secrets Manager**.
 
 ### 2. Store the Secret
+
 ```bash
 # Quick command to store in AWS Secrets Manager
 aws secretsmanager create-secret \
@@ -198,12 +211,15 @@ aws secretsmanager create-secret \
 ```
 
 ### 3. Update Application Configuration
+
 Create a centralized secrets management module that your app can use.
 
 ### 4. Update Deployment Process
+
 Ensure your deployment process retrieves secrets from the remote system.
 
 ### 5. Remove Local Secrets
+
 Once remote secrets are working, remove any local secret files.
 
 ---

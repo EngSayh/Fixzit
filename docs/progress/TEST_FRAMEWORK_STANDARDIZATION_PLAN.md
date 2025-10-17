@@ -1,4 +1,5 @@
 # Test Framework Standardization Plan
+
 **Date:** October 14, 2025  
 **Priority:** 🔴 HIGH (Blocking E2E & Unit Tests)  
 **Status:** Planning Complete - Ready for Implementation  
@@ -9,6 +10,7 @@
 ## 🎯 Problem Statement
 
 The test suite is currently failing due to **mixed test framework APIs** (Jest and Vitest) being used in the same files. This is causing:
+
 - ❌ All unit tests failing with module resolution errors
 - ❌ MongoDB mock not being recognized
 - ❌ Framework confusion preventing test execution
@@ -37,7 +39,8 @@ beforeEach(() => {
 
 **Chosen Framework:** **Vitest** ✅
 
-### Rationale:
+### Rationale
+
 1. ✅ **Modern & Fast:** Built on Vite, faster than Jest
 2. ✅ **Better Next.js Integration:** Native ESM support
 3. ✅ **Already Configured:** `vitest.config.ts` exists and working
@@ -45,7 +48,8 @@ beforeEach(() => {
 5. ✅ **Compatible API:** Similar to Jest with improvements
 6. ✅ **Native TypeScript:** Better TypeScript support out of the box
 
-### Why Not Jest:
+### Why Not Jest
+
 - ❌ Older tooling (CJS-focused)
 - ❌ Slower execution
 - ❌ More configuration needed for ESM/Next.js
@@ -72,6 +76,7 @@ grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts"
 ```
 
 **Files to Check:**
+
 - `tests/unit/api/qa/alert.route.test.ts` ✅ (Confirmed issue: lines 57-58)
 - `tests/unit/api/qa/log.route.test.ts`
 - All other `tests/**/*.test.ts` files
@@ -100,11 +105,13 @@ grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts"
 **For Each Test File:**
 
 1. **Check imports** - Ensure importing from `vitest`:
+
    ```typescript
    import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
    ```
 
 2. **Replace Jest API calls** with Vitest equivalents:
+
    ```typescript
    // Before
    beforeEach(() => {
@@ -120,6 +127,7 @@ grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts"
    ```
 
 3. **Update mock imports** if using `jest.requireMock`:
+
    ```typescript
    // Before
    const mockModule = jest.requireMock('@/lib/some-module');
@@ -130,6 +138,7 @@ grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts"
    ```
 
 4. **Test each file** after changes:
+
    ```bash
    npm test -- path/to/file.test.ts
    ```
@@ -203,6 +212,7 @@ vi.mock('@/lib/mongodb-unified', () => ({
 ```
 
 **Update Test Files:**
+
 ```typescript
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getDatabase } from '@/lib/mongodb-unified';
@@ -233,6 +243,7 @@ describe('Test Suite', () => {
 ### Phase 5: Verify All Tests Pass (20 min)
 
 **Run Test Suite:**
+
 ```bash
 # Run all unit tests
 npm test tests/unit/
@@ -245,6 +256,7 @@ npm test
 ```
 
 **Expected Results:**
+
 - ✅ All unit tests pass
 - ✅ No "jest is not defined" errors
 - ✅ No "Cannot find module @/lib/mongodb-unified" errors
@@ -255,16 +267,19 @@ npm test
 ## 📁 Files to Modify
 
 ### Test Files with Mixed APIs
+
 1. `tests/unit/api/qa/alert.route.test.ts` ✅ (Confirmed)
 2. `tests/unit/api/qa/log.route.test.ts` (Needs checking)
 3. Search results from Phase 1 (TBD)
 
 ### Configuration Files
+
 1. `vitest.setup.ts` - Add global MongoDB mock
 2. `vitest.config.ts` - Verify setup file is imported
 3. `package.json` - Verify test script uses vitest
 
 ### New Files to Create
+
 1. `tests/mocks/mongodb-unified.ts` - Centralized MongoDB mock
 2. (Optional) `tests/helpers/test-utils.ts` - Common test utilities
 
@@ -272,7 +287,8 @@ npm test
 
 ## ✅ Success Criteria
 
-### Must Have:
+### Must Have
+
 - ✅ Zero references to `jest.` in test files (except comments)
 - ✅ All test files import from `vitest`
 - ✅ All tests use `vi.` API consistently
@@ -280,7 +296,8 @@ npm test
 - ✅ All unit tests passing
 - ✅ No framework confusion errors
 
-### Quality Checks:
+### Quality Checks
+
 ```bash
 # 1. No Jest API usage in test files
 grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts" || echo "✅ No Jest API found"
@@ -300,6 +317,7 @@ npx tsc --noEmit
 ## 🚀 Execution Steps (Ready to Run)
 
 ### Step 1: Create branch
+
 ```bash
 git checkout main
 git pull origin main
@@ -307,23 +325,27 @@ git checkout -b fix/standardize-test-framework-vitest
 ```
 
 ### Step 2: Scan for issues
+
 ```bash
 grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts" > /tmp/jest-usage.txt
 cat /tmp/jest-usage.txt
 ```
 
 ### Step 3: Create MongoDB mock
+
 ```bash
 mkdir -p tests/mocks
 # Create tests/mocks/mongodb-unified.ts with content above
 ```
 
 ### Step 4: Update vitest.setup.ts
+
 ```bash
 # Add MongoDB mock configuration
 ```
 
 ### Step 5: Fix each test file
+
 ```bash
 # For each file in jest-usage.txt:
 # 1. Replace jest.* with vi.*
@@ -332,12 +354,14 @@ mkdir -p tests/mocks
 ```
 
 ### Step 6: Verify all tests
+
 ```bash
 npm test
 npx tsc --noEmit
 ```
 
 ### Step 7: Commit and create PR
+
 ```bash
 git add -A
 git commit -m "test: standardize all tests to Vitest, add MongoDB mock"
@@ -373,19 +397,23 @@ Resolves test framework issues documented in SESSION_PROGRESS_REPORT_20251014.md
 ## 📝 Notes
 
 ### Why This Wasn't Done Earlier
+
 - Focus was on ESLint 'any' warnings (Issue #100)
 - Test framework issues were pre-existing
 - Non-blocking for production deployment
 - Required dedicated session for proper fix
 
 ### Impact on Timeline
+
 - **ESLint Fix:** ✅ Complete (PR #118)
 - **Test Framework:** 🔄 Next session (2-3 hours)
 - **E2E Tests:** 🔄 After framework fix
 - **Production Deployment:** ✅ Not blocked
 
 ### Recommendation
+
 **Do this next session** before starting any other work. Clean test suite is essential for:
+
 - Validating future changes
 - Catching regressions
 - Maintaining code quality

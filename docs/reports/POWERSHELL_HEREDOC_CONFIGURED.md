@@ -137,6 +137,7 @@ foreach ($path in $files.Keys) {
 ## 🔧 Helper Scripts Created
 
 ### 1. Write-HereDoc.ps1
+
 PowerShell script for creating files with heredoc-like syntax:
 
 ```powershell
@@ -144,6 +145,7 @@ PowerShell script for creating files with heredoc-like syntax:
 ```
 
 ### 2. PowerShell-Profile-Enhancement.ps1
+
 Functions you can load into your PowerShell profile:
 
 ```powershell
@@ -204,6 +206,7 @@ The system now has **THREE working methods**:
 3. ✅ Python (via Pylance tool)
 
 All methods work. Choose based on your preference:
+
 - **Quick edits**: PowerShell here-strings
 - **Bash familiarity**: `bash -c` commands
 - **Complex files**: Python via Pylance

@@ -3,13 +3,16 @@
 ## Current Situation Analysis
 
 ### Memory Issue Root Cause
+
 **Is this a GitHub limitation?**
 **YES** - GitHub Codespaces has machine type tiers:
+
 - **Current**: 2-core / 8GB RAM (default free tier)
 - **Your Setting**: Changed to 4-core / 16GB RAM
 - **Issue**: Codespace needs to be **rebuilt** for changes to take effect
 
 ### Why Memory Issues Occur
+
 1. **Next.js 15 Build Requirements**: 2-3GB RAM during build
 2. **VS Code Extension Host**: 1.5GB RAM
 3. **TypeScript Servers**: 2 instances × 100MB = 200MB
@@ -23,9 +26,10 @@
 
 ## Solution 1: Rebuild Codespace with New Settings
 
-### Steps to Apply 4-core/16GB Upgrade:
+### Steps to Apply 4-core/16GB Upgrade
 
 1. **Save all your work** (commit and push):
+
 ```bash
 git add -A
 git commit -m "chore: save work before codespace rebuild"
@@ -33,18 +37,20 @@ git push origin main
 ```
 
 2. **Rebuild Codespace**:
-   - Go to: https://github.com/codespaces
+   - Go to: <https://github.com/codespaces>
    - Find your codespace: `crispy-garbanzo-r4xrj46ggv97c5j9r`
    - Click `...` → `Rebuild container`
    - OR delete and create new codespace with 4-core machine type
 
 3. **Verify after rebuild**:
+
 ```bash
 nproc  # Should show 4
 free -h  # Should show ~16GB
 ```
 
-### Expected Performance After Upgrade:
+### Expected Performance After Upgrade
+
 - ✅ **Build time**: 30-45 seconds (down from 106s)
 - ✅ **No OOM kills**: 16GB is sufficient
 - ✅ **More parallel workers**: 4 cores enable better parallelization
@@ -53,15 +59,17 @@ free -h  # Should show ~16GB
 
 ## Solution 2: Local Development on MacBook Pro
 
-### Why Your MacBook Pro is Better:
+### Why Your MacBook Pro is Better
+
 - **More RAM**: Likely 16GB+ (vs. 8GB Codespaces)
 - **More CPU cores**: Likely 8-10 cores (vs. 2 cores)
 - **Local performance**: No network latency
 - **Expected build time**: 15-25 seconds
 
-### Setup Local Development:
+### Setup Local Development
 
 #### Step 1: Clone Repository
+
 ```bash
 # On your MacBook Pro
 git clone https://github.com/EngSayh/Fixzit.git
@@ -69,6 +77,7 @@ cd Fixzit
 ```
 
 #### Step 2: Install Dependencies
+
 ```bash
 # Ensure you have Node.js 18+ and npm
 node --version  # Should be 18.x or higher
@@ -79,6 +88,7 @@ npm install
 ```
 
 #### Step 3: Configure Environment
+
 ```bash
 # Copy environment template
 cp env.example .env.local
@@ -91,6 +101,7 @@ cp env.example .env.local
 ```
 
 #### Step 4: Start MongoDB Locally
+
 ```bash
 # Option A: Use Docker (recommended)
 docker-compose up -d mongodb
@@ -101,6 +112,7 @@ brew services start mongodb-community
 ```
 
 #### Step 5: Build and Run
+
 ```bash
 # Development mode (faster, hot reload)
 npm run dev
@@ -121,6 +133,7 @@ npm start
 #### Option A: Vercel Deployment (Recommended - Easiest)
 
 **Pros**:
+
 - ✅ Optimized for Next.js 15
 - ✅ Automatic builds on git push
 - ✅ Edge functions, CDN, automatic scaling
@@ -130,11 +143,13 @@ npm start
 **Setup Steps**:
 
 1. **Install Vercel CLI**:
+
 ```bash
 npm install -g vercel
 ```
 
 2. **Deploy**:
+
 ```bash
 cd /workspaces/Fixzit
 vercel login  # Login with GitHub
@@ -142,7 +157,7 @@ vercel  # Follow prompts
 ```
 
 3. **Configure GoDaddy DNS**:
-   - Log in to GoDaddy: https://dnsmanagement.godaddy.com
+   - Log in to GoDaddy: <https://dnsmanagement.godaddy.com>
    - Go to your domain's DNS settings
    - Add these records:
 
@@ -159,12 +174,12 @@ vercel  # Follow prompts
    ```
 
 4. **Add Custom Domain in Vercel**:
-   - Go to: https://vercel.com/your-username/fixzit/settings/domains
+   - Go to: <https://vercel.com/your-username/fixzit/settings/domains>
    - Add: `yourdomain.com` and `www.yourdomain.com`
    - Vercel will verify DNS automatically
 
 5. **Configure Environment Variables**:
-   - Go to: https://vercel.com/your-username/fixzit/settings/environment-variables
+   - Go to: <https://vercel.com/your-username/fixzit/settings/environment-variables>
    - Add all from `.env.local`:
      - `MONGODB_URI`
      - `NEXTAUTH_SECRET`
@@ -178,6 +193,7 @@ vercel  # Follow prompts
 If you have a server through GoDaddy hosting:
 
 **Requirements**:
+
 - Node.js 18+ installed
 - MongoDB access
 - PM2 or similar process manager
@@ -186,17 +202,20 @@ If you have a server through GoDaddy hosting:
 **Setup Steps**:
 
 1. **SSH into your server**:
+
 ```bash
 ssh user@your-server-ip
 ```
 
 2. **Install Node.js**:
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
 3. **Clone and build**:
+
 ```bash
 git clone https://github.com/EngSayh/Fixzit.git
 cd Fixzit
@@ -205,6 +224,7 @@ npm run build
 ```
 
 4. **Install PM2**:
+
 ```bash
 sudo npm install -g pm2
 pm2 start npm --name "fixzit" -- start
@@ -213,6 +233,7 @@ pm2 startup  # Follow instructions
 ```
 
 5. **Configure Nginx**:
+
 ```nginx
 # /etc/nginx/sites-available/fixzit
 server {
@@ -231,6 +252,7 @@ server {
 ```
 
 6. **Enable site**:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/fixzit /etc/nginx/sites-enabled/
 sudo nginx -t
@@ -240,6 +262,7 @@ sudo systemctl reload nginx
 7. **Point GoDaddy DNS to your server**:
    - Log in to GoDaddy DNS management
    - Add A record pointing to your server IP:
+
    ```
    Type: A
    Name: @
@@ -248,6 +271,7 @@ sudo systemctl reload nginx
    ```
 
 8. **Set up SSL with Let's Encrypt**:
+
 ```bash
 sudo apt-get install certbot python3-certbot-nginx
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
@@ -263,21 +287,23 @@ Similar to Vercel but with different configurations. Let me know if you want det
 
 ## Solution 4: Optimize Build Performance (<30 seconds)
 
-### Current Performance Analysis:
+### Current Performance Analysis
+
 - **On 2-core/8GB**: 106 seconds (memory-constrained)
 - **On 4-core/16GB**: ~30-45 seconds (expected)
 - **On MacBook Pro**: ~15-25 seconds (expected)
 
-### Why <30 seconds is achievable with proper hardware:
+### Why <30 seconds is achievable with proper hardware
 
-#### Configuration Already Applied:
+#### Configuration Already Applied
+
 ✅ TypeScript validation separated (`npm run typecheck`)
 ✅ ESLint validation separated (`npm run lint`)
 ✅ Standalone build output
 ✅ SWC compiler (default in Next.js 15)
 ✅ TypeScript server memory limited
 
-#### Additional Optimizations:
+#### Additional Optimizations
 
 1. **Update next.config.js** for optimal performance:
 
@@ -289,6 +315,7 @@ experimental: {
 ```
 
 2. **Build only what you need**:
+
 ```bash
 # Skip type checking during build (do it separately)
 npm run build  # Already configured
@@ -298,12 +325,14 @@ npm run typecheck
 ```
 
 3. **Use Build Cache**:
+
 ```bash
 # Enable Turbo cache (if using Vercel)
 # Automatically enabled in Vercel deployments
 ```
 
-### Expected Performance with 4-core/16GB:
+### Expected Performance with 4-core/16GB
+
 - Compilation: 20-25 seconds
 - Page generation: 5-10 seconds
 - Static optimization: 3-5 seconds
@@ -313,15 +342,17 @@ npm run typecheck
 
 ## Quick Action Plan
 
-### Immediate Steps (Choose One):
+### Immediate Steps (Choose One)
 
 #### Path A: Continue in Codespaces (Recommended if GitHub Pro)
+
 1. Commit current work
 2. Rebuild codespace with 4-core/16GB
 3. Test build performance
 4. Deploy to Vercel with GoDaddy domain
 
 #### Path B: Switch to Local MacBook (Best Performance)
+
 1. Clone repo to MacBook
 2. Install dependencies
 3. Configure `.env.local`
@@ -330,6 +361,7 @@ npm run typecheck
 6. Deploy to production
 
 #### Path C: Go Straight to Production
+
 1. Deploy to Vercel (no build issues on their servers)
 2. Connect GoDaddy domain
 3. Set up automatic deployments from main branch
@@ -339,7 +371,8 @@ npm run typecheck
 
 ## Commands Reference
 
-### Check System Resources:
+### Check System Resources
+
 ```bash
 # CPU cores
 nproc
@@ -351,14 +384,16 @@ free -h
 ps aux --sort=-%mem | head -20
 ```
 
-### Build Performance Test:
+### Build Performance Test
+
 ```bash
 # Clean build with timing
 rm -rf .next
 time npm run build
 ```
 
-### Local Development:
+### Local Development
+
 ```bash
 # Development mode
 npm run dev
@@ -367,7 +402,8 @@ npm run dev
 npm run build && npm start
 ```
 
-### Vercel Deployment:
+### Vercel Deployment
+
 ```bash
 # One-time deploy
 vercel --prod

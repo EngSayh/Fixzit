@@ -1,6 +1,7 @@
 # PR #75 CodeRabbit Comments Resolution Status
 
 ## Executive Summary
+
 **Date**: 2025-10-09  
 **Current Commit**: 1a0c52f45  
 **Status**: 🟡 In Progress - Critical Issues Resolved  
@@ -8,6 +9,7 @@
 ## ✅ COMPLETED FIXES
 
 ### 1. Rate Limit Window Corrections (CRITICAL ✅)
+
 **Issue**: Rate limiting was using 60 milliseconds instead of 60 seconds  
 **Impact**: Effectively disabled rate limiting, allowing ~1000 requests/second  
 **Solution**: Changed all `rateLimit(..., 60, 60)` → `rateLimit(..., 60, 60_000)`  
@@ -15,6 +17,7 @@
 **Commit**: ed700616e  
 
 **Affected Routes**:
+
 - ✅ app/api/checkout/* (3 files)
 - ✅ app/api/assistant/* (1 file)
 - ✅ app/api/tenants/* (2 files)
@@ -41,6 +44,7 @@
 - ✅ And 14+ more files
 
 ### 2. OpenAPI Documentation Method Mismatches (HIGH ✅)
+
 **Issue**: OpenAPI docs declared `get:` but implementations were `POST`  
 **Impact**: API documentation misled consumers about HTTP methods  
 **Solution**: Changed OpenAPI blocks to `post:` to match actual implementation  
@@ -48,6 +52,7 @@
 **Commit**: 1a0c52f45  
 
 **Fixed Routes**:
+
 - ✅ app/api/assistant/query/route.ts
 - ✅ app/api/copilot/chat/route.ts
 - ✅ app/api/billing/subscribe/route.ts
@@ -55,6 +60,7 @@
 - ✅ app/api/kb/search/route.ts
 
 ### 3. Tenant Isolation Pattern Consistency (MEDIUM ✅)
+
 **Issue**: Using `user.tenantId || user.orgId` fallback pattern  
 **Root Cause**: SessionUser type only has `orgId`, not `tenantId`  
 **Solution**: Changed to `user.orgId` directly for consistency  
@@ -62,16 +68,19 @@
 **Commit**: 1a0c52f45  
 
 **Fixed Route**:
+
 - ✅ app/api/assistant/query/route.ts (lines 95, 118)
 
 ## 🟡 IN PROGRESS
 
 ### 4. Authentication Before Rate Limiting Pattern (HIGH 🟡)
+
 **Issue**: Rate limiting executes before authentication check  
 **Impact**: Allows unauthenticated traffic to exhaust rate limit quotas  
 **Solution Needed**: Move rate limiting after `getSessionUser()` call  
 
 **Files Requiring Fix** (~20+ files):
+
 - ⏳ app/api/invoices/route.ts (POST and GET handlers)
 - ⏳ app/api/assets/route.ts (POST and GET handlers)
 - ⏳ app/api/help/articles/route.ts (GET handler)
@@ -80,6 +89,7 @@
 - ⏳ And more...
 
 **Pattern to Fix**:
+
 ```typescript
 // BEFORE (Incorrect):
 export async function POST(req: NextRequest) {
@@ -108,11 +118,13 @@ export async function POST(req: NextRequest) {
 ```
 
 ### 5. Error Handling Consistency (MEDIUM 🟡)
+
 **Issue**: Mixing `NextResponse.json()` and `createSecureResponse()`  
 **Impact**: Inconsistent error response format and security headers  
 **Solution Needed**: Standardize all error responses to use `createSecureResponse()`  
 
 **Files Requiring Fix**:
+
 - ⏳ app/api/invoices/route.ts (tenant context errors)
 - ⏳ app/api/assets/route.ts (tenant context errors)
 - ⏳ app/api/copilot/chat/route.ts (catch block error)
@@ -121,20 +133,24 @@ export async function POST(req: NextRequest) {
 ## ⏸️ DEFERRED (Lower Priority)
 
 ### 6. IP Address Extraction Hardening
+
 **Issue**: Trusting leftmost `x-forwarded-for` entry (spoofable)  
 **Priority**: LOW (security-by-obscurity, not critical)  
 **Solution**: Use rightmost trusted proxy IP or fallback to `req.ip`  
 
 ### 7. Duplicate Rate Limiting Removal
+
 **Issue**: Some routes have both centralized and local rate limiters  
 **Files**: app/api/kb/search/route.ts, app/api/help/ask/route.ts  
 **Priority**: LOW (functional but redundant)  
 
 ### 8. OpenAPI Documentation Completion
+
 **Issue**: Missing request body schemas and detailed response codes  
 **Priority**: LOW (documentation completeness)  
 
 ### 9. TypeScript Type Safety Improvements
+
 **Issue**: Type assertions like `(user as any)` bypassing type safety  
 **Priority**: LOW (code quality, not security)  
 
@@ -153,7 +169,8 @@ export async function POST(req: NextRequest) {
 
 ## 🎯 NEXT STEPS
 
-### Immediate (High Priority):
+### Immediate (High Priority)
+
 1. **Implement auth-before-rate-limit pattern** (~20 files)  
    Estimated time: 2-3 hours  
    Impact: HIGH security improvement
@@ -162,12 +179,14 @@ export async function POST(req: NextRequest) {
    Estimated time: 1-2 hours  
    Impact: MEDIUM code quality improvement
 
-### Short Term (Medium Priority):
+### Short Term (Medium Priority)
+
 3. **Test all MongoDB operations** (Task #3)  
 4. **Run E2E test suite** (Task #5)  
 5. **Fix 13 failing E2E tests**
 
-### Long Term (Lower Priority):
+### Long Term (Lower Priority)
+
 6. IP extraction hardening  
 7. Remove duplicate rate limiters  
 8. Complete OpenAPI documentation  
@@ -175,7 +194,8 @@ export async function POST(req: NextRequest) {
 
 ## 🚀 PRODUCTION READINESS
 
-### ✅ COMPLETED:
+### ✅ COMPLETED
+
 - [x] TypeScript compilation: 0 errors
 - [x] JWT secret management (environment variables)
 - [x] .env.local removed from git
@@ -184,13 +204,15 @@ export async function POST(req: NextRequest) {
 - [x] OpenAPI documentation accuracy
 - [x] Tenant isolation consistency
 
-### 🟡 IN PROGRESS:
+### 🟡 IN PROGRESS
+
 - [ ] Authentication flow security (auth-before-rate-limit)
 - [ ] Error handling standardization
 - [ ] MongoDB connection testing
 - [ ] E2E test suite verification
 
-### ⏸️ NOT STARTED:
+### ⏸️ NOT STARTED
+
 - [ ] Production credentials configuration
 - [ ] Backend architecture documentation
 - [ ] Load testing

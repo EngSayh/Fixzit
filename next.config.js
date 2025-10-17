@@ -87,8 +87,26 @@ const nextConfig = {
     ignoreDuringBuilds: true, // Run `npm run lint` separately
   },
 
-  // Webpack customization for module resolution and OneDrive compatibility
+  // 🔧 Webpack customization for production builds only
+  // ⚠️ WARNING EXPLANATION: "Webpack is configured while Turbopack is not"
+  //
+  // This warning is EXPECTED and SAFE to ignore when running `npm run dev` (uses --turbo flag)
+  // 
+  // WHY THIS HAPPENS:
+  // - `npm run dev` uses Turbopack (Next.js 15's fast bundler) via --turbo flag
+  // - Turbopack ignores webpack config in development
+  // - This webpack config is ONLY used during production builds (`npm run build`)
+  //
+  // IF YOU NEED WEBPACK IN DEV MODE:
+  // - Run `npm run dev:webpack` instead (slower but uses webpack config)
+  //
+  // PRODUCTION BUILDS:
+  // - `npm run build` always uses Webpack (not Turbopack)
+  // - All these optimizations will be applied during production builds
+  //
   webpack: (config, { isServer, dev }) => {
+    // Production-only webpack optimizations below
+    
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -137,7 +155,7 @@ const nextConfig = {
       config.parallelism = 1;
     }
     
-    // Add polling for OneDrive file watching issues
+    // Add polling for OneDrive file watching issues (only applies when NOT using turbopack)
     if (dev) {
       config.watchOptions = {
         poll: 1000,

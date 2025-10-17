@@ -24,6 +24,7 @@ Fixed three error-context.md files that were missing trailing newlines:
 ### 2. Updated .gitignore ✅
 
 **Change Made:**
+
 ```diff
  /coverage/
  /playwright-report/
@@ -34,6 +35,7 @@ Fixed three error-context.md files that were missing trailing newlines:
 ```
 
 **Reason:**
+
 - Test artifacts (videos, screenshots, error contexts) are large binary files
 - They change frequently with each test run
 - Should be stored in CI/CD artifact storage, not in git repository
@@ -42,11 +44,13 @@ Fixed three error-context.md files that were missing trailing newlines:
 ### 3. Removed test-results from Git Tracking ✅
 
 **Action Taken:**
+
 ```bash
 git rm -r --cached test-results/
 ```
 
 **Files Removed from Tracking:**
+
 - `.last-run.json`
 - All error-context.md files
 - All test-failed-*.png screenshots
@@ -59,19 +63,23 @@ git rm -r --cached test-results/
 ## Git Commits
 
 ### Commit 1: Fix Trailing Newlines
+
 **Hash:** `055e755a`
 **Message:** "fix: add trailing newlines to test result files and update .gitignore"
 
 **Changes:**
+
 - Added trailing newlines to 3 error-context.md files
 - Updated .gitignore to exclude test-results/
 - 35 files changed, 1597 insertions(+), 813 deletions(-)
 
 ### Commit 2: Remove from Tracking
+
 **Hash:** `929d1bc9`
 **Message:** "chore: remove test-results from git tracking"
 
 **Changes:**
+
 - Removed 16 test result files from git tracking
 - Files remain locally but won't be committed in future
 - 16 files changed, 1673 deletions(-)
@@ -81,12 +89,14 @@ git rm -r --cached test-results/
 ## Impact
 
 ### Before Fixes
+
 - ❌ 3 files missing POSIX-required trailing newlines
 - ❌ Test artifacts being committed to repository
 - ❌ Large binary files increasing repository size
 - ❌ Test results cluttering git history
 
 ### After Fixes
+
 - ✅ All files end with proper newline character
 - ✅ test-results/ directory excluded from git
 - ✅ Cleaner repository without test artifacts
@@ -98,16 +108,19 @@ git rm -r --cached test-results/
 ## Best Practices Implemented
 
 ### 1. POSIX Compliance
+
 - All text files now end with a newline character
 - Follows Unix/Linux text file conventions
 - Prevents warnings from various tools (diff, cat, etc.)
 
 ### 2. Repository Hygiene
+
 - Test artifacts excluded from version control
 - Only source code and documentation tracked
 - Binary files handled separately
 
 ### 3. .gitignore Organization
+
 - Test-related exclusions grouped together:
   - `/coverage/` - Code coverage reports
   - `/playwright-report/` - HTML test reports
@@ -121,6 +134,7 @@ git rm -r --cached test-results/
 ## Verification
 
 ### Check Trailing Newlines
+
 ```bash
 # All three files should end with a newline
 tail -c 1 "test-results/06-acceptance-gates-Zero-c-2b9dc--requests-across-key-routes-Mobile-Chrome/error-context.md" | od -An -tx1
@@ -128,12 +142,14 @@ tail -c 1 "test-results/06-acceptance-gates-Zero-c-2b9dc--requests-across-key-ro
 ```
 
 ### Check .gitignore
+
 ```bash
 git check-ignore test-results/
 # Should output: test-results/
 ```
 
 ### Check Git Status
+
 ```bash
 git status test-results/
 # Should output: nothing (directory is ignored)
@@ -144,6 +160,7 @@ git status test-results/
 ## Future Test Runs
 
 Going forward:
+
 1. ✅ New test results will be generated locally
 2. ✅ They will NOT be tracked by git (automatically ignored)
 3. ✅ HTML reports can still be viewed locally

@@ -22,25 +22,33 @@
 ## ✅ Issues Already Fixed This Session (42+)
 
 ### 1. vi.importMock Deprecation ✅
+
 **Fixed:** 6 occurrences in 2 files
+
 - `tests/unit/api/support/incidents.route.test.ts` (3)
 - `tests/api/marketplace/products/route.test.ts` (3)
 - **Commit:** `7b3a6c9c`
 
 ### 2. jest.Mock Type Assertions ✅
+
 **Fixed:** 31+ occurrences in 12+ files
+
 - Automated replacement with script
 - Pattern: `as jest.Mock` → `as ReturnType<typeof vi.fn>`
 - **Commit:** `f229143f`
 
 ### 3. Control Character Regex ✅
+
 **Fixed:** 2 occurrences in 1 file
+
 - `data/language-options.test.ts`
 - Replaced with `hasControlChars()` helper
 - **Commit:** `59357ab3`
 
 ### 4. Markdown Linting ✅
+
 **Fixed:** 2 issues in PR_119_FIXES_APPLIED.md
+
 - Bare URL wrapped in markdown link
 - Undefined variable comments clarified
 - **Commit:** `9105a772`
@@ -50,14 +58,17 @@
 ## 🔴 P0: TypeScript Path Resolution in Test Files (6 errors)
 
 ### Problem
+
 TypeScript editor cannot resolve `@/` path aliases in dynamic imports within test files. These are **editor-only errors** - tests actually run fine with Vitest's path resolution, but they prevent proper IDE type checking and autocomplete.
 
 ### Root Cause
+
 The `tsconfig.json` doesn't include test files in its compilation context, so TypeScript can't apply the `paths` configuration to resolve `@/` aliases in `.ts` test files.
 
 ### Affected Files
 
 #### 1. tests/api/marketplace/products/route.test.ts (3 errors)
+
 ```typescript
 // Line 62: Cannot find module '@/lib/marketplace/context'
 ({ resolveMarketplaceContext } = await import('@/lib/marketplace/context'));
@@ -70,6 +81,7 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
 ```
 
 #### 2. tests/unit/api/support/incidents.route.test.ts (3 errors)
+
 ```typescript
 // Line 58: Cannot find module '@/app/api/support/incidents/route'
 ({ POST } = await import('@/app/api/support/incidents/route'));
@@ -84,6 +96,7 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
 ### Solutions (Choose One)
 
 **Option A: Update tsconfig.json to include test files** (Recommended)
+
 ```json
 {
   "compilerOptions": {
@@ -100,6 +113,7 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
 ```
 
 **Option B: Create test-specific tsconfig.test.json**
+
 ```json
 {
   "extends": "./tsconfig.json",
@@ -115,9 +129,11 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
   ]
 }
 ```
+
 Then configure your editor to use `tsconfig.test.json` for test files.
 
 **Option C: Use relative imports instead of @/ aliases**
+
 ```typescript
 // Not recommended - breaks consistency with rest of codebase
 const CategoryMod = await import('../../../../server/models/marketplace/Category');
@@ -132,11 +148,13 @@ const CategoryMod = await import('../../../../server/models/marketplace/Category
 ## 🔴 P0: tests/models/candidate.test.ts Syntax Errors (18 errors)
 
 ### Problem
+
 File has critical syntax and import errors preventing it from loading.
 
 ### Errors Found
 
 #### Missing Vitest Imports (12 occurrences)
+
 ```typescript
 // Lines 14, 47, 82, 92, 127, 134, 144, 145, 162, 163, 176, 194
 // Error: Cannot find name 'vi'
@@ -146,20 +164,24 @@ import { vi, describe, it, expect, beforeAll, afterEach } from 'vitest';
 ```
 
 #### Module Resolution Failure (1 error)
+
 ```typescript
 // Line 19: Cannot find module '@/models/candidate'
 const mod = await import('@/models/candidate');
 ```
 
 #### Syntax Errors (3 errors)
+
 ```typescript
 // Lines 120-121: Declaration or statement expected
   });  // Line 120
 });    // Line 121
 ```
+
 **Cause:** Mismatched braces or missing function wrapper
 
 ### Fix Required
+
 1. Add vitest imports at top of file
 2. Fix syntax errors at lines 120-121 (likely extra closing braces)
 3. Verify module path `@/models/candidate` exists (may be `@/server/models/Candidate`)
@@ -169,12 +191,14 @@ const mod = await import('@/models/candidate');
 ## 🟡 P1: tsconfig.json baseUrl Deprecation (1 warning)
 
 ### Problem
+
 ```
 Line 35: Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0.
 Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 ```
 
 ### Current Config
+
 ```json
 {
   "compilerOptions": {
@@ -187,6 +211,7 @@ Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 ### Solutions
 
 **Option A: Silence Warning (Quick Fix)**
+
 ```json
 {
   "compilerOptions": {
@@ -196,6 +221,7 @@ Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 ```
 
 **Option B: Migrate to Modern Module Resolution (Proper Fix)**
+
 ```json
 {
   "compilerOptions": {
@@ -216,10 +242,12 @@ Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 ## 🔴 P0: Missing Test Mocks (2 files)
 
 ### 1. tests/unit/api/support/incidents.route.test.ts
+
 **Problem:** All 6 tests timeout after 5000ms  
 **Cause:** Missing Redis mock for `rateLimit()` function
 
 **Fix:**
+
 ```typescript
 vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn(async () => ({ 
@@ -235,12 +263,15 @@ vi.mock('@/lib/rate-limit', () => ({
 ---
 
 ### 2. tests/api/marketplace/products/route.test.ts
+
 **Problem:** Tests fail with "Cannot read properties of undefined (reading 'get')"  
-**Cause:** 
+**Cause:**
+
 1. Mock request missing `.headers` property
 2. MongoDB connection attempts (ECONNREFUSED)
 
 **Fix:**
+
 ```typescript
 // 1. Fix mock request object
 const callGET = async (slug: string) => {
@@ -266,6 +297,7 @@ vi.mock('@/db/mongoose', () => ({
 ## Action Plan
 
 ### Immediate (Next 30 minutes) 🔴
+
 1. **Fix candidate.test.ts syntax errors** (18 errors)
    - Add vitest imports
    - Fix lines 120-121 syntax
@@ -283,11 +315,13 @@ vi.mock('@/db/mongoose', () => ({
    - Est: 2 min
 
 ### Optional (Later) 🟡
+
 4. **Fix baseUrl deprecation** (1 warning)
    - Change ignoreDeprecations to "6.0"
    - Est: 2 min
 
 ### Total Remaining Issues: 27
+
 - **P0 Critical:** 26 errors (18 syntax + 6 path + 2 mocks)
 - **P1 Low Priority:** 1 warning (baseUrl deprecation)
 
@@ -296,11 +330,13 @@ vi.mock('@/db/mongoose', () => ({
 ## Verification Commands
 
 ### Check TypeScript Errors
+
 ```bash
 pnpm tsc --noEmit 2>&1 | grep -E "error TS" | wc -l
 ```
 
 ### Test Fixed Files
+
 ```bash
 # After fixing candidate.test.ts
 pnpm test tests/models/candidate.test.ts --run
@@ -313,6 +349,7 @@ pnpm test tests/api/marketplace/products/route.test.ts --run
 ```
 
 ### Verify All Fixes
+
 ```bash
 # Should show 0 errors (or only baseUrl warning)
 pnpm tsc --noEmit
@@ -323,6 +360,7 @@ pnpm tsc --noEmit
 ## Session Metrics
 
 ### Fixes Applied This Session ✅
+
 - **vi.importMock:** 6 removed
 - **jest.Mock:** 31+ replaced
 - **Control char regex:** 2 fixed
@@ -331,6 +369,7 @@ pnpm tsc --noEmit
 - **Total Fixed:** 42+ issues
 
 ### Remaining Work 🔴
+
 - **Syntax errors:** 18
 - **Path resolution:** 6
 - **Missing mocks:** 2
@@ -338,6 +377,7 @@ pnpm tsc --noEmit
 - **Total Remaining:** 27 issues
 
 ### Time Estimates
+
 - **P0 Critical Fixes:** 47 minutes
 - **P1 Optional:** 2 minutes
 - **Total:** ~50 minutes to complete
@@ -345,6 +385,7 @@ pnpm tsc --noEmit
 ---
 
 ## Related Documents
+
 - `VI_IMPORTMOCK_FIXES_COMPLETE.md` - vi.importMock detailed report
 - `P0_P1_CRITICAL_FIXES_COMPLETE.md` - Session summary
 - `SYSTEM_WIDE_JEST_VITEST_FIXES.md` - Original issue catalog

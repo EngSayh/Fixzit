@@ -11,6 +11,7 @@
 Successfully consolidated **39 duplicate files** across models and contexts, establishing `server/models/` as the canonical location for all shared database models and `contexts/` for all React contexts.
 
 ### Key Metrics
+
 - **Duplicates Removed**: 39 files (35 models + 3 contexts + 1 test)
 - **Unique Models Migrated**: 8 finance/subscription models
 - **Import Statements Updated**: 2 files
@@ -33,6 +34,7 @@ Copied 8 unique finance/subscription models from `src/db/models/` to `server/mod
 8. **Subscription.ts** - Core subscription model
 
 ### Rationale
+
 These models were isolated in `src/db/models/` and only used by PayTabs subscription logic. Moving them to `server/models/` establishes a single source of truth for all database models.
 
 ---
@@ -42,7 +44,9 @@ These models were isolated in `src/db/models/` and only used by PayTabs subscrip
 Updated 2 files to use new model locations:
 
 ### 1. `lib/paytabs/subscription.ts`
+
 **Before**:
+
 ```typescript
 import PaymentMethod from '../../src/db/models/PaymentMethod';
 import Subscription from '../../src/db/models/Subscription';
@@ -50,6 +54,7 @@ import OwnerGroup from '../../src/db/models/OwnerGroup';
 ```
 
 **After**:
+
 ```typescript
 import PaymentMethod from '../../server/models/PaymentMethod';
 import Subscription from '../../server/models/Subscription';
@@ -57,7 +62,9 @@ import OwnerGroup from '../../server/models/OwnerGroup';
 ```
 
 ### 2. `scripts/seed-subscriptions.ts`
+
 **Before**:
+
 ```typescript
 import Module from '../src/db/models/Module';
 import PriceBook from '../src/db/models/PriceBook';
@@ -66,6 +73,7 @@ import Benchmark from '../src/db/models/Benchmark';
 ```
 
 **After**:
+
 ```typescript
 import Module from '../server/models/Module';
 import PriceBook from '../server/models/PriceBook';
@@ -157,12 +165,16 @@ These models are feature-specific (ATS, CMS, Help Center, Marketplace, etc.) and
 ## Final Directory Structure
 
 ### ✅ Canonical Model Location: `server/models/`
+
 33 shared models (24 core + 8 finance + 1 Benchmark test):
+
 - All shared database models used across the application
 - Consistent import pattern: `@/server/models/ModelName` or relative paths
 
 ### ✅ Feature-Specific Models: `src/db/models/`
+
 16 unique models for specialized features:
+
 - ATS (Application, AtsSettings, Job)
 - CMS (CmsPage, HelpArticle)
 - Copilot (CopilotAudit, CopilotKnowledge)
@@ -171,7 +183,9 @@ These models are feature-specific (ATS, CMS, Help Center, Marketplace, etc.) and
 - Other (Organization, OwnerStatement, Project, RFQ, SLA, SearchSynonym)
 
 ### ✅ Canonical Context Location: `contexts/`
+
 All React contexts in single location:
+
 - CurrencyContext.tsx
 - ResponsiveContext.tsx
 - ThemeContext.tsx
@@ -183,17 +197,20 @@ All React contexts in single location:
 ## Verification Results
 
 ### TypeScript Compilation ✅
+
 ```bash
 $ tsc --noEmit
 # 0 errors
 ```
 
 ### Import Resolution ✅
+
 - All imports resolved successfully
 - No broken references
 - Consistent path aliases working correctly
 
 ### File Integrity ✅
+
 - All duplicate files verified 100% identical before removal
 - No code logic changes
 - No data loss
@@ -203,6 +220,7 @@ $ tsc --noEmit
 ## Impact Analysis
 
 ### Benefits
+
 1. **Single Source of Truth**: All shared models in `server/models/`
 2. **Reduced Maintenance**: 39 fewer duplicate files to maintain
 3. **Clearer Architecture**: Feature-specific models clearly separated
@@ -210,6 +228,7 @@ $ tsc --noEmit
 5. **Better Performance**: Fewer files to scan/index
 
 ### Risk Assessment
+
 - ✅ **Zero Risk**: All changes verified with TypeScript compiler
 - ✅ **Zero Breaking Changes**: All imports updated before removal
 - ✅ **Zero Data Loss**: Only duplicate files removed
@@ -219,11 +238,13 @@ $ tsc --noEmit
 ## Next Steps
 
 ### Immediate (Automated)
+
 - [x] Verify TypeScript: 0 errors
 - [x] Update documentation
 - [ ] Continue with remaining 1,052 duplicates (1,091 - 39 = 1,052)
 
 ### Future (Manual)
+
 - [ ] Run E2E tests to verify no runtime issues
 - [ ] Deploy to staging for integration testing
 - [ ] Monitor application behavior post-deployment

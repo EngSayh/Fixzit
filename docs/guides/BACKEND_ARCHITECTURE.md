@@ -126,11 +126,13 @@ app/api/
 ## Request Flow Architecture
 
 ### 1. Client Request
+
 ```
 Browser/App → HTTPS → Next.js Server (localhost:3000 or production domain)
 ```
 
 ### 2. Middleware Layer
+
 ```typescript
 // middleware.ts
 export function middleware(request: NextRequest) {
@@ -142,6 +144,7 @@ export function middleware(request: NextRequest) {
 ```
 
 ### 3. API Route Handler
+
 ```typescript
 // app/api/work-orders/route.ts
 export async function GET(req: NextRequest) {
@@ -165,6 +168,7 @@ export async function GET(req: NextRequest) {
 ```
 
 ### 4. Database Layer
+
 ```typescript
 // lib/models/WorkOrder.ts
 import mongoose from 'mongoose';
@@ -327,6 +331,7 @@ export async function GET(req: NextRequest) {
 ## Deployment Architecture
 
 ### Development
+
 ```
 ┌──────────────────────┐
 │  localhost:3000      │
@@ -337,6 +342,7 @@ export async function GET(req: NextRequest) {
 ```
 
 ### Production (Vercel)
+
 ```
 ┌─────────────────────────────────────────┐
 │            Vercel Edge Network           │
@@ -358,6 +364,7 @@ export async function GET(req: NextRequest) {
 ```
 
 ### Production (Self-Hosted)
+
 ```
 ┌─────────────────────────────────────────┐
 │         Load Balancer (nginx)            │
@@ -422,11 +429,13 @@ ENABLE_MARKETPLACE="true"
 
 **Historical Note**: Earlier development versions may have mentioned an Express backend on port 5000. This was removed during consolidation.
 
-**Current Reality**: 
+**Current Reality**:
+
 - ✅ Port 3000: Next.js (frontend + backend API routes)
 - ❌ Port 5000: NOT USED
 
 **If you see port 5000 references**:
+
 - They are legacy comments/documentation
 - The system works entirely on port 3000
 - No separate backend server is needed or started
@@ -476,6 +485,7 @@ If upgrading from an older version with Express backend:
 4. **Frontend**: No changes (still calls `/api/*` endpoints)
 
 **Key Difference**: Server startup command
+
 - Old: `npm run dev` (started both Next.js and Express)
 - New: `npm run dev` (starts Next.js only, serves everything)
 

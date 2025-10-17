@@ -1,6 +1,7 @@
 # PowerShell Square Bracket Fix
 
 ## Date: 2025-01-18
+
 ## Status: ✅ FIXED - Python Alternatives Created
 
 ---
@@ -8,17 +9,20 @@
 ## Problem
 
 PowerShell has issues with square brackets `[]` in certain contexts, particularly:
+
 1. In string interpolation: `"[$variable]"`
 2. In Write-Host with expressions: `Write-Host "[$($var)]"`
 3. Array indexing in strings
 
-### Example Issue:
+### Example Issue
+
 ```powershell
 # This can cause issues:
 Write-Host "[$($installed + 1)/$totalPackages] Installing..."
 ```
 
 PowerShell may interpret the square brackets as:
+
 - Array indexing operators
 - Wildcard characters in paths
 - Type casting operators
@@ -30,9 +34,11 @@ PowerShell may interpret the square brackets as:
 Created **Python alternatives** that are more reliable and cross-platform:
 
 ### 1. ✅ `install-missing-packages.py`
+
 Python version of the package installer - no bracket issues!
 
 ### 2. ✅ `verify-imports.py`
+
 Python version of the import verifier - clean and simple!
 
 ---
@@ -94,6 +100,7 @@ npm run verify:imports
 ### `install-missing-packages.py`
 
 **Features**:
+
 - ✅ No square bracket issues
 - ✅ Color-coded output (ANSI colors)
 - ✅ Progress tracking
@@ -103,15 +110,18 @@ npm run verify:imports
 - ✅ Exit codes (0 = success, 1 = failures)
 
 **Packages Installed**:
+
 - **Production**: express, cors, helmet, express-rate-limit, express-mongo-sanitize, compression, morgan, cookie-parser, unified, isomorphic-dompurify, winston, validator, xss
 - **Dev**: @jest/globals, jest-mock
 
 **Usage**:
+
 ```bash
 python3 install-missing-packages.py
 ```
 
 **Output Example**:
+
 ```
 ========================================
 Installing Missing Packages
@@ -139,6 +149,7 @@ Installation Complete
 ### `verify-imports.py`
 
 **Features**:
+
 - ✅ Simple wrapper around Node.js analyzer
 - ✅ Color-coded output
 - ✅ Error handling
@@ -146,11 +157,13 @@ Installation Complete
 - ✅ Proper exit codes
 
 **Usage**:
+
 ```bash
 python3 verify-imports.py
 ```
 
 **Output Example**:
+
 ```
 ========================================
 Verifying Imports
@@ -182,7 +195,8 @@ Added Python alternatives to `package.json`:
 
 ## Why Python?
 
-### Advantages:
+### Advantages
+
 1. **No bracket issues** - Python handles brackets naturally
 2. **Cross-platform** - Works on Linux, macOS, Windows
 3. **Simple syntax** - Easy to read and maintain
@@ -190,20 +204,23 @@ Added Python alternatives to `package.json`:
 5. **ANSI colors** - Native support for colored output
 6. **Standard library** - No extra dependencies needed
 
-### When to Use Each:
+### When to Use Each
 
 **Use Python** when:
+
 - ✅ You want guaranteed compatibility
 - ✅ You need to avoid shell-specific issues
 - ✅ You want simple, readable code
 - ✅ You're on any platform (Linux/Mac/Windows)
 
 **Use PowerShell** when:
+
 - ✅ You're already in a PowerShell environment
 - ✅ You need Windows-specific features
 - ✅ You prefer PowerShell syntax
 
 **Use Node.js** when:
+
 - ✅ You only need to analyze (not install)
 - ✅ You want to integrate with JavaScript tools
 - ✅ You're already using npm scripts
@@ -212,7 +229,7 @@ Added Python alternatives to `package.json`:
 
 ## Testing
 
-### Test Python Scripts:
+### Test Python Scripts
 
 ```bash
 # Test install script (dry run - just check syntax)
@@ -230,7 +247,7 @@ python3 verify-imports.py
 python3 install-missing-packages.py
 ```
 
-### Test via NPM:
+### Test via NPM
 
 ```bash
 # Test Python versions
@@ -255,14 +272,16 @@ npm run install:missing
 
 ## Migration Guide
 
-### From PowerShell to Python:
+### From PowerShell to Python
 
 **Before**:
+
 ```bash
 pwsh install-missing-packages.ps1
 ```
 
 **After**:
+
 ```bash
 python3 install-missing-packages.py
 # Or:
@@ -270,11 +289,13 @@ npm run install:missing:py
 ```
 
 **Before**:
+
 ```bash
 pwsh verify-imports.ps1
 ```
 
 **After**:
+
 ```bash
 python3 verify-imports.py
 # Or:
@@ -290,6 +311,7 @@ npm run verify:imports:py
 **Error**: `python3: command not found`
 
 **Solution**:
+
 ```bash
 # Check Python installation
 which python3
@@ -311,6 +333,7 @@ brew install python3
 **Error**: `Permission denied: ./install-missing-packages.py`
 
 **Solution**:
+
 ```bash
 chmod +x install-missing-packages.py verify-imports.py
 ```
@@ -325,17 +348,20 @@ chmod +x install-missing-packages.py verify-imports.py
 
 ## Summary
 
-### Problem:
+### Problem
+
 - PowerShell has issues with square brackets in string interpolation
 - Causes errors in progress display: `[$($var)]`
 
-### Solution:
+### Solution
+
 - ✅ Created Python alternatives
 - ✅ No bracket issues
 - ✅ Cross-platform
 - ✅ Added to npm scripts
 
-### Usage:
+### Usage
+
 ```bash
 # Python (recommended)
 npm run install:missing:py

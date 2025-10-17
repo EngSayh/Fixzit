@@ -9,9 +9,11 @@
 ## 🔍 Root Cause Identified
 
 ### The Problem
+
 The server appeared to be stopping or not responding when tested, leading to multiple restart attempts.
 
 ### The Reality
+
 **The server was running the entire time** and is currently active and healthy.
 
 ---
@@ -30,11 +32,13 @@ Uptime: Since 14:47 (running continuously)
 ```
 
 ### Network Status
+
 ```
 tcp  0  0  127.0.0.1:3000  0.0.0.0:*  LISTEN  145181/next-server
 ```
 
 ### Health Check Results
+
 ```json
 {
     "status": "healthy",
@@ -52,12 +56,14 @@ tcp  0  0  127.0.0.1:3000  0.0.0.0:*  LISTEN  145181/next-server
 
 ### 1. **Binding to localhost only (127.0.0.1)** ⚠️ MAIN ISSUE
 
-**Problem**: 
+**Problem**:
+
 - Next.js standalone server binds to `127.0.0.1` by default
 - This makes it only accessible from localhost
 - External connections or certain network configurations may fail
 
 **Evidence**:
+
 ```bash
 $ netstat -tlnp | grep 3000
 tcp  0  0  127.0.0.1:3000  0.0.0.0:*  LISTEN  145181/next-server
@@ -66,12 +72,14 @@ tcp  0  0  127.0.0.1:3000  0.0.0.0:*  LISTEN  145181/next-server
 ```
 
 **Impact**:
+
 - `curl localhost:3000` ✅ Works
 - `curl 127.0.0.1:3000` ✅ Works  
 - External access may fail depending on network setup
 
 **Solution**:
 Set `HOSTNAME=0.0.0.0` environment variable to bind to all interfaces:
+
 ```bash
 HOSTNAME=0.0.0.0 node .next/standalone/server.js
 ```
@@ -84,6 +92,7 @@ HOSTNAME=0.0.0.0 node .next/standalone/server.js
 Running commands in the same terminal that started the server caused interruptions.
 
 **Evidence**:
+
 ```bash
 # Server started in background terminal
 $ node .next/standalone/server.js
@@ -95,11 +104,13 @@ $ curl http://localhost:3000/api/health/database
 ```
 
 **Impact**:
+
 - Server process received interrupt signals (Ctrl+C)
 - Process terminated when commands were cancelled
 - Gave appearance of server repeatedly stopping
 
 **Solution**:
+
 - Use `nohup` with background execution: `nohup node server.js > server.log 2>&1 &`
 - Or start server in dedicated terminal and don't interrupt it
 - Use separate terminals for testing
@@ -112,6 +123,7 @@ $ curl http://localhost:3000/api/health/database
 Process checks were looking for wrong process name/pattern.
 
 **Evidence**:
+
 ```bash
 $ ps aux | grep "node .next/standalone/server.js"
 # No results (process shows as "next-server (v15.5.4)")
@@ -123,12 +135,14 @@ node  145181  7.0  2.8  22685060 471320 pts/7  Sl  14:47  0:06 next-server (v15.
 ```
 
 **Impact**:
+
 - False belief that server stopped
 - Multiple unnecessary restart attempts
 - Confusion about server state
 
 **Solution**:
 Check for process using:
+
 - `lsof -i :3000` (check port usage)
 - `ps aux | grep next-server` (correct process name)
 - `netstat -tlnp | grep 3000` (verify listening)
@@ -141,18 +155,21 @@ Check for process using:
 Server started without explicit PORT environment variable.
 
 **Evidence**:
+
 ```bash
 $ cat /proc/145181/environ | tr '\0' '\n' | grep PORT
 # No PORT variable set
 ```
 
 **Impact**:
+
 - Server uses Next.js default port detection
 - May cause confusion about which port is active
 - Less explicit configuration
 
 **Solution**:
 Always set explicit PORT:
+
 ```bash
 PORT=3000 HOSTNAME=0.0.0.0 node .next/standalone/server.js
 ```
@@ -284,40 +301,46 @@ kill -9 $(lsof -t -i:3000)
 ## 🎓 Lessons Learned
 
 ### 1. **Always verify before assuming** ✅
-   - Don't assume server stopped just because curl fails
-   - Check process status: `ps aux | grep next-server`
-   - Check port status: `lsof -i :3000`
-   - Check logs: `tail server.log`
+
+- Don't assume server stopped just because curl fails
+- Check process status: `ps aux | grep next-server`
+- Check port status: `lsof -i :3000`
+- Check logs: `tail server.log`
 
 ### 2. **Use proper process management** ✅
-   - Run server in dedicated terminal or background
-   - Use `nohup` and `&` for background execution
-   - Save PID for later management
-   - Don't interrupt server terminal
+
+- Run server in dedicated terminal or background
+- Use `nohup` and `&` for background execution
+- Save PID for later management
+- Don't interrupt server terminal
 
 ### 3. **Set explicit configuration** ✅
-   - Always set `PORT` explicitly
-   - Set `HOSTNAME=0.0.0.0` for network access
-   - Use environment files consistently
-   - Document configuration requirements
+
+- Always set `PORT` explicitly
+- Set `HOSTNAME=0.0.0.0` for network access
+- Use environment files consistently
+- Document configuration requirements
 
 ### 4. **Monitor continuously** ✅
-   - Keep log window open: `tail -f server.log`
-   - Use monitoring endpoints
-   - Check metrics regularly
-   - Alert on anomalies
+
+- Keep log window open: `tail -f server.log`
+- Use monitoring endpoints
+- Check metrics regularly
+- Alert on anomalies
 
 ---
 
 ## 📊 Current System Status
 
 ### ✅ Server: RUNNING
+
 - Process: 145181 (next-server v15.5.4)
 - Port: 3000 (listening on 127.0.0.1)
 - Status: Healthy
 - Uptime: Continuous since 14:47
 
 ### ✅ Database: CONNECTED
+
 - Type: MongoDB Atlas
 - Cluster: fixzit.vgfiiff.mongodb.net
 - Database: fixzit
@@ -325,6 +348,7 @@ kill -9 $(lsof -t -i:3000)
 - Status: Active
 
 ### ✅ Health Checks: PASSING
+
 - `/api/health/database`: ✅ 200 OK (3ms)
 - MongoDB ping: ✅ { ok: 1 }
 - Server ready: ✅ Ready in 184ms
@@ -336,6 +360,7 @@ kill -9 $(lsof -t -i:3000)
 ### Immediate (Apply Now)
 
 1. **Update server start script in package.json**
+
 ```json
 {
   "scripts": {
@@ -346,6 +371,7 @@ kill -9 $(lsof -t -i:3000)
 ```
 
 2. **Create start script for production**
+
 ```bash
 #!/bin/bash
 # start-server.sh
@@ -359,6 +385,7 @@ echo "Logs: tail -f logs/server.log"
 ```
 
 3. **Create stop script**
+
 ```bash
 #!/bin/bash
 # stop-server.sh
@@ -385,18 +412,21 @@ fi
 ## 📝 Summary
 
 **Root Cause**: Server was running correctly but appeared to stop due to:
+
 1. Binding to localhost only (127.0.0.1)
 2. Tool interference when running commands in same terminal
 3. Process detection using wrong pattern
 4. No explicit PORT configuration
 
-**Resolution**: 
+**Resolution**:
+
 - Server is running and healthy ✅
 - Set HOSTNAME=0.0.0.0 for network access
 - Use dedicated terminal or background process
 - Check status with `lsof -i :3000` and `ps aux | grep next-server`
 
-**Current Status**: 
+**Current Status**:
+
 - ✅ Server running (PID 145181)
 - ✅ Port 3000 listening
 - ✅ MongoDB connected (3ms)

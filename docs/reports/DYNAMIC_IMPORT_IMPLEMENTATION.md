@@ -1,10 +1,13 @@
 # Dynamic Import Implementation - Conflict Resolution
 
 ## Overview
+
 This document describes the successful resolution of merge conflicts and implementation of dynamic imports with environment checks across the Fixzit application, following the pattern established in ATS files.
 
 ## Problem Statement
+
 The repository had conflicts similar to those in PR #60 and PR #25, where:
+
 - Direct imports needed to be converted to dynamic imports
 - Environment checks needed to be added for conditional loading
 - Error handling needed to be consistent across all routes
@@ -13,6 +16,7 @@ The repository had conflicts similar to those in PR #60 and PR #25, where:
 ## Solution Implemented
 
 ### Pattern Applied
+
 Following the exact pattern from ATS files:
 
 ```typescript
@@ -57,6 +61,7 @@ export async function POST(req: NextRequest) {
 ### Files Successfully Converted
 
 **Core API Routes (11 files):**
+
 1. `/api/work-orders/route.ts` - WO_ENABLED
 2. `/api/invoices/route.ts` - INVOICE_ENABLED  
 3. `/api/properties/route.ts` - PROPERTY_ENABLED
@@ -67,10 +72,13 @@ export async function POST(req: NextRequest) {
 8. `/api/marketplace/products/route.ts` - MARKETPLACE_ENABLED
 
 **Pre-existing ATS Routes (already implemented):**
+
 - All `/api/ats/*` routes with ATS_ENABLED
 
 ### Key Configuration Files
+
 Verified that these files already follow the correct patterns:
+
 - `.eslintrc.json` - Schema-based configuration
 - `src/lib/payments/parseCartAmount.ts` - Utility functions
 - `src/contexts/ResponsiveContext.tsx` - Hook with backward compatibility
@@ -79,6 +87,7 @@ Verified that these files already follow the correct patterns:
 ## Environment Variables
 
 ### Required Variables
+
 ```bash
 # Core Modules
 export WO_ENABLED='true'           # Work Orders
@@ -93,6 +102,7 @@ export ATS_ENABLED='true'          # Applicant Tracking System
 ```
 
 ### Behavior
+
 - **Enabled (`'true'`)**: Module loads normally with full functionality
 - **Disabled (not `'true'`)**: Returns HTTP 501 with clear error message
 - **Missing Dependencies**: Returns HTTP 501 with dependency error message
@@ -118,6 +128,7 @@ export ATS_ENABLED='true'          # Applicant Tracking System
 ## Remaining Work (Lower Priority)
 
 Additional files that could be converted following the same pattern:
+
 - Individual resource routes (`/api/*/[id]/route.ts`)
 - Specialized endpoints (exports, imports, etc.)
 - Admin utility routes

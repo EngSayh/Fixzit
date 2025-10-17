@@ -1,18 +1,22 @@
 # Index Optimization Complete - October 16, 2025
 
 ## Summary
+
 Completed comprehensive index optimization across the entire Fixzit system, focusing on eliminating duplicate field-level indexes and adding missing composite indexes for performance.
 
 ## Issues Fixed
 
 ### 1. CopilotAudit.ts - Missing Composite Index
+
 **Files Fixed:**
+
 - `/workspaces/Fixzit/server/models/CopilotAudit.ts`
 - `/workspaces/Fixzit/src/server/models/CopilotAudit.ts`
 
 **Issue:** Schema defined tenantId, userId, and role without indexes, causing poor query performance.
 
 **Fix:** Added composite index covering common lookup patterns:
+
 ```typescript
 AuditSchema.index({ tenantId: 1, userId: 1, role: 1, createdAt: -1 });
 ```
@@ -22,11 +26,13 @@ AuditSchema.index({ tenantId: 1, userId: 1, role: 1, createdAt: -1 });
 ---
 
 ### 2. wo.service.ts - Missing TenantId Index
+
 **File Fixed:** `/workspaces/Fixzit/server/work-orders/wo.service.ts`
 
 **Issue:** tenantId field lacked index, causing full collection scans in the list() function (line 87).
 
 **Fix:** Added composite index supporting tenant queries with status filtering and date sorting:
+
 ```typescript
 WorkOrderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 ```
@@ -40,6 +46,7 @@ WorkOrderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 ### Models with Proper Indexes ✅
 
 #### Multi-Tenant Models (tenantId indexes)
+
 1. **Property** - Multiple tenantId composite indexes for type, city, unit status, plus 2dsphere for geospatial
 2. **HelpArticle** - tenantId + slug (unique), plus text search index
 3. **CmsPage** - tenantId + slug (unique)
@@ -56,6 +63,7 @@ WorkOrderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 14. **Customer** - organizationId + tenantId composites for base, email, name
 
 #### Organization-Scoped Models (orgId indexes)
+
 1. **Job** - orgId + status composite, plus slug (unique) and text search
 2. **WorkOrder** (main model) - Multiple orgId composites for assignment, SLA, recurrence, plus text search
 3. **Candidate** - orgId + emailLower (unique)
@@ -66,6 +74,7 @@ WorkOrderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 8. **User** - email, username, code (all unique), plus role, skills, workload, performance
 
 #### Marketplace Models (orgId indexes)
+
 1. **Order** - orgId + buyerUserId + status composite
 2. **AttributeSet** - orgId index
 3. **RFQ** (marketplace) - orgId + status composite
@@ -73,6 +82,7 @@ WorkOrderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 5. **Category** - orgId + slug (unique)
 
 #### Other Models
+
 - **SearchSynonym** - locale + term (unique)
 - **PaymentMethod** - org_id and owner_user_id indexes
 - **ServiceContract** - No tenant/org scoping (as designed)
@@ -83,6 +93,7 @@ WorkOrderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 ## Previous Duplicate Index Elimination
 
 In the previous session, eliminated 40+ duplicate field-level `index: true` declarations across:
+
 - All core models (Property, WorkOrder, User, Tenant, Application, Job, etc.)
 - All marketplace models (Product, Category, Order, RFQ, AttributeSet)
 - All support models (SupportTicket, SLA, Invoice, HelpArticle, CmsPage)
@@ -95,6 +106,7 @@ In the previous session, eliminated 40+ duplicate field-level `index: true` decl
 ## Index Strategy Summary
 
 ### Composite Index Patterns Used
+
 1. **Tenant-scoped queries**: `{ tenantId: 1, <commonFilter>: 1, <sortField>: -1 }`
 2. **Org-scoped queries**: `{ orgId: 1, <commonFilter>: 1, <sortField>: -1 }`
 3. **Unique constraints**: `{ <scope>: 1, <uniqueField>: 1 }` with `{ unique: true }`
@@ -102,6 +114,7 @@ In the previous session, eliminated 40+ duplicate field-level `index: true` decl
 5. **Geospatial**: `{ 'address.coordinates': '2dsphere' }`
 
 ### Performance Impact
+
 - ✅ Eliminated full collection scans on all tenant/org-scoped queries
 - ✅ Optimized common filter + sort patterns with composite indexes
 - ✅ Maintained unique constraints with compound indexes
@@ -109,6 +122,7 @@ In the previous session, eliminated 40+ duplicate field-level `index: true` decl
 - ✅ Supported geospatial queries where needed
 
 ### Verification
+
 - ✅ TypeScript compilation: No errors
 - ✅ Development server: Starts without warnings
 - ✅ Mongoose duplicate warnings: Completely eliminated
@@ -119,6 +133,7 @@ In the previous session, eliminated 40+ duplicate field-level `index: true` decl
 ## Recommendations
 
 ### Index Monitoring
+
 1. Use MongoDB Atlas or monitoring tools to track:
    - Index usage statistics
    - Slow query logs
@@ -127,12 +142,14 @@ In the previous session, eliminated 40+ duplicate field-level `index: true` decl
 3. Consider adding covering indexes for frequently accessed field combinations
 
 ### Future Optimizations
+
 1. **Partial Indexes**: For fields with many null values or specific status filters
 2. **TTL Indexes**: For audit logs or temporary data (e.g., CopilotAudit with 90-day retention)
 3. **Sparse Indexes**: For optional fields that are queried but not always present
 4. **Index Intersection**: MongoDB can use multiple indexes together when beneficial
 
 ### Index Maintenance
+
 1. Run `db.collection.getIndexes()` to verify all indexes are created
 2. Use `db.collection.stats()` to monitor index sizes
 3. Consider background index builds for large collections in production

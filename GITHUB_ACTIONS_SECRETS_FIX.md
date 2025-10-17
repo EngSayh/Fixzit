@@ -4,13 +4,15 @@
 
 **File**: `.github/workflows/build-sourcemaps.yml` (line 36)
 
-**Problem**: 
+**Problem**:
 Using `if: secrets.SENTRY_AUTH_TOKEN != ''` directly in a step conditional can cause issues because:
+
 1. The secrets context comparison may not work reliably with empty string checks
 2. GitHub Actions has limitations on how secrets can be evaluated in conditionals
 3. Direct secret comparison in `if` expressions is not recommended for security reasons
 
 **Error Symptoms**:
+
 - Workflow syntax errors
 - Step always runs or never runs regardless of secret presence
 - Unreliable conditional behavior
@@ -22,6 +24,7 @@ Using `if: secrets.SENTRY_AUTH_TOKEN != ''` directly in a step conditional can c
 Changed from direct secrets comparison to a two-step approach:
 
 ### Step 1: Check Secret Existence
+
 ```yaml
 - name: Set Sentry configuration
   id: sentry-check
@@ -34,11 +37,13 @@ Changed from direct secrets comparison to a two-step approach:
 ```
 
 **How it works**:
+
 - Uses shell's `-n` test to check if the secret has content
 - Sets an output variable `sentry_configured` to `true` or `false`
 - This approach is more reliable than direct string comparison
 
 ### Step 2: Use Output in Conditional
+
 ```yaml
 - name: Upload source maps to Sentry (if configured)
   if: steps.sentry-check.outputs.sentry_configured == 'true'
@@ -51,6 +56,7 @@ Changed from direct secrets comparison to a two-step approach:
 ```
 
 **How it works**:
+
 - References the output from the previous step
 - Uses string comparison with step outputs (more reliable)
 - Only runs when secret is confirmed to be present
@@ -60,21 +66,25 @@ Changed from direct secrets comparison to a two-step approach:
 ## Benefits of This Approach
 
 ### 1. **Reliability** ✅
+
 - More predictable behavior across different GitHub Actions environments
 - Shell-based check is explicit and clear
 - No ambiguity about empty vs. unset secrets
 
 ### 2. **Debugging** 🔍
+
 - Easy to see in workflow logs if the check step passed or failed
 - Output variable value is visible in logs
 - Clear separation of concerns (check vs. use)
 
 ### 3. **Security** 🔒
+
 - Secrets are still only exposed in the env block of the step that needs them
 - No secret values appear in the conditional logic
 - Follows GitHub Actions best practices
 
 ### 4. **Maintainability** 🛠️
+
 - Pattern can be reused for other optional integrations
 - Easy to understand for team members
 - Well-documented approach
@@ -84,6 +94,7 @@ Changed from direct secrets comparison to a two-step approach:
 ## Alternative Approaches Considered
 
 ### Option A: Job-level env variable (Not Used)
+
 ```yaml
 jobs:
   build:
@@ -95,22 +106,26 @@ jobs:
         if: env.SENTRY_CONFIGURED == 'true'
 ```
 
-**Why not used**: 
+**Why not used**:
+
 - Job-level env variables don't support complex expressions reliably
 - Less explicit about what's being checked
 
 ### Option B: Direct secrets check (Original - Problematic)
+
 ```yaml
 - name: Upload to Sentry
   if: secrets.SENTRY_AUTH_TOKEN != ''
 ```
 
 **Why not used**:
+
 - Unreliable behavior with empty string comparison
 - Can cause syntax errors in some contexts
 - Not recommended by GitHub Actions documentation
 
 ### Option C: Always run with error handling (Not Secure)
+
 ```yaml
 - name: Upload to Sentry
   run: |
@@ -120,6 +135,7 @@ jobs:
 ```
 
 **Why not used**:
+
 - Wastes CI time running unnecessary steps
 - Exposes secrets to env unnecessarily
 - Less clear in workflow visualization
@@ -131,11 +147,13 @@ jobs:
 ### With Sentry Secrets Configured
 
 **Expected Behavior**:
+
 1. `sentry-check` step runs and sets `sentry_configured=true`
 2. Upload step runs and uploads source maps to Sentry
 3. Workflow completes successfully
 
 **Verification**:
+
 ```bash
 # Check workflow run logs
 # Look for: "sentry_configured=true" in sentry-check output
@@ -145,11 +163,13 @@ jobs:
 ### Without Sentry Secrets
 
 **Expected Behavior**:
+
 1. `sentry-check` step runs and sets `sentry_configured=false`
 2. Upload step is skipped (shown as "skipped" in workflow UI)
 3. Workflow continues and completes successfully
 
 **Verification**:
+
 ```bash
 # Check workflow run logs
 # Look for: "sentry_configured=false" in sentry-check output
@@ -162,7 +182,8 @@ jobs:
 
 If you're updating from the old pattern, no changes needed on your side:
 
-### Before (If you had):
+### Before (If you had)
+
 ```yaml
 - name: Upload source maps to Sentry (if configured)
   if: secrets.SENTRY_AUTH_TOKEN != ''
@@ -170,7 +191,8 @@ If you're updating from the old pattern, no changes needed on your side:
     SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 ```
 
-### After (Automatically updated):
+### After (Automatically updated)
+
 ```yaml
 - name: Set Sentry configuration
   id: sentry-check
@@ -195,16 +217,16 @@ If you're updating from the old pattern, no changes needed on your side:
 
 To enable Sentry source map uploads, add these secrets:
 
-1. Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
+1. Go to: <https://github.com/EngSayh/Fixzit/settings/secrets/actions>
 
 2. Add the following secrets:
    - **SENTRY_AUTH_TOKEN**: Your Sentry authentication token
      - Get from: Sentry → Settings → Auth Tokens
      - Permissions needed: `project:releases`, `org:read`
-   
+
    - **SENTRY_ORG**: Your Sentry organization slug
      - Example: `my-company` (from URL: sentry.io/organizations/my-company/)
-   
+
    - **SENTRY_PROJECT**: Your Sentry project slug
      - Example: `fixzit` (from URL: sentry.io/organizations/my-company/projects/fixzit/)
 
@@ -217,6 +239,7 @@ To enable Sentry source map uploads, add these secrets:
 ### Issue: Step always skips even with secrets configured
 
 **Solution**:
+
 1. Verify secrets are set at repository level (not environment level)
 2. Check secret names match exactly (case-sensitive)
 3. Ensure the workflow has read access to secrets
@@ -225,12 +248,14 @@ To enable Sentry source map uploads, add these secrets:
 ### Issue: Step runs but Sentry upload fails
 
 **Possible Causes**:
+
 1. Invalid Sentry auth token
 2. Wrong organization or project slug
 3. Insufficient permissions on the token
 4. Network issues during upload
 
 **Solution**:
+
 ```bash
 # Test Sentry CLI locally
 export SENTRY_AUTH_TOKEN="your-token"
@@ -244,6 +269,7 @@ sentry-cli releases list
 ### Issue: Build fails before reaching Sentry step
 
 **Not related to this fix** - Check earlier build steps:
+
 1. npm ci failed
 2. npm run build failed
 3. Source maps not generated
@@ -253,21 +279,25 @@ sentry-cli releases list
 ## Best Practices
 
 ### 1. Secret Naming Convention
+
 - Use `_TOKEN` suffix for authentication tokens
 - Use `_KEY` suffix for API keys
 - Use descriptive names: `SENTRY_AUTH_TOKEN` not just `TOKEN`
 
 ### 2. Step Conditionals
+
 - Always use explicit checks like this pattern
 - Don't rely on truthy/falsy behavior with secrets
 - Make the check step clear and named appropriately
 
 ### 3. Error Handling
+
 - Add error messages if needed
 - Use `continue-on-error: true` for optional steps if appropriate
 - Log meaningful success/failure messages
 
 ### 4. Documentation
+
 - Document required secrets in README
 - Provide links to where to get secret values
 - Explain what each secret is used for
@@ -285,12 +315,14 @@ sentry-cli releases list
 ## Summary
 
 **What Changed**:
+
 - ✅ Added explicit secret check step
 - ✅ Changed conditional to use step output
 - ✅ More reliable secret detection
 - ✅ Better workflow debugging
 
 **Impact**:
+
 - ✅ No breaking changes for users
 - ✅ More reliable workflow execution
 - ✅ Follows GitHub Actions best practices

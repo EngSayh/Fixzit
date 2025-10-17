@@ -16,7 +16,8 @@ Successfully completed full translation implementation for `/app/work-orders/new
 
 ### Total: 35 Keys × 2 Languages = 70 Translation Entries
 
-#### Common Keys Added (4 keys):
+#### Common Keys Added (4 keys)
+
 ```typescript
 // Arabic + English translations:
 'common.selected': 'محدد' / 'Selected'
@@ -27,14 +28,16 @@ Successfully completed full translation implementation for `/app/work-orders/new
 'common.chooseFiles': 'اختر الملفات' / 'Choose Files'
 ```
 
-#### Work Orders - New Page Section Headers (3 keys):
+#### Work Orders - New Page Section Headers (3 keys)
+
 ```typescript
 'workOrders.new.basicInfo': 'المعلومات الأساسية' / 'Basic Information'
 'workOrders.new.propertyLocation': 'العقار والموقع' / 'Property & Location'
 'workOrders.new.assignmentScheduling': 'التعيين والجدولة' / 'Assignment & Scheduling'
 ```
 
-#### Work Orders - Priority (6 keys):
+#### Work Orders - Priority (6 keys)
+
 ```typescript
 'workOrders.priority': 'الأولوية' / 'Priority'
 'workOrders.selectPriority': 'اختر الأولوية' / 'Select Priority'
@@ -44,26 +47,30 @@ Successfully completed full translation implementation for `/app/work-orders/new
 'workOrders.priority.p4': 'P4 - منخفض' / 'P4 - Low'
 ```
 
-#### Work Orders - Assignment & Technician (2 keys):
+#### Work Orders - Assignment & Technician (2 keys)
+
 ```typescript
 'workOrders.assignTo': 'تعيين إلى' / 'Assign To'
 'workOrders.selectTechnician': 'اختر الفني' / 'Select Technician'
 ```
 
-#### Work Orders - Attachments (2 keys):
+#### Work Orders - Attachments (2 keys)
+
 ```typescript
 'workOrders.attachments': 'المرفقات' / 'Attachments'
 'workOrders.dropFiles': 'أسقط الملفات هنا أو انقر للتحميل' / 'Drop files here or click to upload'
 ```
 
-#### Work Orders - Quick Actions (3 keys):
+#### Work Orders - Quick Actions (3 keys)
+
 ```typescript
 'workOrders.createFromTemplate': 'إنشاء من قالب' / 'Create from Template'
 'workOrders.emergencyContact': 'اتصال طوارئ' / 'Emergency Contact'
 'workOrders.costCalculator': 'حاسبة التكلفة' / 'Cost Calculator'
 ```
 
-#### Work Orders - Recent Activity (3 keys):
+#### Work Orders - Recent Activity (3 keys)
+
 ```typescript
 'workOrders.recentActivity': 'النشاط الأخير' / 'Recent Activity'
 'workOrders.formAutoSaved': 'تم الحفظ التلقائي للنموذج' / 'Form auto-saved'
@@ -79,10 +86,12 @@ Successfully completed full translation implementation for `/app/work-orders/new
 **Changes**: Added 35 new translation keys (70 total entries)
 
 **Sections Updated**:
+
 - Common keys (lines ~110-111): Added `common.selected`, `common.ifApplicable`
 - Work Orders - New section (lines ~637-669 Arabic, ~1319-1351 English): Added 33 new keys
 
 **Arabic Section** (after line 643):
+
 ```typescript
 'workOrders.new.basicInfo': 'المعلومات الأساسية',
 'workOrders.new.propertyLocation': 'العقار والموقع',
@@ -128,7 +137,8 @@ Successfully completed full translation implementation for `/app/work-orders/new
 
 **Sections Translated**:
 
-#### Header (Already Complete):
+#### Header (Already Complete)
+
 ```typescript
 {t('workOrders.new.title', 'New Work Order')}
 {t('workOrders.new.subtitle', 'Create a new work order...')}
@@ -136,7 +146,8 @@ Successfully completed full translation implementation for `/app/work-orders/new
 {t('workOrders.board.createWO', 'Create Work Order')}
 ```
 
-#### Basic Information Card (NEW):
+#### Basic Information Card (NEW)
+
 ```typescript
 <h3>{t('workOrders.new.basicInfo', 'Basic Information')}</h3>
 {t('workOrders.title', 'Work Order Title')} *
@@ -150,7 +161,8 @@ Successfully completed full translation implementation for `/app/work-orders/new
 {t('workOrders.priority.p4', 'P4 - Low')}
 ```
 
-#### Property & Location Card (NEW):
+#### Property & Location Card (NEW)
+
 ```typescript
 <h3>{t('workOrders.new.propertyLocation', 'Property & Location')}</h3>
 {t('common.property', 'Property')} *
@@ -158,13 +170,15 @@ Successfully completed full translation implementation for `/app/work-orders/new
 {t('common.location', 'Unit/Location')}
 ```
 
-#### Description Card (NEW):
+#### Description Card (NEW)
+
 ```typescript
 <h3>{t('common.description', 'Description')}</h3>
 {t('common.description', 'Work Description')} *
 ```
 
-#### Assignment & Scheduling Card (NEW):
+#### Assignment & Scheduling Card (NEW)
+
 ```typescript
 <h3>{t('workOrders.new.assignmentScheduling', 'Assignment & Scheduling')}</h3>
 {t('workOrders.assignTo', 'Assign To')}
@@ -172,14 +186,16 @@ Successfully completed full translation implementation for `/app/work-orders/new
 {t('common.dueDate', 'Due Date')}
 ```
 
-#### Attachments Sidebar (NEW):
+#### Attachments Sidebar (NEW)
+
 ```typescript
 <h3>{t('workOrders.attachments', 'Attachments')}</h3>
 {t('workOrders.dropFiles', 'Drop files here or click to upload')}
 {t('common.chooseFiles', 'Choose Files')}
 ```
 
-#### Quick Actions Sidebar (NEW):
+#### Quick Actions Sidebar (NEW)
+
 ```typescript
 <h3>{t('workOrders.quickActions', 'Quick Actions')}</h3>
 {t('workOrders.createFromTemplate', 'Create from Template')}
@@ -187,7 +203,8 @@ Successfully completed full translation implementation for `/app/work-orders/new
 {t('workOrders.costCalculator', 'Cost Calculator')}
 ```
 
-#### Recent Activity Sidebar (NEW):
+#### Recent Activity Sidebar (NEW)
+
 ```typescript
 <h3>{t('workOrders.recentActivity', 'Recent Activity')}</h3>
 {t('workOrders.formAutoSaved', 'Form auto-saved')}
@@ -202,7 +219,8 @@ Successfully completed full translation implementation for `/app/work-orders/new
 ✅ **Zero ESLint errors**  
 ✅ **All files compile successfully**
 
-### Error Check Results:
+### Error Check Results
+
 ```bash
 ✅ contexts/TranslationContext.tsx - No errors found
 ✅ /app/work-orders/new/page.tsx - No errors found
@@ -212,17 +230,20 @@ Successfully completed full translation implementation for `/app/work-orders/new
 
 ## Coverage Analysis
 
-### Before This Session:
+### Before This Session
+
 - **Translated Strings**: 8
 - **Total Strings**: ~40-50
 - **Coverage**: ~15-20%
 
-### After This Session:
+### After This Session
+
 - **Translated Strings**: 47+
 - **Total Strings**: 47
 - **Coverage**: 100% ✅
 
-### Breakdown:
+### Breakdown
+
 - ✅ Header section (4 strings)
 - ✅ Basic Information card (8 strings: header + 2 labels + 5 dropdown options)
 - ✅ Property & Location card (6 strings: header + 3 labels + 2 dropdown items)
@@ -239,12 +260,14 @@ Successfully completed full translation implementation for `/app/work-orders/new
 ## Arabic Translation Quality
 
 All Arabic translations are:
+
 - ✅ **Grammatically correct** - Professional business Arabic
 - ✅ **Contextually appropriate** - Work order terminology
 - ✅ **Culturally sensitive** - Saudi Arabia context
 - ✅ **Professionally formatted** - Proper capitalization and punctuation
 
 **Examples**:
+
 ```typescript
 // Priority levels
 'p1': 'P1 - حرج'          // Critical
@@ -266,7 +289,8 @@ All Arabic translations are:
 
 ## Testing Recommendations
 
-### Manual Testing:
+### Manual Testing
+
 1. ✅ Switch language from English to Arabic in TopBar
 2. ✅ Navigate to `/work-orders/new`
 3. ✅ Verify all section headers translate
@@ -281,7 +305,8 @@ All Arabic translations are:
 
 ## Work Orders Module Status
 
-### Completed Pages (5/5 - 100%):
+### Completed Pages (5/5 - 100%)
+
 - ✅ `/app/work-orders/approvals/page.tsx` - 100% Complete
 - ✅ `/app/work-orders/board/page.tsx` - 100% Complete
 - ✅ `/app/work-orders/history/page.tsx` - 100% Complete
@@ -294,7 +319,8 @@ All Arabic translations are:
 
 ## Overall Project Progress
 
-### Completed Modules (85%):
+### Completed Modules (85%)
+
 - ✅ Landing page (243 translations)
 - ✅ Signup page (50 keys × 2 = 100 entries)
 - ✅ Profile page (43 keys × 2 = 86 entries)
@@ -307,7 +333,8 @@ All Arabic translations are:
 **Total Translation Keys**: 282+ unique keys  
 **Total Translation Entries**: 564+ (with both languages)
 
-### Remaining Modules (15%):
+### Remaining Modules (15%)
+
 - ⏳ FM Module pages (4 files, ~50-60 keys, 3-4 hours)
   - Properties, Tenants, Vendors, Invoices
 - ⏳ Admin pages (2 files, ~10 keys, 30-45 minutes)
@@ -332,6 +359,7 @@ All Arabic translations are:
 ## Bonus: Finance Pages Fix
 
 Also fixed missing common translation keys used by Finance pages:
+
 - Added `common.selected`: 'محدد' / 'Selected'
 - Added `common.ifApplicable`: 'إن وجد' / 'If applicable'
 
@@ -348,7 +376,7 @@ These keys are now available system-wide for any page that needs them.
    - Estimated time: 3-4 hours
 
 2. **Admin Pages** (Priority: Medium)
-   - Add ~10 admin.* and properties.* keys (Arabic + English)
+   - Add ~10 admin.*and properties.* keys (Arabic + English)
    - Update 2 pages: `/admin/cms`, `/properties/leases`
    - Estimated time: 30-45 minutes
 

@@ -236,13 +236,13 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
         </div>
 
         <div className="flex justify-end space-x-2 pt-2">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" aria-label={t('common.view', 'View')} title={t('common.view', 'View')}>
             <Eye className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" aria-label={t('common.edit', 'Edit')} title={t('common.edit', 'Edit')}>
             <Edit className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>

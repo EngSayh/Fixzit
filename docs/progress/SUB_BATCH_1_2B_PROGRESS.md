@@ -17,6 +17,7 @@ Successfully transitioned from mocked SWR to **real SWR testing** with controlle
 | **CatalogView.test.tsx** | Not tested yet | Pending | ⏳ Next |
 
 **Total Progress:**  
+
 - Before: 5/26 tests passing (19%)
 - After: 13/26 tests passing (50%)
 - **+8 tests fixed** ✅
@@ -28,6 +29,7 @@ Successfully transitioned from mocked SWR to **real SWR testing** with controlle
 **File:** `components/fm/__tests__/WorkOrdersView.test.tsx`
 
 **Changes:**
+
 - ❌ **Removed:** Jest-specific SWR mock with `__set()` and `__reset()` methods
 - ✅ **Added:** Real SWR with `SWRConfig` test wrapper
 - ✅ **Added:** `TestWrapper` component providing isolated SWR cache per test
@@ -36,12 +38,14 @@ Successfully transitioned from mocked SWR to **real SWR testing** with controlle
 - ✅ **Added:** Proper fetch response mocking for controlled test data
 
 **Why This Matters:**
+
 - Tests now validate **actual SWR behavior**
 - Catches real-world issues with caching, deduplication, and revalidation
 - More maintainable - no custom mock infrastructure
 - Aligns with user request: "test on the real system not mock"
 
 **Passing Tests (5/13):**
+
 ```text
 ✅ renders default heading and description
 ✅ renders custom heading and description via props  
@@ -51,6 +55,7 @@ Successfully transitioned from mocked SWR to **real SWR testing** with controlle
 ```
 
 **Failing Tests (8/13):**
+
 ```text
 ❌ renders list items with badges - Multiple "Submitted" text (test selector issue)
 ❌ pagination controls - Timeout (test logic issue, not SWR)
@@ -64,6 +69,7 @@ Successfully transitioned from mocked SWR to **real SWR testing** with controlle
 
 **Root Cause of Failures:**  
 Not SWR-related. Issues are:
+
 1. **Selector problems** - Tests looking for elements that don't exist or use wrong selectors
 2. **Timeout issues** - Tests waiting for events that won't happen with current logic
 3. **Test logic** - Need to adjust how tests interact with UI
@@ -73,6 +79,7 @@ Not SWR-related. Issues are:
 **File:** `components/SupportPopup.tsx` (line 285-295)
 
 **Changes:**
+
 ```tsx
 // BEFORE:
 <label className="...">
@@ -91,6 +98,7 @@ Not SWR-related. Issues are:
 ✅ **+3 tests now passing** (8/13, was 5/13)
 
 **Passing Tests (8/13):**
+
 ```text
 ✅ disables Submit Ticket when fields empty
 ✅ enables Copy details when subject provided
@@ -103,6 +111,7 @@ Not SWR-related. Issues are:
 ```
 
 **Still Failing (5/13):**
+
 - Other form fields missing htmlFor/id associations
 - Will fix in next iteration
 
@@ -111,6 +120,7 @@ Not SWR-related. Issues are:
 **File:** `components/fm/WorkOrdersView.tsx` (line 3)
 
 **Change:**
+
 ```tsx
 // BEFORE:
 import { useEffect, useMemo, useState } from 'react';
@@ -126,6 +136,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 **File:** `tsconfig.json` (line 33)
 
 **Change:**
+
 ```json
 // BEFORE:
 "types": ["node", "react", "react-dom", "next", "google.maps", "jest"]
@@ -143,6 +154,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 ## Architectural Decision: Real SWR vs Mocked
 
 ### Previous Approach (Mocked SWR)
+
 ```typescript
 jest.mock('swr', () => {
   let current = { data: undefined, error: undefined };
@@ -153,12 +165,14 @@ jest.mock('swr', () => {
 ```
 
 **Problems:**
+
 - Jest-specific APIs (`__set`, `__reset`) don't exist in Vitest
 - Doesn't test real SWR behavior (caching, deduplication, revalidation)
 - Brittle - breaks when SWR internals change
 - Misses edge cases in real SWR library
 
 ### New Approach (Real SWR with Mocked Fetch)
+
 ```typescript
 const TestWrapper = ({ children }) => (
   <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
@@ -174,6 +188,7 @@ const TestWrapper = ({ children }) => (
 ```
 
 **Benefits:**
+
 - ✅ Tests real SWR behavior (user's request: "test on the real system")
 - ✅ Catches real-world caching/revalidation issues
 - ✅ More maintainable - no custom mock infrastructure

@@ -24,6 +24,7 @@ This creates **import ambiguity** and maintenance burden.
 ## Confirmed Duplicates (Ready to Remove)
 
 ### Test Files (100% Identical)
+
 1. **src/contexts/TranslationContext.test.tsx** (226 lines)
    - Canonical: `contexts/TranslationContext.test.tsx`
    - Status: ✅ Verified identical
@@ -37,6 +38,7 @@ This creates **import ambiguity** and maintenance burden.
    - Status: ✅ Verified identical
 
 ### Component/Provider Files
+
 4. **src/core/RuntimeMonitor.tsx**
    - Canonical: `core/RuntimeMonitor.tsx`
    - Status: ⏳ Needs verification
@@ -50,6 +52,7 @@ This creates **import ambiguity** and maintenance burden.
    - Status: ⏳ Needs verification
 
 ### QA Components
+
 7. **src/qa/AutoFixAgent.tsx**
    - Canonical: `qa/AutoFixAgent.tsx`
    - Status: ⏳ Needs verification
@@ -63,16 +66,20 @@ This creates **import ambiguity** and maintenance burden.
 ## Execution Strategy
 
 ### Phase 1: Remove Verified Test File Duplicates ✅
+
 Remove 3 test files that are 100% verified identical.
 
 ### Phase 2: Verify and Remove Component Duplicates
+
 1. Compare each file pair
 2. Check imports across codebase
 3. Remove duplicate if 100% identical
 4. Update imports if needed
 
 ### Phase 3: Analyze Remaining src/ Directories
+
 Check for unique files in:
+
 - src/ai/
 - src/client/
 - src/config/
@@ -94,6 +101,7 @@ Check for unique files in:
 ## Import Patterns to Update
 
 ### Current Ambiguous Patterns
+
 - `@/contexts/*` vs `@/src/contexts/*`
 - `@/i18n/*` vs `@/src/i18n/*`
 - `@/providers/*` vs `@/src/providers/*`
@@ -102,6 +110,7 @@ Check for unique files in:
 - `@/qa/*` vs `@/src/qa/*`
 
 ### Target Canonical Patterns
+
 - `@/contexts/*` - ONLY (no src/)
 - `@/i18n/*` - ONLY (no src/)
 - `@/providers/*` - ONLY (no src/)
@@ -114,12 +123,14 @@ Check for unique files in:
 ## Expected Impact
 
 ### Benefits
+
 1. **Eliminate Import Ambiguity**: Single canonical location for each module
 2. **Reduce Maintenance**: Fewer duplicate files to maintain
 3. **Clearer Architecture**: Obvious file organization
 4. **Better Developer Experience**: No confusion about which file to import
 
 ### Risks
+
 - ⚠️ **Import Breaks**: If any code imports from `src/` paths, those must be updated first
 - ⚠️ **Different Content**: If files aren't identical, need careful merge strategy
 

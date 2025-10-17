@@ -7,7 +7,7 @@
 - **❌ Failed**: 14
 - **Success Rate**: 0.00%
 - **Duration**: 140.06s
-- **Base URL**: http://localhost:3000
+- **Base URL**: <http://localhost:3000>
 
 ## Results by User
 

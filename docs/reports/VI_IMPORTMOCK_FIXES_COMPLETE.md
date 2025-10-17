@@ -1,12 +1,15 @@
 # vi.importMock Fixes - COMPLETE ✅
 
 ## Summary
+
 Successfully fixed all deprecated `vi.importMock` usage across the codebase. The API has been replaced with the proper Vitest pattern: dynamic imports in `beforeAll` + `vi.mocked()` for type safety.
 
 ## Files Fixed
 
 ### 1. tests/unit/api/support/incidents.route.test.ts ✅
+
 **Changes:**
+
 - Removed 3 `vi.importMock()` calls (NextResponse, getNativeDb, SupportTicket)
 - Added dynamic imports in `beforeAll()` hook
 - Updated all mock references to use imported modules directly
@@ -14,6 +17,7 @@ Successfully fixed all deprecated `vi.importMock` usage across the codebase. The
 - Fixed mock request object to include headers and URL
 
 **Before:**
+
 ```typescript
 const { NextResponse } = vi.importMock('next/server') as { NextResponse: { json: ReturnType<typeof vi.fn> } };
 const { getNativeDb } = vi.importMock('@/lib/mongo') as { getNativeDb: ReturnType<typeof vi.fn> };
@@ -24,6 +28,7 @@ vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 ```
 
 **After:**
+
 ```typescript
 let POST: any;
 let NextResponse: any;
@@ -45,6 +50,7 @@ randomSpy.mockRestore();
 ```
 
 **Test Status:**
+
 - ✅ File loads and runs (no vi.importMock errors)
 - ✅ All 6 tests attempt to run
 - ⚠️ Tests timeout due to missing Redis mock (pre-existing issue)
@@ -55,13 +61,16 @@ The route implementation uses `rateLimit()` which requires Redis connection. Tes
 ---
 
 ### 2. tests/api/marketplace/products/route.test.ts ✅
+
 **Changes:**
+
 - Removed direct imports that conflicted with vi.mock()
 - Fixed vi.mock path: `@/models/marketplace/Category` → `@/server/models/marketplace/Category`
 - Added dynamic imports in `beforeAll()` hook
 - Updated all mock references to use imported modules directly
 
 **Before:**
+
 ```typescript
 import * as ContextMod from '@/lib/marketplace/context';
 import * as SearchMod from '@/lib/marketplace/search';
@@ -71,6 +80,7 @@ vi.mocked(ContextMod.resolveMarketplaceContext).mockResolvedValue({...});
 ```
 
 **After:**
+
 ```typescript
 let GET: any;
 let resolveMarketplaceContext: any;
@@ -92,11 +102,13 @@ beforeEach(() => {
 ```
 
 **Test Status:**
+
 - ✅ File loads and runs (no vi.importMock errors)
 - ✅ Both tests attempt to run
 - ⚠️ Tests fail due to missing MongoDB/request mocks (pre-existing issue)
 
 **Root Cause of Failures:**
+
 1. Test timeout - MongoDB connection attempts (needs `@/db/mongoose` mock)
 2. Missing request.headers - Mock request object incomplete
 
@@ -105,12 +117,14 @@ beforeEach(() => {
 ## Impact Analysis
 
 ### P0 Critical Issue: RESOLVED ✅
+
 **Problem:** `vi.importMock` returns Promise, causing undefined destructuring
 **Impact:** 2 test files completely broken, couldn't load
 **Resolution:** Replaced with dynamic imports + direct module access
 **Files Affected:** 2 test files, 6 occurrences
 
 ### Success Metrics
+
 - ✅ 2 of 2 files fixed (100%)
 - ✅ 6 vi.importMock calls removed
 - ✅ 0 vi.importMock remaining in codebase (verified by grep)
@@ -118,6 +132,7 @@ beforeEach(() => {
 - ✅ Math.random spy fix included as bonus
 
 ### Verification Commands
+
 ```bash
 # Verify no vi.importMock usage remains
 grep -r "vi\.importMock" tests/ --include="*.ts" --include="*.tsx" | grep -v "node_modules"
@@ -136,11 +151,13 @@ pnpm test tests/api/marketplace/products/route.test.ts --run
 ## Remaining Issues (Not vi.importMock Related)
 
 ### incidents.route.test.ts
+
 **Issue:** Tests timeout after 5000ms
 **Root Cause:** Missing Redis mock for `rateLimit()` function
 **Priority:** P1 (test infrastructure)
 **Estimated Fix:** 10 minutes
 **Solution:**
+
 ```typescript
 vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn(() => ({ allowed: true, remaining: 10 }))
@@ -148,6 +165,7 @@ vi.mock('@/lib/rate-limit', () => ({
 ```
 
 ### products/route.test.ts
+
 **Issue 1:** Test timeout - MongoDB connection
 **Root Cause:** Missing `@/db/mongoose` mock (already has vi.mock but not working)
 **Priority:** P1 (test infrastructure)
@@ -157,6 +175,7 @@ vi.mock('@/lib/rate-limit', () => ({
 **Root Cause:** Mock request missing `.headers` property
 **Priority:** P1 (test data)
 **Solution:**
+
 ```typescript
 const req = {
   headers: new Headers([['origin', 'http://localhost']])
@@ -168,6 +187,7 @@ const req = {
 ## Pattern Established
 
 ### ✅ Correct Vitest Pattern for Mocking
+
 ```typescript
 // 1. Mock modules BEFORE any imports
 vi.mock('module-path', () => ({
@@ -187,6 +207,7 @@ beforeEach(() => {
 ```
 
 ### ❌ NEVER Use (Deprecated)
+
 ```typescript
 const { exportedFunction } = vi.importMock('module-path'); // Returns Promise!
 ```
@@ -196,7 +217,9 @@ const { exportedFunction } = vi.importMock('module-path'); // Returns Promise!
 ## Related Improvements Made
 
 ### Math.random Spy Fix (incidents.route.test.ts)
+
 **Before:**
+
 ```typescript
 vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 // Later:
@@ -204,6 +227,7 @@ vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 ```
 
 **After:**
+
 ```typescript
 let randomSpy: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -221,11 +245,13 @@ afterEach(() => {
 ## Next Steps
 
 ### Immediate (This Session)
+
 1. ✅ **DONE:** Fix vi.importMock usage (2 files)
 2. ⏭️ **NEXT:** Fix jest.Mock type assertions (P0, 20+ occurrences, 5 files)
 3. ⏭️ **NEXT:** Fix control char regex (P1, data/language-options.test.ts)
 
 ### Future (Follow-up PRs)
+
 1. Add Redis mock to incidents.route.test.ts
 2. Fix MongoDB connection mock in products/route.test.ts
 3. Complete mock request objects with all required properties
@@ -235,13 +261,17 @@ afterEach(() => {
 ## Documentation Updates
 
 ### SYSTEM_WIDE_JEST_VITEST_FIXES.md
+
 Status: Already documented this fix in Phase 1
 
 ### SUB_BATCH_1_2B_PROGRESS.md
+
 Line 170: Already fixed `jest.Mock` → `ReturnType<typeof vi.fn>` in example code
 
 ### PR_119_FIXES_APPLIED.md
+
 Should add:
+
 - vi.importMock deprecation fixes
 - Math.random spy improvement
 - Mock path corrections
@@ -249,11 +279,13 @@ Should add:
 ---
 
 ## Time Tracking
+
 - **Estimated:** 35 minutes (from SYSTEM_WIDE_JEST_VITEST_FIXES.md)
 - **Actual:** ~45 minutes (including debugging and documentation)
 - **Extra time:** Fixing related issues (Math.random, mock paths, request objects)
 
 ## Issue Classification
+
 - **Type:** Vitest Migration Issue
 - **Severity:** P0 - Critical (CI blocking)
 - **Status:** ✅ RESOLVED

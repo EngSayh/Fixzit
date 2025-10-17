@@ -1,6 +1,7 @@
 # File Organization Plan - Phase 1 URGENT
 
 ## Current Issues
+
 - 150+ markdown files cluttering root directory
 - Multiple duplicate/similar scripts scattered
 - Test files mixed with production code
@@ -32,6 +33,7 @@
 ## Execution Plan (IMMEDIATE - Next 30 minutes)
 
 ### Step 1: Create Directory Structure (2 min)
+
 ```bash
 mkdir -p docs/{reports,progress,analysis,guides,archive}
 mkdir -p scripts/{deployment,database,testing,analysis}
@@ -39,13 +41,15 @@ mkdir -p tools/{analyzers,fixers,generators}
 ```
 
 ### Step 2: Move Documentation Files (10 min)
+
 - Move all *_REPORT.md → docs/reports/
 - Move all *_PROGRESS*.md, SESSION_*.md, DAILY_*.md → docs/progress/
 - Move all *_ANALYSIS*.md, AUDIT_*.md, COMPREHENSIVE_*.md → docs/analysis/
-- Move all *_GUIDE.md, *_INSTRUCTIONS.md, QUICKSTART.md → docs/guides/
+- Move all *_GUIDE.md,*_INSTRUCTIONS.md, QUICKSTART.md → docs/guides/
 - Move README files specific to features → their respective directories
 
 ### Step 3: Organize Scripts (10 min)
+
 - Move fix-*.sh, fix-*.ps1, fix-*.py → tools/fixers/
 - Move test-*.js, test-*.mjs, verify-*.sh → scripts/testing/
 - Move analyze-*.js, scan-*.sh → tools/analyzers/
@@ -53,17 +57,20 @@ mkdir -p tools/{analyzers,fixers,generators}
 - Move seed-*.ts, migrate-*.ts → scripts/database/
 
 ### Step 4: Clean Up Root (5 min)
+
 - Remove duplicate/obsolete files
 - Keep only: package.json, tsconfig.json, next.config.js, .env.example, README.md, GOVERNANCE.md
 - Update .gitignore to prevent future clutter
 
 ### Step 5: Update Import Paths (3 min)
+
 - Check for any hardcoded paths to moved files
 - Update if necessary
 
 ## Files to Move (Prioritized)
 
 ### HIGH PRIORITY - Documentation (Move First)
+
 ```
 docs/reports/
 - *_COMPLETE.md (50+ files)
@@ -98,6 +105,7 @@ docs/guides/
 ```
 
 ### MEDIUM PRIORITY - Scripts
+
 ```
 tools/fixers/
 - fix-*.sh, fix-*.ps1, fix-*.py, fix-*.js
@@ -123,6 +131,7 @@ scripts/database/
 ```
 
 ### LOW PRIORITY - Archives/Cleanup
+
 ```
 docs/archive/
 - Obsolete reports
@@ -136,6 +145,7 @@ TO DELETE:
 ```
 
 ## Validation After Move
+
 1. ✅ localhost:3000 still runs
 2. ✅ pnpm dev works
 3. ✅ pnpm typecheck passes
