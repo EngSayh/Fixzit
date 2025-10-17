@@ -399,7 +399,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
           New Work Order
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+    <DialogContent className="max-w-4xl w-full">
         <DialogHeader>
           <DialogTitle>Create work order</DialogTitle>
         </DialogHeader>

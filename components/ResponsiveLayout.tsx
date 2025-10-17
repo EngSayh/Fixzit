@@ -84,9 +84,9 @@ export default function ResponsiveLayout({
         </main>
       </div>
 
-      {/* Footer - sticky at bottom */}
+      {/* Footer - anchor to bottom using mt-auto */}
       {footer && (
-        <div className="mt-auto">
+        <div className="mt-auto w-full">
           {footer}
         </div>
       )}
