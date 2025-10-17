@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Truck, Plus, Search, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -41,12 +42,13 @@ interface Vendor {
 }
 
 export default function VendorsPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const { data, mutate } = useSWR(
+  const { data, mutate} = useSWR(
     `/api/vendors?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}`,
     fetcher
   );
@@ -58,19 +60,19 @@ export default function VendorsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Vendor Management</h1>
-          <p className="text-gray-600">Supplier network and performance management</p>
+          <h1 className="text-3xl font-bold">{t('fm.vendors.title', 'Vendor Management')}</h1>
+          <p className="text-gray-600">{t('fm.vendors.subtitle', 'Supplier network and performance management')}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-orange-600 hover:bg-orange-700">
               <Plus className="w-4 h-4 mr-2" />
-              New Vendor
+              {t('fm.vendors.newVendor', 'New Vendor')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Add New Vendor</DialogTitle>
+              <DialogTitle>{t('fm.vendors.addVendor', 'Add New Vendor')}</DialogTitle>
             </DialogHeader>
             <CreateVendorForm onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
@@ -85,7 +87,7 @@ export default function VendorsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search vendors..."
+                  placeholder={t('fm.vendors.searchVendors', 'Search vendors...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
@@ -94,27 +96,27 @@ export default function VendorsPage() {
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Vendor Type" />
+                <SelectValue placeholder={t('fm.vendors.vendorType', 'Vendor Type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="SUPPLIER">Supplier</SelectItem>
-                <SelectItem value="CONTRACTOR">Contractor</SelectItem>
-                <SelectItem value="SERVICE_PROVIDER">Service Provider</SelectItem>
-                <SelectItem value="CONSULTANT">Consultant</SelectItem>
+                <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
+                <SelectItem value="SUPPLIER">{t('fm.vendors.supplier', 'Supplier')}</SelectItem>
+                <SelectItem value="CONTRACTOR">{t('fm.vendors.contractor', 'Contractor')}</SelectItem>
+                <SelectItem value="SERVICE_PROVIDER">{t('fm.vendors.serviceProvider', 'Service Provider')}</SelectItem>
+                <SelectItem value="CONSULTANT">{t('fm.vendors.consultant', 'Consultant')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t('fm.properties.status', 'Status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-                <SelectItem value="BLACKLISTED">Blacklisted</SelectItem>
+                <SelectItem value="">{t('common.allStatus', 'All Status')}</SelectItem>
+                <SelectItem value="PENDING">{t('fm.vendors.pending', 'Pending')}</SelectItem>
+                <SelectItem value="APPROVED">{t('fm.vendors.approved', 'Approved')}</SelectItem>
+                <SelectItem value="SUSPENDED">{t('fm.vendors.suspended', 'Suspended')}</SelectItem>
+                <SelectItem value="REJECTED">{t('fm.vendors.rejected', 'Rejected')}</SelectItem>
+                <SelectItem value="BLACKLISTED">{t('fm.vendors.blacklisted', 'Blacklisted')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -133,11 +135,11 @@ export default function VendorsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Truck className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Vendors Found</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first vendor to the network.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.vendors.noVendors', 'No Vendors Found')}</h3>
+            <p className="text-gray-600 mb-4">{t('fm.vendors.noVendorsText', 'Get started by adding your first vendor to the network.')}</p>
             <Button onClick={() => setCreateOpen(true)} className="bg-orange-600 hover:bg-orange-700">
               <Plus className="w-4 h-4 mr-2" />
-              Add Vendor
+              {t('fm.vendors.addVendor', 'Add Vendor')}
             </Button>
           </CardContent>
         </Card>
@@ -147,6 +149,8 @@ export default function VendorsPage() {
 }
 
 function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
+  const { t } = useTranslation();
+  
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'SUPPLIER':
@@ -207,10 +211,10 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
           </div>
           <div className="flex flex-col items-end space-y-1">
             <Badge className={getTypeColor(vendor.type || '')}>
-              {vendor.type?.toLowerCase() || ''}
+              {getTypeLabel(vendor.type || '')}
             </Badge>
             <Badge className={getStatusColor(vendor.status || '')}>
-              {vendor.status?.toLowerCase() || ''}
+              {getStatusLabel(vendor.status || '')}
             </Badge>
           </div>
         </div>
@@ -223,9 +227,9 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
 
         <div className="flex items-center text-sm">
           <Star className="w-4 h-4 mr-1 text-yellow-500" />
-          <span className="font-medium">{vendor.performance?.rating || 'N/A'}</span>
+          <span className="font-medium">{vendor.performance?.rating || t('properties.leases.na', 'N/A')}</span>
           <span className="text-gray-600 ml-2">
-            ({vendor.performance?.completedProjects || 0} projects)
+            ({vendor.performance?.completedProjects || 0} {t('fm.vendors.projects', 'projects')})
           </span>
         </div>
 
@@ -233,15 +237,15 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Success Rate:</span>
+            <span className="text-sm text-gray-600">{t('fm.vendors.successRate', 'Success Rate')}:</span>
             <span className="text-sm font-medium">{vendor.performance?.successRate || 0}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Response Time:</span>
-            <span className="text-sm font-medium">{vendor.performance?.averageResponseTime || 'N/A'} hrs</span>
+            <span className="text-sm text-gray-600">{t('fm.vendors.responseTime', 'Response Time')}:</span>
+            <span className="text-sm font-medium">{vendor.performance?.averageResponseTime || t('properties.leases.na', 'N/A')} hrs</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Specializations:</span>
+            <span className="text-sm text-gray-600">{t('fm.vendors.specializations', 'Specializations')}:</span>
             <span className="text-sm font-medium">{vendor.business?.specializations?.length || 0}</span>
           </div>
         </div>
@@ -260,9 +264,43 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
       </CardContent>
     </Card>
   );
+
+  function getTypeLabel(type: string) {
+    switch (type) {
+      case 'SUPPLIER':
+        return t('fm.vendors.supplier', 'Supplier');
+      case 'CONTRACTOR':
+        return t('fm.vendors.contractor', 'Contractor');
+      case 'SERVICE_PROVIDER':
+        return t('fm.vendors.serviceProvider', 'Service Provider');
+      case 'CONSULTANT':
+        return t('fm.vendors.consultant', 'Consultant');
+      default:
+        return type?.toLowerCase() || '';
+    }
+  }
+
+  function getStatusLabel(status: string) {
+    switch (status) {
+      case 'PENDING':
+        return t('fm.vendors.pending', 'Pending');
+      case 'APPROVED':
+        return t('fm.vendors.approved', 'Approved');
+      case 'SUSPENDED':
+        return t('fm.vendors.suspended', 'Suspended');
+      case 'REJECTED':
+        return t('fm.vendors.rejected', 'Rejected');
+      case 'BLACKLISTED':
+        return t('fm.vendors.blacklisted', 'Blacklisted');
+      default:
+        return status?.toLowerCase() || '';
+    }
+  }
 }
 
 function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
+  const { t } = useTranslation();
+  
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -323,7 +361,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Company Name *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.vendors.companyName', 'Company Name')} *</label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -331,16 +369,16 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Type *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
-              <SelectValue placeholder="Select type" />
+              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="SUPPLIER">Supplier</SelectItem>
-              <SelectItem value="CONTRACTOR">Contractor</SelectItem>
-              <SelectItem value="SERVICE_PROVIDER">Service Provider</SelectItem>
-              <SelectItem value="CONSULTANT">Consultant</SelectItem>
+              <SelectItem value="SUPPLIER">{t('fm.vendors.supplier', 'Supplier')}</SelectItem>
+              <SelectItem value="CONTRACTOR">{t('fm.vendors.contractor', 'Contractor')}</SelectItem>
+              <SelectItem value="SERVICE_PROVIDER">{t('fm.vendors.serviceProvider', 'Service Provider')}</SelectItem>
+              <SelectItem value="CONSULTANT">{t('fm.vendors.consultant', 'Consultant')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -348,7 +386,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Contact Name *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.vendors.contactName', 'Contact Name')} *</label>
           <Input
             value={formData.contact.primary.name}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, name: e.target.value}}})}
@@ -356,7 +394,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Email *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.email', 'Email')} *</label>
           <Input
             type="email"
             value={formData.contact.primary.email}
@@ -368,14 +406,14 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Phone</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.phone', 'Phone')}</label>
           <Input
             value={formData.contact.primary.phone}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, phone: e.target.value}}})}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Mobile</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.mobile', 'Mobile')}</label>
           <Input
             value={formData.contact.primary.mobile}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, mobile: e.target.value}}})}
@@ -385,7 +423,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">City *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.city', 'City')} *</label>
           <Input
             value={formData.contact.address.city}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, address: {...formData.contact.address, city: e.target.value}}})}
@@ -393,7 +431,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Region *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.region', 'Region')} *</label>
           <Input
             value={formData.contact.address.region}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, address: {...formData.contact.address, region: e.target.value}}})}
@@ -403,7 +441,7 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Street Address *</label>
+        <label className="block text-sm font-medium mb-1">{t('fm.properties.streetAddress', 'Street Address')} *</label>
         <Input
           value={formData.contact.address.street}
           onChange={(e) => setFormData({...formData, contact: {...formData.contact, address: {...formData.contact.address, street: e.target.value}}})}
@@ -413,10 +451,9 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
-          Create Vendor
+          {t('fm.vendors.createVendor', 'Create Vendor')}
         </Button>
       </div>
     </form>
   );
 }
-
