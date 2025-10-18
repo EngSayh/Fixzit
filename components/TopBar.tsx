@@ -284,8 +284,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
                 style={{
                   top: '4rem',
-                  right: isRTL ? 'auto' : '1rem',
-                  left: isRTL ? '1rem' : 'auto'
+                  [isRTL ? 'left' : 'right']: '1rem'
                 }}
               >
                 <div className="p-3 border-b border-gray-200 flex items-center justify-between">
@@ -398,32 +397,31 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-48 max-w-[calc(100vw-2rem)]"
                 style={{
                   top: '4rem',
-                  right: isRTL ? 'auto' : '1rem',
-                  left: isRTL ? '1rem' : 'auto'
+                  [isRTL ? 'left' : 'right']: '1rem'
                 }}
               >
-                <a 
-                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors" 
-                href="/profile"
-                onClick={() => setUserOpen(false)}
-              >
-                {t('nav.profile', 'Profile')}
-              </a>
-              <a 
-                className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors" 
-                href="/settings"
-                onClick={() => setUserOpen(false)}
-              >
-                {t('nav.settings', 'Settings')}
-              </a>
-              <div className="border-t my-1 mx-2" />
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors"
-                onClick={handleLogout}
-              >
-                {t('common.logout', 'Sign out')}
-              </button>
-            </div>
+                <Link
+                  href="/profile"
+                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+                  onClick={() => setUserOpen(false)}
+                >
+                  {t('nav.profile', 'Profile')}
+                </Link>
+                <Link
+                  href="/settings"
+                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+                  onClick={() => setUserOpen(false)}
+                >
+                  {t('nav.settings', 'Settings')}
+                </Link>
+                <div className="border-t my-1 mx-2" />
+                <button
+                  className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
+                  onClick={handleLogout}
+                >
+                  {t('common.logout', 'Sign out')}
+                </button>
+              </div>
             </Portal>
           )}
         </div>
