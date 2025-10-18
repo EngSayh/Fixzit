@@ -83,6 +83,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
   const router = useRouter();
   const { t, isRTL } = useTranslation();
@@ -108,9 +109,9 @@ export default function LoginPage() {
       let loginData: Record<string, unknown> = {};
 
       if (loginMethod === 'personal') {
-        loginData = { email, password, loginType: 'personal' };
+        loginData = { email, password, loginType: 'personal', rememberMe };
       } else if (loginMethod === 'corporate') {
-        loginData = { employeeNumber, password, loginType: 'corporate' };
+        loginData = { employeeNumber, password, loginType: 'corporate', rememberMe };
       } else {
         throw new Error('Invalid login method');
       }
@@ -356,6 +357,20 @@ export default function LoginPage() {
                     </div>
                   </>
                 )}
+
+                {/* Remember Me Checkbox */}
+                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
+                  />
+                  <label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer select-none">
+                    {t('login.rememberMe', 'Remember me for 30 days')}
+                  </label>
+                </div>
 
                 {/* Forgot Password */}
                 <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
