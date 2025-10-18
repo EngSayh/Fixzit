@@ -297,10 +297,7 @@ export function can(
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
   if (ctx.role === Role.TENANT && action !== 'create') {
-    // Allow tenants to view their own work orders, restrict other actions
-    if (action === 'view') {
-      return ctx.requesterUserId ? ctx.requesterUserId === ctx.userId : true;
-    }
+    // Tenants can only access their own work orders - enforce strict ownership
     return ctx.requesterUserId === ctx.userId;
   }
 

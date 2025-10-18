@@ -53,6 +53,9 @@
       "@/*": [
         "./*"
       ],
+      "@/server/*": [
+        "./server/*"
+      ],
       "@components/*": [
         "./components/*"
       ],

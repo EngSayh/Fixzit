@@ -125,4 +125,4 @@ The fix IS working. You just have a persistent cookie in your browser.
 \`\`\`
 
 **That's the proof the fix works!**
-pnpm lint
+
