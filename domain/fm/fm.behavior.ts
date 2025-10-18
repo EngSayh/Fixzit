@@ -558,7 +558,6 @@ export function smokeTests() {
   };
   console.assert(can(SubmoduleKey.WO_TRACK_ASSIGN, 'submit_estimate', techCtx), 'Tech can submit estimate when assigned');
 }
-```
 
 /* =========================
  * 10) Helper: FSM guard example
@@ -573,15 +572,20 @@ export function hasRequiredMedia(ctx: ResourceCtx, mediaType: 'BEFORE' | 'AFTER'
   }
   return ctx.uploadedMedia.includes(mediaType);
 }
-```
+
+/**
+ * Validate FSM state transition with media and guard checks
+ */
+export function canTransition(
+  t: { requireMedia?: string[]; guard?: string },
+  ctx: ResourceCtx
+): boolean {
+  // Check required media attachments
+  if (t.requireMedia?.includes('BEFORE') && !hasRequiredMedia(ctx, 'BEFORE')) return false;
   if (t.requireMedia?.includes('AFTER') && !hasRequiredMedia(ctx, 'AFTER')) return false;
+  
   // Check guard condition for technician assignment
-  const transition = t as { guard?: string };
-  if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
-  return true;
-}
-  // Check guard condition for technician assignment
-  const transition = t as { guard?: string };
-  if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+  if (t.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+  
   return true;
 }
