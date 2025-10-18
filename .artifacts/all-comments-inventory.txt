@@ -1,0 +1,28 @@
+./lib/fm-approval-engine.ts:73:    approvers: [], // TODO: Query users by role in org/property
+./lib/fm-approval-engine.ts:208:          // TODO: Query and add user IDs for escalation roles
+./lib/fm-approval-engine.ts:431:      // TODO: Send escalation notifications
+./lib/fm-approval-engine.ts:447:  // TODO: Implement notification sending
+./lib/fm-auth-middleware.ts:124:    plan: Plan.PRO, // TODO: Get from user/org subscription
+./lib/fm-auth-middleware.ts:125:    isOrgMember: true // TODO: Verify org membership
+./lib/fm-auth-middleware.ts:164:    plan: Plan.PRO, // TODO: Get from user/org subscription
+./lib/fm-auth-middleware.ts:165:    isOrgMember: true // TODO: Verify org membership
+./lib/fm-auth-middleware.ts:177:    // TODO: Query FMProperty model for ownership
+./lib/auth.ts:51:  // NOTE: Tokens will not persist across restarts in development
+./lib/fm-finance-hooks.ts:94:  // TODO: Save to FMFinancialTxn collection
+./lib/fm-finance-hooks.ts:118:    // TODO: Save to FMFinancialTxn collection
+./lib/fm-finance-hooks.ts:145:  // TODO: Query existing statement or create new one
+./lib/fm-finance-hooks.ts:172:  // TODO: Query FMFinancialTxn collection for transactions in period
+./lib/fm-finance-hooks.ts:201:  // TODO: Query FMFinancialTxn collection
+./lib/fm-finance-hooks.ts:214:  // TODO: Create payment transaction and update invoice status
+./lib/fm-notifications.ts:188:  // TODO: Integrate with FCM or Web Push
+./lib/fm-notifications.ts:199:  // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
+./lib/fm-notifications.ts:210:  // TODO: Integrate with SMS gateway (Twilio, AWS SNS, etc.)
+./lib/fm-notifications.ts:221:  // TODO: Integrate with WhatsApp Business API
+./hooks/useFMPermissions.ts:33:  // TODO: Replace with actual session hook when available
+./hooks/useFMPermissions.ts:62:    plan: Plan.PRO // TODO: Get from user/org subscription
+./hooks/useFMPermissions.ts:82:      isOrgMember: true // TODO: Verify org membership
+./scripts/phase1-truth-verifier.js:252:          content.includes('// TODO') ||
+./scripts/reality-check.js:134:          content.includes('// TODO') ||
+./next-env.d.ts:5:// NOTE: This file should not be edited
+./smart-merge-conflicts.ts:138:      '// TODO: Review this merge - both sides had changes',
+./tests/models/MarketplaceProduct.test.ts:1:// NOTE: Test framework: Jest (default assumption when tests/*.test.ts pattern is present).

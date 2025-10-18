@@ -6,7 +6,7 @@
  */
 
 import { APPROVAL_POLICIES, Role } from '@/domain/fm/fm.behavior';
-import { FMApproval } from '@/src/server/models/FMApproval';
+import { FMApproval, type FMApprovalDoc } from '@/src/server/models/FMApproval';
 import type { Schema } from 'mongoose';
 
 export interface ApprovalRequest {
@@ -280,13 +280,13 @@ export async function getWorkflowById(workflowId: string, orgId: string): Promis
     const approval = await FMApproval.findOne({ 
       workflowId, 
       orgId 
-    }).lean();
+    }).lean<FMApprovalDoc>();
     
     if (!approval) return null;
 
     // Convert FMApproval to ApprovalWorkflow format
     return {
-      requestId: approval.workflowId.toString(),
+      requestId: workflowId,
       quotationId: approval.entityId.toString(),
       workOrderId: approval.entityId.toString(),
       stages: [{
@@ -302,8 +302,8 @@ export async function getWorkflowById(workflowId: string, orgId: string): Promis
       currentStage: approval.currentStage,
       status: approval.status === 'APPROVED' ? 'approved' :
               approval.status === 'REJECTED' ? 'rejected' : 'pending',
-      createdAt: approval.createdAt as Date,
-      updatedAt: approval.updatedAt as Date
+      createdAt: approval.createdAt,
+      updatedAt: approval.updatedAt
     };
   } catch (error) {
     console.error('[Approval] Failed to get workflow:', error);

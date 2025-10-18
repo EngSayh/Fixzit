@@ -441,22 +441,24 @@ WorkOrderSchema.pre('save', function(next) {
     ASSESSMENT: () => {
       // Requires BEFORE photo for physical work
       if (['REPAIR', 'MAINTENANCE', 'INSTALLATION'].includes(this.type)) {
-        return this.work?.beforePhotos && this.work.beforePhotos.length > 0;
+        const beforePhotos = this.attachments?.filter((att) => att.category === 'BEFORE');
+        return !!(beforePhotos && beforePhotos.length > 0);
       }
       return true;
     },
     ESTIMATE_PENDING: () => {
-      // Requires initial assessment notes
-      return !!this.work?.initialAssessment;
+      // Requires initial assessment notes or root cause analysis
+      return !!(this.work?.solutionDescription || this.work?.rootCause);
     },
     APPROVAL_PENDING: () => {
       // Requires cost estimate
-      return this.financial?.estimatedCost && this.financial.estimatedCost > 0;
+      return !!(this.financial?.estimatedCost && this.financial.estimatedCost > 0);
     },
     WORK_COMPLETE: () => {
       // Requires AFTER photos for physical work
       if (['REPAIR', 'MAINTENANCE', 'INSTALLATION'].includes(this.type)) {
-        return this.work?.afterPhotos && this.work.afterPhotos.length > 0;
+        const afterPhotos = this.attachments?.filter((att) => att.category === 'AFTER');
+        return !!(afterPhotos && afterPhotos.length > 0);
       }
       return true;
     },
@@ -466,7 +468,7 @@ WorkOrderSchema.pre('save', function(next) {
     },
     FINANCIAL_POSTING: () => {
       // Requires actual cost (set during finance auto-posting)
-      return this.financial?.actualCost && this.financial.actualCost > 0;
+      return !!(this.financial?.actualCost && this.financial.actualCost > 0);
     }
   };
 
