@@ -122,57 +122,63 @@ describe('TopBar', () => {
       expect(screen.getByTestId('app-switcher')).toBeInTheDocument();
     });
 
-    it('should render notification bell button', () => {
+    it('should render notification bell button', async () => {
       render(<TopBar />);
-      const notificationBtn = screen.getByLabelText(/notifications/i);
-      expect(notificationBtn).toBeInTheDocument();
+      await waitFor(() => {
+        const notificationBtn = screen.getByLabelText(/notifications/i);
+        expect(notificationBtn).toBeInTheDocument();
+      });
     });
 
-    it('should render user menu button', () => {
+    it('should render user menu button', async () => {
       render(<TopBar />);
-      const userMenuBtn = screen.getByLabelText(/user menu/i);
-      expect(userMenuBtn).toBeInTheDocument();
+      await waitFor(() => {
+        const userMenuBtn = screen.getByLabelText(/user menu/i);
+        expect(userMenuBtn).toBeInTheDocument();
+      });
     });
   });
 
   describe('Accessibility', () => {
-    it('should have proper ARIA labels on interactive elements', () => {
+    it('should have proper ARIA labels on interactive elements', async () => {
       render(<TopBar />);
-      expect(screen.getByLabelText(/notifications/i)).toHaveAttribute('aria-label');
-      expect(screen.getByLabelText(/user menu/i)).toHaveAttribute('aria-label');
+      await waitFor(() => {
+        expect(screen.getByLabelText(/notifications/i)).toHaveAttribute('aria-label');
+        expect(screen.getByLabelText(/user menu/i)).toHaveAttribute('aria-label');
+      });
     });
 
     it('should support keyboard navigation with Escape key', async () => {
       render(<TopBar />);
-      const userMenuBtn = screen.getByLabelText(/user menu/i);
+      const userMenuBtn = await screen.findByLabelText(/user menu/i);
       
       // Open user menu
       fireEvent.click(userMenuBtn);
       await waitFor(() => {
-        expect(screen.getByText(/sign out/i)).toBeVisible();
+        expect(screen.getByText(/sign out/i)).toBeInTheDocument();
       });
 
       // Press Escape
       fireEvent.keyDown(document, { key: 'Escape' });
       await waitFor(() => {
-        expect(screen.queryByText(/sign out/i)).not.toBeVisible();
+        expect(screen.queryByText(/sign out/i)).not.toBeInTheDocument();
       });
     });
 
     it('should close popups when clicking outside', async () => {
       render(<TopBar />);
-      const userMenuBtn = screen.getByLabelText(/user menu/i);
+      const userMenuBtn = await screen.findByLabelText(/user menu/i);
       
       // Open user menu
       fireEvent.click(userMenuBtn);
       await waitFor(() => {
-        expect(screen.getByText(/sign out/i)).toBeVisible();
+        expect(screen.getByText(/sign out/i)).toBeInTheDocument();
       });
 
       // Click outside
       fireEvent.mouseDown(document.body);
       await waitFor(() => {
-        expect(screen.queryByText(/sign out/i)).not.toBeVisible();
+        expect(screen.queryByText(/sign out/i)).not.toBeInTheDocument();
       });
     });
 
@@ -188,40 +194,40 @@ describe('TopBar', () => {
   describe('User Menu Interactions', () => {
     it('should toggle user menu on button click', async () => {
       render(<TopBar />);
-      const userMenuBtn = screen.getByLabelText(/user menu/i);
+      const userMenuBtn = await screen.findByLabelText(/user menu/i);
       
       // Initially closed
-      expect(screen.queryByText(/sign out/i)).not.toBeVisible();
+      expect(screen.queryByText(/sign out/i)).not.toBeInTheDocument();
 
       // Click to open
       fireEvent.click(userMenuBtn);
       await waitFor(() => {
-        expect(screen.getByText(/sign out/i)).toBeVisible();
+        expect(screen.getByText(/sign out/i)).toBeInTheDocument();
       });
 
       // Click to close
       fireEvent.click(userMenuBtn);
       await waitFor(() => {
-        expect(screen.queryByText(/sign out/i)).not.toBeVisible();
+        expect(screen.queryByText(/sign out/i)).not.toBeInTheDocument();
       });
     });
 
     it('should close notification popup when opening user menu', async () => {
       render(<TopBar />);
-      const notificationBtn = screen.getByLabelText(/notifications/i);
-      const userMenuBtn = screen.getByLabelText(/user menu/i);
+      const notificationBtn = await screen.findByLabelText(/notifications/i);
+      const userMenuBtn = await screen.findByLabelText(/user menu/i);
       
       // Open notifications
       fireEvent.click(notificationBtn);
       await waitFor(() => {
-        expect(screen.getByText(/no notifications/i)).toBeVisible();
+        expect(screen.getByText(/no new notifications/i)).toBeInTheDocument();
       });
 
       // Open user menu - should close notifications
       fireEvent.click(userMenuBtn);
       await waitFor(() => {
-        expect(screen.queryByText(/no notifications/i)).not.toBeVisible();
-        expect(screen.getByText(/sign out/i)).toBeVisible();
+        expect(screen.queryByText(/no new notifications/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/sign out/i)).toBeInTheDocument();
       });
     });
   });
@@ -320,23 +326,23 @@ describe('TopBar', () => {
   describe('Notifications', () => {
     it('should toggle notification popup on button click', async () => {
       render(<TopBar />);
-      const notificationBtn = screen.getByLabelText(/notifications/i);
+      const notificationBtn = await screen.findByLabelText(/notifications/i);
       
       // Initially closed
-      expect(screen.queryByText(/no notifications/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/no new notifications/i)).not.toBeInTheDocument();
 
       // Click to open
       fireEvent.click(notificationBtn);
       
       // Wait for notification popup to appear
       await waitFor(() => {
-        expect(screen.getByText(/no notifications/i)).toBeInTheDocument();
+        expect(screen.getByText(/no new notifications/i)).toBeInTheDocument();
       }, { timeout: 3000 });
 
       // Click to close
       fireEvent.click(notificationBtn);
       await waitFor(() => {
-        expect(screen.queryByText(/no notifications/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/no new notifications/i)).not.toBeInTheDocument();
       });
     });
   });
