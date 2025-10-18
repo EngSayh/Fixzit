@@ -51,29 +51,20 @@
       "@/*": [
         "./*"
       ],
-      "@/server/*": [
-        "./server/*"
-      ],
-      "@modules/*": [
-        "./src/modules/*"
-      ],
       "@components/*": [
-        "./src/components/*"
+        "./components/*"
       ],
       "@lib/*": [
-        "./src/lib/*"
+        "./lib/*"
       ],
       "@hooks/*": [
-        "./src/hooks/*"
-      ],
-      "@schemas/*": [
-        "./src/schemas/*"
+        "./hooks/*"
       ],
       "@types/*": [
-        "./src/types/*"
+        "./types/*"
       ],
       "@utils/*": [
-        "./src/utils/*"
+        "./utils/*"
       ]
     }
   },
