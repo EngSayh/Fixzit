@@ -198,24 +198,9 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // Redirect based on user role - only for root, allow /login page
-      // This allows users to access login page to switch accounts or re-authenticate
-      if (pathname === '/') {
-        // Redirect to appropriate dashboard based on role
-        if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
-          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
-        } else if (user.role === 'TENANT') {
-          return NextResponse.redirect(new URL('/fm/properties', request.url));
-        } else if (user.role === 'VENDOR') {
-          return NextResponse.redirect(new URL('/fm/marketplace', request.url));
-        } else {
-          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
-        }
-      }
-      
-      // Allow authenticated users to access /login page
-      // (e.g., to switch accounts or if they want to re-login)
-      if (pathname === '/login') {
+      // Allow authenticated users to access root and login pages
+      // Do NOT auto-redirect - let users explicitly navigate
+      if (pathname === '/' || pathname === '/login') {
         return NextResponse.next();
       }
 
