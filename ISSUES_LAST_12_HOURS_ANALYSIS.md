@@ -339,7 +339,38 @@ pnpm dev
 ```
 
 **Result**: ✅ **Running** on localhost:3000
-**Warnings**: 1x Webpack/Turbopack config mismatch (non-blocking)
+
+#### Dev Server Warnings
+
+**Warning**: `Webpack is configured while Turbopack is not` (non-blocking)
+
+**Status**: ✅ **EXPECTED AND SAFE TO IGNORE**
+
+**Explanation**:
+
+- The project uses **Turbopack** in development mode (`pnpm dev` runs with `--turbo` flag)
+- Next.js displays this warning because `next.config.js` contains webpack configuration
+- **Why this happens**: The webpack config is intentionally present for **production builds only**
+- **In development**: Turbopack ignores webpack config (this is by design)
+- **In production**: `pnpm build` uses Webpack and applies all optimizations
+
+**How to Reproduce**:
+
+```bash
+# This triggers the warning:
+pnpm dev  # Uses Turbopack (--turbo flag)
+
+# This does NOT trigger the warning:
+pnpm dev:webpack  # Uses Webpack in dev mode (slower)
+```
+
+**When to Be Concerned**: Never - this is intentional architecture
+
+- ✅ Development uses Turbopack (fast bundler for dev)
+- ✅ Production uses Webpack (mature, stable, with optimizations)
+- ✅ Both modes work correctly for their intended purpose
+
+**Reference**: See `next.config.js` lines 90-106 for detailed inline documentation
 
 ### 6.4 Build Status
 
