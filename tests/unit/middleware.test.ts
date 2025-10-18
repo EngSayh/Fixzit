@@ -342,7 +342,7 @@ describe('Middleware', () => {
       expect(response?.status).toBe(500); // Internal server error
     });
 
-    it('should decode token and attach user info to headers', async () => {
+    it('should allow valid JWT to proceed without errors', async () => {
       const jwt = require('jsonwebtoken');
       const mockDecoded = {
         userId: '123',
@@ -356,25 +356,9 @@ describe('Middleware', () => {
       });
       const response = await middleware(request);
       
-      // Middleware should add user info to request headers for downstream use
-      expect(response).toBeUndefined(); // Allowed to proceed
-    });
-  });
-
-  describe('CORS and Headers', () => {
-    it('should add security headers to responses', async () => {
-      const request = createMockRequest('/dashboard');
-      const response = await middleware(request);
-      
-      // Check for common security headers if implemented
-      // expect(response?.headers.get('X-Frame-Options')).toBe('DENY');
-    });
-  });
-
-  describe('Rate Limiting', () => {
-    it('should apply rate limiting to /api/auth/login', async () => {
-      // If rate limiting is implemented
-      // This would test that excessive requests return 429
+      // Middleware allows request to proceed when JWT is valid
+      expect(response).toBeUndefined();
+      expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'test-secret-key-for-testing-only');
     });
   });
 });
