@@ -303,7 +303,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               <div 
                 role="dialog"
                 aria-label="Notifications"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
+                className="notification-container fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
                 style={{
                   top: '4rem',
                   [isRTL ? 'right' : 'left']: '1rem'
@@ -416,7 +416,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               <div 
                 role="menu"
                 aria-label="User menu"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-48 max-w-[calc(100vw-2rem)]"
+                className="user-menu-container fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-48 max-w-[calc(100vw-2rem)]"
                 style={{
                   top: '4rem',
                   [isRTL ? 'right' : 'left']: '1rem'
