@@ -1,5 +1,9 @@
 'use client';
 
+// NOTE: This file uses horizontal flex layout (WITHOUT flex-col)
+// DO NOT apply flex-col transformations via batch scripts
+// See: fix-layout-batch.sh should exclude this file from pattern matching
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
