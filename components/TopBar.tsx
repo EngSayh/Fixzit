@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, User, ChevronDown, Search } from 'lucide-react';
+import { Bell, User, ChevronDown, Search, Globe, DollarSign } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
 import AppSwitcher from './topbar/AppSwitcher';
@@ -9,6 +9,7 @@ import GlobalSearch from './topbar/GlobalSearch';
 import QuickActions from './topbar/QuickActions';
 import Portal from './Portal';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
@@ -65,6 +66,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -99,6 +102,53 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     };
     checkAuth();
   }, []);
+
+  // Check for unsaved changes (detect form modifications)
+  useEffect(() => {
+    const checkUnsavedChanges = () => {
+      const forms = document.querySelectorAll('form');
+      let hasChanges = false;
+      forms.forEach(form => {
+        if (form.dataset.modified === 'true') {
+          hasChanges = true;
+        }
+      });
+      setHasUnsavedChanges(hasChanges);
+    };
+
+    // Check periodically
+    const interval = setInterval(checkUnsavedChanges, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle logo click with unsaved changes check
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      setShowUnsavedDialog(true);
+    } else {
+      router.push('/');
+    }
+  };
+
+  // Handle save and navigate
+  const handleSaveAndNavigate = () => {
+    // Trigger form submission on the page
+    const forms = document.querySelectorAll('form[data-modified="true"]');
+    if (forms.length > 0) {
+      const form = forms[0] as HTMLFormElement;
+      form.requestSubmit();
+    }
+    setShowUnsavedDialog(false);
+    setTimeout(() => router.push('/'), 500);
+  };
+
+  // Handle discard and navigate
+  const handleDiscardAndNavigate = () => {
+    setShowUnsavedDialog(false);
+    setHasUnsavedChanges(false);
+    router.push('/');
+  };
 
   // Define fetchNotifications before using it
   const fetchNotifications = useCallback(async () => {
@@ -235,9 +285,23 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div className={`font-bold ${screenInfo.isMobile ? 'text-base' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
-          {t('common.brand', 'FIXZIT ENTERPRISE')}
-        </div>
+        {/* Logo with unsaved changes handler */}
+        <button
+          onClick={handleLogoClick}
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          aria-label="Go to home"
+        >
+          <Image
+            src="/img/logo.jpg"
+            alt="Fixzit Enterprise"
+            width={32}
+            height={32}
+            className="rounded-md"
+          />
+          <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
+            {t('common.brand', 'FIXZIT ENTERPRISE')}
+          </span>
+        </button>
         <AppSwitcher />
       </div>
       
@@ -256,10 +320,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Only show QuickActions for authenticated users */}
         {isAuthenticated && <QuickActions />}
-        <div className="flex items-center gap-2">
-          <LanguageSelector variant="compact" />
-          <CurrencySelector variant="compact" />
-        </div>
+        {/* Removed language and currency selectors - moved to profile dropdown */}
         {/* Only show notifications for authenticated users */}
         {isAuthenticated && (
           <div className="notification-container relative">
@@ -394,7 +455,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               <div 
                 role="menu"
                 aria-label="User menu"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-48 max-w-[calc(100vw-2rem)]"
+                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
                 style={{
                   top: '4rem',
                   [isRTL ? 'left' : 'right']: '1rem'
@@ -402,20 +463,35 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               >
                 <Link
                   href="/profile"
-                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                  role="menuitem"
                   onClick={() => setUserOpen(false)}
                 >
                   {t('nav.profile', 'Profile')}
                 </Link>
                 <Link
                   href="/settings"
-                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                  role="menuitem"
                   onClick={() => setUserOpen(false)}
                 >
                   {t('nav.settings', 'Settings')}
                 </Link>
+                
+                {/* Language & Currency Section */}
+                <div className="border-t my-1 mx-2" />
+                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                  {t('common.preferences', 'Preferences')}
+                </div>
+                <div className="px-4 py-2 space-y-2">
+                  <LanguageSelector variant="default" />
+                  <CurrencySelector variant="default" />
+                </div>
+                
                 <div className="border-t my-1 mx-2" />
                 <button
+                  type="button"
+                  role="menuitem"
                   className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
                   onClick={handleLogout}
                 >
@@ -426,6 +502,42 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           )}
         </div>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      {showUnsavedDialog && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t('common.unsavedChanges', 'Unsaved Changes')}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {t('common.unsavedChangesMessage', 'You have unsaved changes. Do you want to save them before leaving?')}
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowUnsavedDialog(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={handleDiscardAndNavigate}
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                >
+                  {t('common.discard', 'Discard')}
+                </button>
+                <button
+                  onClick={handleSaveAndNavigate}
+                  className="px-4 py-2 bg-[#0061A8] text-white hover:bg-[#004d86] rounded-md transition-colors"
+                >
+                  {t('common.saveAndContinue', 'Save & Continue')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
     </header>
   );
 }
