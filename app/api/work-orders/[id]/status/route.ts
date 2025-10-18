@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
-import { WORK_ORDER_FSM, WOStatus } from "@/domain/fm/fm.behavior";
+import { WORK_ORDER_FSM } from "@/domain/fm/fm.behavior";
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';

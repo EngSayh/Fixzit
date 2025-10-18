@@ -223,8 +223,8 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
  * Get pending approvals for a user
  */
 export async function getPendingApprovalsForUser(
-  userId: string,
-  userRole: Role
+  _userId: string,
+  _userRole: Role
 ): Promise<ApprovalWorkflow[]> {
   // TODO: Query FMApproval collection
   // For now, return empty array

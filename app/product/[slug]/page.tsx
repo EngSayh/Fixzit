@@ -4,6 +4,32 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
+interface Product {
+  title?: string | { en?: string };
+  brand?: string;
+  standards?: string[];
+  buy?: {
+    price?: number;
+    currency?: string;
+    leadDays?: number;
+    uom?: string;
+    minQty?: number;
+  };
+  stock?: {
+    onHand?: number;
+    reserved?: number;
+  };
+  [key: string]: unknown;
+}
+
+interface ApiResponse {
+  data?: {
+    product?: Product;
+  };
+  product?: Product;
+  [key: string]: unknown;
+}
+
 async function fetchPdp(slug: string) {
   const res = await fetch(`/api/marketplace/products/${slug}`, {
     cache: 'no-store',
@@ -14,7 +40,7 @@ async function fetchPdp(slug: string) {
 
 export default function ProductPage(props: { params: Promise<{ slug: string }> }) {
   const { t } = useTranslation();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -49,7 +75,9 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
         <div className="aspect-square bg-gray-50 rounded overflow-hidden" />
       </div>
       <div className="col-span-12 md:col-span-6 space-y-4">
-        <h1 className="text-2xl font-semibold">{p?.title?.en ?? p?.title}</h1>
+        <h1 className="text-2xl font-semibold">
+          {typeof p?.title === 'object' && p.title?.en ? p.title.en : (typeof p?.title === 'string' ? p.title : '')}
+        </h1>
         <ul className="list-disc pl-5 text-sm text-gray-700">
           {[
             { key: t('product.brand', 'Brand'), value: p?.brand },

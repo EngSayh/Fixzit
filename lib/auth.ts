@@ -4,8 +4,9 @@ import { randomBytes } from 'crypto';
 import { User } from '@/server/models/User';
 import { db } from '@/lib/mongo';
 
-// Type definition for User document
-interface UserDocument {
+// Type definition for User document - used as documentation reference
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _UserDocument {
   _id: { toString(): string };
   email: string;
   password: string; // Changed from passwordHash

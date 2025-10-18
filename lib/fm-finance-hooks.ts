@@ -3,8 +3,6 @@
  * Automatically creates financial transactions when work orders are closed
  */
 
-import { WOStatus } from '@/domain/fm/fm.behavior';
-
 export interface WorkOrderFinancialData {
   workOrderId: string;
   propertyId: string;
@@ -198,7 +196,7 @@ export async function generateOwnerStatement(
  * Get pending invoices for tenant
  */
 export async function getTenantPendingInvoices(
-  tenantId: string
+  _tenantId: string
 ): Promise<FinancialTransaction[]> {
   // TODO: Query FMFinancialTxn collection
   return [];
