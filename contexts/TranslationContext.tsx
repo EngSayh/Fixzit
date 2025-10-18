@@ -932,7 +932,6 @@ const translations: Record<Language, Record<string, string>> = {
     'common.info': 'Info',
     'common.password': 'Password',
     'common.email': 'Email',
-    'common.remember': 'Remember me',
     'common.forgotPassword': 'Forgot password?',
     'common.signUp': 'Sign up',
     'common.or': 'OR',
