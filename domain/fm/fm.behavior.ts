@@ -554,6 +554,8 @@ export function canTransition(from: WOStatus, to: WOStatus, actorRole: Role, ctx
   if (!t) return false;
   if (t.requireMedia?.includes('BEFORE') && !ctx) return false;
   if (t.requireMedia?.includes('AFTER') && !ctx) return false;
-  if ((t as any).guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+  // Check guard condition for technician assignment
+  const transition = t as { guard?: string };
+  if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
   return true;
 }
