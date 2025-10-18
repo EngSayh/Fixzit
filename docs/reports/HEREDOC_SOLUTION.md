@@ -20,6 +20,7 @@ Both the `replace_string_in_file` tool and heredoc functionality are now working
 **Location**: `scripts/replace-string-in-file.ts`
 
 **Features**:
+
 - Literal and regex search
 - Glob pattern support
 - Word-boundary matching
@@ -28,6 +29,7 @@ Both the `replace_string_in_file` tool and heredoc functionality are now working
 - Detailed JSON reporting
 
 **Usage**:
+
 ```bash
 # Literal replacement
 npm run replace:in-file -- --path "src/**/*.ts" --search "oldText" --replace "newText"
@@ -46,6 +48,7 @@ npm run replace:in-file -- --path "*.md" --search "test" --replace "exam" --dry-
 **PowerShell Native Support**: PowerShell DOES support heredoc via "here-strings"
 
 **Syntax**:
+
 ```powershell
 # Literal (no variable expansion) - USE FOR CODE
 $content = @'
@@ -65,6 +68,7 @@ $content | Set-Content -Path "file.txt" -Encoding UTF8
 ```
 
 **Helper Scripts**:
+
 - `Write-HereDoc.ps1` - Simple file creation helper
 - `PowerShell-Profile-Enhancement.ps1` - Profile functions
 
@@ -131,6 +135,7 @@ fs.writeFileSync('app/api/test/route.ts', content, 'utf8');
 ### replace_string_in_file Tests
 
 ✅ **Test 1: Literal replacement**
+
 ```bash
 echo "Hello World" > /tmp/test.txt
 npm run replace:in-file -- --path "/tmp/test.txt" --search "World" --replace "Universe"
@@ -139,12 +144,14 @@ cat /tmp/test.txt
 ```
 
 ✅ **Test 2: Dry-run mode**
+
 ```bash
 npm run replace:in-file -- --path "package.json" --search "fixzit-frontend" --replace "fixzit-frontend" --dry-run
 # Output: JSON with totalReplacements: 1, dryRun: true
 ```
 
 ✅ **Test 3: Glob patterns**
+
 ```bash
 npm run replace:in-file -- --path "src/**/*.ts" --search "test" --replace "exam" --dry-run
 # Output: Processes all matching TypeScript files
@@ -153,6 +160,7 @@ npm run replace:in-file -- --path "src/**/*.ts" --search "test" --replace "exam"
 ### Heredoc Tests
 
 ✅ **PowerShell Here-String**
+
 ```powershell
 $test = @'
 Line 1
@@ -163,6 +171,7 @@ $test | Set-Content -Path "test.txt"
 ```
 
 ✅ **Bash Heredoc**
+
 ```bash
 cat > test.txt << 'EOF'
 Line 1
@@ -247,23 +256,29 @@ foreach ($path in $routes.Keys) {
 ### replace_string_in_file Issues
 
 **Problem**: No files matched
+
 - **Solution**: Check glob pattern, use absolute paths if needed
 
 **Problem**: No replacements made
+
 - **Solution**: Verify search string case, use --dry-run to debug
 
 **Problem**: Regex not working
+
 - **Solution**: Escape special characters with `\\`, test pattern separately
 
 ### Heredoc Issues
 
 **Problem**: PowerShell here-string not working
+
 - **Solution**: Ensure `@'` and `'@` are on separate lines with no indentation
 
 **Problem**: Variables not expanding
+
 - **Solution**: Use `@"..."@` instead of `@'...'@` for variable expansion
 
 **Problem**: Special characters causing issues
+
 - **Solution**: Use literal here-string `@'...'@` for code with special chars
 
 ---
@@ -271,6 +286,7 @@ foreach ($path in $routes.Keys) {
 ## Files Created/Modified
 
 ### New Files
+
 - ✅ `scripts/replace-string-in-file.ts` - Main tool implementation
 - ✅ `scripts/README-replace-string-in-file.md` - Tool documentation
 - ✅ `HEREDOC_SOLUTION.md` - This document
@@ -279,6 +295,7 @@ foreach ($path in $routes.Keys) {
 - ✅ `POWERSHELL_HEREDOC_CONFIGURED.md` - PowerShell guide (already existed)
 
 ### Modified Files
+
 - ✅ `package.json` - Added `replace:in-file` script
 
 ---
@@ -291,6 +308,7 @@ Both issues are now resolved:
 2. **Heredoc**: PowerShell here-strings work perfectly, multiple methods available
 
 The system now has reliable tools for:
+
 - ✅ String replacement across files
 - ✅ File creation with multi-line content
 - ✅ Regex-based transformations

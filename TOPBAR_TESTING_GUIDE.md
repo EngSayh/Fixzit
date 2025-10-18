@@ -5,13 +5,14 @@
 ### 1. Access the Application
 
 1. In VS Code, open the **"Ports"** tab at the bottom
-2. Find port **3000** 
+2. Find port **3000**
 3. Click the **🌐 globe icon** to open in browser
 4. Navigate to any page with the TopBar (e.g., `/fm/dashboard`)
 
 ### 2. Test Popup Overlap Prevention
 
 #### Test 1: Single Popup at a Time
+
 1. Click the **Notifications bell** icon (if logged in)
    - ✅ Notification dropdown should appear
 2. While notifications are open, click the **User menu** (profile icon)
@@ -24,11 +25,13 @@
 **Expected**: Only ONE popup is visible at any time
 
 #### Test 2: Click Outside to Close
+
 1. Open any popup (notifications, user menu, language, currency, app switcher)
 2. Click anywhere outside the popup (on the page background)
    - ✅ Popup should close
 
 #### Test 3: Escape Key
+
 1. Open any popup
 2. Press the **Escape** key
    - ✅ Popup should close
@@ -36,6 +39,7 @@
 ### 3. Test Screen Fitting (Mobile Responsive)
 
 #### Desktop Test (> 768px)
+
 1. Open your browser at normal desktop width
 2. Open each popup:
    - Notifications
@@ -49,6 +53,7 @@
    - ✅ No horizontal scrolling
 
 #### Mobile Test (< 640px)
+
 1. Open browser DevTools (F12)
 2. Click "Toggle device toolbar" (phone icon) or press `Ctrl+Shift+M`
 3. Select a mobile device (e.g., iPhone 12, Pixel 5)
@@ -65,6 +70,7 @@
    - ✅ Popups are properly aligned (right or left)
 
 #### Tablet Test (640px - 768px)
+
 1. In DevTools, select iPad or set custom width to 768px
 2. Test all popups
 3. Check:
@@ -85,6 +91,7 @@
 ### 5. Test Specific Components
 
 #### App Switcher
+
 1. Click the app name next to the logo (e.g., "Facility Management")
 2. ✅ Dropdown shows FM, Souq, Aqar options
 3. ✅ Current app is highlighted
@@ -94,6 +101,7 @@
 7. ✅ Page navigates to new app
 
 #### Language Selector
+
 1. Click the **globe icon** with language flag
 2. ✅ Searchable language list appears
 3. Type in search box (e.g., "french")
@@ -105,6 +113,7 @@
 9. ✅ Interface language changes
 
 #### Currency Selector
+
 1. Click the **dollar icon** with currency code
 2. ✅ Searchable currency list appears
 3. Type in search box (e.g., "euro")
@@ -116,6 +125,7 @@
 9. ✅ Currency changes
 
 #### Notifications (Authenticated Users Only)
+
 1. Log in to the system
 2. Click the **bell icon**
 3. ✅ Notification list appears
@@ -127,6 +137,7 @@
 9. ✅ Dropdown closes
 
 #### User Menu
+
 1. Click the **user icon** with dropdown arrow
 2. ✅ Menu shows Profile, Settings, Sign out
 3. Hover over items
@@ -185,21 +196,25 @@ Test in multiple browsers:
 ## Common Issues to Watch For
 
 ### ❌ If Multiple Popups Open Simultaneously
+
 - **Problem**: Click handlers not working
 - **Check**: Browser console for JavaScript errors
 - **Solution**: Refresh page and try again
 
 ### ❌ If Popup Doesn't Close on Click Outside
+
 - **Problem**: Event listener not attached
 - **Check**: Popup has correct container class
 - **Solution**: Verify class names match (`.notification-container`, `.user-menu-container`, etc.)
 
 ### ❌ If Popup Overflows Screen
+
 - **Problem**: Responsive classes not applied
 - **Check**: Inspect element to verify `max-w-[calc(100vw-2rem)]` class exists
 - **Solution**: Clear cache and reload
 
 ### ❌ If Arrow Pointer Misaligned
+
 - **Problem**: RTL or positioning issue
 - **Check**: Verify language direction
 - **Solution**: Toggle language and back

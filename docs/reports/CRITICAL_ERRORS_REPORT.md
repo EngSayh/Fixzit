@@ -1,6 +1,7 @@
 # Critical Errors Report - System-Wide Scan
 
 ## Date: 2025-01-18
+
 ## Status: 🔴 CRITICAL ISSUES FOUND
 
 ---
@@ -8,6 +9,7 @@
 ## Executive Summary
 
 System-wide scan identified **10 critical issues** across multiple categories:
+
 - 🔴 **1 Critical Blocker**: req.ip usage
 - ⚠️ **6 Import/Module Errors**: Wrong paths, missing types
 - ⚠️ **3 Type Mismatches**: Can be suppressed but should be fixed
@@ -21,24 +23,28 @@ System-wide scan identified **10 critical issues** across multiple categories:
 **Severity**: 🔴 CRITICAL
 **Impact**: Security vulnerability, incorrect IP detection
 
-#### Locations Found:
+#### Locations Found
 
 1. **`server/plugins/auditPlugin.ts:4`**
+
 ```typescript
 ipAddress: req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0],
 ```
 
 2. **`src/server/plugins/auditPlugin.ts:4`**
+
 ```typescript
 ipAddress: req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0],
 ```
 
 3. **`tests/unit/api/qa/alert.route.test.ts`**
+
 ```typescript
 it('uses req.ip when x-forwarded-for header is missing', async () => {
 ```
 
-#### Fix Required:
+#### Fix Required
+
 ```typescript
 // ❌ WRONG
 ipAddress: req.ip || req.connection?.remoteAddress
@@ -49,7 +55,8 @@ ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0] ||
            "unknown"
 ```
 
-#### Why Critical:
+#### Why Critical
+
 - `req.ip` doesn't exist in Next.js Request objects
 - Causes runtime errors
 - Security issue: incorrect IP logging
@@ -65,18 +72,21 @@ ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0] ||
 **Impact**: Module not found error
 
 #### Location: `jobs/recurring-charge.ts:1`
+
 ```typescript
 // ❌ WRONG
 import { Subscription } from '../server/models/Subscription';
 ```
 
-#### Fix:
+#### Fix
+
 ```typescript
 // ✅ CORRECT
 import Subscription from '@/server/models/Subscription';
 ```
 
-#### Also Found In:
+#### Also Found In
+
 - `src/jobs/recurring-charge.ts` - Uses `'../db/models/Subscription'`
 
 ---
@@ -86,7 +96,8 @@ import Subscription from '@/server/models/Subscription';
 **Severity**: ⚠️ MEDIUM
 **Impact**: Module not found
 
-#### Search Required:
+#### Search Required
+
 ```bash
 find . -name "setup-indexes.ts" -type f
 ```
@@ -98,12 +109,14 @@ find . -name "setup-indexes.ts" -type f
 **Severity**: ⚠️ LOW
 **Impact**: TypeScript errors, but code may work
 
-#### Fix:
+#### Fix
+
 ```bash
 npm install --save-dev @types/babel__traverse
 ```
 
-#### Search for file:
+#### Search for file
+
 ```bash
 find . -name "dedupe-merge.ts" -type f
 ```
@@ -115,12 +128,14 @@ find . -name "dedupe-merge.ts" -type f
 **Severity**: ⚠️ LOW
 **Impact**: TypeScript errors
 
-#### Fix:
+#### Fix
+
 ```bash
 npm install --save-dev @types/js-yaml
 ```
 
-#### Note:
+#### Note
+
 `js-yaml` is already in package.json, just missing types
 
 ---
@@ -130,27 +145,34 @@ npm install --save-dev @types/js-yaml
 **Severity**: ⚠️ MEDIUM
 **Impact**: Potential module resolution issues
 
-#### Patterns Found:
+#### Patterns Found
 
 **Pattern 1: Named import (WRONG)**
+
 ```typescript
 import { Subscription } from '../server/models/Subscription';
 ```
+
 Found in: `jobs/recurring-charge.ts`
 
 **Pattern 2: Default import from old path**
+
 ```typescript
 import Subscription from '../db/models/Subscription';
 ```
+
 Found in: `src/jobs/recurring-charge.ts`, `src/services/*.ts`
 
 **Pattern 3: Correct import**
+
 ```typescript
 import Subscription from '@/server/models/Subscription';
 ```
+
 Found in: Most API routes
 
-#### Files Needing Fix:
+#### Files Needing Fix
+
 1. `jobs/recurring-charge.ts` - Change to default import
 2. `src/jobs/recurring-charge.ts` - Update path to `@/server/models/Subscription`
 3. `src/services/paytabs.ts` - Update path
@@ -166,12 +188,14 @@ Found in: Most API routes
 **Severity**: ⚠️ LOW
 **Impact**: TypeScript error, runtime may work
 
-#### Issue:
+#### Issue
+
 ```typescript
 // source property can be null but type doesn't allow it
 ```
 
-#### Fix:
+#### Fix
+
 ```typescript
 source: string | null
 ```
@@ -183,10 +207,12 @@ source: string | null
 **Severity**: ⚠️ LOW
 **Impact**: TypeScript error
 
-#### Issue:
+#### Issue
+
 Property type mismatch with number
 
-#### Search:
+#### Search
+
 ```bash
 find . -name "invoice.service.ts" -type f
 ```
@@ -198,10 +224,12 @@ find . -name "invoice.service.ts" -type f
 **Severity**: ⚠️ LOW
 **Impact**: TypeScript error
 
-#### Issue:
+#### Issue
+
 Subdocument type mismatch
 
-#### Search:
+#### Search
+
 ```bash
 find . -name "Application.ts" -type f
 ```
@@ -213,14 +241,16 @@ find . -name "Application.ts" -type f
 **Severity**: ⚠️ MEDIUM
 **Impact**: ZATCA integration may fail
 
-#### Issue:
+#### Issue
+
 ```typescript
 interface ZATCAData {
   // missing: vat property
 }
 ```
 
-#### Fix:
+#### Fix
+
 ```typescript
 interface ZATCAData {
   vat: number;
@@ -233,21 +263,25 @@ interface ZATCAData {
 ## 🔍 Detailed Search Commands
 
 ### Find All req.ip Usage
+
 ```bash
 grep -r "req\.ip" --include="*.ts" --include="*.tsx" . | grep -v node_modules
 ```
 
 ### Find All Subscription Imports
+
 ```bash
 grep -r "import.*Subscription" --include="*.ts" . | grep -v node_modules
 ```
 
 ### Find Missing Type Packages
+
 ```bash
 grep -r "@types/" package.json
 ```
 
 ### Find All Route Files with [id]
+
 ```bash
 find . -path "*/\[id\]/*" -name "route.ts"
 ```
@@ -268,20 +302,24 @@ find . -path "*/\[id\]/*" -name "route.ts"
 ## 🛠️ Fix Strategy
 
 ### Phase 1: Critical Blockers (P0)
+
 1. Fix `req.ip` in `server/plugins/auditPlugin.ts`
 2. Fix `req.ip` in `src/server/plugins/auditPlugin.ts`
 3. Update test in `tests/unit/api/qa/alert.route.test.ts`
 
 ### Phase 2: Import Errors (P1)
+
 1. Fix `jobs/recurring-charge.ts` import
 2. Fix all `src/services/*.ts` imports
 3. Fix `src/jobs/recurring-charge.ts` import
 
 ### Phase 3: Missing Types (P2)
+
 1. Install `@types/babel__traverse`
 2. Install `@types/js-yaml`
 
 ### Phase 4: Type Mismatches (P3)
+
 1. Add null to source type in retrieval.ts
 2. Fix number type in invoice.service.ts
 3. Fix Subdocument type in Application.ts
@@ -292,6 +330,7 @@ find . -path "*/\[id\]/*" -name "route.ts"
 ## 🔧 Automated Fix Scripts
 
 ### Fix req.ip in auditPlugin.ts
+
 ```bash
 npx tsx scripts/replace-string-in-file.ts \
   --path "server/plugins/auditPlugin.ts" \
@@ -301,6 +340,7 @@ npx tsx scripts/replace-string-in-file.ts \
 ```
 
 ### Fix Subscription Imports
+
 ```bash
 # Fix jobs/recurring-charge.ts
 npx tsx scripts/replace-string-in-file.ts \
@@ -316,6 +356,7 @@ npx tsx scripts/replace-string-in-file.ts \
 ```
 
 ### Install Missing Types
+
 ```bash
 npm install --save-dev @types/babel__traverse @types/js-yaml
 ```
@@ -346,11 +387,13 @@ These files need manual inspection:
 ### Immediate Fixes (< 5 minutes)
 
 1. **Install missing types**:
+
    ```bash
    npm install --save-dev @types/babel__traverse @types/js-yaml
    ```
 
 2. **Fix recurring-charge.ts import**:
+
    ```bash
    # Edit jobs/recurring-charge.ts line 1
    # Change: import { Subscription } from '../server/models/Subscription';
@@ -358,6 +401,7 @@ These files need manual inspection:
    ```
 
 3. **Verify finance route fix**:
+
    ```bash
    grep "req.ip" app/api/finance/invoices/\[id\]/route.ts
    # Should return nothing if fixed

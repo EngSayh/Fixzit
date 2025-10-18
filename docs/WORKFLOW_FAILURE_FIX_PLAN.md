@@ -1,4 +1,5 @@
 # Workflow Failure Fix Plan
+
 **Status**: 🔴 CRITICAL - Blocking Production Deployment  
 **Date**: October 15, 2025  
 **Current Branch**: feat/batch2-code-improvements (PR #127)
@@ -6,8 +7,10 @@
 ## Root Cause Identified
 
 ### Primary Issue: Next.js Build Worker Termination
+
 **Error**: `Next.js build worker exited with code: null and signal: SIGTERM`  
 **Build Log Evidence**:
+
 ```log
 build (20.x/22.x) UNKNOWN STEP Failed to compile.
 Type error: Invalid value for '--ignoreDeprecations'.
@@ -24,12 +27,14 @@ Next.js build worker exited with code: 1 and signal: null
 ## Investigation Results
 
 ### Local Build Status
+
 - ✅ `pnpm typecheck`: **PASSES** (no TypeScript errors)
 - ✅ `pnpm lint`: **PASSES** (no ESLint errors)  
 - ❌ `pnpm build`: **FAILS** (SIGTERM during type validation)
 - ✅ Node.js v20.19.2 with 4144 MB heap limit
 
 ### GitHub Actions Build Status
+
 - ❌ **Node 20.x**: Fails with "Invalid value for '--ignoreDeprecations'"
 - ❌ **Node 22.x**: Fails with same error
 - ✅ Checkout & Setup: Working correctly
@@ -41,6 +46,7 @@ Next.js build worker exited with code: 1 and signal: null
 ### Phase 1: Immediate Fixes (PRIORITY 1)
 
 #### Fix 1.1: Optimize Next.js Build for CI
+
 **File**: `next.config.js`
 
 ⚠️ **CRITICAL WARNING**: These experimental settings MUST only be applied in CI environments!
@@ -66,15 +72,18 @@ typescript: {
 ```
 
 **Why CI-only?**
+
 - `workerThreads: false` disables parallel processing → 3-5x slower local builds
 - `cpus: 1` forces single-threaded execution → no benefit outside constrained CI
 - Local dev has sufficient resources, doesn't need these workarounds
 - CI environments have resource limits that cause worker thread crashes
 
 #### Fix 1.2: Update Webpack Workflow
+
 **File**: `.github/workflows/webpack.yml`
 
 **BEFORE**:
+
 ```yaml
 name: NodeJS with Webpack
 jobs:
@@ -96,6 +105,7 @@ jobs:
 ```
 
 **AFTER**:
+
 ```yaml
 name: NodeJS with Webpack
 on:
@@ -157,6 +167,7 @@ jobs:
 ```
 
 **Key Changes**:
+
 1. ✅ Added `timeout-minutes: 15` to prevent indefinite hangs
 2. ✅ Split build into separate steps (typecheck → lint → build)
 3. ✅ Added `cache: 'npm'` for faster installs
@@ -167,6 +178,7 @@ jobs:
 8. ✅ Used `npm ci` instead of `npm install`
 
 #### Fix 1.3: Add Package.json Build Scripts
+
 **File**: `package.json`
 
 ```json
@@ -207,6 +219,7 @@ gh pr close 120 121 122 123 124 -d "Duplicate automated analysis PRs - consolida
 ### Phase 3: Workflow Health Improvements (PRIORITY 3)
 
 #### 3.1: Add Workflow Caching
+
 Create `.github/workflows/cache-config.yml`:
 
 ```yaml
@@ -237,6 +250,7 @@ jobs:
 ```
 
 #### 3.2: Create Quality Gates Workflow
+
 Create `.github/workflows/quality-gates.yml`:
 
 ```yaml
@@ -366,18 +380,21 @@ bash scripts/cleanup-abandoned-branches.sh
 ## Success Criteria
 
 ### Immediate (Next 2 Hours)
+
 - [ ] Updated webpack.yml workflow
 - [ ] Updated next.config.js with CI optimizations
 - [ ] Committed and pushed fixes
 - [ ] GitHub Actions workflow running
 
 ### Short Term (Today)
+
 - [ ] PR #127 workflows passing (all green)
 - [ ] Abandoned branches deleted (10 branches)
 - [ ] Total workflow failures < 20
 - [ ] PR #127 merged to main
 
 ### Medium Term (This Week)
+
 - [ ] PR #126 fixed and merged
 - [ ] Quality Gates workflow created
 - [ ] Zero workflow failures on main branch
@@ -388,12 +405,14 @@ bash scripts/cleanup-abandoned-branches.sh
 If fixes don't work:
 
 1. **Revert workflow changes**:
+
    ```bash
    git revert HEAD
    git push origin feat/batch2-code-improvements
    ```
 
 2. **Alternative approach**: Disable type checking in CI temporarily:
+
    ```javascript
    // next.config.js
    typescript: {
@@ -402,6 +421,7 @@ If fixes don't work:
    ```
 
 3. **Nuclear option**: Use Docker build environment:
+
    ```yaml
    # .github/workflows/webpack.yml
    runs-on: ubuntu-latest
@@ -412,16 +432,19 @@ If fixes don't work:
 ## Risk Assessment
 
 ### Low Risk ✅
+
 - Workflow configuration changes (can revert easily)
 - Branch cleanup (no valuable work on those branches)
 - Next.js experimental config (well-documented feature)
 
 ### Medium Risk ⚠️
+
 - Memory limit changes (might not solve SIGTERM)
 - Removing Node 22.x from matrix (but 20.x is LTS)
 - Build step separation (might increase CI time)
 
 ### High Risk ❌
+
 - None identified
 
 ## Notes
@@ -445,6 +468,7 @@ If fixes don't work:
 ## Contact
 
 If issues persist:
+
 1. Check full workflow logs: `gh run view <run-id> --log`
 2. Compare with successful runs on main
 3. Review Next.js 15.5.5 breaking changes

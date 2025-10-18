@@ -25,7 +25,7 @@ Successfully completed comprehensive Jest→Vitest migration for 8 files that we
 
 ### Total Changes
 
-- **83+ runtime API conversions** (jest.* → vi.*)
+- **83+ runtime API conversions** (jest.*→ vi.*)
 - **17 inline jest.fn() fixes**
 - **8 Vitest import additions**
 - **8 framework comment updates**
@@ -37,6 +37,7 @@ Successfully completed comprehensive Jest→Vitest migration for 8 files that we
 ## Conversion Patterns Applied
 
 ### 1. Mock Creation
+
 ```typescript
 // Before
 jest.fn() → vi.fn()
@@ -47,6 +48,7 @@ jest.spyOn() → vi.spyOn()
 ```
 
 ### 2. Mock Utilities
+
 ```typescript
 // Before
 jest.mock()
@@ -66,6 +68,7 @@ vi.resetModules()
 ```
 
 ### 3. Timers
+
 ```typescript
 // Before
 jest.useFakeTimers()
@@ -83,6 +86,7 @@ vi.setSystemTime()
 ```
 
 ### 4. Module Mocking
+
 ```typescript
 // Before
 jest.doMock()
@@ -108,6 +112,7 @@ vi.importMock()
 **Problem:** Type-only migrations miss inline `jest.fn()` in object literals
 
 **Example:**
+
 ```typescript
 // MISSED by type-only script:
 const storage = () => {
@@ -119,6 +124,7 @@ const storage = () => {
 ```
 
 **Solution:**
+
 ```typescript
 const storage = () => {
   return {
@@ -129,6 +135,7 @@ const storage = () => {
 ```
 
 **Files Fixed:**
+
 - `tests/unit/components/ErrorBoundary.test.tsx` (4 inline)
 - `app/test/api_help_articles_route.test.ts` (7 inline)
 - `server/models/__tests__/Candidate.test.ts` (5 inline)
@@ -141,6 +148,7 @@ const storage = () => {
 **Problem:** Vitest doesn't support `{ virtual: true }` parameter
 
 **Example:**
+
 ```typescript
 // BEFORE (Jest-style):
 vi.doMock('@/lib/mongo', () => ({ isMockDB: true }), { virtual: true });
@@ -149,6 +157,7 @@ vi.doMock('@/lib/mongo', () => ({ isMockDB: true }), { virtual: true });
 ```
 
 **Solution:**
+
 ```typescript
 // AFTER:
 vi.doMock('@/lib/mongo', () => ({ isMockDB: true }));
@@ -156,6 +165,7 @@ vi.doMock('@/lib/mongo', () => ({ isMockDB: true }));
 ```
 
 **Files Fixed:**
+
 - `server/models/__tests__/Candidate.test.ts` (9 occurrences)
 
 ---
@@ -165,6 +175,7 @@ vi.doMock('@/lib/mongo', () => ({ isMockDB: true }));
 **Problem:** `vi.importMock()` returns a Promise, can't destructure directly
 
 **Example:**
+
 ```typescript
 // BEFORE (incorrect):
 const { NextResponse } = vi.importMock('next/server');
@@ -175,6 +186,7 @@ expect(NextResponse.json).toHaveBeenCalledTimes(1);  // ❌ NextResponse is unde
 ```
 
 **Solution:**
+
 ```typescript
 // AFTER (correct):
 vi.mock('next/server', () => ({
@@ -190,6 +202,7 @@ expect(NextResponse.json).toHaveBeenCalledTimes(1);  // ✅ Works
 ```
 
 **Files Fixed:**
+
 - `app/test/api_help_articles_route.test.ts`
 
 ---
@@ -199,6 +212,7 @@ expect(NextResponse.json).toHaveBeenCalledTimes(1);  // ✅ Works
 **Problem:** Vitest doesn't have `vi.isolateModulesAsync()`
 
 **Example:**
+
 ```typescript
 // BEFORE (Jest-style):
 await jest.isolateModulesAsync(async () => {
@@ -210,6 +224,7 @@ await jest.isolateModulesAsync(async () => {
 ```
 
 **Solution:**
+
 ```typescript
 // AFTER:
 vi.resetModules();  // ✅ Direct call, no wrapper needed
@@ -217,6 +232,7 @@ await import('../Candidate');
 ```
 
 **Files Fixed:**
+
 - `server/models/__tests__/Candidate.test.ts`
 
 ---
@@ -226,6 +242,7 @@ await import('../Candidate');
 **Problem:** Old jest-dom import path not found
 
 **Example:**
+
 ```typescript
 // BEFORE:
 import '@testing-library/jest-dom/extend-expect';
@@ -234,6 +251,7 @@ import '@testing-library/jest-dom/extend-expect';
 ```
 
 **Solution:**
+
 ```typescript
 // AFTER:
 import '@testing-library/jest-dom';
@@ -241,6 +259,7 @@ import '@testing-library/jest-dom';
 ```
 
 **Files Fixed:**
+
 - `app/test/help_ai_chat_page.test.tsx`
 
 ---
@@ -248,6 +267,7 @@ import '@testing-library/jest-dom';
 ## Verification Results
 
 ### Compilation
+
 ✅ All 8 files compile without errors  
 ✅ 0 remaining compile errors  
 ✅ TypeScript happy
@@ -255,18 +275,21 @@ import '@testing-library/jest-dom';
 ### Runtime Tests
 
 #### `server/security/idempotency.spec.ts`
+
 ```
 ✅ 8/10 tests passing
 ❌ 2 tests failing (logic issues, not migration)
 ```
 
 #### `app/api/marketplace/categories/route.test.ts`
+
 ```
 ✅ Loads and runs with Vitest
 ❌ Some tests fail (mock configuration issues, not migration)
 ```
 
 ### Code Quality
+
 ✅ No `jest.*` references in runtime code  
 ✅ Framework comments updated  
 ✅ Vitest imports present in all files  
@@ -277,6 +300,7 @@ import '@testing-library/jest-dom';
 ## Commits
 
 ### 1. `689778d9` - Bulk Migration
+
 ```
 fix(tests): complete Jest→Vitest migration with imports and inline fixes
 
@@ -291,6 +315,7 @@ Files: 12 changed, 200+ insertions, 150+ deletions
 ```
 
 ### 2. `294c16dd` - Final Import Fix
+
 ```
 fix(tests): fix vi.importMock usage and add NextResponse import
 
@@ -302,6 +327,7 @@ Files: 1 changed, 1 insertion, 2 deletions
 ```
 
 ### 3. `4589c8f2` - Documentation
+
 ```
 docs: document completion of Jest→Vitest migration for 8 hybrid files
 
@@ -316,29 +342,35 @@ Files: 1 changed, 76 insertions, 2 deletions
 ## Lessons Learned
 
 ### 1. Type-Only Migrations Are Incomplete
+
 **Issue:** Previous script only changed type assertions (`as jest.Mock` → `as ReturnType<typeof vi.fn>`)  
 **Impact:** Left runtime calls as `jest.fn()`, creating hybrid states  
 **Solution:** Must convert BOTH types AND runtime calls together
 
 ### 2. Inline Functions Need Special Handling
+
 **Issue:** Object literal inline functions not caught by simple replacements  
 **Impact:** Hidden `jest.fn()` calls in nested objects  
 **Solution:** Target specific patterns with more complex regex/sed
 
 ### 3. API Differences Matter
+
 **Issue:** Vitest has different API constraints than Jest  
 **Examples:**
+
 - No `{ virtual: true }` option
 - No `vi.isolateModulesAsync()`
 - `vi.importMock()` returns Promise
 **Solution:** Consult Vitest docs for exact equivalents
 
 ### 4. Import Paths Change
+
 **Issue:** jest-dom moved its main export  
 **Impact:** Old path causes module not found  
 **Solution:** Use modern import paths from package docs
 
 ### 5. Mock Access Patterns Differ
+
 **Issue:** Can't destructure from `vi.importMock()` like Jest  
 **Impact:** Variables are undefined at runtime  
 **Solution:** Use proper imports after `vi.mock()` setup
@@ -348,12 +380,14 @@ Files: 1 changed, 76 insertions, 2 deletions
 ## Best Practices Established
 
 ### 1. Always Add Framework Imports First
+
 ```typescript
 // FIRST LINE after comments:
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 ```
 
 ### 2. Update Framework Comments
+
 ```typescript
 // BEFORE:
 /**
@@ -367,6 +401,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 ```
 
 ### 3. Use Standard Mock Pattern
+
 ```typescript
 // Setup mocks BEFORE imports:
 vi.mock('module-name', () => ({
@@ -379,11 +414,13 @@ import { export1, export2 } from 'module-name';
 ```
 
 ### 4. Check Vitest API Documentation
+
 - Don't assume Jest patterns work
 - Verify options are supported
 - Use Vitest-specific alternatives
 
 ### 5. Test Incrementally
+
 - Run tests after each file migration
 - Fix issues immediately
 - Don't batch too many changes
@@ -417,6 +454,7 @@ import { export1, export2 } from 'module-name';
 ## Migration Tools Created
 
 ### `scripts/complete-vitest-migration.sh`
+
 - 100+ line automated migration script
 - Handles runtime API conversions
 - Creates backups
@@ -424,6 +462,7 @@ import { export1, export2 } from 'module-name';
 - Identifies remaining issues
 
 ### Enhanced Documentation
+
 - `SYSTEM_WIDE_JEST_VITEST_FIXES.md` - Complete migration guide
 - This document - Phase 4 completion report
 
@@ -438,6 +477,7 @@ import { export1, export2 } from 'module-name';
 ✅ **Best Practices:** Established patterns for future migrations
 
 **Next Steps:**
+
 1. Continue with remaining test fixes (mocks, imports)
 2. Address test logic failures (separate from migration)
 3. Apply learnings to any remaining hybrid files discovered

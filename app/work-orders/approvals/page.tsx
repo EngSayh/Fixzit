@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function WorkOrderApprovalsPage() {
+  const { t } = useTranslation();
   const pendingApprovals = [
     {
       id: 'WO-1004',
@@ -85,12 +89,12 @@ export default function WorkOrderApprovalsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Work Order Approvals</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Review and approve work orders that require authorization</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.approvals.title', 'Work Order Approvals')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.approvals.subtitle', 'Review and approve work orders that require authorization')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Approval Rules</button>
-          <button className="btn-primary">📋 Bulk Approve</button>
+          <button className="btn-secondary">{t('workOrders.approvals.rules', 'Approval Rules')}</button>
+          <button className="btn-primary">📋 {t('workOrders.approvals.bulkApprove', 'Bulk Approve')}</button>
         </div>
       </div>
 
@@ -99,7 +103,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Pending Approval</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.pendingApproval', 'Pending Approval')}</p>
               <p className="text-2xl font-bold text-yellow-600">3</p>
             </div>
             <div className="text-yellow-400">⏳</div>
@@ -108,7 +112,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Approved Today</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.approvedToday', 'Approved Today')}</p>
               <p className="text-2xl font-bold text-green-600">5</p>
             </div>
             <div className="text-green-400">✅</div>
@@ -117,7 +121,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Avg. Approval Time</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.avgTime', 'Avg. Approval Time')}</p>
               <p className="text-2xl font-bold text-blue-600">2.3h</p>
             </div>
             <div className="text-blue-400">⏱️</div>
@@ -126,7 +130,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Approved</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.totalApproved', 'Total Approved')}</p>
               <p className="text-2xl font-bold text-purple-600">247</p>
             </div>
             <div className="text-purple-400">📊</div>
@@ -137,9 +141,9 @@ export default function WorkOrderApprovalsPage() {
       {/* Pending Approvals */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Pending Approvals</h3>
+          <h3 className="text-lg font-semibold">{t('workOrders.approvals.pending', 'Pending Approvals')}</h3>
           <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-            {pendingApprovals.length} pending
+            {pendingApprovals.length} {t('workOrders.pending', 'pending')}
           </span>
         </div>
 
@@ -170,13 +174,13 @@ export default function WorkOrderApprovalsPage() {
 
                 <div className="flex gap-2 ml-4">
                   <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                    Approve
+                    {t('common.approve', 'Approve')}
                   </button>
                   <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                    Reject
+                    {t('common.reject', 'Reject')}
                   </button>
                   <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                    Review
+                    {t('common.review', 'Review')}
                   </button>
                 </div>
               </div>
@@ -188,22 +192,22 @@ export default function WorkOrderApprovalsPage() {
       {/* Recent Approvals */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Recent Approvals</h3>
-          <button className="btn-ghost">View All</button>
+          <h3 className="text-lg font-semibold">{t('workOrders.approvals.recent', 'Recent Approvals')}</h3>
+          <button className="btn-ghost">{t('workOrders.approvals.viewAll', 'View All')}</button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WO ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approved By</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approval Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estimated Cost</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Cost</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.woId', 'WO ID')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.title', 'Title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.property', 'Property')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.approvedBy', 'Approved By')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.approvalDate', 'Approval Date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.estimatedCost', 'Estimated Cost')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.actualCost', 'Actual Cost')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.status', 'Status')}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -230,31 +234,31 @@ export default function WorkOrderApprovalsPage() {
 
       {/* Quick Actions */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">✅</div>
-            <div className="text-sm font-medium">Bulk Approve</div>
+            <div className="text-sm font-medium">{t('workOrders.approvals.bulkApprove', 'Bulk Approve')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📋</div>
-            <div className="text-sm font-medium">Approval Rules</div>
+            <div className="text-sm font-medium">{t('workOrders.approvals.rules', 'Approval Rules')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm font-medium">Reports</div>
+            <div className="text-sm font-medium">{t('workOrders.reports', 'Reports')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔄</div>
-            <div className="text-sm font-medium">Workflow</div>
+            <div className="text-sm font-medium">{t('workOrders.approvals.workflow', 'Workflow')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
-            <div className="text-sm font-medium">Settings</div>
+            <div className="text-sm font-medium">{t('workOrders.settings', 'Settings')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📤</div>
-            <div className="text-sm font-medium">Export</div>
+            <div className="text-sm font-medium">{t('workOrders.export', 'Export')}</div>
           </button>
         </div>
       </div>

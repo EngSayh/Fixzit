@@ -1,20 +1,34 @@
-import Link from 'next/link';
+'use client';
 
-import { headers } from 'next/headers';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+
 async function fetchPdp(slug: string) {
-  const h = await headers();
-  const cookie = h.get('cookie');
   const res = await fetch(`/api/marketplace/products/${slug}`, {
     cache: 'no-store',
-    headers: cookie ? { cookie } : undefined,
     credentials: 'include'
   } as RequestInit);
   return res.json();
 }
 
-export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
-  const data = await fetchPdp(params.slug);
+export default function ProductPage(props: { params: Promise<{ slug: string }> }) {
+  const { t } = useTranslation();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    props.params.then(params => {
+      fetchPdp(params.slug).then(result => {
+        setData(result);
+        setLoading(false);
+      });
+    });
+  }, [props.params]);
+  if (loading || !data) {
+    return <div className="p-6">{t('common.loading', 'Loading...')}</div>;
+  }
+
   const p = data?.data?.product || data?.product;
   const bb = p
     ? {
@@ -26,7 +40,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     : null;
 
   if (!p) {
-    return <div className="p-6">Not found</div>;
+    return <div className="p-6">{t('product.notFound', 'Not found')}</div>;
   }
 
   return (
@@ -38,10 +52,10 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         <h1 className="text-2xl font-semibold">{p?.title?.en ?? p?.title}</h1>
         <ul className="list-disc pl-5 text-sm text-gray-700">
           {[
-            { key: 'Brand', value: p?.brand },
-            { key: 'Standards', value: Array.isArray(p?.standards) ? p?.standards.join(', ') : undefined },
-            { key: 'UOM', value: p?.buy?.uom },
-            { key: 'Min Qty', value: p?.buy?.minQty }
+            { key: t('product.brand', 'Brand'), value: p?.brand },
+            { key: t('product.standards', 'Standards'), value: Array.isArray(p?.standards) ? p?.standards.join(', ') : undefined },
+            { key: t('product.uom', 'UOM'), value: p?.buy?.uom },
+            { key: t('product.minQty', 'Min Qty'), value: p?.buy?.minQty }
           ]
             .filter((a) => a?.value !== undefined && a?.value !== null && String(a.value).trim() !== '')
             .slice(0, 6)
@@ -51,16 +65,22 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         </ul>
         <div className="border rounded p-4">
           <div className="text-2xl font-bold">{bb?.price?.toLocaleString()} {bb?.currency}</div>
-          <div className="text-sm text-gray-600">{bb?.inStock ? 'In Stock' : 'Backorder'} · Lead {bb?.leadDays} days</div>
+          <div className="text-sm text-gray-600">
+            {bb?.inStock ? t('product.inStock', 'In Stock') : t('product.backorder', 'Backorder')} · {t('product.lead', 'Lead')} {bb?.leadDays} {t('product.days', 'days')}
+          </div>
           <div className="flex gap-2 mt-3">
-            <Link href="/cart" className="px-4 py-2 bg-[#0061A8] text-white rounded hover:opacity-90">Add to Cart</Link>
-            <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-[#FFB400] text-black rounded hover:opacity-90">Buy Now (PO)</Link>
+            <Link href="/cart" className="px-4 py-2 bg-[#0061A8] text-white rounded hover:opacity-90">
+              {t('product.addToCart', 'Add to Cart')}
+            </Link>
+            <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-[#FFB400] text-black rounded hover:opacity-90">
+              {t('product.buyNow', 'Buy Now (PO)')}
+            </Link>
           </div>
         </div>
       </div>
       <section className="col-span-12">
-        <h3 className="text-lg font-semibold mb-2">About this item</h3>
-        <p className="text-sm text-gray-700">Technical data sheets (MSDS/COA), installation notes, and compliance info.</p>
+        <h3 className="text-lg font-semibold mb-2">{t('product.aboutTitle', 'About this item')}</h3>
+        <p className="text-sm text-gray-700">{t('product.aboutDesc', 'Technical data sheets (MSDS/COA), installation notes, and compliance info.')}</p>
       </section>
     </div>
   );

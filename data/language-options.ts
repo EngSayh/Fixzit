@@ -12,7 +12,7 @@ export type LanguageOption = {
   country: string;
 };
 
-export type LanguageCode = 'en' | 'ar' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+export type LanguageCode = 'en' | 'ar';
 
 export const LANGUAGE_OPTIONS: LanguageOption[] = [
   {

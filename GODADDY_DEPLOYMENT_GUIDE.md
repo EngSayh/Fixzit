@@ -10,21 +10,25 @@
 ## GoDaddy Hosting Types & Compatibility
 
 ### 1. **Shared Hosting** ❌ (NOT COMPATIBLE)
+
 - **Does NOT support Node.js**
 - Only supports PHP, HTML, static files
 - **Solution**: Upgrade to VPS or use static export
 
 ### 2. **VPS Hosting** ✅ (RECOMMENDED)
+
 - **Supports Node.js** fully
 - Full server control with SSH access
 - Can install any dependencies
 - **This guide assumes VPS**
 
 ### 3. **Dedicated Server** ✅ (BEST)
+
 - Same as VPS but more powerful
 - Same setup process as VPS
 
 ### 4. **cPanel Hosting** ⚠️ (LIMITED)
+
 - Some plans support Node.js apps
 - Limited control, uses Node.js Selector
 - Not ideal for Next.js
@@ -37,14 +41,16 @@
 
 **Best if you have**: GoDaddy VPS or Dedicated Server
 
-#### What You'll Deploy:
+#### What You'll Deploy
+
 - Full Next.js 15 application with API routes
 - Server-side rendering (SSR)
 - Dynamic features
 - MongoDB connection
 - File uploads, real-time features
 
-#### Requirements:
+#### Requirements
+
 - ✅ Node.js 18+ installed on server
 - ✅ SSH access to your GoDaddy server
 - ✅ PM2 or systemd for process management
@@ -57,13 +63,15 @@
 
 **Best if you have**: GoDaddy Shared Hosting (cPanel)
 
-#### What You'll Deploy:
+#### What You'll Deploy
+
 - Static HTML/CSS/JS files
 - No server-side rendering
 - No API routes (need external backend)
 - Just the frontend
 
-#### Limitations:
+#### Limitations
+
 - ❌ No dynamic server-side features
 - ❌ No API routes in Next.js
 - ❌ No authentication through NextAuth
@@ -77,7 +85,8 @@
 ### Step 1: Check Your GoDaddy Hosting Type
 
 **Log in to GoDaddy**:
-1. Go to: https://account.godaddy.com/products
+
+1. Go to: <https://account.godaddy.com/products>
 2. Find your hosting plan
 3. Look for:
    - "VPS Hosting" or "Virtual Private Server" ✅
@@ -91,7 +100,8 @@
 
 ### Step 2: Connect to Your GoDaddy VPS
 
-#### Get Your SSH Credentials:
+#### Get Your SSH Credentials
+
 1. Go to GoDaddy → My Products → VPS Hosting
 2. Click "Manage"
 3. Find SSH access details:
@@ -99,7 +109,8 @@
    - **Username**: Usually `root` or your username
    - **Port**: Usually 22
 
-#### Connect via SSH:
+#### Connect via SSH
+
 ```bash
 # From your MacBook Terminal
 ssh root@YOUR_SERVER_IP
@@ -109,6 +120,7 @@ ssh -p 2222 root@YOUR_SERVER_IP
 ```
 
 If you need to set up SSH key authentication:
+
 ```bash
 # On your MacBook, generate SSH key if you don't have one
 ssh-keygen -t ed25519 -C "your_email@example.com"
@@ -123,7 +135,8 @@ ssh-copy-id root@YOUR_SERVER_IP
 
 Once connected via SSH, run these commands:
 
-#### Update System:
+#### Update System
+
 ```bash
 # For Ubuntu/Debian
 sudo apt update && sudo apt upgrade -y
@@ -132,7 +145,8 @@ sudo apt update && sudo apt upgrade -y
 sudo yum update -y
 ```
 
-#### Install Node.js 18+:
+#### Install Node.js 18+
+
 ```bash
 # For Ubuntu/Debian
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -143,7 +157,8 @@ node --version  # Should show v20.x.x
 npm --version
 ```
 
-#### Install Git:
+#### Install Git
+
 ```bash
 sudo apt-get install -y git
 
@@ -151,12 +166,14 @@ sudo apt-get install -y git
 sudo yum install -y git
 ```
 
-#### Install PM2 (Process Manager):
+#### Install PM2 (Process Manager)
+
 ```bash
 sudo npm install -g pm2
 ```
 
-#### Install Nginx (Reverse Proxy):
+#### Install Nginx (Reverse Proxy)
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install -y nginx
@@ -174,6 +191,7 @@ sudo systemctl enable nginx
 ### Step 4: Set Up MongoDB
 
 #### Option A: MongoDB on Same Server
+
 ```bash
 # Install MongoDB
 wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
@@ -197,7 +215,8 @@ mongosh
 ```
 
 #### Option B: Use MongoDB Atlas (Recommended)
-- Go to: https://www.mongodb.com/cloud/atlas
+
+- Go to: <https://www.mongodb.com/cloud/atlas>
 - Create free cluster
 - Get connection string: `mongodb+srv://user:pass@cluster.mongodb.net/fixzit`
 
@@ -205,7 +224,8 @@ mongosh
 
 ### Step 5: Deploy Your Application
 
-#### Create Application Directory:
+#### Create Application Directory
+
 ```bash
 cd /var/www
 sudo mkdir fixzit
@@ -213,7 +233,8 @@ sudo chown $USER:$USER fixzit
 cd fixzit
 ```
 
-#### Clone Your Repository:
+#### Clone Your Repository
+
 ```bash
 # Using HTTPS
 git clone https://github.com/EngSayh/Fixzit.git .
@@ -222,18 +243,21 @@ git clone https://github.com/EngSayh/Fixzit.git .
 git clone git@github.com:EngSayh/Fixzit.git .
 ```
 
-#### Install Dependencies:
+#### Install Dependencies
+
 ```bash
 npm install
 ```
 
-#### Configure Environment Variables:
+#### Configure Environment Variables
+
 ```bash
 # Create .env.local
 nano .env.local
 ```
 
 Add your environment variables:
+
 ```env
 # MongoDB
 MONGODB_URI=mongodb://fixzituser:your_secure_password@localhost:27017/fixzit
@@ -260,16 +284,19 @@ Press `Ctrl+X`, then `Y`, then `Enter` to save.
 **IMPORTANT**: Never commit `.env.local` to version control!
 
 1. **Verify `.gitignore`**: Ensure `.env.local` is listed in your `.gitignore` file. Add it if missing:
+
    ```bash
    echo ".env.local" >> .gitignore
    ```
 
 2. **Restrict file permissions**: Make the file readable only by the owner:
+
    ```bash
    chmod 600 .env.local
    ```
 
 3. **Use strong secrets**: Generate random secrets with a secure tool:
+
    ```bash
    # Generate a secure secret (use this for NEXTAUTH_SECRET)
    openssl rand -base64 32
@@ -277,7 +304,8 @@ Press `Ctrl+X`, then `Y`, then `Enter` to save.
 
 4. **Separate credentials**: Use different passwords/keys for production and development. Never reuse production credentials in development environments.
 
-#### Build the Application:
+#### Build the Application
+
 ```bash
 npm run build
 ```
@@ -288,12 +316,14 @@ This should complete successfully on the VPS (it has better resources than Codes
 
 ### Step 6: Configure PM2 to Run Your App
 
-#### Create PM2 Ecosystem File:
+#### Create PM2 Ecosystem File
+
 ```bash
 nano ecosystem.config.js
 ```
 
 Add this configuration:
+
 ```javascript
 module.exports = {
   apps: [{
@@ -313,7 +343,8 @@ module.exports = {
 }
 ```
 
-#### Start Your Application:
+#### Start Your Application
+
 ```bash
 pm2 start ecosystem.config.js
 pm2 save
@@ -322,7 +353,8 @@ pm2 startup
 
 The last command will output a command to run - **copy and run it**.
 
-#### Check App Status:
+#### Check App Status
+
 ```bash
 pm2 status
 pm2 logs fixzit
@@ -334,7 +366,8 @@ Your app is now running on port 3000!
 
 ### Step 7: Configure Nginx as Reverse Proxy
 
-#### Create Nginx Configuration:
+#### Create Nginx Configuration
+
 ```bash
 sudo nano /etc/nginx/sites-available/fixzit
 ```
@@ -392,7 +425,8 @@ server {
 }
 ```
 
-#### Enable the Site:
+#### Enable the Site
+
 ```bash
 # Create symlink
 sudo ln -s /etc/nginx/sites-available/fixzit /etc/nginx/sites-enabled/
@@ -411,14 +445,16 @@ sudo systemctl reload nginx
 
 ### Step 8: Point Your GoDaddy Domain to VPS
 
-#### Get Your VPS IP Address:
+#### Get Your VPS IP Address
+
 ```bash
 curl ifconfig.me
 # Note this IP address, e.g., 123.45.67.89
 ```
 
-#### Update DNS Records in GoDaddy:
-1. Go to: https://dnsmanagement.godaddy.com
+#### Update DNS Records in GoDaddy
+
+1. Go to: <https://dnsmanagement.godaddy.com>
 2. Find your domain
 3. Click "DNS" or "Manage DNS"
 4. Update/Add these records:
@@ -438,6 +474,7 @@ curl ifconfig.me
 5. Save changes
 
 **DNS propagation takes 10-60 minutes**. You can check progress:
+
 ```bash
 # On your MacBook
 dig yourdomain.com
@@ -448,23 +485,28 @@ nslookup yourdomain.com
 
 ### Step 9: Set Up SSL Certificate (HTTPS)
 
-#### Install Certbot:
+#### Install Certbot
+
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
 ```
 
-#### Get SSL Certificate:
+#### Get SSL Certificate
+
 ```bash
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 ```
 
 Follow the prompts:
+
 - Enter your email
 - Agree to terms
 - Choose to redirect HTTP to HTTPS (option 2)
 
-#### Auto-Renewal:
+#### Auto-Renewal
+
 Certbot automatically sets up renewal. Test it:
+
 ```bash
 sudo certbot renew --dry-run
 ```
@@ -478,11 +520,13 @@ sudo certbot renew --dry-run
 #### Option A: Manual Deployment Script
 
 Create a deployment script on your server:
+
 ```bash
 nano /var/www/fixzit/deploy.sh
 ```
 
 Add:
+
 ```bash
 #!/bin/bash
 set -e
@@ -506,11 +550,13 @@ echo "✅ Deployment complete!"
 ```
 
 Make it executable:
+
 ```bash
 chmod +x /var/www/fixzit/deploy.sh
 ```
 
 To deploy updates:
+
 ```bash
 cd /var/www/fixzit
 ./deploy.sh
@@ -553,6 +599,7 @@ jobs:
 ⚠️ **Security Best Practice**: Never use your personal SSH key for automation. Create a dedicated deploy key instead.
 
 1. **Generate a dedicated deploy key** (on your local machine):
+
    ```bash
    # Create a dedicated key pair for deployment
    ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "fixzit-deploy"
@@ -560,6 +607,7 @@ jobs:
    ```
 
 2. **Copy the public key to your VPS**:
+
    ```bash
    # Copy the public key
    cat ~/.ssh/deploy_key.pub
@@ -574,12 +622,12 @@ jobs:
    ```
 
 3. **Add secrets to GitHub**:
-   - Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
+   - Go to: <https://github.com/EngSayh/Fixzit/settings/secrets/actions>
    - Add these secrets:
      - `VPS_HOST`: Your VPS IP address
      - `VPS_USERNAME`: Usually `root` or your deploy user
      - `DEPLOY_SSH_KEY`: The **private** deploy key (from `~/.ssh/deploy_key`, NOT your personal key)
-   
+
    ```bash
    # Display the private key to copy to GitHub Secrets
    cat ~/.ssh/deploy_key
@@ -597,7 +645,8 @@ Now every push to `main` will auto-deploy securely! 🚀
 
 ## Quick Reference Commands
 
-### On Your VPS:
+### On Your VPS
+
 ```bash
 # View app status
 pm2 status
@@ -618,7 +667,8 @@ sudo systemctl status nginx
 sudo systemctl reload nginx
 ```
 
-### Troubleshooting:
+### Troubleshooting
+
 ```bash
 # Check if port 3000 is listening
 netstat -tlnp | grep 3000
@@ -651,6 +701,7 @@ sudo systemctl status mongod
 ## What Type of GoDaddy Hosting Do You Have?
 
 Please tell me:
+
 1. **What GoDaddy plan do you have?** (VPS, Shared, Dedicated)
 2. **Do you have SSH access?** (Can you log in via terminal?)
 3. **What's your domain name?** (so I can help configure DNS)

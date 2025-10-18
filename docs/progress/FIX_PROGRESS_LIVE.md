@@ -6,6 +6,7 @@
 ## ✅ COMPLETED (22/696 = 3.2%)
 
 ### Category A: Unused Variables (19 fixed)
+
 1. ✅ app/api/ats/jobs/[id]/publish/route.ts - `_userId`
 2. ✅ app/api/ats/moderation/route.ts - `_user`
 3. ✅ app/fm/invoices/page.tsx - `onUpdated`

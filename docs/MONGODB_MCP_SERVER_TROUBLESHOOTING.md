@@ -8,12 +8,14 @@
 ## ⚠️ IMPORTANT: This Does NOT Affect the Fixzit Application
 
 **Application Status:** ✅ **WORKING PERFECTLY**
+
 - MongoDB Atlas connection: ✅ Active and healthy
-- Health check endpoint: http://localhost:3000/api/health/database
+- Health check endpoint: <http://localhost:3000/api/health/database>
 - Connection status: `{"status":"healthy","database":"mongodb","connection":"active"}`
 - Database operations: ✅ All working correctly
 
 **This error is ONLY from a VS Code extension (MongoDB MCP Server) and does NOT affect:**
+
 - The Fixzit application
 - Database connectivity
 - API functionality  
@@ -24,11 +26,13 @@
 ## 🔍 Problem Analysis
 
 The error is occurring from:
+
 ```
 /Users/eng.sultanalhassni/.npm/_npx/191c568aa03d4fb8/node_modules/mongodb-mcp-server
 ```
 
 This indicates:
+
 1. ✅ **NOT a workspace issue** - Error comes from user's local machine
 2. ✅ **NOT in project code** - MongoDB MCP server is a VS Code extension feature
 3. ⚠️ **User's VS Code settings** - Connection string configured incorrectly
@@ -40,6 +44,7 @@ This indicates:
 The **MongoDB MCP Server** VS Code extension is attempting to connect to MongoDB but has an invalid connection string configured.
 
 Expected format:
+
 - `mongodb://localhost:27017/dbname`
 - `mongodb+srv://username:password@cluster.mongodb.net/dbname`
 
@@ -63,6 +68,7 @@ Current format: **Invalid** (missing scheme or malformed)
    - Any MCP server configuration
 
 4. Update to valid MongoDB connection string:
+
    ```json
    {
      "mcpServers": {
@@ -84,6 +90,7 @@ Current format: **Invalid** (missing scheme or malformed)
 2. Search for "MCP"
 
 3. Disable or remove MongoDB MCP server configuration:
+
    ```json
    {
      "chat.mcp.discovery.enabled": {
@@ -102,6 +109,7 @@ Current format: **Invalid** (missing scheme or malformed)
 ## 📋 Workspace Configuration Status
 
 **Workspace `.vscode/settings.json`:**
+
 - ✅ NO MongoDB MCP configuration present
 - ✅ MCP discovery disabled for all sources
 - ✅ Workspace is clean
@@ -113,6 +121,7 @@ Current format: **Invalid** (missing scheme or malformed)
 ## 🔍 How to Find the Configuration
 
 ### Check User Settings
+
 ```bash
 # Mac/Linux
 cat ~/.config/Code/User/settings.json | grep -i mongodb
@@ -122,6 +131,7 @@ type %APPDATA%\Code\User\settings.json | findstr /i mongodb
 ```
 
 ### Check Workspace Settings (Already verified - clean ✅)
+
 ```bash
 cat .vscode/settings.json | grep -i mongodb
 # Result: No matches
@@ -132,11 +142,13 @@ cat .vscode/settings.json | grep -i mongodb
 ## ⚠️ Impact Assessment
 
 **Current Impact:**
+
 - ❌ MongoDB MCP Server extension failing to start
 - ⚠️ Error logged every time VS Code starts
 - ✅ **NO impact on Fixzit application** - App uses `MONGODB_URI` from `.env` file correctly
 
 **Application Status:**
+
 - ✅ MongoDB connection in app works fine
 - ✅ `lib/mongodb-unified.ts` uses correct connection string
 - ✅ All API routes connect to database successfully
@@ -155,6 +167,7 @@ cat .vscode/settings.json | grep -i mongodb
 4. Restart VS Code
 
 **For Workspace:**
+
 - ✅ No action needed - workspace configuration is correct
 
 ---

@@ -37,7 +37,9 @@
 ## 📝 Detailed Changes
 
 ### Commit 33: Test Framework Conversions
+
 **File**: `tests/policy.spec.ts`, `tests/tools.spec.ts`
+
 - ✅ Converted `@jest/globals` → `vitest` imports
 - ✅ Changed `jest.fn()` → `vi.fn()`
 - ⚠️ `tools.spec.ts` partially converted (needs `jest.unstable_mockModule` fix)
@@ -45,7 +47,9 @@
 - **Impact**: 1 less failing test file (73 → 72)
 
 ### Commit 34: API Test Conversion
+
 **File**: `tests/unit/api/api-paytabs.spec.ts`
+
 - ✅ Converted `@jest/globals` → `vitest` imports
 - ✅ Fixed import path: `../../app` → `@/app`
 - ✅ Converted `vi.requireActual` → `vi.importActual` (async)
@@ -54,13 +58,16 @@
 - **Remaining**: 1 signal timeout test still failing
 
 ### Commit 35: React Imports for Test Environment
-**Files**: 
+
+**Files**:
+
 - `components/SupportPopup.tsx`
 - `contexts/TranslationContext.tsx`
 - `providers/Providers.tsx`
 - `components/marketplace/CatalogView.tsx`
 
 **Changes**:
+
 ```typescript
 // Before
 import { useState, useEffect } from 'react';
@@ -69,24 +76,29 @@ import { useState, useEffect } from 'react';
 import React, { useState, useEffect } from 'react';
 ```
 
-**Impact**: 
+**Impact**:
+
 - ✅ Fixed React test environment compatibility
 - ✅ +11 passing tests (200 → 211)
 - ✅ TranslationContext: 3/10 tests passing
 - **Root Cause**: Test environment (jsdom) requires explicit React import
 
 ### Commit 36: More React Imports
+
 **Files**:
+
 - `app/fm/marketplace/page.tsx`
 - `app/help/support-ticket/page.tsx`
 - `contexts/CurrencyContext.tsx`
 
 **Impact**:
+
 - ✅ Fixed ReferenceError in marketplace tests
 - ✅ Fixed ReferenceError in support ticket tests
 - ✅ Changed test errors from React errors → test logic errors (good progress)
 
 ### Commit 37: Final React Import Fix
+
 **File**: `contexts/ThemeContext.tsx`
 
 **Achievement**: ✅ **All ReferenceError: React is not defined errors eliminated (0 remaining)**
@@ -98,6 +110,7 @@ import React, { useState, useEffect } from 'react';
 ### Test Framework Migration Strategy
 
 #### Jest → Vitest Conversion Checklist
+
 - [x] Replace `@jest/globals` → `vitest` imports
 - [x] Replace `jest.fn()` → `vi.fn()`
 - [x] Replace `jest.mock()` → `vi.mock()`
@@ -107,6 +120,7 @@ import React, { useState, useEffect } from 'react';
 - [ ] Handle `jest.requireMock()` → needs vi equivalent
 
 #### Import Path Fixes
+
 ```typescript
 // Pattern 1: Relative paths
 "../../app/api/..." → "@/app/api/..."
@@ -128,11 +142,13 @@ import React, { useState, useEffect } from 'react';
 ```
 
 **Why Needed**:
+
 - React 17+ JSX transform (`"jsx": "react-jsx"`) works in runtime
 - Test environment (jsdom + @testing-library/react) still requires explicit React import
 - Without import: `ReferenceError: React is not defined` in tests
 
 **Components Fixed**: 8 files
+
 1. ✅ SupportPopup.tsx
 2. ✅ TranslationContext.tsx
 3. ✅ Providers.tsx
@@ -147,6 +163,7 @@ import React, { useState, useEffect } from 'react';
 ## 📈 Test Coverage Analysis
 
 ### Currently Passing Test Files (9 files, 211 tests)
+
 1. ✅ `tests/scripts/generate-marketplace-bible.test.ts` - 6 tests
 2. ✅ `tests/paytabs.test.ts` - 12 tests
 3. ✅ `tests/api/marketplace/search.route.test.ts` - 8 tests
@@ -158,6 +175,7 @@ import React, { useState, useEffect } from 'react';
 9. ✅ `tests/sla.test.ts` - 14 tests
 
 ### Partially Passing (tests within failing files)
+
 - `tests/unit/api/api-paytabs.spec.ts` - 8/9 passing (88.9%)
 - `contexts/TranslationContext.test.tsx` - 3/10 passing (30%)
 - `tests/unit/models/HelpArticle.test.ts` - 2/4 passing (50%)
@@ -166,25 +184,31 @@ import React, { useState, useEffect } from 'react';
 ### Failing Test Categories (72 files remaining)
 
 #### Category 1: Need Server Running (ECONNREFUSED)
+
 **Count**: ~50 files  
 **Error**: `Error: connect ECONNREFUSED 127.0.0.1:3000`  
 **Solution**: Mock HTTP requests or run dev server
 
 #### Category 2: Need MongoDB Connection
+
 **Count**: ~15 files  
 **Error**: `Please define the MONGODB_URI or DATABASE_URL environment variable`  
 **Solution**: Mock database or setup test MongoDB instance
 
 #### Category 3: Jest→Vitest Migration Needed
+
 **Count**: ~5 files  
 **Issues**:
+
 - `jest.requireMock()` not available in Vitest
 - `jest.unstable_mockModule()` no Vitest equivalent
 - Complex mock setups need rewriting
 
 #### Category 4: Wrong Import Paths
+
 **Count**: ~2 files remaining  
 **Examples**:
+
 - `./wo.repo` (file doesn't exist - needs deletion)
 - Relative paths instead of aliases
 
@@ -193,18 +217,21 @@ import React, { useState, useEffect } from 'react';
 ## 🚀 Next Steps
 
 ### Immediate Actions (Quick Wins)
+
 1. **Fix HelpArticle test path** (already fixed, needs verification)
 2. **Find more simple import path errors**
 3. **Enable skipped tests** (ErrorBoundary has 10 skipped)
 4. **Add htmlFor/id to SupportPopup labels** (test accessibility)
 
 ### Medium-Term Goals
+
 1. **Mock HTTP requests** for E2E tests (eliminate ECONNREFUSED)
 2. **Setup test MongoDB** or comprehensive mocks
 3. **Complete Jest→Vitest migration** for remaining 5 files
 4. **Document test environment setup** (MONGODB_URI, server requirements)
 
 ### Long-Term Goals
+
 1. **Get to 250+ passing tests** (currently 211)
 2. **Get to 15+ passing test files** (currently 9)
 3. **Reduce failing test files to <50** (currently 72)
@@ -232,6 +259,7 @@ eb652b827 🧪 Add React imports for test environment compatibility
 ## 🎓 Lessons Learned
 
 ### Testing Best Practices
+
 1. **React Import Required**: Test environment needs explicit React import, even with JSX transform
 2. **Async Mock Factories**: `vi.importActual()` is async, requires await
 3. **Import Path Consistency**: Always use `@/` aliases, never relative paths across directories
@@ -239,12 +267,14 @@ eb652b827 🧪 Add React imports for test environment compatibility
 5. **Small Commits**: Better to commit frequently with small improvements than batching
 
 ### Vitest Migration Insights
+
 1. **Jest→Vitest is mostly straightforward**: 90% of conversions are simple replacements
 2. **Mock API differences**: `jest.requireMock()` vs `vi.mocked()` needs attention
 3. **Module mocking harder in Vitest**: `jest.unstable_mockModule` has no direct equivalent
 4. **Import order matters**: Vitest hoists vi.mock() calls, be aware of execution order
 
 ### Project-Specific Findings
+
 1. **Many components missing React import**: Likely due to recent migration to React 17+ JSX transform
 2. **Test environment inconsistent**: Mix of Jest, Vitest, Playwright tests
 3. **Import paths inconsistent**: Some use relative, some use aliases
@@ -255,18 +285,21 @@ eb652b827 🧪 Add React imports for test environment compatibility
 ## 🏆 Achievement Metrics
 
 ### Code Quality
+
 - ✅ **0 TypeScript errors** (maintained)
 - ✅ **0 React import errors in tests** (eliminated all)
 - ✅ **Production build passing** (stable)
 - ✅ **604 ESLint warnings** (stable, down from 745)
 
 ### Test Coverage
+
 - ✅ **211 passing tests** (up from 110 initially, +91.8%)
 - ✅ **9 fully passing test files**
 - ✅ **Test infrastructure complete** (jsdom + Jest compat layer)
 - ✅ **Framework migration progressing** (4 files converted)
 
 ### Development Velocity
+
 - ✅ **37 commits this session** (continuous improvement)
 - ✅ **63 total commits in branch**
 - ✅ **4 comprehensive documentation files**
@@ -277,12 +310,14 @@ eb652b827 🧪 Add React imports for test environment compatibility
 ## 💡 Recommendations
 
 ### For Next Developer Session
+
 1. **Start with Category 3 tests** (Jest→Vitest migration) - most impactful
 2. **Setup test MongoDB** - unlocks 15+ test files
 3. **Mock HTTP client globally** - unlocks 50+ E2E tests
 4. **Add test:unit script** - run only unit tests without server dependency
 
 ### For Long-Term Maintenance
+
 1. **Enforce React import** - Add ESLint rule for client components
 2. **Standardize on Vitest** - Remove all Jest references
 3. **Separate test types** - Unit, Integration, E2E in different directories
@@ -317,7 +352,8 @@ This session demonstrates the **"never stop"** directive in action:
 
 ---
 
-**Next Session Focus**: 
+**Next Session Focus**:
+
 - Complete Jest→Vitest migration for remaining files
 - Setup test environment (MongoDB, HTTP mocks)
 - Target 250+ passing tests

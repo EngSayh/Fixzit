@@ -3,6 +3,7 @@
 ## 🎯 System Overview
 
 **Fixzit** is a comprehensive facilities management platform built with:
+
 - **Framework**: Next.js 15.5.4 (App Router)
 - **Language**: TypeScript (Zero compilation errors ✅)
 - **Database**: MongoDB 7.0
@@ -14,12 +15,14 @@
 ## 📋 Pre-Deployment Checklist
 
 ### ✅ Code Quality
+
 - [x] TypeScript compilation: **0 errors**
 - [x] ESLint warnings: 554 (non-blocking, mostly 'any' usage)
 - [x] Production build: **Successful**
 - [x] Git LFS: Configured (warning can be ignored or git-lfs installed)
 
 ### ✅ Security
+
 - [x] JWT secret: **Environment variable** (no hardcoded secrets)
 - [x] .env.local: **Removed from git**
 - [x] JWT verification: **crypto.verify** (not atob)
@@ -28,6 +31,7 @@
 - [x] Tenant isolation: **user.orgId** scoping
 
 ### 🟡 Pending Configuration
+
 - [ ] PayTabs production keys
 - [ ] Google Maps API key
 - [ ] ZATCA certificate
@@ -134,6 +138,7 @@ app/api/
 ```
 
 **API Endpoint Pattern**:
+
 - Development: `http://localhost:3000/api/{endpoint}`
 - Production: `https://yourdomain.com/api/{endpoint}`
 
@@ -146,16 +151,19 @@ app/api/
 ### Option 1: Vercel (Recommended for Next.js)
 
 1. **Install Vercel CLI**:
+
    ```bash
    npm install -g vercel
    ```
 
 2. **Login to Vercel**:
+
    ```bash
    vercel login
    ```
 
 3. **Deploy**:
+
    ```bash
    vercel --prod
    ```
@@ -167,11 +175,13 @@ app/api/
 ### Option 2: Docker (Self-Hosted)
 
 1. **Build Docker Image**:
+
    ```bash
    docker build -t fixzit:latest .
    ```
 
 2. **Run Container**:
+
    ```bash
    docker run -d \
      --name fixzit \
@@ -181,6 +191,7 @@ app/api/
    ```
 
 3. **With Docker Compose**:
+
    ```bash
    docker-compose up -d
    ```
@@ -188,21 +199,25 @@ app/api/
 ### Option 3: Traditional Server (PM2)
 
 1. **Build Production Bundle**:
+
    ```bash
    NODE_OPTIONS="--max-old-space-size=4096" npm run build
    ```
 
 2. **Install PM2**:
+
    ```bash
    npm install -g pm2
    ```
 
 3. **Start Application**:
+
    ```bash
    pm2 start npm --name "fixzit" -- start
    ```
 
 4. **Save PM2 Configuration**:
+
    ```bash
    pm2 save
    pm2 startup
@@ -222,6 +237,7 @@ app/api/
    - Copy connection string to `MONGODB_URI`
 
 2. **Database Indexes** (Important for Performance):
+
    ```javascript
    // Run these in MongoDB shell or Compass
    use fixzit;
@@ -251,6 +267,7 @@ app/api/
 3. **Backup Strategy**:
    - MongoDB Atlas: Enable automatic backups (daily snapshots)
    - Self-hosted: Configure regular mongodump backups
+
    ```bash
    mongodump --uri="$MONGODB_URI" --out=/backups/$(date +%Y%m%d)
    ```
@@ -260,25 +277,30 @@ app/api/
 ## 🔒 Security Best Practices
 
 ### 1. JWT Secret Management
+
 - **Never** commit JWT secrets to git
 - Use environment variables or secret managers (AWS Secrets Manager, HashiCorp Vault)
 - Rotate secrets regularly (every 90 days minimum)
 - Minimum 32 characters, cryptographically random
 
 ### 2. HTTPS/TLS
+
 - **Always** use HTTPS in production
 - Obtain SSL certificate from Let's Encrypt or your hosting provider
 - Configure HSTS headers (already implemented in middleware)
 
 ### 3. Rate Limiting
+
 - Current: 60 requests per 60 seconds per IP
 - Consider implementing Redis-based distributed rate limiting for multi-instance deployments
 
 ### 4. CORS Configuration
+
 - Review and restrict allowed origins in `next.config.js`
 - Default: Allows necessary Saudi domains for PayTabs/ZATCA
 
 ### 5. Database Security
+
 - Enable MongoDB authentication
 - Use connection string with `authSource=admin`
 - Restrict database user permissions (no admin rights for app)
@@ -291,9 +313,11 @@ app/api/
 ### Application Monitoring
 
 1. **Sentry** (Error Tracking):
+
    ```bash
    npm install @sentry/nextjs
    ```
+
    - Configure in `sentry.server.config.js` and `sentry.client.config.js`
 
 2. **Datadog** (APM):
@@ -308,10 +332,12 @@ app/api/
 ### Health Checks
 
 Monitor these endpoints:
+
 - `/api/health` - Basic health check
 - `/api/qa/health` - Detailed system health (QA module)
 
 Expected response:
+
 ```json
 {
   "status": "healthy",
@@ -326,20 +352,24 @@ Expected response:
 ## ⚡ Performance Optimization
 
 ### 1. Build Optimization
+
 - Production build already optimized (webpack configuration in `next.config.js`)
 - Static page generation for public pages
 - Dynamic imports for heavy components
 
 ### 2. Database Optimization
+
 - Create proper indexes (see Database Setup section)
 - Use aggregation pipelines for complex queries
 - Implement caching (Redis) for frequently accessed data
 
 ### 3. CDN Configuration
+
 - Serve static assets through CDN (Vercel automatically does this)
 - Configure proper cache headers
 
 ### 4. Memory Configuration
+
 - Node.js requires 4GB heap for build: `NODE_OPTIONS="--max-old-space-size=4096"`
 - Runtime memory: 512MB minimum, 1GB recommended
 
@@ -347,15 +377,18 @@ Expected response:
 
 ## 🧪 Pre-Production Testing
 
-### Checklist:
+### Checklist
 
 1. **Functional Testing**:
+
    ```bash
    npm run test:e2e
    ```
+
    - Expected: 448 tests (435+ passing)
 
 2. **Load Testing**:
+
    ```bash
    # Using Apache Bench
    ab -n 1000 -c 10 https://yourdomain.com/api/health
@@ -365,15 +398,18 @@ Expected response:
    ```
 
 3. **Security Scan**:
+
    ```bash
    npm audit
    npm audit fix
    ```
 
 4. **Performance Audit**:
+
    ```bash
    npm run lighthouse
    ```
+
    - Target: 90+ score on Performance, Accessibility, Best Practices
 
 ---
@@ -399,6 +435,7 @@ curl https://yourdomain.com/api/auth/me \
 ### 2. Monitor First 24 Hours
 
 Watch for:
+
 - Response times (should be < 500ms for most endpoints)
 - Error rates (should be < 1%)
 - Memory usage (should be stable, no leaks)
@@ -411,18 +448,23 @@ Watch for:
 ### Common Issues
 
 **Issue**: MongoDB connection timeout
+
 - **Solution**: Check MongoDB URI, verify IP whitelist, test network connectivity
 
 **Issue**: JWT verification failed
+
 - **Solution**: Ensure JWT_SECRET matches between token generation and verification
 
 **Issue**: PayTabs payment failed
+
 - **Solution**: Verify PAYTABS_SERVER_KEY and region configuration (SAU)
 
 **Issue**: High memory usage
+
 - **Solution**: Increase Node.js heap size, check for memory leaks in custom code
 
 **Issue**: Rate limiting too aggressive
+
 - **Solution**: Adjust rate limit windows in individual API routes
 
 ### Logs Location

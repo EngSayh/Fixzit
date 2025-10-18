@@ -53,16 +53,16 @@ export default function AdminCMS(){
 
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-3">
-      <h1 className="text-2xl font-semibold">CMS Pages</h1>
+      <h1 className="text-2xl font-semibold">{t('admin.cms.title', 'CMS Pages')}</h1>
       <div className="flex gap-2">
-        <input className="px-3 py-2 border border-gray-300 rounded-md" value={slug} onChange={e=>setSlug(e.target.value)} placeholder="Slug (e.g., privacy)" />
+        <input className="px-3 py-2 border border-gray-300 rounded-md" value={slug} onChange={e=>setSlug(e.target.value)} placeholder={t('admin.cms.slug', 'Slug (e.g., privacy)')} />
         <select className="px-3 py-2 border border-gray-300 rounded-md" value={status} onChange={e=>setStatus(e.target.value as "DRAFT"|"PUBLISHED")}>
-          <option value="DRAFT">DRAFT</option><option value="PUBLISHED">PUBLISHED</option>
+          <option value="DRAFT">{t('admin.cms.draft', 'DRAFT')}</option><option value="PUBLISHED">{t('admin.cms.published', 'PUBLISHED')}</option>
         </select>
         <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" onClick={save}>{t('common.save', 'Save')}</button>
       </div>
-      <input className="w-full px-3 py-2 border border-gray-300 rounded-md" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title" />
-      <textarea className="w-full px-3 py-2 border border-gray-300 rounded-md h-[420px]" value={content} onChange={e=>setContent(e.target.value)} placeholder="Markdown content..." />
+      <input className="w-full px-3 py-2 border border-gray-300 rounded-md" value={title} onChange={e=>setTitle(e.target.value)} placeholder={t('admin.cms.titleLabel', 'Title')} />
+      <textarea className="w-full px-3 py-2 border border-gray-300 rounded-md h-[420px]" value={content} onChange={e=>setContent(e.target.value)} placeholder={t('admin.cms.content', 'Markdown content...')} />
     </div>
   );
 }

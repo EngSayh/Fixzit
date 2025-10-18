@@ -9,40 +9,47 @@
 ## 📊 WARNING BREAKDOWN BY CATEGORY
 
 ### **Category 1: 'any' Types** - 348 warnings (82% of total) 🔥
+
 **Priority**: HIGH (Blocks type safety)  
 **Effort**: 40-45 hours (manual analysis required)  
 **Impact**: Massive improvement in code quality
 
 ### **Category 2: Unused Variables** - 68 warnings (16% of total) ⚡
+
 **Priority**: MEDIUM (Quick wins)  
 **Effort**: 2-3 hours (simple prefixing with `_`)  
 **Impact**: Clean code, easy fixes
 
 ### **Category 3: React Hooks** - 3 warnings (<1%) 🎣
+
 **Priority**: MEDIUM (Potential bugs)  
 **Effort**: 30 minutes  
 **Impact**: Fix dependency arrays
 
 ### **Category 4: Misc** - 4 warnings (<1%) 🔧
+
 **Priority**: LOW (Minor issues)  
 **Effort**: 15 minutes  
 **Impact**: Code cleanliness
 
 ---
 
-## 🎯 PHASE 1: QUICK WINS (2-3 hours) - Start Here!
+## 🎯 PHASE 1: QUICK WINS (2-3 hours) - Start Here
 
 ### **A. Unused Variables** - 68 warnings
 
 **Strategy**: Prefix with `_` to indicate intentionally unused
 
 #### **A1. Unused Catch Variables** - 19 instances
+
 ```
 14× 'error' is defined but never used
  5× '_err' is defined but never used
 ```
+
 **Files**: API routes with try/catch blocks
-**Fix**: 
+**Fix**:
+
 ```typescript
 // BEFORE
 catch (error) {
@@ -54,17 +61,21 @@ catch (_error) {
   return NextResponse.json({ error: 'Failed' }, { status: 500 });
 }
 ```
+
 **Estimated time**: 30 minutes
 
 #### **A2. Unused Function Parameters** - 11 instances
+
 ```
  5× 'error' (args)
  3× 'props' (args)
  2× 'payload' (args)
  1× 'productId', 'className', 'tenantId', 'role'
 ```
+
 **Files**: Components, API routes
 **Fix**:
+
 ```typescript
 // BEFORE
 export default function Component({ className, children }: Props) {
@@ -76,19 +87,23 @@ export default function Component({ className: _className, children }: Props) {
   return <div>{children}</div>;
 }
 ```
+
 **Estimated time**: 20 minutes
 
 #### **A3. Unused Imports** - 9 instances
+
 ```
  7× 'departments' assigned but never used
  1× 'FileText', 'CheckCircle', 'ArrowRight' (lucide imports)
  1× 'Article', 'Step', 'ProjectStatus' (type imports)
 ```
+
 **Files**: Components with destructured imports
 **Fix**: Remove unused imports or prefix with `_`
 **Estimated time**: 15 minutes
 
 #### **A4. Unused Destructured State** - 29 instances
+
 ```
  2× 'client' assigned but never used
  1× 'zatcaQR', 'validateRequest', 'useFormValidation', 'useDebounce'
@@ -96,6 +111,7 @@ export default function Component({ className: _className, children }: Props) {
  1× 'responsiveClasses', 'handleNavigation', 'getStatusColor'
  1× 'emailTemplate', 'FixResult', 'UserDoc', 'UnsafeUnwrappedHeaders'
 ```
+
 **Files**: Components, hooks, API routes
 **Fix**: Prefix with `_` or remove if truly unused
 **Estimated time**: 1 hour
@@ -105,6 +121,7 @@ export default function Component({ className: _className, children }: Props) {
 ### **B. React Hooks Dependencies** - 3 warnings ⚡
 
 **B1. TopBar.tsx** - 1 warning
+
 ```typescript
 // Line 87
 useEffect(() => {
@@ -116,6 +133,7 @@ useEffect(() => {
 ```
 
 **B2. Unknown file** - 1 warning (map dependency)
+
 ```typescript
 useEffect(() => {
   // ... uses map
@@ -133,6 +151,7 @@ useEffect(() => {
 ### **C. Escape Characters** - 1 warning 🔧
 
 **File**: `lib/utils.test.ts:18` (confirmed from previous analysis)
+
 ```typescript
 // BEFORE
 const pattern = /\!/g;
@@ -140,6 +159,7 @@ const pattern = /\!/g;
 // AFTER
 const pattern = /!/g;  // ! doesn't need escaping
 ```
+
 **Estimated time**: 2 minutes
 
 ---
@@ -147,6 +167,7 @@ const pattern = /!/g;  // ! doesn't need escaping
 ### **D. Anonymous Default Export** - 1 warning 📦
 
 **File**: Likely a config or types file
+
 ```typescript
 // BEFORE
 export default {
@@ -159,6 +180,7 @@ const config = {
 };
 export default config;
 ```
+
 **Estimated time**: 3 minutes
 
 ---
@@ -170,16 +192,19 @@ export default config;
 Breaking down by file type for systematic approach:
 
 #### **API Routes** (~150 warnings estimated)
+
 **Priority**: HIGHEST (Security boundary)
 **Files**: `app/api/**/*.ts`
 
 **Common patterns**:
+
 1. **Request bodies**: `const body: any = await req.json()`
 2. **MongoDB queries**: `const result: any = await collection.find()`
 3. **External API responses**: `const data: any = await fetch()`
 4. **Error handling**: `catch (error: any)`
 
 **Fix strategy**:
+
 ```typescript
 // BEFORE
 export async function POST(req: Request) {
@@ -205,6 +230,7 @@ export async function POST(req: Request) {
 ```
 
 **Top API files** (based on complexity):
+
 1. Work orders API - High usage
 2. Aqar properties API - High usage
 3. Auth/login API - Critical security
@@ -216,16 +242,19 @@ export async function POST(req: Request) {
 ---
 
 #### **Components** (~80 warnings estimated)
+
 **Priority**: HIGH (Type safety)
 **Files**: `components/**/*.tsx`, `app/**/page.tsx`
 
 **Common patterns**:
+
 1. **Props**: `props: any`
 2. **Event handlers**: `(e: any) => {}`
 3. **Refs**: `ref: any`
 4. **State**: `const [data, setData] = useState<any>()`
 
 **Fix strategy**:
+
 ```typescript
 // BEFORE
 export default function MyComponent({ data }: { data: any }) {
@@ -258,15 +287,18 @@ export default function MyComponent({ data }: MyComponentProps) {
 ---
 
 #### **Lib Utilities** (~60 warnings estimated)
+
 **Priority**: MEDIUM
 **Files**: `lib/**/*.ts`
 
 **Common patterns**:
+
 1. **MongoDB helpers**: `export async function findOne(query: any)`
 2. **Validation functions**: `export function validate(data: any)`
 3. **Transformers**: `export function transform(input: any)`
 
 **Fix strategy**: Use types from `types/common.ts`
+
 ```typescript
 // BEFORE
 export async function findDocuments(query: any) {
@@ -288,15 +320,18 @@ export async function findDocuments<T extends MongoDocument>(
 ---
 
 #### **Models** (~30 warnings estimated)
+
 **Priority**: HIGH (Data schema)
 **Files**: `models/**/*.ts`
 
 **Common patterns**:
+
 1. **Schema definitions**: `field: Schema.Types.Mixed as any`
 2. **Methods**: `schema.methods.doSomething = function(arg: any) {}`
 3. **Statics**: `schema.statics.findBy = async function(filter: any) {}`
 
 **Fix strategy**: Explicit typing for Mongoose
+
 ```typescript
 // BEFORE
 const workOrderSchema = new Schema({
@@ -323,10 +358,12 @@ const workOrderSchema = new Schema({
 ---
 
 #### **Hooks** (~15 warnings estimated)
+
 **Priority**: MEDIUM
 **Files**: `hooks/**/*.ts`
 
 **Common patterns**:
+
 1. **Generic hooks**: `export function useData(): any`
 2. **Context values**: `const value: any = useContext()`
 
@@ -335,6 +372,7 @@ const workOrderSchema = new Schema({
 ---
 
 #### **Tests** (~13 warnings estimated)
+
 **Priority**: LOW (Can use 'any' in tests)
 **Files**: `**/*.test.ts`, `**/*.spec.ts`
 
@@ -346,6 +384,7 @@ const workOrderSchema = new Schema({
 ## 📋 EXECUTION PLAN - DAILY WORKFLOW
 
 ### **Day 1-2: Quick Wins** (Target: 423 → 350 warnings)
+
 - [ ] Fix all 68 unused variables (prefix with `_`)
 - [ ] Fix 3 React hook dependencies
 - [ ] Fix 1 escape character
@@ -353,6 +392,7 @@ const workOrderSchema = new Schema({
 - [ ] **Commit**: "fix(eslint): eliminate 73 quick-win warnings"
 
 ### **Day 3-7: API Routes** (Target: 350 → 200 warnings)
+
 - [ ] Auth APIs (login, register, session)
 - [ ] Work order APIs (create, update, list)
 - [ ] Aqar property APIs
@@ -361,18 +401,21 @@ const workOrderSchema = new Schema({
 - [ ] **Commit after each file**: "fix(eslint): type-safe [filename]"
 
 ### **Day 8-12: Components** (Target: 200 → 120 warnings)
+
 - [ ] High-traffic pages (dashboard, work orders)
 - [ ] Form components
 - [ ] Layout components (Header, Sidebar)
 - [ ] **Commit after 3-5 files**: "fix(eslint): type-safe components batch X"
 
 ### **Day 13-15: Lib & Models** (Target: 120 → 30 warnings)
+
 - [ ] MongoDB helpers
 - [ ] Validation utilities
 - [ ] Model schemas
 - [ ] **Commit after each area**: "fix(eslint): type-safe lib/[area]"
 
 ### **Day 16-17: Hooks & Misc** (Target: 30 → 0 warnings)
+
 - [ ] Custom hooks
 - [ ] Remaining edge cases
 - [ ] **Final commit**: "fix(eslint): ZERO warnings - complete type safety ✅"
@@ -387,6 +430,7 @@ npm run lint 2>&1 | grep "'error' is defined but never used" | head -20
 ```
 
 Then fix files one by one:
+
 1. Open file
 2. Find unused variable
 3. Prefix with `_`
@@ -423,6 +467,7 @@ Then fix files one by one:
 ## 🎯 READY TO START?
 
 **Immediate next command**:
+
 ```bash
 # Show first 20 files with unused 'error' variables
 npm run lint 2>&1 | grep "'error' is defined but never used" | awk -F: '{print $1 ":" $2}' | head -20

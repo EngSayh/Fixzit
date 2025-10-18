@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Bot, Calendar, CheckCircle2, ClipboardList, FileText, Loader2, Send, ShieldCheck, Upload, X } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface ChatMessage {
   id: string;
@@ -162,6 +163,7 @@ function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
 }
 
 export default function CopilotWidget({ autoOpen = false, embedded = false }: CopilotWidgetProps) {
+  const { locale: globalLocale } = useTranslation(); // Use global language selection
   const [isOpen, setIsOpen] = useState(embedded || autoOpen);
   const [profile, setProfile] = useState<CopilotProfile | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -172,7 +174,8 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const locale: 'en' | 'ar' = profile?.session.locale || 'en';
+  // Sync with global language - use TranslationContext instead of API locale
+  const locale: 'en' | 'ar' = globalLocale === 'ar' ? 'ar' : 'en';
   const t = translations[locale];
   const isRTL = locale === 'ar';
 

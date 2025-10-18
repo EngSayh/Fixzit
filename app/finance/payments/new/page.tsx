@@ -11,12 +11,12 @@ export default function NewPaymentPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Record Payment</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Record a new payment or income transaction</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('finance.payment.title', 'Record Payment')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.payment.subtitle', 'Record a new payment or income transaction')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
-          <button className="btn-primary">Record Payment</button>
+          <button className="btn-primary">{t('finance.payment.recordPayment', 'Record Payment')}</button>
         </div>
       </div>
 
@@ -25,11 +25,11 @@ export default function NewPaymentPage() {
         {/* Main Form */}
         <div className="lg:col-span-2 space-y-6">
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Payment Details</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.details', 'Payment Details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Reference *
+                  {t('finance.payment.reference', 'Payment Reference')} *
                 </label>
                 <input
                   type="text"
@@ -39,7 +39,7 @@ export default function NewPaymentPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Date *
+                  {t('finance.payment.date', 'Payment Date')} *
                 </label>
                 <input
                   type="date"
@@ -48,20 +48,20 @@ export default function NewPaymentPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Method *
+                  {t('finance.payment.method', 'Payment Method')} *
                 </label>
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>Select Method</option>
-                  <option>Bank Transfer</option>
-                  <option>Cash</option>
-                  <option>Cheque</option>
-                  <option>Credit Card</option>
-                  <option>Online Payment</option>
+                  <option>{t('finance.payment.selectMethod', 'Select Method')}</option>
+                  <option>{t('finance.payment.bankTransfer', 'Bank Transfer')}</option>
+                  <option>{t('finance.payment.cash', 'Cash')}</option>
+                  <option>{t('finance.payment.cheque', 'Cheque')}</option>
+                  <option>{t('finance.payment.creditCard', 'Credit Card')}</option>
+                  <option>{t('finance.payment.onlinePayment', 'Online Payment')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Currency
+                  {t('finance.currency', 'Currency')}
                 </label>
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
                   <option>SAR - Saudi Riyal</option>
@@ -74,14 +74,14 @@ export default function NewPaymentPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Payment From</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.from', 'Payment From')}</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payer/Customer *
+                  {t('finance.payment.payerCustomer', 'Payer/Customer')} *
                 </label>
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>Select Payer</option>
+                  <option>{t('finance.payment.selectPayer', 'Select Payer')}</option>
                   <option>John Smith - Tower A</option>
                   <option>Sarah Johnson - Tower B</option>
                   <option>Ahmed Al-Rashid - Villa 9</option>
@@ -90,11 +90,11 @@ export default function NewPaymentPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Description
+                  {t('finance.payment.description', 'Payment Description')}
                 </label>
                 <input
                   type="text"
-                  placeholder="Monthly rent payment, Service fee, etc..."
+                  placeholder={t('finance.payment.descriptionPlaceholder', 'Monthly rent payment, Service fee, etc...')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
@@ -102,11 +102,11 @@ export default function NewPaymentPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Payment Amount</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.amount', 'Payment Amount')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount *
+                  {t('finance.amount', 'Amount')} *
                 </label>
                 <div className="relative">
                   <input
@@ -119,37 +119,37 @@ export default function NewPaymentPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
+                  {t('finance.payment.category', 'Category')}
                 </label>
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>Rent Payment</option>
-                  <option>Service Fee</option>
-                  <option>Security Deposit</option>
-                  <option>Late Fee</option>
-                  <option>Other Income</option>
+                  <option>{t('finance.payment.rentPayment', 'Rent Payment')}</option>
+                  <option>{t('finance.payment.serviceFee', 'Service Fee')}</option>
+                  <option>{t('finance.payment.securityDeposit', 'Security Deposit')}</option>
+                  <option>{t('finance.payment.lateFee', 'Late Fee')}</option>
+                  <option>{t('finance.payment.otherIncome', 'Other Income')}</option>
                 </select>
               </div>
             </div>
 
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes
+                {t('finance.notes', 'Notes')}
               </label>
               <textarea
                 rows={3}
-                placeholder="Additional notes about this payment..."
+                placeholder={t('finance.notesPlaceholder', 'Additional notes...')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
               />
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Receipt & Documentation</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.receiptDocumentation', 'Receipt & Documentation')}</h3>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               <div className="text-gray-400 mb-2">📎</div>
-              <p className="text-sm text-gray-600">Upload receipt or supporting document</p>
+              <p className="text-sm text-gray-600">{t('finance.uploadReceipt', 'Upload receipt or supporting document')}</p>
               <button className="mt-2 text-sm text-[var(--fixzit-blue)] hover:underline">
-                Choose File
+                {t('finance.chooseFile', 'Choose File')}
               </button>
             </div>
           </div>
@@ -158,30 +158,30 @@ export default function NewPaymentPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Payment Summary</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.summary', 'Payment Summary')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Amount</span>
+                <span className="text-gray-600">{t('finance.amount', 'Amount')}</span>
                 <span className="font-medium">SAR 0.00</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Processing Fee</span>
+                <span className="text-gray-600">{t('finance.payment.processingFee', 'Processing Fee')}</span>
                 <span className="font-medium">SAR 0.00</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">VAT (if applicable)</span>
+                <span className="text-gray-600">{t('finance.vat', 'VAT')} ({t('common.ifApplicable', 'if applicable')})</span>
                 <span className="font-medium">SAR 0.00</span>
               </div>
               <hr className="my-2" />
               <div className="flex justify-between text-lg font-semibold">
-                <span>Net Amount</span>
+                <span>{t('finance.payment.netAmount', 'Net Amount')}</span>
                 <span>SAR 0.00</span>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Recent Payments</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.recent', 'Recent Payments')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <div>
@@ -208,31 +208,31 @@ export default function NewPaymentPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-2">
               <button className="w-full btn-ghost text-left">
-                📊 Generate Receipt
+                📊 {t('finance.payment.generateReceipt', 'Generate Receipt')}
               </button>
               <button className="w-full btn-ghost text-left">
-                💰 Bulk Payment Entry
+                💰 {t('finance.payment.bulkEntry', 'Bulk Payment Entry')}
               </button>
               <button className="w-full btn-ghost text-left">
-                📋 Payment Templates
+                📋 {t('finance.payment.templates', 'Payment Templates')}
               </button>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-gray-600">Form auto-saved</span>
+                <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-gray-400 ml-auto">1m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span className="text-gray-600">Payer selected</span>
+                <span className="text-gray-600">{t('finance.payment.payerCustomer', 'Payer')} {t('common.selected', 'selected')}</span>
                 <span className="text-gray-400 ml-auto">3m ago</span>
               </div>
             </div>

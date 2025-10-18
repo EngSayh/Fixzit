@@ -3,6 +3,7 @@
 ## ✅ Implementation Snapshot
 
 ### 🏗️ Data Models (MongoDB / Mongoose)
+
 - ✅ `src/db/models/Module.ts` – module catalog and defaults
 - ✅ `src/db/models/PriceBook.ts` – tiered seat pricing
 - ✅ `src/db/models/DiscountRule.ts` – annual prepay discount control
@@ -13,6 +14,7 @@
 - ✅ `src/db/models/ServiceAgreement.ts` – e-signed agreements archive
 
 ### ⚙️ Services & Jobs
+
 - ✅ `src/services/pricing.ts` – seat-tier pricing engine (USD/SAR)
 - ✅ `src/services/checkout.ts` – subscription checkout + PayTabs HPP orchestration
 - ✅ `src/services/paytabs.ts` – webhook normalisation, token storage, provisioning
@@ -20,6 +22,7 @@
 - ✅ `src/jobs/recurring-charge.ts` – daily recurring billing token runner
 
 ### 🔌 API Endpoints (Next.js App Router)
+
 - ✅ `POST /api/checkout/quote` – instant pricing quote
 - ✅ `POST /api/checkout/session` – generic checkout initialiser
 - ✅ `POST /api/checkout/complete` – finalise checkout / poll status
@@ -35,11 +38,13 @@
 - ✅ `PATCH /api/admin/billing/benchmark/:id` – maintain benchmark entries
 
 ### 🌱 Seed Script
+
 - ✅ `scripts/seed-subscriptions.ts` – modules, price books, discount, benchmark data
 
 ## 🚀 Getting Started
 
 ### 1. Environment (`.env.local`)
+
 ```bash
 # MongoDB
 MONGODB_URI=mongodb://localhost:27017/fixzit
@@ -56,11 +61,13 @@ CRON_SECRET=your_secure_random_string
 ```
 
 ### 2. Seed the Catalogue
+
 ```bash
 npx tsx scripts/seed-subscriptions.ts
 ```
 
 ### 3. Run the App
+
 ```bash
 npm run dev
 ```
@@ -80,17 +87,20 @@ npm run dev
 > Annual prepay discount defaults to **15%** (editable by Super Admin). Seat counts above 200 trigger `requiresQuote`.
 
 ## 💳 PayTabs Integration Highlights
+
 - Hosted Payment Page with `tokenise=2` for monthly plans
 - Recurring token charge via `tran_class: 'recurring'`
 - Token + masked card stored only (no PAN/CVV)
 - Return + callback wired through `/api/paytabs/return` & `/api/paytabs/callback`
 
 ## 📊 Benchmark Dataset (editable)
+
 - UpKeep – Essential $20, Premium $45 (global)
 - MaintainX – Essential $20, Premium $65 (global)
 - Hippo CMMS – Starter $35, Pro $75 (global)
 
 ## 🔒 Governance & Automation
+
 - Super Admin only access to billing admin APIs
 - Corporate vs Owner flows issue appropriately scoped subscriptions
 - Owner metadata drives `OwnerGroup` provisioning after successful payment
@@ -98,4 +108,5 @@ npm run dev
 - Daily recurring job charges tokenised monthly subscriptions
 
 ## ✅ Status
+
 All subscription system requirements from governance V5/V6 + the updated billing charter are implemented and production ready.

@@ -12,6 +12,7 @@
 You've been working on fixing 696 CodeRabbit PR review comments over the past 2 days. Progress has been made but workspace rebuilds cause chat history loss. This document provides a **persistent tracking system** that survives workspace rebuilds.
 
 ### Current Status
+
 - ✅ **13 comments fixed** (Categories A & F)
 - 🔄 **683 comments remaining**
 - 📊 **Organized into 7 categories** for focused approach
@@ -22,10 +23,12 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 ## 📊 CATEGORY BREAKDOWN & PROGRESS
 
 ### **Category A: Unused Variables** 🔄 IN PROGRESS
+
 **Total**: 50 files | **Fixed**: 9 | **Remaining**: 41 | **Progress**: 18%  
 **Priority**: HIGH | **Time**: 2-3 hours | **Difficulty**: EASY
 
 #### ✅ Completed (12 files)
+
 1. ✅ app/api/billing/callback/paytabs/route.ts - Removed `_client`
 2. ✅ app/api/billing/charge-recurring/route.ts - Removed `_client`
 3. ✅ app/api/ats/moderation/route.ts - Removed `_user`
@@ -41,6 +44,7 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 #### 🔄 Next to Fix (41 files)
 
 **A1: API Routes - Unused Error Handlers** (20 files)
+
 - [ ] app/api/public/rfqs/route.ts - 6 error handlers unused
 - [ ] app/api/qa/alert/route.ts - 6 error handlers unused
 - [ ] app/api/qa/health/route.ts - 6 error handlers + `createSecureResponse`
@@ -49,6 +53,7 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 - [ ] app/api/payments/paytabs/callback/route.ts - `_zatcaQR`
 
 **A2: Test Files** (8 files)
+
 - [ ] app/marketplace/page.test.tsx - `importer`, `options`
 - [ ] app/marketplace/rfq/page.test.tsx - `content`
 - [ ] app/test/api_help_articles_route.test.ts - `coll`
@@ -56,9 +61,10 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 - [ ] app/test/help_support_ticket_page.test.tsx - `within`, `fireEvent`
 - [ ] components/marketplace/CatalogView.test.tsx - `within`
 - [ ] data/language-options.test.ts - `idx`
-- [ ] i18n/dictionaries/__tests__/ar.test.ts - `path`
+- [ ] i18n/dictionaries/**tests**/ar.test.ts - `path`
 
 **A3: Components & Hooks** (7 files)
+
 - [ ] components/ErrorBoundary.tsx - `sendWelcomeEmail`
 - [ ] qa/AutoFixAgent.tsx - `type`
 - [ ] hooks/useScreenSize.ts - `isLarge`
@@ -68,6 +74,7 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 - [ ] providers/QAProvider.tsx - `useEffect`, `useState`
 
 **A4: Server/Models** (10 files)
+
 - [ ] config/modules.ts - `Role`
 - [ ] db/mongoose.ts - `mongoose`
 - [ ] lib/auth.ts - `_UserDoc`, `_getJWTSecret`
@@ -77,13 +84,14 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 - [ ] server/copilot/retrieval.ts - `SessionUser`
 - [ ] server/finance/invoice.service.ts - `mockService`, `ip`
 - [ ] server/models/Project.ts - `ProjectStatus`
-- [ ] server/models/__tests__/Candidate.test.ts - `mod`, `RealCandidateLike`
+- [ ] server/models/**tests**/Candidate.test.ts - `mod`, `RealCandidateLike`
 - [ ] server/security/idempotency.spec.ts - `expected`
 - [ ] server/work-orders/wo.service.ts - `VALID_TRANSITIONS`, `tenantId`
 - [ ] src/server/models/Project.ts - `_ProjectStatus`
-- [ ] src/server/models/__tests__/Candidate.test.ts - `mod`, `RealCandidateLike`
+- [ ] src/server/models/**tests**/Candidate.test.ts - `mod`, `RealCandidateLike`
 
 **A5: Scripts** (6 files)
+
 - [ ] scripts/dedup/consolidate.ts - `fs`, `path`
 - [ ] scripts/dedupe-merge.ts - `parse`, `recast`
 - [ ] scripts/verify-core.ts - Multiple unused imports
@@ -94,10 +102,12 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 ---
 
 ### **Category B: Explicit `any` Types** ❌ NOT STARTED
+
 **Total**: 235+ files | **Fixed**: 0 | **Remaining**: 235+ | **Progress**: 0%  
 **Priority**: HIGH | **Time**: 15-20 hours | **Difficulty**: MEDIUM-HARD
 
 #### B1: Critical Infrastructure (10 files) - **START HERE**
+
 - [ ] lib/mongo.ts - 4 instances (Promise<any>, type casts)
 - [ ] lib/db/index.ts - 2 instances
 - [ ] lib/auth.ts - 2 instances
@@ -110,9 +120,11 @@ You've been working on fixing 696 CodeRabbit PR review comments over the past 2 
 - [ ] lib/paytabs.ts - 5 instances
 
 #### B2: API Routes - Error Handling (50+ files)
+
 **Pattern**: Replace `catch (error: any)` with `catch (error: unknown)`
 
 Sample files:
+
 - [ ] app/api/admin/discounts/route.ts - 2 instances
 - [ ] app/api/admin/price-tiers/route.ts - 2 instances
 - [ ] app/api/aqar/map/route.ts - 1 instance
@@ -125,6 +137,7 @@ Sample files:
 - [ ] And 40+ more files...
 
 #### B3: Frontend Pages (30+ files)
+
 - [ ] app/aqar/map/page.tsx - 1 instance
 - [ ] app/finance/page.tsx - 2 instances
 - [ ] app/fm/assets/page.tsx - 2 instances
@@ -135,6 +148,7 @@ Sample files:
 - [ ] And 20+ more files...
 
 #### B4: Components (20+ files)
+
 - [ ] components/AIChat.tsx - 1 instance
 - [ ] components/AutoIncidentReporter.tsx - 2 instances
 - [ ] components/ErrorBoundary.tsx - 2 instances
@@ -142,12 +156,14 @@ Sample files:
 - [ ] And 15+ more files...
 
 #### B5: Server Models (10+ files)
+
 - [ ] src/server/models/Application.ts - 4 instances
 - [ ] src/server/models/WorkOrder.ts - 1 instance
 - [ ] src/server/models/marketplace/Product.ts - 1 instance
 - [ ] And 7+ more files...
 
 #### B6: Utilities (10+ files)
+
 - [ ] lib/markdown.ts - 1 instance
 - [ ] lib/pricing.ts - 1 instance
 - [ ] lib/paytabs/callback.ts - 2 instances
@@ -156,12 +172,14 @@ Sample files:
 ---
 
 ### **Category C: Auth-Before-Rate-Limit Pattern** ❌ NOT STARTED
+
 **Total**: 20+ files | **Fixed**: 0 | **Remaining**: 20+ | **Progress**: 0%  
 **Priority**: HIGH (Security Issue) | **Time**: 2-3 hours | **Difficulty**: MEDIUM
 
 **Security Issue**: Rate limiting should happen AFTER authentication to prevent abuse
 
 **Pattern to Apply**:
+
 ```typescript
 // WRONG (Current):
 export async function POST(req: NextRequest) {
@@ -183,6 +201,7 @@ export async function POST(req: NextRequest) {
 ```
 
 #### Files Requiring Fix (20+ files)
+
 - [ ] app/api/invoices/route.ts (POST and GET)
 - [ ] app/api/assets/route.ts (POST and GET)
 - [ ] app/api/help/articles/route.ts (GET)
@@ -198,12 +217,14 @@ export async function POST(req: NextRequest) {
 ---
 
 ### **Category D: Error Response Consistency** ❌ NOT STARTED
+
 **Total**: 15+ files | **Fixed**: 0 | **Remaining**: 15+ | **Progress**: 0%  
 **Priority**: MEDIUM | **Time**: 1-2 hours | **Difficulty**: EASY
 
 **Issue**: Mixing `NextResponse.json()` and `createSecureResponse()`
 
 **Pattern to Apply**:
+
 ```typescript
 // WRONG:
 return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -213,6 +234,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ```
 
 #### Files Requiring Fix (15+ files)
+
 - [ ] app/api/invoices/route.ts - Multiple instances
 - [ ] app/api/assets/route.ts - Multiple instances
 - [ ] app/api/copilot/chat/route.ts - Error responses
@@ -221,10 +243,12 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ---
 
 ### **Category E: TypeScript Type Errors** ❌ NOT STARTED
+
 **Total**: 10+ files | **Fixed**: 0 | **Remaining**: 10+ | **Progress**: 0%  
 **Priority**: HIGH | **Time**: 2-3 hours | **Difficulty**: MEDIUM
 
 #### Files with Type Errors (10+ files)
+
 - [ ] app/api/marketplace/cart/route.ts - Type mismatch on line 45
 - [ ] app/api/marketplace/products/route.ts - Unknown error type
 - [ ] app/api/marketplace/search/route.ts - Property access errors (4 instances)
@@ -236,15 +260,18 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ---
 
 ### **Category F: Empty Catch Blocks** ✅ COMPLETE
+
 **Total**: 4 files | **Fixed**: 4 | **Remaining**: 0 | **Progress**: 100%  
 **Priority**: LOW | **Status**: ✅ VERIFIED - Only in test files (acceptable)
 
 #### ✅ Verified (4 files)
+
 - ✅ app/test/help_ai_chat_page.test.tsx - 4 empty catch blocks (intentional for test scaffolding)
 
 ---
 
 ### **Category G: React Hook Dependencies** ✅ COMPLETE
+
 **Total**: 0 files | **Fixed**: 0 | **Remaining**: 0 | **Progress**: 100%  
 **Priority**: N/A | **Status**: ✅ NO ISSUES FOUND
 
@@ -253,6 +280,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ## 🎯 RECOMMENDED EXECUTION PLAN
 
 ### **Phase 1: Quick Wins** (4-5 hours)
+
 **Goal**: Build momentum with easy fixes
 
 1. ✅ **Complete Category A** - Finish remaining 41 unused variables
@@ -267,6 +295,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
    - Low risk, high consistency gain
 
 ### **Phase 2: Security Critical** (3-4 hours)
+
 **Goal**: Fix security vulnerabilities
 
 3. 🔒 **Complete Category C** - Fix auth-before-rate-limit (20+ files)
@@ -280,6 +309,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
    - Requires careful type definitions
 
 ### **Phase 3: Type Safety** (15-20 hours)
+
 **Goal**: Eliminate all `any` types
 
 5. 📝 **Complete Category E** - Fix TypeScript type errors (10 files)
@@ -294,6 +324,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
    - B6: Utilities (10+ files)
 
 ### **Phase 4: Verification** (2-3 hours)
+
 **Goal**: Ensure all fixes work
 
 7. ✅ Run full test suite
@@ -321,6 +352,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ## 🚀 NEXT IMMEDIATE ACTIONS
 
 ### Right Now (Next 30 minutes)
+
 1. **Fix 5 API route unused error handlers**
    - app/api/public/rfqs/route.ts
    - app/api/qa/alert/route.ts
@@ -329,10 +361,12 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
    - app/api/qa/reconnect/route.ts
 
 ### Today (Next 2-3 hours)
+
 2. **Complete Category A** - Finish all 41 unused variables
 3. **Start Category D** - Begin error response standardization
 
 ### This Week (Next 5-7 hours)
+
 4. **Complete Category C** - Fix all auth-before-rate-limit issues
 5. **Complete Category D** - Finish error response standardization
 6. **Start Category B1** - Begin fixing `any` in core libraries
@@ -342,6 +376,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ## 📝 TRACKING NOTES
 
 ### What's Been Done (Past 2 Days)
+
 - ✅ Categorized all 696 comments into 7 logical groups
 - ✅ Fixed 9 unused variable issues (Category A)
 - ✅ Verified empty catch blocks are acceptable (Category F)
@@ -349,14 +384,17 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 - ✅ Established focused execution plan
 
 ### What's Next
+
 - 🔄 Complete Category A (41 files remaining)
 - 🔄 Fix security issues in Category C (20+ files)
 - 🔄 Eliminate `any` types in Category B (235+ files)
 
 ### Blockers
+
 - None currently
 
 ### Notes for Future Sessions
+
 - This document persists across workspace rebuilds
 - Always check this file first when resuming work
 - Update progress after each batch of fixes
@@ -394,16 +432,19 @@ Category G: [████████████████████] 100% 
 ## 💡 TIPS FOR EFFICIENT FIXING
 
 ### Batch Processing
+
 - Fix similar issues together (e.g., all unused error handlers)
 - Use find/replace for repetitive patterns
 - Test after each batch, not each file
 
 ### Priority Order
+
 1. **Security issues first** (Category C)
 2. **Quick wins for momentum** (Category A, D)
 3. **Type safety for stability** (Category B, E)
 
 ### Avoid Burnout
+
 - Take breaks every 2 hours
 - Celebrate milestones (every 50 fixes)
 - Track progress visually

@@ -1,4 +1,4 @@
- # Regex Fix Complete ✅
+# Regex Fix Complete ✅
 
 ## Issue Identified
 
@@ -151,12 +151,14 @@ npm run replace:in-file -- \
 Created comprehensive test suite: `scripts/test-replace-tool.sh`
 
 Run tests:
+
 ```bash
 cd /workspaces/Fixzit/scripts
 bash test-replace-tool.sh
 ```
 
 Tests cover:
+
 1. ✅ Simple literal replacement
 2. ✅ Medium regex with special chars
 3. ✅ Complex regex with capture groups
@@ -196,6 +198,7 @@ Tests cover:
 ### Issue: Regex not matching
 
 **Solution**: Use single quotes and test pattern separately:
+
 ```bash
 # Test the pattern first
 echo "test string" | grep -E 'your\(pattern\)'
@@ -207,6 +210,7 @@ npm run replace:in-file -- --regex --search 'your\(pattern\)' --replace 'replace
 ### Issue: Capture groups not working
 
 **Solution**: Ensure `$1`, `$2` are in single quotes:
+
 ```bash
 # ✅ CORRECT
 --replace 'result($1)'
@@ -218,6 +222,7 @@ npm run replace:in-file -- --regex --search 'your\(pattern\)' --replace 'replace
 ### Issue: Special characters causing errors
 
 **Solution**: Escape regex special chars: `. * + ? ^ $ { } ( ) | [ ] \`
+
 ```bash
 # Match literal parentheses
 --search 'foo\(\)'
@@ -243,16 +248,19 @@ npm run replace:in-file -- --regex --search 'your\(pattern\)' --replace 'replace
 ## Summary
 
 ✅ **All complexity levels now supported**:
+
 - Simple: Literal string replacement
 - Medium: Regex with special characters
 - Complex: Regex with capture groups and transformations
 
 ✅ **Proper shell escaping handled**:
+
 - Automatic unescape of double-escaped patterns
 - Works with both bash and PowerShell
 - Clear documentation for both platforms
 
 ✅ **Comprehensive testing**:
+
 - Test suite covers all use cases
 - Real-world examples provided
 - Troubleshooting guide included

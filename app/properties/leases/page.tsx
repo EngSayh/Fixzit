@@ -76,17 +76,31 @@ export default function PropertiesLeasesPage() {
     }
   };
 
+  const getStatusTranslation = (status: string) => {
+    const translations: { [key: string]: string } = {
+      'Active': t('properties.leases.active', 'Active'),
+      'Expiring Soon': t('properties.leases.expiringSoon', 'Expiring Soon'),
+      'Expired': t('properties.leases.expired', 'Expired'),
+      'Vacant': t('properties.leases.vacant', 'Vacant'),
+      'Paid': t('properties.leases.paid', 'Paid'),
+      'Pending': t('properties.leases.pending', 'Pending'),
+      'Overdue': t('properties.leases.overdue', 'Overdue'),
+      'N/A': t('properties.leases.na', 'N/A'),
+    };
+    return translations[status] || status;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Lease Management</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Manage property leases and rental agreements</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('properties.leases.title', 'Lease Management')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('properties.leases.subtitle', 'Manage property leases and rental agreements')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Lease Templates</button>
-          <button className="btn-primary">+ New Lease</button>
+          <button className="btn-secondary">{t('properties.leases.templates', 'Lease Templates')}</button>
+          <button className="btn-primary">+ {t('properties.leases.newLease', 'New Lease')}</button>
         </div>
       </div>
 
@@ -95,7 +109,7 @@ export default function PropertiesLeasesPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Leases</p>
+              <p className="text-sm font-medium text-gray-600">{t('properties.leases.activeLeases', 'Active Leases')}</p>
               <p className="text-2xl font-bold text-green-600">142</p>
             </div>
             <div className="text-green-400">📄</div>
@@ -104,7 +118,7 @@ export default function PropertiesLeasesPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
+              <p className="text-sm font-medium text-gray-600">{t('properties.leases.expiringSoon', 'Expiring Soon')}</p>
               <p className="text-2xl font-bold text-yellow-600">8</p>
             </div>
             <div className="text-yellow-400">⚠️</div>
@@ -113,7 +127,7 @@ export default function PropertiesLeasesPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
+              <p className="text-sm font-medium text-gray-600">{t('properties.leases.monthlyRevenue', 'Monthly Revenue')}</p>
               <p className="text-2xl font-bold text-blue-600">SAR 1.2M</p>
             </div>
             <div className="text-blue-400">💰</div>
@@ -122,8 +136,8 @@ export default function PropertiesLeasesPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Avg. Lease Term</p>
-              <p className="text-2xl font-bold text-purple-600">18 months</p>
+              <p className="text-sm font-medium text-gray-600">{t('properties.leases.avgLeaseTerm', 'Avg. Lease Term')}</p>
+              <p className="text-2xl font-bold text-purple-600">18 {t('properties.leases.months', 'months')}</p>
             </div>
             <div className="text-purple-400">📅</div>
           </div>
@@ -135,7 +149,7 @@ export default function PropertiesLeasesPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-              <option>All Properties</option>
+              <option>{t('properties.leases.allProperties', 'All Properties')}</option>
               <option>Tower A</option>
               <option>Tower B</option>
               <option>Villa Complex</option>
@@ -143,31 +157,31 @@ export default function PropertiesLeasesPage() {
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-              <option>All Types</option>
-              <option>Residential</option>
-              <option>Commercial</option>
+              <option>{t('properties.leases.allTypes', 'All Types')}</option>
+              <option>{t('properties.leases.residential', 'Residential')}</option>
+              <option>{t('properties.leases.commercial', 'Commercial')}</option>
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-              <option>All Status</option>
-              <option>Active</option>
-              <option>Expiring Soon</option>
-              <option>Expired</option>
-              <option>Vacant</option>
+              <option>{t('properties.leases.allStatus', 'All Status')}</option>
+              <option>{t('properties.leases.active', 'Active')}</option>
+              <option>{t('properties.leases.expiringSoon', 'Expiring Soon')}</option>
+              <option>{t('properties.leases.expired', 'Expired')}</option>
+              <option>{t('properties.leases.vacant', 'Vacant')}</option>
             </select>
           </div>
-          <button className="btn-primary">Filter</button>
+          <button className="btn-primary">{t('workOrders.filter', 'Filter')}</button>
         </div>
       </div>
 
       {/* Leases Table */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Lease Overview</h3>
+          <h3 className="text-lg font-semibold">{t('properties.leases.overview', 'Lease Overview')}</h3>
           <div className="flex gap-2">
-            <button className="btn-ghost">📄 Export</button>
-            <button className="btn-ghost">📊 Analytics</button>
+            <button className="btn-ghost">📄 {t('workOrders.export', 'Export')}</button>
+            <button className="btn-ghost">📊 {t('common.analytics', 'Analytics')}</button>
           </div>
         </div>
 
@@ -175,16 +189,16 @@ export default function PropertiesLeasesPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lease ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Rent</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lease Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.leaseId', 'Lease ID')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.unit', 'Unit')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.tenant', 'Tenant')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.type', 'Type')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.startDate', 'Start Date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.endDate', 'End Date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.monthlyRent', 'Monthly Rent')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.leaseStatus', 'Lease Status')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.paymentStatus', 'Payment Status')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('properties.leases.actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -199,19 +213,19 @@ export default function PropertiesLeasesPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{lease.monthlyRent}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(lease.status)}`}>
-                      {lease.status}
+                      {getStatusTranslation(lease.status)}
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getPaymentStatusColor(lease.paymentStatus)}`}>
-                      {lease.paymentStatus}
+                      {getStatusTranslation(lease.paymentStatus)}
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       <button className="text-blue-600 hover:text-blue-900">{t('common.view', 'View')}</button>
                       <button className="text-green-600 hover:text-green-900">{t('common.edit', 'Edit')}</button>
-                      <button className="text-orange-600 hover:text-orange-900">Renew</button>
+                      <button className="text-orange-600 hover:text-orange-900">{t('properties.leases.renew', 'Renew')}</button>
                     </div>
                   </td>
                 </tr>
@@ -222,28 +236,23 @@ export default function PropertiesLeasesPage() {
       </div>
 
       {/* Upcoming Renewals */}
+            {/* Upcoming Renewals */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Upcoming Renewals</h3>
-          <button className="btn-ghost">View All</button>
-        </div>
+        <h3 className="text-lg font-semibold mb-4">{t('properties.leases.upcomingRenewals', 'Upcoming Renewals')}</h3>
         <div className="space-y-3">
-          {leases.filter(lease => lease.status === 'Expiring Soon').map(lease => (
-            <div key={lease.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="text-yellow-400">⚠️</div>
-                <div>
-                  <p className="font-medium text-gray-900">{lease.unit}</p>
-                  <p className="text-sm text-gray-600">Tenant: {lease.tenant} • Expires: {lease.endDate}</p>
-                </div>
+          {[
+            { unit: 'A-101', tenant: 'Ahmed Al-Mansouri', date: '2024-02-15', days: 12 },
+            { unit: 'B-305', tenant: 'Sarah Johnson', date: '2024-02-22', days: 19 },
+            { unit: 'C-202', tenant: 'Mohammed Ali', date: '2024-03-01', days: 26 },
+          ].map((renewal, index) => (
+            <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div>
+                <p className="font-medium">{renewal.unit} - {renewal.tenant}</p>
+                <p className="text-sm text-gray-600">{t('properties.leases.expires', 'Expires')}: {renewal.date} ({renewal.days} {t('common.days', 'days')})</p>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700">
-                  Renew
-                </button>
-                <button className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">
-                  Contact
-                </button>
+                <button className="btn-ghost text-sm">{t('properties.leases.renew', 'Renew')}</button>
+                <button className="btn-ghost text-sm">{t('properties.leases.contact', 'Contact')}</button>
               </div>
             </div>
           ))}
@@ -252,31 +261,31 @@ export default function PropertiesLeasesPage() {
 
       {/* Quick Actions */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('common.quickActions', 'Quick Actions')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📄</div>
-            <div className="text-sm font-medium">New Lease</div>
+            <div className="text-sm font-medium">{t('properties.leases.newLease', 'New Lease')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔄</div>
-            <div className="text-sm font-medium">Renewals</div>
+            <div className="text-sm font-medium">{t('properties.leases.renewals', 'Renewals')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">💰</div>
-            <div className="text-sm font-medium">Rent Collection</div>
+            <div className="text-sm font-medium">{t('properties.leases.rentCollection', 'Rent Collection')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📋</div>
-            <div className="text-sm font-medium">Templates</div>
+            <div className="text-sm font-medium">{t('properties.leases.templates', 'Templates')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm font-medium">Reports</div>
+            <div className="text-sm font-medium">{t('common.reports', 'Reports')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
-            <div className="text-sm font-medium">Settings</div>
+            <div className="text-sm font-medium">{t('common.settings', 'Settings')}</div>
           </button>
         </div>
       </div>

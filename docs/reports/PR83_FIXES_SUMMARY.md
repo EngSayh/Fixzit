@@ -1,6 +1,7 @@
 # PR #83 Fixes Summary
 
 ## Date: 2025-01-18
+
 ## Status: ✅ AUTOMATED FIXES APPLIED, MANUAL FIXES DOCUMENTED
 
 ---
@@ -8,37 +9,49 @@
 ## What Was Fixed (Automated)
 
 ### ✅ Fix 1: Role Check in ATS Convert-to-Employee
+
 **File**: `app/api/ats/convert-to-employee/route.ts`
 **Issue**: Role names didn't match RBAC config
 **Before**:
+
 ```typescript
 const canConvertApplications = ['ADMIN', 'HR'].includes(user.role);
 ```
+
 **After**:
+
 ```typescript
 const canConvertApplications = ['corporate_admin', 'hr_manager'].includes(user.role);
 ```
 
 ### ✅ Fix 2: Role Casing in Subscribe/Corporate
+
 **File**: `app/api/subscribe/corporate/route.ts`
 **Issue**: Casing inconsistency (SUPER_ADMIN vs corporate_admin)
 **Before**:
+
 ```typescript
 if (!['SUPER_ADMIN', 'corporate_admin'].includes(user.role)) {
 ```
+
 **After**:
+
 ```typescript
 if (!['super_admin', 'corporate_admin'].includes(user.role)) {
 ```
 
 ### ✅ Fix 3: Shebang in Diagnose Script
+
 **File**: `diagnose-replace-issue.sh`
 **Issue**: Invalid shebang with 'the dual' prefix
 **Before**:
+
 ```bash
 the dual #!/bin/bash
 ```
+
 **After**:
+
 ```bash
 #!/bin/bash
 ```
@@ -50,12 +63,15 @@ the dual #!/bin/bash
 ### 🔴 CRITICAL: Authentication & Tenant Isolation
 
 #### 1. `app/api/subscribe/corporate/route.ts`
+
 **Missing**:
+
 - Authentication check with `getSessionUser()`
 - Role-based access control
 - Tenant isolation validation
 
 **Required Code**:
+
 ```typescript
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
@@ -94,12 +110,15 @@ export async function POST(req: NextRequest) {
 ```
 
 #### 2. `app/api/subscribe/owner/route.ts`
+
 **Missing**:
+
 - Authentication check
 - Role-based access control
 - Owner validation
 
 **Required Code**:
+
 ```typescript
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
@@ -132,7 +151,9 @@ export async function POST(req: NextRequest) {
 ### 🔴 CRITICAL: Model Tenant Fields
 
 #### 3. `server/models/Benchmark.ts`
+
 **Add**:
+
 ```typescript
 const BenchmarkSchema = new Schema({
   tenantId: { type: String, required: true, index: true },
@@ -146,7 +167,9 @@ BenchmarkSchema.index({ tenantId: 1, vendor: 1, region: 1 }, { unique: true });
 ```
 
 #### 4. `server/models/DiscountRule.ts`
+
 **Add**:
+
 ```typescript
 const DiscountRuleSchema = new Schema({
   tenantId: { type: String, required: true, index: true },
@@ -159,7 +182,9 @@ DiscountRuleSchema.index({ tenantId: 1, key: 1 }, { unique: true });
 ```
 
 #### 5. `server/models/OwnerGroup.ts`
+
 **Add**:
+
 ```typescript
 const OwnerGroupSchema = new Schema({
   orgId: { type: String, required: true, index: true },
@@ -173,7 +198,9 @@ OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
 ```
 
 #### 6. `server/models/PaymentMethod.ts`
+
 **Add XOR Validation**:
+
 ```typescript
 const PaymentMethodSchema = new Schema({
   org_id: { type: Types.ObjectId, ref: 'Tenant', required: false },
@@ -205,11 +232,14 @@ PaymentMethodSchema.index({ owner_user_id: 1 });
 ### ⚠️ HIGH: Security Issues
 
 #### 7. Guard Password Logging
+
 **Files**:
+
 - `scripts/seed-direct.mjs`
 - `scripts/seed-auth-14users.mjs`
 
 **Change**:
+
 ```typescript
 // Before
 console.log(`Created user: ${u.email} (Password: ${u.password})`);
@@ -223,11 +253,14 @@ if (process.env.NODE_ENV === 'development' && !process.env.CI) {
 ```
 
 #### 8. Mask Secrets in Test Scripts
+
 **Files**:
+
 - `scripts/test-auth-config.js`
 - `scripts/test-mongodb-atlas.js`
 
 **Change**:
+
 ```typescript
 // Before
 console.log(`✅ JWT_SECRET configured (${jwtSecret.substring(0, 10)}...)`);
@@ -239,11 +272,13 @@ console.log(MONGODB_URI.includes('mongodb+srv://') ? '✅ Atlas URI detected' : 
 ```
 
 #### 9. Fix CORS Security
+
 **File**: `server/security/headers.ts`
 
 **Issue**: `Access-Control-Allow-Origin: '*'` with `Access-Control-Allow-Credentials: 'true'`
 
 **Change**:
+
 ```typescript
 // In development, use specific origin instead of '*'
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
@@ -263,10 +298,12 @@ headers['Access-Control-Allow-Origin'] = allowedOrigins[0]; // Use first allowed
 ## Status
 
 ### ✅ Completed (Automated)
+
 - Role check fixes (2 files)
 - Shebang fix (1 file)
 
 ### 🔴 Pending (Manual)
+
 - Authentication & tenant isolation (2 files)
 - Model tenant fields (4 files)
 - Security fixes (5 files)
@@ -300,11 +337,13 @@ headers['Access-Control-Allow-Origin'] = allowedOrigins[0]; // Use first allowed
 ## Review Comments Addressed
 
 ### gemini-code-assist bot
+
 - ✅ Fixed role check in ATS convert-to-employee
 - ✅ Fixed role casing in subscribe/corporate
 - 🔴 Pending: Add authentication to subscribe endpoints
 
 ### greptile-apps bot
+
 - ✅ Fixed shebang in diagnose script
 - 🔴 Pending: Add tenant fields to models
 - 🔴 Pending: Fix security issues in scripts

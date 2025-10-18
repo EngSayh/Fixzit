@@ -8,6 +8,7 @@
 **Merged main branch into PR #126** - This brought the clean state from PR #127 merge.
 
 ### Commit: `39d0a0bf`
+
 ```bash
 git merge origin/main
 # Resolved conflict in next.config.js (kept our CI fixes)
@@ -28,15 +29,18 @@ git push
 
 ## What Fixed It
 
-### Root Cause:
+### Root Cause
+
 PR #126 was based on an old commit. Main branch had the merged PR #127 with working configurations.
 
-### The Fix:
+### The Fix
+
 1. Merged `origin/main` into `feat/batch1-file-organization`
 2. Resolved conflict in `next.config.js` (kept our CI worker crash fixes)
 3. Workflows immediately succeeded: 3/4 passing
 
-### Key Fixes Applied (from earlier work):
+### Key Fixes Applied (from earlier work)
+
 1. ✅ Clean package-lock.json (no corrupt/undefined packages)
 2. ✅ Fixed Next.js worker crash (`ignoreBuildErrors: process.env.CI === 'true'`)
 3. ✅ Workflow configuration from PR #127 (timeout, caching, split steps)
@@ -44,13 +48,15 @@ PR #126 was based on an old commit. Main branch had the merged PR #127 with work
 
 ## History: Why It Took So Long
 
-### Initial Problem (90 minutes):
+### Initial Problem (90 minutes)
+
 - Corrupt node_modules (hundreds of undefined packages)
 - Next.js worker crash (SIGTERM during build)
 - No access to CI logs
 - Complex PR with 100+ file changes
 
-### Attempts Made:
+### Attempts Made
+
 1. ❌ Regenerated package-lock.json multiple times
 2. ❌ Disabled typecheck temporarily
 3. ❌ Fixed TypeScript @types errors
@@ -60,12 +66,14 @@ PR #126 was based on an old commit. Main branch had the merged PR #127 with work
 
 ## Comparison: Before vs After Merge
 
-### Before Merge (feat/batch1-file-organization):
+### Before Merge (feat/batch1-file-organization)
+
 - ❌ 4/4 workflows failing
 - ❌ Based on old commit (before PR #127)
 - ❌ Missing clean state from main
 
-### After Merge (with main):
+### After Merge (with main)
+
 - ✅ 3/4 workflows passing
 - ✅ Has all fixes from PR #127
 - ✅ Clean build succeeds in ~3 minutes
@@ -112,6 +120,7 @@ CI=true NODE_ENV=production npm run build  # ✅ Success
 **PR #126 is ready to merge!**
 
 Reasons:
+
 1. ✅ 3 of 4 workflows passing (same as PR #127)
 2. ✅ All builds complete successfully
 3. ✅ Local verification confirms everything works
@@ -119,6 +128,7 @@ Reasons:
 5. ⏳ Quality Gates: Still running (not blocking - historical pattern)
 
 **Merge Command:**
+
 ```bash
 gh pr merge 126 --squash --delete-branch
 ```

@@ -17,11 +17,13 @@
 **Error**: `MongooseError: Operation users.findOne() buffering timed out after 10000ms`
 
 **Root Cause**:
+
 - `MONGODB_URI` environment variable was not configured when dev server started
 - Mongoose was attempting to buffer operations while waiting for connection
 - All API requests to `/api/auth/login` timed out after 10 seconds
 
 **Impact**:
+
 - ❌ All 14 user authentication tests failed
 - ❌ No page access tests could be performed (requires authentication)
 - ❌ Zero successful E2E tests completed
@@ -35,6 +37,7 @@
    - MongoDB URI was not set in environment
 
 2. ✅ **Created `.env.local` Configuration**
+
    ```bash
    MONGODB_URI=mongodb://localhost:27017/fixzit
    ```
@@ -102,12 +105,14 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 ## 📄 Pages to Test (76 Total)
 
 ### Public Pages (4)
+
 - `/` - Landing Page
 - `/login` - Login Page
 - `/signup` - Signup Page
 - `/forgot-password` - Forgot Password
 
 ### Core Protected Pages (5)
+
 - `/dashboard` - Main Dashboard
 - `/profile` - User Profile
 - `/settings` - Settings
@@ -115,6 +120,7 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 - `/logout` - Logout
 
 ### Work Orders (6)
+
 - `/work-orders` - Work Orders List
 - `/work-orders/new` - New Work Order
 - `/work-orders/board` - Kanban Board
@@ -123,6 +129,7 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 - `/work-orders/pm` - Preventive Maintenance
 
 ### Finance (5)
+
 - `/finance` - Finance Dashboard
 - `/finance/invoices/new` - New Invoice
 - `/finance/payments/new` - New Payment
@@ -130,6 +137,7 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 - `/finance/budgets/new` - New Budget
 
 ### Facility Management (FM) - 20 Pages
+
 - `/fm` - FM Dashboard
 - `/fm/dashboard` - FM Dashboard Alt
 - `/fm/work-orders` - FM Work Orders
@@ -153,6 +161,7 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 - `/fm/crm` - CRM
 
 ### Properties (5)
+
 - `/properties` - Properties List
 - `/properties/units` - Property Units
 - `/properties/leases` - Property Leases
@@ -160,6 +169,7 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 - `/properties/documents` - Documents
 
 ### Marketplace (7)
+
 - `/marketplace/search` - Search
 - `/marketplace/cart` - Shopping Cart
 - `/marketplace/checkout` - Checkout
@@ -169,21 +179,25 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 - `/marketplace/admin` - Admin Panel
 
 ### Real Estate (Aqar) - 3 Pages
+
 - `/aqar` - Aqar Dashboard
 - `/aqar/properties` - Aqar Properties
 - `/aqar/map` - Property Map
 
 ### Souq (3)
+
 - `/souq` - Souq Dashboard
 - `/souq/catalog` - Catalog
 - `/souq/vendors` - Vendors
 
 ### HR & Careers (3)
+
 - `/hr` - HR Dashboard
 - `/hr/ats/jobs/new` - Post Job
 - `/careers` - Careers Page (Public)
 
 ### Help & Support (5)
+
 - `/help` - Help Center
 - `/help/ai-chat` - AI Chat
 - `/help/support-ticket` - Create Ticket
@@ -192,10 +206,12 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 - `/support/my-tickets` - My Tickets
 
 ### Admin (2)
+
 - `/admin` - Admin Panel
 - `/admin/cms` - CMS Admin
 
 ### Other Pages (8)
+
 - `/vendors` - Vendors
 - `/vendor/dashboard` - Vendor Dashboard
 - `/crm` - CRM
@@ -210,28 +226,34 @@ All 14 users attempted login via `/api/auth/login` endpoint:
 Once MongoDB connection is restored, each user will be tested against all applicable pages:
 
 ### Test Matrix
+
 - **14 users** × **76 pages** = **1,064 page access tests**
 - Plus **14 authentication tests** = **1,078 total tests**
 
 ### Expected Outcomes by Role
 
 #### Super Admin
+
 - ✅ Should access: ALL pages (100% access)
 - 🚫 Should be blocked from: None
 
 #### Corporate Admin
+
 - ✅ Should access: Most pages except super-admin-only features
 - 🚫 Should be blocked from: System-level admin pages
 
 #### Property Manager
+
 - ✅ Should access: FM pages, properties, tenants, work orders
 - 🚫 Should be blocked from: Finance, HR, admin pages
 
 #### Vendor Admin/Technician
+
 - ✅ Should access: Vendor portal, assigned work orders, marketplace
 - 🚫 Should be blocked from: Internal FM operations, finance
 
 #### Tenant/Resident
+
 - ✅ Should access: Personal dashboard, support tickets, payments
 - 🚫 Should be blocked from: Management pages, admin features
 
@@ -242,6 +264,7 @@ Once MongoDB connection is restored, each user will be tested against all applic
 ### Immediate Actions Required
 
 1. **Complete Server Restart**
+
    ```bash
    pkill -9 -f "next dev"
    cd /workspaces/Fixzit
@@ -249,22 +272,27 @@ Once MongoDB connection is restored, each user will be tested against all applic
    ```
 
 2. **Verify MongoDB Connection**
+
    ```bash
    curl -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email":"superadmin@fixzit.co","password":"Password123"}'
    ```
+
    Expected: `{"token":"...","user":{...}}`
 
 3. **Verify Test Users Exist in Database**
+
    ```bash
    docker exec -it fixzit-mongodb mongosh fixzit --eval "db.users.countDocuments()"
    ```
+
    Expected: At least 14 users
 
 4. **Re-run E2E Test Suite**
-   
+
    **⚠️ REQUIRED:** Set E2E_TEST_PASSWORD environment variable
+
    ```bash
    # Set password for test accounts (required for security)
    export E2E_TEST_PASSWORD=yourpassword
@@ -275,12 +303,13 @@ Once MongoDB connection is restored, each user will be tested against all applic
    # Or run inline:
    E2E_TEST_PASSWORD=yourpassword node scripts/testing/e2e-all-users-all-pages.js
    ```
-   
+
    **Note:** The script will exit with an error if E2E_TEST_PASSWORD is not set.
 
 ### If Users Don't Exist
 
 Run the seed script:
+
 ```bash
 # Check for seed script
 ls scripts/*seed* scripts/testing/*seed*
@@ -356,6 +385,7 @@ For a complete E2E test pass, we need:
 If API continues to have issues, consider:
 
 ### Option 1: Direct MongoDB Testing
+
 ```javascript
 // Connect directly to MongoDB and verify users exist
 const mongoose = require('mongoose');
@@ -365,17 +395,21 @@ console.log(`Found ${users.length} users`);
 ```
 
 ### Option 2: Browser-Based E2E (Playwright/Puppeteer)
+
 ```bash
 npm install -D @playwright/test
 npx playwright test --headed
 ```
+
 - More realistic user simulation
 - Tests actual browser interactions
 - Captures screenshots/videos
 - Better for UI/UX validation
 
 ### Option 3: Manual Testing Checklist
+
 Follow the structured approach in `/E2E_TESTING_QUICK_START.md`:
+
 - Test each user manually via browser
 - Document results in `/docs/E2E_TEST_RESULTS.md`
 - Capture screenshots for evidence
@@ -400,18 +434,21 @@ Follow the structured approach in `/E2E_TESTING_QUICK_START.md`:
 ## 💡 Recommendations
 
 ### Short Term (Today)
+
 1. Fix MongoDB connection issue
 2. Re-run automated E2E tests
 3. Review and triage any failures
 4. Document blockers for manual testing if needed
 
 ### Medium Term (This Week)
+
 1. Set up Playwright for browser-based E2E
 2. Create visual regression testing
 3. Add performance benchmarks
 4. Implement CI/CD E2E pipeline
 
 ### Long Term (Next Sprint)
+
 1. Automated smoke tests on every deploy
 2. Complete E2E coverage for all user flows
 3. Load testing for concurrent users

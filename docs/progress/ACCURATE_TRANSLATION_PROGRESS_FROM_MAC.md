@@ -55,12 +55,14 @@ Date completed (latest): October 13, 2025 (619cf9769)
 ### **4. Translations Per Batch Analysis**
 
 **From Git Stats:**
+
 - Most batches: **220 translations** (standard)
 - Some batches: 216-250 translations (variable)
 - Batch 701-710: 198 translations (one exception)
 - **Average per batch:** ~220 translations
 
 **Total Calculation:**
+
 - 87 batches × ~220 avg = **~19,140 translations**
 - Git commit total shown: **11,902 translations** (from description parsing)
 - **Actual in ar.ts:** ~19,204 keys ✅ (matches 87 batches!)
@@ -71,18 +73,20 @@ Date completed (latest): October 13, 2025 (619cf9769)
 
 ### **Finding #1: en.ts vs ar.ts Massive Discrepancy**
 
-**Problem:** 
+**Problem:**
+
 - ar.ts: 19,204 keys (✅ looks correct for 87 batches)
 - en.ts: 813 keys (❌ only 4.2% of ar.ts!)
 
 **Evidence from Git Diff Stats:**
+
 ```
 Last 100 commits added:
  i18n/dictionaries/ar.ts | 18421 +++++++++++++++
  i18n/dictionaries/en.ts | 18837 +++++++++++++++
 ```
 
-**Analysis:** 
+**Analysis:**
 Git shows BOTH files receiving similar line additions (+18,421 ar vs +18,837 en), BUT current file sizes show massive difference! This means:
 
 1. **Possibility A:** en.ts had duplicate removal that removed ~18,000 lines
@@ -90,6 +94,7 @@ Git shows BOTH files receiving similar line additions (+18,421 ar vs +18,837 en)
 3. **Possibility C:** The "fix-en-duplicates.js" script (created today) removed too much
 
 **Evidence for duplicate removal:**
+
 - File in staging: `scripts/fix-en-duplicates.js` (created Oct 13, 06:12)
 - Git commit ce02c0644: Removed 1,055 lines from ar.ts, 1,104 lines from en.ts
 - This suggests duplicate cleanup happened AFTER adding translations
@@ -97,6 +102,7 @@ Git shows BOTH files receiving similar line additions (+18,421 ar vs +18,837 en)
 ### **Finding #2: Rebase in Progress**
 
 **Current State:**
+
 ```
 interactive rebase in progress; onto ce02c0644
 Last command: pick 619cf9769 (Batch 801-810)
@@ -127,6 +133,7 @@ Status: All conflicts fixed, ready to continue
 ## 🚨 PENDING ISSUES IDENTIFIED
 
 ### **1. en.ts Incomplete (CRITICAL - P0)**
+
 - **Current:** 813 keys
 - **Expected:** ~19,200 keys (to match ar.ts)
 - **Gap:** ~18,400 missing keys
@@ -134,22 +141,26 @@ Status: All conflicts fixed, ready to continue
 - **Action:** Review `scripts/fix-en-duplicates.js` and unstaged en.ts changes
 
 ### **2. Rebase Not Completed (P0)**
+
 - **Status:** Batch 801-810 waiting for `git rebase --continue`
 - **Impact:** Latest 220 translations not in branch
 - **Action:** Complete rebase, resolve any conflicts
 
 ### **3. Duplicate Keys (P1)**
+
 - **Evidence:** ce02c0644 commit removed 1,055 ar lines, 1,104 en lines
 - **Created:** fix-en-duplicates.js (today)
 - **Status:** Unstaged changes in en.ts
 - **Action:** Review duplicates, ensure only true duplicates removed
 
 ### **4. ~210 Unfixed Issues Across Codebase (P2)**
+
 - **Reported by user:** ~210 fixes/comments not addressed
 - **Status:** Not yet cataloged
 - **Action:** Required comprehensive search and prioritization
 
 ### **5. 217 Script Files (Bloat - P3)**
+
 - **Scripts directory:** 159 files
 - **Root directory:** 58 files
 - **Total:** 217 tool/script files
@@ -199,18 +210,21 @@ Status: All conflicts fixed, ready to continue
 ## 🎯 NEXT STEPS (PRIORITIZED)
 
 ### **Immediate (P0 - Blocking):**
+
 1. ✅ Complete git rebase (`git rebase --continue`)
 2. 🔍 Investigate en.ts missing 18,400 keys
 3. 🔍 Review unstaged en.ts changes
 4. 🔍 Review fix-en-duplicates.js script
 
 ### **High Priority (P1):**
+
 5. 🚀 Start dev server (localhost:3000)
 6. 🧪 Test translation system end-to-end
 7. 📝 Fix 2 production TODOs
 8. 🗂️ Catalog ~210 unfixed issues
 
 ### **Medium Priority (P2):**
+
 9. 🧹 Clean up 217 scripts → keep 15
 10. 📊 Update TRANSLATION_PROGRESS_SUMMARY.md
 11. ✅ Complete remaining 28.3% translations (Batch 811-850)
@@ -256,13 +270,15 @@ Status: All conflicts fixed, ready to continue
 ## 🎉 CONCLUSION
 
 **Your Mac chat history accomplished MASSIVE translation work:**
+
 - ✅ 87 batches committed
 - ✅ ~19,200 Arabic translations added
 - ✅ 71.7% completion on ar.ts
 - ✅ Milestones: 10%, 30%, 40%, 45%, 50%, 53.3%
 - ✅ Your "~65%" estimate was spot-on!
 
-**Critical Issue:** 
+**Critical Issue:**
+
 - ⚠️ en.ts only has 813 keys vs 19,204 in ar.ts
 - Likely due to duplicate removal script or rebase issue
 - MUST BE REVIEWED AND FIXED

@@ -12,11 +12,13 @@
 
 **Total Clones Found**: 50 duplicate code blocks  
 **Severity Distribution**:
+
 - 🔴 HIGH (>25 lines): 3 clones
 - 🟡 MEDIUM (10-25 lines): 18 clones  
 - 🟢 LOW (5-9 lines): 29 clones
 
 **Categories**:
+
 1. **API Routes** (27 clones) - Authentication & error handling patterns
 2. **PayTabs Integration** (5 clones) - Payment processing duplicates
 3. **MongoDB Models** (4 clones) - Schema validation patterns
@@ -29,12 +31,14 @@
 ## Priority 1: HIGH Severity Duplicates (>25 lines)
 
 ### 1. PayTabs Core Integration - 38 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)
+
 **Lines**: 223-261 (38 lines, 241 tokens)  
 **Duplication**: 100% overlap between two files
 
 **Issue**: Complete duplication of PayTabs transaction creation logic
 
-**Recommendation**: 
+**Recommendation**:
+
 - **CONSOLIDATE** - Remove `lib/paytabs.ts` entirely
 - Use `lib/paytabs/core.ts` as single source of truth
 - Update all imports to point to `/paytabs/core`
@@ -47,11 +51,13 @@
 ---
 
 ### 2. PayTabs Transaction Handling - 29 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)  
+
 **Lines**: 61-90 (29 lines, 229 tokens)
 
 **Issue**: Duplicate transaction status checking logic
 
 **Recommendation**:
+
 - Consolidate with PayTabs fix above
 - Same solution applies
 
@@ -60,11 +66,13 @@
 ---
 
 ### 3. PayTabs Payment Creation - 21 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)
+
 **Lines**: 97-118 (21 lines, 147 tokens)
 
 **Issue**: Duplicate payment initialization
 
 **Recommendation**:
+
 - Consolidate with PayTabs fix above  
 - Remove entire `lib/paytabs.ts` file
 
@@ -75,16 +83,19 @@
 ## Priority 2: MEDIUM Severity Duplicates (10-25 lines)
 
 ### 4. RFQ Board & Vendor Catalogue - 23 lines
+
 **Files**: `components/marketplace/RFQBoard.tsx` ↔ `VendorCatalogueManager.tsx`  
 **Lines**: 94-117 (23 lines, 180 tokens)
 
 **Issue**: Data fetching and state management pattern duplicated
 
 **Recommendation**:
+
 - Create shared hook: `hooks/marketplace/useMarketplaceData.ts`
 - Extract common fetch logic to `lib/marketplace/api.ts`
 
 **Code Solution**:
+
 ```typescript
 // hooks/marketplace/useMarketplaceData.ts
 export function useMarketplaceData(endpoint: string) {
@@ -105,16 +116,19 @@ export function useMarketplaceData(endpoint: string) {
 ---
 
 ### 5. Tenant Isolation Plugin - 3x 12-line duplicates
+
 **File**: `server/plugins/tenantIsolation.ts`  
 **Lines**: 85-97, 98-110, 111-123, 124-136 (4 similar blocks)
 
 **Issue**: Tenant validation logic repeated for different operations
 
 **Recommendation**:
+
 - Extract to shared function: `validateTenantAccess(operation, tenantId)`
 - Reduce 48 lines to ~15 lines total
 
 **Code Solution**:
+
 ```typescript
 async function validateTenantAccess(
   operation: string,
@@ -143,11 +157,13 @@ export const tenantMiddleware = {
 ---
 
 ### 6. Audit Plugin - 11 lines (server/plugins/auditPlugin.ts)
+
 **Lines**: 184-195 ↔ 196-207
 
 **Issue**: Duplicate audit trail creation logic
 
 **Recommendation**:
+
 - Extract to: `createAuditEntry(operation, data)`
 - Reuse for all operations
 
@@ -157,12 +173,14 @@ export const tenantMiddleware = {
 ---
 
 ### 7. Invoice Service - 13 lines
+
 **Files**: `server/finance/invoice.service.ts` ↔ `server/work-orders/wo.service.ts`  
 **Lines**: 94-107 ↔ 81-94
 
 **Issue**: Work order status update pattern duplicated
 
 **Recommendation**:
+
 - Create shared service: `server/common/statusUpdateService.ts`
 - Supports invoices, work orders, and future entities
 
@@ -172,11 +190,13 @@ export const tenantMiddleware = {
 ---
 
 ### 8. useUnsavedChanges Hook - 12 lines (hooks/useUnsavedChanges.tsx)
+
 **Lines**: 166-178 ↔ 216-228
 
 **Issue**: Form dirty check logic duplicated
 
 **Recommendation**:
+
 - Extract to internal utility: `checkFormDirty(fields)`
 - Single source of truth for unsaved changes detection
 
@@ -186,17 +206,21 @@ export const tenantMiddleware = {
 ---
 
 ### 9. MongoDB Models - Schema Patterns (4 duplicates)
+
 **Files**: `server/models/Tenant.ts`, `Vendor.ts`, `SLA.ts`, `Project.ts`
 
 **Duplicates**:
+
 - 16 lines: Tenant ↔ Vendor (schema timestamps)
 - 6-7 lines: Multiple models (validation patterns)
 
 **Recommendation**:
+
 - Create base schema: `server/models/base/BaseSchema.ts`
 - Use schema composition/inheritance
 
 **Code Solution**:
+
 ```typescript
 // server/models/base/BaseSchema.ts
 export const baseSchemaOptions = {
@@ -224,12 +248,14 @@ const TenantSchema = new Schema({
 ---
 
 ### 10. Currency & Language Selectors - 12 lines
+
 **Files**: `components/i18n/CurrencySelector.tsx` ↔ `LanguageSelector.tsx`  
 **Lines**: 54-66 ↔ 46-58
 
 **Issue**: Dropdown UI pattern duplicated
 
 **Recommendation**:
+
 - Create: `components/i18n/shared/SelectorDropdown.tsx`
 - Props: `items`, `selected`, `onChange`, `icon`
 
@@ -243,6 +269,7 @@ const TenantSchema = new Schema({
 **Common Pattern**: Authentication, error handling, database connection
 
 **Files Affected**:
+
 - `app/api/work-orders/[id]/*` (10 files)
 - `app/api/support/tickets/*` (5 files)
 - `app/api/rfqs/*` (4 files)
@@ -251,6 +278,7 @@ const TenantSchema = new Schema({
 - Others (4 files)
 
 **Example Duplicate**:
+
 ```typescript
 // Repeated in ~25 route files
 export async function POST(req: NextRequest) {
@@ -274,6 +302,7 @@ export async function POST(req: NextRequest) {
 **Recommendation**: Create API route middleware wrapper
 
 **Code Solution**:
+
 ```typescript
 // lib/api/middleware.ts
 export function withAuth<T>(
@@ -316,7 +345,7 @@ export const POST = withAuth(async (req, session) => {
 
 ## Priority 4: LOW Severity Duplicates (5-9 lines)
 
-### Summary of Low Priority Items:
+### Summary of Low Priority Items
 
 1. **Product Display Patterns** (2 clones) - `PDPBuyBox` ↔ `ProductCard`
    - 11 lines, 8 lines - Price display formatting
@@ -342,6 +371,7 @@ export const POST = withAuth(async (req, session) => {
 ## Consolidation Plan
 
 ### Phase 1: Quick Wins (1 hour) - RECOMMENDED FIRST
+
 1. ✅ PayTabs consolidation (remove lib/paytabs.ts) - 30 min
 2. ✅ Tenant isolation refactor - 25 min
 3. ✅ Test helpers extraction - 15 min
@@ -351,6 +381,7 @@ export const POST = withAuth(async (req, session) => {
 ---
 
 ### Phase 2: API Middleware (2 hours)
+
 1. Create `withAuth` wrapper - 30 min
 2. Refactor 10 high-traffic routes - 60 min
 3. Refactor remaining 17 routes - 30 min
@@ -360,6 +391,7 @@ export const POST = withAuth(async (req, session) => {
 ---
 
 ### Phase 3: Component & Service Patterns (1.5 hours)
+
 1. Marketplace hooks - 20 min
 2. MongoDB base schemas - 30 min
 3. Invoice/WO service consolidation - 20 min
@@ -370,6 +402,7 @@ export const POST = withAuth(async (req, session) => {
 ---
 
 ### Phase 4: Low Priority Cleanup (45 minutes)
+
 1. Utility functions - 20 min
 2. Test helpers - 15 min
 3. UI formatters - 10 min
@@ -381,18 +414,21 @@ export const POST = withAuth(async (req, session) => {
 ## Metrics
 
 ### Current State
+
 - **Total Lines Scanned**: ~15,000 lines
 - **Duplicate Lines**: ~600 lines (4% duplication)
 - **Duplicate Code Blocks**: 50 clones
 - **Files with Duplicates**: 45 files
 
 ### After Consolidation (Projected)
+
 - **Lines Removed**: ~600 lines
 - **New Shared Utilities**: +200 lines
 - **Net Reduction**: -400 lines (2.7% smaller codebase)
 - **Duplication Rate**: <1% (industry best practice)
 
 **Code Quality Improvements**:
+
 - ✅ Single source of truth for auth, payments, validation
 - ✅ Easier to maintain (fix in one place, applies everywhere)
 - ✅ Consistent error handling across API routes
@@ -404,11 +440,13 @@ export const POST = withAuth(async (req, session) => {
 ## Files Requiring Changes
 
 ### High Priority (3 files)
+
 1. `lib/paytabs.ts` - **DELETE** (replaced by paytabs/core.ts)
 2. `lib/paytabs/core.ts` - Verify complete, update exports
 3. `server/plugins/tenantIsolation.ts` - Refactor validation logic
 
 ### Medium Priority (15 files)
+
 4. `server/plugins/auditPlugin.ts` - Extract audit creation
 5. `server/finance/invoice.service.ts` - Use shared status service
 6. `server/work-orders/wo.service.ts` - Use shared status service
@@ -423,9 +461,11 @@ export const POST = withAuth(async (req, session) => {
 15. `hooks/useUnsavedChanges.tsx` - Extract form dirty check
 
 ### API Routes (27 files - refactor to use withAuth middleware)
+
 16-42. All `app/api/**/*.ts` files listed in Priority 3
 
 ### New Files to Create (8 files)
+
 1. `lib/api/middleware.ts` - Auth & error handling wrapper
 2. `hooks/marketplace/useMarketplaceData.ts` - Shared data fetching
 3. `lib/marketplace/api.ts` - API client functions
@@ -440,6 +480,7 @@ export const POST = withAuth(async (req, session) => {
 ## Automated Tooling
 
 ### jscpd Configuration (Saved)
+
 ```json
 {
   "threshold": 0,
@@ -458,6 +499,7 @@ export const POST = withAuth(async (req, session) => {
 ```
 
 ### CI/CD Integration Recommendation
+
 ```yaml
 # Add to .github/workflows/code-quality.yml
 - name: Check for code duplication
@@ -470,13 +512,15 @@ export const POST = withAuth(async (req, session) => {
 
 ## Next Steps
 
-### Immediate Actions:
+### Immediate Actions
+
 1. ✅ Review this report with team
 2. ⏳ Start with Phase 1 (Quick Wins) - 1 hour
 3. ⏳ Create shared middleware & utilities
 4. ⏳ Gradually refactor API routes (can be done incrementally)
 
-### Long-term:
+### Long-term
+
 - ✅ Add jscpd to CI/CD pipeline
 - ✅ Set duplication threshold at 3%
 - ✅ Regular audits (monthly)
@@ -491,6 +535,7 @@ export const POST = withAuth(async (req, session) => {
 **Achievable Target**: <1% after consolidation
 
 **Key Findings**:
+
 - Most duplication is in **API route boilerplate** (easy to fix with middleware)
 - **PayTabs** has 100% duplication between two files (critical to fix)
 - **Server plugins** have repetitive validation logic (security concern)

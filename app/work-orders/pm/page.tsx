@@ -53,12 +53,12 @@ export default function PreventiveMaintenancePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Preventive Maintenance</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Schedule and track preventive maintenance activities</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.pm.title', 'Preventive Maintenance')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.pm.subtitle', 'Schedule and track preventive maintenance activities')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Import Schedule</button>
-          <button className="btn-primary">+ New PM Schedule</button>
+          <button className="btn-secondary">{t('workOrders.pm.importSchedule', 'Import Schedule')}</button>
+          <button className="btn-primary">+ {t('workOrders.pm.newPM', 'New PM Schedule')}</button>
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Scheduled</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.scheduled', 'Scheduled')}</p>
               <p className="text-2xl font-bold text-blue-600">8</p>
             </div>
             <div className="text-blue-400">📅</div>
@@ -76,7 +76,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Due This Month</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.pm.thisMonth', 'Due This Month')}</p>
               <p className="text-2xl font-bold text-yellow-600">3</p>
             </div>
             <div className="text-yellow-400">⚠️</div>
@@ -85,7 +85,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Overdue</p>
+              <p className="text-sm font-medium text-gray-600">{t('common.overdue', 'Overdue')}</p>
               <p className="text-2xl font-bold text-red-600">2</p>
             </div>
             <div className="text-red-400">🔴</div>
@@ -94,7 +94,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Completed</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.completed', 'Completed')}</p>
               <p className="text-2xl font-bold text-green-600">15</p>
             </div>
             <div className="text-green-400">✅</div>
@@ -128,9 +128,9 @@ export default function PreventiveMaintenancePage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Done</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Due</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.pm.frequency', 'Frequency')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.pm.lastCompleted', 'Last Done')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.pm.nextDue', 'Next Due')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -154,7 +154,7 @@ export default function PreventiveMaintenancePage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       <button className="text-blue-600 hover:text-blue-900">{t('common.edit', 'Edit')}</button>
-                      <button className="text-green-600 hover:text-green-900">Complete</button>
+                      <button className="text-green-600 hover:text-green-900">{t('workOrders.pm.complete', 'Complete')}</button>
                     </div>
                   </td>
                 </tr>
