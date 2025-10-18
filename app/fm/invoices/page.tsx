@@ -13,6 +13,7 @@ import {
   FileText, Plus, Search, DollarSign, 
   QrCode, Send, Eye, Download, Mail, CheckCircle,
   AlertCircle, Clock} from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface InvoiceItem {
   description: string;
@@ -64,6 +65,7 @@ interface Invoice {
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 export default function InvoicesPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -84,19 +86,19 @@ export default function InvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Invoices</h1>
-          <p className="text-gray-600">ZATCA compliant e-invoicing with QR codes</p>
+          <h1 className="text-3xl font-bold">{t('fm.invoices.title', 'Invoices')}</h1>
+          <p className="text-gray-600">{t('fm.invoices.subtitle', 'ZATCA compliant e-invoicing with QR codes')}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-emerald-600 hover:bg-emerald-700">
               <Plus className="w-4 h-4 mr-2" />
-              New Invoice
+              {t('fm.invoices.newInvoice', 'New Invoice')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Invoice</DialogTitle>
+              <DialogTitle>{t('fm.invoices.createInvoice', 'Create Invoice')}</DialogTitle>
             </DialogHeader>
             <CreateInvoiceForm onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
@@ -109,7 +111,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Outstanding</p>
+                <p className="text-sm text-gray-600">{t('fm.invoices.totalOutstanding', 'Total Outstanding')}</p>
                 <p className="text-2xl font-bold">
                   {invoices
                     .filter((inv: Invoice) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
@@ -126,7 +128,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Overdue</p>
+                <p className="text-sm text-gray-600">{t('fm.invoices.overdue', 'Overdue')}</p>
                 <p className="text-2xl font-bold text-red-600">
                   {invoices.filter((inv: Invoice) => inv.status === 'OVERDUE').length}
                 </p>
@@ -140,7 +142,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pending</p>
+                <p className="text-sm text-gray-600">{t('fm.invoices.pending', 'Pending')}</p>
                 <p className="text-2xl font-bold text-yellow-600">
                   {invoices.filter((inv: Invoice) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
                 </p>
@@ -154,7 +156,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Paid This Month</p>
+                <p className="text-sm text-gray-600">{t('fm.invoices.paidThisMonth', 'Paid This Month')}</p>
                 <p className="text-2xl font-bold text-green-600">
                   {invoices.filter((inv: Invoice) => 
                     inv.status === 'PAID' && 
@@ -176,7 +178,7 @@ export default function InvoicesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search by invoice number or customer..."
+                  placeholder={t('fm.invoices.searchInvoices', 'Search by invoice number or customer...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
@@ -185,30 +187,30 @@ export default function InvoicesPage() {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t('fm.properties.status', 'Status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="SENT">Sent</SelectItem>
-                <SelectItem value="VIEWED">Viewed</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
-                <SelectItem value="OVERDUE">Overdue</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                <SelectItem value="">{t('common.all', 'All Status')}</SelectItem>
+                <SelectItem value="DRAFT">{t('fm.invoices.draft', 'Draft')}</SelectItem>
+                <SelectItem value="SENT">{t('fm.invoices.sent', 'Sent')}</SelectItem>
+                <SelectItem value="VIEWED">{t('fm.invoices.viewed', 'Viewed')}</SelectItem>
+                <SelectItem value="APPROVED">{t('fm.vendors.approved', 'Approved')}</SelectItem>
+                <SelectItem value="PAID">{t('fm.invoices.paid', 'Paid')}</SelectItem>
+                <SelectItem value="OVERDUE">{t('fm.invoices.overdue', 'Overdue')}</SelectItem>
+                <SelectItem value="CANCELLED">{t('fm.invoices.cancelled', 'Cancelled')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Type" />
+                <SelectValue placeholder={t('fm.properties.type', 'Type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="SALES">Sales</SelectItem>
-                <SelectItem value="PURCHASE">Purchase</SelectItem>
-                <SelectItem value="RENTAL">Rental</SelectItem>
-                <SelectItem value="SERVICE">Service</SelectItem>
-                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
+                <SelectItem value="SALES">{t('fm.invoices.sales', 'Sales')}</SelectItem>
+                <SelectItem value="PURCHASE">{t('fm.invoices.purchase', 'Purchase')}</SelectItem>
+                <SelectItem value="RENTAL">{t('fm.invoices.rental', 'Rental')}</SelectItem>
+                <SelectItem value="SERVICE">{t('fm.invoices.service', 'Service')}</SelectItem>
+                <SelectItem value="MAINTENANCE">{t('fm.invoices.maintenance', 'Maintenance')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -227,11 +229,11 @@ export default function InvoicesPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Invoices Found</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first invoice.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.invoices.noInvoices', 'No Invoices Found')}</h3>
+            <p className="text-gray-600 mb-4">{t('fm.invoices.noInvoicesText', 'Get started by creating your first invoice.')}</p>
             <Button onClick={() => setCreateOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
               <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
+              {t('fm.invoices.createInvoice', 'Create Invoice')}
             </Button>
           </CardContent>
         </Card>
@@ -241,6 +243,8 @@ export default function InvoicesPage() {
 }
 
 function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () => void }) {
+  const { t } = useTranslation();
+  
   const _handleView = () => {
     // Placeholder: Navigate to invoice detail or open modal
     console.log('View invoice:', invoice._id);
@@ -286,6 +290,30 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () =
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'DRAFT': t('fm.invoices.draft', 'Draft'),
+      'SENT': t('fm.invoices.sent', 'Sent'),
+      'VIEWED': t('fm.invoices.viewed', 'Viewed'),
+      'APPROVED': t('fm.vendors.approved', 'Approved'),
+      'PAID': t('fm.invoices.paid', 'Paid'),
+      'OVERDUE': t('fm.invoices.overdue', 'Overdue'),
+      'CANCELLED': t('fm.invoices.cancelled', 'Cancelled'),
+    };
+    return labels[status] || status.toLowerCase();
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'SALES': t('fm.invoices.sales', 'Sales'),
+      'PURCHASE': t('fm.invoices.purchase', 'Purchase'),
+      'RENTAL': t('fm.invoices.rental', 'Rental'),
+      'SERVICE': t('fm.invoices.service', 'Service'),
+      'MAINTENANCE': t('fm.invoices.maintenance', 'Maintenance'),
+    };
+    return labels[type] || type.toLowerCase();
+  };
+
   const getZATCAStatus = (status: string) => {
     switch (status) {
       case 'CLEARED':
@@ -313,7 +341,7 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () =
             <p className="text-sm text-gray-600">{invoice.recipient?.name}</p>
           </div>
           <Badge className={getStatusColor(invoice.status)}>
-            {invoice.status.toLowerCase()}
+            {getStatusLabel(invoice.status)}
           </Badge>
         </div>
       </CardHeader>
@@ -332,16 +360,16 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () =
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-gray-600">Issue Date</p>
+            <p className="text-gray-600">{t('fm.invoices.issueDate', 'Issue Date')}</p>
             <p className="font-medium">
               {new Date(invoice.issueDate).toLocaleDateString()}
             </p>
           </div>
           <div>
-            <p className="text-gray-600">Due Date</p>
+            <p className="text-gray-600">{t('fm.invoices.dueDate', 'Due Date')}</p>
             <p className={`font-medium ${daysOverdue > 0 ? 'text-red-600' : ''}`}>
               {new Date(invoice.dueDate).toLocaleDateString()}
-              {daysOverdue > 0 && ` (${daysOverdue}d overdue)`}
+              {daysOverdue > 0 && ` (${daysOverdue}${t('fm.invoices.overdueDays', 'd overdue')})`}
             </p>
           </div>
         </div>
@@ -351,11 +379,11 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () =
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm">
             <Badge variant="outline" className="text-xs">
-              {invoice.type}
+              {getTypeLabel(invoice.type)}
             </Badge>
             {invoice.items?.length && (
               <span className="text-gray-600">
-                {invoice.items.length} items
+                {invoice.items.length} {t('fm.invoices.items', 'items')}
               </span>
             )}
           </div>
@@ -384,6 +412,8 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () =
 }
 
 function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
+  const { t } = useTranslation();
+  
   const [formData, setFormData] = useState({
     type: 'SALES',
     issuer: {
@@ -504,22 +534,22 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Invoice Type</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.invoices.invoiceType', 'Invoice Type')}</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="SALES">Sales</SelectItem>
-              <SelectItem value="PURCHASE">Purchase</SelectItem>
-              <SelectItem value="RENTAL">Rental</SelectItem>
-              <SelectItem value="SERVICE">Service</SelectItem>
-              <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+              <SelectItem value="SALES">{t('fm.invoices.sales', 'Sales')}</SelectItem>
+              <SelectItem value="PURCHASE">{t('fm.invoices.purchase', 'Purchase')}</SelectItem>
+              <SelectItem value="RENTAL">{t('fm.invoices.rental', 'Rental')}</SelectItem>
+              <SelectItem value="SERVICE">{t('fm.invoices.service', 'Service')}</SelectItem>
+              <SelectItem value="MAINTENANCE">{t('fm.invoices.maintenance', 'Maintenance')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Currency</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.invoices.currency', 'Currency')}</label>
           <Select value={formData.currency} onValueChange={(value) => setFormData({...formData, currency: value})}>
             <SelectTrigger>
               <SelectValue />
@@ -535,10 +565,10 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div>
-        <h3 className="font-medium mb-2">Customer Information</h3>
+        <h3 className="font-medium mb-2">{t('fm.invoices.customerInfo', 'Customer Information')}</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Customer Name *</label>
+            <label className="block text-sm font-medium mb-1">{t('fm.invoices.customerName', 'Customer Name')} *</label>
             <Input
               value={formData.recipient.name}
               onChange={(e) => setFormData({...formData, recipient: {...formData.recipient, name: e.target.value}})}
@@ -546,7 +576,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Tax ID</label>
+            <label className="block text-sm font-medium mb-1">{t('fm.invoices.taxId', 'Tax ID')}</label>
             <Input
               value={formData.recipient.taxId}
               onChange={(e) => setFormData({...formData, recipient: {...formData.recipient, taxId: e.target.value}})}
@@ -557,7 +587,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Issue Date *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.invoices.issueDate', 'Issue Date')} *</label>
           <Input
             type="date"
             value={formData.issueDate}
@@ -566,7 +596,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Due Date *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.invoices.dueDate', 'Due Date')} *</label>
           <Input
             type="date"
             value={formData.dueDate}
@@ -577,13 +607,13 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div>
-        <h3 className="font-medium mb-2">Line Items</h3>
+        <h3 className="font-medium mb-2">{t('fm.invoices.lineItems', 'Line Items')}</h3>
         <div className="space-y-2">
           {formData.items.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 items-center">
               <div className="col-span-4">
                 <Input
-                  placeholder="Description"
+                  placeholder={t('fm.invoices.description', 'Description')}
                   value={item.description}
                   onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                   required
@@ -592,7 +622,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
               <div className="col-span-2">
                 <Input
                   type="number"
-                  placeholder="Qty"
+                  placeholder={t('fm.invoices.quantity', 'Qty')}
                   value={item.quantity}
                   onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
                   required
@@ -601,7 +631,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
               <div className="col-span-2">
                 <Input
                   type="number"
-                  placeholder="Price"
+                  placeholder={t('fm.invoices.unitPrice', 'Price')}
                   value={item.unitPrice}
                   onChange={(e) => handleItemChange(index, 'unitPrice', Number(e.target.value))}
                   required
@@ -610,7 +640,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
               <div className="col-span-2">
                 <Input
                   type="number"
-                  placeholder="VAT %"
+                  placeholder={t('fm.invoices.vat', 'VAT %')}
                   value={item.tax.rate}
                   onChange={(e) => handleItemChange(index, 'tax', {...item.tax, rate: Number(e.target.value)})}
                 />
@@ -641,13 +671,13 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
           onClick={addItem}
           className="mt-2"
         >
-          Add Line Item
+          {t('fm.invoices.addLineItem', 'Add Line Item')}
         </Button>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
-          Create Invoice
+          {t('fm.invoices.createInvoice', 'Create Invoice')}
         </Button>
       </div>
     </form>

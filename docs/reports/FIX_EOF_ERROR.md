@@ -1,6 +1,7 @@
 # Fix: EOF Error in PowerShell
 
 ## Error Message
+
 ```
 EOF: The term 'EOF' is not recognized as a name of a cmdlet, function, script file, or executable program.
 ```
@@ -10,6 +11,7 @@ EOF: The term 'EOF' is not recognized as a name of a cmdlet, function, script fi
 This error occurs when you try to use **bash heredoc syntax** in **PowerShell**.
 
 ### Bash Heredoc (Doesn't Work in PowerShell)
+
 ```bash
 cat > file.txt << EOF
 content here
@@ -69,6 +71,7 @@ fs.writeFileSync('file.txt', 'content here');
 ## The Specific Issue: fix_finance_id.py
 
 ### Problem
+
 The Python file had a syntax error with unterminated triple quotes:
 
 ```python
@@ -77,12 +80,14 @@ old = "req.ip ?? """""
 ```
 
 ### Fixed
+
 ```python
 # ✅ CORRECT
 old = 'req.ip ?? ""'
 ```
 
 ### Why It Failed
+
 - Triple quotes `"""` weren't properly closed
 - Python couldn't parse the string literal
 - Caused SyntaxError
@@ -94,6 +99,7 @@ old = 'req.ip ?? ""'
 ### 1. Know Your Shell
 
 Check which shell you're using:
+
 ```powershell
 # PowerShell
 $PSVersionTable
@@ -114,6 +120,7 @@ echo $SHELL
 ### 3. Use Cross-Platform Tools
 
 Prefer tools that work everywhere:
+
 - ✅ Python scripts
 - ✅ Node.js scripts
 - ✅ npm scripts
@@ -126,6 +133,7 @@ Prefer tools that work everywhere:
 ### Creating Files in Different Shells
 
 #### PowerShell
+
 ```powershell
 @'
 Line 1
@@ -134,6 +142,7 @@ Line 2
 ```
 
 #### Bash
+
 ```bash
 cat > file.txt << 'EOF'
 Line 1
@@ -142,6 +151,7 @@ EOF
 ```
 
 #### Python
+
 ```python
 content = """Line 1
 Line 2"""
@@ -150,6 +160,7 @@ with open('file.txt', 'w') as f:
 ```
 
 #### Node.js
+
 ```javascript
 const fs = require('fs');
 fs.writeFileSync('file.txt', `Line 1
@@ -167,6 +178,7 @@ Line 2`);
 **Fix Options**:
 
 1. **Use PowerShell syntax**:
+
    ```powershell
    @'
    content
@@ -174,12 +186,14 @@ Line 2`);
    ```
 
 2. **Switch to bash**:
+
    ```powershell
    bash
    # Now you can use heredoc
    ```
 
 3. **Use bash -c**:
+
    ```powershell
    bash -c 'cat > file.txt << EOF
    content
@@ -187,6 +201,7 @@ Line 2`);
    ```
 
 4. **Use Python/Node**:
+
    ```powershell
    python3 script.py
    # or
@@ -198,16 +213,19 @@ Line 2`);
 ## The fix_finance_id.py Fix
 
 ### Before (Broken)
+
 ```python
 old = "req.ip ?? """""  # ❌ Syntax error
 ```
 
 ### After (Fixed)
+
 ```python
 old = 'req.ip ?? ""'  # ✅ Works
 ```
 
 ### How to Run
+
 ```powershell
 python3 fix_finance_id.py
 # Output: Fixed!
@@ -217,18 +235,21 @@ python3 fix_finance_id.py
 
 ## Summary
 
-### The Error Means:
+### The Error Means
+
 - You're using bash syntax in PowerShell
 - PowerShell doesn't understand `<< EOF`
 - Need to use PowerShell here-strings or switch to bash
 
-### Quick Fixes:
+### Quick Fixes
+
 1. ✅ Use `@'...'@` in PowerShell
 2. ✅ Use `bash -c '...'` to run bash commands
 3. ✅ Use Python/Node.js for cross-platform scripts
 4. ✅ Check your shell before using heredoc
 
-### The Python File:
+### The Python File
+
 - ✅ Fixed syntax error
 - ✅ Now runs successfully
 - ✅ Outputs "Fixed!"
@@ -237,9 +258,10 @@ python3 fix_finance_id.py
 
 ## Prevention
 
-### Best Practices:
+### Best Practices
 
 1. **Check your shell first**
+
    ```powershell
    $PSVersionTable  # PowerShell
    echo $SHELL      # Bash
@@ -251,6 +273,7 @@ python3 fix_finance_id.py
    - npm scripts
 
 3. **Explicit shell selection**
+
    ```powershell
    bash script.sh    # For bash scripts
    pwsh script.ps1   # For PowerShell scripts

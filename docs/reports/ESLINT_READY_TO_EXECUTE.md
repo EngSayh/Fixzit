@@ -20,7 +20,7 @@ Category 4: Miscellaneous           4 (0.9%)   🔧 LOW - 15 minutes
 
 ---
 
-## ⚡ PHASE 1: QUICK WINS (2-3 hours) - START HERE!
+## ⚡ PHASE 1: QUICK WINS (2-3 hours) - START HERE
 
 ### Target: **423 → 350 warnings** (-73 warnings)
 
@@ -31,6 +31,7 @@ Category 4: Miscellaneous           4 (0.9%)   🔧 LOW - 15 minutes
 **Files to fix**: ~19 files (API routes with try/catch)
 
 **Fix**:
+
 ```typescript
 // BEFORE ❌
 try {
@@ -48,6 +49,7 @@ try {
 ```
 
 **Command to find files**:
+
 ```bash
 npm run lint 2>&1 | grep "'error' is defined but never used" | awk -F: '{print $1}' | sort -u
 ```
@@ -57,12 +59,14 @@ npm run lint 2>&1 | grep "'error' is defined but never used" | awk -F: '{print $
 ### B. Unused Function Parameters - 11 instances (20 min)
 
 **Breakdown**:
+
 - 5× `error` (function args)
 - 3× `props` (React components)
 - 2× `payload` (API handlers)
 - 1× `productId`, `className`, `tenantId`, `role`
 
 **Fix**:
+
 ```typescript
 // BEFORE ❌
 export default function MyComponent({ className, children }: Props) {
@@ -80,11 +84,13 @@ export default function MyComponent({ className: _className, children }: Props) 
 ### C. Unused Imports - 9 instances (15 min)
 
 **Examples**:
+
 - 7× `'departments'` assigned but never used
 - 1× `FileText`, `CheckCircle`, `ArrowRight` (lucide-react icons)
 - 1× `Article`, `Step`, `ProjectStatus` (types)
 
 **Fix**: Remove import or prefix with `_`
+
 ```typescript
 // BEFORE ❌
 import { FileText, CheckCircle, Users } from 'lucide-react';
@@ -99,6 +105,7 @@ import { Users } from 'lucide-react';
 ### D. Unused Destructured Variables - 29 instances (1 hour)
 
 **Examples**:
+
 ```typescript
 // BEFORE ❌
 const { responsiveClasses, screenInfo } = useResponsiveLayout();
@@ -109,6 +116,7 @@ const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayou
 ```
 
 **Common patterns**:
+
 - State setters: `setIsSignUp`, `setProperty`
 - Unused destructured: `client`, `zatcaQR`, `tran_ref`
 - Helpers: `validateRequest`, `useFormValidation`, `useDebounce`
@@ -118,6 +126,7 @@ const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayou
 ### E. React Hook Dependencies - 3 instances (30 min)
 
 **E1. components/TopBar.tsx:87**
+
 ```typescript
 // BEFORE ❌
 useEffect(() => {
@@ -131,6 +140,7 @@ useEffect(() => {
 ```
 
 **E2. Unknown file - 'map' dependency**
+
 ```bash
 # Find with:
 npm run lint 2>&1 | grep "missing dependency: 'map'"
@@ -143,6 +153,7 @@ npm run lint 2>&1 | grep "missing dependency: 'map'"
 ### F. Escape Character - 1 instance (2 min)
 
 **File**: `lib/utils.test.ts:18`
+
 ```typescript
 // BEFORE ❌
 const pattern = /\!/g;
@@ -156,6 +167,7 @@ const pattern = /!/g;  // ! doesn't need escaping in regex
 ### G. Anonymous Default Export - 1 instance (3 min)
 
 **Pattern**: Config object exported without variable
+
 ```typescript
 // BEFORE ❌
 export default {
@@ -177,9 +189,10 @@ export default config;
 
 **Focus**: `app/api/**/*.ts`
 
-### Common Patterns & Fixes:
+### Common Patterns & Fixes
 
 #### Pattern 1: Request Body
+
 ```typescript
 // BEFORE ❌
 const body: any = await req.json();
@@ -196,6 +209,7 @@ const body = BodySchema.parse(await req.json());
 ```
 
 #### Pattern 2: MongoDB Queries
+
 ```typescript
 // BEFORE ❌
 const result: any = await collection.find(query).toArray();
@@ -212,6 +226,7 @@ const result = await collection.find(query).toArray() as WorkOrder[];
 ```
 
 #### Pattern 3: Error Handling
+
 ```typescript
 // BEFORE ❌
 } catch (error: any) {
@@ -232,7 +247,7 @@ import type { ApiError } from '@/types/common';
 }
 ```
 
-### High Priority API Files (Estimated):
+### High Priority API Files (Estimated)
 
 1. **Auth APIs** (~20 warnings, 2-3 hours)
    - `app/api/auth/login/route.ts`
@@ -266,9 +281,10 @@ import type { ApiError } from '@/types/common';
 
 **Focus**: `components/**/*.tsx`, `app/**/page.tsx`
 
-### Common Patterns:
+### Common Patterns
 
 #### Pattern 1: Props
+
 ```typescript
 // BEFORE ❌
 export default function Card({ data }: { data: any }) {
@@ -291,6 +307,7 @@ export default function Card({ data }: CardProps) {
 ```
 
 #### Pattern 2: Event Handlers
+
 ```typescript
 // BEFORE ❌
 const handleClick = (e: any) => {
@@ -304,6 +321,7 @@ const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
 ```
 
 #### Pattern 3: State
+
 ```typescript
 // BEFORE ❌
 const [data, setData] = useState<any>(null);
@@ -325,7 +343,8 @@ const [data, setData] = useState<UserData | null>(null);
 
 **Focus**: `lib/**/*.ts`, `models/**/*.ts`
 
-### Lib Utilities Pattern:
+### Lib Utilities Pattern
+
 ```typescript
 // BEFORE ❌
 export async function findDocuments(query: any) {
@@ -352,7 +371,7 @@ export async function findDocuments<T extends MongoDocument>(
 
 ---
 
-## 🚀 EXECUTION - START NOW!
+## 🚀 EXECUTION - START NOW
 
 ### Step 1: Unused Error Variables (First 19 files)
 
@@ -379,6 +398,7 @@ git commit -m "fix(eslint): prefix unused error variable in $(basename $FILE)"
 ### Step 2: Continue with remaining quick wins
 
 Repeat for:
+
 - Unused function parameters
 - Unused imports
 - Unused destructured variables
@@ -389,6 +409,7 @@ Repeat for:
 ### Step 3: Track Progress
 
 Update this file after each batch:
+
 ```markdown
 ## Progress Tracker
 

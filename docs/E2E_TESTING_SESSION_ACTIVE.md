@@ -56,6 +56,7 @@
 ## 📋 Testing Order
 
 ### Phase 1: Admin Roles (4 hours)
+
 1. ✅ Super Admin - Platform-wide access
 2. ✅ Corporate Admin - Organization management
 3. ✅ Property Manager - Properties & leases
@@ -63,6 +64,7 @@
 5. ✅ Supervisor - Field operations
 
 ### Phase 2: Operational Roles (4 hours)
+
 6. ⏳ Internal Technician - Work execution
 7. ⏳ Vendor Admin - Vendor portal
 8. ⏳ Vendor Technician - Vendor work orders
@@ -70,6 +72,7 @@
 10. ⏳ Owner/Landlord - Property portfolio
 
 ### Phase 3: Support Roles (3.5 hours)
+
 11. ⏳ Finance Manager - Invoicing & ZATCA
 12. ⏳ HR Manager - Employee management
 13. ⏳ Helpdesk Agent - Support tickets
@@ -80,24 +83,28 @@
 ## 🔍 Issue Classification
 
 ### Critical (Blocks Usage)
+
 - Login failures
 - System crashes
 - Data loss
 - Security vulnerabilities
 
 ### High (Major Impact)
+
 - Feature not working
 - Incorrect permissions
 - Data corruption
 - Performance issues
 
 ### Medium (Minor Impact)
+
 - UI glitches
 - Confusing UX
 - Missing translations
 - Slow responses
 
 ### Low (Cosmetic)
+
 - Styling issues
 - Layout problems
 - Minor text errors
@@ -107,8 +114,8 @@
 
 ## 📊 Testing Environment
 
-**Application URL**: http://localhost:3000  
-**Login URL**: http://localhost:3000/login  
+**Application URL**: <http://localhost:3000>  
+**Login URL**: <http://localhost:3000/login>  
 **MongoDB**: localhost:27017 (fixzit database)  
 **Organizations**: platform-org-001, acme-corp-001  
 **Test Password**: <REDACTED> (via TEST_PASSWORD env var)

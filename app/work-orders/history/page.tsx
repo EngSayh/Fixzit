@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function ServiceHistoryPage() {
+  const { t } = useTranslation();
   const serviceHistory = [
     {
       id: 'WO-1001',
@@ -51,12 +55,12 @@ export default function ServiceHistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Service History</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">View completed work orders and service history</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.history.title', 'Service History')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.history.subtitle', 'View completed work orders and service history')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Export Report</button>
-          <button className="btn-primary">📊 Analytics</button>
+          <button className="btn-secondary">{t('workOrders.history.exportReport', 'Export Report')}</button>
+          <button className="btn-primary">📊 {t('common.analytics', 'Analytics')}</button>
         </div>
       </div>
 
@@ -65,7 +69,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Completed</p>
+              <p className="text-sm font-medium text-gray-600">{t('workOrders.history.totalCompleted', 'Total Completed')}</p>
               <p className="text-2xl font-bold text-green-600">247</p>
             </div>
             <div className="text-green-400">✅</div>
@@ -74,7 +78,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">This Month</p>
+              <p className="text-sm font-medium text-gray-600">{t('common.thisMonth', 'This Month')}</p>
               <p className="text-2xl font-bold text-blue-600">23</p>
             </div>
             <div className="text-blue-400">📅</div>
@@ -83,7 +87,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Avg. Rating</p>
+              <p className="text-sm font-medium text-gray-600">{t('common.avgRating', 'Avg. Rating')}</p>
               <p className="text-2xl font-bold text-yellow-600">4.8</p>
             </div>
             <div className="text-yellow-400">⭐</div>
@@ -92,7 +96,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Cost</p>
+              <p className="text-sm font-medium text-gray-600">{t('common.totalCost', 'Total Cost')}</p>
               <p className="text-2xl font-bold text-purple-600">SAR 45,230</p>
             </div>
             <div className="text-purple-400">💰</div>
@@ -133,17 +137,17 @@ export default function ServiceHistoryPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
             />
           </div>
-          <button className="btn-primary">Filter</button>
+          <button className="btn-primary">{t('workOrders.filter', 'Filter')}</button>
         </div>
       </div>
 
       {/* Service History Table */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Service History</h3>
+          <h3 className="text-lg font-semibold">{t('workOrders.history.title', 'Service History')}</h3>
           <div className="flex gap-2">
-            <button className="btn-ghost">📄 Export CSV</button>
-            <button className="btn-ghost">📊 View Charts</button>
+            <button className="btn-ghost">📄 {t('common.exportCsv', 'Export CSV')}</button>
+            <button className="btn-ghost">📊 {t('common.viewCharts', 'View Charts')}</button>
           </div>
         </div>
 
@@ -186,8 +190,8 @@ export default function ServiceHistoryPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">View</button>
-                      <button className="text-green-600 hover:text-green-900">Invoice</button>
+                      <button className="text-blue-600 hover:text-blue-900">{t('workOrders.history.view', 'View')}</button>
+                      <button className="text-green-600 hover:text-green-900">{t('workOrders.history.invoice', 'Invoice')}</button>
                     </div>
                   </td>
                 </tr>

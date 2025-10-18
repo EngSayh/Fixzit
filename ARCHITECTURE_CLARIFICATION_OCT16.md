@@ -9,23 +9,26 @@
 ### Answer: TWO DIFFERENT SOUQ IMPLEMENTATIONS
 
 #### **1. Legacy Souq Server** (`packages/fixzit-souq-server/`)
+
 - **Type**: Standalone Express.js server (OLD architecture)
 - **Port**: 5000 (configured in server.js)
 - **Status**: **DEPRECATED** - Separate legacy codebase
 - **Purpose**: Original MVP marketplace server from early development
-- **Tech Stack**: 
+- **Tech Stack**:
   - Express.js
   - JavaScript (not TypeScript)
   - Mongoose 8.6.1
   - Standalone routing
 
 **Why it exists:**
+
 - Historical artifact from Phase 1 development
 - Was the original "Fixzit Souq" marketplace prototype
 - Kept for reference/migration purposes
 - **NOT USED** in current production
 
 #### **2. Current Material Marketplace** (`app/marketplace/` and `app/souq/`)
+
 - **Type**: Modern Next.js 15 App Router pages
 - **Port**: Runs on main Next.js server (3001)
 - **Status**: **ACTIVE** - Current production implementation
@@ -54,12 +57,14 @@
 **"Souq" (سوق)** = Arabic word for "Marketplace"
 
 **Fixzit Souq** = The B2B Materials Marketplace feature where:
+
 - Vendors list construction materials
 - Property managers browse and purchase
 - RFQ (Request for Quote) system for bulk orders
 - Integration with invoicing and payments
 
 **Current Implementation:**
+
 - **UI**: `app/souq/` - Public-facing storefront
 - **Backend**: `app/marketplace/` - Admin & vendor management
 - **API**: `app/api/marketplace/` - REST endpoints
@@ -68,7 +73,7 @@
 
 ## Question 2: Why do we need Deprecated Code Archived?
 
-### Answer: NO - You Can DELETE IT!
+### Answer: NO - You Can DELETE IT
 
 #### **Files to DELETE:**
 
@@ -86,20 +91,22 @@ packages/fixzit-souq-server/
 docs/archive/merge-pr-*.ps1
 ```
 
-### Why Deprecated Code Was Kept:
+### Why Deprecated Code Was Kept
 
 **Original Reasons** (No longer valid):
+
 1. ❌ Reference during migration - **MIGRATION COMPLETE**
 2. ❌ Backup before major refactoring - **REFACTORING DONE**
 3. ❌ Compare old vs new implementations - **NEW STABLE**
 
 **Current Reality:**
+
 - ✅ All active models in `server/models/` and `src/server/models/`
 - ✅ No imports from `_deprecated/` anywhere
 - ✅ No imports from `packages/fixzit-souq-server/` anywhere
 - ✅ New marketplace fully operational
 
-### Safe Deletion Plan:
+### Safe Deletion Plan
 
 ```bash
 # Step 1: Verify no imports (should return empty)
@@ -127,7 +134,7 @@ git commit -m "chore: remove deprecated models and legacy souq server"
 
 ## Question 3: Why can't I see the system on localhost:3000?
 
-### Answer: Next.js is on Port 3001, Not 3000!
+### Answer: Next.js is on Port 3001, Not 3000
 
 #### **Port Configuration:**
 
@@ -140,6 +147,7 @@ lsof -i :3001  # Should show: node (Next.js dev server) ✅
 #### **Why Port 3001?**
 
 **From `package.json`:**
+
 ```json
 {
   "scripts": {
@@ -149,6 +157,7 @@ lsof -i :3001  # Should show: node (Next.js dev server) ✅
 ```
 
 **Reason:** Port 3000 is **intentionally NOT USED** to avoid conflicts with:
+
 - MongoDB Compass (sometimes uses 3000)
 - Other development servers
 - Legacy Souq server (would use 5000 anyway)
@@ -204,18 +213,21 @@ PORT=3000 npm run dev
 
 ## Quick Fixes
 
-### 1. Delete Deprecated Code:
+### 1. Delete Deprecated Code
+
 ```bash
 rm -rf _deprecated/ packages/fixzit-souq-server/
 ```
 
-### 2. Access System:
+### 2. Access System
+
 ```bash
 # Open browser to:
 http://localhost:3001
 ```
 
-### 3. Change Port (Optional):
+### 3. Change Port (Optional)
+
 ```bash
 # Edit package.json:
 "dev": "next dev -p 3000"
@@ -257,6 +269,7 @@ Legacy (DEPRECATED ❌):
 3. **Port 3000** = Intentionally not used, system runs on **3001**
 
 **Action Items:**
+
 - ✅ Access system at `http://localhost:3001`
 - ✅ Delete deprecated code for cleanup
 - ✅ Update README.md if port confusion persists

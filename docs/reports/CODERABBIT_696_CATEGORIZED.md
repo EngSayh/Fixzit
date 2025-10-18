@@ -9,10 +9,12 @@
 ## 📊 CATEGORY BREAKDOWN
 
 ### **Category A: Unused Variables - Simple Removal** (50 files)
+
 **Priority**: HIGH | **Time**: 2-3 hours | **Difficulty**: EASY  
 **Action**: Remove or prefix with `_` if intentionally unused
 
 #### A1: API Routes - Unused `_client` / `_user` variables (10 files)
+
 - ✅ app/api/billing/callback/paytabs/route.ts - `_client`
 - ✅ app/api/billing/charge-recurring/route.ts - `_client`
 - ✅ app/api/ats/moderation/route.ts - `_user`
@@ -21,13 +23,16 @@
 - [ ] app/api/support/welcome-email/route.ts - `_emailTemplate`
 
 #### A2: API Routes - Unused Error Handler Imports (25 files)
+
 **Pattern**: Imported but never used error handlers
+
 ```typescript
 // Remove unused imports:
 import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, handleApiError } from '@/server/utils/errorResponses';
 ```
 
 **Files**:
+
 - ✅ app/api/health/database/route.ts - All error handlers unused
 - [ ] app/api/public/rfqs/route.ts - 6 error handlers unused
 - [ ] app/api/qa/alert/route.ts - 6 error handlers unused
@@ -36,6 +41,7 @@ import { unauthorizedError, forbiddenError, notFoundError, validationError, zodV
 - [ ] app/api/qa/reconnect/route.ts - 6 error handlers + `createSecureResponse`
 
 #### A3: Test Files - Unused Test Utilities (8 files)
+
 - [ ] app/marketplace/page.test.tsx - `importer`, `options`
 - [ ] app/marketplace/rfq/page.test.tsx - `content`
 - [ ] app/test/api_help_articles_route.test.ts - `coll`
@@ -43,15 +49,17 @@ import { unauthorizedError, forbiddenError, notFoundError, validationError, zodV
 - [ ] app/test/help_support_ticket_page.test.tsx - `within`, `fireEvent`
 - [ ] components/marketplace/CatalogView.test.tsx - `within`
 - [ ] data/language-options.test.ts - `idx`
-- [ ] i18n/dictionaries/__tests__/ar.test.ts - `path`
+- [ ] i18n/dictionaries/**tests**/ar.test.ts - `path`
 
 #### A4: Components - Unused Props/Parameters (7 files)
+
 - ✅ app/fm/invoices/page.tsx - `onUpdated`
 - ✅ components/ui/select.tsx - `_props` (3 instances)
 - [ ] components/ErrorBoundary.tsx - `sendWelcomeEmail`
 - [ ] qa/AutoFixAgent.tsx - `type`
 
 #### A5: Hooks & Utilities - Unused Variables (10 files)
+
 - [ ] hooks/useScreenSize.ts - `isLarge`
 - [ ] hooks/useUnsavedChanges.tsx - `router`, `path`
 - [ ] contexts/TranslationContext.tsx - `lang`
@@ -62,19 +70,21 @@ import { unauthorizedError, forbiddenError, notFoundError, validationError, zodV
 - [ ] providers/QAProvider.tsx - `useEffect`, `useState`
 
 #### A6: Server/Models - Unused Imports (10 files)
+
 - [ ] config/modules.ts - `Role`
 - [ ] db/mongoose.ts - `mongoose`
 - [ ] server/copilot/llm.ts - `session`
 - [ ] server/copilot/retrieval.ts - `SessionUser`
 - [ ] server/finance/invoice.service.ts - `mockService`, `ip`
 - [ ] server/models/Project.ts - `ProjectStatus`
-- [ ] server/models/__tests__/Candidate.test.ts - `mod`, `RealCandidateLike`
+- [ ] server/models/**tests**/Candidate.test.ts - `mod`, `RealCandidateLike`
 - [ ] server/security/idempotency.spec.ts - `expected`
 - [ ] server/work-orders/wo.service.ts - `VALID_TRANSITIONS`, `tenantId`
 - [ ] src/server/models/Project.ts - `_ProjectStatus`
-- [ ] src/server/models/__tests__/Candidate.test.ts - `mod`, `RealCandidateLike`
+- [ ] src/server/models/**tests**/Candidate.test.ts - `mod`, `RealCandidateLike`
 
 #### A7: Scripts - Unused Imports (5 files)
+
 - [ ] scripts/dedup/consolidate.ts - `fs`, `path`
 - [ ] scripts/dedupe-merge.ts - `parse`, `recast`
 - [ ] scripts/verify-core.ts - Multiple unused imports
@@ -85,11 +95,14 @@ import { unauthorizedError, forbiddenError, notFoundError, validationError, zodV
 ---
 
 ### **Category B: Explicit `any` Types** (235+ files)
+
 **Priority**: HIGH | **Time**: 15-20 hours | **Difficulty**: MEDIUM-HARD  
 **Action**: Replace with proper TypeScript types
 
 #### B1: Critical Infrastructure - `any` in Core Libraries (10 files)
+
 **Impact**: HIGH - affects entire application
+
 - [ ] lib/mongo.ts - 4 instances (Promise<any>, type casts)
 - [ ] lib/db/index.ts - 2 instances
 - [ ] lib/auth.ts - 2 instances
@@ -102,7 +115,9 @@ import { unauthorizedError, forbiddenError, notFoundError, validationError, zodV
 - [ ] lib/paytabs.ts - 5 instances
 
 #### B2: API Routes - Error Handling `any` (50+ files)
+
 **Pattern**: `catch (error: any)` or `(error as any)`
+
 ```typescript
 // WRONG:
 catch (error: any) { ... }
@@ -116,6 +131,7 @@ catch (error: unknown) {
 ```
 
 **Files** (sample):
+
 - [ ] app/api/admin/discounts/route.ts - 2 instances
 - [ ] app/api/admin/price-tiers/route.ts - 2 instances
 - [ ] app/api/aqar/map/route.ts - 1 instance
@@ -134,6 +150,7 @@ catch (error: unknown) {
 - [ ] And 35+ more API route files...
 
 #### B3: Frontend Pages - `any` in State/Props (30+ files)
+
 - [ ] app/aqar/map/page.tsx - 1 instance
 - [ ] app/cms/[slug]/page.tsx - 1 instance
 - [ ] app/finance/page.tsx - 2 instances
@@ -153,6 +170,7 @@ catch (error: unknown) {
 - [ ] And 15+ more page files...
 
 #### B4: Components - `any` in Props/Handlers (20+ files)
+
 - [ ] components/AIChat.tsx - 1 instance
 - [ ] components/AutoIncidentReporter.tsx - 2 instances
 - [ ] components/ErrorBoundary.tsx - 2 instances
@@ -160,11 +178,13 @@ catch (error: unknown) {
 - [ ] components/fm/WorkOrdersView.tsx - 1 instance
 
 #### B5: Server Models - `any` in Mongoose Schemas (10+ files)
+
 - [ ] src/server/models/Application.ts - 4 instances
 - [ ] src/server/models/WorkOrder.ts - 1 instance
 - [ ] src/server/models/marketplace/Product.ts - 1 instance
 
 #### B6: Utilities - `any` in Helper Functions (10+ files)
+
 - [ ] lib/markdown.ts - 1 instance
 - [ ] lib/pricing.ts - 1 instance
 - [ ] lib/paytabs/callback.ts - 2 instances
@@ -172,10 +192,12 @@ catch (error: unknown) {
 ---
 
 ### **Category C: Auth-Before-Rate-Limit Pattern** (20+ files)
+
 **Priority**: HIGH (Security) | **Time**: 2-3 hours | **Difficulty**: MEDIUM  
 **Action**: Move rate limiting after authentication
 
 **Pattern to Apply**:
+
 ```typescript
 // BEFORE (Incorrect):
 export async function POST(req: NextRequest) {
@@ -199,6 +221,7 @@ export async function POST(req: NextRequest) {
 ```
 
 **Files Requiring Fix**:
+
 - [ ] app/api/invoices/route.ts (POST and GET)
 - [ ] app/api/assets/route.ts (POST and GET)
 - [ ] app/api/help/articles/route.ts (GET)
@@ -214,10 +237,12 @@ export async function POST(req: NextRequest) {
 ---
 
 ### **Category D: Error Response Consistency** (15+ files)
+
 **Priority**: MEDIUM | **Time**: 1-2 hours | **Difficulty**: EASY  
 **Action**: Replace `NextResponse.json()` with `createSecureResponse()`
 
 **Pattern**:
+
 ```typescript
 // WRONG:
 return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -227,6 +252,7 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ```
 
 **Files**:
+
 - [ ] app/api/invoices/route.ts - Multiple instances
 - [ ] app/api/assets/route.ts - Multiple instances
 - [ ] app/api/copilot/chat/route.ts - Error responses
@@ -235,10 +261,12 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ---
 
 ### **Category E: TypeScript Type Errors** (10+ files)
+
 **Priority**: HIGH | **Time**: 2-3 hours | **Difficulty**: MEDIUM  
 **Action**: Fix type mismatches and assertions
 
 **Files**:
+
 - [ ] app/api/marketplace/cart/route.ts - Type mismatch on line 45
 - [ ] app/api/marketplace/products/route.ts - Unknown error type
 - [ ] app/api/marketplace/search/route.ts - Property access errors (4 instances)
@@ -249,15 +277,18 @@ return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 ---
 
 ### **Category F: Empty Catch Blocks** (4 files)
+
 **Priority**: LOW | **Time**: 15 minutes | **Difficulty**: EASY  
 **Status**: ✅ Only in test files (acceptable)
 
 **Files**:
+
 - ✅ app/test/help_ai_chat_page.test.tsx - 4 empty catch blocks (intentional for test scaffolding)
 
 ---
 
 ### **Category G: React Hook Dependencies** (0 files)
+
 **Priority**: N/A | **Status**: ✅ ALREADY FIXED  
 No issues found in current codebase.
 
@@ -266,16 +297,19 @@ No issues found in current codebase.
 ## 🎯 EXECUTION PLAN
 
 ### Phase 1: Quick Wins (4-5 hours)
+
 1. **Category A1-A7**: Fix all unused variables (50 files)
 2. **Category F**: Verify empty catch blocks are acceptable
 3. **Category D**: Standardize error responses (15 files)
 
 ### Phase 2: Security & Critical (3-4 hours)
+
 4. **Category C**: Fix auth-before-rate-limit pattern (20 files)
 5. **Category B1**: Fix `any` in core libraries (10 files)
 6. **Category E**: Fix TypeScript type errors (10 files)
 
 ### Phase 3: Comprehensive Type Safety (15-20 hours)
+
 7. **Category B2**: Fix `any` in API routes (50+ files)
 8. **Category B3**: Fix `any` in frontend pages (30+ files)
 9. **Category B4**: Fix `any` in components (20+ files)

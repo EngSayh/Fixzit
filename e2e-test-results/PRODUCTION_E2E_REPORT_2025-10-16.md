@@ -4,7 +4,7 @@
 
 **Environment:** Production
 
-**Base URL:** https://fixzit-souq.com
+**Base URL:** <https://fixzit-souq.com>
 
 ---
 
@@ -27,14 +27,14 @@
 
 | Test | Status | Details |
 |------|--------|----------|
-| Landing Page | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/" |
-| Login Page | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/login" |
+| Landing Page | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/>" |
+| Login Page | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/login>" |
 
 ### Login Tests
 
 | Test | Status | Details |
 |------|--------|----------|
-| Login Page | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/login" |
+| Login Page | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/login>" |
 | Login as admin | ⚠️ skipped | ⚠️ No password configured |
 | Login as propertyManager | ⚠️ skipped | ⚠️ No password configured |
 | Login as tenant | ⚠️ skipped | ⚠️ No password configured |
@@ -45,8 +45,8 @@
 
 | Test | Status | Details |
 |------|--------|----------|
-| API Health Check | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/api/health" |
-| Database Health Check | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/api/health/database" |
+| API Health Check | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/api/health>" |
+| Database Health Check | ❌ failed | ❌ Error: Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/api/health/database>" |
 
 ---
 
@@ -54,122 +54,122 @@
 
 ### Landing Page
 
-- **URL:** https://fixzit-souq.com/
+- **URL:** <https://fixzit-souq.com/>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/>"
 
 ### Login Page
 
-- **URL:** https://fixzit-souq.com/login
+- **URL:** <https://fixzit-souq.com/login>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/login"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/login>"
 
 ### Marketplace
 
-- **URL:** https://fixzit-souq.com/marketplace
+- **URL:** <https://fixzit-souq.com/marketplace>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/marketplace"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/marketplace>"
 
 ### Help Center
 
-- **URL:** https://fixzit-souq.com/help
+- **URL:** <https://fixzit-souq.com/help>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/help"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/help>"
 
 ### Careers
 
-- **URL:** https://fixzit-souq.com/careers
+- **URL:** <https://fixzit-souq.com/careers>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/careers"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/careers>"
 
 ### Dashboard
 
-- **URL:** https://fixzit-souq.com/dashboard
+- **URL:** <https://fixzit-souq.com/dashboard>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/dashboard"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/dashboard>"
 
 ### Properties
 
-- **URL:** https://fixzit-souq.com/properties
+- **URL:** <https://fixzit-souq.com/properties>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/properties"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/properties>"
 
 ### Work Orders
 
-- **URL:** https://fixzit-souq.com/work-orders
+- **URL:** <https://fixzit-souq.com/work-orders>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/work-orders"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/work-orders>"
 
 ### Tenants
 
-- **URL:** https://fixzit-souq.com/tenants
+- **URL:** <https://fixzit-souq.com/tenants>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/tenants"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/tenants>"
 
 ### Vendors
 
-- **URL:** https://fixzit-souq.com/vendors
+- **URL:** <https://fixzit-souq.com/vendors>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/vendors"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/vendors>"
 
 ### RFQs
 
-- **URL:** https://fixzit-souq.com/rfqs
+- **URL:** <https://fixzit-souq.com/rfqs>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/rfqs"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/rfqs>"
 
 ### Finance
 
-- **URL:** https://fixzit-souq.com/finance
+- **URL:** <https://fixzit-souq.com/finance>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/finance"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/finance>"
 
 ### HR Employees
 
-- **URL:** https://fixzit-souq.com/hr/employees
+- **URL:** <https://fixzit-souq.com/hr/employees>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/hr/employees"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/hr/employees>"
 
 ### HR Attendance
 
-- **URL:** https://fixzit-souq.com/hr/attendance
+- **URL:** <https://fixzit-souq.com/hr/attendance>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/hr/attendance"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/hr/attendance>"
 
 ### Settings
 
-- **URL:** https://fixzit-souq.com/settings
+- **URL:** <https://fixzit-souq.com/settings>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/settings"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/settings>"
 
 ### API Health Check
 
-- **URL:** https://fixzit-souq.com/api/health
+- **URL:** <https://fixzit-souq.com/api/health>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/api/health"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/api/health>"
 
 ### Database Health Check
 
-- **URL:** https://fixzit-souq.com/api/health/database
+- **URL:** <https://fixzit-souq.com/api/health/database>
 - **User Role:** anonymous
 - **Status Code:** N/A
-- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "https://fixzit-souq.com/api/health/database"
+- **Error:** Command failed: curl -s -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "<https://fixzit-souq.com/api/health/database>"
 
 ---
 

@@ -1,4 +1,5 @@
 # TypeScript Error Catalog - Past 48 Hours
+
 ## Complete Classification of All Errors Found and Fixed
 
 **Period**: October 7-9, 2025  
@@ -34,13 +35,17 @@
 ## 1. TS18046 - Object is of type 'unknown' (419 errors - 72%)
 
 ### Category: Type Inference Failure
+
 ### Severity: High
+
 ### Pattern: TypeScript cannot infer type from context
 
-### Subcategories:
+### Subcategories
 
 #### 1.1 Array Method Callbacks (280+ occurrences)
+
 **Pattern**: Array methods with unknown parameter types
+
 ```typescript
 // ERROR
 array.filter((item: unknown) => item.status === 'active')
@@ -49,18 +54,22 @@ array.forEach((item: unknown) => console.log(item))
 ```
 
 **Files Affected**:
+
 - `app/notifications/page.tsx` (49 errors)
 - `app/marketplace/admin/page.tsx` (20 errors)
 - `app/fm/invoices/page.tsx` (20 errors)
 - 50+ other files
 
 **Solutions Applied**:
+
 - Specific type inference: `(notif: NotificationDoc)`
 - Generic typing: `(item: any)`
 - Interface imports: Added proper model imports
 
 #### 1.2 API Response Data (80+ occurrences)
+
 **Pattern**: Response data from fetch/API calls
+
 ```typescript
 // ERROR
 const data = await response.json(); // data: unknown
@@ -68,17 +77,21 @@ data.items.forEach(...)
 ```
 
 **Files Affected**:
+
 - API route handlers (30+ files)
 - Client-side data fetching components
 - Service layer functions
 
 **Solutions Applied**:
+
 - Type assertions: `data as ApiResponse`
 - Typed fetch wrappers: `useSWR<{ items: T[] }>(...)`
 - Interface definitions for API responses
 
 #### 1.3 MongoDB Query Results (60+ occurrences)
+
 **Pattern**: Database query results without type inference
+
 ```typescript
 // ERROR
 const result = await collection.find(filter);
@@ -86,11 +99,13 @@ result.forEach((doc: unknown) => ...)
 ```
 
 **Files Affected**:
+
 - MongoDB service files
 - Model files
 - API routes with database access
 
 **Solutions Applied**:
+
 - Type annotations: `find<DocumentType>(filter)`
 - Cast with interfaces: `result as ModelType[]`
 - Generic type parameters
@@ -100,13 +115,17 @@ result.forEach((doc: unknown) => ...)
 ## 2. TS2339 - Property does not exist on type (81 errors - 13.9%)
 
 ### Category: Property Access Errors
+
 ### Severity: Medium-High
+
 ### Pattern: Accessing properties that don't exist on declared types
 
-### Subcategories:
+### Subcategories
 
 #### 2.1 Error Object Extensions (4 occurrences)
+
 **Pattern**: Adding custom properties to Error instances
+
 ```typescript
 // ERROR at lib/mongo.ts:77-82
 const err = new Error('message');
@@ -116,9 +135,11 @@ err.correlationId = generateId();            // TS2339
 ```
 
 **Files Affected**:
+
 - `lib/mongo.ts`
 
 **Solution Applied**:
+
 ```typescript
 const err = new Error('message') as Error & {
   code: string;
@@ -128,39 +149,49 @@ const err = new Error('message') as Error & {
 ```
 
 #### 2.2 Mongoose Internal Properties (10 occurrences)
+
 **Pattern**: Accessing Mongoose internal `$__` property
+
 ```typescript
 // ERROR at server/models/WorkOrder.ts:425
 const previousStatus = this.$__.originalDoc?.status; // TS2339: Property '$__' does not exist
 ```
 
 **Files Affected**:
+
 - `server/models/WorkOrder.ts`
 - `src/server/models/WorkOrder.ts`
 - `server/plugins/auditPlugin.ts`
 
 **Solution Applied**:
+
 ```typescript
 const previousStatus = (this as any).$__?.originalDoc?.status;
 ```
 
 #### 2.3 Property Typos/Wrong Names (3 occurrences)
+
 **Pattern**: Using wrong property name
+
 ```typescript
 // ERROR at db/mongoose.ts:11-14
 mongoose.connection // TS2551: Did you mean 'collection'?
 ```
 
 **Files Affected**:
+
 - `db/mongoose.ts`
 
 **Solution Applied**:
+
 ```typescript
 (conn as any).connection // Bypass type check for valid but untyped property
 ```
 
 #### 2.4 Interface Property Mismatches (40+ occurrences)
+
 **Pattern**: Property exists at runtime but not in interface
+
 ```typescript
 // ERROR
 wo.dueAt // TS2339: Property 'dueAt' does not exist on type 'WorkOrder'
@@ -168,21 +199,26 @@ quote.contactSales // TS2339: Property 'contactSales' does not exist on type 'Su
 ```
 
 **Files Affected**:
+
 - `app/fm/dashboard/page.tsx`
 - `app/api/billing/subscribe/route.ts`
 
 **Solutions Applied**:
+
 - Added to interfaces: `contactSales?: boolean`
 - Type casting for optional properties: `(wo as any).dueAt`
 
 #### 2.5 AuditInfo Missing Properties (1 occurrence)
+
 **Pattern**: Interface missing optional property
+
 ```typescript
 // ERROR at server/plugins/auditPlugin.ts:142
 changeReason: context.changeReason || undefined, // TS2339
 ```
 
 **Solution Applied**:
+
 ```typescript
 export interface AuditInfo {
   // ... existing properties
@@ -195,13 +231,17 @@ export interface AuditInfo {
 ## 3. TS2345 - Argument type not assignable (17 errors - 2.9%)
 
 ### Category: Function Argument Type Mismatches
+
 ### Severity: Medium
+
 ### Pattern: Passing wrong type to function parameter
 
-### Subcategories:
+### Subcategories
 
 #### 3.1 Test Mock Arguments (5 occurrences)
+
 **Pattern**: Mock function expects different type
+
 ```typescript
 // ERROR at src/server/models/__tests__/Candidate.test.ts
 findFn.mockResolvedValueOnce([first, second]); 
@@ -209,16 +249,20 @@ findFn.mockResolvedValueOnce([first, second]);
 ```
 
 **Files Affected**:
+
 - `src/server/models/__tests__/Candidate.test.ts`
 
 **Solution Applied**:
+
 ```typescript
 const findFn = (Candidate as any).find; // Remove explicit Mock type
 findFn.mockResolvedValueOnce([first, second]); // Now works
 ```
 
 #### 3.2 MongoDB Filter Type Mismatches (12+ occurrences)
+
 **Pattern**: Filter objects not matching expected MongoDB types
+
 ```typescript
 // ERROR
 const filter = { status: 'active', date: { $gte: new Date() } };
@@ -226,10 +270,12 @@ collection.find(filter); // TS2345: Type incompatible
 ```
 
 **Files Affected**:
+
 - API routes with MongoDB queries
 - Service layer database functions
 
 **Solution Applied**:
+
 ```typescript
 collection.find(filter as any);
 // OR with proper typing:
@@ -241,13 +287,17 @@ collection.find<DocumentType>(filter as Filter<DocumentType>);
 ## 4. TS2571 - Object is of type 'unknown' (11 errors - 1.9%)
 
 ### Category: Type Narrowing Required
+
 ### Severity: Medium
+
 ### Pattern: Object type cannot be determined in context
 
-### Subcategories:
+### Subcategories
 
 #### 4.1 Audit Plugin Context (4 occurrences)
+
 **Pattern**: Unknown objects in audit trail logic
+
 ```typescript
 // ERROR at server/plugins/auditPlugin.ts:122, 150, 153, 154
 this.changeHistory.push(changeRecord);           // TS2571
@@ -255,25 +305,31 @@ if (this.changeHistory.length > max) { ... }     // TS2571
 ```
 
 **Files Affected**:
+
 - `server/plugins/auditPlugin.ts`
 
 **Solution Applied**:
+
 ```typescript
 (this.changeHistory as any[]).push(changeRecord);
 if ((this.changeHistory as any[]).length > max) { ... }
 ```
 
 #### 4.2 Complex Property Access (7 occurrences)
+
 **Pattern**: Chained property access on unknown objects
+
 ```typescript
 // ERROR
 const value = obj.nested?.property?.value; // obj is unknown
 ```
 
 **Files Affected**:
+
 - Various API routes and services
 
 **Solution Applied**:
+
 ```typescript
 const value = (obj as any)?.nested?.property?.value;
 ```
@@ -283,13 +339,17 @@ const value = (obj as any)?.nested?.property?.value;
 ## 5. TS7017 - Element implicitly has 'any' type (5 errors - 0.9%)
 
 ### Category: Index Signature Missing
+
 ### Severity: Medium
+
 ### Pattern: No index signature on type 'typeof globalThis'
 
-### Subcategories:
+### Subcategories
 
 #### 5.1 Global Property Caching (5 occurrences)
+
 **Pattern**: Using globalThis for caching without type declaration
+
 ```typescript
 // ERROR at lib/mongo.ts:36, 41
 global._mongoose = mongooseConnection; // TS7017
@@ -299,10 +359,12 @@ globalThis.__DEV_FILE_SIGN_SECRET__ = secret; // TS7017
 ```
 
 **Files Affected**:
+
 - `lib/mongo.ts` (2 errors)
 - `app/api/files/resumes/[file]/route.ts` (3 errors)
 
 **Solution Applied**:
+
 ```typescript
 // lib/mongo.ts
 declare global {
@@ -320,13 +382,17 @@ declare global {
 ## 6. TS7006 - Parameter implicitly has 'any' type (3 errors - 0.5%)
 
 ### Category: Missing Parameter Types
+
 ### Severity: Low-Medium
+
 ### Pattern: Function parameters without type annotations
 
-### Subcategories:
+### Subcategories
 
 #### 6.1 Build Script Functions (3 occurrences)
+
 **Pattern**: Build/setup scripts without types
+
 ```typescript
 // ERROR at scripts/setup-guardrails.ts:7, 11
 function ensureDir(dir) { ... }              // TS7006
@@ -334,9 +400,11 @@ function writeFile(filePath, content) { ... } // TS7006 (2x)
 ```
 
 **Files Affected**:
+
 - `scripts/setup-guardrails.ts`
 
 **Solution Applied**:
+
 ```typescript
 function ensureDir(dir: string) { ... }
 function writeFile(filePath: string, content: string) { ... }
@@ -347,13 +415,17 @@ function writeFile(filePath: string, content: string) { ... }
 ## 7. TS2740 - Type missing properties (2 errors - 0.3%)
 
 ### Category: Interface Completeness
+
 ### Severity: Medium
+
 ### Pattern: Type doesn't satisfy all required properties
 
-### Subcategories:
+### Subcategories
 
 #### 7.1 DocumentArray Type Mismatch (1 occurrence)
+
 **Pattern**: Array doesn't match Mongoose DocumentArray interface
+
 ```typescript
 // ERROR at src/server/models/Application.ts:88
 this.history = [{ action: 'applied', by: 'candidate', at: new Date() } as any];
@@ -361,15 +433,19 @@ this.history = [{ action: 'applied', by: 'candidate', at: new Date() } as any];
 ```
 
 **Files Affected**:
+
 - `src/server/models/Application.ts`
 
 **Solution Applied**:
+
 ```typescript
 this.set('history', [{ action: 'applied', by: 'candidate', at: new Date() }]);
 ```
 
 #### 7.2 Mock Function Type Incompleteness (1 occurrence)
+
 **Pattern**: Jest Mock missing internal properties
+
 ```typescript
 // ERROR at src/server/models/__tests__/Candidate.test.ts:140
 findOneSpy = jest.fn();
@@ -377,6 +453,7 @@ findOneSpy = jest.fn();
 ```
 
 **Solution Applied**:
+
 ```typescript
 findOneSpy = jest.fn() as any;
 ```
@@ -386,13 +463,17 @@ findOneSpy = jest.fn() as any;
 ## 8. TS2365 - Operator cannot be applied (1 error - 0.2%)
 
 ### Category: Type Operator Compatibility
+
 ### Severity: Low
+
 ### Pattern: Mathematical operator on incompatible types
 
-### Subcategories:
+### Subcategories
 
 #### 8.1 Version Increment Type Issue (1 occurrence)
+
 **Pattern**: Adding number to inferred `{}` type
+
 ```typescript
 // ERROR at server/plugins/auditPlugin.ts:104
 this.version = (this.version || 0) + 1;
@@ -400,9 +481,11 @@ this.version = (this.version || 0) + 1;
 ```
 
 **Files Affected**:
+
 - `server/plugins/auditPlugin.ts`
 
 **Solution Applied**:
+
 ```typescript
 this.version = ((this.version as number) || 0) + 1;
 ```
@@ -412,13 +495,17 @@ this.version = ((this.version as number) || 0) + 1;
 ## 9. TS2367 - Type comparison mismatch (1 error - 0.2%)
 
 ### Category: Comparison Incompatibility
+
 ### Severity: Low
+
 ### Pattern: Comparing non-overlapping types
 
-### Subcategories:
+### Subcategories
 
 #### 9.1 Enum vs String Literal (1 occurrence)
+
 **Pattern**: Comparing enum value with string literal
+
 ```typescript
 // ERROR at app/fm/dashboard/page.tsx:42
 wo.status === 'SUBMITTED'
@@ -426,9 +513,11 @@ wo.status === 'SUBMITTED'
 ```
 
 **Files Affected**:
+
 - `app/fm/dashboard/page.tsx`
 
 **Solution Applied**:
+
 ```typescript
 import { WOStatus } from '@/lib/models';
 wo.status === WOStatus.NEW
@@ -439,13 +528,17 @@ wo.status === WOStatus.NEW
 ## 10. TS2322 - Type not assignable (1 error - 0.2%)
 
 ### Category: Assignment Type Mismatch
+
 ### Severity: Low
+
 ### Pattern: Assigning incompatible type to variable
 
-### Subcategories:
+### Subcategories
 
 #### 10.1 Array Type Inference (1 occurrence)
+
 **Pattern**: unknown[] not assignable to specific array type
+
 ```typescript
 // ERROR at app/aqar/map/page.tsx:42
 const [markers, setMarkers] = useState<unknown[]>([]);
@@ -453,9 +546,11 @@ setMarkers(clusters.map(...)); // TS2322: Type 'unknown[]' not assignable
 ```
 
 **Files Affected**:
+
 - `app/aqar/map/page.tsx`
 
 **Solution Applied**:
+
 ```typescript
 const [markers, setMarkers] = useState<{ 
   position: { lat: number; lng: number }; 
@@ -469,22 +564,28 @@ const [markers, setMarkers] = useState<{
 ## 11. TS2551 - Property doesn't exist / Typo (3 errors - 0.5%)
 
 ### Category: Property Name Errors
+
 ### Severity: Low
+
 ### Pattern: Wrong property name used
 
-### Subcategories:
+### Subcategories
 
 #### 11.1 Mongoose Connection vs Collection (3 occurrences)
+
 **Pattern**: Using `connection` instead of `collection`
+
 ```typescript
 // ERROR at db/mongoose.ts:11, 12, 14
 mongoose.connection // TS2551: Property 'connection' does not exist. Did you mean 'collection'?
 ```
 
 **Files Affected**:
+
 - `db/mongoose.ts`
 
 **Solution Applied**:
+
 ```typescript
 (conn as any).connection // Valid property, bypass type check
 ```
@@ -494,13 +595,17 @@ mongoose.connection // TS2551: Property 'connection' does not exist. Did you mea
 ## 12. TS2707 - Generic type requires type arguments (1 error - 0.2%)
 
 ### Category: Generic Type Usage
+
 ### Severity: Low
+
 ### Pattern: Generic type used without required type parameters
 
-### Subcategories:
+### Subcategories
 
 #### 12.1 Jest Mock Generic (1 occurrence)
+
 **Pattern**: Mock<T> without type parameter
+
 ```typescript
 // ERROR at src/server/models/__tests__/Candidate.test.ts:51
 static find: Mock<any, any> = jest.fn();
@@ -508,9 +613,11 @@ static find: Mock<any, any> = jest.fn();
 ```
 
 **Files Affected**:
+
 - `src/server/models/__tests__/Candidate.test.ts`
 
 **Solution Applied**:
+
 ```typescript
 static find = jest.fn(); // Let TypeScript infer types
 ```
@@ -520,26 +627,31 @@ static find = jest.fn(); // Let TypeScript infer types
 ## Error Patterns by File Type
 
 ### React Components (TSX files)
+
 - **TS18046**: Unknown types in props, state, callbacks (200+ errors)
 - **TS2339**: Missing properties on interfaces (15 errors)
 - **TS2322**: Type assignment mismatches (5 errors)
 
 ### API Routes
+
 - **TS18046**: Unknown response data, request bodies (100+ errors)
 - **TS2339**: Missing properties on types (20 errors)
 - **TS2345**: MongoDB filter type mismatches (10 errors)
 
 ### Model/Schema Files
+
 - **TS2339**: Mongoose internal properties (10 errors)
 - **TS2740**: DocumentArray type issues (2 errors)
 - **TS2365**: Version increment operators (1 error)
 
 ### Test Files
+
 - **TS2345**: Mock argument types (5 errors)
 - **TS2707**: Generic type parameters (1 error)
 - **TS2739**: Mock function properties (1 error)
 
 ### Service/Utility Files
+
 - **TS18046**: Unknown types from external sources (60+ errors)
 - **TS7017**: Global property access (5 errors)
 - **TS7006**: Parameter type annotations (3 errors)
@@ -549,25 +661,30 @@ static find = jest.fn(); // Let TypeScript infer types
 ## Root Causes Analysis
 
 ### 1. Insufficient Type Annotations (65%)
+
 - Missing type parameters in generics
 - No explicit types on function parameters
 - Untyped array methods callbacks
 
 ### 2. Framework/Library Type Limitations (20%)
+
 - Mongoose internal properties not typed
 - Jest mock type complexities
 - MongoDB driver type inference gaps
 
 ### 3. Interface Completeness (10%)
+
 - Missing optional properties
 - Runtime properties not in interfaces
 - Type definitions out of sync with implementation
 
 ### 4. Global Scope Type Safety (3%)
+
 - No type declarations for global properties
 - globalThis usage without declarations
 
 ### 5. Type Casting Requirements (2%)
+
 - Dynamic data structures
 - Framework internals access
 - Third-party library interfaces
@@ -577,12 +694,15 @@ static find = jest.fn(); // Let TypeScript infer types
 ## Solution Strategies Applied
 
 ### 1. Automated Mass Fixes (85% of errors)
+
 **Scripts Created**:
+
 - `fix-unknown-smart.js` - Intelligent type inference
 - `batch-fix-unknown.js` - Bulk unknown→any replacement
 - `final-typescript-fix.js` - Comprehensive pattern matching
 
 **Patterns Fixed**:
+
 ```typescript
 // Pattern 1: Unknown parameters
 (item: unknown) => ... → (item: any) =>
@@ -598,7 +718,9 @@ as unknown → as any
 ```
 
 ### 2. Interface Enhancements (8% of errors)
+
 **Approach**: Add missing properties to existing interfaces
+
 ```typescript
 // Added properties
 contactSales?: boolean
@@ -607,7 +729,9 @@ dueAt?: Date
 ```
 
 ### 3. Type Declarations (5% of errors)
+
 **Approach**: Add proper global and local type declarations
+
 ```typescript
 declare global {
   var _mongoose: Promise<DatabaseHandle> | undefined;
@@ -616,7 +740,9 @@ declare global {
 ```
 
 ### 4. Manual Type Refinements (2% of errors)
+
 **Approach**: Careful type casting and refinement
+
 ```typescript
 // Error extensions
 const err = new Error() as Error & { code: string; ... };
@@ -651,26 +777,31 @@ this.set('property', value) // Instead of direct assignment
 ## Prevention Recommendations
 
 ### 1. Type-First Development
+
 - Define interfaces before implementation
 - Use strict TypeScript configuration
 - Enable `noImplicitAny` and `strictNullChecks`
 
 ### 2. Better Framework Integration
+
 - Extend framework types properly
 - Create type declarations for third-party libraries
 - Use typed wrappers for untyped APIs
 
 ### 3. Code Review Focus
+
 - Check for `unknown` types in PRs
 - Require explicit types on function parameters
 - Validate interface completeness
 
 ### 4. Tooling Improvements
+
 - Pre-commit hooks for TypeScript checks
 - CI/CD pipeline with strict type checking
 - Automated type inference tools
 
 ### 5. Documentation
+
 - Document common type patterns
 - Create type utility library
 - Maintain type definitions centrally
@@ -680,18 +811,21 @@ this.set('property', value) // Instead of direct assignment
 ## Timeline of Fixes
 
 ### October 7, 2025 (Day 1)
+
 - **Initial Analysis**: 582 errors identified
 - **TS18046 Focus**: Eliminated 419 "unknown" type errors
 - **Scripts Created**: 3 automation scripts
 - **Progress**: 582 → 148 errors (74.5% reduction)
 
 ### October 8, 2025 (Day 2)
+
 - **Systematic Cleanup**: Targeted remaining error types
 - **Model Fixes**: Application, WorkOrder, ErrorBoundary
 - **API Routes**: Help articles, marketplace, assets
 - **Progress**: 148 → 34 errors (94.2% reduction)
 
 ### October 9, 2025 (Day 3) - **TODAY**
+
 - **Final Push**: Eliminated all remaining 34 errors
 - **Categories Fixed**: All 9 remaining error types
 - **Files Modified**: 14 files

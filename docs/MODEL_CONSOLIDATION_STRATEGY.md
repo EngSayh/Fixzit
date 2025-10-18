@@ -1,4 +1,5 @@
 # Model Consolidation Strategy
+
 **Created:** 2025-10-05  
 **Status:** ANALYSIS COMPLETE - READY FOR EXECUTION
 
@@ -7,6 +8,7 @@
 ## Problem Statement
 
 Models exist in TWO locations with PARTIAL overlap:
+
 - `server/models/` - 24 models (core app models)
 - `src/db/models/` - 33 models (includes finance/subscription models)
 
@@ -17,6 +19,7 @@ Models exist in TWO locations with PARTIAL overlap:
 ## Current State Analysis
 
 ### Models in BOTH Locations (Duplicates - 24 files)
+
 ✅ Application.ts
 ✅ Asset.ts
 ✅ AtsSettings.ts
@@ -43,6 +46,7 @@ Models exist in TWO locations with PARTIAL overlap:
 ✅ WorkOrder.ts
 
 ### Models ONLY in src/db/models/ (Finance/Subscription - 9 files)
+
 ⚠️  Benchmark.ts
 ⚠️  DiscountRule.ts
 ⚠️  Module.ts
@@ -60,21 +64,25 @@ Models exist in TWO locations with PARTIAL overlap:
 ### Current Import Patterns
 
 **Pattern 1: `@/server/models/` (Canonical - Most Used)**
+
 ```typescript
 // API routes use this
 import { Property } from "@/server/models/Property";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { User } from "@/server/models/User";
 ```
+
 **Usage:** 8+ API route files
 
 **Pattern 2: `../src/db/models/` (Legacy - Finance Only)**
+
 ```typescript
 // Scripts and finance use this
 import Module from '../src/db/models/Module';
 import Subscription from '../src/db/models/Subscription';
 import PaymentMethod from '../src/db/models/PaymentMethod';
 ```
+
 **Usage:** 2 files (scripts/seed-subscriptions.ts, lib/paytabs/subscription.ts)
 
 ---
@@ -82,6 +90,7 @@ import PaymentMethod from '../src/db/models/PaymentMethod';
 ## Consolidation Strategy
 
 ### Phase 1: Move Unique Models ✅ SAFEST
+
 **Action:** Copy finance/subscription models TO `server/models/`
 
 ```bash
@@ -99,23 +108,28 @@ cp src/db/models/Subscription.ts server/models/
 **Result:** All models in `server/models/` (33 total)
 
 ### Phase 2: Update Imports
+
 **Action:** Change `src/db/models/` imports to `@/server/models/`
 
 **Files to Update:**
+
 1. `scripts/seed-subscriptions.ts` (4 imports)
 2. `lib/paytabs/subscription.ts` (3 imports)
 
 **Before:**
+
 ```typescript
 import Module from '../src/db/models/Module';
 ```
 
 **After:**
+
 ```typescript
 import Module from '@/server/models/Module';
 ```
 
 ### Phase 3: Verify No Broken Imports
+
 **Action:** Search for any remaining `src/db/models` imports
 
 ```bash
@@ -123,6 +137,7 @@ grep -r "from.*src/db/models" --include="*.ts" --include="*.tsx"
 ```
 
 ### Phase 4: Compare & Remove Duplicates
+
 **Action:** For each of the 24 duplicate models:
 
 1. Compare files: `diff server/models/Property.ts src/db/models/Property.ts`
@@ -131,6 +146,7 @@ grep -r "from.*src/db/models" --include="*.ts" --include="*.tsx"
 4. Update BACKBONE_INDEX.md
 
 ### Phase 5: Verify TypeScript
+
 **Action:** Run full typecheck
 
 ```bash
@@ -142,15 +158,18 @@ npm run typecheck
 ## Risk Assessment
 
 ### ⚠️  HIGH RISK (Don't Do Yet)
+
 - Removing `src/db/models/` entirely before imports updated
 - Changing imports without verifying model exists in target
 
 ### ✅ LOW RISK (Safe to Do Now)
+
 - Copying unique models TO `server/models/` (adds files, breaks nothing)
 - Updating imports one file at a time with verification
 - Comparing duplicate models for differences
 
 ### 🔒 ZERO RISK (Always Safe)
+
 - Reading and analyzing files
 - Creating documentation
 - Running TypeScript check
@@ -160,6 +179,7 @@ npm run typecheck
 ## Execution Plan (Autonomous)
 
 ### Step 1: Copy Unique Models ✅
+
 ```bash
 for model in Benchmark DiscountRule Module OwnerGroup PaymentMethod PriceBook ServiceAgreement Subscription; do
   cp "src/db/models/${model}.ts" "server/models/${model}.ts"
@@ -168,6 +188,7 @@ done
 ```
 
 ### Step 2: Update Import in lib/paytabs/subscription.ts ✅
+
 ```typescript
 // Change:
 import PaymentMethod from '../../src/db/models/PaymentMethod';
@@ -181,6 +202,7 @@ import OwnerGroup from '@/server/models/OwnerGroup';
 ```
 
 ### Step 3: Update Import in scripts/seed-subscriptions.ts ✅
+
 ```typescript
 // Change:
 import Module from '../src/db/models/Module';
@@ -196,16 +218,19 @@ import Benchmark from '@/server/models/Benchmark';
 ```
 
 ### Step 4: Verify TypeScript ✅
+
 ```bash
 npm run typecheck
 ```
 
 ### Step 5: Search for Remaining Imports ✅
+
 ```bash
 grep -r "src/db/models" --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
 
 ### Step 6: Remove Duplicates (After Verification) ✅
+
 ```bash
 # For each duplicate, after confirming identical:
 rm src/db/models/Property.ts
@@ -218,12 +243,14 @@ rm src/db/models/WorkOrder.ts
 ## Expected Outcome
 
 ### Before
+
 - Models split across 2 directories
 - Inconsistent imports
 - 33 models total, 24 duplicates
 - Finance models isolated
 
 ### After
+
 - ✅ Single source: `server/models/` (33 models)
 - ✅ Consistent imports: `@/server/models/*`
 - ✅ Zero duplicates

@@ -14,6 +14,7 @@
 **Used in Module**: 58 items (legitimately exported for external use)
 
 **Categories**:
+
 1. **Next.js Conventions** (6 items) - Required by framework, keep
 2. **Test/Script Files** (4 items) - Entry points, keep
 3. **Utility Functions** (12 items) - May be future use, review
@@ -60,6 +61,7 @@ Entry points for scripts and test utilities:
 Exported utilities that may or may not be used:
 
 ### 3A. Auth & Permissions (6 items)
+
 11. ⚠️ **`lib/edge-auth-middleware.ts:18 - authenticateRequest`**
 12. ⚠️ **`lib/edge-auth-middleware.ts:78 - hasPermission`**
 13. ⚠️ **`lib/edge-auth-middleware.ts:109 - getUserPermissions`**
@@ -67,7 +69,8 @@ Exported utilities that may or may not be used:
 15. ⚠️ **`lib/edge-auth-middleware.ts:118 - isManager`**
 16. ⚠️ **`lib/edge-auth-middleware.ts:122 - isTenant`**
 
-**Investigation Needed**: 
+**Investigation Needed**:
+
 ```bash
 # Check if used in API routes
 grep -r "authenticateRequest" app/api/
@@ -75,18 +78,21 @@ grep -r "hasPermission" app/api/
 grep -r "isAdmin" app/
 ```
 
-**Recommendation**: 
+**Recommendation**:
+
 - If grep returns 0 results → **REMOVE**
 - If found in dynamic imports → **KEEP**
 - Edge middleware exports may be used in serverless functions
 
 ### 3B. Pricing & Business Logic (4 items)
+
 17. ⚠️ **`lib/pricing.ts:232 - default`** - Default pricing export
 18. ⚠️ **`sla.ts:1 - computeSlaMinutes`** - SLA time calculation
 19. ⚠️ **`sla.ts:11 - computeDueAt`** - SLA due date calculation
 20. ⚠️ **`lib/auth-middleware.ts:41 - requireAbility`** - RBAC ability check
 
 **Investigation**:
+
 ```bash
 grep -r "computeSlaMinutes" app/ server/
 grep -r "computeDueAt" app/ server/
@@ -94,10 +100,12 @@ grep -r "requireAbility" app/api/
 ```
 
 **Recommendation**:
+
 - SLA functions: Likely used in work order services → **VERIFY FIRST**
 - requireAbility: RBAC function → **VERIFY FIRST**
 
 ### 3C. Data & Configuration (2 items)
+
 21. ⚠️ **`lib/regex.ts:1 - escapeRegex`** - Regex escaping utility
 22. ⚠️ **`lib/rbac.ts:11 - ACCESS`** - Access control constants
 
@@ -110,11 +118,13 @@ grep -r "requireAbility" app/api/
 UI components flagged as unused:
 
 ### 4A. Test/Development Components (3 items - REMOVE)
+
 23. ❌ **`components/ErrorTest.tsx:8 - default`** - Test component
 24. ❌ **`components/HelpWidget.tsx:9 - default`** - Unused help widget
 25. ❌ **`core/RuntimeMonitor.tsx:1 - default`** - Development monitoring UI
 
 **Action**: **REMOVE THESE FILES**
+
 - ErrorTest.tsx - Dev testing only
 - HelpWidget.tsx - Replaced by CopilotWidget
 - RuntimeMonitor.tsx - Development tool, not production
@@ -122,10 +132,12 @@ UI components flagged as unused:
 **Estimated Savings**: ~300 lines
 
 ### 4B. Responsive Components (2 items - REVIEW)
+
 26. ⚠️ **`components/ResponsiveLayout.tsx:105 - ResponsiveCard`**
 27. ⚠️ **`components/ResponsiveLayout.tsx:145 - ResponsiveButton`**
 
 **Investigation**:
+
 ```bash
 grep -r "ResponsiveCard" components/ app/
 grep -r "ResponsiveButton" components/ app/
@@ -134,6 +146,7 @@ grep -r "ResponsiveButton" components/ app/
 **Recommendation**: If unused → Move to separate file or remove
 
 ### 4C. Other Components (3 items)
+
 28. ⚠️ **`components/FlagIcon.tsx:16 - FlagIcon`** - Country flag component
 29. ⚠️ **`providers/QAProvider.tsx:20 - QAProvider`** - QA test provider
 30. ❌ **`core/ArchitectureGuard.ts:36 - architectureGuard`** - Unused guard
@@ -166,6 +179,7 @@ TypeScript type exports may not be detected by usage:
 38. ⚠️ **`nav/registry.ts:24 - modules`** - Navigation registry
 
 **Investigation**:
+
 ```bash
 grep -r "MODULES" components/ app/
 grep -r "SIDEBAR_ITEMS" components/
@@ -239,6 +253,7 @@ grep -r "from '@/components/HelpWidget'" app/
 ### Phase 1: Safe Removals (15 minutes)
 
 **Files to DELETE**:
+
 1. ❌ `components/ErrorTest.tsx` - Test component (not in production)
 2. ❌ `components/HelpWidget.tsx` - Replaced by CopilotWidget
 3. ❌ `core/RuntimeMonitor.tsx` - Dev monitoring (not needed)
@@ -251,6 +266,7 @@ grep -r "from '@/components/HelpWidget'" app/
 ### Phase 2: Verification Required (30 minutes)
 
 For each item in Categories 3, 4B, 6, 7, 8, 9:
+
 1. Run grep search across codebase
 2. Check dynamic imports (import())
 3. Check if used in scripts/jobs
@@ -260,6 +276,7 @@ For each item in Categories 3, 4B, 6, 7, 8, 9:
 ### Phase 3: PayTabs Consolidation (15 minutes)
 
 **Already planned in Duplicate Code Analysis**:
+
 - Remove `lib/paytabs.ts` entirely
 - Update imports to `lib/paytabs/core.ts`
 - This will remove 3 unused exports automatically
@@ -269,6 +286,7 @@ For each item in Categories 3, 4B, 6, 7, 8, 9:
 ## Statistics
 
 ### Current State
+
 - **Total Exports**: 109
 - **Framework/Config Required**: 6 (5.5%)
 - **Scripts/Jobs**: 4 (3.7%)
@@ -276,6 +294,7 @@ For each item in Categories 3, 4B, 6, 7, 8, 9:
 - **Used in Module**: 58 (53.2%)
 
 ### After Cleanup (Projected)
+
 - **Safe Removals**: 3 files, 4 exports (~350 lines)
 - **After Verification**: Additional 10-15 exports (~200 lines)
 - **Total Reduction**: ~550 lines (3.7% of codebase)
@@ -310,13 +329,15 @@ Add to `.github/workflows/code-quality.yml`:
 
 ## Recommendations
 
-### Immediate Actions:
+### Immediate Actions
+
 1. ✅ Remove ErrorTest.tsx, HelpWidget.tsx, RuntimeMonitor.tsx
 2. ✅ Remove architectureGuard export
 3. ⏳ Verify edge-auth-middleware exports (Phase 2)
 4. ⏳ Verify SLA calculation functions (Phase 2)
 
-### Long-term Strategy:
+### Long-term Strategy
+
 - ✅ Regular ts-prune audits (quarterly)
 - ✅ Code review checklist: "Is this export used?"
 - ✅ Documentation: Mark intentional "future use" exports with comments

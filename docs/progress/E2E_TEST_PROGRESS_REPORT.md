@@ -13,17 +13,19 @@ Significant progress made on E2E test fixes. **Paytabs tests: 70% passing** (was
 ## Test Results Summary
 
 ### ✅ **Paytabs Library Tests** (17/27 passing per browser = 63%)
+
 - **Status**: Major improvement from 0% to 70%+
 - **Fixes Applied**:
   1. Compiled `lib/paytabs.ts` → `lib/paytabs.js` (CommonJS)
   2. Updated all test imports to use `.js` extension
   3. Changed dynamic `await import()` to static `import` statements
-- **Remaining Issues**: 
-  - 3 tests failing in `create-payment.custom-base.spec.ts` 
+- **Remaining Issues**:
+  - 3 tests failing in `create-payment.custom-base.spec.ts`
   - 1 test failing in `create-payment.default.spec.ts`
   - Root cause: Need to investigate test environment variable handling
 
 ### 🔄 **Projects API Tests** (2/10 passing per browser = 20%)
+
 - **Status**: Partial fix
 - **Fixes Applied**:
   1. Updated GET `/api/projects` test expectation: 500 → 401 for unauth
@@ -34,6 +36,7 @@ Significant progress made on E2E test fixes. **Paytabs tests: 70% passing** (was
   - MongoDB connection may need verification
 
 ### ⏳ **Pending Test Categories**
+
 1. **Smoke Tests** (0/8 passing): landing, login, guest browse
 2. **Code Validation** (0/3 passing): help-article-page patterns
 3. **Help Page** (0/8 passing): hero, articles, tutorials  
@@ -58,11 +61,13 @@ Significant progress made on E2E test fixes. **Paytabs tests: 70% passing** (was
 **Problem**: Playwright tests were importing TypeScript files (`lib/paytabs.ts`) directly, causing "Unexpected token 'export'" errors.
 
 **Solution**:
+
 ```bash
 npx tsc lib/paytabs.ts --outDir lib --module commonjs --target es2017 --esModuleInterop
 ```
 
 **Test Import Update**:
+
 ```typescript
 // Before
 import { paytabsBase, createHppRequest } from '../../lib/paytabs';
@@ -76,6 +81,7 @@ import { paytabsBase, createHppRequest } from '../../lib/paytabs.js';
 **Problem**: Tests expected 500 for unauthenticated requests, but API was fixed to return 401.
 
 **Solution**:
+
 ```typescript
 // Test expectation updated
 test("returns 401 when unauthenticated", async ({ playwright }, testInfo) => {
@@ -99,18 +105,21 @@ const newUser = (tenantId = newTenantId()) => ({
 ## Next Steps
 
 ### Immediate Priority (Projects API)
+
 1. Debug why authenticated requests return 401
    - Verify `getSessionUser` reads `x-user` header correctly
    - Check if MongoDB connection is established
    - Validate mock user object structure
 
 ### Secondary Priority (Remaining Tests)
+
 2. **Smoke tests**: Investigate page rendering/routing issues
 3. **Code validation**: Update regex patterns for code structure checks
 4. **Help & Marketplace pages**: Likely routing or component rendering issues
 5. **API health & other**: Lower priority, likely quick fixes
 
 ### Final Verification
+
 - Run full E2E suite after all fixes
 - Target: 80%+ pass rate (364/455 tests)
 - Current baseline: 91/455 (20%)

@@ -11,13 +11,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
 const LANGUAGES: Lang[] = [
   { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
   { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'fr', native: 'Français', flag: '🇫🇷', dir: 'ltr' },
-  { code: 'es', native: 'Español', flag: '🇪🇸', dir: 'ltr' },
 ];
 
 const CURRENCIES = [
@@ -27,13 +26,15 @@ const CURRENCIES = [
   { code: 'GBP', symbol: '£', name: 'British Pound' },
 ];
 
-const USER_TYPES = [
-  { value: 'personal', label: 'Personal Account', description: 'For individual users' },
-  { value: 'corporate', label: 'Corporate Account', description: 'For businesses and organizations' },
-  { value: 'vendor', label: 'Vendor Account', description: 'For service providers and suppliers' },
-];
-
 export default function SignupPage() {
+  const { t } = useTranslation();
+  
+  const USER_TYPES = [
+    { value: 'personal', label: t('signup.accountType.personal', 'Personal Account'), description: t('signup.accountType.personalDesc', 'For individual users') },
+    { value: 'corporate', label: t('signup.accountType.corporate', 'Corporate Account'), description: t('signup.accountType.corporateDesc', 'For businesses and organizations') },
+    { value: 'vendor', label: t('signup.accountType.vendor', 'Vendor Account'), description: t('signup.accountType.vendorDesc', 'For service providers and suppliers') },
+  ];
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -102,15 +103,15 @@ export default function SignupPage() {
 
   // Form validation
   const validateForm = () => {
-    if (!formData.firstName.trim()) return 'First name is required';
-    if (!formData.lastName.trim()) return 'Last name is required';
-    if (!formData.email.trim()) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Please enter a valid email';
-    if (!formData.phone.trim()) return 'Phone number is required';
-    if (formData.userType === 'corporate' && !formData.companyName.trim()) return 'Company name is required for corporate accounts';
-    if (formData.password.length < 8) return 'Password must be at least 8 characters';
-    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
-    if (!formData.termsAccepted) return 'Please accept the terms and conditions';
+    if (!formData.firstName.trim()) return t('signup.validation.firstNameRequired', 'First name is required');
+    if (!formData.lastName.trim()) return t('signup.validation.lastNameRequired', 'Last name is required');
+    if (!formData.email.trim()) return t('signup.validation.emailRequired', 'Email is required');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return t('signup.validation.emailInvalid', 'Please enter a valid email');
+    if (!formData.phone.trim()) return t('signup.validation.phoneRequired', 'Phone number is required');
+    if (formData.userType === 'corporate' && !formData.companyName.trim()) return t('signup.validation.companyRequired', 'Company name is required for corporate accounts');
+    if (formData.password.length < 8) return t('signup.validation.passwordLength', 'Password must be at least 8 characters');
+    if (formData.password !== formData.confirmPassword) return t('signup.validation.passwordMatch', 'Passwords do not match');
+    if (!formData.termsAccepted) return t('signup.validation.termsRequired', 'Please accept the terms and conditions');
     return null;
   };
 
@@ -172,12 +173,12 @@ export default function SignupPage() {
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Created Successfully!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('signup.success.title', 'Account Created Successfully!')}</h2>
             <p className="text-gray-600 mb-6">
-              Welcome to Fixzit Enterprise! Your account has been created and you can now sign in.
+              {t('signup.success.message', 'Welcome to Fixzit Enterprise! Your account has been created and you can now sign in.')}
             </p>
             <p className="text-sm text-gray-500">
-              Redirecting you to the login page...
+              {t('signup.success.redirecting', 'Redirecting you to the login page...')}
             </p>
           </div>
         </div>
@@ -198,9 +199,9 @@ export default function SignupPage() {
                 </div>
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-4">Join Fixzit Enterprise</h1>
+            <h1 className="text-4xl font-bold mb-4">{t('signup.branding.title', 'Join Fixzit Enterprise')}</h1>
             <p className="text-xl text-white/90 mb-8">
-              Create your account and start managing your facilities and marketplace operations
+              {t('signup.branding.subtitle', 'Create your account and start managing your facilities and marketplace operations')}
             </p>
           </div>
 
@@ -210,8 +211,8 @@ export default function SignupPage() {
                 <Building2 size={24} />
               </div>
               <div>
-                <h3 className="font-semibold">Facility Management</h3>
-                <p className="text-white/80 text-sm">Streamline your operations</p>
+                <h3 className="font-semibold">{t('signup.features.facility.title', 'Facility Management')}</h3>
+                <p className="text-white/80 text-sm">{t('signup.features.facility.desc', 'Streamline your operations')}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -219,8 +220,8 @@ export default function SignupPage() {
                 <Globe size={24} />
               </div>
               <div>
-                <h3 className="font-semibold">Marketplace</h3>
-                <p className="text-white/80 text-sm">Connect with trusted vendors</p>
+                <h3 className="font-semibold">{t('signup.features.marketplace.title', 'Marketplace')}</h3>
+                <p className="text-white/80 text-sm">{t('signup.features.marketplace.desc', 'Connect with trusted vendors')}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -228,8 +229,8 @@ export default function SignupPage() {
                 <Phone size={24} />
               </div>
               <div>
-                <h3 className="font-semibold">Support</h3>
-                <p className="text-white/80 text-sm">24/7 customer service</p>
+                <h3 className="font-semibold">{t('signup.features.support.title', 'Support')}</h3>
+                <p className="text-white/80 text-sm">{t('signup.features.support.desc', '24/7 customer service')}</p>
               </div>
             </div>
           </div>
@@ -310,22 +311,22 @@ export default function SignupPage() {
 
             <Link href="/login" className="text-white/80 hover:text-white text-sm flex items-center gap-1">
               <ArrowLeft size={14} />
-              Back to Login
+              {t('signup.backToLogin', 'Back to Login')}
             </Link>
           </div>
 
           {/* Signup Form */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Your Account</h2>
-              <p className="text-gray-600">Join Fixzit Enterprise today</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('signup.form.title', 'Create Your Account')}</h2>
+              <p className="text-gray-600">{t('signup.form.subtitle', 'Join Fixzit Enterprise today')}</p>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-6">
               {/* User Type Selection */}
               <div>
                 <Label htmlFor="userType" className="block text-sm font-medium text-gray-700 mb-2">
-                  Account Type
+                  {t('signup.fields.accountType', 'Account Type')}
                 </Label>
                 <Select value={formData.userType} onValueChange={(value) => handleChange('userType', value)}>
                   <SelectTrigger className="h-12">
@@ -348,12 +349,12 @@ export default function SignupPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name *
+                    {t('signup.fields.firstName', 'First Name')} *
                   </Label>
                   <Input
                     id="firstName"
                     type="text"
-                    placeholder="Enter your first name"
+                    placeholder={t('signup.placeholders.firstName', 'Enter your first name')}
                     value={formData.firstName}
                     onChange={(e) => handleChange('firstName', e.target.value)}
                     className="h-12"
@@ -362,12 +363,12 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <Label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name *
+                    {t('signup.fields.lastName', 'Last Name')} *
                   </Label>
                   <Input
                     id="lastName"
                     type="text"
-                    placeholder="Enter your last name"
+                    placeholder={t('signup.placeholders.lastName', 'Enter your last name')}
                     value={formData.lastName}
                     onChange={(e) => handleChange('lastName', e.target.value)}
                     className="h-12"
@@ -379,14 +380,14 @@ export default function SignupPage() {
               {/* Email Field */}
               <div>
                 <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
+                  {t('signup.fields.email', 'Email Address')} *
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email address"
+                    placeholder={t('signup.placeholders.email', 'Enter your email address')}
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     className="pl-10 h-12"
@@ -398,14 +399,14 @@ export default function SignupPage() {
               {/* Phone Field */}
               <div>
                 <Label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number *
+                  {t('signup.fields.phone', 'Phone Number')} *
                 </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+966 XX XXX XXXX"
+                    placeholder={t('signup.placeholders.phone', '+966 XX XXX XXXX')}
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
                     className="pl-10 h-12"
@@ -418,14 +419,14 @@ export default function SignupPage() {
               {formData.userType === 'corporate' && (
                 <div>
                   <Label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Company Name *
+                    {t('signup.fields.companyName', 'Company Name')} *
                   </Label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
                       id="companyName"
                       type="text"
-                      placeholder="Enter your company name"
+                      placeholder={t('signup.placeholders.companyName', 'Enter your company name')}
                       value={formData.companyName}
                       onChange={(e) => handleChange('companyName', e.target.value)}
                       className="pl-10 h-12"
@@ -439,14 +440,14 @@ export default function SignupPage() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                    Password *
+                    {t('signup.fields.password', 'Password')} *
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="Create a strong password"
+                      placeholder={t('signup.placeholders.password', 'Create a strong password')}
                       value={formData.password}
                       onChange={(e) => handleChange('password', e.target.value)}
                       className="pl-10 pr-10 h-12"
@@ -465,14 +466,14 @@ export default function SignupPage() {
 
                 <div>
                   <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirm Password *
+                    {t('signup.fields.confirmPassword', 'Confirm Password')} *
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Confirm your password"
+                      placeholder={t('signup.placeholders.confirmPassword', 'Confirm your password')}
                       value={formData.confirmPassword}
                       onChange={(e) => handleChange('confirmPassword', e.target.value)}
                       className="pl-10 pr-10 h-12"
@@ -509,13 +510,13 @@ export default function SignupPage() {
                     required
                   />
                   <span className="text-sm text-gray-600">
-                    I agree to the{' '}
+                    {t('signup.terms.agree', 'I agree to the')}{' '}
                     <Link href="/terms" className="text-[#0061A8] hover:underline">
-                      Terms of Service
+                      {t('signup.terms.service', 'Terms of Service')}
                     </Link>{' '}
-                    and{' '}
+                    {t('signup.terms.and', 'and')}{' '}
                     <Link href="/privacy" className="text-[#0061A8] hover:underline">
-                      Privacy Policy
+                      {t('signup.terms.privacy', 'Privacy Policy')}
                     </Link>
                     *
                   </span>
@@ -529,7 +530,7 @@ export default function SignupPage() {
                     className="mt-1 h-4 w-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
                   />
                   <span className="text-sm text-gray-600">
-                    I&apos;d like to receive updates and promotional emails about Fixzit Enterprise
+                    {t('signup.newsletter', "I'd like to receive updates and promotional emails about Fixzit Enterprise")}
                   </span>
                 </label>
               </div>
@@ -543,12 +544,12 @@ export default function SignupPage() {
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating Account...
+                    {t('signup.button.creating', 'Creating Account...')}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <UserPlus className="h-5 w-5" />
-                    Create Account
+                    {t('signup.button.create', 'Create Account')}
                   </div>
                 )}
               </Button>
@@ -557,9 +558,9 @@ export default function SignupPage() {
             {/* Login Link */}
             <div className="mt-6 text-center">
               <p className="text-gray-600">
-                Already have an account?{' '}
+                {t('signup.login.prompt', 'Already have an account?')}{' '}
                 <Link href="/login" className="text-[#0061A8] hover:underline font-medium">
-                  Sign in here
+                  {t('signup.login.link', 'Sign in here')}
                 </Link>
               </p>
             </div>

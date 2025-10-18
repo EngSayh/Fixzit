@@ -20,21 +20,25 @@ You need to create a Pull Request for the branch `fix/security-and-rbac-consolid
 ## 🚀 Method 1: Using GitHub CLI (Recommended)
 
 ### Prerequisites
+
 ```bash
 # Check if gh CLI is installed
 gh --version
 ```
 
 If not installed:
-- **Linux/Mac**: `brew install gh` or download from https://cli.github.com/
-- **Windows**: Download from https://cli.github.com/
+
+- **Linux/Mac**: `brew install gh` or download from <https://cli.github.com/>
+- **Windows**: Download from <https://cli.github.com/>
 
 ### Authenticate (First Time Only)
+
 ```bash
 gh auth login
 ```
 
 ### Create PR
+
 ```bash
 # Option 1: Use the helper script
 bash create-pr.sh
@@ -49,6 +53,7 @@ gh pr create \
 ```
 
 ### View PR
+
 ```bash
 gh pr view --web
 ```
@@ -58,7 +63,9 @@ gh pr view --web
 ## 🌐 Method 2: Using GitHub Web Interface (Manual)
 
 ### Step 1: Go to GitHub
+
 Open this URL in your browser:
+
 ```
 https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation
 ```
@@ -68,11 +75,13 @@ https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolida
 ### Step 3: Fill in PR Details
 
 **Title**:
+
 ```
 Fix Tools, Analyze Imports, and Resolve Command Failures
 ```
 
 **Description** (copy from `PR_DESCRIPTION.md`):
+
 ```markdown
 # Pull Request: Fix Tools, Analyze Imports, and Resolve Command Failures
 
@@ -91,6 +100,7 @@ This PR fixes critical tooling issues, provides comprehensive import analysis, a
 ```
 
 ### Step 4: Add Labels
+
 - `enhancement`
 - `tooling`
 - `documentation`
@@ -102,16 +112,19 @@ This PR fixes critical tooling issues, provides comprehensive import analysis, a
 ## 📝 Method 3: Using Git Command Line
 
 ### Step 1: Ensure Branch is Pushed
+
 ```bash
 git push origin fix/security-and-rbac-consolidation
 ```
 
 ### Step 2: Create PR via GitHub
-Go to: https://github.com/EngSayh/Fixzit/pulls
+
+Go to: <https://github.com/EngSayh/Fixzit/pulls>
 
 Click "New pull request"
 
 Select:
+
 - **base**: `main`
 - **compare**: `fix/security-and-rbac-consolidation`
 
@@ -128,6 +141,7 @@ Before creating the PR, verify:
 - [x] PR description ready
 
 ### Verify Branch Status
+
 ```bash
 # Check current branch
 git branch --show-current
@@ -140,6 +154,7 @@ git status
 ```
 
 ### Verify Commits
+
 ```bash
 # View commits
 git log --oneline -5
@@ -157,6 +172,7 @@ git log --oneline -5
 ### Files Changed: 34
 
 **New Scripts (13)**:
+
 - scripts/replace-string-in-file.ts
 - scripts/replace.js
 - analyze-imports.js
@@ -172,6 +188,7 @@ git log --oneline -5
 - create-pr.sh
 
 **New Documentation (12)**:
+
 - TOOL_FIXED_FINAL.md
 - VERIFICATION_COMPLETE.md
 - REGEX_FIX_COMPLETE.md
@@ -187,6 +204,7 @@ git log --oneline -5
 - HOW_TO_CREATE_PR.md (this file)
 
 **Modified Files (9)**:
+
 - package.json
 - _deprecated/models-old/MarketplaceProduct.ts
 - app/api/assistant/query/route.ts
@@ -202,6 +220,7 @@ git log --oneline -5
 ## 🎯 After Creating PR
 
 ### Review Checklist
+
 1. ✅ PR title is clear
 2. ✅ Description is complete
 3. ✅ Labels are added
@@ -209,6 +228,7 @@ git log --oneline -5
 5. ✅ Request reviewers
 
 ### Share PR
+
 ```bash
 # Get PR URL
 gh pr view --web
@@ -222,22 +242,29 @@ gh pr view --web
 ## 🔍 Troubleshooting
 
 ### Issue: "gh: command not found"
-**Solution**: Install GitHub CLI from https://cli.github.com/
+
+**Solution**: Install GitHub CLI from <https://cli.github.com/>
 
 ### Issue: "Branch not found"
-**Solution**: 
+
+**Solution**:
+
 ```bash
 git push origin fix/security-and-rbac-consolidation
 ```
 
 ### Issue: "Authentication required"
+
 **Solution**:
+
 ```bash
 gh auth login
 ```
 
 ### Issue: "No commits between main and branch"
+
 **Solution**: Check if you're on the right branch
+
 ```bash
 git branch --show-current
 git log --oneline -5
@@ -250,29 +277,32 @@ git log --oneline -5
 If you encounter issues:
 
 1. **Check branch status**:
+
    ```bash
    git status
    git log --oneline -5
    ```
 
 2. **Verify remote**:
+
    ```bash
    git remote -v
    ```
 
 3. **Check GitHub**:
-   - Go to: https://github.com/EngSayh/Fixzit/branches
+   - Go to: <https://github.com/EngSayh/Fixzit/branches>
    - Verify `fix/security-and-rbac-consolidation` exists
 
 4. **Manual PR creation**:
-   - Always works: https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation
+   - Always works: <https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation>
 
 ---
 
 ## ✅ Summary
 
 **Easiest Method**: Use GitHub web interface
-1. Go to: https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation
+
+1. Go to: <https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation>
 2. Click "Create pull request"
 3. Copy content from `PR_DESCRIPTION.md`
 4. Click "Create pull request"
@@ -283,7 +313,7 @@ If you encounter issues:
 
 ## 📚 Resources
 
-- GitHub CLI: https://cli.github.com/
-- Creating PRs: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
+- GitHub CLI: <https://cli.github.com/>
+- Creating PRs: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>
 - PR Description: `PR_DESCRIPTION.md`
 - Branch: `fix/security-and-rbac-consolidation`

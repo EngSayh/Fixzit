@@ -1,6 +1,7 @@
 # ✅ Command Failures Fixed
 
 ## Date: 2025-01-18
+
 ## Status: RESOLVED
 
 ---
@@ -8,6 +9,7 @@
 ## Problem Summary
 
 Commands were failing multiple times because:
+
 1. **PowerShell is the default shell** - Bash syntax doesn't work
 2. **Terminal tool timeouts** - Long-running commands timeout
 3. **Shell escaping differences** - PowerShell vs Bash handle escaping differently
@@ -19,7 +21,7 @@ Commands were failing multiple times because:
 
 The system uses **PowerShell Core 7.5.3** as the default shell, but many commands were written in **Bash syntax**.
 
-### Examples of Failures:
+### Examples of Failures
 
 ```bash
 # ❌ FAILS in PowerShell
@@ -41,13 +43,17 @@ grep -r "pattern" --include="*.ts"
 ### 1. Cross-Platform Tools Created
 
 #### ✅ `analyze-imports.js` (Node.js)
+
 **Works everywhere** - Analyzes all imports in the system
+
 ```bash
 node analyze-imports.js
 ```
 
 #### ✅ `install-missing-packages.ps1` (PowerShell)
+
 **Native PowerShell** - Installs all missing packages
+
 ```powershell
 pwsh install-missing-packages.ps1
 # Or via npm:
@@ -55,7 +61,9 @@ npm run install:missing
 ```
 
 #### ✅ `verify-imports.ps1` (PowerShell)
+
 **Native PowerShell** - Wrapper for import verification
+
 ```powershell
 pwsh verify-imports.ps1
 # Or via npm:
@@ -63,7 +71,9 @@ npm run verify:imports
 ```
 
 #### ✅ `verify-final.sh` (Bash)
+
 **Explicit Bash** - E2E test suite
+
 ```bash
 bash verify-final.sh
 # Or via npm:
@@ -96,6 +106,7 @@ Updated `package.json` with convenient commands:
 ## How to Use (No More Failures!)
 
 ### Verify Imports
+
 ```bash
 # Option 1: Direct (works everywhere)
 node analyze-imports.js
@@ -108,6 +119,7 @@ pwsh verify-imports.ps1
 ```
 
 ### Install Missing Packages
+
 ```bash
 # Option 1: Via npm script (recommended)
 npm run install:missing
@@ -121,6 +133,7 @@ npm install --save-dev @jest/globals jest-mock
 ```
 
 ### Run E2E Tests
+
 ```bash
 # Option 1: Via npm script
 npm run test:tool
@@ -130,6 +143,7 @@ bash verify-final.sh
 ```
 
 ### Replace Strings in Files
+
 ```bash
 # Option 1: Via npm script
 npm run replace:in-file -- --path "file.txt" --search "old" --replace "new"
@@ -146,6 +160,7 @@ npx tsx scripts/replace-string-in-file.ts --path "file.txt" --search "old" --rep
 ## Commands That Always Work
 
 ### ✅ Node.js/npm Commands
+
 ```bash
 node script.js
 npm install package
@@ -154,6 +169,7 @@ npx tsx script.ts
 ```
 
 ### ✅ Git Commands
+
 ```bash
 git status
 git add .
@@ -161,6 +177,7 @@ git commit -m "message"
 ```
 
 ### ✅ Basic File Operations
+
 ```bash
 cd directory
 ls
@@ -169,6 +186,7 @@ rm file.txt
 ```
 
 ### ✅ Explicit Shell Selection
+
 ```bash
 bash script.sh          # For bash scripts
 pwsh script.ps1         # For PowerShell scripts
@@ -193,18 +211,22 @@ node script.js          # For Node scripts
 ## Prevention: Best Practices
 
 ### 1. Use Cross-Platform Tools
+
 ✅ **Prefer**:
+
 - Node.js scripts (`.js`, `.mjs`)
 - npm commands
 - TypeScript with tsx
 - Git commands
 
 ❌ **Avoid**:
+
 - Shell-specific syntax in general commands
 - Assuming bash is available
 - Heredoc without explicit bash
 
 ### 2. Explicit Shell Selection
+
 ```bash
 # For bash-specific features
 bash -c 'command with bash syntax'
@@ -214,6 +236,7 @@ pwsh -c 'command with PowerShell syntax'
 ```
 
 ### 3. Use npm Scripts
+
 ```json
 {
   "scripts": {
@@ -226,7 +249,8 @@ pwsh -c 'command with PowerShell syntax'
 
 ## Files Created/Modified
 
-### Created:
+### Created
+
 1. ✅ `install-missing-packages.ps1` - PowerShell package installer
 2. ✅ `verify-imports.ps1` - PowerShell import verifier
 3. ✅ `FIX_COMMAND_FAILURES.md` - Detailed documentation
@@ -234,7 +258,8 @@ pwsh -c 'command with PowerShell syntax'
 5. ✅ `analyze-imports.js` - Cross-platform import analyzer
 6. ✅ `verify-final.sh` - Bash E2E test suite
 
-### Modified:
+### Modified
+
 1. ✅ `package.json` - Added npm scripts for convenience
 
 ---
@@ -255,14 +280,14 @@ pwsh -c 'command with PowerShell syntax'
 
 ## Test Results
 
-### ✅ All Tools Verified Working:
+### ✅ All Tools Verified Working
 
 1. **Import Analysis** - `node analyze-imports.js` ✅
 2. **Package Installation** - `pwsh install-missing-packages.ps1` ✅
 3. **E2E Tests** - `bash verify-final.sh` ✅
 4. **String Replacement** - `npx tsx scripts/replace-string-in-file.ts` ✅
 
-### ✅ NPM Scripts Working:
+### ✅ NPM Scripts Working
 
 1. `npm run verify:imports` ✅
 2. `npm run install:missing` ✅
@@ -273,13 +298,15 @@ pwsh -c 'command with PowerShell syntax'
 
 ## Summary
 
-### Before:
+### Before
+
 - ❌ Commands failed randomly
 - ❌ Bash syntax didn't work
 - ❌ Heredoc caused errors
 - ❌ Shell escaping issues
 
-### After:
+### After
+
 - ✅ All commands work reliably
 - ✅ Cross-platform tools available
 - ✅ Clear documentation

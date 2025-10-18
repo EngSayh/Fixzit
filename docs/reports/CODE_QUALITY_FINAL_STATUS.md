@@ -35,7 +35,7 @@
      - `tran_ref` validation (string | undefined)
      - `cart_amount` nullish coalescing
      - `payment_result` optional chaining
-   
+
 #### Files Successfully Fixed (7 total)
 
 ```typescript
@@ -102,6 +102,7 @@
 #### Recommended Approach
 
 1. **Phase 1: Catch Blocks (~50 files)**
+
    ```bash
    # For each catch (error: any):
    # 1. Check if error.message/error.code is accessed
@@ -111,6 +112,7 @@
    ```
 
 2. **Phase 2: Mongoose Lean Types (~30 files)**
+
    ```typescript
    // Define once in types/mongoose.ts
    type LeanDocument<T> = T & { _id: Types.ObjectId };
@@ -120,6 +122,7 @@
    ```
 
 3. **Phase 3: Component Props (~20 files)**
+
    ```typescript
    // Define proper interfaces
    interface RFQCardProps {
@@ -134,6 +137,7 @@
    ```
 
 4. **Phase 4: API Generics (~10 files)**
+
    ```typescript
    // Replace serverFetchJson<any> with proper types
    serverFetchJson<{ data: Product[] }>(...)
@@ -239,6 +243,7 @@ const items = await Model.find().lean() as LeanDoc[];
 ### Option C: Close Out Current Goal
 
 **Status Update**:
+
 - ✅ Zero TypeScript errors (primary objective)
 - ✅ Eliminated 307 errors from batch commits
 - ✅ Fixed 7 critical files surgically
@@ -262,7 +267,7 @@ const items = await Model.find().lean() as LeanDoc[];
 
 ## Pull Request
 
-📋 **PR #99**: https://github.com/EngSayh/Fixzit/pull/99  
+📋 **PR #99**: <https://github.com/EngSayh/Fixzit/pull/99>  
 🏷️ **Status**: Draft  
 🎯 **Goal**: Zero TypeScript errors  
 ✅ **Tests**: TypeScript compilation passing

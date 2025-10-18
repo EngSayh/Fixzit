@@ -9,6 +9,7 @@
 After reviewing all 26 PR comments from CodeRabbit, Copilot, ChatGPT, and Gemini, **2 critical issues remain** that must be fixed before merge:
 
 ### ✅ Resolved (24/26 = 92%)
+
 - 11 explicitly marked resolved in PR
 - 13 nitpick/refactor suggestions that don't block merge
 
@@ -21,6 +22,7 @@ After reviewing all 26 PR comments from CodeRabbit, Copilot, ChatGPT, and Gemini
 **Status**: ❌ BLOCKING
 
 ### Problem
+
 Line 59 uses `beforeAll()` but it's not imported from Vitest on line 4.
 
 ```typescript
@@ -35,11 +37,13 @@ beforeAll(async () => {
 ```
 
 ### Impact
+
 - **ReferenceError at runtime**: `beforeAll is not defined`
 - Tests will crash immediately when file loads
 - Blocks CI/CD pipeline
 
 ### Fix
+
 ```typescript
 // Add beforeAll to import
 import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
@@ -52,10 +56,13 @@ import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
 **Status**: ⚠️ NEEDS DOCUMENTATION
 
 ### Problem
+
 tsconfig.json line 31 has `"jest"` in types array, but ChatGPT review said this would break dozens of unconverted test files.
 
 ### Investigation Results
+
 Found **10+ files still using Jest**:
+
 - `app/product/[slug]/__tests__/page.spec.tsx` - Uses `jest.mock`, `jest.resetAllMocks`, `jest.fn`
 - `app/fm/marketplace/page.test.tsx` - Uses `jest.mock`, `jest.clearAllMocks`
 - `app/marketplace/page.test.tsx` - Uses `jest.fn`, `jest.mock`
@@ -63,19 +70,24 @@ Found **10+ files still using Jest**:
 - Plus more in server/ and lib/
 
 ### Why It Can't Be Removed
+
 Removing `"jest"` from types would cause **TypeScript compilation errors** in all these files:
+
 ```
 error TS2304: Cannot find name 'jest'
 ```
 
 ### Fix Strategy
+
 **Option A: Keep Jest types (RECOMMENDED for this PR)**
+
 - ✅ Jest types remain in tsconfig.json
 - ✅ Create follow-up issue to migrate remaining 10+ files
 - ✅ Document in PR description that full migration spans multiple PRs
 - ⏱️ Time: 5 minutes
 
 **Option B: Complete migration now**
+
 - ❌ Convert 10+ additional files to Vitest
 - ❌ Out of scope for this PR (already 83+ conversions)
 - ⏱️ Time: 2-3 hours
@@ -85,6 +97,7 @@ error TS2304: Cannot find name 'jest'
 ## Non-Critical Issues (Won't Block Merge)
 
 ### Refactor Suggestions (13)
+
 1. vi.unmock in afterAll unnecessary (CmsPage.test.ts)
 2. Hardcoded mock structure (health.route.test.ts)
 3. Mock declarations at top level (health.route.test.ts)
@@ -100,6 +113,7 @@ error TS2304: Cannot find name 'jest'
 13. Math.random spy (incidents.route.test.ts - **already resolved**)
 
 **Rationale for deferring**:
+
 - These are code quality improvements, not blocking bugs
 - Current code compiles and tests pass
 - Can be addressed in follow-up PRs
@@ -108,15 +122,18 @@ error TS2304: Cannot find name 'jest'
 ## Implementation Plan
 
 ### Step 1: Fix Critical Issue #1 (2 min)
+
 ```bash
 # Add beforeAll to import
 sed -i 's/import { vi, describe, it, expect, beforeEach } from/import { vi, describe, it, expect, beforeEach, beforeAll } from/' tests/api/marketplace/products/route.test.ts
 ```
 
 ### Step 2: Document Jest Types Decision (3 min)
+
 Add comment to tsconfig.json explaining why Jest types remain.
 
 ### Step 3: Verify (10 min)
+
 ```bash
 # Check import fix
 pnpm typecheck
@@ -129,6 +146,7 @@ pnpm test --run
 ```
 
 ### Step 4: Commit and Push (2 min)
+
 ```bash
 git add tests/api/marketplace/products/route.test.ts tsconfig.json
 git commit -m "fix(tests): add missing beforeAll import and document Jest types retention
@@ -143,13 +161,16 @@ git push
 ```
 
 ### Step 5: Update PR Description (5 min)
+
 Add section explaining:
+
 - This PR converts 83+ jest→vitest in 8 hybrid files
 - 10+ files remain with Jest (out of scope for this PR)
 - Follow-up issue created for remaining files
 - Jest types retention is intentional
 
 ### Step 6: Merge (2 min)
+
 ```bash
 # Final verification
 gh pr checks 119
@@ -197,7 +218,7 @@ gh pr merge 119 --squash --delete-branch
 
 ## References
 
-- PR #119: https://github.com/EngSayh/Fixzit/pull/119
+- PR #119: <https://github.com/EngSayh/Fixzit/pull/119>
 - CodeRabbit Review: 26 comments analyzed
 - 48-Hour Status Report: `48_HOUR_STATUS_REPORT.md`
 - Original Comprehensive Fixes: `COMPREHENSIVE_FIXES_SUMMARY.md`

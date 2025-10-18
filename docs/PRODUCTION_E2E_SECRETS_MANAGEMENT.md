@@ -8,7 +8,8 @@
 
 ## 🔒 Required Environment Variables
 
-### All Required Variables:
+### All Required Variables
+
 ```bash
 PRODUCTION_URL      # Production URL to test (e.g., https://fixzit-souq.com)
 ADMIN_EMAIL         # Admin user email
@@ -23,7 +24,7 @@ HR_EMAIL            # HR Manager email
 HR_PASSWORD         # HR Manager password
 ```
 
-### Automation-Only Secrets (CI/CD):
+### Automation-Only Secrets (CI/CD)
 
 These secrets are **only required for automated workflows** (GitHub Actions rotation job, secret updates, etc.). They are **NOT** required for running the E2E tests manually.
 
@@ -83,7 +84,8 @@ These secrets are **only required for automated workflows** (GitHub Actions rota
 #   - Both should be rotated on the same 90-day schedule as user credentials
 ```
 
-### Why All Variables Are Required:
+### Why All Variables Are Required
+
 - ✅ **No hardcoded defaults** - Prevents credential exposure
 - ✅ **Fail-fast validation** - Script exits immediately if any variable is missing
 - ✅ **Clear error messages** - Shows exactly which variables are missing
@@ -93,15 +95,17 @@ These secrets are **only required for automated workflows** (GitHub Actions rota
 
 ## 🎯 Test Account Requirements
 
-### Account Creation Checklist:
+### Account Creation Checklist
 
 #### 1. **Dedicated Test Accounts**
+
 - [ ] Create separate accounts specifically for testing
 - [ ] Use distinct email addresses (e.g., `test-admin@company.com`)
 - [ ] Never use production admin or user accounts
 - [ ] Document account purposes in your secrets manager
 
 #### 2. **Permission-Scoped Accounts**
+
 Each test account should have **minimal permissions**:
 
 ```
@@ -137,6 +141,7 @@ HR Manager:
 ```
 
 #### 3. **Account Isolation**
+
 - [ ] Test accounts in separate tenant/organization
 - [ ] Limited data visibility
 - [ ] Cannot affect production users
@@ -148,7 +153,8 @@ HR Manager:
 
 ### Option 1: GitHub Secrets (Recommended for GitHub Actions)
 
-#### Setup:
+#### Setup
+
 ```bash
 # Navigate to your repository
 # Go to: Settings → Secrets and variables → Actions → New repository secret
@@ -166,7 +172,8 @@ Value: <secure-password>
 # Repeat for all 11 required variables
 ```
 
-#### GitHub Actions Workflow:
+#### GitHub Actions Workflow
+
 ```yaml
 # .github/workflows/production-e2e.yml
 name: Production E2E Tests
@@ -215,7 +222,8 @@ jobs:
 
 ### Option 2: GitLab CI/CD Variables
 
-#### Setup:
+#### Setup
+
 ```bash
 # Navigate to: Settings → CI/CD → Variables
 
@@ -229,7 +237,8 @@ Environment scope: production
 # Repeat for all variables
 ```
 
-#### GitLab CI Configuration:
+#### GitLab CI Configuration
+
 ```yaml
 # .gitlab-ci.yml
 production-e2e:
@@ -251,7 +260,8 @@ production-e2e:
 
 ### Option 3: HashiCorp Vault
 
-#### Setup:
+#### Setup
+
 ```bash
 # Store secrets in Vault
 vault kv put secret/e2e-production \
@@ -268,7 +278,8 @@ vault kv put secret/e2e-production \
   HR_PASSWORD="<secure-password>"
 ```
 
-#### Retrieve and Use:
+#### Retrieve and Use
+
 ```bash
 #!/bin/bash
 # scripts/testing/run-e2e-with-vault.sh
@@ -290,7 +301,8 @@ node scripts/testing/e2e-production-test.js
 
 ### Option 4: AWS Secrets Manager
 
-#### Store Secrets:
+#### Store Secrets
+
 ```bash
 # Create secret
 aws secretsmanager create-secret \
@@ -310,7 +322,8 @@ aws secretsmanager create-secret \
   }'
 ```
 
-#### Retrieve and Use:
+#### Retrieve and Use
+
 ```bash
 #!/bin/bash
 # scripts/testing/run-e2e-with-aws.sh
@@ -332,16 +345,18 @@ node scripts/testing/e2e-production-test.js
 
 ## 🔄 Secret Rotation Strategy
 
-### Rotation Schedule:
+### Rotation Schedule
+
 | Secret Type | Rotation Frequency | Method |
 |-------------|-------------------|--------|
 | All Passwords | **Every 90 days** | Automated via secrets manager |
 | After incidents | **Immediate** | Manual emergency rotation |
 | Team changes | **Within 24 hours** | Automated onboarding/offboarding |
 
-### Rotation Process:
+### Rotation Process
 
-#### Automated Rotation (Recommended):
+#### Automated Rotation (Recommended)
+
 ```yaml
 # GitHub Action for secret rotation
 name: Rotate E2E Credentials
@@ -377,7 +392,8 @@ jobs:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
 ```
 
-#### Manual Rotation:
+#### Manual Rotation
+
 ```bash
 # 1. Generate new passwords
 NEW_PASS=$(openssl rand -base64 32)
@@ -402,7 +418,8 @@ node scripts/testing/e2e-production-test.js
 
 ## 📋 Security Checklist
 
-### Before Running Tests:
+### Before Running Tests
+
 - [ ] All secrets stored in secrets manager (not in code)
 - [ ] Test accounts created with minimal permissions
 - [ ] Accounts isolated from production users
@@ -411,7 +428,8 @@ node scripts/testing/e2e-production-test.js
 - [ ] Secrets masked in logs
 - [ ] Access to secrets restricted to authorized personnel
 
-### Regular Audits:
+### Regular Audits
+
 - [ ] Monthly: Review test account permissions
 - [ ] Quarterly: Rotate all passwords
 - [ ] Annually: Review and update security policies
@@ -421,7 +439,8 @@ node scripts/testing/e2e-production-test.js
 
 ## ⚠️ Security Best Practices
 
-### ✅ DO:
+### ✅ DO
+
 - Use dedicated test accounts
 - Store secrets in secrets managers
 - Rotate credentials regularly
@@ -431,7 +450,8 @@ node scripts/testing/e2e-production-test.js
 - Restrict access to secrets
 - Use HTTPS for all connections
 
-### ❌ DON'T:
+### ❌ DON'T
+
 - Hardcode credentials in code
 - Commit secrets to version control
 - Use production admin accounts for testing
@@ -445,9 +465,10 @@ node scripts/testing/e2e-production-test.js
 
 ## 🚨 Incident Response
 
-### If Credentials Are Compromised:
+### If Credentials Are Compromised
 
 1. **Immediate Actions:**
+
    ```bash
    # 1. Disable compromised accounts
    # (via your admin interface)
@@ -478,7 +499,8 @@ node scripts/testing/e2e-production-test.js
 
 ## 📚 Additional Resources
 
-### Tools:
+### Tools
+
 - **GitHub Secret Scanning**: Automatically detect exposed secrets
 - **git-secrets**: Pre-commit hook to prevent secrets in commits
 - **TruffleHog**: Find secrets in git history
@@ -486,17 +508,19 @@ node scripts/testing/e2e-production-test.js
 - **AWS Secrets Manager**: Cloud-native secrets
 - **Azure Key Vault**: Azure secrets management
 
-### Documentation:
-- GitHub Secrets: https://docs.github.com/en/actions/security-guides/encrypted-secrets
-- GitLab Variables: https://docs.gitlab.com/ee/ci/variables/
-- HashiCorp Vault: https://www.vaultproject.io/docs
-- AWS Secrets Manager: https://docs.aws.amazon.com/secretsmanager/
+### Documentation
+
+- GitHub Secrets: <https://docs.github.com/en/actions/security-guides/encrypted-secrets>
+- GitLab Variables: <https://docs.gitlab.com/ee/ci/variables/>
+- HashiCorp Vault: <https://www.vaultproject.io/docs>
+- AWS Secrets Manager: <https://docs.aws.amazon.com/secretsmanager/>
 
 ---
 
 ## 🎯 Quick Start
 
-### For GitHub Actions:
+### For GitHub Actions
+
 ```bash
 # 1. Add secrets to GitHub
 gh secret set PRODUCTION_URL
@@ -511,7 +535,8 @@ gh secret set ADMIN_PASSWORD
 gh workflow run production-e2e.yml
 ```
 
-### For Local Testing:
+### For Local Testing
+
 ```bash
 # 1. Create .env.production file (gitignored!)
 cat > .env.production << 'EOF'

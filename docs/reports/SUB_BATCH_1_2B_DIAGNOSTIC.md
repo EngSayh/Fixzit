@@ -22,11 +22,13 @@
 **Error:** `TypeError: require(...).__reset is not a function`
 
 **Location:** Line 38 in `beforeEach()` hook:
+
 ```typescript
 (require('swr') as any).__reset();
 ```
 
 **Root Cause:**  
+
 - Jest-specific mock reset method
 - `__reset()` doesn't exist in Vitest's module system
 - All tests fail in beforeEach before they even run
@@ -50,6 +52,7 @@ Replace with Vitest's `vi.resetModules()` or remove entirely (SWR doesn't need m
 ### 2. CatalogView.test.tsx - 10 of 14 Tests Failing
 
 **Error Types:**
+
 1. `Unable to find an accessible element with the role "button" and name /Request quote/i` (5 tests)
 2. `Unable to find an accessible element with the role "button" and name /Add to cart/i` (4 tests)
 3. `expected false to be true` - SWR key doesn't contain expected query params (1 test)
@@ -57,11 +60,13 @@ Replace with Vitest's `vi.resetModules()` or remove entirely (SWR doesn't need m
 **Root Causes:**
 
 #### 2a. Missing Product Buttons (9 tests)
+
 - Tests expect product cards with "Request quote" and "Add to cart" buttons
 - Component shows loading spinner instead
 - Mock data not being properly passed to SWR
 
 **Visual Evidence:**
+
 ```html
 <div class="flex items-center justify-center py-16">
   <svg class="lucide lucide-loader2 w-6 h-6 animate-spin...">
@@ -82,6 +87,7 @@ setSWRProducts({ data: makeCatalog([product]) })
 ```
 
 #### 2b. SWR Key Missing Query Params (1 test)
+
 - Test expects tenantId, search query, and filters in SWR key
 - SWR calls aren't capturing the expected parameters
 
@@ -119,6 +125,7 @@ The `<label>` for "Description *" is missing the `for` attribute:
 Add `htmlFor="description"` to the label and `id="description"` to the textarea in the SupportPopup component source code
 
 **Files to Fix:**
+
 1. Find SupportPopup component source file
 2. Update label: `<label htmlFor="description">`
 3. Update textarea: `<textarea id="description">`
@@ -130,12 +137,14 @@ Add `htmlFor="description"` to the label and `id="description"` to the textarea 
 ## Fix Strategy & Order
 
 ### Phase 1: Quick Wins (15-20 minutes)
+
 1. ✅ **WorkOrdersView.test.tsx** - Remove `__reset()` line (1 line change → 13 tests fixed)
 2. ✅ **SupportPopup** - Add label `for` attribute (2 line changes → 8 tests fixed)
 
 **Impact:** 21/31 tests fixed (68%) in ~20 minutes
 
 ### Phase 2: Investigation & Fix (30-45 minutes)
+
 3. 🔍 **CatalogView.test.tsx** - Fix SWR mocking (requires investigation)
    - Debug why products aren't rendering
    - Fix setSWRProducts mock function
@@ -205,11 +214,13 @@ Add `htmlFor="description"` to the label and `id="description"` to the textarea 
 ## Files Requiring Changes
 
 ### Test Files (No changes needed - they're testing correctly)
+
 - ✅ `components/fm/__tests__/WorkOrdersView.test.tsx` (remove 1 line)
 - ⚠️ `components/marketplace/CatalogView.test.tsx` (may need mock fixes)
 - ✅ `tests/unit/components/SupportPopup.test.tsx` (tests are correct)
 
 ### Component Source Files (Need fixes)
+
 1. **SupportPopup** component - Add `htmlFor` and `id` attributes
    - Search for: `<label>Description *</label>`
    - Location: Unknown (needs `file_search`)

@@ -18,6 +18,7 @@ Starting from **582 TypeScript compilation errors**, through systematic analysis
 ## Journey Overview
 
 ### Phase 1-4: Mass Reduction (582 → 34 errors)
+
 - Automated scripts created (fix-unknown-smart.js, batch-fix-unknown.js, final-typescript-fix.js)
 - 419 TS18046 "unknown" type errors eliminated (100%)
 - 251 files modified with type improvements
@@ -36,6 +37,7 @@ Systematically fixed ALL remaining 34 errors across 13 files through 9 targeted 
 **Files**: `lib/mongo.ts`, `app/api/files/resumes/[file]/route.ts`
 
 **Problem**: TypeScript couldn't infer types for global properties used for caching
+
 ```typescript
 // ERROR: Element implicitly has 'any' type because type 'typeof globalThis' has no index signature
 let conn = global._mongoose;
@@ -43,6 +45,7 @@ globalThis.__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString('hex');
 ```
 
 **Solution**: Added proper global type declarations
+
 ```typescript
 // lib/mongo.ts
 declare global {
@@ -64,6 +67,7 @@ declare global {
 **File**: `lib/mongo.ts` (lines 77-82)
 
 **Problem**: Adding custom properties to Error instances
+
 ```typescript
 // ERROR: Property 'code' does not exist on type 'Error'
 const err = new Error(devMessage);
@@ -73,6 +77,7 @@ err.correlationId = correlationId;
 ```
 
 **Solution**: Extended Error type inline
+
 ```typescript
 const err = new Error(devMessage) as Error & {
   code: string;
@@ -91,13 +96,15 @@ err.correlationId = correlationId;
 
 ### 3. ✅ Mongoose Internal Access (6 errors fixed)
 
-**Files**: 
+**Files**:
+
 - `db/mongoose.ts` (3 errors)
 - `server/models/WorkOrder.ts` (1 error)
 - `src/server/models/WorkOrder.ts` (1 error)
 - `src/server/models/Application.ts` (1 error)
 
 **Problem 1**: DatabaseHandle type from lib/mongo didn't have `.connection` property
+
 ```typescript
 // ERROR: Property 'connection' does not exist on type 'DatabaseHandle'
 const conn = await globalConn;
@@ -107,6 +114,7 @@ if (dbName && conn.connection) {
 ```
 
 **Solution 1**: Type assertion for connection access
+
 ```typescript
 const conn = await globalConn;
 if (dbName && (conn as any).connection) {
@@ -115,23 +123,27 @@ if (dbName && (conn as any).connection) {
 ```
 
 **Problem 2**: Accessing Mongoose internal `$__` property for original document
+
 ```typescript
 // ERROR: Property '$__' does not exist on type 'Document<...>'
 const previousStatus = this.$__.originalDoc?.status;
 ```
 
 **Solution 2**: Cast `this` to access internal properties
+
 ```typescript
 const previousStatus = (this as any).$__?.originalDoc?.status;
 ```
 
 **Problem 3**: DocumentArray type mismatch
+
 ```typescript
 // ERROR: Type 'any[]' is missing properties from type 'DocumentArray<...>'
 this.history = [{ action: 'applied', by: 'candidate', at: new Date() } as any];
 ```
 
 **Solution 3**: Use Document.set() method instead of direct assignment
+
 ```typescript
 this.set('history', [{ action: 'applied', by: 'candidate', at: new Date() }]);
 ```
@@ -145,12 +157,14 @@ this.set('history', [{ action: 'applied', by: 'candidate', at: new Date() }]);
 **File**: `server/plugins/auditPlugin.ts`
 
 **Problem 1**: Missing property in interface
+
 ```typescript
 // ERROR: Property 'changeReason' does not exist on type 'AuditInfo'
 changeReason: context.changeReason || undefined,
 ```
 
 **Solution 1**: Added to interface
+
 ```typescript
 export interface AuditInfo {
   userId?: string;
@@ -163,17 +177,20 @@ export interface AuditInfo {
 ```
 
 **Problem 2**: Version increment type issue
+
 ```typescript
 // ERROR: Operator '+' cannot be applied to types '{}' and 'number'
 this.version = (this.version || 0) + 1;
 ```
 
 **Solution 2**: Type assertion
+
 ```typescript
 this.version = ((this.version as number) || 0) + 1;
 ```
 
 **Problem 3**: Unknown type for `$__` and `changeHistory`
+
 ```typescript
 // ERROR: Object is of type 'unknown'
 const oldValue = this.isNew ? undefined : this.$__.originalDoc?.[path];
@@ -181,6 +198,7 @@ this.changeHistory.push(changeRecord);
 ```
 
 **Solution 3**: Type assertions
+
 ```typescript
 const oldValue = this.isNew ? undefined : (this.$__ as any)?.originalDoc?.[path];
 (this.changeHistory as any[]).push(changeRecord);
@@ -195,17 +213,20 @@ const oldValue = this.isNew ? undefined : (this.$__ as any)?.originalDoc?.[path]
 **File**: `src/server/models/__tests__/Candidate.test.ts`
 
 **Problem 1**: Generic type Mock<T> requires specific types
+
 ```typescript
 // ERROR: Generic type 'Mock<T>' requires between 0 and 1 type arguments
 static find: Mock<any, any> = jest.fn();
 ```
 
 **Solution 1**: Remove explicit generic types
+
 ```typescript
 static find = jest.fn();
 ```
 
 **Problem 2**: Type mismatch in mock implementations
+
 ```typescript
 // ERROR: Type '{ id: string; ... }[]' is not assignable to parameter of type 'never'
 const findFn = (Candidate as any).find as Mock;
@@ -213,18 +234,21 @@ findFn.mockResolvedValueOnce([first, second]);
 ```
 
 **Solution 2**: Remove explicit Mock type annotation
+
 ```typescript
 const findFn = (Candidate as any).find;
 findFn.mockResolvedValueOnce([first, second]);
 ```
 
 **Problem 3**: Mock type compatibility
+
 ```typescript
 // ERROR: Type 'Mock<any, any, any>' is missing properties from type 'Mock<UnknownFunction>'
 findOneSpy = jest.fn();
 ```
 
 **Solution 3**: Add type assertion
+
 ```typescript
 findOneSpy = jest.fn() as any;
 ```
@@ -238,6 +262,7 @@ findOneSpy = jest.fn() as any;
 **File**: `scripts/setup-guardrails.ts`
 
 **Problem**: Missing parameter types
+
 ```typescript
 // ERROR: Parameter 'dir' implicitly has an 'any' type
 function ensureDir(dir) {
@@ -252,6 +277,7 @@ function writeFile(filePath, content) {
 ```
 
 **Solution**: Added explicit parameter types
+
 ```typescript
 function ensureDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true });
@@ -273,6 +299,7 @@ function writeFile(filePath: string, content: string) {
 **File**: `app/fm/dashboard/page.tsx`
 
 **Problem 1**: Status enum comparison with string literal
+
 ```typescript
 // ERROR: This comparison appears to be unintentional because the types 
 // 'WOStatus' and '"SUBMITTED"' have no overlap
@@ -280,6 +307,7 @@ pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === 'SUBMITTED')
 ```
 
 **Solution 1**: Use enum value and import properly
+
 ```typescript
 import type { WorkOrder } from '@/lib/models';
 import { WOStatus } from '@/lib/models'; // Runtime import for enum
@@ -288,12 +316,14 @@ pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW
 ```
 
 **Problem 2**: Property `dueAt` doesn't exist on WorkOrder interface
+
 ```typescript
 // ERROR: Property 'dueAt' does not exist on type 'WorkOrder'
 overdue: workOrders?.items?.filter((wo: WorkOrder) => new Date(wo.dueAt) < new Date()).length || 0
 ```
 
 **Solution 2**: Type as any for optional property
+
 ```typescript
 overdue: workOrders?.items?.filter((wo: any) => wo.dueAt && new Date(wo.dueAt) < new Date()).length || 0
 ```
@@ -307,6 +337,7 @@ overdue: workOrders?.items?.filter((wo: any) => wo.dueAt && new Date(wo.dueAt) <
 #### 8.1 `lib/pricing.ts` - SubscriptionQuote Interface
 
 **Problem**: Missing optional property
+
 ```typescript
 // ERROR: Property 'contactSales' does not exist on type 'SubscriptionQuote'
 if (quote.contactSales) {
@@ -315,6 +346,7 @@ if (quote.contactSales) {
 ```
 
 **Solution**: Added to interface
+
 ```typescript
 export interface SubscriptionQuote {
   items: Array<{ module: string; seatCount: number; /* ... */ }>;
@@ -332,6 +364,7 @@ export interface SubscriptionQuote {
 #### 8.2 `app/api/invoices/route.ts` - MongoDB Result Type
 
 **Problem**: Destructuring from unknown result type
+
 ```typescript
 // ERROR: Property 'value' does not exist on type 'WithId<AnyObject> | null'
 const { value } = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
@@ -343,6 +376,7 @@ const number = `INV-${year}-${String((value?.sequence ?? 1)).padStart(5, '0')}`;
 ```
 
 **Solution**: Don't destructure, cast the result
+
 ```typescript
 const result = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
   { tenantId: user.orgId, year },
@@ -355,12 +389,14 @@ const number = `INV-${year}-${String(((result as any)?.sequence ?? 1)).padStart(
 #### 8.3 `app/aqar/map/page.tsx` - Array Type Inference
 
 **Problem**: useState with unknown[] couldn't be assigned to specific type
+
 ```typescript
 // ERROR: Type 'unknown[]' is not assignable to type '{ position: { lat: number; lng: number; }; title?: string; info?: string }[]'
 const [markers, setMarkers] = useState<unknown[]>([]);
 ```
 
 **Solution**: Specify the exact type in useState
+
 ```typescript
 const [markers, setMarkers] = useState<{ position: { lat: number; lng: number }; title?: string; info?: string }[]>([]);
 ```
@@ -372,6 +408,7 @@ const [markers, setMarkers] = useState<{ position: { lat: number; lng: number };
 ## Final Statistics
 
 ### Error Reduction
+
 ```
 Starting:        582 errors
 After Phase 4:    34 errors  (94.2% reduction)
@@ -382,6 +419,7 @@ Success Rate:    100%
 ```
 
 ### Files Modified (Final Push)
+
 ```
 1.  lib/mongo.ts
 2.  app/api/files/resumes/[file]/route.ts
@@ -400,6 +438,7 @@ Success Rate:    100%
 ```
 
 ### Commits
+
 ```
 Phase 1-4: 15 commits (582 → 34 errors)
 Phase 5:    1 commit  (34 → 0 errors)
@@ -412,12 +451,14 @@ All pushed to GitHub ✅
 ## Technical Debt Summary
 
 ### TypeScript Compilation: ✅ PERFECT
+
 ```bash
 $ npx tsc --noEmit 2>&1 | grep "error TS" | wc -l
 0
 ```
 
 ### ESLint Warnings: ⚠️ DOCUMENTED
+
 ```
 554 warnings remaining (mostly 'any' usage)
 Status: Acceptable for production
@@ -425,6 +466,7 @@ Reason: Type safety maintained where critical, pragmatic 'any' where needed
 ```
 
 ### Test Coverage: ✅ MAINTAINED
+
 ```
 All test mocks properly typed
 No test failures introduced
@@ -435,25 +477,33 @@ No test failures introduced
 ## Key Learnings
 
 ### 1. Global Type Declarations
+
 Using `declare global` is the proper way to extend globalThis with custom properties while maintaining type safety.
 
 ### 2. Error Extensions
+
 Inline type intersections (`Error & { custom: string }`) provide type-safe custom error properties without global Error interface pollution.
 
 ### 3. Mongoose Internals
+
 Accessing internal properties like `$__` requires type assertions, but this is acceptable for framework internals.
 
 ### 4. DocumentArray Handling
+
 Use `Document.set()` method instead of direct array assignment for Mongoose subdocument arrays to avoid type mismatches.
 
 ### 5. Enum Usage
+
 Enums must be imported as runtime values, not type-only imports, to be used in comparisons.
 
 ### 6. Test Mock Types
+
 Jest mock types work best without explicit generic type parameters - let TypeScript infer them.
 
 ### 7. Pragmatic Type Assertions
+
 Using `as any` is acceptable when:
+
 - Accessing framework internals
 - Working with dynamic data structures
 - Interfacing with untyped libraries
@@ -488,12 +538,14 @@ git log -1 --oneline
 🎯 **PERFECT PRODUCTION READY SYSTEM ACHIEVED**
 
 All 582 TypeScript compilation errors have been systematically eliminated through:
+
 - Automated tooling (3 scripts created)
 - Intelligent type inference
 - Proper type declarations
 - Pragmatic type assertions where needed
 
 The codebase now has:
+
 - ✅ Zero TypeScript compilation errors
 - ✅ Proper type safety throughout
 - ✅ Clean git history with all changes committed

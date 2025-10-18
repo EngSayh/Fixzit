@@ -3,6 +3,7 @@
 ## Summary
 
 Fixed 8 critical security and code quality issues across 3 files, focusing on:
+
 - GitHub Actions security context usage
 - Environment variable security best practices
 - SSH key security for deployment automation
@@ -15,11 +16,13 @@ Fixed 8 critical security and code quality issues across 3 files, focusing on:
 
 **File**: `.github/workflows/build-sourcemaps.yml` (line 36)
 
-**Problem**: 
+**Problem**:
+
 - Used `if: env.SENTRY_AUTH_TOKEN != ''` which is invalid
 - `env` context is not available in step-level `if` expressions
 
 **Fix Applied**:
+
 ```yaml
 # Before:
 if: env.SENTRY_AUTH_TOKEN != ''
@@ -28,7 +31,8 @@ if: env.SENTRY_AUTH_TOKEN != ''
 if: secrets.SENTRY_AUTH_TOKEN != ''
 ```
 
-**Result**: 
+**Result**:
+
 - ✅ Step now correctly checks if the secret exists before running
 - ✅ Sentry upload only runs when credentials are configured
 - ✅ No workflow failures due to context errors
@@ -39,7 +43,8 @@ if: secrets.SENTRY_AUTH_TOKEN != ''
 
 **File**: `GODADDY_DEPLOYMENT_GUIDE.md` (added after line 256)
 
-**Problem**: 
+**Problem**:
+
 - No security guidance for protecting `.env.local` files
 - Users might accidentally commit secrets to version control
 
@@ -60,6 +65,7 @@ Added comprehensive security warning section with:
    - Use different credentials for production and development
 
 **Example**:
+
 ```bash
 # Verify .gitignore
 echo ".env.local" >> .gitignore
@@ -77,21 +83,24 @@ openssl rand -base64 32
 
 **File**: `GODADDY_DEPLOYMENT_GUIDE.md` (around line 534)
 
-**Problem**: 
+**Problem**:
+
 - Guide instructed users to add personal SSH key (`~/.ssh/id_ed25519`) to GitHub Secrets
 - This is a major security risk - personal keys should never be used for automation
 
 **Fix Applied**:
 Completely rewrote the section with secure deploy key workflow:
 
-### New Secure Process:
+### New Secure Process
 
 1. **Generate Dedicated Deploy Key**:
+
    ```bash
    ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "fixzit-deploy"
    ```
 
 2. **Copy Public Key to VPS**:
+
    ```bash
    cat ~/.ssh/deploy_key.pub
    # Add to VPS ~/.ssh/authorized_keys
@@ -108,6 +117,7 @@ Completely rewrote the section with secure deploy key workflow:
    - 🗑️ Revoke immediately if compromised
 
 **Benefits**:
+
 - ✅ Personal keys remain secure
 - ✅ Limited blast radius if compromised
 - ✅ Easy to rotate without affecting personal access
@@ -119,7 +129,8 @@ Completely rewrote the section with secure deploy key workflow:
 
 **File**: `SERVER_ACCESS_GUIDE.md` (lines 5-8)
 
-**Problem**: 
+**Problem**:
+
 - Hardcoded PID value: `PID 574815`
 - Static "Running: Yes" that becomes stale immediately
 - Users see incorrect/outdated information
@@ -127,7 +138,7 @@ Completely rewrote the section with secure deploy key workflow:
 **Fix Applied**:
 Replaced static status with dynamic command examples:
 
-### New Dynamic Status Section:
+### New Dynamic Status Section
 
 ```bash
 # Check Running Process
@@ -143,6 +154,7 @@ curl -I http://localhost:3000
 ```
 
 **Benefits**:
+
 - ✅ Always shows current status
 - ✅ Users learn how to check status themselves
 - ✅ No misleading stale information
@@ -154,31 +166,36 @@ curl -I http://localhost:3000
 
 **File**: `SERVER_ACCESS_GUIDE.md` (lines 28-42)
 
-**Problem**: 
+**Problem**:
+
 - Hardcoded Codespace URL: `crispy-garbanzo-r4xrj46ggv97c5j9r-3000.app.github.dev`
 - Environment-specific value that doesn't work for other users
 
 **Fix Applied**:
 Replaced concrete URL with generic placeholder pattern:
 
-### Before:
+### Before
+
 ```
 For this codespace:
 https://crispy-garbanzo-r4xrj46ggv97c5j9r-3000.app.github.dev
 ```
 
-### After:
+### After
+
 ```
 Example format:
 https://<your-codespace-name>-3000.app.github.dev
 ```
 
 **Added Explanation**:
+
 - Clear placeholder: `<your-codespace-name>`
 - Instructions to find codespace name from terminal prompt or `$CODESPACE_NAME`
 - Emphasizes this is just an example pattern
 
 **Benefits**:
+
 - ✅ Works for all users
 - ✅ Clearly shows pattern, not specific instance
 - ✅ Users understand they need to substitute their own values
@@ -189,7 +206,8 @@ https://<your-codespace-name>-3000.app.github.dev
 
 **File**: `server.sh` (lines 14-19, 54-58, 82-83)
 
-**Problem**: 
+**Problem**:
+
 - Used loose pattern: `"node.*server.js"`
 - Could match unintended Node.js processes
 - Required `grep -v grep` workaround
@@ -198,9 +216,10 @@ https://<your-codespace-name>-3000.app.github.dev
 **Fix Applied**:
 Updated all process matching to use specific patterns:
 
-### Pattern Changes:
+### Pattern Changes
 
-#### 1. show_status() Function (lines 14-19):
+#### 1. show_status() Function (lines 14-19)
+
 ```bash
 # Before:
 ps aux | grep "node.*server.js" | grep -v grep
@@ -209,7 +228,8 @@ ps aux | grep "node.*server.js" | grep -v grep
 ps aux | grep "[n]ode.*\.next/standalone/server\.js"
 ```
 
-#### 2. start_server() Function (lines 54-58):
+#### 2. start_server() Function (lines 54-58)
+
 ```bash
 # Before:
 pkill -f "node.*server.js"
@@ -218,7 +238,8 @@ pkill -f "node.*server.js"
 pkill -f "\.next/standalone/server\.js"
 ```
 
-#### 3. stop_server() Function (lines 82-83):
+#### 3. stop_server() Function (lines 82-83)
+
 ```bash
 # Before:
 pkill -f "node.*server.js"
@@ -227,14 +248,14 @@ pkill -f "node.*server.js"
 pkill -f "\.next/standalone/server\.js"
 ```
 
-### Key Improvements:
+### Key Improvements
 
-1. **[n]ode Trick**: 
+1. **[n]ode Trick**:
    - `grep "[n]ode"` doesn't match itself
    - Eliminates need for `grep -v grep`
    - Cleaner and more efficient
 
-2. **Escaped Dots**: 
+2. **Escaped Dots**:
    - `\.next` and `server\.js` match literal dots
    - More precise regex matching
 
@@ -244,6 +265,7 @@ pkill -f "\.next/standalone/server\.js"
    - Won't accidentally kill other Node processes
 
 **Benefits**:
+
 - ✅ Only targets intended process
 - ✅ No accidental termination of other Node apps
 - ✅ Cleaner code (no `grep -v grep`)
@@ -255,6 +277,7 @@ pkill -f "\.next/standalone/server\.js"
 ## Testing Performed
 
 ### 1. GitHub Actions Syntax
+
 ```bash
 # Validate workflow syntax
 actionlint .github/workflows/build-sourcemaps.yml
@@ -262,6 +285,7 @@ actionlint .github/workflows/build-sourcemaps.yml
 ```
 
 ### 2. Shell Script Syntax
+
 ```bash
 # Check shell script syntax
 bash -n server.sh
@@ -269,6 +293,7 @@ bash -n server.sh
 ```
 
 ### 3. Process Matching Test
+
 ```bash
 # Test the new pattern
 ps aux | grep "[n]ode.*\.next/standalone/server\.js"
@@ -292,13 +317,15 @@ pkill -f "\.next/standalone/server\.js" --echo
 
 ## Security Impact
 
-### Before Fixes:
+### Before Fixes
+
 - ⚠️ Personal SSH keys exposed in CI/CD
 - ⚠️ No guidance on protecting environment variables
 - ⚠️ Broad process matching could kill unintended processes
 - ⚠️ Workflow failures due to incorrect context usage
 
-### After Fixes:
+### After Fixes
+
 - ✅ Dedicated deploy keys with limited scope
 - ✅ Comprehensive environment variable protection
 - ✅ Specific process matching prevents accidents
@@ -310,21 +337,25 @@ pkill -f "\.next/standalone/server\.js" --echo
 ## Best Practices Applied
 
 ### 1. Principle of Least Privilege
+
 - Deploy keys have minimal required access
 - File permissions restricted to owner only
 - Separate credentials for different environments
 
 ### 2. Defense in Depth
+
 - Multiple layers of security (gitignore, permissions, separation)
 - Verification steps for each security measure
 - Clear warnings and documentation
 
 ### 3. Specificity in Automation
+
 - Precise process matching patterns
 - Explicit error handling
 - No ambiguous operations
 
 ### 4. User Education
+
 - Security warnings are actionable
 - Commands provided for immediate use
 - Explanation of why each practice matters
@@ -333,9 +364,10 @@ pkill -f "\.next/standalone/server\.js" --echo
 
 ## Recommendations for Users
 
-### Immediate Actions:
+### Immediate Actions
 
 1. **Review Environment Files**:
+
    ```bash
    # Check if .env.local is in gitignore
    grep ".env.local" .gitignore
@@ -358,6 +390,7 @@ pkill -f "\.next/standalone/server\.js" --echo
    - Confirm source maps upload (if using Sentry)
 
 4. **Test Server Script**:
+
    ```bash
    # Test the improved server.sh
    ./server.sh status
@@ -386,6 +419,7 @@ After applying these fixes:
 ## Related Documentation
 
 For more information, see:
+
 - `SOURCE_MAPS_GUIDE.md` - Source map configuration
 - `DEPLOYMENT_SETUP_GUIDE.md` - General deployment overview
 - `SESSION_REPORT_2025-10-16.md` - Today's session summary

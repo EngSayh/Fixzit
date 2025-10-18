@@ -1,6 +1,7 @@
 # Import Analysis Report
 
 ## Date: 2025-01-18
+
 ## Status: 192 Issues Found
 
 ---
@@ -8,6 +9,7 @@
 ## Executive Summary
 
 Comprehensive analysis of **880 files** found **192 potential import issues**:
+
 - ❌ **71 missing package imports** - Packages used but not in package.json
 - ❌ **121 broken relative imports** - Files that may not exist
 
@@ -16,6 +18,7 @@ Comprehensive analysis of **880 files** found **192 potential import issues**:
 ## Import Statistics
 
 ### Overall Counts
+
 - **Total files analyzed**: 880
 - **External packages**: 62 unique packages
 - **Relative imports**: 324 imports
@@ -23,6 +26,7 @@ Comprehensive analysis of **880 files** found **192 potential import issues**:
 - **Node builtin modules**: 14 modules
 
 ### Import Distribution
+
 - **External packages**: 62 (from npm/node_modules)
 - **Relative imports**: 324 (./  ../)
 - **Absolute imports**: 649 (@/ path aliases)
@@ -85,71 +89,86 @@ Packages imported in code but **NOT** in package.json:
 ### Critical (High Usage)
 
 #### 1. **express** - 26 imports
+
 **Impact**: HIGH
 **Files affected**: 26
 **Locations**:
+
 - `./packages/fixzit-souq-server/routes/admin.js`
 - `./packages/fixzit-souq-server/routes/compliance.js`
 - `./packages/fixzit-souq-server/routes/crm.js`
 - ... and 23 more
 
 **Recommendation**: Add to package.json
+
 ```bash
 npm install express
 ```
 
 #### 2. **@jest/globals** - 5 imports
+
 **Impact**: MEDIUM
 **Files affected**: 5
 **Locations**:
+
 - `./tests/policy.spec.ts`
 - `./tests/unit/api/api-paytabs.spec.ts`
 - `./tests/unit/api/api-paytabs-callback.spec.ts`
 - ... and 2 more
 
 **Recommendation**: Add to devDependencies
+
 ```bash
 npm install --save-dev @jest/globals
 ```
 
 #### 3. **cors** - 4 imports
+
 **Impact**: MEDIUM
 **Files affected**: 4
 **Locations**:
+
 - `./packages/fixzit-souq-server/server.js`
 - `./scripts/server.js`
 - `./scripts/fixzit-security-fixes.js`
 - ... and 1 more
 
 **Recommendation**: Add to package.json
+
 ```bash
 npm install cors
 ```
 
 #### 4. **helmet** - 4 imports
+
 **Impact**: MEDIUM
 **Files affected**: 4
 **Locations**:
+
 - `./packages/fixzit-souq-server/server.js`
 - `./scripts/fixzit-security-fixes.js`
 - `./scripts/server-fixed.js`
 - ... and 1 more
 
 **Recommendation**: Add to package.json
+
 ```bash
 npm install helmet
 ```
 
 #### 5. **express-rate-limit** - 4 imports
+
 **Impact**: MEDIUM
 **Files affected**: 4
 **Locations**:
+
 - `./scripts/server.js`
 - `./scripts/fixzit-security-fixes.js`
 - `./scripts/server-fixed.js`
 - ... and 1 more
 
 **Recommendation**: Add to package.json
+
 ```bash
 npm install express-rate-limit
 ```
@@ -157,15 +176,19 @@ npm install express-rate-limit
 ### Medium Priority
 
 #### 6. **unified** - 3 imports
+
 **Files**: `./src/lib/markdown.ts`, `./lib/markdown.ts`, `./scripts/verify-sanitize-and-signed-urls.ts`
 
 #### 7. **jest-mock** - 3 imports
+
 **Files**: Test files in `./src/db/models/`, `./src/server/models/__tests__/`, `./server/models/__tests__/`
 
 #### 8. **isomorphic-dompurify** - 3 imports
+
 **Files**: `./scripts/fixzit-security-fixes.js`, `./public/app-fixed.js`, `./public/public/app-fixed.js`
 
 #### 9. **express-mongo-sanitize** - 3 imports
+
 **Files**: `./scripts/server.js`, `./scripts/fixzit-security-fixes.js`, `./scripts/server-fixed.js`
 
 ### Low Priority (Single Use)
@@ -195,11 +218,11 @@ Files importing from paths that may not exist:
 
 ### Sample of Broken Imports (Top 10)
 
-1. **./components/fm/__tests__/WorkOrdersView.test.tsx:196**
+1. **./components/fm/**tests**/WorkOrdersView.test.tsx:196**
    - Import: `../WorkOrdersView.test`
    - Issue: File doesn't exist
 
-2. **./components/fm/__tests__/WorkOrdersView.test.tsx:226**
+2. **./components/fm/**tests**/WorkOrdersView.test.tsx:226**
    - Import: `../WorkOrdersView.test`
    - Issue: File doesn't exist
 
@@ -259,6 +282,7 @@ Files importing from paths that may not exist:
 ### Immediate Actions Required
 
 #### 1. Add Missing Critical Packages
+
 ```bash
 # Production dependencies
 npm install express cors helmet express-rate-limit express-mongo-sanitize
@@ -271,18 +295,23 @@ npm install unified isomorphic-dompurify compression morgan cookie-parser winsto
 ```
 
 #### 2. Fix Broken Plugin Imports
+
 Create missing plugin files:
+
 - `src/db/plugins/tenantIsolation.ts`
 - `src/db/plugins/auditPlugin.ts`
 
 Or remove imports if plugins are not needed.
 
 #### 3. Clean Up Test Files
+
 Review and fix test file imports:
+
 - Remove imports to non-existent test files
 - Update import paths to correct locations
 
 #### 4. Fix Invalid Imports
+
 - Replace `${loggerPath}` with actual logger path
 - Fix `policy` import to use correct path
 - Fix `src` import to use correct path
@@ -308,11 +337,13 @@ Review and fix test file imports:
 ## Files for Reference
 
 ### Analysis Tools Created
+
 - ✅ `analyze-imports.js` - Comprehensive import analyzer
 - ✅ `check-imports.sh` - Shell-based import checker
 - ✅ `IMPORT_ANALYSIS_REPORT.md` - This document
 
 ### How to Run Analysis
+
 ```bash
 cd /workspaces/Fixzit
 node analyze-imports.js
@@ -323,12 +354,14 @@ node analyze-imports.js
 ## Summary
 
 ### Current State
+
 - ✅ **Core packages**: All major packages (mongoose, next, react, zod) are correctly installed
 - ❌ **Missing packages**: 71 imports to packages not in package.json
 - ❌ **Broken imports**: 121 relative imports to non-existent files
 - ⚠️ **Impact**: Some features may not work, tests may fail
 
 ### Priority Actions
+
 1. **HIGH**: Add express, cors, helmet, express-rate-limit (26+ imports)
 2. **HIGH**: Create or remove plugin files (tenantIsolation, auditPlugin)
 3. **MEDIUM**: Add @jest/globals for tests
@@ -336,7 +369,9 @@ node analyze-imports.js
 5. **LOW**: Clean up deprecated/unused files
 
 ### Expected Outcome
+
 After fixes:
+
 - ✅ All imports will resolve correctly
 - ✅ No missing package errors
 - ✅ Tests will run without import errors

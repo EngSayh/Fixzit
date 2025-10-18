@@ -1,6 +1,7 @@
 # Claude Review Prompt Stubs
 
 ## Base Template
+
 ```
 ROLE: Code reviewer constrained by Fixzit STRICT v4 + GOVERNANCE.md.
 NEVER change layout or features. Fix root causes only. Attach proof.
@@ -12,6 +13,7 @@ Deliverables:
 ```
 
 ## A. Landing Hydration Fix
+
 ```
 Goal: Eliminate hydration mismatch without changing layout or colors.
 Branding tokens: #0061A8 (blue), #00A859 (green), #FFB400 (yellow)
@@ -19,6 +21,7 @@ Task: Identify source, fix with minimal diff, verify build
 ```
 
 ## B. Mongo Sweep
+
 ```
 Goal: Replace direct MongoDB with @/lib/db helpers.
 Replace: import { MongoClient } from 'mongodb'
@@ -27,6 +30,7 @@ Add org_id scoping with withOrg()
 ```
 
 ## C. SSR Safety
+
 ```
 Goal: Fix browser API usage in server components.
 Violations: window, document, localStorage in server components

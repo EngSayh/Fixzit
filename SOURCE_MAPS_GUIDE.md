@@ -34,6 +34,7 @@ if (!dev && process.env.CI === 'true') {
 ### 1. Build Process
 
 When `CI=true` (GitHub Actions), the build generates:
+
 - Regular bundles: `.next/static/chunks/*.js`
 - Hidden source maps: `.next/static/chunks/*.js.map`
 
@@ -55,6 +56,7 @@ Source maps are uploaded to your error tracking service via GitHub Actions:
 ### 3. Error Resolution
 
 When an error occurs in production:
+
 1. User's browser sends error with minified stack trace
 2. Error tracking service receives the error
 3. Service uses uploaded source maps to transform the stack trace
@@ -65,18 +67,20 @@ When an error occurs in production:
 ### Option A: Sentry (Recommended)
 
 1. **Install Sentry SDK**:
+
    ```bash
    npm install @sentry/nextjs
    ```
 
 2. **Configure Sentry**:
+
    ```bash
    npx @sentry/wizard@latest -i nextjs
    ```
 
 3. **Add GitHub Secrets**:
-   Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
-   
+   Go to: <https://github.com/EngSayh/Fixzit/settings/secrets/actions>
+
    Add these secrets:
    - `SENTRY_AUTH_TOKEN`: Your Sentry auth token
    - `SENTRY_ORG`: Your Sentry organization slug
@@ -91,7 +95,7 @@ If you use a different error tracking service:
 
 1. **Modify the workflow**:
    Edit `.github/workflows/build-sourcemaps.yml` and uncomment the "custom service" section:
-   
+
    ```yaml
    - name: Upload source maps to custom service
      run: |
@@ -110,7 +114,7 @@ If you use a different error tracking service:
 If you need source maps for manual debugging:
 
 1. **Download from GitHub Actions artifacts**:
-   - Go to: https://github.com/EngSayh/Fixzit/actions
+   - Go to: <https://github.com/EngSayh/Fixzit/actions>
    - Click on a successful build
    - Download "source-maps" artifact
    - Extract and use with browser DevTools
@@ -120,17 +124,20 @@ If you need source maps for manual debugging:
 ### Local Testing
 
 1. **Build with source maps**:
+
    ```bash
    CI=true npm run build
    ```
 
 2. **Verify source maps were generated**:
+
    ```bash
    find .next -name "*.map" -type f | wc -l
    # Should show multiple .map files
    ```
 
 3. **Check source map is hidden**:
+
    ```bash
    # Open a built JS file
    cat .next/static/chunks/app/page-*.js | grep sourceMappingURL
@@ -184,6 +191,7 @@ If you need source maps for manual debugging:
 ### Issue: No source maps generated
 
 **Check**:
+
 ```bash
 # Ensure CI=true is set
 CI=true npm run build
@@ -195,11 +203,13 @@ find .next -name "*.map"
 ### Issue: Error tracking shows minified code
 
 **Possible causes**:
+
 1. Source maps not uploaded to error tracking service
 2. Incorrect release/version matching
 3. Source map files missing from build
 
 **Solution**:
+
 1. Check GitHub Actions logs for upload errors
 2. Verify source maps exist in artifacts
 3. Re-run the build workflow
@@ -207,10 +217,12 @@ find .next -name "*.map"
 ### Issue: Build fails with source maps enabled
 
 **Possible causes**:
+
 1. Insufficient memory (need 4GB+ for source map generation)
 2. Webpack configuration conflict
 
 **Solution**:
+
 1. Build on proper hardware (4-core/16GB minimum)
 2. Check next.config.js for conflicting webpack settings
 

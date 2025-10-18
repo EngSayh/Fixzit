@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
@@ -43,6 +44,7 @@ interface Tenant {
 }
 
 export default function TenantsPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -59,19 +61,19 @@ export default function TenantsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tenant Management</h1>
-          <p className="text-gray-600">Customer relationship and lease management</p>
+          <h1 className="text-3xl font-bold">{t('fm.tenants.title', 'Tenant Management')}</h1>
+          <p className="text-gray-600">{t('fm.tenants.subtitle', 'Customer relationship and lease management')}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-purple-600 hover:bg-purple-700">
               <Plus className="w-4 h-4 mr-2" />
-              New Tenant
+              {t('fm.tenants.newTenant', 'New Tenant')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Add New Tenant</DialogTitle>
+              <DialogTitle>{t('fm.tenants.addTenant', 'Add New Tenant')}</DialogTitle>
             </DialogHeader>
             <CreateTenantForm onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
@@ -86,7 +88,7 @@ export default function TenantsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search tenants..."
+                  placeholder={t('fm.tenants.searchTenants', 'Search tenants...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
@@ -95,13 +97,13 @@ export default function TenantsPage() {
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Tenant Type" />
+                <SelectValue placeholder={t('fm.tenants.tenantType', 'Tenant Type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="INDIVIDUAL">Individual</SelectItem>
-                <SelectItem value="COMPANY">Company</SelectItem>
-                <SelectItem value="GOVERNMENT">Government</SelectItem>
+                <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
+                <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>
+                <SelectItem value="COMPANY">{t('fm.tenants.company', 'Company')}</SelectItem>
+                <SelectItem value="GOVERNMENT">{t('fm.tenants.government', 'Government')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -120,11 +122,11 @@ export default function TenantsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Tenants Found</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first tenant.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.tenants.noTenants', 'No Tenants Found')}</h3>
+            <p className="text-gray-600 mb-4">{t('fm.tenants.noTenantsText', 'Get started by adding your first tenant.')}</p>
             <Button onClick={() => setCreateOpen(true)} className="bg-purple-600 hover:bg-purple-700">
               <Plus className="w-4 h-4 mr-2" />
-              Add Tenant
+              {t('fm.tenants.addTenant', 'Add Tenant')}
             </Button>
           </CardContent>
         </Card>
@@ -134,6 +136,8 @@ export default function TenantsPage() {
 }
 
 function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
+  const { t } = useTranslation();
+  
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'INDIVIDUAL':
@@ -160,6 +164,19 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
     }
   };
 
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'INDIVIDUAL':
+        return t('fm.tenants.individual', 'Individual');
+      case 'COMPANY':
+        return t('fm.tenants.company', 'Company');
+      case 'GOVERNMENT':
+        return t('fm.tenants.government', 'Government');
+      default:
+        return type?.toLowerCase() || '';
+    }
+  };
+
   const activeProperties = tenant.properties?.filter((p) => p.occupancy?.status === 'ACTIVE').length || 0;
   const totalProperties = tenant.properties?.length || 0;
 
@@ -175,7 +192,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
             </div>
           </div>
           <Badge className={getTypeColor(tenant.type || '')}>
-            {tenant.type?.toLowerCase() || ''}
+            {getTypeLabel(tenant.type || '')}
           </Badge>
         </div>
       </CardHeader>
@@ -201,17 +218,17 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Properties:</span>
+            <span className="text-sm text-gray-600">{t('fm.tenants.properties', 'Properties')}:</span>
             <span className="text-sm font-medium">{activeProperties}/{totalProperties}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Lease Status:</span>
+            <span className="text-sm text-gray-600">{t('fm.tenants.leaseStatus', 'Lease Status')}:</span>
             <Badge variant="outline" className="text-green-700 border-green-300">
-              {activeProperties > 0 ? 'Active' : 'No Active Leases'}
+              {activeProperties > 0 ? t('properties.leases.active', 'Active') : t('fm.tenants.noActiveLeases', 'No Active Leases')}
             </Badge>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Outstanding Balance:</span>
+            <span className="text-sm text-gray-600">{t('fm.tenants.outstandingBalance', 'Outstanding Balance')}:</span>
             <span className="text-sm font-medium">
               {tenant.financial?.outstandingBalance?.toLocaleString() || '0'} SAR
             </span>
@@ -219,13 +236,13 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
         </div>
 
         <div className="flex justify-end space-x-2 pt-2">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" aria-label={t('common.view', 'View')} title={t('common.view', 'View')}>
             <Eye className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" aria-label={t('common.edit', 'Edit')} title={t('common.edit', 'Edit')}>
             <Edit className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
@@ -235,6 +252,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
 }
 
 function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -319,7 +337,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Tenant Name *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.tenantName', 'Tenant Name')} *</label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -327,15 +345,15 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Type *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
-              <SelectValue placeholder="Select type" />
+              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="INDIVIDUAL">Individual</SelectItem>
-              <SelectItem value="COMPANY">Company</SelectItem>
-              <SelectItem value="GOVERNMENT">Government</SelectItem>
+              <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>
+              <SelectItem value="COMPANY">{t('fm.tenants.company', 'Company')}</SelectItem>
+              <SelectItem value="GOVERNMENT">{t('fm.tenants.government', 'Government')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -343,7 +361,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Primary Contact Name *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.primaryContactName', 'Primary Contact Name')} *</label>
           <Input
             value={formData.contact.primary.name}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, name: e.target.value}}})}
@@ -351,7 +369,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Email *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.email', 'Email')} *</label>
           <Input
             type="email"
             value={formData.contact.primary.email}
@@ -363,14 +381,14 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Phone</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.phone', 'Phone')}</label>
           <Input
             value={formData.contact.primary.phone}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, phone: e.target.value}}})}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Mobile</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.tenants.mobile', 'Mobile')}</label>
           <Input
             value={formData.contact.primary.mobile}
             onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, mobile: e.target.value}}})}
@@ -380,7 +398,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">City *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.city', 'City')} *</label>
           <Input
             value={formData.address.current.city}
             onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, city: e.target.value}}})}
@@ -388,7 +406,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Region *</label>
+          <label className="block text-sm font-medium mb-1">{t('fm.properties.region', 'Region')} *</label>
           <Input
             value={formData.address.current.region}
             onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, region: e.target.value}}})}
@@ -398,7 +416,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Street Address *</label>
+        <label className="block text-sm font-medium mb-1">{t('fm.properties.streetAddress', 'Street Address')} *</label>
         <Input
           value={formData.address.current.street}
           onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, street: e.target.value}}})}
@@ -408,10 +426,9 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-          Create Tenant
+          {t('fm.tenants.createTenant', 'Create Tenant')}
         </Button>
       </div>
     </form>
   );
 }
-

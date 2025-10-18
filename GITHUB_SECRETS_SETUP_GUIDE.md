@@ -306,7 +306,8 @@ jobs:
 
 ## 🔒 Security Best Practices
 
-### ✅ DO:
+### ✅ DO
+
 - ✅ Generate strong random secrets: `openssl rand -hex 32`
 - ✅ Use GitHub Secrets for all sensitive data
 - ✅ Rotate secrets regularly (every 90 days)
@@ -314,7 +315,8 @@ jobs:
 - ✅ Limit secret access to required workflows only
 - ✅ Review GitHub Actions logs for accidental secret exposure
 
-### ❌ DON'T:
+### ❌ DON'T
+
 - ❌ Never commit secrets to `.env.local` or `.env`
 - ❌ Never log secret values in GitHub Actions
 - ❌ Don't use the same secrets across multiple projects
@@ -350,7 +352,8 @@ jobs:
 
 **Cause**: MongoDB Atlas IP whitelist doesn't include GitHub Actions IPs.
 
-**Solution**: 
+**Solution**:
+
 1. Go to MongoDB Atlas → Network Access
 2. Add `0.0.0.0/0` (allow from anywhere) for GitHub Actions
 3. Or use specific GitHub Actions IP ranges
@@ -371,6 +374,7 @@ jobs:
 ---
 
 **Next Steps**:
+
 1. Add all secrets to GitHub repository (Method 1 recommended)
 2. Run verification workflow
 3. Test deployment with secrets

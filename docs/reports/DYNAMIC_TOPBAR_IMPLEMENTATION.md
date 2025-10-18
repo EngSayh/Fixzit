@@ -1,6 +1,7 @@
 # Dynamic TopBar Implementation - Complete Specification
 
 ## Overview
+
 This document provides the complete implementation of the Dynamic TopBar system for Fixzit Enterprise, ensuring module-aware global search, proper app switching, and STRICT v4 compliance.
 
 ## ✅ Implementation Status
@@ -67,12 +68,15 @@ app/
 ## Module Configuration
 
 ### App Definitions
+
 - **FM (Facility Management)**: Work Orders, Properties, Units, Tenants, Vendors, Invoices
 - **Fixizit Souq**: Products, Services, Vendors, RFQs, Orders
 - **Aqar Souq**: Listings, Projects, Agents
 
 ### Search Entities
+
 Each app has specific searchable entities:
+
 - FM: `work_orders`, `properties`, `units`, `tenants`, `vendors`, `invoices`
 - Souq: `products`, `services`, `vendors`, `rfqs`, `orders`
 - Aqar: `listings`, `projects`, `agents`
@@ -80,12 +84,15 @@ Each app has specific searchable entities:
 ## API Endpoints
 
 ### GET /api/search
+
 **Parameters:**
+
 - `app`: App context (fm, souq, aqar)
 - `q`: Search query
 - `entities`: Comma-separated list of entities to search
 
 **Response:**
+
 ```json
 {
   "results": [
@@ -104,7 +111,9 @@ Each app has specific searchable entities:
 ## Database Requirements
 
 ### MongoDB Text Indexes
+
 Ensure the following collections have text indexes:
+
 ```javascript
 // Work Orders
 db.work_orders.createIndex({ "title": "text", "description": "text" })
@@ -122,6 +131,7 @@ db.listings.createIndex({ "title": "text", "description": "text" })
 ## STRICT v4 Compliance
 
 ### Language Selector Features
+
 - ✅ Flags positioned on the left (even in RTL)
 - ✅ Native language names displayed
 - ✅ Country names in native language
@@ -133,7 +143,9 @@ db.listings.createIndex({ "title": "text", "description": "text" })
 ## RBAC Integration
 
 ### Permission-Based Quick Actions
+
 Quick actions are filtered based on user permissions:
+
 - `wo.create`: New Work Order
 - `inspections.create`: New Inspection
 - `finance.invoice.create`: New Invoice
@@ -143,12 +155,15 @@ Quick actions are filtered based on user permissions:
 ## Usage Examples
 
 ### Module Detection
+
 The system automatically detects the current module based on the URL path:
+
 - `/work-orders/*` → FM context
 - `/marketplace/*` → Souq context
 - `/aqar/*` → Aqar context
 
 ### Search Behavior
+
 - **FM Context**: Searches work orders, properties, tenants, vendors, invoices
 - **Souq Context**: Searches products, services, vendors, RFQs, orders
 - **Aqar Context**: Searches listings, projects, agents
@@ -156,6 +171,7 @@ The system automatically detects the current module based on the URL path:
 ## Testing Checklist
 
 ### Functional Tests
+
 - [ ] Single header present on all pages
 - [ ] App switcher shows correct apps with proper names
 - [ ] Global search works with module scoping
@@ -165,12 +181,14 @@ The system automatically detects the current module based on the URL path:
 - [ ] Keyboard shortcuts work (Ctrl/Cmd + K)
 
 ### Database Tests
+
 - [ ] Search API returns results from MongoDB
 - [ ] Text indexes are working
 - [ ] Fallback to mock database works
 - [ ] No database connection errors
 
 ### UI/UX Tests
+
 - [ ] No duplicate headers
 - [ ] Responsive design works on mobile/tablet
 - [ ] Accessibility compliance (WCAG AA)
@@ -179,13 +197,16 @@ The system automatically detects the current module based on the URL path:
 ## Deployment Notes
 
 ### Environment Variables
+
 Ensure these are set:
+
 ```bash
 MONGODB_URI=mongodb://localhost:27017/fixzit
 MONGODB_DB=fixzit
 ```
 
 ### Database Setup
+
 1. Create MongoDB database
 2. Set up text indexes on required collections
 3. Test search functionality
@@ -193,13 +214,16 @@ MONGODB_DB=fixzit
 ## Troubleshooting
 
 ### Common Issues
+
 1. **Search not working**: Check MongoDB connection and text indexes
 2. **Language not switching**: Verify localStorage permissions
 3. **Quick actions not showing**: Check RBAC permissions
 4. **Duplicate headers**: Ensure only TopBar.tsx is imported
 
 ### Debug Mode
+
 Enable debug logging by setting:
+
 ```bash
 NODE_ENV=development
 ```
@@ -207,6 +231,7 @@ NODE_ENV=development
 ## Future Enhancements
 
 ### Planned Features
+
 - Saved searches per user
 - Advanced search filters
 - Search analytics
@@ -216,6 +241,7 @@ NODE_ENV=development
 ## Conclusion
 
 The Dynamic TopBar implementation is now complete and meets all specified requirements:
+
 - ✅ No duplicates
 - ✅ No placeholders
 - ✅ Real database connection

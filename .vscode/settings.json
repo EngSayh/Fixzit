@@ -66,7 +66,7 @@
   "git.branchProtectionPrompt": "alwaysPrompt",
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
   "codium.codeCompletion.enable": true,
-  "coderabbit.autoReviewMode": "prompt",
+  "coderabbit.autoReviewMode": "auto",
   "coderabbit.maxFilesPerReview": 500,
   "coderabbit.concurrentReviews": 3,
   "extensions.autoUpdate": false,

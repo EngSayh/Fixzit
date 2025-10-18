@@ -18,15 +18,17 @@ After scanning the entire codebase, identified **20+ files** with identical migr
 
 **Files Affected:**
 
-#### High Priority (Breaking Tests):
+#### High Priority (Breaking Tests)
+
 1. ✅ **SUB_BATCH_1_2B_PROGRESS.md** line 170 - FIXED
 2. **tests/unit/components/ErrorBoundary.test.tsx** (7 occurrences)
    - Lines: 140, 141, 142, 280, 283, 341, 342, 353
-3. **server/models/__tests__/Candidate.test.ts** line 98, 117
+3. **server/models/**tests**/Candidate.test.ts** line 98, 117
 4. **server/security/idempotency.spec.ts** line 82
 5. **server/work-orders/wo.service.test.ts** line 37
 
-#### Documentation (Low Priority):
+#### Documentation (Low Priority)
+
 - SUB_BATCH_1_2A_COMPLETE.md (mentions only)
 - TEST_FRAMEWORK_PHASE2_PROGRESS.md (mentions only)
 - PR_119_FIXES_APPLIED.md (mentions only)
@@ -38,6 +40,7 @@ After scanning the entire codebase, identified **20+ files** with identical migr
 **Issue:** `vi.importMock()` is deprecated and returns Promise, causing undefined values
 
 **Recommended Fix:**
+
 ```typescript
 // WRONG:
 const { func } = vi.importMock('@/module');
@@ -50,6 +53,7 @@ vi.mocked(Module.func).mockResolvedValue(...);
 **Files Affected:**
 
 1. **tests/api/marketplace/products/route.test.ts** lines 55-57
+
    ```typescript
    // CURRENT (BROKEN):
    const { resolveMarketplaceContext } = vi.importMock('@/lib/marketplace/context');
@@ -64,6 +68,7 @@ vi.mocked(Module.func).mockResolvedValue(...);
    ```
 
 2. **tests/unit/api/support/incidents.route.test.ts** lines 67-69
+
    ```typescript
    // CURRENT (BROKEN):
    const { NextResponse } = vi.importMock('next/server');
@@ -85,12 +90,14 @@ vi.mocked(Module.func).mockResolvedValue(...);
 **File:** `data/language-options.test.ts` lines 96-97
 
 **Current Code:**
+
 ```typescript
 expect(/[\u0000-\u001F\u007F]/.test(lang.label)).toBe(false);
 expect(/[\u0000-\u001F\u007F]/.test(lang.code)).toBe(false);
 ```
 
 **Recommended Fix:**
+
 ```typescript
 // Add helper function:
 const hasControlChars = (s: string) => {
@@ -118,6 +125,7 @@ expect(hasControlChars(lang.code)).toBe(false);
 > "No deprecation warnings are currently suppressed; address future deprecations explicitly or document suppression rationale."
 
 **Options:**
+
 1. **Remove entirely** if baseUrl deprecation doesn't affect build
 2. **Keep with comment** explaining why it's needed
 3. **Remove baseUrl** and update all path imports
@@ -129,6 +137,7 @@ expect(hasControlChars(lang.code)).toBe(false);
 **File:** `tests/mocks/mongodb-unified.ts` lines 77-81
 
 **Current Code:**
+
 ```typescript
 connect: vi.fn().mockResolvedValue(undefined as unknown as MongoClient),
 ```
@@ -136,6 +145,7 @@ connect: vi.fn().mockResolvedValue(undefined as unknown as MongoClient),
 **Issue:** Returns `undefined` instead of client instance, breaks chaining
 
 **Recommended Fix:**
+
 ```typescript
 connect: vi.fn(async function(this: MongoClient) { return this; }),
 ```
@@ -147,6 +157,7 @@ connect: vi.fn(async function(this: MongoClient) { return this; }),
 **File:** `tests/unit/api/support/incidents.route.test.ts` lines 74-86
 
 **Current Code:**
+
 ```typescript
 vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 // later...
@@ -156,6 +167,7 @@ vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 **Issue:** Accessing mockRestore on Math.random is unreliable
 
 **Recommended Fix:**
+
 ```typescript
 const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 // later...
@@ -184,53 +196,63 @@ randomSpy.mockRestore();
 ### Phase 1: Critical Fixes (P0) - 50 minutes
 
 #### Step 1.1: Fix `vi.importMock` in products/route.test.ts
+
 ```bash
 # File: tests/api/marketplace/products/route.test.ts
 # Lines: 55-57
 ```
 
 **Changes:**
+
 1. Remove `vi.importMock` calls
 2. Add proper imports
 3. Update mock usage to `vi.mocked()`
 
 **Verification:**
+
 ```bash
 pnpm test tests/api/marketplace/products/route.test.ts --run
 ```
 
 #### Step 1.2: Fix `vi.importMock` in incidents.route.test.ts
+
 ```bash
 # File: tests/unit/api/support/incidents.route.test.ts  
 # Lines: 67-69
 ```
 
 **Changes:**
+
 1. Replace 3 `vi.importMock` calls with direct imports
 2. Update NextResponse mock usage
 3. Fix Math.random spy (bonus from category 6)
 
 **Verification:**
+
 ```bash
 pnpm test tests/unit/api/support/incidents.route.test.ts --run
 ```
 
 #### Step 1.3: Fix `jest.Mock` in ErrorBoundary.test.tsx
+
 ```bash
 # File: tests/unit/components/ErrorBoundary.test.tsx
 # Lines: 140, 141, 142, 280, 283, 341, 342, 353
 ```
 
 **Find & Replace:**
+
 - `as jest.Mock` → `as ReturnType<typeof vi.fn>>`
 - OR remove type assertion if not needed
 
 **Verification:**
+
 ```bash
 pnpm test tests/unit/components/ErrorBoundary.test.tsx --run
 ```
 
 #### Step 1.4: Fix remaining `jest.Mock` in server tests
+
 ```bash
 # Files:
 # - server/models/__tests__/Candidate.test.ts (lines 98, 117)
@@ -245,21 +267,25 @@ pnpm test tests/unit/components/ErrorBoundary.test.tsx --run
 ### Phase 2: High Priority Fixes (P1) - 15 minutes
 
 #### Step 2.1: Fix control char regex
+
 ```bash
 # File: data/language-options.test.ts
 # Lines: 96-97
 ```
 
 **Changes:**
+
 1. Add `hasControlChars` helper function
 2. Replace regex with function call
 
 **Verification:**
+
 ```bash
 pnpm test data/language-options.test.ts --run
 ```
 
 #### Step 2.2: Fix Math.random spy
+
 Already included in Step 1.2
 
 ---
@@ -267,12 +293,14 @@ Already included in Step 1.2
 ### Phase 3: Quality Improvements (P2) - 15 minutes
 
 #### Step 3.1: Fix MongoDB mock connect()
+
 ```bash
 # File: tests/mocks/mongodb-unified.ts
 # Lines: 77-81
 ```
 
 #### Step 3.2: Address ignoreDeprecations
+
 ```bash
 # File: tsconfig.json
 # Line: 36
@@ -443,11 +471,13 @@ git cherry-pick <commit-hash>
 
 ### ✅ Phase 4: Complete Jest→Vitest Migration for 8 Hybrid Files
 
-**Commits:** 
+**Commits:**
+
 - `689778d9` - Bulk migration with imports and inline fixes
 - `294c16dd` - Final vi.importMock fix
 
 **Files Successfully Migrated:**
+
 1. ✅ `app/api/marketplace/categories/route.test.ts` - 8 conversions
 2. ✅ `app/marketplace/rfq/page.test.tsx` - 11 conversions (fully clean)
 3. ✅ `app/test/api_help_articles_route.test.ts` - 6 conversions + inline fixes
@@ -457,9 +487,10 @@ git cherry-pick <commit-hash>
 7. ✅ `server/security/idempotency.spec.ts` - 10 conversions + inline fixes
 8. ✅ `tests/unit/components/ErrorBoundary.test.tsx` - 12 conversions + inline fixes
 
-**Total Conversions:** 83+ jest.* → vi.* runtime calls
+**Total Conversions:** 83+ jest.*→ vi.* runtime calls
 
 **Key Fixes Applied:**
+
 1. ✅ Added Vitest imports to all 8 files: `import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'`
 2. ✅ Updated framework comments: "Jest" → "Vitest"
 3. ✅ Converted inline `jest.fn()` definitions to `vi.fn()` (~15 occurrences)
@@ -470,6 +501,7 @@ git cherry-pick <commit-hash>
 **Lessons Learned:**
 
 1. **Inline Function Definitions:** Type-only migrations miss inline `jest.fn()` in object literals
+
    ```typescript
    // Problem:
    const mock = { json: jest.fn(() => ...) }; // Missed by type-only replacements
@@ -478,6 +510,7 @@ git cherry-pick <commit-hash>
    ```
 
 2. **vi.doMock Options:** Vitest doesn't support `{ virtual: true }` parameter
+
    ```typescript
    // WRONG:
    vi.doMock('@/module', () => ({ ... }), { virtual: true });
@@ -487,6 +520,7 @@ git cherry-pick <commit-hash>
    ```
 
 3. **vi.importMock Usage:** Returns a Promise, can't destructure directly
+
    ```typescript
    // WRONG:
    const { NextResponse } = vi.importMock('next/server');
@@ -497,6 +531,7 @@ git cherry-pick <commit-hash>
    ```
 
 4. **vi.isolateModulesAsync:** Doesn't exist in Vitest
+
    ```typescript
    // WRONG:
    await vi.isolateModulesAsync(async () => { ... });
@@ -506,6 +541,7 @@ git cherry-pick <commit-hash>
    ```
 
 **Test Results:**
+
 - ✅ `server/security/idempotency.spec.ts`: 8/10 tests passing (2 logic failures, not migration issues)
 - ✅ `app/api/marketplace/categories/route.test.ts`: Loads and runs with Vitest
 - ✅ All 8 files compile without errors

@@ -157,7 +157,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   const getCategoryName = (category: string) => t(`sidebar.category.${category}`, CATEGORY_FALLBACKS[category] || category);
 
   return (
-            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'sticky top-0 w-64'} bg-[#0061A8] text-white h-screen overflow-y-auto shadow-lg border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#0061A8' }}>{/* FIXED: was #023047 (banned) */}
+            <aside className={`${screenInfo.isMobile || screenInfo.isTablet ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}` : 'sticky top-14 w-64 h-[calc(100vh-3.5rem)]'} bg-[#0061A8] text-white overflow-y-auto shadow-lg border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`} style={{ backgroundColor: '#0061A8' }}>{/* FIXED: was #023047 (banned) */}
       <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
         <div className={`font-bold text-lg mb-6 text-white ${translationIsRTL ? 'text-right' : ''}`}>{t('common.brand', 'Fixzit Enterprise')}</div>
 

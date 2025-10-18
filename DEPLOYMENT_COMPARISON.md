@@ -26,7 +26,8 @@
 
 ## When to Use Each Option
 
-### Use **Vercel** if:
+### Use **Vercel** if
+
 - ✅ You want the fastest setup (5 minutes)
 - ✅ You don't want to manage servers
 - ✅ You want automatic scaling
@@ -34,7 +35,8 @@
 - ✅ You're okay with paying $0-20/month
 - ✅ You don't mind using MongoDB Atlas (external)
 
-### Use **Direct GoDaddy** if:
+### Use **Direct GoDaddy** if
+
 - ✅ You already have GoDaddy VPS or Dedicated server
 - ✅ You want full control
 - ✅ You want to maximize value from existing hosting
@@ -51,12 +53,14 @@ Based on what you've told me:
 ### **Use Direct GoDaddy Deployment** ✅
 
 **Why?**
+
 1. You already pay for GoDaddy hosting
 2. Your MacBook Pro has plenty of power for building locally
 3. You want control and cost optimization
 4. You can connect your domain directly (it's already there!)
 
 **Steps:**
+
 1. **Build on your MacBook Pro** (fast, no memory issues)
 2. **Deploy to GoDaddy VPS** (follow GODADDY_DEPLOYMENT_GUIDE.md)
 3. **Set up auto-deploy** via GitHub Actions
@@ -73,6 +77,7 @@ You can also do this:
 3. **Production**: Use GoDaddy VPS (your domain, your control)
 
 This gives you:
+
 - ✅ Fast local development
 - ✅ Easy preview deployments
 - ✅ Full control over production
@@ -85,26 +90,31 @@ This gives you:
 To help you deploy directly to GoDaddy, please tell me:
 
 ### 1. **GoDaddy Hosting Type**
-   - Do you have VPS, Shared Hosting, or Dedicated Server?
-   - How to check: Log in to https://account.godaddy.com/products
+
+- Do you have VPS, Shared Hosting, or Dedicated Server?
+- How to check: Log in to <https://account.godaddy.com/products>
 
 ### 2. **SSH Access**
-   - Can you connect to your server via SSH?
-   - Do you have the IP address and credentials?
+
+- Can you connect to your server via SSH?
+- Do you have the IP address and credentials?
 
 ### 3. **Domain Name**
-   - What's your domain? (e.g., fixzit.com)
-   - Is it already managed in GoDaddy?
+
+- What's your domain? (e.g., fixzit.com)
+- Is it already managed in GoDaddy?
 
 ### 4. **Server Details** (if you have VPS/Dedicated)
-   - Operating System? (Ubuntu, CentOS, etc.)
-   - Any existing websites running on it?
+
+- Operating System? (Ubuntu, CentOS, etc.)
+- Any existing websites running on it?
 
 ---
 
 ## Next Steps
 
 **Tell me your hosting type**, and I'll:
+
 1. ✅ Give you exact deployment commands for your setup
 2. ✅ Create deployment scripts tailored to your hosting
 3. ✅ Set up auto-deployment from GitHub
@@ -112,6 +122,7 @@ To help you deploy directly to GoDaddy, please tell me:
 5. ✅ Get you live in production within an hour!
 
 **Which path do you want to take?**
+
 - A) Direct GoDaddy deployment (my recommendation)
 - B) Vercel for simplicity
 - C) Hybrid approach (Vercel staging + GoDaddy production)

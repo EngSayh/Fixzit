@@ -3,6 +3,7 @@
 ## Overview
 
 A reliable, cross-platform CLI tool for replacing strings in files with support for:
+
 - Literal or regex search patterns
 - Glob patterns for file selection
 - Word-boundary matching

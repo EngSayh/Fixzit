@@ -9,6 +9,7 @@
 ## 📋 Quick Summary
 
 **What happened?**
+
 - PR #84 added enterprise-grade enhancements to 20+ API routes
 - Meanwhile, `main` branch evolved with some changes
 - Now we need to merge both together
@@ -49,10 +50,12 @@ This will auto-resolve most conflicts and flag files needing manual review.
 For each conflicting file, follow this pattern:
 
 #### 1. **Open file in VS Code**
-   - Click on file in Source Control panel
-   - VS Code shows 3-way merge editor
+
+- Click on file in Source Control panel
+- VS Code shows 3-way merge editor
 
 #### 2. **Identify sections**
+
    ```typescript
    <<<<<<< HEAD (PR #84 - OURS)
    // Your PR #84 code with enhancements
@@ -62,8 +65,9 @@ For each conflicting file, follow this pattern:
    ```
 
 #### 3. **Apply merge strategy**
-   
+
    **For imports section:**
+
    ```typescript
    // ✅ KEEP from PR #84 (OURS):
    import { rateLimit } from '@/server/security/rateLimit';
@@ -74,8 +78,9 @@ For each conflicting file, follow this pattern:
    // ✅ ALSO KEEP any new imports from main (THEIRS)
    // ... add them here if they exist
    ```
-   
+
    **For OpenAPI docs:**
+
    ```typescript
    // ✅ KEEP from PR #84 (OURS):
    /**
@@ -86,8 +91,9 @@ For each conflicting file, follow this pattern:
     *     ...
     */
    ```
-   
+
    **For route handlers:**
+
    ```typescript
    export async function POST(req: NextRequest) {
      // ✅ KEEP: Rate limiting from PR #84
@@ -104,11 +110,13 @@ For each conflicting file, follow this pattern:
    ```
 
 #### 4. **Remove conflict markers**
-   - Delete `<<<<<<< HEAD`
-   - Delete `=======`
-   - Delete `>>>>>>> main`
+
+- Delete `<<<<<<< HEAD`
+- Delete `=======`
+- Delete `>>>>>>> main`
 
 #### 5. **Save and stage**
+
    ```bash
    git add path/to/resolved/file.ts
    ```
@@ -120,12 +128,14 @@ For each conflicting file, follow this pattern:
 ### **Configuration Files (2 files)**
 
 #### `.env.local`
+
 ```bash
 # This file was deleted in main (good - secrets shouldn't be in repo)
 git rm .env.local
 ```
 
 #### `_deprecated/models-old/MarketplaceProduct.ts`
+
 ```bash
 # Accept main's version (it's in deprecated folder anyway)
 git checkout --theirs _deprecated/models-old/MarketplaceProduct.ts
@@ -162,7 +172,7 @@ app/api/work-orders/export/route.ts
 app/api/work-orders/import/route.ts
 ```
 
-#### Resolution Template:
+#### Resolution Template
 
 1. **Open file**
 2. **Keep these from PR #84** (look for in `<<<<<<< HEAD` section):
@@ -179,6 +189,7 @@ app/api/work-orders/import/route.ts
    - Any NEW database queries
 
 4. **Combine them** in this order:
+
    ```typescript
    // 1. Imports (PR #84 + main's new ones)
    // 2. Types/Schemas (merge both)
@@ -194,6 +205,7 @@ app/api/work-orders/import/route.ts
    ```
 
 5. **Example - app/api/auth/signup/route.ts**:
+
    ```typescript
    // ✅ Correct merge result:
    import { NextRequest } from "next/server";
@@ -349,6 +361,7 @@ git push origin fix/consolidation-guardrails
 ## 🚨 Common Pitfalls
 
 ### ❌ **DON'T:**
+
 - Accept "theirs" (main) for API routes - you'll lose PR #84 enhancements
 - Delete OpenAPI documentation comments
 - Remove rate limiting code
@@ -356,6 +369,7 @@ git push origin fix/consolidation-guardrails
 - Remove error handler imports
 
 ### ✅ **DO:**
+
 - Keep all PR #84 security enhancements
 - Merge new business logic from main
 - Test after resolving
@@ -399,10 +413,12 @@ Question: [what to do?]
 Mark files as you resolve them:
 
 ### Configuration (2)
+
 - [ ] `.env.local` - DELETE
 - [ ] `_deprecated/models-old/MarketplaceProduct.ts` - USE MAIN
 
 ### API Routes (20)
+
 - [ ] `app/api/aqar/map/route.ts`
 - [ ] `app/api/aqar/properties/route.ts`
 - [ ] `app/api/assistant/query/route.ts`
@@ -426,9 +442,11 @@ Mark files as you resolve them:
 - [ ] `app/api/work-orders/import/route.ts`
 
 ### Components (1)
+
 - [ ] `components/topbar/AppSwitcher.tsx`
 
 ### Infrastructure (1)
+
 - [ ] `server/copilot/retrieval.ts`
 
 ---

@@ -15,6 +15,7 @@ When using Next.js standalone mode (`output: 'standalone'` in `next.config.js`),
 - `public/` - Contains public assets
 
 The standalone server **does not automatically include** the static files, causing:
+
 - ✅ HTML loads (200 OK)
 - ❌ JavaScript files return 404 Not Found
 - ❌ Page stays on loading spinner forever
@@ -55,6 +56,7 @@ nohup node .next/standalone/server.js > logs/server.log 2>&1 &
 ## Verification
 
 ### Before Fix
+
 ```bash
 $ curl -I http://localhost:3000/_next/static/chunks/main-app-57a979c1ba4a8cee.js
 HTTP/1.1 404 Not Found  # ❌ JavaScript not found
@@ -64,6 +66,7 @@ $ curl http://localhost:3000
 ```
 
 ### After Fix
+
 ```bash
 $ curl -I http://localhost:3000/_next/static/chunks/main-app-57a979c1ba4a8cee.js
 HTTP/1.1 200 OK  # ✅ JavaScript accessible
@@ -103,6 +106,7 @@ $ curl http://localhost:3000
 When deploying to production (GoDaddy), ensure:
 
 1. **Build command includes static file copy:**
+
    ```bash
    npm run build
    cp -r .next/static .next/standalone/.next/
@@ -110,11 +114,13 @@ When deploying to production (GoDaddy), ensure:
    ```
 
 2. **Or use the provided start script:**
+
    ```bash
    ./start-server.sh
    ```
 
 3. **Alternative: Update next.config.js** (future improvement):
+
    ```javascript
    // Add to next.config.js
    experimental: {
@@ -141,8 +147,9 @@ When deploying to production (GoDaddy), ensure:
 ## Related Issues
 
 This is a known Next.js standalone limitation:
-- https://nextjs.org/docs/advanced-features/output-file-tracing
-- https://github.com/vercel/next.js/discussions/32828
+
+- <https://nextjs.org/docs/advanced-features/output-file-tracing>
+- <https://github.com/vercel/next.js/discussions/32828>
 
 ## Lessons Learned
 

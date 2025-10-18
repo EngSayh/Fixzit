@@ -238,7 +238,7 @@ async function seedDemoUsers() {
       } else {
         try {
           await (User as any).create(userWithHashedPassword);
-          console.log(`✅ Created user: ${userData.email} (${userData.professional.role})`);
+          console.log(`✅ Created user: ${userData.email} (${userData.professional?.role || 'user'})`);
           created++;
         } catch (error: any) {
           if (error.code === 11000) {

@@ -11,6 +11,7 @@
 ## ✅ COMPLETED FIXES (3/696)
 
 ### 1. Unused Variables Fixed
+
 - ✅ `app/api/ats/jobs/[id]/publish/route.ts` - Removed unused `_userId` variable
 - ✅ `app/api/ats/moderation/route.ts` - Removed unused `_user` variable  
 - ✅ `app/fm/invoices/page.tsx` - Fixed unused `onUpdated` parameter
@@ -20,10 +21,12 @@
 ## 🔄 IN PROGRESS
 
 ### Category 1: Unused Variables (107 remaining)
+
 **Priority**: HIGH  
 **Estimated Time**: 3-4 hours  
 
 **Files to Fix**:
+
 - app/api/billing/callback/paytabs/route.ts - `_client`
 - app/api/billing/charge-recurring/route.ts - `_client`
 - app/api/health/database/route.ts - `rateLimit`, `createSecureResponse`
@@ -51,7 +54,7 @@
 - db/mongoose.ts - `mongoose`
 - hooks/useScreenSize.ts - `isLarge`
 - hooks/useUnsavedChanges.tsx - `router`, `path`
-- i18n/dictionaries/__tests__/ar.test.ts - `path`
+- i18n/dictionaries/**tests**/ar.test.ts - `path`
 - i18n/useI18n.test.ts - `act`, `TestI18nProvider`, `setDict`
 - lib/auth.ts - `_UserDoc`, `_getJWTSecret`
 - lib/aws-secrets.ts - `region`
@@ -65,18 +68,20 @@
 - server/copilot/retrieval.ts - `SessionUser`
 - server/finance/invoice.service.ts - `mockService`, `ip`
 - server/models/Project.ts - `ProjectStatus`
-- server/models/__tests__/Candidate.test.ts - Multiple unused variables
+- server/models/**tests**/Candidate.test.ts - Multiple unused variables
 - server/security/idempotency.spec.ts - `expected`
 - server/work-orders/wo.service.ts - `VALID_TRANSITIONS`, `tenantId`
 - src/server/models/Project.ts - `_ProjectStatus`
-- src/server/models/__tests__/Candidate.test.ts - Multiple unused variables
+- src/server/models/**tests**/Candidate.test.ts - Multiple unused variables
 - test-powershell-heredoc.ts - `req`
 
 ### Category 2: Explicit `any` Types (235+ remaining)
+
 **Priority**: HIGH  
 **Estimated Time**: 15-20 hours  
 
 **Most Critical Files**:
+
 - lib/mongo.ts - 4 instances
 - app/api/assets/route.ts - 5 instances
 - app/api/assistant/query/route.ts - 5 instances
@@ -88,10 +93,12 @@
 - And 50+ more files...
 
 ### Category 3: Auth-Before-Rate-Limit Pattern (20+ files)
+
 **Priority**: HIGH (Security)  
 **Estimated Time**: 2-3 hours  
 
 **Pattern to Apply**:
+
 ```typescript
 // Move rate limiting AFTER authentication
 const user = await getSessionUser(req);
@@ -99,6 +106,7 @@ const rl = rateLimit(`${pathname}:${user.id}:${clientIp}`, 60, 60_000);
 ```
 
 **Files Requiring Fix**:
+
 - app/api/invoices/route.ts
 - app/api/assets/route.ts
 - app/api/help/articles/route.ts
@@ -107,6 +115,7 @@ const rl = rateLimit(`${pathname}:${user.id}:${clientIp}`, 60, 60_000);
 - And 15+ more files...
 
 ### Category 4: Error Handling Consistency
+
 **Priority**: MEDIUM  
 **Estimated Time**: 1-2 hours  
 
@@ -114,6 +123,7 @@ const rl = rateLimit(`${pathname}:${user.id}:${clientIp}`, 60, 60_000);
 **Solution**: Standardize all to use `createSecureResponse()`
 
 ### Category 5: Empty Catch Blocks
+
 **Priority**: LOW  
 **Status**: ✅ Only in test files (acceptable)
 
@@ -133,20 +143,24 @@ const rl = rateLimit(`${pathname}:${user.id}:${clientIp}`, 60, 60_000);
 
 ## 🎯 NEXT ACTIONS
 
-### Immediate (Next 2 hours):
+### Immediate (Next 2 hours)
+
 1. ✅ Fix remaining unused variables in API routes (high-impact, quick wins)
 2. ✅ Fix unused variables in test files
 3. ✅ Fix unused variables in components
 
-### Short Term (Next 4-6 hours):
+### Short Term (Next 4-6 hours)
+
 4. 🔄 Implement auth-before-rate-limit pattern across all API routes
 5. 🔄 Standardize error handling to use `createSecureResponse()`
 
-### Medium Term (Next 10-15 hours):
+### Medium Term (Next 10-15 hours)
+
 6. 🔄 Replace `any` types with proper TypeScript types
 7. 🔄 Add proper interfaces for all API responses
 
-### Long Term (Next 5-10 hours):
+### Long Term (Next 5-10 hours)
+
 8. 🔄 Complete OpenAPI documentation
 9. 🔄 Add request/response validation schemas
 10. 🔄 Final verification and testing
