@@ -10,7 +10,19 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 const schema = z.object({
-  to: z.enum(["IN_PROGRESS","ON_HOLD","COMPLETED","VERIFIED","CLOSED","CANCELLED"]),
+  to: z.enum([
+    "NEW",
+    "ASSESSMENT",
+    "ESTIMATE_PENDING",
+    "QUOTATION_REVIEW",
+    "PENDING_APPROVAL",
+    "APPROVED",
+    "IN_PROGRESS",
+    "WORK_COMPLETE",
+    "QUALITY_CHECK",
+    "FINANCIAL_POSTING",
+    "CLOSED"
+  ]),
   note: z.string().optional()
 });
 
@@ -82,14 +94,20 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
 
   // Role gate by target state
-  const need: Record<string,"STATUS"|"VERIFY"|"CLOSE"> = {
+  const statusGates: Record<string, "STATUS" | "VERIFY" | "CLOSE"> = {
+    NEW: "STATUS",
+    ASSESSMENT: "STATUS",
+    ESTIMATE_PENDING: "STATUS",
+    QUOTATION_REVIEW: "STATUS",
+    PENDING_APPROVAL: "STATUS",
+    APPROVED: "STATUS",
     IN_PROGRESS: "STATUS",
-    ON_HOLD: "STATUS",
-    COMPLETED: "STATUS",
-    VERIFIED: "VERIFY",
-    CLOSED: "CLOSE",
-    CANCELLED: "STATUS"};
-  const guard = need[body.to];
+    WORK_COMPLETE: "STATUS",
+    QUALITY_CHECK: "VERIFY",
+    FINANCIAL_POSTING: "STATUS",
+    CLOSED: "CLOSE"
+  };
+  const guard = statusGates[body.to] || "STATUS";
   const gate = await (await requireAbility(guard))(req);
   if (gate instanceof NextResponse) return gate;
 
