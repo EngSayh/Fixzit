@@ -460,8 +460,8 @@ ${errorReport.error.componentStack || 'No component stack available'}
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-6 text-center">
             {/* Error Icon */}
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-[var(--fixzit-danger-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[var(--fixzit-danger)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -481,11 +481,11 @@ ${errorReport.error.componentStack || 'No component stack available'}
 
             {/* Error ID */}
             {this.state.errorId && (
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm text-blue-800">
-                  <strong>Error ID:</strong> <code className="bg-blue-100 px-2 py-1 rounded text-xs">{this.state.errorId}</code>
+              <div className="mb-4 p-3 bg-[var(--fixzit-primary-lightest)] rounded-lg">
+                <div className="text-sm text-[var(--fixzit-primary-darker)]">
+                  <strong>Error ID:</strong> <code className="bg-[var(--fixzit-primary-lighter)] px-2 py-1 rounded text-xs">{this.state.errorId}</code>
                 </div>
-                <div className="text-xs text-blue-600 mt-1">
+                <div className="text-xs text-[var(--fixzit-primary)] mt-1">
                   Please include this ID when reporting the issue
                 </div>
               </div>
@@ -502,11 +502,11 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   {this.state.fixSuccessful ? '✅ Fixed' : '❌ Fix Failed'}
                 </span>
               )}
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+              <span className="px-3 py-1 rounded-full text-sm font-medium bg-[var(--fixzit-primary-lighter)] text-[var(--fixzit-primary-darker)]">
                 Retry: {this.state.retryCount || 0}/3
               </span>
               {this.state.ticketCreated && (
-                <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-[var(--fixzit-success-lighter)] text-[var(--fixzit-success-darker)]">
                   📝 Support Ticket: {this.state.ticketId}
                 </span>
               )}
@@ -523,7 +523,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   <button
                     onClick={this.handleRetry}
                     disabled={(this.state.retryCount || 0) >= 3}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-md hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     🔄 Retry ({3 - (this.state.retryCount || 0)} attempts left)
                   </button>
@@ -539,7 +539,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   {this.state.errorReport && (
                     <button
                       onClick={() => this.state.errorReport && this.copyErrorDetails(this.state.errorReport)}
-                      className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                      className="w-full px-4 py-2 bg-[var(--fixzit-secondary)] text-white rounded-md hover:bg-[var(--fixzit-secondary-dark)]"
                     >
                       📋 Copy Error Details
                     </button>
@@ -549,7 +549,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   {this.state.errorReport && !this.state.ticketCreated && (
                     <button
                       onClick={this.openSupport}
-                      className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      className="w-full px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-md hover:bg-[var(--fixzit-success-dark)]"
                     >
                       📝 Report to Support
                     </button>
@@ -557,7 +557,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
 
                   <a
                     href="/help"
-                    className="inline-block w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-center"
+                    className="inline-block w-full px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-md hover:bg-[var(--fixzit-accent-dark)] text-center"
                   >
                     📚 Get Help
                   </a>

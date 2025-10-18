@@ -449,7 +449,7 @@ Continue to learn about tenant relations!
         <div className="mb-6">
           <Link
             href="/help"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
+            className="inline-flex items-center gap-2 text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-dark)] mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Help Center
@@ -480,7 +480,7 @@ Continue to learn about tenant relations!
               <div className="text-sm text-gray-500">Progress</div>
               <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-[var(--fixzit-primary)] h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
@@ -511,9 +511,9 @@ Continue to learn about tenant relations!
                   >
                     <div className="flex items-center gap-3">
                       {completedSteps.has(index) ? (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
                       ) : currentStep === index ? (
-                        <Circle className="w-4 h-4 text-blue-600 fill-current" />
+                        <Circle className="w-4 h-4 text-[var(--fixzit-primary)] fill-current" />
                       ) : (
                         <Circle className="w-4 h-4 text-gray-400" />
                       )}
@@ -534,8 +534,8 @@ Continue to learn about tenant relations!
               {/* Step Header */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Play className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-600">Step {currentStep + 1}</span>
+                  <Play className="w-5 h-5 text-[var(--fixzit-primary)]" />
+                  <span className="text-sm font-medium text-[var(--fixzit-primary)]">Step {currentStep + 1}</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentStepData.title}</h2>
                 <p className="text-gray-600">{currentStepData.description}</p>
@@ -550,12 +550,12 @@ Continue to learn about tenant relations!
 
               {/* Tips */}
               {currentStepData.tips && (
-                <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">💡 Tips</h4>
+                <div className="mt-8 p-4 bg-[var(--fixzit-primary-lightest)] rounded-lg">
+                  <h4 className="font-semibold text-[var(--fixzit-primary-darkest)] mb-2">💡 Tips</h4>
                   <ul className="space-y-1">
                     {currentStepData.tips.map((tip, index) => (
-                      <li key={index} className="text-blue-800 text-sm flex items-start gap-2">
-                        <span className="text-blue-600 mt-1">•</span>
+                      <li key={index} className="text-[var(--fixzit-primary-darker)] text-sm flex items-start gap-2">
+                        <span className="text-[var(--fixzit-primary)] mt-1">•</span>
                         {tip}
                       </li>
                     ))}
@@ -575,7 +575,7 @@ Continue to learn about tenant relations!
 
                 <button
                   onClick={() => markStepComplete(currentStep)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-lg hover:bg-[var(--fixzit-success-dark)] transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Mark Complete
@@ -584,7 +584,7 @@ Continue to learn about tenant relations!
                 <button
                   onClick={() => setCurrentStep(Math.min(tutorial.steps.length - 1, currentStep + 1))}
                   disabled={currentStep === tutorial.steps.length - 1}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next →
                 </button>

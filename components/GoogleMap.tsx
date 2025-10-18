@@ -123,7 +123,7 @@ export default function GoogleMap({
     <div className="relative" style={{ height }}>
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader className="w-8 h-8 animate-spin text-[var(--fixzit-primary)]" />
         </div>
       )}
       <div ref={mapRef} className="w-full h-full rounded-lg" />

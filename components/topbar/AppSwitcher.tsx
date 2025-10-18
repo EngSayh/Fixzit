@@ -96,7 +96,7 @@ export default function AppSwitcher() {
                     </div>
                   </div>
                   {isActive && (
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <div className="w-2 h-2 rounded-full bg-[var(--fixzit-primary-light)]"></div>
                   )}
                 </Link>
               );

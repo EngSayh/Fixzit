@@ -66,7 +66,7 @@ export default function TenantsPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-purple-600 hover:bg-purple-700">
+            <Button className="bg-[var(--fixzit-secondary)] hover:bg-[var(--fixzit-secondary-dark)]">
               <Plus className="w-4 h-4 mr-2" />
               {t('fm.tenants.newTenant', 'New Tenant')}
             </Button>
@@ -124,7 +124,7 @@ export default function TenantsPage() {
             <Users className="w-12 h-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.tenants.noTenants', 'No Tenants Found')}</h3>
             <p className="text-gray-600 mb-4">{t('fm.tenants.noTenantsText', 'Get started by adding your first tenant.')}</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+            <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-secondary)] hover:bg-[var(--fixzit-secondary-dark)]">
               <Plus className="w-4 h-4 mr-2" />
               {t('fm.tenants.addTenant', 'Add Tenant')}
             </Button>
@@ -223,7 +223,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-600">{t('fm.tenants.leaseStatus', 'Lease Status')}:</span>
-            <Badge variant="outline" className="text-green-700 border-green-300">
+            <Badge variant="outline" className="text-[var(--fixzit-success-dark)] border-green-300">
               {activeProperties > 0 ? t('properties.leases.active', 'Active') : t('fm.tenants.noActiveLeases', 'No Active Leases')}
             </Badge>
           </div>
@@ -242,7 +242,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
           <Button variant="ghost" size="sm" aria-label={t('common.edit', 'Edit')} title={t('common.edit', 'Edit')}>
             <Edit className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')}>
+          <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]" aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
@@ -425,7 +425,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+        <Button type="submit" className="bg-[var(--fixzit-secondary)] hover:bg-[var(--fixzit-secondary-dark)]">
           {t('fm.tenants.createTenant', 'Create Tenant')}
         </Button>
       </div>

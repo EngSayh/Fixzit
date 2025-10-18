@@ -169,8 +169,8 @@ export default function SignupPage() {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-[var(--fixzit-success)]" />
               </div>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('signup.success.title', 'Account Created Successfully!')}</h2>
@@ -493,7 +493,7 @@ export default function SignupPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <div className="flex items-center gap-2 p-3 bg-[var(--fixzit-danger-lightest)] border border-red-200 rounded-lg text-[var(--fixzit-danger-dark)]">
                   <AlertCircle className="h-5 w-5" />
                   <span className="text-sm">{error}</span>
                 </div>

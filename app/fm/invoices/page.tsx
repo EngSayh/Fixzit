@@ -129,11 +129,11 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{t('fm.invoices.overdue', 'Overdue')}</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-2xl font-bold text-[var(--fixzit-danger)]">
                   {invoices.filter((inv: Invoice) => inv.status === 'OVERDUE').length}
                 </p>
               </div>
-              <AlertCircle className="w-8 h-8 text-red-600" />
+              <AlertCircle className="w-8 h-8 text-[var(--fixzit-danger)]" />
             </div>
           </CardContent>
         </Card>
@@ -143,11 +143,11 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{t('fm.invoices.pending', 'Pending')}</p>
-                <p className="text-2xl font-bold text-yellow-600">
+                <p className="text-2xl font-bold text-[var(--fixzit-accent)]">
                   {invoices.filter((inv: Invoice) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
                 </p>
               </div>
-              <Clock className="w-8 h-8 text-yellow-600" />
+              <Clock className="w-8 h-8 text-[var(--fixzit-accent)]" />
             </div>
           </CardContent>
         </Card>
@@ -157,14 +157,14 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{t('fm.invoices.paidThisMonth', 'Paid This Month')}</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-[var(--fixzit-success)]">
                   {invoices.filter((inv: Invoice) => 
                     inv.status === 'PAID' && 
                     new Date(inv.payments?.[0]?.date ?? '').getMonth() === new Date().getMonth()
                   ).length}
                 </p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-[var(--fixzit-success)]" />
             </div>
           </CardContent>
         </Card>
@@ -655,7 +655,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                     variant="ghost"
                     size="sm"
                     onClick={() => removeItem(index)}
-                    className="text-red-600"
+                    className="text-[var(--fixzit-danger)]"
                   >
                     ×
                   </Button>

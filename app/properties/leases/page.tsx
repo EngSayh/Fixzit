@@ -110,34 +110,34 @@ export default function PropertiesLeasesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('properties.leases.activeLeases', 'Active Leases')}</p>
-              <p className="text-2xl font-bold text-green-600">142</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">142</p>
             </div>
-            <div className="text-green-400">📄</div>
+            <div className="text-[var(--fixzit-success-lighter)]">📄</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('properties.leases.expiringSoon', 'Expiring Soon')}</p>
-              <p className="text-2xl font-bold text-yellow-600">8</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">8</p>
             </div>
-            <div className="text-yellow-400">⚠️</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('properties.leases.monthlyRevenue', 'Monthly Revenue')}</p>
-              <p className="text-2xl font-bold text-blue-600">SAR 1.2M</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">SAR 1.2M</p>
             </div>
-            <div className="text-blue-400">💰</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">💰</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('properties.leases.avgLeaseTerm', 'Avg. Lease Term')}</p>
-              <p className="text-2xl font-bold text-purple-600">18 {t('properties.leases.months', 'months')}</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">18 {t('properties.leases.months', 'months')}</p>
             </div>
             <div className="text-purple-400">📅</div>
           </div>
@@ -223,8 +223,8 @@ export default function PropertiesLeasesPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">{t('common.view', 'View')}</button>
-                      <button className="text-green-600 hover:text-green-900">{t('common.edit', 'Edit')}</button>
+                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.view', 'View')}</button>
+                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('common.edit', 'Edit')}</button>
                       <button className="text-orange-600 hover:text-orange-900">{t('properties.leases.renew', 'Renew')}</button>
                     </div>
                   </td>
@@ -245,7 +245,7 @@ export default function PropertiesLeasesPage() {
             { unit: 'B-305', tenant: 'Sarah Johnson', date: '2024-02-22', days: 19 },
             { unit: 'C-202', tenant: 'Mohammed Ali', date: '2024-03-01', days: 26 },
           ].map((renewal, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div key={index} className="flex items-center justify-between p-3 bg-[var(--fixzit-accent-lightest)] rounded-lg border border-yellow-200">
               <div>
                 <p className="font-medium">{renewal.unit} - {renewal.tenant}</p>
                 <p className="text-sm text-gray-600">{t('properties.leases.expires', 'Expires')}: {renewal.date} ({renewal.days} {t('common.days', 'days')})</p>

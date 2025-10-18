@@ -68,36 +68,36 @@ export default function PreventiveMaintenancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.scheduled', 'Scheduled')}</p>
-              <p className="text-2xl font-bold text-blue-600">8</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">8</p>
             </div>
-            <div className="text-blue-400">📅</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.pm.thisMonth', 'Due This Month')}</p>
-              <p className="text-2xl font-bold text-yellow-600">3</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
             </div>
-            <div className="text-yellow-400">⚠️</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('common.overdue', 'Overdue')}</p>
-              <p className="text-2xl font-bold text-red-600">2</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">2</p>
             </div>
-            <div className="text-red-400">🔴</div>
+            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.completed', 'Completed')}</p>
-              <p className="text-2xl font-bold text-green-600">15</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">15</p>
             </div>
-            <div className="text-green-400">✅</div>
+            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
         </div>
       </div>
@@ -153,8 +153,8 @@ export default function PreventiveMaintenancePage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.assigned}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">{t('common.edit', 'Edit')}</button>
-                      <button className="text-green-600 hover:text-green-900">{t('workOrders.pm.complete', 'Complete')}</button>
+                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>
+                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('workOrders.pm.complete', 'Complete')}</button>
                     </div>
                   </td>
                 </tr>

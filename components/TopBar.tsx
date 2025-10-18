@@ -334,7 +334,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             >
               <Bell className="w-5 h-5" />
               {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-[var(--fixzit-danger-light)] rounded-full animate-pulse"></span>
               )}
             </button>
             {notifOpen && (
@@ -405,7 +405,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                             </div>
                           </div>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
+                            <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full ml-2 flex-shrink-0"></div>
                           )}
                         </div>
                       </div>
@@ -424,7 +424,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="p-3 border-t border-gray-200 bg-gray-50">
                   <Link
                     href="/notifications"
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1"
+                    className="text-xs text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium flex items-center justify-center gap-1"
                     onClick={() => setNotifOpen(false)}
                   >
                     {t('common.viewAll', 'View all notifications')}
@@ -492,7 +492,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <button
                   type="button"
                   role="menuitem"
-                  className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
+                  className="block w-full text-left px-4 py-2 hover:bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger)] rounded transition-colors cursor-pointer"
                   onClick={handleLogout}
                 >
                   {t('common.logout', 'Sign out')}
@@ -523,7 +523,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 </button>
                 <button
                   onClick={handleDiscardAndNavigate}
-                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  className="px-4 py-2 text-[var(--fixzit-danger)] hover:bg-[var(--fixzit-danger-lightest)] rounded-md transition-colors"
                 >
                   {t('common.discard', 'Discard')}
                 </button>

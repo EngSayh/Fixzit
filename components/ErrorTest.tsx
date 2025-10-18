@@ -86,7 +86,7 @@ export default function ErrorTest() {
     return (
       <button
         onClick={() => setShowTest(true)}
-        className="fixed bottom-20 right-6 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 z-50"
+        className="fixed bottom-20 right-6 bg-[var(--fixzit-danger)] text-white px-4 py-2 rounded-lg shadow-lg hover:bg-[var(--fixzit-danger-dark)] z-50"
       >
         🧪 Test Error Boundary
       </button>
@@ -108,7 +108,7 @@ export default function ErrorTest() {
       <div className="space-y-2">
         <button
           onClick={triggerError}
-          className="w-full bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
+          className="w-full bg-[var(--fixzit-danger)] text-white px-3 py-2 rounded text-sm hover:bg-[var(--fixzit-danger-dark)]"
         >
           🔴 Runtime Error
         </button>
@@ -122,14 +122,14 @@ export default function ErrorTest() {
 
         <button
           onClick={triggerJSONError}
-          className="w-full bg-yellow-600 text-white px-3 py-2 rounded text-sm hover:bg-yellow-700"
+          className="w-full bg-[var(--fixzit-accent)] text-white px-3 py-2 rounded text-sm hover:bg-[var(--fixzit-accent-dark)]"
         >
           🟡 JSON Parse Error
         </button>
 
         <button
           onClick={triggerNetworkError}
-          className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
+          className="w-full bg-[var(--fixzit-primary)] text-white px-3 py-2 rounded text-sm hover:bg-[var(--fixzit-primary-dark)]"
         >
           🔵 Network Error
         </button>

@@ -406,8 +406,8 @@ Thank you for your interest in joining Fixzit Enterprise!
                           <CardTitle className="text-xl leading-tight">{job.title}</CardTitle>
                           <div className="text-xs text-gray-500">Fixzit Enterprise</div>
                         </div>
-                        {job.urgent && <div title="Urgent Position"><AlertTriangle className="w-5 h-5 text-red-500" /></div>}
-                        {job.featured && <div title="Featured Position"><Star className="w-5 h-5 text-yellow-500" /></div>}
+                        {job.urgent && <div title="Urgent Position"><AlertTriangle className="w-5 h-5 text-[var(--fixzit-danger-light)]" /></div>}
+                        {job.featured && <div title="Featured Position"><Star className="w-5 h-5 text-[var(--fixzit-accent-light)]" /></div>}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                         <MapPin className="w-4 h-4" />
@@ -445,12 +445,12 @@ Thank you for your interest in joining Fixzit Enterprise!
                         {job.status}
                       </Badge>
                       {job.urgent && (
-                        <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">
+                        <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-red-200 text-xs">
                           Urgent
                         </Badge>
                       )}
                       {job.featured && (
-                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">
+                        <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-yellow-200 text-xs">
                           Featured
                         </Badge>
                       )}
@@ -466,12 +466,12 @@ Thank you for your interest in joining Fixzit Enterprise!
                       <ul className="text-sm text-gray-600 space-y-1">
                         {job.requirements.slice(0, 2).map((req, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                            <span className="w-1.5 h-1.5 bg-[var(--fixzit-primary)] rounded-full mt-2 flex-shrink-0"></span>
                             {req}
                           </li>
                         ))}
                         {job.requirements.length > 2 && (
-                          <li className="text-blue-600 font-medium">
+                          <li className="text-[var(--fixzit-primary)] font-medium">
                             +{job.requirements.length - 2} more requirements
                           </li>
                         )}
@@ -482,12 +482,12 @@ Thank you for your interest in joining Fixzit Enterprise!
                       <ul className="text-sm text-gray-600 space-y-1">
                         {job.benefits.slice(0, 2).map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-2 flex-shrink-0"></span>
+                            <span className="w-1.5 h-1.5 bg-[var(--fixzit-success)] rounded-full mt-2 flex-shrink-0"></span>
                             {benefit}
                           </li>
                         ))}
                         {job.benefits.length > 2 && (
-                          <li className="text-green-600 font-medium">
+                          <li className="text-[var(--fixzit-success)] font-medium">
                             +{job.benefits.length - 2} more benefits
                           </li>
                         )}
@@ -525,23 +525,23 @@ Thank you for your interest in joining Fixzit Enterprise!
                               </div>
                             </div>
                             <div className="flex flex-col gap-2">
-                              {job.urgent && <Badge className="bg-red-100 text-red-800 border-red-200">Urgent</Badge>}
-                              {job.featured && <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Featured</Badge>}
+                              {job.urgent && <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-red-200">Urgent</Badge>}
+                              {job.featured && <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-yellow-200">Featured</Badge>}
                             </div>
                           </div>
                         </DialogHeader>
                         <div className="space-y-6">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div className="bg-blue-50 p-3 rounded-lg">
-                              <Label className="text-sm font-medium text-blue-800">Location</Label>
+                            <div className="bg-[var(--fixzit-primary-lightest)] p-3 rounded-lg">
+                              <Label className="text-sm font-medium text-[var(--fixzit-primary-darker)]">Location</Label>
                               <p className="text-gray-700 font-medium">{job.location}</p>
                             </div>
-                            <div className="bg-green-50 p-3 rounded-lg">
-                              <Label className="text-sm font-medium text-green-800">Salary Range</Label>
+                            <div className="bg-[var(--fixzit-success-lightest)] p-3 rounded-lg">
+                              <Label className="text-sm font-medium text-[var(--fixzit-success-darker)]">Salary Range</Label>
                               <p className="text-gray-700 font-medium">{job.salary}</p>
                             </div>
-                            <div className="bg-purple-50 p-3 rounded-lg">
-                              <Label className="text-sm font-medium text-purple-800">Job Type</Label>
+                            <div className="bg-[var(--fixzit-secondary-lightest)] p-3 rounded-lg">
+                              <Label className="text-sm font-medium text-[var(--fixzit-secondary-darker)]">Job Type</Label>
                               <p className="text-gray-700 font-medium">{job.type}</p>
                             </div>
                           </div>
@@ -557,7 +557,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                               <ul className="space-y-2">
                                 {job.requirements.map((req, index) => (
                                   <li key={index} className="flex items-start gap-3">
-                                    <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                                    <span className="w-2 h-2 bg-[var(--fixzit-primary)] rounded-full mt-2 flex-shrink-0"></span>
                                     <span className="text-gray-700">{req}</span>
                                   </li>
                                 ))}
@@ -568,7 +568,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                               <ul className="space-y-2">
                                 {job.benefits.map((benefit, index) => (
                                   <li key={index} className="flex items-start gap-3">
-                                    <span className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></span>
+                                    <span className="w-2 h-2 bg-[var(--fixzit-success)] rounded-full mt-2 flex-shrink-0"></span>
                                     <span className="text-gray-700">{benefit}</span>
                                   </li>
                                 ))}
