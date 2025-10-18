@@ -144,7 +144,7 @@ export default function HelpHome() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-16">{/* FIXED: was #023047 (banned) */}
         <div className="mx-auto max-w-7xl px-4 lg:px-6">

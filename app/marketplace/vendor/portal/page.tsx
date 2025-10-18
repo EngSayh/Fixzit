@@ -47,7 +47,7 @@ export default function VendorPortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       <div className="mx-auto max-w-7xl px-4 py-8">
         {/* Header */}
         <header className="mb-8">

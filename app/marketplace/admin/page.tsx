@@ -50,7 +50,7 @@ export default async function MarketplaceAdminPage() {
   const rfqs = rfqResponse.data;
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       
       <main className="mx-auto max-w-7xl space-y-8 px-4 py-8">
         <header>

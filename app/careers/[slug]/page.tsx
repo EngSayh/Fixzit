@@ -15,8 +15,8 @@ export default async function JobDetailPage(props: { params: Promise<{ slug: str
     );
   }
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-4xl mx-auto px-4 py-10">
+    <div className="min-h-screen bg-white flex flex-col">
+      <div className="max-w-4xl mx-auto px-4 py-12 flex-1">
         <a href="/careers" className="text-[#0061A8]">&larr; Back to Careers</a>
         <h1 className="text-3xl font-bold mt-3">{job.title}</h1>
         <div className="text-gray-600 mt-1">{job.department}</div>

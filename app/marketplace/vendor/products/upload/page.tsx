@@ -147,7 +147,7 @@ export default function VendorProductUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       <Toaster position="top-right" />
       
       <div className="mx-auto max-w-4xl px-4 py-8">

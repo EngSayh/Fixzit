@@ -29,7 +29,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
     );
   }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[#0061A8] to-[#0061A8] text-white py-12">{/* FIXED: was #023047 (banned) */}
         <div className="mx-auto max-w-4xl px-6">

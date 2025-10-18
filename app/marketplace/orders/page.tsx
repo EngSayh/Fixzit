@@ -40,7 +40,7 @@ export default async function OrdersPage() {
   const orders = ordersResponse.data;
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       
       <main className="mx-auto max-w-7xl px-4 py-8">
         <h1 className="text-3xl font-semibold text-[#0F1111]">Orders & Approvals</h1>

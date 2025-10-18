@@ -44,7 +44,7 @@ const SOUQ_FEATURES = [
 
 export default function SouqPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-[#00A859] to-[#FFB400] text-white py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">

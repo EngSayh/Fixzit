@@ -25,7 +25,7 @@ export default async function HelpArticlePage(props:{ params: Promise<{ slug:str
   const accept = (await headers()).get('accept-language') || '';
   const isRTL = accept.toLowerCase().startsWith('ar');
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Breadcrumb */}
       <section className="bg-gradient-to-r from-[#0061A8] to-[#00A859] text-white py-8">
         <div className="mx-auto max-w-4xl px-6">
@@ -39,7 +39,7 @@ export default async function HelpArticlePage(props:{ params: Promise<{ slug:str
       </section>
       
       {/* Content */}
-      <div className="mx-auto max-w-4xl px-6 py-10">
+      <div className="mx-auto max-w-4xl px-6 py-10 flex-1">
         <div className="grid md:grid-cols-[1fr_280px] gap-8">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
             <article

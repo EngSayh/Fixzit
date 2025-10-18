@@ -42,9 +42,9 @@ export default async function CartPage() {
   const cart = cartResponse.data;
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 flex-1">
         <h1 className="text-3xl font-semibold text-[#0F1111]">Shopping Cart</h1>
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
           <section className="space-y-4">
