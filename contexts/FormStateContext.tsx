@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, useCallback, ReactNode } fr
 
 interface FormStateContextType {
   hasUnsavedChanges: boolean;
-  registerForm: (formId: string) => void;
   unregisterForm: (formId: string) => void;
   markFormDirty: (formId: string) => void;
   markFormClean: (formId: string) => void;
@@ -17,10 +16,6 @@ const FormStateContext = createContext<FormStateContextType | undefined>(undefin
 export function FormStateProvider({ children }: { children: ReactNode }) {
   const [dirtyForms, setDirtyForms] = useState<Set<string>>(new Set());
   const [saveCallbacks, setSaveCallbacks] = useState<Map<string, () => Promise<void>>>(new Map());
-
-  const registerForm = useCallback((_formId: string) => {
-    // Form is registered but not dirty yet
-  }, []);
 
   const unregisterForm = useCallback((formId: string) => {
     setDirtyForms(prev => {
@@ -70,7 +65,6 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
     <FormStateContext.Provider
       value={{
         hasUnsavedChanges,
-        registerForm,
         unregisterForm,
         markFormDirty,
         markFormClean,
