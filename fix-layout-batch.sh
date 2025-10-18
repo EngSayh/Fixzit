@@ -6,10 +6,13 @@
 echo "Starting batch layout fix..."
 
 # Function to safely apply sed with backup and error checking
+# Params:
+#   $1 - file path
+#   $2 - sed pattern
+# Returns: 0 on success, 1 on failure
 safe_sed() {
   local file="$1"
   local pattern="$2"
-  local replacement="$3"
   
   if [ ! -f "$file" ]; then
     echo "  ⚠️  File not found: $file"
@@ -17,20 +20,20 @@ safe_sed() {
   fi
   
   echo "  Processing $file..."
-  if sed -i.bak "$pattern" "$file" 2>/dev/null; then
-    if [ $? -eq 0 ]; then
-      echo "  ✓ Successfully updated $file"
-      return 0
-    else
-      echo "  ✗ sed failed for $file (exit code: $?)"
-      # Restore from backup if sed failed
-      if [ -f "$file.bak" ]; then
-        mv "$file.bak" "$file"
-      fi
-      return 1
-    fi
+  # Store exit code immediately to avoid SC2319
+  sed -i.bak "$pattern" "$file" 2>/dev/null
+  local sed_exit=$?
+  
+  if [ $sed_exit -eq 0 ]; then
+    echo "  ✓ Successfully updated $file"
+    return 0
   else
-    echo "  ✗ sed command failed for $file"
+    echo "  ✗ sed failed for $file (exit code: $sed_exit)"
+    # Restore from backup if sed failed
+    if [ -f "$file.bak" ]; then
+      mv "$file.bak" "$file"
+      echo "  ↩️  Restored from backup"
+    fi
     return 1
   fi
 }
