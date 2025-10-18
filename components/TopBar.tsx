@@ -173,6 +173,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   }, [notifOpen, userOpen, closeAllPopups]);
 
+  /**
+   * Formats a timestamp into a human-readable "time ago" string
+   * @param timestamp - ISO 8601 timestamp string
+   * @returns Formatted string like "2h ago", "Just now", "3d ago"
+   * @example
+   * formatTimeAgo('2024-01-20T10:30:00Z') // "2h ago" (if current time is 12:30)
+   */
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
     const time = new Date(timestamp);
@@ -184,6 +191,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
+  /**
+   * Returns Tailwind CSS text color class based on notification priority
+   * @param priority - Priority level: 'high', 'medium', 'low', or other
+   * @returns Tailwind text color class string
+   * @example
+   * getPriorityColor('high') // 'text-red-600'
+   */
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'text-red-600';
@@ -193,6 +207,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   };
 
+  /**
+   * Handles user logout: clears server session, removes client storage (preserves language), redirects to login
+   * @async
+   * @returns Promise that resolves after logout completes
+   * @example
+   * await handleLogout() // Clears auth, redirects to /login with language preserved
+   */
   const handleLogout = async () => {
     try {
       // Call logout API to clear server-side session
