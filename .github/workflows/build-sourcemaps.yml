@@ -33,9 +33,9 @@ jobs:
           # etc.
       
       - name: Upload source maps to Sentry (if configured)
-        # Note: Conditional check requires secrets to be configured in repository settings
-        # This step will be skipped if SENTRY_AUTH_TOKEN is not set
-        if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
+        # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
+        # Secrets must be set in: Repository Settings > Secrets and variables > Actions
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
