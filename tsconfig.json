@@ -44,8 +44,10 @@
       "jest"
     ],
     // NOTE: baseUrl is deprecated and will stop functioning in TypeScript 7.0
-    // Migration to modern imports recommended but not urgent (TS 7.0 not released yet)
-    // Current workaround: Accept the deprecation warning as it doesn't affect functionality
+    // TypeScript team recommends migration but it's not urgent (TS 7.0 not released)
+    // Attempted fix with ignoreDeprecations: "6.0" caused TS5103 error
+    // Decision: Accept the deprecation warning as informational only
+    // See: https://aka.ms/ts6 for migration information when TS 7.0 is released
     "baseUrl": ".",
     "paths": {
       "@/*": [
