@@ -37,6 +37,12 @@ module.exports = {
     'tests/**/*',
     '_deprecated/**/*',
     'aws/dist/**/*',
+    // Test files
+    '**/__tests__/**/*',
+    '**/*.test.ts',
+    '**/*.test.tsx',
+    '**/*.spec.ts',
+    '**/*.spec.tsx',
     // Specific files
     'test-*.js',
     'test-auth.js',

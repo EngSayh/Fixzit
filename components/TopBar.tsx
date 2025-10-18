@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, User, ChevronDown, Search, Globe, DollarSign } from 'lucide-react';
+import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
 import AppSwitcher from './topbar/AppSwitcher';
@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+import { useFormState } from '@/contexts/FormStateContext';
 
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {
@@ -67,10 +68,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
+
+  // Use FormStateContext for unsaved changes detection
+  const formState = useFormState();
+  const hasUnsavedChanges = formState.hasUnsavedChanges;
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -103,51 +108,38 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     checkAuth();
   }, []);
 
-  // Check for unsaved changes (detect form modifications)
-  useEffect(() => {
-    const checkUnsavedChanges = () => {
-      const forms = document.querySelectorAll('form');
-      let hasChanges = false;
-      forms.forEach(form => {
-        if (form.dataset.modified === 'true') {
-          hasChanges = true;
-        }
-      });
-      setHasUnsavedChanges(hasChanges);
-    };
-
-    // Check periodically
-    const interval = setInterval(checkUnsavedChanges, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
     if (hasUnsavedChanges) {
       e.preventDefault();
       setShowUnsavedDialog(true);
+      setPendingNavigation('/');
     } else {
       router.push('/');
     }
   };
 
-  // Handle save and navigate
-  const handleSaveAndNavigate = () => {
-    // Trigger form submission on the page
-    const forms = document.querySelectorAll('form[data-modified="true"]');
-    if (forms.length > 0) {
-      const form = forms[0] as HTMLFormElement;
-      form.requestSubmit();
+  // Handle save and navigate - use event-driven pattern
+  const handleSaveAndNavigate = async () => {
+    try {
+      await formState.requestSave();
+      setShowUnsavedDialog(false);
+      if (pendingNavigation) {
+        router.push(pendingNavigation);
+        setPendingNavigation(null);
+      }
+    } catch (error) {
+      console.error('Failed to save form:', error);
     }
-    setShowUnsavedDialog(false);
-    setTimeout(() => router.push('/'), 500);
   };
 
   // Handle discard and navigate
   const handleDiscardAndNavigate = () => {
     setShowUnsavedDialog(false);
-    setHasUnsavedChanges(false);
-    router.push('/');
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    }
   };
 
   // Define fetchNotifications before using it
@@ -506,9 +498,17 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       {/* Unsaved Changes Dialog */}
       {showUnsavedDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-dialog-title"
+          >
             <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 
+                id="unsaved-dialog-title"
+                className="text-lg font-semibold text-gray-900 mb-2"
+              >
                 {t('common.unsavedChanges', 'Unsaved Changes')}
               </h3>
               <p className="text-gray-600 mb-6">

@@ -5,6 +5,7 @@ import { TranslationProvider } from '@/contexts/TranslationContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { ResponsiveProvider } from '@/contexts/ResponsiveContext';
 import { TopBarProvider } from '@/contexts/TopBarContext';
+import { FormStateProvider } from '@/contexts/FormStateContext';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -46,16 +47,18 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           <CurrencyProvider>
             <ThemeProvider>
               <TopBarProvider>
-                <ErrorBoundary>
-                  {isClient ? children : (
-                    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
-                        <p className="text-gray-600">Loading...</p>
+                <FormStateProvider>
+                  <ErrorBoundary>
+                    {isClient ? children : (
+                      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
+                          <p className="text-gray-600">Loading...</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </ErrorBoundary>
+                    )}
+                  </ErrorBoundary>
+                </FormStateProvider>
               </TopBarProvider>
             </ThemeProvider>
           </CurrencyProvider>
