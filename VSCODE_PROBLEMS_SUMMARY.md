@@ -9,10 +9,12 @@
 ## Executive Summary
 
 VS Code Problems panel shows:
+
 - **5 compiler/lint warnings**
 - **22+ TODO comments** flagged by task detection
 
 **Breakdown:**
+
 - ✅ **1 FIXABLE** - TypeScript baseUrl deprecation
 - ⚠️ **4 FALSE POSITIVES** - GitHub Actions secrets (VS Code parser limitation)
 - 📝 **22 TODOs** - Legitimate future work items (not errors)
@@ -27,13 +29,15 @@ VS Code Problems panel shows:
 **Type:** TypeScript Warning (non-breaking)
 
 **Message:**
-```
+
+```text
 Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. 
 Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 Visit https://aka.ms/ts6 for migration information.
 ```
 
 **Current Code:**
+
 ```json
 {
   "compilerOptions": {
@@ -46,13 +50,15 @@ Visit https://aka.ms/ts6 for migration information.
 ```
 
 **Impact:** LOW
+
 - TypeScript 7.0 not released yet (current: 5.x)
 - Functionality works perfectly today
 - Migration path documented by Microsoft
 
 **Fix Options:**
 
-**Option A: Silence the warning (recommended for now)**
+### Option A: Silence the warning (recommended for now)
+
 ```json
 {
   "compilerOptions": {
@@ -65,7 +71,8 @@ Visit https://aka.ms/ts6 for migration information.
 }
 ```
 
-**Option B: Migrate to modern path mapping (future-proof)**
+### Option B: Migrate to modern path mapping (future-proof)
+
 ```json
 {
   "compilerOptions": {
@@ -91,6 +98,7 @@ Visit https://aka.ms/ts6 for migration information.
 **Type:** GitHub Actions YAML Lint (VS Code parser issue)
 
 **Messages:**
+
 ```yaml
 Line 38: Unrecognized named-value: 'secrets'
 Line 40: Context access might be invalid: SENTRY_AUTH_TOKEN
@@ -99,6 +107,7 @@ Line 42: Context access might be invalid: SENTRY_PROJECT
 ```
 
 **Current Code:**
+
 ```yaml
 - name: Upload source maps to Sentry (if configured)
   if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}  # ⚠️ Line 38 - false positive
@@ -113,7 +122,7 @@ Line 42: Context access might be invalid: SENTRY_PROJECT
 **Why This is a FALSE POSITIVE:**
 
 1. **`secrets` context IS valid** in GitHub Actions
-   - Official docs: https://docs.github.com/en/actions/learn-github-actions/contexts#secrets-context
+   - Official docs: <https://docs.github.com/en/actions/learn-github-actions/contexts#secrets-context>
    - Used in thousands of production workflows
 
 2. **VS Code's YAML parser is limited**
@@ -126,6 +135,7 @@ Line 42: Context access might be invalid: SENTRY_PROJECT
    - Secrets are properly accessed in production
 
 **Verification:**
+
 ```bash
 # Official GitHub Actions linter shows NO issues
 $ npx actionlint .github/workflows/build-sourcemaps.yml
@@ -135,8 +145,9 @@ $ npx actionlint .github/workflows/build-sourcemaps.yml
 **Recommendation:** IGNORE these warnings. They're VS Code parser limitations, not real errors.
 
 **Documentation:**
-- GitHub Actions contexts: https://docs.github.com/en/actions/learn-github-actions/contexts
-- Using secrets in workflows: https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions
+
+- GitHub Actions contexts: <https://docs.github.com/en/actions/learn-github-actions/contexts>
+- Using secrets in workflows: <https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions>
 
 ---
 
@@ -149,6 +160,7 @@ VS Code's task detection flags TODO/FIXME/HACK/XXX comments. These are **not err
 These are placeholder comments for features not yet implemented:
 
 **File:** `hooks/useFMPermissions.ts`
+
 ```typescript
 // TODO: Replace with actual session hook when available (line 33)
 plan: Plan.PRO // TODO: Get from user/org subscription (line 62)
@@ -156,6 +168,7 @@ isOrgMember: true // TODO: Verify org membership (line 82)
 ```
 
 **File:** `lib/fm-notifications.ts`
+
 ```typescript
 // TODO: Integrate with FCM or Web Push (line 188)
 // TODO: Integrate with email service (SendGrid, AWS SES, etc.) (line 199)
@@ -164,6 +177,7 @@ isOrgMember: true // TODO: Verify org membership (line 82)
 ```
 
 **File:** `lib/fm-finance-hooks.ts`
+
 ```typescript
 // TODO: Save to FMFinancialTxn collection (line 94, 118)
 // TODO: Query existing statement or create new one (line 145)
@@ -173,6 +187,7 @@ isOrgMember: true // TODO: Verify org membership (line 82)
 ```
 
 **File:** `lib/fm-auth-middleware.ts`
+
 ```typescript
 plan: Plan.PRO, // TODO: Get from user/org subscription (line 124)
 ```
@@ -188,6 +203,7 @@ plan: Plan.PRO, // TODO: Get from user/org subscription (line 124)
 These are in developer tools, not production code:
 
 **File:** `tools/analyzers/analyze-comments.js`
+
 ```javascript
 TODO: [],      // line 23 - data structure
 FIXME: [],     // line 24 - data structure
@@ -197,6 +213,7 @@ XXX: [],       // line 26 - data structure
 ```
 
 **File:** `smart-merge-conflicts.ts`
+
 ```typescript
 '// TODO: Review this merge - both sides had changes' (line 138)
 if (content.includes('TODO: Review this merge')) (line 229)
@@ -214,11 +231,13 @@ console.log('Files with "TODO: Review this merge" comments...') (line 252)
 These are i18n translation keys, not actual TODO comments:
 
 **File:** `i18n/dictionaries/en.ts`
+
 ```typescript
 todo: 'To-Do',  // line 5533 - translation key
 ```
 
 **File:** `i18n/dictionaries/ar.ts`
+
 ```typescript
 todo: 'قائمة المهام',  // line 5561 - translation key (Arabic)
 ```
@@ -249,6 +268,7 @@ todo: 'قائمة المهام',  // line 5561 - translation key (Arabic)
 ### IMMEDIATE (Before Merge)
 
 **Fix TypeScript baseUrl warning:**
+
 ```bash
 # Edit tsconfig.json
 nano tsconfig.json
@@ -258,6 +278,7 @@ nano tsconfig.json
 ```
 
 **Updated tsconfig.json:**
+
 ```json
 {
   "compilerOptions": {
@@ -276,7 +297,7 @@ nano tsconfig.json
 1. **Plan TypeScript 7.0 migration**
    - Remove `baseUrl` entirely
    - Use modern path mapping
-   - See: https://aka.ms/ts6
+   - See: <https://aka.ms/ts6>
 
 2. **Implement FM module TODOs**
    - Add real session hook (useFMPermissions.ts)
@@ -315,6 +336,7 @@ To reduce noise from false positives, add to `.vscode/settings.json`:
 ```
 
 This will:
+
 1. Use proper GitHub Actions schema for YAML files
 2. Configure TODO tree to ignore false positives
 3. Exclude translation files from TODO detection
@@ -323,7 +345,8 @@ This will:
 
 ## Final Verdict
 
-**Total VS Code "Problems": 27**
+### Total VS Code "Problems": 27
+
 - **5 Compiler/Lint warnings** (1 fixable, 4 false positives)
 - **22 TODO comments** (9 future work, 8 dev tools, 2 translation keys)
 
@@ -333,4 +356,3 @@ This will:
 **Blockers:** 0
 
 **Conclusion:** ✅ **NO BLOCKING ISSUES** - Only 1 optional warning suppression needed.
-

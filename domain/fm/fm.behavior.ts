@@ -148,6 +148,11 @@ export const ROLE_MODULE_ACCESS: Record<Role, Partial<Record<ModuleKey, boolean>
 /* =========================
  * 3) Role × Submodule → Actions (RBAC core)
  * ========================= */
+/** Actions that only assigned technicians can perform */
+export const TECHNICIAN_ASSIGNED_ACTIONS: Action[] = [
+  'start_work','pause_work','complete_work','submit_estimate','attach_quote'
+];
+
 type ActionsBySubmodule = Partial<Record<SubmoduleKey, Action[]>>;
 export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   [Role.SUPER_ADMIN]: {
@@ -234,7 +239,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   [Role.TECHNICIAN]: {
     WO_CREATE: ['view','comment'],
     WO_TRACK_ASSIGN: [
-      'view','update','submit_estimate','attach_quote','upload_media','start_work','pause_work','complete_work'
+      'view','update',...TECHNICIAN_ASSIGNED_ACTIONS,'upload_media'
     ],
     WO_PM: ['view','update'],
     WO_SERVICE_HISTORY: ['view'],
@@ -273,6 +278,7 @@ type ResourceCtx = {
   isOrgMember: boolean;
   isOwnerOfProperty?: boolean;
   isTechnicianAssigned?: boolean;
+  uploadedMedia?: Array<'BEFORE' | 'DURING' | 'AFTER' | 'QUOTE'>;
 };
 
 export function can(
@@ -291,11 +297,15 @@ export function can(
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
   if (ctx.role === Role.TENANT && action !== 'create') {
+    // Allow tenants to view their own work orders, restrict other actions
+    if (action === 'view') {
+      return ctx.requesterUserId ? ctx.requesterUserId === ctx.userId : true;
+    }
     return ctx.requesterUserId === ctx.userId;
   }
 
-  if (ctx.role === Role.PROPERTY_OWNER || ctx.role === Role.OWNER_DEPUTY) {
-    if (ctx.propertyId && !ctx.isOwnerOfProperty) return false;
+  if (ctx.role === Role.TECHNICIAN && TECHNICIAN_ASSIGNED_ACTIONS.includes(action)) {
+    return !!ctx.isTechnicianAssigned;
   }
 
   if (ctx.role === Role.TECHNICIAN && ['start_work','pause_work','complete_work','submit_estimate','attach_quote'].includes(action)) {
@@ -530,6 +540,10 @@ export const FMDocument = mongoose.models.FMDocument ?? mongoose.model('FMDocume
 export const DEFAULT_APPROVALS = APPROVAL_POLICIES;
 export const DEFAULT_SLA = SLA;
 
+/**
+ * Smoke test utility for basic RBAC and FSM checks.
+ * Intended for development and maintenance validation, not for production use.
+ */
 export function smokeTests() {
   const tenantCtx: ResourceCtx = {
     orgId: 'o1', plan: Plan.STANDARD, role: Role.TENANT, userId: 'u1',
@@ -544,16 +558,28 @@ export function smokeTests() {
   };
   console.assert(can(SubmoduleKey.WO_TRACK_ASSIGN, 'submit_estimate', techCtx), 'Tech can submit estimate when assigned');
 }
+```
 
 /* =========================
  * 10) Helper: FSM guard example
  * ========================= */
 
-export function canTransition(from: WOStatus, to: WOStatus, actorRole: Role, ctx: ResourceCtx) {
-  const t = WORK_ORDER_FSM.transitions.find(x => x.from === from && x.to === to && (x.by as Role[]).includes(actorRole));
-  if (!t) return false;
-  if (t.requireMedia?.includes('BEFORE') && !ctx) return false;
-  if (t.requireMedia?.includes('AFTER') && !ctx) return false;
+/**
+ * Check if required media attachments exist in the work order context
+ */
+export function hasRequiredMedia(ctx: ResourceCtx, mediaType: 'BEFORE' | 'AFTER'): boolean {
+  if (!ctx.uploadedMedia || ctx.uploadedMedia.length === 0) {
+    return false;
+  }
+  return ctx.uploadedMedia.includes(mediaType);
+}
+```
+  if (t.requireMedia?.includes('AFTER') && !hasRequiredMedia(ctx, 'AFTER')) return false;
+  // Check guard condition for technician assignment
+  const transition = t as { guard?: string };
+  if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+  return true;
+}
   // Check guard condition for technician assignment
   const transition = t as { guard?: string };
   if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
