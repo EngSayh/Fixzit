@@ -1,9 +1,13 @@
 /**
  * FM Approval Routing Engine
  * Routes quotations to appropriate approvers based on APPROVAL_POLICIES
+ * 
+ * NOW WITH PERSISTENCE: Uses FMApproval model for database storage
  */
 
 import { APPROVAL_POLICIES, Role } from '@/domain/fm/fm.behavior';
+import { FMApproval } from '@/src/server/models/FMApproval';
+import type { Schema } from 'mongoose';
 
 export interface ApprovalRequest {
   quotationId: string;
@@ -220,15 +224,217 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
 }
 
 /**
+ * Save approval workflow to database
+ */
+export async function saveApprovalWorkflow(
+  workflow: ApprovalWorkflow,
+  request: ApprovalRequest
+): Promise<void> {
+  try {
+    const firstStage = workflow.stages[0];
+    const approverId = firstStage.approvers[0] || 'system';
+    const approverRole = firstStage.approverRoles[0] || 'PROPERTY_MANAGER';
+
+    await FMApproval.create({
+      orgId: request.orgId,
+      type: 'QUOTATION',
+      entityType: 'WorkOrder',
+      entityId: request.workOrderId,
+      entityNumber: request.workOrderId,
+      amount: request.amount,
+      currency: 'SAR',
+      thresholdLevel: `L${workflow.stages.length}`,
+      workflowId: workflow.requestId,
+      currentStage: workflow.currentStage,
+      totalStages: workflow.stages.length,
+      approverId,
+      approverName: 'TBD', // Will be populated with actual user data
+      approverEmail: 'tbd@example.com',
+      approverRole,
+      status: 'PENDING',
+      dueDate: new Date(Date.now() + firstStage.timeout),
+      timeoutMinutes: firstStage.timeout / 60000,
+      history: [{
+        timestamp: new Date(),
+        action: 'CREATED',
+        actorId: request.requestedBy,
+        actorName: 'System',
+        previousStatus: 'NEW',
+        newStatus: 'PENDING',
+        notes: `Approval workflow created for ${request.category} worth ${request.amount}`
+      }]
+    });
+    
+    console.log('[Approval] Workflow saved to database:', workflow.requestId);
+  } catch (error) {
+    console.error('[Approval] Failed to save workflow:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get workflow by ID
+ */
+export async function getWorkflowById(workflowId: string, orgId: string): Promise<ApprovalWorkflow | null> {
+  try {
+    const approval = await FMApproval.findOne({ 
+      workflowId, 
+      orgId 
+    }).lean();
+    
+    if (!approval) return null;
+
+    // Convert FMApproval to ApprovalWorkflow format
+    return {
+      requestId: approval.workflowId.toString(),
+      quotationId: approval.entityId.toString(),
+      workOrderId: approval.entityId.toString(),
+      stages: [{
+        stage: approval.currentStage,
+        approvers: [approval.approverId.toString()],
+        approverRoles: [approval.approverRole as Role],
+        type: 'sequential',
+        timeout: approval.timeoutMinutes * 60000,
+        status: approval.status === 'APPROVED' ? 'approved' : 
+                approval.status === 'REJECTED' ? 'rejected' : 'pending',
+        decisions: []
+      }],
+      currentStage: approval.currentStage,
+      status: approval.status === 'APPROVED' ? 'approved' :
+              approval.status === 'REJECTED' ? 'rejected' : 'pending',
+      createdAt: approval.createdAt as Date,
+      updatedAt: approval.updatedAt as Date
+    };
+  } catch (error) {
+    console.error('[Approval] Failed to get workflow:', error);
+    return null;
+  }
+}
+
+/**
+ * Update approval decision in database
+ */
+export async function updateApprovalDecision(
+  workflowId: string,
+  orgId: string,
+  approverId: string,
+  decision: 'APPROVE' | 'REJECT' | 'DELEGATE',
+  notes?: string,
+  delegateTo?: string
+): Promise<void> {
+  try {
+    const approval = await FMApproval.findOne({ workflowId, orgId });
+    if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
+
+    // Update status
+    approval.status = decision === 'APPROVE' ? 'APPROVED' : 
+                      decision === 'REJECT' ? 'REJECTED' : 'DELEGATED';
+    approval.decision = decision;
+    approval.decisionDate = new Date();
+    approval.notes = notes;
+
+    if (decision === 'DELEGATE' && delegateTo) {
+      approval.delegatedTo = delegateTo as unknown as Schema.Types.ObjectId;
+      approval.delegationDate = new Date();
+      approval.delegationReason = notes;
+    }
+
+    // Add to history
+    approval.history.push({
+      timestamp: new Date(),
+      action: decision,
+      actorId: approverId as unknown as Schema.Types.ObjectId,
+      actorName: 'TBD',
+      previousStatus: 'PENDING',
+      newStatus: approval.status,
+      notes
+    });
+
+    await approval.save();
+    console.log('[Approval] Decision recorded:', workflowId, decision);
+  } catch (error) {
+    console.error('[Approval] Failed to update decision:', error);
+    throw error;
+  }
+}
+
+/**
  * Get pending approvals for a user
  */
 export async function getPendingApprovalsForUser(
-  _userId: string,
-  _userRole: Role
+  userId: string,
+  _userRole: Role,
+  orgId: string
 ): Promise<ApprovalWorkflow[]> {
-  // TODO: Query FMApproval collection
-  // For now, return empty array
-  return [];
+  try {
+    const approvals = await FMApproval.find({
+      orgId,
+      approverId: userId,
+      status: 'PENDING'
+    }).lean();
+
+    return approvals.map(approval => ({
+      requestId: approval.workflowId.toString(),
+      quotationId: approval.entityId.toString(),
+      workOrderId: approval.entityId.toString(),
+      stages: [{
+        stage: approval.currentStage,
+        approvers: [approval.approverId.toString()],
+        approverRoles: [approval.approverRole as Role],
+        type: 'sequential',
+        timeout: approval.timeoutMinutes * 60000,
+        status: 'pending',
+        decisions: []
+      }],
+      currentStage: approval.currentStage,
+      status: 'pending',
+      createdAt: approval.createdAt as Date,
+      updatedAt: approval.updatedAt as Date
+    }));
+  } catch (error) {
+    console.error('[Approval] Failed to get pending approvals:', error);
+    return [];
+  }
+}
+
+/**
+ * Check for approval timeouts and escalate
+ */
+export async function checkApprovalTimeouts(orgId: string): Promise<void> {
+  try {
+    const overdueApprovals = await FMApproval.find({
+      orgId,
+      status: 'PENDING',
+      dueDate: { $lt: new Date() },
+      escalationSentAt: null
+    });
+
+    for (const approval of overdueApprovals) {
+      approval.status = 'ESCALATED';
+      approval.escalationDate = new Date();
+      approval.escalationSentAt = new Date();
+      approval.escalatedReason = 'Approval timeout exceeded';
+
+      approval.history.push({
+        timestamp: new Date(),
+        action: 'ESCALATED',
+        actorId: 'system' as unknown as Schema.Types.ObjectId,
+        actorName: 'System',
+        previousStatus: 'PENDING',
+        newStatus: 'ESCALATED',
+        notes: 'Automatically escalated due to timeout'
+      });
+
+      await approval.save();
+      console.log('[Approval] Escalated:', approval.approvalNumber);
+      
+      // TODO: Send escalation notifications
+    }
+
+    console.log(`[Approval] Processed ${overdueApprovals.length} timeout escalations`);
+  } catch (error) {
+    console.error('[Approval] Failed to check timeouts:', error);
+  }
 }
 
 /**

@@ -2,14 +2,23 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
 
-// Work Order Status - State Machine as per specification
+// Work Order Status - Complete State Machine (as per competitor analysis)
+// Added 7 missing states: ASSESSMENT, ESTIMATE_PENDING, QUOTATION_REVIEW,
+// APPROVAL_PENDING, WORK_COMPLETE, QUALITY_CHECK, FINANCIAL_POSTING
 const WorkOrderStatus = [
   "DRAFT",
-  "SUBMITTED", 
+  "SUBMITTED",
+  "ASSESSMENT",           // NEW: Initial assessment phase
+  "ESTIMATE_PENDING",     // NEW: Waiting for cost estimation
+  "QUOTATION_REVIEW",     // NEW: Client reviewing quotation
+  "APPROVAL_PENDING",     // NEW: Awaiting approval (renamed from PENDING_APPROVAL)
+  "APPROVED",             // NEW: Approved, ready to assign
   "ASSIGNED",
   "IN_PROGRESS",
   "ON_HOLD",
-  "PENDING_APPROVAL",
+  "WORK_COMPLETE",        // NEW: Work done, pending verification
+  "QUALITY_CHECK",        // NEW: QA inspection phase
+  "FINANCIAL_POSTING",    // NEW: Finance auto-posting
   "COMPLETED",
   "VERIFIED",
   "CLOSED",
@@ -403,16 +412,23 @@ WorkOrderSchema.index({ orgId: 1, 'sla.resolutionDeadline': 1 });
 WorkOrderSchema.index({ orgId: 1, 'recurrence.nextScheduledDate': 1 });
 WorkOrderSchema.index({ title: "text", description: "text", 'work.solutionDescription': "text" });
 
-// State machine validation
+// State machine validation with complete workflow
 WorkOrderSchema.pre('save', function(next) {
-  // Validate status transitions
+  // Enhanced valid transitions for complete FSM
   const validTransitions: Record<string, string[]> = {
     DRAFT: ['SUBMITTED', 'CANCELLED'],
-    SUBMITTED: ['ASSIGNED', 'REJECTED', 'CANCELLED'],
+    SUBMITTED: ['ASSESSMENT', 'REJECTED', 'CANCELLED'],
+    ASSESSMENT: ['ESTIMATE_PENDING', 'REJECTED', 'CANCELLED'],
+    ESTIMATE_PENDING: ['QUOTATION_REVIEW', 'CANCELLED'],
+    QUOTATION_REVIEW: ['APPROVAL_PENDING', 'REJECTED', 'CANCELLED'],
+    APPROVAL_PENDING: ['APPROVED', 'REJECTED', 'CANCELLED'],
+    APPROVED: ['ASSIGNED', 'CANCELLED'],
     ASSIGNED: ['IN_PROGRESS', 'ON_HOLD', 'CANCELLED'],
-    IN_PROGRESS: ['ON_HOLD', 'PENDING_APPROVAL', 'COMPLETED', 'CANCELLED'],
+    IN_PROGRESS: ['ON_HOLD', 'WORK_COMPLETE', 'CANCELLED'],
     ON_HOLD: ['IN_PROGRESS', 'CANCELLED'],
-    PENDING_APPROVAL: ['COMPLETED', 'REJECTED', 'IN_PROGRESS'],
+    WORK_COMPLETE: ['QUALITY_CHECK', 'IN_PROGRESS'], // Can go back if issues found
+    QUALITY_CHECK: ['FINANCIAL_POSTING', 'IN_PROGRESS'], // Can go back if QA fails
+    FINANCIAL_POSTING: ['COMPLETED'],
     COMPLETED: ['VERIFIED', 'REJECTED'],
     VERIFIED: ['CLOSED'],
     CLOSED: [], // Terminal state
@@ -420,13 +436,62 @@ WorkOrderSchema.pre('save', function(next) {
     REJECTED: ['DRAFT', 'SUBMITTED']
   };
 
+  // State-specific validation guards
+  const stateRequirements: Record<string, () => boolean> = {
+    ASSESSMENT: () => {
+      // Requires BEFORE photo for physical work
+      if (['REPAIR', 'MAINTENANCE', 'INSTALLATION'].includes(this.type)) {
+        return this.work?.beforePhotos && this.work.beforePhotos.length > 0;
+      }
+      return true;
+    },
+    ESTIMATE_PENDING: () => {
+      // Requires initial assessment notes
+      return !!this.work?.initialAssessment;
+    },
+    APPROVAL_PENDING: () => {
+      // Requires cost estimate
+      return this.financial?.estimatedCost && this.financial.estimatedCost > 0;
+    },
+    WORK_COMPLETE: () => {
+      // Requires AFTER photos for physical work
+      if (['REPAIR', 'MAINTENANCE', 'INSTALLATION'].includes(this.type)) {
+        return this.work?.afterPhotos && this.work.afterPhotos.length > 0;
+      }
+      return true;
+    },
+    QUALITY_CHECK: () => {
+      // Requires work completion notes
+      return !!this.work?.solutionDescription;
+    },
+    FINANCIAL_POSTING: () => {
+      // Requires actual cost (set during finance auto-posting)
+      return this.financial?.actualCost && this.financial.actualCost > 0;
+    }
+  };
+
   if (this.isModified('status') && !this.isNew) {
     const currentStatus = this.status;
-  // Use Mongoose Document type assertion instead of 'any'
-  const previousStatus = (this as import('mongoose').Document & { $__?: { originalDoc?: { status?: string } } }).$__?.originalDoc?.status;
+    // Use Mongoose Document type assertion instead of 'any'
+    const previousStatus = (this as import('mongoose').Document & { $__?: { originalDoc?: { status?: string } } }).$__?.originalDoc?.status;
     
+    // Validate transition is allowed
     if (previousStatus && !validTransitions[previousStatus]?.includes(currentStatus)) {
       return next(new Error(`Invalid status transition from ${previousStatus} to ${currentStatus}`));
+    }
+
+    // Validate state requirements are met
+    const requirementCheck = stateRequirements[currentStatus];
+    if (requirementCheck && !requirementCheck.call(this)) {
+      const requirements: Record<string, string> = {
+        ASSESSMENT: 'BEFORE photos required for physical work types',
+        ESTIMATE_PENDING: 'Initial assessment notes required',
+        APPROVAL_PENDING: 'Cost estimate required',
+        WORK_COMPLETE: 'AFTER photos required for physical work types',
+        QUALITY_CHECK: 'Work completion notes required',
+        FINANCIAL_POSTING: 'Actual cost required (set during finance auto-posting)'
+      };
+      return next(new Error(`Cannot transition to ${currentStatus}: ${requirements[currentStatus]}`));
     }
   }
 
