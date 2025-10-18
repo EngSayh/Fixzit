@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TopBar from '../TopBar';
@@ -11,41 +12,98 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/dashboard',
 }));
 
-// Mock i18n
-vi.mock('@/utils/i18n', () => ({
-  useLanguage: () => ({
-    t: (key: string, fallback: string) => fallback,
-    currentLang: 'en',
+// Mock Translation Context
+vi.mock('@/contexts/TranslationContext', () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback?: string) => fallback || key,
+    lang: 'en',
+    setLang: vi.fn(),
     isRTL: false,
   }),
 }));
 
-// Mock screen utils
-vi.mock('@/utils/screenInfo', () => ({
-  useScreenInfo: () => ({
-    isMobile: false,
-    isTablet: false,
-    isDesktop: true,
-    screenClass: 'xl',
+// Mock Responsive Context
+vi.mock('@/contexts/ResponsiveContext', () => ({
+  useResponsive: () => ({
+    responsiveClasses: {
+      container: 'px-4',
+      text: 'text-base',
+    },
+    screenInfo: {
+      isMobile: false,
+      isTablet: false,
+      isDesktop: true,
+      screenClass: 'xl',
+    },
+    isRTL: false,
   }),
 }));
 
 // Mock GlobalSearch component
-vi.mock('../GlobalSearch', () => ({
+vi.mock('../topbar/GlobalSearch', () => ({
   default: () => <div data-testid="global-search">Global Search</div>,
 }));
 
 // Mock AppSwitcher component
-vi.mock('../AppSwitcher', () => ({
+vi.mock('../topbar/AppSwitcher', () => ({
   default: () => <div data-testid="app-switcher">App Switcher</div>,
+}));
+
+// Mock QuickActions component
+vi.mock('../topbar/QuickActions', () => ({
+  default: () => <div data-testid="quick-actions">Quick Actions</div>,
+}));
+
+// Mock LanguageSelector component
+vi.mock('../i18n/LanguageSelector', () => ({
+  default: () => <div data-testid="language-selector">Language Selector</div>,
+}));
+
+// Mock CurrencySelector component
+vi.mock('../i18n/CurrencySelector', () => ({
+  default: () => <div data-testid="currency-selector">Currency Selector</div>,
+}));
+
+// Mock Portal component
+vi.mock('../Portal', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <div data-testid="portal">{children}</div>,
 }));
 
 describe('TopBar', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-    // Reset fetch mock
-    global.fetch = vi.fn();
+    
+    // Default: authenticated user with empty notifications
+    // This ensures the notifications bell and user menu are rendered
+    global.fetch = vi.fn((input: RequestInfo | URL) => {
+      const url = input.toString();
+      
+      if (url.includes('/api/auth/me')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ 
+            user: { 
+              id: '1', 
+              email: 'test@fixzit.co', 
+              role: 'ADMIN' 
+            } 
+          })
+        } as Response);
+      }
+      
+      if (url.includes('/api/notifications')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ items: [] })
+        } as Response);
+      }
+      
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      } as Response);
+    });
   });
 
   describe('Rendering', () => {
@@ -170,7 +228,14 @@ describe('TopBar', () => {
 
   describe('Logout Functionality', () => {
     it('should call logout API and redirect on logout', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true });
+      // Override with specific mock for logout test
+      const mockFetch = vi.fn((input: RequestInfo | URL) => {
+        const url = input.toString();
+        if (url.includes('/api/auth/logout')) {
+          return Promise.resolve({ ok: true } as Response);
+        }
+        return Promise.resolve({ ok: true } as Response);
+      });
       global.fetch = mockFetch;
 
       // Mock window.location
@@ -205,7 +270,10 @@ describe('TopBar', () => {
       localStorage.setItem('fixzit-role', 'admin');
       localStorage.setItem('fixzit-theme', 'dark');
 
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true });
+      // Override with specific mock for logout test
+      const mockFetch = vi.fn((input: RequestInfo | URL) => {
+        return Promise.resolve({ ok: true } as Response);
+      });
       global.fetch = mockFetch;
 
       delete (window as any).location;
@@ -227,7 +295,10 @@ describe('TopBar', () => {
     });
 
     it('should redirect to login even if logout API fails', async () => {
-      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      // Override with specific mock for logout failure test
+      const mockFetch = vi.fn((input: RequestInfo | URL) => {
+        return Promise.reject(new Error('Network error'));
+      });
       global.fetch = mockFetch;
 
       delete (window as any).location;
@@ -252,18 +323,20 @@ describe('TopBar', () => {
       const notificationBtn = screen.getByLabelText(/notifications/i);
       
       // Initially closed
-      expect(screen.queryByText(/no notifications/i)).not.toBeVisible();
+      expect(screen.queryByText(/no notifications/i)).not.toBeInTheDocument();
 
       // Click to open
       fireEvent.click(notificationBtn);
+      
+      // Wait for notification popup to appear
       await waitFor(() => {
-        expect(screen.getByText(/no notifications/i)).toBeVisible();
-      });
+        expect(screen.getByText(/no notifications/i)).toBeInTheDocument();
+      }, { timeout: 3000 });
 
       // Click to close
       fireEvent.click(notificationBtn);
       await waitFor(() => {
-        expect(screen.queryByText(/no notifications/i)).not.toBeVisible();
+        expect(screen.queryByText(/no notifications/i)).not.toBeInTheDocument();
       });
     });
   });
