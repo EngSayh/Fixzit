@@ -70,7 +70,7 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
 
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 lg:flex-row">
         <SearchFiltersPanel facets={facets} />
         <section className="flex-1 space-y-6">

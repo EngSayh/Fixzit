@@ -145,7 +145,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex flex-col">
       {/* Left Panel - Branding */}
       <div className={`hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className="max-w-md text-center">

@@ -56,7 +56,7 @@ const AQAR_FEATURES = [
 
 export default function AqarPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-[#FFB400] to-[#FF8C00] text-white py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">

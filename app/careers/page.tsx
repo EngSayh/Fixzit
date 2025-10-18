@@ -357,7 +357,7 @@ Thank you for your interest in joining Fixzit Enterprise!
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-16">{/* FIXED: was #023047 (banned) */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

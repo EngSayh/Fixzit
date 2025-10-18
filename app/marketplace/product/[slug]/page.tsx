@@ -62,7 +62,7 @@ export default async function ProductDetail(props: ProductPageProps) {
 
   const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
   return (
-    <div className="min-h-screen bg-[#F5F6F8]" style={{ direction: 'ltr' }}>
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col" style={{ direction: 'ltr' }}>
       <main className="mx-auto max-w-7xl px-4 py-8">
         <nav className="text-sm text-[#0061A8]">
           <a href="/marketplace" className="hover:underline">
