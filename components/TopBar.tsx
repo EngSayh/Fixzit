@@ -402,20 +402,24 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               >
                 <Link
                   href="/profile"
-                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                  role="menuitem"
                   onClick={() => setUserOpen(false)}
                 >
                   {t('nav.profile', 'Profile')}
                 </Link>
                 <Link
                   href="/settings"
-                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                  role="menuitem"
                   onClick={() => setUserOpen(false)}
                 >
                   {t('nav.settings', 'Settings')}
                 </Link>
                 <div className="border-t my-1 mx-2" />
                 <button
+                  type="button"
+                  role="menuitem"
                   className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
                   onClick={handleLogout}
                 >
