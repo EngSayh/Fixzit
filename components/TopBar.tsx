@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, User, ChevronDown, Search } from 'lucide-react';
+import { Bell, User, ChevronDown, Search, Building2 } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
 import AppSwitcher from './topbar/AppSwitcher';
@@ -256,8 +256,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div className={`font-bold ${screenInfo.isMobile ? 'text-base' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
-          {t('common.brand', 'FIXZIT ENTERPRISE')}
+        <div className={`flex items-center gap-2 font-bold ${screenInfo.isMobile ? 'text-base' : 'text-lg'} ${isRTL ? 'text-right flex-row-reverse' : ''}`}>
+          <Building2 className="w-6 h-6 text-[#FFB400]" />
+          <span>{t('common.brand', 'FIXZIT ENTERPRISE')}</span>
         </div>
         <AppSwitcher />
       </div>
@@ -305,7 +306,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
                 style={{
                   top: '4rem',
-                  [isRTL ? 'left' : 'right']: '1rem'
+                  [isRTL ? 'right' : 'left']: '1rem'
                 }}
               >
                 <div className="p-3 border-b border-gray-200 flex items-center justify-between">
@@ -418,7 +419,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-48 max-w-[calc(100vw-2rem)]"
                 style={{
                   top: '4rem',
-                  [isRTL ? 'left' : 'right']: '1rem'
+                  [isRTL ? 'right' : 'left']: '1rem'
                 }}
               >
                 <Link

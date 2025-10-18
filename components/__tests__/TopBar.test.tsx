@@ -334,10 +334,10 @@ describe('TopBar', () => {
       // Click to open
       fireEvent.click(notificationBtn);
       
-      // Wait for notification popup to appear
+      // Wait for notification popup to appear - using toBeVisible to verify actual visibility
       await waitFor(() => {
-        expect(screen.getByText(/no new notifications/i)).toBeInTheDocument();
-      }, { timeout: 3000 });
+        expect(screen.getByText(/no new notifications/i)).toBeVisible();
+      }, { timeout: 1000 });
 
       // Click to close
       fireEvent.click(notificationBtn);

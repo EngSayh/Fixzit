@@ -72,7 +72,8 @@ safe_sed "app/cms/[slug]/page.tsx" 's/className="min-h-screen bg-gradient-to-b f
 
 # Auth pages - fix login page carefully to avoid duplicating flex
 echo "Fixing auth pages..."
-safe_sed "app/login/page.tsx" 's/className="min-h-screen bg-gradient-to-br from-\[#0061A8\] via-\[#00A859\] to-\[#FFB400\] flex"\( \|>\)/className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex flex-col"\1/g'
+# SKIP app/login/page.tsx - manual horizontal layout change (no flex-col needed)
+# safe_sed "app/login/page.tsx" 's/className="min-h-screen bg-gradient-to-br from-\[#0061A8\] via-\[#00A859\] to-\[#FFB400\] flex"\( \|>\)/className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex flex-col"\1/g'
 safe_sed "app/logout/page.tsx" 's/className="min-h-screen \(flex\) items-center justify-center bg-gray-50"/className="min-h-screen \1 flex-col items-center justify-center bg-gray-50"/g'
 
 # Not found page
