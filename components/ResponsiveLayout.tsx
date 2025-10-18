@@ -78,7 +78,7 @@ export default function ResponsiveLayout({
           ${sidebar && (screenInfo.isMobile || screenInfo.isTablet) && sidebarOpen ? 'ml-0' : ''}
           ${sidebar && screenInfo.isDesktop ? 'ml-0' : ''}
         `}>
-          <div className={`${responsiveClasses.container} py-6 flex-1`}>
+          <div className={`${responsiveClasses.container} py-6 flex-1 flex flex-col`}>
             {children}
           </div>
         </main>
@@ -86,7 +86,7 @@ export default function ResponsiveLayout({
 
       {/* Footer - anchor to bottom using mt-auto */}
       {footer && (
-        <div className="mt-auto w-full">
+        <div className="w-full">
           {footer}
         </div>
       )}

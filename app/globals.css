@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base styles to ensure no gaps or white space issues */
+@layer base {
+  html {
+    @apply h-full;
+  }
+  
+  body {
+    @apply h-full min-h-screen;
+  }
+  
+  /* Ensure root div takes full height */
+  #__next {
+    @apply h-full min-h-screen;
+  }
+}
+
 /* RTL Support */
 [dir="rtl"] {
   font-family: 'Segoe UI', 'Noto Sans Arabic', 'Arial Unicode MS', sans-serif;
