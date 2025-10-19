@@ -29,8 +29,14 @@ export default function GoogleMap({
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
   const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
   const mapClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const onMapClickRef = useRef(onMapClick);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Keep callback ref in sync
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
 
   useEffect(() => {
     const initMap = () => {
@@ -49,11 +55,11 @@ export default function GoogleMap({
 
         mapInstanceRef.current = map;
 
-        // Add click listener
-        if (onMapClick) {
+        // Add click listener using ref to avoid stale closures
+        if (onMapClickRef.current) {
           const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
-            if (e.latLng) {
-              onMapClick(e.latLng.lat(), e.latLng.lng());
+            if (e.latLng && onMapClickRef.current) {
+              onMapClickRef.current(e.latLng.lat(), e.latLng.lng());
             }
           });
           mapClickListenerRef.current = clickListener;

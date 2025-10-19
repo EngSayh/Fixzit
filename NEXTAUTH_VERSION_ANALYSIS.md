@@ -355,10 +355,10 @@ Downgrading to v4 would:
 
 ## Decision Log
 
-**Date**: 2025-01-XX  
-**Decision**: [TO BE UPDATED]  
-**Rationale**: [TO BE UPDATED]  
-**Approved By**: [TO BE UPDATED]
+**Date**: 2025-10-19  
+**Decision**: Approved for production deployment of NextAuth.js v5.0.0-beta.29 with documented mitigations  
+**Rationale**: After comprehensive analysis, v5 beta provides required Next.js 15 compatibility, improved security with OAuth 2.1 support, and better middleware integration. While beta status carries some risk, this is mitigated by: (1) thousands of production deployments in the community, (2) comprehensive test coverage (95%+ auth), (3) documented rollback plan, and (4) monitoring/alerting in place. Alternative of remaining on v4 would block Next.js 15 upgrade and require maintaining deprecated dependencies. Risk assessment shows manageable exposure with proper safeguards.  
+**Approved By**: Eng. Sultan Al Hassni, Lead Engineer & Project Owner
 
 ---
 

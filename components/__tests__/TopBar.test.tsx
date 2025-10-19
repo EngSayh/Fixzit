@@ -147,14 +147,55 @@ describe('TopBar', () => {
 
   describe('Notifications', () => {
     it('should fetch notifications when authenticated', async () => {
+      // Mock authentication check to return authenticated
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url) => {
+        if (url === '/api/auth/me') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ authenticated: true }),
+          } as Response);
+        }
+        if (url === '/api/notifications') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ items: [] }),
+          } as Response);
+        }
+        return Promise.resolve({ ok: false } as Response);
+      });
+
       renderTopBar();
+      
+      // Wait for auth check
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/auth/me');
+      });
+
+      // Should fetch notifications when authenticated
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith('/api/notifications');
       });
     });
 
     it('should not fetch notifications when not authenticated', async () => {
+      // Mock authentication check to return unauthenticated
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url) => {
+        if (url === '/api/auth/me') {
+          return Promise.resolve({
+            ok: false,
+          } as Response);
+        }
+        return Promise.resolve({ ok: false } as Response);
+      });
+
       renderTopBar();
+      
+      // Wait for auth check
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/auth/me');
+      });
+
+      // Should NOT fetch notifications when not authenticated
       expect(global.fetch).not.toHaveBeenCalledWith('/api/notifications');
     });
   });
