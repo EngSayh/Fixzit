@@ -175,14 +175,176 @@ webpack: (config, { dev }) => {
 ## 🎯 Remaining Tasks
 
 ### Critical (Manual Action Required)
-1. **Revoke Exposed Google Maps API Key**
-   - Old key: `<REDACTED - Check previous commit history>` ⚠️ **MUST BE REVOKED**
-   - Action: Go to Google Cloud Console → Credentials → Delete/Regenerate
-   - Create new key with HTTP referrer restrictions:
+
+#### 1. **Revoke Exposed Google Maps API Key**
+
+**Exposed Key**: `<REDACTED - See commit e0db6bc7>` ⚠️ **MUST BE REVOKED IMMEDIATELY**
+
+##### Step 1: Assess Impact
+- **Where the key may have been used**:
+  - Production environment (fixzit.app)
+  - Staging/QA environments
+  - Local development machines
+  - CI/CD pipelines (GitHub Actions)
+  - Git commit history (exposed in multiple documentation files)
+  - Potentially forked repositories
+  - Pull request discussions/logs
+  - Issue comments/screenshots
+
+##### Step 2: Create New Restricted Key FIRST
+**Important**: Create and deploy the new key BEFORE revoking the old one to avoid service disruption.
+
+1. Go to Google Cloud Console → APIs & Credentials → Create Credentials → API Key
+2. Immediately click "Restrict Key" and configure:
+   - **Name**: `Fixzit Maps API Key - Oct 2025`
+   - **Application restrictions**: HTTP referrers
      - `https://fixzit.app/*`
      - `https://*.fixzit.app/*`
+     - `https://fixzit.co/*`
+     - `https://*.fixzit.co/*`
      - `http://localhost:*` (dev only)
-   - Update GitHub secret: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+     - `http://127.0.0.1:*` (dev only)
+   - **API restrictions**: Restrict to Maps JavaScript API only
+3. Copy the new key securely
+
+##### Step 3: Update All Secrets/Infrastructure BEFORE Revocation
+**Critical**: Update in this order to prevent downtime:
+
+1. **Update GitHub Secrets**:
+   ```bash
+   gh secret set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY --body "NEW_KEY_HERE"
+   ```
+
+2. **Update Production Environment Variables**:
+   - Vercel/Netlify/AWS: Update env var in dashboard
+   - Docker/K8s: Update ConfigMaps/Secrets
+   - Server deployments: Update `.env.production`
+
+3. **Update CI/CD Pipelines**:
+   - GitHub Actions secrets (already done in step 1)
+   - Any other CI systems (CircleCI, Jenkins, etc.)
+
+4. **Update Local Development**:
+   - Team members update their `.env.local` files
+   - Send secure notification (password manager, internal Slack)
+
+5. **Deploy Changes**:
+   - Trigger production deployment with new key
+   - Verify Maps functionality works in production
+   - Wait 10-15 minutes for all services to pick up new key
+
+##### Step 4: Revoke Old Key
+**Only after confirming new key works in production**:
+
+1. Go to Google Cloud Console → Credentials
+2. Find the exposed key
+3. Click "Delete" (recommended) or "Regenerate"
+4. Confirm deletion
+
+##### Step 5: Rotate Downstream Credentials
+If the Maps API key was used to derive other credentials:
+- Rotate any service account keys that had access to the same project
+- Review and rotate any other API keys in the same GCP project
+- Review IAM permissions and remove any overly permissive roles
+
+##### Step 6: Clean Caches and History
+1. **Git Provider Caches**:
+   - GitHub: Force-push won't remove from cache immediately
+   - If key was in public repo: Consider it permanently compromised
+   - Monitor Google Cloud billing for unexpected usage
+
+2. **Coordinate Team Reclones** (if history rewritten):
+   ```bash
+   # After force-push with cleaned history
+   git fetch origin
+   git reset --hard origin/main
+   git clean -fdx
+   ```
+
+3. **Clear CDN/Edge Caches**:
+   - Purge Cloudflare/CDN caches if applicable
+   - Clear any cached build artifacts
+
+##### Step 7: Prevent Recurrence
+1. **Move Secrets to Secret Manager**:
+   - Consider Google Secret Manager, AWS Secrets Manager, or HashiCorp Vault
+   - Implement automatic rotation policies
+
+2. **Update .gitignore Patterns**:
+   ```gitignore
+   # API Keys and Secrets
+   *.key
+   *.pem
+   secrets.json
+   credentials.json
+   **/client_secret_*.json
+   .env.local
+   .env.*.local
+   ```
+
+3. **Install Pre-commit Hooks**:
+   ```bash
+   # Install git-secrets or gitleaks
+   npm install -g git-secrets
+   git secrets --install
+   git secrets --register-aws
+   git secrets --add 'AIzaSy[A-Za-z0-9_-]{33}'  # Google API key pattern
+   ```
+
+4. **Enable Secret Scanning**:
+   - Enable GitHub secret scanning (Settings → Security → Code security)
+   - Enable push protection to block commits with secrets
+   - Review and configure custom patterns
+
+5. **Automated Secret Detection in CI**:
+   ```yaml
+   # .github/workflows/security-scan.yml
+   - name: Secret Scanning
+     uses: trufflesecurity/trufflehog@main
+     with:
+       path: ./
+       base: ${{ github.event.repository.default_branch }}
+       head: HEAD
+   ```
+
+##### Step 8: Post-Incident Review
+1. **Review Logs for Misuse**:
+   - Check Google Cloud Console → APIs → Maps JavaScript API → Metrics
+   - Look for unusual traffic patterns or geographic anomalies
+   - Review request volumes for unexpected spikes
+   - Check for requests from unauthorized referrers
+
+2. **Notify Stakeholders**:
+   - Inform security team of the exposure
+   - Notify Google Cloud support if suspicious activity detected
+   - Document incident timeline for compliance/audit
+
+3. **Document in Runbooks**:
+   - Add this incident to security incident log
+   - Update incident response procedures
+   - Share lessons learned with team
+   - Schedule security training on secret management
+
+4. **Monitor Billing**:
+   - Watch Google Cloud billing for next 30 days
+   - Set up billing alerts for anomalies
+   - Review quotas and consider reducing limits temporarily
+
+##### Verification Checklist
+- [ ] New restricted key created and tested
+- [ ] All GitHub Secrets updated
+- [ ] Production environment variables updated
+- [ ] CI/CD pipelines updated
+- [ ] New key deployed and verified in production
+- [ ] Old key revoked in Google Console
+- [ ] No service disruptions observed
+- [ ] Team notified and local environments updated
+- [ ] Pre-commit hooks installed
+- [ ] Secret scanning enabled
+- [ ] Git history cleaned (if applicable)
+- [ ] Billing alerts configured
+- [ ] Incident documented
+- [ ] Post-mortem completed
 
 ### Testing
 2. **Create TopBar Tests**
