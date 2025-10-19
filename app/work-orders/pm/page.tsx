@@ -49,10 +49,10 @@ export default function PreventiveMaintenancePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'due': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'scheduled': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
+      case 'due': return 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)] border-[var(--fixzit-warning-lighter)]';
+      case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
+      case 'completed': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };

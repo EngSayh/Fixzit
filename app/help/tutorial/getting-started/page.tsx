@@ -464,9 +464,9 @@ Continue to learn about tenant relations!
                   {tutorial.duration}
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  tutorial.difficulty === 'Beginner' ? 'bg-green-100 text-green-800' :
-                  tutorial.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
+                  tutorial.difficulty === 'Beginner' ? 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]' :
+                  tutorial.difficulty === 'Intermediate' ? 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)]' :
+                  'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)]'
                 }`}>
                   {tutorial.difficulty}
                 </span>
@@ -503,9 +503,9 @@ Continue to learn about tenant relations!
                     onClick={() => setCurrentStep(index)}
                     className={`w-full text-left p-3 rounded-lg border transition-colors ${
                       currentStep === index
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        ? 'border-[var(--fixzit-primary)] bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]'
                         : completedSteps.has(index)
-                        ? 'border-green-500 bg-green-50 text-green-700'
+                        ? 'border-[var(--fixzit-success)] bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
