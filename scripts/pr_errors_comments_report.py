@@ -2,6 +2,8 @@
 import subprocess
 import json
 import sys
+import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -11,6 +13,7 @@ def run(cmd: List[str], input_str: Optional[str] = None) -> Tuple[int, str, str]
         input=input_str,
         text=True,
         capture_output=True,
+        check=False,
     )
     return result.returncode, result.stdout, result.stderr
 
@@ -49,7 +52,7 @@ def fetch_all_prs(owner: str, name: str) -> List[Dict[str, Any]]:
 
 
 def fetch_reviews_counts(owner: str, name: str, pr_number: int) -> Dict[str, int]:
-    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
+    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
     if code != 0:
         # Graceful fallback on permission issues
         return {"approved": 0, "changes_requested": 0, "commented": 0, "dismissed": 0}
@@ -94,7 +97,7 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
         return result
 
     # Check runs
-    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/check-runs"])
+    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/check-runs"])
     if code == 0:
         data = json.loads(out)
         check_runs = data.get("check_runs", [])
@@ -116,7 +119,7 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
                 result["check_run"]["other"] += 1
 
     # Commit statuses
-    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/status"])
+    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/status"])
     if code == 0:
         data = json.loads(out)
         statuses = data.get("statuses", [])
@@ -226,8 +229,10 @@ def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
         state_label = state
         if is_draft:
             state_label = f"{state} (draft)"
+        
         lines.append(f"## PR #{num}: {title}")
-        lines.append(f"- URL: {url}")
+        lines.append("")
+        lines.append(f"- URL: <{url}>")
         lines.append(f"- State: {state_label} | Author: {author} | Created: {created_at}")
         if merged_at:
             lines.append(f"- Merged at: {merged_at}")
@@ -291,13 +296,24 @@ def main() -> None:
     prs = fetch_all_prs(owner, name)
     # Build and write report
     report = build_report(owner, name, prs)
-    out_path = "/workspace/PR_ERRORS_COMMENTS_REPORT.md"
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(report)
-    # Also write machine-readable JSON for potential reuse
-    with open("/workspace/PR_ERRORS_COMMENTS_SUMMARY.json", "w", encoding="utf-8") as f:
-        json.dump(prs, f, ensure_ascii=False, indent=2)
-    print(out_path)
+    
+    # Use environment variable or default to current directory
+    output_dir = Path(os.getenv("OUTPUT_DIR", "."))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    out_path = output_dir / "PR_ERRORS_COMMENTS_REPORT.md"
+    json_path = output_dir / "PR_ERRORS_COMMENTS_SUMMARY.json"
+    
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(report)
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(prs, f, ensure_ascii=False, indent=2)
+    except IOError as e:
+        print(f"Failed to write output files: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    print(str(out_path))
 
 
 if __name__ == "__main__":
