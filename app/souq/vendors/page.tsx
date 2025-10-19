@@ -8,7 +8,7 @@ export default function VendorsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
           <p className="text-gray-600">Manage approved suppliers and vendors</p>
         </div>
-        <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+        <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-md hover:bg-[var(--fixzit-success-dark)] transition-colors">
           Add Vendor
         </button>
       </div>
@@ -47,16 +47,16 @@ export default function VendorsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <span className="text-sm text-gray-900">4.8</span>
-                    <span className="ml-1 text-yellow-400">★</span>
+                    <span className="ml-1 text-[var(--fixzit-accent-lighter)]">★</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--fixzit-success-lighter)] text-[var(--fixzit-success-darker)]">
                     Active
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-blue-600 hover:text-blue-900">View</button>
+                  <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">View</button>
                 </td>
               </tr>
               
@@ -71,16 +71,16 @@ export default function VendorsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <span className="text-sm text-gray-900">4.5</span>
-                    <span className="ml-1 text-yellow-400">★</span>
+                    <span className="ml-1 text-[var(--fixzit-accent-lighter)]">★</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--fixzit-success-lighter)] text-[var(--fixzit-success-darker)]">
                     Active
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-blue-600 hover:text-blue-900">View</button>
+                  <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">View</button>
                 </td>
               </tr>
             </tbody>

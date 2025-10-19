@@ -61,7 +61,7 @@ export default function PropertyDetailsPage() {
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button>
-          <Button variant="outline" className="text-red-600 hover:text-red-700">
+          <Button variant="outline" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </Button>
@@ -275,19 +275,19 @@ export default function PropertyDetailsPage() {
             <CardContent className="space-y-3">
               {property.compliance?.buildingPermit && (
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
                   <span className="text-sm">Building Permit: {property.compliance.buildingPermit}</span>
                 </div>
               )}
               {property.compliance?.occupancyCertificate && (
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
                   <span className="text-sm">Occupancy Certificate</span>
                 </div>
               )}
               {property.compliance?.insurance?.policyNumber && (
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
                   <span className="text-sm">Insurance: {property.compliance.insurance.provider}</span>
                 </div>
               )}

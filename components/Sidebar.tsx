@@ -124,7 +124,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch('/api/auth/me', { credentials: 'include' });
         setIsAuthenticated(response.ok);
       } catch {
         setIsAuthenticated(false);

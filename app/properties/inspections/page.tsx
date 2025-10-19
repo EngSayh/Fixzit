@@ -54,10 +54,10 @@ export default function PropertiesInspectionsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
+      case 'completed': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
+      case 'scheduled': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
+      case 'in-progress': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
+      case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'cancelled': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -65,10 +65,10 @@ export default function PropertiesInspectionsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Safety': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Fire Safety': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Safety': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
+      case 'Fire Safety': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'Mechanical': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Electrical': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Electrical': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -93,36 +93,36 @@ export default function PropertiesInspectionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Scheduled</p>
-              <p className="text-2xl font-bold text-blue-600">12</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">12</p>
             </div>
-            <div className="text-blue-400">📅</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">In Progress</p>
-              <p className="text-2xl font-bold text-yellow-600">3</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
             </div>
-            <div className="text-yellow-400">🔄</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">🔄</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-green-600">45</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">45</p>
             </div>
-            <div className="text-green-400">✅</div>
+            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Overdue</p>
-              <p className="text-2xl font-bold text-red-600">2</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">2</p>
             </div>
-            <div className="text-red-400">🔴</div>
+            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
           </div>
         </div>
       </div>
@@ -208,8 +208,8 @@ export default function PropertiesInspectionsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">{t('common.edit', 'Edit')}</button>
-                      <button className="text-green-600 hover:text-green-900">Start</button>
+                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>
+                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">Start</button>
                       <button className="text-orange-600 hover:text-orange-900">Report</button>
                     </div>
                   </td>
@@ -221,16 +221,16 @@ export default function PropertiesInspectionsPage() {
       </div>
 
       {/* Overdue Inspections Alert */}
-      <div className="card border-red-200 bg-red-50">
+      <div className="card border-red-200 bg-[var(--fixzit-danger-lightest)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-red-400">🔴</div>
+            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
             <div>
-              <h3 className="font-semibold text-red-800">Overdue Inspections</h3>
-              <p className="text-sm text-red-600">2 inspections are overdue and require immediate attention</p>
+              <h3 className="font-semibold text-[var(--fixzit-danger-darker)]">Overdue Inspections</h3>
+              <p className="text-sm text-[var(--fixzit-danger)]">2 inspections are overdue and require immediate attention</p>
             </div>
           </div>
-          <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+          <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-lg hover:bg-[var(--fixzit-danger-dark)] transition-colors">
             Reschedule Now
           </button>
         </div>
@@ -244,16 +244,16 @@ export default function PropertiesInspectionsPage() {
         </div>
         <div className="space-y-3">
           {inspections.filter(inspection => inspection.status === 'scheduled').map(inspection => (
-            <div key={inspection.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div key={inspection.id} className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] border border-blue-200 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="text-blue-400">📅</div>
+                <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
                 <div>
                   <p className="font-medium text-gray-900">{inspection.title}</p>
                   <p className="text-sm text-gray-600">{inspection.property} • {inspection.scheduledDate}</p>
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                <button className="px-3 py-1 bg-[var(--fixzit-primary)] text-white rounded text-sm hover:bg-[var(--fixzit-primary-dark)]">
                   View Details
                 </button>
               </div>

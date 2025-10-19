@@ -50,8 +50,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
     const fetchUserRole = async () => {
       try {
-        // Don't check localStorage for cached role - always verify with server
-        // This prevents auto-login behavior
+        // CRITICAL: Do NOT check localStorage - always verify with server
+        // This prevents auto-login behavior from stale cached data
 
         // Fetch current user from API
         const response = await fetch('/api/auth/me', {
@@ -66,19 +66,25 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             // Cache the role in localStorage only after successful verification
             localStorage.setItem('fixzit-role', userRole);
           } else {
-            // No user data even though response was ok
+            // No user data even though response was ok - clear everything
             setRole('guest');
-            localStorage.setItem('fixzit-role', 'guest');
+            localStorage.removeItem('fixzit-role');
+            // Clear the auth cookie by making it expire
+            document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
           }
         } else {
-          // If no valid session, ensure role is guest
+          // If no valid session, ensure role is guest and clear auth data
           setRole('guest');
-          localStorage.setItem('fixzit-role', 'guest');
+          localStorage.removeItem('fixzit-role');
+          // Clear the auth cookie
+          document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         }
       } catch (error) {
         console.error('Failed to fetch user role:', error);
         setRole('guest');
-        localStorage.setItem('fixzit-role', 'guest');
+        localStorage.removeItem('fixzit-role');
+        // Clear the auth cookie
+        document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       } finally {
         setLoading(false);
       }

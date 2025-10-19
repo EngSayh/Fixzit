@@ -411,7 +411,7 @@ export default function LoginPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
                   <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Chrome className="h-5 w-5 text-blue-600" />
+                    <Chrome className="h-5 w-5 text-[var(--fixzit-primary)]" />
                     <span>{t('login.continueWith', 'Continue with')} Google</span>
                   </button>
                   <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -477,7 +477,7 @@ export default function LoginPage() {
 
               {/* Corporate Account Credentials */}
               <div className={`p-4 bg-blue-50 rounded-lg border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <h3 className="text-sm font-medium text-blue-800 mb-3">{t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}</h3>
+                <h3 className="text-sm font-medium text-[var(--fixzit-primary-darker)] mb-3">{t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}</h3>
                 <div className="space-y-2">
                   {CORPORATE_CREDENTIALS.map((cred) => {
                     const Icon = cred.icon;

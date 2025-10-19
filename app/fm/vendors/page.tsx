@@ -227,7 +227,7 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
         </div>
 
         <div className="flex items-center text-sm">
-          <Star className="w-4 h-4 mr-1 text-yellow-500" />
+          <Star className="w-4 h-4 mr-1 text-[var(--fixzit-accent-light)]" />
           <span className="font-medium">{vendor.performance?.rating || t('common.na', 'N/A')}</span>
           <span className="text-gray-600 ml-2">
             ({vendor.performance?.completedProjects || 0} {t('fm.vendors.projects', 'projects')})
@@ -258,7 +258,7 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
           <Button variant="ghost" size="sm">
             <Edit className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+          <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>

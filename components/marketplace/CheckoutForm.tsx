@@ -101,7 +101,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
           </span>
         </div>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-[var(--fixzit-danger)]">{error}</p>}
       {success && <p className="text-sm text-[#00A859]">Checkout submitted. Redirecting…</p>}
       <button
         type="submit"
