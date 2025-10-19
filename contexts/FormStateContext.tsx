@@ -58,14 +58,29 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestSave = useCallback(async () => {
-    const callbacks = Array.from(saveCallbacks.values());
+    // Only save forms that are marked as dirty
+    const dirtyFormIds = Array.from(dirtyForms);
+    if (dirtyFormIds.length === 0) {
+      return; // No dirty forms to save
+    }
+    
+    // Get callbacks only for dirty forms
+    const callbacks = dirtyFormIds
+      .map(formId => saveCallbacks.get(formId))
+      .filter((cb): cb is () => Promise<void> => cb !== undefined);
+    
+    if (callbacks.length === 0) {
+      console.warn('No save callbacks registered for dirty forms');
+      return;
+    }
+    
     const results = await Promise.allSettled(callbacks.map(cb => cb()));
     const errors = results.filter(r => r.status === 'rejected');
     if (errors.length > 0) {
       console.error('Save errors occurred:', errors);
       throw new Error(`Failed to save ${errors.length} form(s)`);
     }
-  }, [saveCallbacks]);
+  }, [saveCallbacks, dirtyForms]);
 
   const hasUnsavedChanges = dirtyForms.size > 0;
 

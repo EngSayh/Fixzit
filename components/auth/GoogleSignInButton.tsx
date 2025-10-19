@@ -1,15 +1,13 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { Chrome } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function GoogleSignInButton() {
-  const { t } = useTranslation();
-  const { isRTL } = useResponsive();
+  const { t, isRTL } = useTranslation();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +48,7 @@ export default function GoogleSignInButton() {
         }`}
         type="button"
       >
-        <Chrome className="h-5 w-5 text-blue-600" />
+        <LogIn className="h-5 w-5 text-blue-600" />
         <span>
           {isLoading 
             ? t('login.signingIn', 'Signing in...')

@@ -13,15 +13,19 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 
-def run(cmd: List[str], input_str: Optional[str] = None) -> Tuple[int, str, str]:
+def run(cmd: List[str], input_str: Optional[str] = None, timeout: int = 60) -> Tuple[int, str, str]:
     """Execute a shell command and return exit code, stdout, stderr"""
-    result = subprocess.run(
-        cmd,
-        input=input_str,
-        text=True,
-        capture_output=True,
-    )
-    return result.returncode, result.stdout, result.stderr
+    try:
+        result = subprocess.run(
+            cmd,
+            input=input_str,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired as exc:
+        return 124, exc.stdout or "", exc.stderr or f"Command timed out after {timeout}s"
 
 
 def get_repo() -> str:

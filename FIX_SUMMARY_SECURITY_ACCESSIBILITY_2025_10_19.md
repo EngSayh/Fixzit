@@ -17,12 +17,21 @@ Fixed 3 critical issues related to security hardening and accessibility improvem
 ### Problem
 **File:** `COMPREHENSIVE_SYSTEM_HEALTH_REPORT_2025_10_19.md` (line 63)  
 **Issue:** Full Google Maps API key exposed in documentation  
-**Key:** `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`
+**Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]`
 
 ### Solution
 ```markdown
 # BEFORE
-- Exposed: Google Maps API key `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`
+### 🔴 1. Exposed Google Maps API Key (CRITICAL)
+
+**Status:** ✅ FIXED
+
+**Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]`
+
+**Where Found:**
+- Source code: `components/GoogleMap.tsx`
+- Exposed: Google Maps API key `[REDACTED_GOOGLE_MAPS_API_KEY]`
+- Risk: Unrestricted API usage, quota abuse, billing charges
 
 # AFTER
 - Exposed: Google Maps API key `[REDACTED_API_KEY]`
@@ -31,9 +40,12 @@ Fixed 3 critical issues related to security hardening and accessibility improvem
 
 ### Verification
 ```bash
-# Search for any remaining exposed keys
+**Verification:**
+```bash
 grep -r "AIzaSy" --include="*.md" --include="*.ts" --include="*.tsx" .
-# Result: No matches found ✅
+# Should return NO matches in source files
+# Pattern searches are acceptable in documentation
+```
 ```
 
 ### Security Impact
@@ -151,8 +163,10 @@ $ pnpm lint
 ### Security Scan ✅
 ```bash
 # Search for exposed API keys
+```bash
 $ grep -rE "AIzaSy[A-Za-z0-9_-]{33}" .
-# Result: No matches found
+# Pattern search acceptable in documentation - not actual keys
+```
 
 # Search for hardcoded secrets
 $ grep -rE "(mongodb\+srv|postgres)://[^@]+:[^@]+@" .
@@ -244,9 +258,9 @@ Expected: ✅ JWT_SECRET takes precedence
 
 ### Key Rotation Performed
 - **Date:** October 19, 2025
-- **Old Key:** `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU` (revoked)
+- **Old Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]` (must be revoked)
 - **New Key:** Stored securely in environment variables
-- **Status:** ✅ Complete
+- **Status:** ⚠️ Manual revocation required in Google Cloud Console
 
 ---
 
