@@ -120,15 +120,15 @@ export default function HelpHome() {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'facility management':
-        return <Building2 className="w-5 h-5 text-blue-600" />;
+        return <Building2 className="w-5 h-5 text-[var(--fixzit-primary)]" />;
       case 'work orders':
-        return <Wrench className="w-5 h-5 text-green-600" />;
+        return <Wrench className="w-5 h-5 text-[var(--fixzit-success)]" />;
       case 'procurement':
-        return <FileText className="w-5 h-5 text-purple-600" />;
+        return <FileText className="w-5 h-5 text-[var(--fixzit-secondary)]" />;
       case 'customer service':
-        return <Users className="w-5 h-5 text-yellow-600" />;
+        return <Users className="w-5 h-5 text-[var(--fixzit-accent)]" />;
       case 'finance':
-        return <DollarSign className="w-5 h-5 text-green-600" />;
+        return <DollarSign className="w-5 h-5 text-[var(--fixzit-success)]" />;
       default:
         return <BookOpen className="w-5 h-5 text-gray-600" />;
     }
@@ -198,7 +198,7 @@ export default function HelpHome() {
                     <div className="flex items-center gap-2 mb-2">
                       {getCategoryIcon(tutorial.category)}
                       <span className="text-sm text-gray-500">{tutorial.category}</span>
-                      {tutorial.featured && <Star className="w-4 h-4 text-yellow-500" />}
+                      {tutorial.featured && <Star className="w-4 h-4 text-[var(--fixzit-accent-light)]" />}
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{tutorial.title}</h3>
                     <p className="text-gray-600 text-sm mb-4">{tutorial.description}</p>
@@ -215,7 +215,7 @@ export default function HelpHome() {
                       {tutorial.difficulty}
                     </span>
                   </div>
-                  <button className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1">
+                  <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1">
                     Start Tutorial
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -223,12 +223,12 @@ export default function HelpHome() {
 
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full"
+                    className="bg-[var(--fixzit-primary)] h-2 rounded-full"
                     style={{ width: tutorial.completed ? '100%' : '0%' }}
                   ></div>
                 </div>
                 {tutorial.completed && (
-                  <div className="mt-2 text-green-600 text-sm font-medium">
+                  <div className="mt-2 text-[var(--fixzit-success)] text-sm font-medium">
                     ✓ Completed
                   </div>
                 )}
@@ -274,7 +274,7 @@ export default function HelpHome() {
                       </div>
                       <Link
                         href={`/help/article/${article.id}`}
-                        className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
+                        className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
                       >
                         Read More
                         <ChevronRight className="w-4 h-4" />
@@ -306,8 +306,8 @@ export default function HelpHome() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Building2 className="w-8 h-8 text-blue-600" />
+              <div className="w-16 h-16 bg-[var(--fixzit-primary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Building2 className="w-8 h-8 text-[var(--fixzit-primary)]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Properties</h3>
               <p className="text-gray-600 text-sm">
@@ -316,8 +316,8 @@ export default function HelpHome() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wrench className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wrench className="w-8 h-8 text-[var(--fixzit-success)]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Work Orders</h3>
               <p className="text-gray-600 text-sm">
@@ -326,8 +326,8 @@ export default function HelpHome() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-purple-600" />
+              <div className="w-16 h-16 bg-[var(--fixzit-secondary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-[var(--fixzit-secondary)]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Vendors</h3>
               <p className="text-gray-600 text-sm">
@@ -336,8 +336,8 @@ export default function HelpHome() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="w-8 h-8 text-yellow-600" />
+              <div className="w-16 h-16 bg-[var(--fixzit-accent-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+                <DollarSign className="w-8 h-8 text-[var(--fixzit-accent)]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Finance</h3>
               <p className="text-gray-600 text-sm">
@@ -418,7 +418,7 @@ export default function HelpHome() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="px-6 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg font-medium hover:bg-[var(--fixzit-primary-dark)] transition-colors"
                 >
                   Submit Ticket
                 </button>

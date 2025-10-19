@@ -79,7 +79,7 @@ export default function AqarPropertiesPage() {
         <div className="text-gray-600">Loading…</div>
       )}
       {!loading && error && (
-        <div className="text-red-600">{error}</div>
+        <div className="text-[var(--fixzit-danger)]">{error}</div>
       )}
 
       {!loading && !error && (

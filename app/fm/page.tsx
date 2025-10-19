@@ -273,7 +273,7 @@ export default function FMPage() {
             size="sm"
             onClick={handleSave}
             disabled={!hasUnsavedChanges}
-            className="bg-green-600 text-white hover:bg-green-700"
+            className="bg-[var(--fixzit-success)] text-white hover:bg-[var(--fixzit-success-dark)]"
           >
             {t('common.save', 'Save')}
           </Button>
@@ -342,7 +342,7 @@ export default function FMPage() {
                           {vendor.status}
                         </Badge>
                         <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star className="h-4 w-4 fill-yellow-400 text-[var(--fixzit-accent-lighter)]" />
                           <span className="text-sm font-medium">{vendor.rating}</span>
                         </div>
                       </div>
@@ -391,7 +391,7 @@ export default function FMPage() {
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
@@ -451,7 +451,7 @@ export default function FMPage() {
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
@@ -520,7 +520,7 @@ export default function FMPage() {
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
                           </Button>

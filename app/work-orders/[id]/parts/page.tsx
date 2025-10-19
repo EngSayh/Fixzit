@@ -169,7 +169,7 @@ export default function WorkOrderPartsPage() {
                           <h4 className="font-medium text-sm">{part.title}</h4>
                           <button
                             onClick={() => removePart(part._id)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-[var(--fixzit-danger-light)] hover:text-[var(--fixzit-danger-dark)]"
                           >
                             ×
                           </button>

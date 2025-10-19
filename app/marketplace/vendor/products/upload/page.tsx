@@ -255,7 +255,7 @@ export default function VendorProductUploadPage() {
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                    className="absolute top-2 right-2 rounded-full bg-[var(--fixzit-danger-light)] p-1 text-white hover:bg-[var(--fixzit-danger)]"
                   >
                     <X size={16} />
                   </button>

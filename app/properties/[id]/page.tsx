@@ -99,8 +99,8 @@ export default function PropertyDetailPage() {
             </div>
             
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <Wrench className="h-6 w-6 text-red-600" />
+              <div className="p-3 bg-[var(--fixzit-danger-lighter)] rounded-lg">
+                <Wrench className="h-6 w-6 text-[var(--fixzit-danger)]" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Open Work Orders</p>

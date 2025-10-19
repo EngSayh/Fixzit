@@ -186,7 +186,7 @@ export default function NewExpensePage() {
                 <span className="text-sm text-gray-600">{t('finance.expense.maintenanceBudget', 'Maintenance Budget')}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-2 bg-gray-200 rounded">
-                    <div className="w-3/4 h-full bg-green-500 rounded"></div>
+                    <div className="w-3/4 h-full bg-[var(--fixzit-success-light)] rounded"></div>
                   </div>
                   <span className="text-xs text-gray-500">75%</span>
                 </div>
@@ -195,7 +195,7 @@ export default function NewExpensePage() {
                 <span className="text-sm text-gray-600">{t('finance.expense.utilitiesBudget', 'Utilities Budget')}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-2 bg-gray-200 rounded">
-                    <div className="w-1/2 h-full bg-yellow-500 rounded"></div>
+                    <div className="w-1/2 h-full bg-[var(--fixzit-accent-light)] rounded"></div>
                   </div>
                   <span className="text-xs text-gray-500">50%</span>
                 </div>
@@ -211,21 +211,21 @@ export default function NewExpensePage() {
                   <p className="text-sm font-medium">EXP-247</p>
                   <p className="text-xs text-gray-600">AC Maintenance</p>
                 </div>
-                <span className="text-sm font-medium text-red-600">-SAR 150</span>
+                <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 150</span>
               </div>
               <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <div>
                   <p className="text-sm font-medium">EXP-246</p>
                   <p className="text-xs text-gray-600">Office Supplies</p>
                 </div>
-                <span className="text-sm font-medium text-red-600">-SAR 85</span>
+                <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 85</span>
               </div>
               <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <div>
                   <p className="text-sm font-medium">EXP-245</p>
                   <p className="text-xs text-gray-600">Electrical Repair</p>
                 </div>
-                <span className="text-sm font-medium text-red-600">-SAR 320</span>
+                <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 320</span>
               </div>
             </div>
           </div>
@@ -249,12 +249,12 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
                 <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-gray-400 ml-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
                 <span className="text-gray-600">{t('finance.expense.category', 'Category')} {t('common.selected', 'selected')}</span>
                 <span className="text-gray-400 ml-auto">4m ago</span>
               </div>

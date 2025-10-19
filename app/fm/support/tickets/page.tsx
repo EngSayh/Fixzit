@@ -135,7 +135,7 @@ export default function SupportTicketsPage() {
                     {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-blue-600 hover:text-blue-900">View</button>
+                    <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">View</button>
                   </td>
                 </tr>
               ))}

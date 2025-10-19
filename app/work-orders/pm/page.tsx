@@ -2,48 +2,57 @@
 
 import React from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
+
+interface PMPlan {
+  _id: string;
+  planNumber: string;
+  title: string;
+  propertyId: string;
+  category: string;
+  recurrencePattern: string;
+  nextScheduledDate: string;
+  lastGeneratedDate?: string;
+  status: string;
+  stats?: {
+    totalGenerated?: number;
+    totalCompleted?: number;
+  };
+}
 
 export default function PreventiveMaintenancePage() {
   const { t } = useTranslation();
-  const pmSchedules = [
-    {
-      id: 'PM-001',
-      title: 'Monthly AC Maintenance',
-      property: 'Tower A',
-      frequency: 'Monthly',
-      lastDone: '2025-01-15',
-      nextDue: '2025-02-15',
-      status: 'scheduled',
-      assigned: 'Ahmed Al-Rashid'
-    },
-    {
-      id: 'PM-002',
-      title: 'Quarterly Elevator Inspection',
-      property: 'Tower B',
-      frequency: 'Quarterly',
-      lastDone: '2025-01-01',
-      nextDue: '2025-04-01',
-      status: 'due',
-      assigned: 'Mohammed Al-Saud'
-    },
-    {
-      id: 'PM-003',
-      title: 'Annual Fire System Check',
-      property: 'Villa Complex',
-      frequency: 'Annual',
-      lastDone: '2024-12-01',
-      nextDue: '2025-12-01',
-      status: 'overdue',
-      assigned: 'Omar Al-Fahad'
-    }
-  ];
+  
+  // Fetch PM plans from API
+  const { data: response } = useSWR('/api/pm/plans?status=ACTIVE', fetcher, {
+    refreshInterval: 30000 // Refresh every 30 seconds
+  });
+  
+  const pmSchedules: PMPlan[] = response?.data || [];
+  
+  const getStatusForPlan = (plan: PMPlan) => {
+    const nextDue = new Date(plan.nextScheduledDate);
+    const now = new Date();
+    const daysUntil = Math.floor((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntil < 0) return 'overdue';
+    if (daysUntil <= 7) return 'due';
+    return 'scheduled';
+  };
+  
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString();
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'due': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'scheduled': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
+      case 'due': return 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)] border-[var(--fixzit-warning-lighter)]';
+      case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
+      case 'completed': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -68,36 +77,36 @@ export default function PreventiveMaintenancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.scheduled', 'Scheduled')}</p>
-              <p className="text-2xl font-bold text-blue-600">8</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">8</p>
             </div>
-            <div className="text-blue-400">📅</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.pm.thisMonth', 'Due This Month')}</p>
-              <p className="text-2xl font-bold text-yellow-600">3</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
             </div>
-            <div className="text-yellow-400">⚠️</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('common.overdue', 'Overdue')}</p>
-              <p className="text-2xl font-bold text-red-600">2</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">2</p>
             </div>
-            <div className="text-red-400">🔴</div>
+            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.completed', 'Completed')}</p>
-              <p className="text-2xl font-bold text-green-600">15</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">15</p>
             </div>
-            <div className="text-green-400">✅</div>
+            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
         </div>
       </div>
@@ -137,28 +146,39 @@ export default function PreventiveMaintenancePage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {pmSchedules.map(schedule => (
-                <tr key={schedule.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{schedule.id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.title}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.property}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.frequency}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.lastDone}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.nextDue}</td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(schedule.status)}`}>
-                      {schedule.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.assigned}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">{t('common.edit', 'Edit')}</button>
-                      <button className="text-green-600 hover:text-green-900">{t('workOrders.pm.complete', 'Complete')}</button>
-                    </div>
+              {pmSchedules.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                    No PM plans found. Create your first preventive maintenance schedule.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                pmSchedules.map(schedule => {
+                  const planStatus = getStatusForPlan(schedule);
+                  return (
+                    <tr key={schedule._id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{schedule.planNumber}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.title}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.propertyId}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.recurrencePattern}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(schedule.lastGeneratedDate)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(schedule.nextScheduledDate)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(planStatus)}`}>
+                          {planStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.stats?.totalGenerated || 0} WOs</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex gap-2">
+                          <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>
+                          <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">Generate</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

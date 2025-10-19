@@ -183,6 +183,15 @@ export async function middleware(request: NextRequest) {
     // Basic JWT verification without database
     try {
       const payload = JSON.parse(atob(authToken.split('.')[1]));
+      
+      // Check if token is expired
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        // Token expired - clear cookie and redirect to login
+        const response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.delete('fixzit_auth');
+        return response;
+      }
+      
       const user = {
         id: payload.id,
         email: payload.email,
@@ -198,7 +207,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // Redirect based on user role
+      // Redirect based on user role (only if token is valid and not expired)
       if (pathname === '/' || pathname === '/login') {
         // Redirect to appropriate dashboard based on role
         if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
@@ -228,9 +237,11 @@ export async function middleware(request: NextRequest) {
 
       return NextResponse.next();
     } catch (_jwtError) {
-      // Invalid token - redirect to login
+      // Invalid token - clear cookie and redirect to login
       if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        const response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.delete('fixzit_auth');
+        return response;
       }
       return NextResponse.next();
     }

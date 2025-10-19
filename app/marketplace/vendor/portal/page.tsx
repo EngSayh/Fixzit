@@ -61,9 +61,9 @@ export default function VendorPortalPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-6 rounded-lg bg-[var(--fixzit-danger-lightest)] border border-red-200 p-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-[var(--fixzit-danger)]" />
+            <p className="text-sm text-[var(--fixzit-danger-darker)]">{error}</p>
           </div>
         )}
 
