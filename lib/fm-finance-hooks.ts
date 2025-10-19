@@ -78,7 +78,7 @@ export async function onWorkOrderClosed(
 
   // 1. Create expense transaction (always)
   const expenseTransaction: FinancialTransaction = {
-    id: `TXN-EXP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `TXN-EXP-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
     type: 'EXPENSE',
     workOrderId,
     propertyId: financialData.propertyId,
@@ -115,7 +115,7 @@ export async function onWorkOrderClosed(
   // 2. Create invoice if chargeable
   if (financialData.chargeable) {
     const invoiceTransaction: FinancialTransaction = {
-      id: `TXN-INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `TXN-INV-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       type: 'INVOICE',
       workOrderId,
       propertyId: financialData.propertyId,

@@ -19,7 +19,7 @@ export default function ErrorTest() {
     // Check user role authorization
     const checkRoleAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch('/api/auth/me', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           const userRole = data.role;

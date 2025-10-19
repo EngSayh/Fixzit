@@ -275,7 +275,7 @@ OrganizationSchema.index({ createdAt: -1 });
 // Pre-save middleware to generate orgId if not provided
 OrganizationSchema.pre('save', function(next) {
   if (this.isNew && !this.orgId) {
-    this.orgId = `org_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.orgId = `org_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
   next();
 });

@@ -92,7 +92,7 @@ export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
   }
 
   return {
-    requestId: `APR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    requestId: `APR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
     quotationId: request.quotationId,
     workOrderId: request.workOrderId,
     stages,

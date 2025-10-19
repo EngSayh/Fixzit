@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+import { useFormState } from '@/contexts/FormStateContext';
 
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {
@@ -67,10 +68,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
+
+  // Use FormStateContext for unsaved changes detection
+  const formState = useFormState();
+  const hasUnsavedChanges = formState.hasUnsavedChanges;
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -103,51 +108,46 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     checkAuth();
   }, []);
 
-  // Check for unsaved changes (detect form modifications)
-  useEffect(() => {
-    const checkUnsavedChanges = () => {
-      const forms = document.querySelectorAll('form');
-      let hasChanges = false;
-      forms.forEach(form => {
-        if (form.dataset.modified === 'true') {
-          hasChanges = true;
-        }
-      });
-      setHasUnsavedChanges(hasChanges);
-    };
-
-    // Check periodically
-    const interval = setInterval(checkUnsavedChanges, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
     if (hasUnsavedChanges) {
       e.preventDefault();
       setShowUnsavedDialog(true);
+      setPendingNavigation('/');
     } else {
       router.push('/');
     }
   };
 
-  // Handle save and navigate
-  const handleSaveAndNavigate = () => {
-    // Trigger form submission on the page
-    const forms = document.querySelectorAll('form[data-modified="true"]');
-    if (forms.length > 0) {
-      const form = forms[0] as HTMLFormElement;
-      form.requestSubmit();
+  // Handle save and navigate - use event-driven pattern
+  const handleSaveAndNavigate = async () => {
+    try {
+      // Use the FormStateContext's requestSave method which triggers
+      // registered save handlers via events
+      await formState.requestSave();
+      
+      // Only navigate if save was successful (no exception thrown)
+      setShowUnsavedDialog(false);
+      if (pendingNavigation) {
+        router.push(pendingNavigation);
+        setPendingNavigation(null);
+      }
+    } catch (error) {
+      console.error('Failed to save form:', error);
+      // Don't close dialog or navigate - let user retry or discard
+      alert(t('common.saveError', 'Failed to save changes. Please try again.'));
     }
-    setShowUnsavedDialog(false);
-    setTimeout(() => router.push('/'), 500);
   };
 
   // Handle discard and navigate
   const handleDiscardAndNavigate = () => {
+    // Reset the form state via context
+    formState.reset();
     setShowUnsavedDialog(false);
-    setHasUnsavedChanges(false);
-    router.push('/');
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    }
   };
 
   // Define fetchNotifications before using it
@@ -334,7 +334,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             >
               <Bell className="w-5 h-5" />
               {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-[var(--fixzit-danger-light)] rounded-full animate-pulse"></span>
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
               )}
             </button>
             {notifOpen && (
@@ -405,7 +405,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                             </div>
                           </div>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full ml-2 flex-shrink-0"></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
                           )}
                         </div>
                       </div>
@@ -424,7 +424,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="p-3 border-t border-gray-200 bg-gray-50">
                   <Link
                     href="/notifications"
-                    className="text-xs text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium flex items-center justify-center gap-1"
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1"
                     onClick={() => setNotifOpen(false)}
                   >
                     {t('common.viewAll', 'View all notifications')}
@@ -492,7 +492,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <button
                   type="button"
                   role="menuitem"
-                  className="block w-full text-left px-4 py-2 hover:bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger)] rounded transition-colors cursor-pointer"
+                  className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
                   onClick={handleLogout}
                 >
                   {t('common.logout', 'Sign out')}
@@ -506,9 +506,17 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       {/* Unsaved Changes Dialog */}
       {showUnsavedDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-dialog-title"
+          >
             <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 
+                id="unsaved-dialog-title"
+                className="text-lg font-semibold text-gray-900 mb-2"
+              >
                 {t('common.unsavedChanges', 'Unsaved Changes')}
               </h3>
               <p className="text-gray-600 mb-6">
@@ -523,7 +531,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 </button>
                 <button
                   onClick={handleDiscardAndNavigate}
-                  className="px-4 py-2 text-[var(--fixzit-danger)] hover:bg-[var(--fixzit-danger-lightest)] rounded-md transition-colors"
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                 >
                   {t('common.discard', 'Discard')}
                 </button>

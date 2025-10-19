@@ -35,7 +35,7 @@ export async function POST() {
       try {
         // In a real implementation, this would call WorkOrder.create()
         // For now, we simulate WO creation and just record it
-        const woNumber = `WO-PM-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+        const woNumber = `WO-PM-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
         const workOrderData = {
           title: plan.woTitle,
           description: plan.woDescription || `Preventive maintenance: ${plan.title}`,
