@@ -7,11 +7,11 @@ import { FMPMPlan } from '@/src/server/models/FMPMPlan';
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    
-    const plan = await FMPMPlan.findById(params.id);
+    const { id } = await params;
+    const plan = await FMPMPlan.findById(id);
     
     if (!plan) {
       return NextResponse.json(
@@ -39,14 +39,14 @@ export async function GET(
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    
+    const { id } = await params;
     const body = await request.json();
     
     const plan = await FMPMPlan.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true, runValidators: true }
     );
@@ -77,12 +77,12 @@ export async function PATCH(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    
+    const { id } = await params;
     const plan = await FMPMPlan.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: { status: 'INACTIVE' } },
       { new: true }
     );
