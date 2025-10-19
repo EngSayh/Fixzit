@@ -476,7 +476,7 @@ To enable CI/CD and production deployment, add the following to GitHub Secrets:
 ```bash
 # Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
 
-MONGODB_URI=mongodb+srv://fixzitadmin:SayhAdmin2025@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
 
 # Optional (if using Sentry)
 SENTRY_AUTH_TOKEN=<your-sentry-token>

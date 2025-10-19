@@ -260,10 +260,12 @@ GET /api/performance/metrics?type=exceeded
 ```bash
 1. Open: https://github.com/EngSayh/Fixzit/settings/secrets/actions
 2. Add these 3 minimum secrets:
-   - MONGODB_URI = mongodb+srv://fixzitadmin:SayhAdmin2025@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+   - MONGODB_URI = mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
    - MONGODB_DB = fixzit
    - JWT_SECRET = (generate: openssl rand -hex 32)
 ```
+
+> **⚠️ SECURITY**: Replace placeholders with actual credentials only in GitHub Secrets, never commit real credentials.
 
 ### Step 2: Integrate Performance Monitoring (5 mins)
 

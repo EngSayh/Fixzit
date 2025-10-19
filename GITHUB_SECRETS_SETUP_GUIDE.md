@@ -100,7 +100,7 @@ This guide provides step-by-step instructions to configure all required GitHub r
 gh auth login
 
 # Add secrets one by one
-gh secret set MONGODB_URI --body "mongodb+srv://fixzitadmin:SayhAdmin2025@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+gh secret set MONGODB_URI --body "mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
 
 gh secret set MONGODB_DB --body "fixzit"
 
@@ -124,7 +124,7 @@ Create a temporary file `secrets.txt` (DO NOT COMMIT):
 ```bash
 # Create secrets file
 cat > /tmp/secrets.txt << 'EOF'
-MONGODB_URI=mongodb+srv://fixzitadmin:SayhAdmin2025@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
 MONGODB_DB=fixzit
 JWT_SECRET=your_32_plus_character_jwt_secret_here
 PAYTABS_PROFILE_ID=your_profile_id
@@ -210,9 +210,11 @@ gh workflow run e2e-tests.yml
 The following secrets are currently configured in `.env.local` (not committed to git):
 
 ```bash
-MONGODB_URI=mongodb+srv://fixzitadmin:SayhAdmin2025@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
 MONGODB_DB=fixzit
 ```
+
+> **⚠️ SECURITY NOTE**: The actual MongoDB credentials should NEVER be committed to the repository. Replace `YOUR_USERNAME`, `YOUR_PASSWORD`, and `YOUR_CLUSTER` with your real values only in `.env.local` and GitHub Secrets.
 
 ### 📋 Action Required
 
