@@ -59,7 +59,11 @@ export default function GoogleSignInButton() {
         </span>
       </button>
       {error && (
-        <div className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-md">
+        <div 
+          role="alert" 
+          aria-live="polite"
+          className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-md"
+        >
           {error}
         </div>
       )}

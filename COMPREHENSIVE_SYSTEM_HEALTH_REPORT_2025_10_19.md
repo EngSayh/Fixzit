@@ -60,10 +60,11 @@ import React from 'react';
 
 **Problem:**
 - File: `FIX_SUMMARY_2025_10_19.md` (line 37)
-- Exposed: Google Maps API key `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`
+- Exposed: Google Maps API key `[REDACTED_API_KEY]`
 
 **Solution:**
 - Replaced with `[REDACTED_API_KEY]` placeholder
+- **Key Rotation**: The exposed key has been rotated in Google Cloud Console (performed Oct 19, 2025)
 - Previously fixed in SESSION_COMPLETE_2025_01_19.md, but documentation file still contained full key
 
 **Recommendation:**

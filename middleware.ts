@@ -4,14 +4,16 @@ import { auth } from '@/auth';
 import { jwtVerify } from 'jose';
 
 // Validate JWT secret at module load - fail fast if missing
-if (!process.env.JWT_SECRET) {
-  const errorMessage = 'FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret. Please add JWT_SECRET to your .env.local file or environment configuration.';
+// Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET
+const jwtSecretValue = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+if (!jwtSecretValue) {
+  const errorMessage = 'FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set. Application cannot start without a secure JWT secret. Please add JWT_SECRET or NEXTAUTH_SECRET to your .env.local file or environment configuration.';
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
 
 // JWT secret for legacy token verification
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 
 // Define public routes that don't require authentication
 const publicRoutes = [
