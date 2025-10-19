@@ -155,7 +155,7 @@ TestingLibraryElementError: Unable to find an element with the text: /No product
 
 ### Medium Priority
 
-3. **TopBar Unit Tests**
+1. **TopBar Unit Tests**
    - Component exists but has zero test coverage
    - Need 29 test cases (unsaved changes, notifications, dropdowns, RTL, a11y)
 

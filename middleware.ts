@@ -5,9 +5,9 @@ import { jwtVerify } from 'jose';
 
 // Validate JWT secret at module load - fail fast if missing
 if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret.');
-  console.error('Please add JWT_SECRET to your .env.local file or environment configuration.');
-  process.exit(1);
+  const errorMessage = 'FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret. Please add JWT_SECRET to your .env.local file or environment configuration.';
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
 
 // JWT secret for legacy token verification
