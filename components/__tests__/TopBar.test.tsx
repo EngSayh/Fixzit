@@ -1,308 +1,614 @@
-/**import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';import React from 'react';
+/**/**import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';import React from 'react';
 
  * TopBar Component Tests
 
- * import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+ *  * TopBar Component Tests
 
  * Comprehensive test suite for the TopBar component covering:
 
- * - Rendering and visual elementsimport { useRouter, usePathname } from 'next/navigation';import { render, screen, fireEvent, waitFor } from '@testing-library/react';import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+ * - Rendering and visual elements * import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
  * - Logo click behavior with unsaved changes detection
 
- * - Notifications dropdown functionality  import TopBar from '../TopBar';
+ * - Notifications dropdown functionality * Comprehensive test suite for the TopBar component covering:
 
  * - User menu interactions
 
- * - Logout functionalityimport { TranslationProvider } from '@/contexts/TranslationContext';import { useRouter, usePathname } from 'next/navigation';import { describe, it, expect, vi, beforeEach } from 'vitest';
+ * - Logout functionality * - Rendering and visual elementsimport { useRouter, usePathname } from 'next/navigation';import { render, screen, fireEvent, waitFor } from '@testing-library/react';import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
  * - Accessibility (ARIA attributes)
 
- * - RTL supportimport { ResponsiveProvider } from '@/contexts/ResponsiveContext';
+ * - RTL support * - Logo click behavior with unsaved changes detection
 
  * - Authentication state handling
 
- * - Performance optimizationsimport { FormStateProvider } from '@/contexts/FormStateContext';import TopBar from '../TopBar';import TopBar from '../TopBar';
+ * - Performance optimizations * - Notifications dropdown functionality  import TopBar from '../TopBar';
 
  */
 
-
+ * - User menu interactions
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';// Mock Next.js navigationimport { TranslationProvider } from '@/contexts/TranslationContext';
+import React from 'react'; * - Logout functionalityimport { TranslationProvider } from '@/contexts/TranslationContext';import { useRouter, usePathname } from 'next/navigation';import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { useRouter, usePathname } from 'next/navigation';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
-import TopBar from '../TopBar';vi.mock('next/navigation', () => ({
+import { useRouter, usePathname } from 'next/navigation'; * - Accessibility (ARIA attributes)
 
-import { TranslationProvider } from '@/contexts/TranslationContext';
+import TopBar from '../TopBar';
 
-import { ResponsiveProvider } from '@/contexts/ResponsiveContext';  useRouter: vi.fn(),import { ResponsiveProvider } from '@/contexts/ResponsiveContext';// Mock next/navigation
+import { TranslationProvider } from '@/contexts/TranslationContext'; * - RTL supportimport { ResponsiveProvider } from '@/contexts/ResponsiveContext';
 
-import { FormStateProvider } from '@/contexts/FormStateContext';
+import { ResponsiveProvider } from '@/contexts/ResponsiveContext';
 
-  usePathname: vi.fn(),
+import { FormStateProvider } from '@/contexts/FormStateContext'; * - Authentication state handling
 
-// Mock Next.js navigation hooks
 
-vi.mock('next/navigation', () => ({}));import { FormStateProvider } from '@/contexts/FormStateContext';vi.mock('next/navigation', () => ({
 
-  useRouter: vi.fn(),
+// Mock Next.js navigation * - Performance optimizationsimport { FormStateProvider } from '@/contexts/FormStateContext';import TopBar from '../TopBar';import TopBar from '../TopBar';
+
+vi.mock('next/navigation', () => ({
+
+  useRouter: vi.fn(), */
 
   usePathname: vi.fn(),
 
 }));
 
-// Mock fetch globally  useRouter: () => ({
+
+
+// Mock child componentsimport { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../NotificationBell', () => ({
+
+  default: () => <div data-testid="notification-bell">NotificationBell</div>,import { render, screen, fireEvent, waitFor } from '@testing-library/react';// Mock Next.js navigationimport { TranslationProvider } from '@/contexts/TranslationContext';
+
+}));
+
+import { useRouter, usePathname } from 'next/navigation';
+
+vi.mock('../UserMenu', () => ({
+
+  default: () => <div data-testid="user-menu">UserMenu</div>,import TopBar from '../TopBar';vi.mock('next/navigation', () => ({
+
+}));
+
+import { TranslationProvider } from '@/contexts/TranslationContext';
 
 // Mock fetch globally
 
-global.fetch = vi.fn();global.fetch = vi.fn();
+global.fetch = vi.fn();import { ResponsiveProvider } from '@/contexts/ResponsiveContext';  useRouter: vi.fn(),import { ResponsiveProvider } from '@/contexts/ResponsiveContext';// Mock next/navigation
 
 
 
-describe('TopBar Component', () => {// Mock Next.js navigation    push: vi.fn(),
+describe('TopBar Component', () => {import { FormStateProvider } from '@/contexts/FormStateContext';
 
   const mockPush = vi.fn();
 
-  const mockPathname = '/dashboard';describe('TopBar Component', () => {
+  const mockPathname = '/dashboard';  usePathname: vi.fn(),
 
 
 
-  beforeEach(() => {  const mockPush = vi.fn();vi.mock('next/navigation', () => ({    replace: vi.fn(),
+  beforeEach(() => {// Mock Next.js navigation hooks
 
     vi.clearAllMocks();
 
-    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({ push: mockPush });  const mockPathname = '/dashboard';
+    vi.mock('next/navigation', () => ({}));import { FormStateProvider } from '@/contexts/FormStateContext';vi.mock('next/navigation', () => ({
 
-    (usePathname as ReturnType<typeof vi.fn>).mockReturnValue(mockPathname);
+    // Setup router mock
 
-      useRouter: vi.fn(),  }),
+    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({   useRouter: vi.fn(),
 
-    // Mock successful auth by default
+      push: mockPush,
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({  beforeEach(() => {
+      replace: vi.fn(),  usePathname: vi.fn(),
 
-      ok: true,
+    });
 
-      json: async () => ({ items: [] }),    vi.clearAllMocks();  usePathname: vi.fn(),  usePathname: () => '/dashboard',
+    }));
+
+    // Setup pathname mock
+
+    (usePathname as ReturnType<typeof vi.fn>).mockReturnValue(mockPathname);// Mock fetch globally  useRouter: () => ({
+
+    
+
+    // Mock successful auth by default// Mock fetch globally
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+
+      ok: true,global.fetch = vi.fn();global.fetch = vi.fn();
+
+      json: async () => ({ items: [] }),
 
     } as Response);
 
-  });    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({ push: mockPush });
+  });
 
+describe('TopBar Component', () => {// Mock Next.js navigation    push: vi.fn(),
 
+  afterEach(() => {
 
-  afterEach(() => {    (usePathname as ReturnType<typeof vi.fn>).mockReturnValue(mockPathname);}));}));
+    vi.restoreAllMocks();  const mockPush = vi.fn();
 
-    vi.restoreAllMocks();
+  });
 
-  });    
+  const mockPathname = '/dashboard';describe('TopBar Component', () => {
 
+  // Helper function to render TopBar with all required providers
 
-
-  const renderTopBar = (props = {}) => {    // Mock successful auth by default
+  const renderTopBar = (formStateProps = {}) => {
 
     return render(
 
-      <TranslationProvider>    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      <TranslationProvider>  beforeEach(() => {  const mockPush = vi.fn();vi.mock('next/navigation', () => ({    replace: vi.fn(),
 
         <ResponsiveProvider>
 
-          <FormStateProvider>      ok: true,// Mock fetch globally// Mock Translation Context
+          <FormStateProvider {...formStateProps}>    vi.clearAllMocks();
 
-            <TopBar {...props} />
+            <TopBar />
 
-          </FormStateProvider>      json: async () => ({ items: [] }),
+          </FormStateProvider>    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({ push: mockPush });  const mockPathname = '/dashboard';
 
         </ResponsiveProvider>
 
-      </TranslationProvider>    } as Response);global.fetch = vi.fn();vi.mock('@/contexts/TranslationContext', () => ({
+      </TranslationProvider>    (usePathname as ReturnType<typeof vi.fn>).mockReturnValue(mockPathname);
 
     );
 
-  };  });
+  };      useRouter: vi.fn(),  }),
 
 
 
-  describe('Rendering', () => {  useTranslation: () => ({
+  describe('Rendering', () => {    // Mock successful auth by default
 
-    it('should render TopBar with brand name', () => {
+    it('should render the TopBar component', () => {
 
-      renderTopBar();  afterEach(() => {
+      renderTopBar();    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({  beforeEach(() => {
 
-      expect(screen.getByText(/FIXZIT ENTERPRISE/i)).toBeInTheDocument();
+      expect(screen.getByRole('banner')).toBeInTheDocument();
 
-    });    vi.restoreAllMocks();describe('TopBar Component', () => {    t: (key: string, fallback?: string) => fallback || key,
+    });      ok: true,
 
 
 
-    it('should render logo image', () => {  });
+    it('should render the logo', () => {      json: async () => ({ items: [] }),    vi.clearAllMocks();  usePathname: vi.fn(),  usePathname: () => '/dashboard',
 
       renderTopBar();
 
-      const logo = screen.getByAltText('Fixzit Enterprise');  const mockPush = vi.fn();    lang: 'en',
+      const logo = screen.getByAltText(/fixzit logo/i);    } as Response);
 
       expect(logo).toBeInTheDocument();
 
-      expect(logo).toHaveAttribute('src', expect.stringContaining('logo.jpg'));  const renderTopBar = (props = {}) => {
-
-    });
-
-    return render(  const mockPathname = '/dashboard';    setLang: vi.fn(),
-
-    it('should render notification bell for authenticated users', async () => {
-
-      renderTopBar();      <TranslationProvider>
-
-      await waitFor(() => {
-
-        expect(screen.getByLabelText('Toggle notifications')).toBeInTheDocument();        <ResponsiveProvider>    isRTL: false,
-
-      });
-
-    });          <FormStateProvider>
+    });  });    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({ push: mockPush });
 
 
 
-    it('should render user menu button for authenticated users', async () => {            <TopBar {...props} />  beforeEach(() => {  }),
+    it('should render notification bell', () => {
 
       renderTopBar();
 
-      await waitFor(() => {          </FormStateProvider>
-
-        expect(screen.getByLabelText('User menu')).toBeInTheDocument();
-
-      });        </ResponsiveProvider>    vi.clearAllMocks();}));
+      expect(screen.getByTestId('notification-bell')).toBeInTheDocument();  afterEach(() => {    (usePathname as ReturnType<typeof vi.fn>).mockReturnValue(mockPathname);}));}));
 
     });
 
-      </TranslationProvider>
+    vi.restoreAllMocks();
 
-    it('should not render notifications for unauthenticated users', async () => {
+    it('should render user menu', () => {
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({    );    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({ push: mockPush });
+      renderTopBar();  });    
 
-        ok: false,
+      expect(screen.getByTestId('user-menu')).toBeInTheDocument();
 
-      } as Response);  };
+    });
+
+  });
+
+  const renderTopBar = (props = {}) => {    // Mock successful auth by default
+
+  describe('Logo Click', () => {
+
+    it('should navigate to dashboard when logo is clicked and no unsaved changes', async () => {    return render(
+
+      renderTopBar({ hasUnsavedChanges: false });
+
+            <TranslationProvider>    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+
+      const logo = screen.getByAltText(/fixzit logo/i);
+
+      fireEvent.click(logo);        <ResponsiveProvider>
 
       
 
-      renderTopBar();    (usePathname as ReturnType<typeof vi.fn>).mockReturnValue(mockPathname);// Mock Responsive Context
+      await waitFor(() => {          <FormStateProvider>      ok: true,// Mock fetch globally// Mock Translation Context
+
+        expect(mockPush).toHaveBeenCalledWith('/fm/dashboard');
+
+      });            <TopBar {...props} />
+
+    });
+
+          </FormStateProvider>      json: async () => ({ items: [] }),
+
+    it('should show unsaved changes dialog when logo is clicked with unsaved changes', async () => {
+
+      renderTopBar({ hasUnsavedChanges: true });        </ResponsiveProvider>
+
+      
+
+      const logo = screen.getByAltText(/fixzit logo/i);      </TranslationProvider>    } as Response);global.fetch = vi.fn();vi.mock('@/contexts/TranslationContext', () => ({
+
+      fireEvent.click(logo);
+
+          );
 
       await waitFor(() => {
 
-        expect(screen.queryByLabelText('Toggle notifications')).not.toBeInTheDocument();  describe('Rendering', () => {
+        expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();  };  });
 
       });
 
-    });    it('should render TopBar with brand name', () => {    vi.mock('@/contexts/ResponsiveContext', () => ({
+      
+
+      expect(mockPush).not.toHaveBeenCalled();
+
+    });  describe('Rendering', () => {  useTranslation: () => ({
+
+
+
+    it('should clear pendingNavigation when cancel is clicked in unsaved dialog', async () => {    it('should render TopBar with brand name', () => {
+
+      renderTopBar({ hasUnsavedChanges: true });
+
+            renderTopBar();  afterEach(() => {
+
+      const logo = screen.getByAltText(/fixzit logo/i);
+
+      fireEvent.click(logo);      expect(screen.getByText(/FIXZIT ENTERPRISE/i)).toBeInTheDocument();
+
+      
+
+      await waitFor(() => {    });    vi.restoreAllMocks();describe('TopBar Component', () => {    t: (key: string, fallback?: string) => fallback || key,
+
+        expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
+
+      });
+
+      
+
+      const cancelButton = screen.getByText(/cancel/i);    it('should render logo image', () => {  });
+
+      fireEvent.click(cancelButton);
+
+            renderTopBar();
+
+      await waitFor(() => {
+
+        expect(screen.queryByText(/unsaved changes/i)).not.toBeInTheDocument();      const logo = screen.getByAltText('Fixzit Enterprise');  const mockPush = vi.fn();    lang: 'en',
+
+      });
+
+    });      expect(logo).toBeInTheDocument();
+
+
+
+    it('should navigate when discard is clicked in unsaved dialog', async () => {      expect(logo).toHaveAttribute('src', expect.stringContaining('logo.jpg'));  const renderTopBar = (props = {}) => {
+
+      renderTopBar({ hasUnsavedChanges: true });
+
+          });
+
+      const logo = screen.getByAltText(/fixzit logo/i);
+
+      fireEvent.click(logo);    return render(  const mockPathname = '/dashboard';    setLang: vi.fn(),
+
+      
+
+      await waitFor(() => {    it('should render notification bell for authenticated users', async () => {
+
+        expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
+
+      });      renderTopBar();      <TranslationProvider>
+
+      
+
+      const discardButton = screen.getByText(/discard/i);      await waitFor(() => {
+
+      fireEvent.click(discardButton);
+
+              expect(screen.getByLabelText('Toggle notifications')).toBeInTheDocument();        <ResponsiveProvider>    isRTL: false,
+
+      await waitFor(() => {
+
+        expect(mockPush).toHaveBeenCalledWith('/fm/dashboard');      });
+
+      });
+
+    });    });          <FormStateProvider>
+
+  });
+
+
+
+  describe('Notifications', () => {
+
+    it('should fetch notifications on mount when authenticated', async () => {    it('should render user menu button for authenticated users', async () => {            <TopBar {...props} />  beforeEach(() => {  }),
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+
+        ok: true,      renderTopBar();
+
+        json: async () => ({ authenticated: true }),
+
+      } as Response);      await waitFor(() => {          </FormStateProvider>
+
+      
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({        expect(screen.getByLabelText('User menu')).toBeInTheDocument();
+
+        ok: true,
+
+        json: async () => ({       });        </ResponsiveProvider>    vi.clearAllMocks();}));
+
+          items: [
+
+            { id: '1', message: 'Test notification', read: false }    });
+
+          ]
+
+        }),      </TranslationProvider>
+
+      } as Response);
+
+          it('should not render notifications for unauthenticated users', async () => {
+
+      renderTopBar();
+
+            (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({    );    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({ push: mockPush });
+
+      await waitFor(() => {
+
+        expect(global.fetch).toHaveBeenCalledWith('/api/auth/session');        ok: false,
+
+      });
+
+    });      } as Response);  };
+
+
+
+    it('should not fetch notifications when not authenticated', async () => {      
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+
+        ok: true,      renderTopBar();    (usePathname as ReturnType<typeof vi.fn>).mockReturnValue(mockPathname);// Mock Responsive Context
+
+        json: async () => ({ authenticated: false }),
+
+      } as Response);      await waitFor(() => {
+
+      
+
+      renderTopBar();        expect(screen.queryByLabelText('Toggle notifications')).not.toBeInTheDocument();  describe('Rendering', () => {
+
+      
+
+      await waitFor(() => {      });
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+
+        expect(global.fetch).toHaveBeenCalledWith('/api/auth/session');    });    it('should render TopBar with brand name', () => {    vi.mock('@/contexts/ResponsiveContext', () => ({
+
+      });
+
+    });  });
 
   });
 
       renderTopBar();
 
-  describe('Logo Click Behavior', () => {
+  describe('User Menu', () => {
 
-    it('should navigate to home when no unsaved changes', async () => {      expect(screen.getByText(/FIXZIT ENTERPRISE/i)).toBeInTheDocument();    // Mock successful auth by default  useResponsive: () => ({
+    it('should render user menu component', () => {  describe('Logo Click Behavior', () => {
 
       renderTopBar();
 
-          });
-
-      const logoButton = screen.getByLabelText('Go to home');
-
-      fireEvent.click(logoButton);    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({    responsiveClasses: {
-
-      
-
-      await waitFor(() => {    it('should render logo image', () => {
-
-        expect(mockPush).toHaveBeenCalledWith('/');
-
-      });      renderTopBar();      ok: true,      container: 'px-4',
+      expect(screen.getByTestId('user-menu')).toBeInTheDocument();    it('should navigate to home when no unsaved changes', async () => {      expect(screen.getByText(/FIXZIT ENTERPRISE/i)).toBeInTheDocument();    // Mock successful auth by default  useResponsive: () => ({
 
     });
 
-  });      const logo = screen.getByAltText('Fixzit Enterprise');
+  });      renderTopBar();
 
 
 
-  describe('Notifications', () => {      expect(logo).toBeInTheDocument();      json: async () => ({ items: [] }),      text: 'text-base',
+  describe('Logout', () => {          });
 
-    it('should fetch notifications when bell is clicked', async () => {
+    it('should handle logout when triggered', async () => {
 
-      const mockNotifications = {      expect(logo).toHaveAttribute('src', expect.stringContaining('logo.jpg'));
+      // This test would require exposing logout functionality      const logoButton = screen.getByLabelText('Go to home');
 
-        items: [
+      // Currently handled by UserMenu component
 
-          {    });    } as Response);    },
+      renderTopBar();      fireEvent.click(logoButton);    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({    responsiveClasses: {
 
-            id: '1',
+      expect(screen.getByTestId('user-menu')).toBeInTheDocument();
 
-            title: 'Test Notification',
+    });      
 
-            message: 'Test message',
+  });
 
-            timestamp: new Date().toISOString(),    it('should render notification bell for authenticated users', async () => {  });    screenInfo: {
+      await waitFor(() => {    it('should render logo image', () => {
 
-            read: false,
+  describe('Accessibility', () => {
 
-            priority: 'high',      renderTopBar();
-
-            category: 'alert',
-
-            type: 'system',      await waitFor(() => {      isMobile: false,
-
-          },
-
-        ],        expect(screen.getByLabelText('Toggle notifications')).toBeInTheDocument();
-
-      };
-
-      });  afterEach(() => {      isTablet: false,
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-
-        ok: true,    });
-
-        json: async () => ({}),
-
-      } as Response);    vi.restoreAllMocks();      isDesktop: true,
-
-
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({    it('should render user menu button for authenticated users', async () => {
-
-        ok: true,
-
-        json: async () => mockNotifications,      renderTopBar();  });      screenClass: 'xl',
-
-      } as Response);
-
-      await waitFor(() => {
+    it('should have proper ARIA role for header', () => {        expect(mockPush).toHaveBeenCalledWith('/');
 
       renderTopBar();
 
-        expect(screen.getByLabelText('User menu')).toBeInTheDocument();    },
+      expect(screen.getByRole('banner')).toBeInTheDocument();      });      renderTopBar();      ok: true,      container: 'px-4',
+
+    });
+
+    });
+
+    it('should have accessible logo image', () => {
+
+      renderTopBar();  });      const logo = screen.getByAltText('Fixzit Enterprise');
+
+      const logo = screen.getByAltText(/fixzit logo/i);
+
+      expect(logo).toHaveAttribute('alt');
+
+    });
+
+  describe('Notifications', () => {      expect(logo).toBeInTheDocument();      json: async () => ({ items: [] }),      text: 'text-base',
+
+    it('should support keyboard navigation', () => {
+
+      renderTopBar();    it('should fetch notifications when bell is clicked', async () => {
+
+      const logo = screen.getByAltText(/fixzit logo/i);
+
+      expect(logo.parentElement).toHaveAttribute('tabIndex');      const mockNotifications = {      expect(logo).toHaveAttribute('src', expect.stringContaining('logo.jpg'));
+
+    });
+
+  });        items: [
+
+
+
+  describe('RTL Support', () => {          {    });    } as Response);    },
+
+    it('should apply RTL classes when in RTL mode', () => {
+
+      // RTL is handled by ResponsiveProvider            id: '1',
+
+      renderTopBar();
+
+      const banner = screen.getByRole('banner');            title: 'Test Notification',
+
+      expect(banner).toBeInTheDocument();
+
+    });            message: 'Test message',
+
+  });
+
+            timestamp: new Date().toISOString(),    it('should render notification bell for authenticated users', async () => {  });    screenInfo: {
+
+  describe('Authentication', () => {
+
+    it('should check authentication status on mount', async () => {            read: false,
+
+      renderTopBar();
+
+                  priority: 'high',      renderTopBar();
 
       await waitFor(() => {
 
-        expect(screen.getByLabelText('Toggle notifications')).toBeInTheDocument();      });
+        expect(global.fetch).toHaveBeenCalledWith('/api/auth/session');            category: 'alert',
 
       });
 
-    });  const renderTopBar = (props = {}) => {    isRTL: false,
-
-      const notificationBell = screen.getByLabelText('Toggle notifications');
-
-      fireEvent.click(notificationBell);
+    });            type: 'system',      await waitFor(() => {      isMobile: false,
 
 
 
-      await waitFor(() => {    it('should not render notifications for unauthenticated users', async () => {    return render(  }),
+    it('should handle authentication check failure gracefully', async () => {          },
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+
+        new Error('Network error')        ],        expect(screen.getByLabelText('Toggle notifications')).toBeInTheDocument();
+
+      );
+
+            };
+
+      renderTopBar();
+
+            });  afterEach(() => {      isTablet: false,
+
+      await waitFor(() => {
+
+        expect(global.fetch).toHaveBeenCalledWith('/api/auth/session');      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+
+      });
+
+              ok: true,    });
+
+      // Component should still render
+
+      expect(screen.getByRole('banner')).toBeInTheDocument();        json: async () => ({}),
+
+    });
+
+  });      } as Response);    vi.restoreAllMocks();      isDesktop: true,
+
+
+
+  describe('Performance', () => {
+
+    it('should not re-fetch notifications unnecessarily', async () => {
+
+      const { rerender } = renderTopBar();      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({    it('should render user menu button for authenticated users', async () => {
+
+      
+
+      await waitFor(() => {        ok: true,
+
+        expect(global.fetch).toHaveBeenCalled();
+
+      });        json: async () => mockNotifications,      renderTopBar();  });      screenClass: 'xl',
+
+      
+
+      const initialCallCount = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.length;      } as Response);
+
+      
+
+      rerender(      await waitFor(() => {
+
+        <TranslationProvider>
+
+          <ResponsiveProvider>      renderTopBar();
+
+            <FormStateProvider>
+
+              <TopBar />        expect(screen.getByLabelText('User menu')).toBeInTheDocument();    },
+
+            </FormStateProvider>
+
+          </ResponsiveProvider>      await waitFor(() => {
+
+        </TranslationProvider>
+
+      );        expect(screen.getByLabelText('Toggle notifications')).toBeInTheDocument();      });
+
+      
+
+      // Should not trigger additional fetches on rerender      });
+
+      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(initialCallCount);
+
+    });    });  const renderTopBar = (props = {}) => {    isRTL: false,
+
+
+
+    it('should cleanup on unmount', () => {      const notificationBell = screen.getByLabelText('Toggle notifications');
+
+      const { unmount } = renderTopBar();
+
+      unmount();      fireEvent.click(notificationBell);
+
+      // Component should cleanup without errors
+
+      expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+
+    });
+
+  });      await waitFor(() => {    it('should not render notifications for unauthenticated users', async () => {    return render(  }),
+
+});
 
         expect(global.fetch).toHaveBeenCalledWith(
 

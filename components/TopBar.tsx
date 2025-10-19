@@ -516,7 +516,10 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               </p>
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={() => setShowUnsavedDialog(false)}
+                  onClick={() => {
+                    setShowUnsavedDialog(false);
+                    setPendingNavigation(null);
+                  }}
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   {t('common.cancel', 'Cancel')}
