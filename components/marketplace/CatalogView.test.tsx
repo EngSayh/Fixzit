@@ -198,7 +198,7 @@ describe('CatalogView - loading and empty states', () => {
   })
 
   it('shows empty state message when no products and no error', () => {
-    setSWRProducts({ data: makeCatalog([]), error: undefined })
+    setSWRProducts({ data: makeCatalog([]), error: undefined, isLoading: false })
     render(<CatalogView />)
     expect(screen.getByText(/No products match your filters/i)).toBeInTheDocument()
     expect(screen.getByText(/Adjust your filters or check back later/i)).toBeInTheDocument()
