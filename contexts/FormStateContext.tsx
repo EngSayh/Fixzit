@@ -8,7 +8,7 @@ interface FormStateContextType {
   markFormDirty: (formId: string) => void;
   markFormClean: (formId: string) => void;
   requestSave: () => Promise<void>;
-  onSaveRequest: (callback: () => Promise<void>) => void;
+  onSaveRequest: (callback: () => Promise<void>) => { formId: string; dispose: () => void };
 }
 
 const FormStateContext = createContext<FormStateContextType | undefined>(undefined);
@@ -45,18 +45,26 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
   const onSaveRequest = useCallback((callback: () => Promise<void>) => {
     const formId = `form-${crypto.randomUUID()}`;
     setSaveCallbacks(prev => new Map(prev).set(formId, callback));
-    return () => {
+    
+    const dispose = () => {
       setSaveCallbacks(prev => {
         const next = new Map(prev);
         next.delete(formId);
         return next;
       });
     };
+    
+    return { formId, dispose };
   }, []);
 
   const requestSave = useCallback(async () => {
     const callbacks = Array.from(saveCallbacks.values());
-    await Promise.all(callbacks.map(cb => cb()));
+    const results = await Promise.allSettled(callbacks.map(cb => cb()));
+    const errors = results.filter(r => r.status === 'rejected');
+    if (errors.length > 0) {
+      console.error('Save errors occurred:', errors);
+      throw new Error(`Failed to save ${errors.length} form(s)`);
+    }
   }, [saveCallbacks]);
 
   const hasUnsavedChanges = dirtyForms.size > 0;
