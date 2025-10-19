@@ -154,12 +154,19 @@ export async function onWorkOrderClosed(
     };
   }
 
-  // 3. Update owner statement
+  // 3. Update owner statement with SAVED transactions (not pre-save objects)
   try {
-    await updateOwnerStatement(financialData.ownerId, financialData.propertyId, [
-      expenseTransaction,
-      ...(results.invoiceTransaction ? [results.invoiceTransaction] : [])
-    ]);
+    const savedTransactions: FinancialTransaction[] = [];
+    
+    if (results.expenseTransaction) {
+      savedTransactions.push(results.expenseTransaction);
+    }
+    
+    if (results.invoiceTransaction) {
+      savedTransactions.push(results.invoiceTransaction);
+    }
+    
+    await updateOwnerStatement(financialData.ownerId, financialData.propertyId, savedTransactions);
     results.statementUpdated = true;
   } catch (error) {
     console.error('[Finance] Failed to update owner statement:', error);

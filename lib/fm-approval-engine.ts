@@ -151,7 +151,8 @@ export function processDecision(
   if (decision === 'approve') {
     if (currentStage.type === 'sequential') {
       // Sequential: Need approval from all approvers in order
-      const allApproved = currentStage.approvers.length > 0 &&
+      // If no approvers assigned (empty list), treat as implicitly approved
+      const allApproved = currentStage.approvers.length === 0 ||
                          currentStage.approvers.every(a => 
                            currentStage.decisions.some(d => d.approverId === a && d.decision === 'approve')
                          );
@@ -167,7 +168,7 @@ export function processDecision(
         }
       }
     } else if (currentStage.type === 'parallel') {
-      // Parallel: Need approval from any one approver
+      // Parallel: Need approval from any one approver (or implicitly approved if no approvers)
       currentStage.status = 'approved';
       
       // Move to next stage

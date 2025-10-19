@@ -403,7 +403,8 @@ WorkOrderSchema.plugin(tenantIsolationPlugin);
 WorkOrderSchema.plugin(auditPlugin);
 
 // Indexes for performance and querying (orgId is already indexed by tenantIsolationPlugin)
-WorkOrderSchema.index({ workOrderNumber: 1 }, { unique: true });
+// Compound unique index on workOrderNumber + orgId to prevent collisions across orgs
+WorkOrderSchema.index({ orgId: 1, workOrderNumber: 1 }, { unique: true });
 WorkOrderSchema.index({ status: 1 });
 WorkOrderSchema.index({ priority: 1 });
 WorkOrderSchema.index({ 'location.propertyId': 1 });
@@ -498,12 +499,14 @@ WorkOrderSchema.pre('save', function(next) {
   }
 
   // Auto-generate work order number if not provided
+  // Use ObjectId suffix instead of timestamp to prevent collisions
   if (this.isNew && !this.workOrderNumber) {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
-    const timestamp = now.getTime().toString().slice(-6);
-    this.workOrderNumber = `WO-${year}${month}-${timestamp}`;
+    // Use last 6 chars of ObjectId for better uniqueness than timestamp
+    const objectIdSuffix = this._id.toString().slice(-6).toUpperCase();
+    this.workOrderNumber = `WO-${year}${month}-${objectIdSuffix}`;
   }
 
   next();
