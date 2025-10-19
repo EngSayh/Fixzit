@@ -78,8 +78,10 @@ export default function ResponsiveLayout({
           ${sidebar && (screenInfo.isMobile || screenInfo.isTablet) && sidebarOpen ? 'ml-0' : ''}
           ${sidebar && screenInfo.isDesktop ? 'ml-0' : ''}
         `}>
-          <div className={`${responsiveClasses.container} py-6 flex-1 flex flex-col`}>
-            {children}
+          <div className="flex-1 flex flex-col">
+            <div className={`${responsiveClasses.container} py-6 flex-1`}>
+              {children}
+            </div>
           </div>
         </main>
       </div>
