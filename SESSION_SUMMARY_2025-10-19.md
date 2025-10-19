@@ -88,7 +88,7 @@
 ### 2. Revoke Exposed Google Maps API Key
 **Priority**: CRITICAL SECURITY
 
-**Exposed Key**: `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`
+**Exposed Key**: `[REDACTED_GOOGLE_MAPS_API_KEY]` (AIzaSy...)
 
 **Action Required**:
 1. Go to: https://console.cloud.google.com/apis/credentials
@@ -149,7 +149,7 @@
 - [x] `.env.local` never committed to git
 
 ### ⚠️ Needs Attention
-- [ ] **Revoke exposed Google Maps API key** (AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU)
+- [ ] **Revoke exposed Google Maps API key** ([REDACTED_API_KEY])
 - [ ] **Delete OAuth JSON file** from Downloads folder
 - [ ] **Add OAuth redirect URIs** to Google Console
 

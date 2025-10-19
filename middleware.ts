@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
+import { jwtVerify } from 'jose';
+
+// JWT secret for legacy token verification
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret-change-in-production');
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -154,19 +158,25 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
             orgId: null
           };
         } else {
-          // Fall back to legacy JWT token
+          // Fall back to legacy JWT token with proper signature verification
           const authToken = request.cookies.get('fixzit_auth')?.value;
           if (!authToken) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
           }
 
-          const payload = JSON.parse(atob(authToken.split('.')[1]));
-          user = {
-            id: payload.id,
-            email: payload.email,
-            role: payload.role,
-            orgId: payload.orgId
-          };
+          try {
+            // Verify JWT signature and decode payload
+            const { payload } = await jwtVerify(authToken, JWT_SECRET);
+            user = {
+              id: payload.id as string || '',
+              email: payload.email as string || '',
+              role: payload.role as string || 'USER',
+              orgId: payload.orgId as string | null || null
+            };
+          } catch (_jwtError) {
+            // JWT verification failed (expired, invalid signature, etc.)
+            return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+          }
         }
 
         // Add user info to request headers for API routes
