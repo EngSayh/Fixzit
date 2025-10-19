@@ -169,15 +169,15 @@ function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void 
       case 'PLANNING':
         return 'bg-gray-100 text-gray-800';
       case 'APPROVED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]';
       case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]';
       case 'ON_HOLD':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]';
       case 'COMPLETED':
-        return 'bg-emerald-100 text-emerald-800';
+        return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]';
       case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)]';
       case 'CLOSED':
         return 'bg-purple-100 text-purple-800';
       default:
