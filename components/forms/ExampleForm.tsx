@@ -32,15 +32,13 @@ export default function ExampleForm() {
         console.error('Error saving form:', error);
         // Optionally show user-facing error state
         // You could add state like setErrorMessage(error.message);
-        throw error; // Re-throw to let FormStateContext handle it if needed
-      }
-    };
+      throw error; // Re-throw to let FormStateContext handle it if needed
+    }
+  };
 
-    registerSaveHandler(handleSave);
-    return () => unregisterSaveHandler();
-  }, [formData, registerSaveHandler, unregisterSaveHandler]);
-
-  // Track changes
+  registerSaveHandler('exampleForm', handleSave);
+  return () => unregisterSaveHandler('exampleForm');
+}, [formData, registerSaveHandler, unregisterSaveHandler]);  // Track changes
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (pristine) {
