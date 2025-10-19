@@ -3,7 +3,7 @@
 ## ✅ Completed Tasks
 
 ### 1. Google Maps API Key Setup
-- **API Key**: AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
+- **API Key**: <REDACTED>
 - **Action Taken**: Created comprehensive setup documentation
 - **File**: `GOOGLE_MAPS_API_SETUP.md`
 - **Note**: GitHub CLI cannot set secrets from Codespaces - user needs to add manually at:

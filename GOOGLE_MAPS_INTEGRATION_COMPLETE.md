@@ -2,7 +2,7 @@
 
 ## ✅ API Key Configured
 ```
-AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
+<REDACTED>
 ```
 
 **Status**: ✅ Added to GitHub Secrets (by user)
@@ -75,14 +75,14 @@ https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,marker&v
 
 Already added by user:
 - Secret name: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-- Value: `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`
+- Value: `<REDACTED>`
 
 ### 2. Environment Variables
 
 **Local Development** (`.env.local`):
 ```bash
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
-GOOGLE_MAPS_API_KEY=AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<REDACTED>
+GOOGLE_MAPS_API_KEY=<REDACTED>
 ENABLE_GOOGLE_MAPS=true
 ```
 

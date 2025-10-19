@@ -13,7 +13,6 @@ interface GoogleMapProps {
   }>;
   height?: string;
   onMapClick?: (lat: number, lng: number) => void;
-  mapId?: string;
 }
 
 // Simple, reliable Google Maps implementation
@@ -22,14 +21,16 @@ export default function GoogleMap({
   zoom = 13, 
   markers = [], 
   height = '400px',
-  onMapClick,
-  mapId: _mapId
+  onMapClick
 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
+  const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
+  const mapClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
 
   useEffect(() => {
     const initMap = () => {
@@ -50,11 +51,12 @@ export default function GoogleMap({
 
         // Add click listener
         if (onMapClick) {
-          map.addListener('click', (e: google.maps.MapMouseEvent) => {
+          const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
             if (e.latLng) {
               onMapClick(e.latLng.lat(), e.latLng.lng());
             }
           });
+          mapClickListenerRef.current = clickListener;
         }
 
         setLoading(false);
@@ -67,8 +69,17 @@ export default function GoogleMap({
 
     // Load Google Maps script
     if (!window.google) {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      
+      if (!apiKey) {
+        console.error('Google Maps API key not found in environment variables');
+        setError('Map configuration error');
+        setLoading(false);
+        return;
+      }
+
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
       script.async = true;
       script.defer = true;
       script.onload = initMap;
@@ -82,7 +93,23 @@ export default function GoogleMap({
     }
 
     return () => {
-      // Cleanup
+      // Close all InfoWindows
+      infoWindowsRef.current.forEach(iw => iw.close());
+      infoWindowsRef.current = [];
+      
+      // Remove all event listeners
+      listenersRef.current.forEach(listener => {
+        google.maps.event.removeListener(listener);
+      });
+      listenersRef.current = [];
+      
+      // Remove map click listener
+      if (mapClickListenerRef.current) {
+        google.maps.event.removeListener(mapClickListenerRef.current);
+        mapClickListenerRef.current = null;
+      }
+      
+      // Clear markers
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
     };
@@ -93,7 +120,11 @@ export default function GoogleMap({
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
-    // Clear existing markers
+    // Clear existing markers and cleanup
+    infoWindowsRef.current.forEach(iw => iw.close());
+    infoWindowsRef.current = [];
+    listenersRef.current.forEach(listener => google.maps.event.removeListener(listener));
+    listenersRef.current = [];
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
 
@@ -106,13 +137,32 @@ export default function GoogleMap({
       });
 
       if (markerData.info) {
+        // Create safe DOM elements to prevent XSS
+        const contentDiv = document.createElement('div');
+        contentDiv.style.padding = '8px';
+        
+        if (markerData.title) {
+          const titleElement = document.createElement('strong');
+          titleElement.textContent = markerData.title;
+          contentDiv.appendChild(titleElement);
+          contentDiv.appendChild(document.createElement('br'));
+        }
+        
+        const infoText = document.createElement('span');
+        infoText.textContent = markerData.info;
+        contentDiv.appendChild(infoText);
+
         const infoWindow = new google.maps.InfoWindow({
-          content: `<div style="padding:8px"><strong>${markerData.title || ''}</strong><br/>${markerData.info}</div>`
+          content: contentDiv
         });
 
-        marker.addListener('click', () => {
+        const clickListener = marker.addListener('click', () => {
           infoWindow.open(mapInstanceRef.current, marker);
         });
+        
+        // Store for cleanup
+        infoWindowsRef.current.push(infoWindow);
+        listenersRef.current.push(clickListener);
       }
 
       markersRef.current.push(marker);
@@ -145,4 +195,3 @@ export default function GoogleMap({
     </div>
   );
 }
-
