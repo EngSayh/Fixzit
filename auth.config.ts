@@ -38,28 +38,42 @@ export const authConfig = {
   },
   callbacks: {
     async signIn({ user: _user, account: _account, profile: _profile }) {
-      // Implement access control - restrict to authorized users
-      // Option 1: Email domain whitelist (recommended for quick setup)
-      // Uncomment and configure allowed domains:
-      // const allowedDomains = ['yourdomain.com', 'partnerdomain.com'];
-      // if (_user?.email) {
-      //   const emailDomain = _user.email.split('@')[1];
-      //   if (!allowedDomains.includes(emailDomain)) {
-      //     return false; // Reject sign-in
-      //   }
+      // OAuth Access Control - Email Domain Whitelist
+      // Configure allowed email domains for OAuth sign-in
+      const allowedDomains = ['fixzit.com', 'fixzit.co'];
+      
+      // Safely check email and extract domain
+      if (!_user?.email) {
+        console.warn('OAuth sign-in rejected: No email provided');
+        return false; // Reject sign-ins without email
+      }
+
+      const emailParts = _user.email.split('@');
+      if (emailParts.length !== 2) {
+        console.warn('OAuth sign-in rejected: Invalid email format', { email: _user.email });
+        return false; // Reject malformed emails
+      }
+
+      const emailDomain = emailParts[1].toLowerCase();
+      if (!allowedDomains.includes(emailDomain)) {
+        console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
+          email: _user.email, 
+          domain: emailDomain,
+          provider: _account?.provider 
+        });
+        return false; // Reject unauthorized domains
+      }
+
+      // Option 2: Database verification (recommended for additional security)
+      // TODO: Uncomment to verify user exists in database:
+      // const dbUser = await getUserByEmail(_user.email);
+      // if (!dbUser || !dbUser.isActive) {
+      //   console.warn('OAuth sign-in rejected: User not found or inactive', { email: _user.email });
+      //   return false;
       // }
 
-      // Option 2: Database verification (recommended for production)
-      // Uncomment to check user exists in your database:
-      // if (_user?.email) {
-      //   const dbUser = await getUserByEmail(_user.email);
-      //   if (!dbUser || !dbUser.isActive) {
-      //     return false; // Reject sign-in
-      //   }
-      // }
-
-      // TEMPORARY: Allow all sign-ins during development
-      // TODO: Remove this and enable one of the options above before production
+      // Allow sign-in for whitelisted domains
+      console.log('OAuth sign-in allowed', { email: _user.email, provider: _account?.provider });
       return true;
     },
     async redirect({ url, baseUrl }) {

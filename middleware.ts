@@ -3,8 +3,15 @@ import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { jwtVerify } from 'jose';
 
+// Validate JWT secret at module load - fail fast if missing
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret.');
+  console.error('Please add JWT_SECRET to your .env.local file or environment configuration.');
+  process.exit(1);
+}
+
 // JWT secret for legacy token verification
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret-change-in-production');
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -219,15 +226,18 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
       };
     } else if (authToken) {
       try {
-        const payload = JSON.parse(atob(authToken.split('.')[1]));
+        // Verify JWT signature and decode payload (secure method)
+        const { payload } = await jwtVerify(authToken, JWT_SECRET);
         user = {
-          id: payload.id,
-          email: payload.email,
-          role: payload.role,
-          orgId: payload.orgId
+          id: payload.id as string || '',
+          email: payload.email as string || '',
+          role: payload.role as string || 'USER',
+          orgId: payload.orgId as string | null || null
         };
-      } catch (_jwtError) {
-        // Invalid token - redirect to login
+      } catch (jwtError) {
+        // JWT verification failed (expired, invalid signature, tampered token, etc.)
+        console.error('JWT verification failed in middleware:', jwtError);
+        // Redirect protected routes to login, allow public routes to continue
         if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
           return NextResponse.redirect(new URL('/login', request.url));
         }
