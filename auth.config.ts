@@ -1,5 +1,11 @@
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
+import crypto from 'crypto';
+
+// Privacy-preserving email hash helper for secure logging
+function hashEmail(email: string): string {
+  return crypto.createHash('sha256').update(email).digest('hex').substring(0, 12);
+}
 
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -48,16 +54,17 @@ export const authConfig = {
         return false; // Reject sign-ins without email
       }
 
+      const emailHash = hashEmail(_user.email);
       const emailParts = _user.email.split('@');
       if (emailParts.length !== 2) {
-        console.warn('OAuth sign-in rejected: Invalid email format', { email: _user.email });
+        console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
         return false; // Reject malformed emails
       }
 
       const emailDomain = emailParts[1].toLowerCase();
       if (!allowedDomains.includes(emailDomain)) {
         console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
-          email: _user.email, 
+          emailHash, 
           domain: emailDomain,
           provider: _account?.provider 
         });
@@ -68,12 +75,12 @@ export const authConfig = {
       // TODO: Uncomment to verify user exists in database:
       // const dbUser = await getUserByEmail(_user.email);
       // if (!dbUser || !dbUser.isActive) {
-      //   console.warn('OAuth sign-in rejected: User not found or inactive', { email: _user.email });
+      //   console.warn('OAuth sign-in rejected: User not found or inactive', { emailHash: hashEmail(_user.email) });
       //   return false;
       // }
 
       // Allow sign-in for whitelisted domains
-      console.log('OAuth sign-in allowed', { email: _user.email, provider: _account?.provider });
+      console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });
       return true;
     },
     async redirect({ url, baseUrl }) {
