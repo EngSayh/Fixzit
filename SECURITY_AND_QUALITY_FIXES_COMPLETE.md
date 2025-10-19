@@ -44,7 +44,9 @@ contentDiv.appendChild(titleElement);
 **Issue**: API key hardcoded in source code
 ```typescript
 // BEFORE (INSECURE):
-const apiKey = 'AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU';
+// NOTE: API keys must never be stored in repository files. Use environment variables / GitHub Secrets instead.
+// Example: set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment or GitHub repository secrets.
+const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '<REDACTED_GOOGLE_MAPS_API_KEY_PLACEHOLDER>';
 
 // AFTER (SECURE):
 const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;

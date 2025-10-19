@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import {
   Eye, EyeOff, LogIn, Mail, Lock, AlertCircle,
   User, Shield, Building2, Users,
-  ArrowRight, Chrome, Apple
+  ArrowRight, Apple
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 const DEMO_CREDENTIALS = [
   {
@@ -410,10 +411,7 @@ export default function LoginPage() {
               /* SSO Login Options */
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
-                  <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Chrome className="h-5 w-5 text-blue-600" />
-                    <span>{t('login.continueWith', 'Continue with')} Google</span>
-                  </button>
+                  <GoogleSignInButton />
                   <button className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Apple className="h-5 w-5 text-gray-900" />
                     <span>{t('login.continueWith', 'Continue with')} Apple</span>

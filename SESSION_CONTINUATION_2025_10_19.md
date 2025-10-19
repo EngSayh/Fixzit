@@ -93,8 +93,8 @@ const requestSave = async () => {
 **Solution**:
 ```bash
 # BEFORE:
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
-GOOGLE_MAPS_API_KEY=AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<REDACTED - EXPOSED KEY MUST BE REVOKED>
+GOOGLE_MAPS_API_KEY=<REDACTED - EXPOSED KEY MUST BE REVOKED>
 
 # AFTER:
 # API key is stored in GitHub secrets as NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -176,7 +176,7 @@ webpack: (config, { dev }) => {
 
 ### Critical (Manual Action Required)
 1. **Revoke Exposed Google Maps API Key**
-   - Old key: `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`
+   - Old key: `<REDACTED - Check previous commit history>` ⚠️ **MUST BE REVOKED**
    - Action: Go to Google Cloud Console → Credentials → Delete/Regenerate
    - Create new key with HTTP referrer restrictions:
      - `https://fixzit.app/*`

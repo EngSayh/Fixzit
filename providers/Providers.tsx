@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
@@ -14,8 +15,9 @@ import ErrorBoundary from '@/components/ErrorBoundary';
  *
  * Renders a centered loading UI until the component mounts on the client. Once mounted it sets the `isClient` flag.
  * When client rendering is active, children are rendered inside the provider tree:
- * ResponsiveProvider → I18nProvider → TranslationProvider → CurrencyProvider → ThemeProvider → TopBarProvider → ErrorBoundary → FormStateProvider.
+ * SessionProvider → ResponsiveProvider → I18nProvider → TranslationProvider → CurrencyProvider → ThemeProvider → TopBarProvider → ErrorBoundary → FormStateProvider.
  *
+ * SessionProvider wraps the entire provider tree to make NextAuth session available throughout the app.
  * ErrorBoundary wraps FormStateProvider to catch any errors thrown during form state initialization or updates.
  *
  * @param {React.ReactNode} children - The React node(s) to render inside the provider tree; these are not mounted during SSR and will only be rendered client-side after the component sets the client flag.
@@ -44,23 +46,25 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ResponsiveProvider>
-      <I18nProvider>
-        <TranslationProvider>
-          <CurrencyProvider>
-            <ThemeProvider>
-              <TopBarProvider>
-                <ErrorBoundary>
-                  <FormStateProvider>
-                    {children}
-                  </FormStateProvider>
-                </ErrorBoundary>
-              </TopBarProvider>
-            </ThemeProvider>
-          </CurrencyProvider>
-        </TranslationProvider>
-      </I18nProvider>
-    </ResponsiveProvider>
+    <SessionProvider>
+      <ResponsiveProvider>
+        <I18nProvider>
+          <TranslationProvider>
+            <CurrencyProvider>
+              <ThemeProvider>
+                <TopBarProvider>
+                  <ErrorBoundary>
+                    <FormStateProvider>
+                      {children}
+                    </FormStateProvider>
+                  </ErrorBoundary>
+                </TopBarProvider>
+              </ThemeProvider>
+            </CurrencyProvider>
+          </TranslationProvider>
+        </I18nProvider>
+      </ResponsiveProvider>
+    </SessionProvider>
   );
 }
 
