@@ -58,9 +58,9 @@ export default function PropertiesLeasesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Expiring Soon': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Active': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
+      case 'Expiring Soon': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
+      case 'Expired': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'Vacant': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -68,9 +68,9 @@ export default function PropertiesLeasesPage() {
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'Paid': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Overdue': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Paid': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
+      case 'Pending': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
+      case 'Overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'N/A': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -236,7 +236,6 @@ export default function PropertiesLeasesPage() {
       </div>
 
       {/* Upcoming Renewals */}
-            {/* Upcoming Renewals */}
       <div className="card">
         <h3 className="text-lg font-semibold mb-4">{t('properties.leases.upcomingRenewals', 'Upcoming Renewals')}</h3>
         <div className="space-y-3">

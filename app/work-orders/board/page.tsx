@@ -41,10 +41,10 @@ export default function WorkOrdersBoardPage() {
   
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return 'bg-red-500 text-white';
-      case 'P2': return 'bg-orange-500 text-white';
-      case 'P3': return 'bg-yellow-500 text-black';
-      case 'P4': return 'bg-green-500 text-white';
+      case 'P1': return 'bg-[var(--fixzit-danger)] text-white';
+      case 'P2': return 'bg-[var(--fixzit-warning)] text-white';
+      case 'P3': return 'bg-[var(--fixzit-accent)] text-gray-900';
+      case 'P4': return 'bg-[var(--fixzit-success)] text-white';
       default: return 'bg-gray-500 text-white';
     }
   };

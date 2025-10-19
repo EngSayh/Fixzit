@@ -54,10 +54,10 @@ export default function PropertiesInspectionsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
+      case 'completed': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
+      case 'scheduled': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
+      case 'in-progress': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
+      case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'cancelled': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -65,10 +65,10 @@ export default function PropertiesInspectionsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Safety': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Fire Safety': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Safety': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
+      case 'Fire Safety': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'Mechanical': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Electrical': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Electrical': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };

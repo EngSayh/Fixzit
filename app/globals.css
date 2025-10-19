@@ -164,9 +164,41 @@
 
   /* Status Colors */
   --fixzit-success: #16A34A;
+  --fixzit-success-light: #86EFAC;
+  --fixzit-success-lighter: #BBF7D0;
+  --fixzit-success-lightest: #DCFCE7;
+  --fixzit-success-dark: #15803D;
+  --fixzit-success-darker: #166534;
+  
   --fixzit-warning: #FACC15;
+  --fixzit-warning-light: #FDE047;
+  --fixzit-warning-lighter: #FEF08A;
+  --fixzit-warning-lightest: #FEF9C3;
+  --fixzit-warning-dark: #CA8A04;
+  --fixzit-warning-darker: #A16207;
+  
   --fixzit-error: #DC2626;
+  --fixzit-danger: #DC2626;
+  --fixzit-danger-light: #FCA5A5;
+  --fixzit-danger-lighter: #FECACA;
+  --fixzit-danger-lightest: #FEE2E2;
+  --fixzit-danger-dark: #B91C1C;
+  --fixzit-danger-darker: #991B1B;
+  
   --fixzit-info: #2563EB;
+  --fixzit-primary: #0061A8;
+  --fixzit-primary-light: #60A5FA;
+  --fixzit-primary-lighter: #93C5FD;
+  --fixzit-primary-lightest: #DBEAFE;
+  --fixzit-primary-dark: #1E40AF;
+  --fixzit-primary-darker: #1E3A8A;
+  
+  --fixzit-accent: #FFB400;
+  --fixzit-accent-light: #FCD34D;
+  --fixzit-accent-lighter: #FDE68A;
+  --fixzit-accent-lightest: #FEF3C7;
+  --fixzit-accent-dark: #D97706;
+  --fixzit-accent-darker: #B45309;
 
   /* ShadCN/UI Required Variables */
   --background: 0 0% 100%;
