@@ -43,7 +43,7 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const onSaveRequest = useCallback((callback: () => Promise<void>) => {
-    const formId = `form-${Date.now()}`;
+    const formId = `form-${crypto.randomUUID()}`;
     setSaveCallbacks(prev => new Map(prev).set(formId, callback));
     return () => {
       setSaveCallbacks(prev => {

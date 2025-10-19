@@ -41,7 +41,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      <div className="flex-1 p-4">
+      <div className="flex-1">
         <GoogleMap
           center={center}
           zoom={DEFAULT_ZOOM}

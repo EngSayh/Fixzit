@@ -278,13 +278,17 @@ def main() -> None:
     # Build and write report
     report = build_report(owner, name, prs)
     
-    # Use correct workspace path (note: /workspaces/ not /workspace/)
-    out_path = "/workspaces/Fixzit/PR_ERRORS_COMMENTS_REPORT.md"
+    # Use relative paths from script location
+    from pathlib import Path
+    script_dir = Path(__file__).parent
+    workspace_root = script_dir.parent
+    
+    out_path = workspace_root / "PR_ERRORS_COMMENTS_REPORT.md"
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(report)
     
     # Also write machine-readable JSON for potential reuse
-    json_path = "/workspaces/Fixzit/PR_ERRORS_COMMENTS_SUMMARY.json"
+    json_path = workspace_root / "PR_ERRORS_COMMENTS_SUMMARY.json"
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(prs, f, ensure_ascii=False, indent=2)
     
