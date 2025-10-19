@@ -32,17 +32,10 @@ jobs:
           # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           # etc.
       
-      - name: Set Sentry configuration
-        id: sentry-check
-        run: |
-          if [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
-            echo "sentry_configured=true" >> $GITHUB_OUTPUT
-          else
-            echo "sentry_configured=false" >> $GITHUB_OUTPUT
-          fi
-      
       - name: Upload source maps to Sentry (if configured)
-        if: steps.sentry-check.outputs.sentry_configured == 'true'
+        # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
+        # Secrets must be set in: Repository Settings > Secrets and variables > Actions
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
