@@ -359,7 +359,7 @@ Thank you for your interest in joining Fixzit Enterprise!
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-16">{/* FIXED: was #023047 (banned) */}
+      <section className="bg-gradient-to-r from-[var(--fixzit-primary)] via-[var(--fixzit-primary)] to-[var(--fixzit-success)] text-white py-16">{/* FIXED: Using CSS variables for theming */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Join Our Team</h1>
@@ -396,12 +396,12 @@ Thank you for your interest in joining Fixzit Enterprise!
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
-              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? 'ring-2 ring-[#0061A8]/20 border-[#0061A8]/30' : ''}`}>
+              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? 'ring-2 ring-[var(--fixzit-primary)]/20 border-[var(--fixzit-primary)]/30' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded bg-[#0061A8] text-white flex items-center justify-center font-bold">FZ</div>{/* FIXED: was #023047 (banned) */}
+                        <div className="w-8 h-8 rounded bg-[var(--fixzit-primary)] text-white flex items-center justify-center font-bold">FZ</div>{/* FIXED: Using CSS variable */}
                         <div className="flex flex-col">
                           <CardTitle className="text-xl leading-tight">{job.title}</CardTitle>
                           <div className="text-xs text-gray-500">Fixzit Enterprise</div>
@@ -504,7 +504,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                         <Button
                           onClick={() => setSelectedJob(job)}
                           disabled={job.status === 'Closed'}
-                          className="bg-[#0061A8] hover:bg-[#0061A8]/90"
+                          className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]"
                         >
                           <FileText className="w-4 h-4 mr-2" />
                           View Details
@@ -593,13 +593,13 @@ Thank you for your interest in joining Fixzit Enterprise!
                             <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                               {['Applied','Screening','Interview','Offer','Hired'].map((stage, idx) => (
                                 <li key={stage} className="flex items-center gap-3 p-3 rounded border border-gray-200 bg-white">
-                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-[#00A859] text-white' : 'bg-gray-200 text-gray-600'}`}>{idx+1}</span>
+                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-[var(--fixzit-success)] text-white' : 'bg-gray-200 text-gray-600'}`}>{idx+1}</span>
                                   <span className="text-sm text-gray-800">{stage}</span>
                                 </li>
                               ))}
                             </ol>
                             <div className="flex flex-wrap gap-2 mt-3">
-                              <Button size="sm" className="bg-[#0061A8] hover:bg-[#0061A8]/90">Schedule Interview</Button>
+                              <Button size="sm" className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">Schedule Interview</Button>
                               <Button size="sm" variant="outline">Advance Stage</Button>
                               <Button size="sm" variant="outline">Share with Team</Button>
                             </div>
@@ -618,7 +618,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                               <Button
                                 onClick={() => handleApply(job)}
                                 disabled={job.status === 'Closed'}
-                                className="bg-[#0061A8] hover:bg-[#0061A8]/90 text-white px-6 py-2"
+                                className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)] text-white px-6 py-2"
                               >
                                 <Send className="w-4 h-4 mr-2" />
                                 Apply Now
@@ -709,7 +709,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-12 w-12 text-gray-400" />
                     <div className="flex text-sm text-gray-600">
-                      <label htmlFor="resume" className="relative cursor-pointer bg-white rounded-md font-medium text-[#0061A8] hover:text-[#0061A8]/80">
+                      <label htmlFor="resume" className="relative cursor-pointer bg-white rounded-md font-medium text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-dark)]">
                         <span>Upload a file</span>
                         <input
                           id="resume"
@@ -739,7 +739,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-[#0061A8] hover:bg-[#0061A8]/90"
+                  className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]"
                 >
                   {isSubmitting ? (
                     <>

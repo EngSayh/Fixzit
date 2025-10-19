@@ -35,27 +35,37 @@ export default function MyTicketsPage() {
   const { data, mutate } = useSWR('/api/support/tickets/my', fetcher);
 
   const sendReply = async () => {
-    if (!selectedTicket || !replyText.trim()) return;
+    if (!selectedTicket || !replyText.trim()) {
+      alert('Please enter a reply message.');
+      return;
+    }
     
-    const res = await fetch(`/api/support/tickets/${selectedTicket._id}/reply`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-user': localStorage.getItem("x-user") || ""
-      },
-      body: JSON.stringify({ text: replyText })
-    });
-    
-    if (res.ok) {
-      setReplyText('');
-      mutate();
-      // Refresh selected ticket
-      const ticketRes = await fetch(`/api/support/tickets/${selectedTicket._id}`, {
-        headers: { 'x-user': localStorage.getItem("x-user") || "" }
+    try {
+      const res = await fetch(`/api/support/tickets/${selectedTicket._id}/reply`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-user': localStorage.getItem("x-user") || ""
+        },
+        body: JSON.stringify({ text: replyText })
       });
-      if (ticketRes.ok) {
-        setSelectedTicket(await ticketRes.json());
+      
+      if (res.ok) {
+        setReplyText('');
+        await mutate();
+        // Refresh selected ticket
+        const ticketRes = await fetch(`/api/support/tickets/${selectedTicket._id}`, {
+          headers: { 'x-user': localStorage.getItem("x-user") || "" }
+        });
+        if (ticketRes.ok) {
+          setSelectedTicket(await ticketRes.json());
+        }
+      } else {
+        alert('Failed to send reply. Please try again.');
       }
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      alert('An error occurred. Please try again.');
     }
   };
 
@@ -94,16 +104,16 @@ export default function MyTicketsPage() {
                     key={ticket._id}
                     onClick={() => setSelectedTicket(ticket)}
                     className={`p-4 cursor-pointer hover:bg-gray-50 ${
-                      selectedTicket?._id === ticket._id ? 'bg-blue-50' : ''
+                      selectedTicket?._id === ticket._id ? 'bg-[var(--fixzit-primary-lightest)]' : ''
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <p className="font-medium text-gray-900 text-sm">{ticket.code}</p>
                       <span className={`text-xs px-2 py-1 rounded-full ${
-                        ticket.status === 'New' ? 'bg-blue-100 text-blue-800' :
-                        ticket.status === 'Open' ? 'bg-yellow-100 text-yellow-800' :
+                        ticket.status === 'New' ? 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]' :
+                        ticket.status === 'Open' ? 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]' :
                         ticket.status === 'Waiting' ? 'bg-purple-100 text-purple-800' :
-                        ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                        ticket.status === 'Resolved' ? 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {ticket.status}
@@ -133,9 +143,9 @@ export default function MyTicketsPage() {
                     </p>
                   </div>
                   <span className={`text-xs px-3 py-1 rounded-full ${
-                    selectedTicket.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
-                    selectedTicket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                    selectedTicket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                    selectedTicket.priority === 'Urgent' ? 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)]' :
+                    selectedTicket.priority === 'High' ? 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)]' :
+                    selectedTicket.priority === 'Medium' ? 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]' :
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {selectedTicket.priority} Priority
@@ -151,7 +161,7 @@ export default function MyTicketsPage() {
                   }`}>
                     <div className={`p-3 rounded-lg ${
                       msg.byRole === 'ADMIN' 
-                        ? 'bg-blue-50 border border-blue-200' 
+                        ? 'bg-[var(--fixzit-primary-lightest)] border border-[var(--fixzit-primary-lighter)]' 
                         : 'bg-gray-50 border border-gray-200'
                     }`}>
                       <div className="flex justify-between items-start mb-1">
@@ -172,6 +182,7 @@ export default function MyTicketsPage() {
               {selectedTicket.status !== 'Closed' && (
                 <div className="p-4 border-t border-gray-200">
                   <textarea
+                    aria-label="Type your reply to this support ticket"
                     value={replyText}
                     onChange={e => setReplyText(e.target.value)}
                     placeholder="Type your reply..."
