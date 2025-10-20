@@ -1,0 +1,283 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Calculator, TrendingUp, DollarSign, Calendar, FileText } from 'lucide-react';
+
+export interface MortgageCalculatorProps {
+  propertyPrice?: number;
+  currency?: string;
+}
+
+export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR' }: MortgageCalculatorProps) {
+  const [price, setPrice] = useState(propertyPrice || 1000000);
+  const [downPayment, setDownPayment] = useState(15); // percentage
+  const [interestRate, setInterestRate] = useState(4.5); // annual percentage
+  const [loanTerm, setLoanTerm] = useState(25); // years
+  const [showAmortization, setShowAmortization] = useState(false);
+
+  // Saudi-specific constraints
+  const MIN_DOWN_PAYMENT = 15; // 15% minimum for residents
+  const MAX_LTV = 85; // 85% max loan-to-value
+  const MAX_LOAN_TERM = 25; // 25 years max
+
+  // Calculations
+  const downPaymentAmount = (price * downPayment) / 100;
+  const loanAmount = price - downPaymentAmount;
+  const monthlyRate = interestRate / 100 / 12;
+  const numberOfPayments = loanTerm * 12;
+  
+  // Monthly payment formula: P * [r(1+r)^n] / [(1+r)^n - 1]
+  const monthlyPayment = 
+    loanAmount * 
+    (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+    (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+
+  const totalPayment = monthlyPayment * numberOfPayments;
+  const totalInterest = totalPayment - loanAmount;
+  const totalCost = price + totalInterest;
+
+  // Debt-to-Income ratio (assuming 33% max)
+  const requiredMonthlyIncome = monthlyPayment / 0.33;
+
+  // Generate amortization schedule (first 12 months)
+  const generateAmortizationSchedule = (months = 12) => {
+    const schedule = [];
+    let remainingBalance = loanAmount;
+
+    for (let i = 1; i <= months && i <= numberOfPayments; i++) {
+      const interestPayment = remainingBalance * monthlyRate;
+      const principalPayment = monthlyPayment - interestPayment;
+      remainingBalance -= principalPayment;
+
+      schedule.push({
+        month: i,
+        payment: monthlyPayment,
+        principal: principalPayment,
+        interest: interestPayment,
+        balance: Math.max(0, remainingBalance),
+      });
+    }
+
+    return schedule;
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-SA', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-SA').format(Math.round(num));
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-gradient-to-br from-[#FFB400] to-[#FF8C00] rounded-lg">
+          <Calculator className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Mortgage Calculator</h2>
+          <p className="text-sm text-gray-600">Calculate your monthly payments</p>
+        </div>
+      </div>
+
+      {/* Input Section */}
+      <div className="space-y-6 mb-6">
+        {/* Property Price */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">Property Price</label>
+            <span className="text-lg font-bold text-gray-900">{formatCurrency(price)}</span>
+          </div>
+          <input
+            type="range"
+            min="100000"
+            max="10000000"
+            step="50000"
+            value={price}
+            onChange={(e) => setPrice(Number(e.target.value))}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>100K</span>
+            <span>10M</span>
+          </div>
+        </div>
+
+        {/* Down Payment */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">
+              Down Payment ({downPayment}%)
+            </label>
+            <span className="text-lg font-bold text-gray-900">{formatCurrency(downPaymentAmount)}</span>
+          </div>
+          <input
+            type="range"
+            min={MIN_DOWN_PAYMENT}
+            max="50"
+            step="5"
+            value={downPayment}
+            onChange={(e) => setDownPayment(Number(e.target.value))}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>{MIN_DOWN_PAYMENT}% (Min)</span>
+            <span>50%</span>
+          </div>
+        </div>
+
+        {/* Interest Rate */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">Interest Rate</label>
+            <span className="text-lg font-bold text-gray-900">{interestRate.toFixed(2)}%</span>
+          </div>
+          <input
+            type="range"
+            min="3"
+            max="8"
+            step="0.1"
+            value={interestRate}
+            onChange={(e) => setInterestRate(Number(e.target.value))}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>3.0%</span>
+            <span>8.0%</span>
+          </div>
+        </div>
+
+        {/* Loan Term */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">Loan Term</label>
+            <span className="text-lg font-bold text-gray-900">{loanTerm} years</span>
+          </div>
+          <input
+            type="range"
+            min="5"
+            max={MAX_LOAN_TERM}
+            step="5"
+            value={loanTerm}
+            onChange={(e) => setLoanTerm(Number(e.target.value))}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>5 years</span>
+            <span>{MAX_LOAN_TERM} years (Max)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Section */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Monthly Payment</h3>
+        <div className="text-4xl font-bold text-[#FF8C00] mb-6">
+          {formatCurrency(monthlyPayment)}
+          <span className="text-sm font-normal text-gray-600">/month</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+              <DollarSign className="w-4 h-4" />
+              <span>Loan Amount</span>
+            </div>
+            <p className="text-xl font-bold text-gray-900">{formatCurrency(loanAmount)}</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+              <TrendingUp className="w-4 h-4" />
+              <span>Total Interest</span>
+            </div>
+            <p className="text-xl font-bold text-gray-900">{formatCurrency(totalInterest)}</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+              <Calendar className="w-4 h-4" />
+              <span>Total Payments</span>
+            </div>
+            <p className="text-xl font-bold text-gray-900">{formatNumber(numberOfPayments)}</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+              <FileText className="w-4 h-4" />
+              <span>Total Cost</span>
+            </div>
+            <p className="text-xl font-bold text-gray-900">{formatCurrency(totalCost)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <h4 className="font-semibold text-blue-900 mb-2">Required Monthly Income</h4>
+        <p className="text-2xl font-bold text-blue-700">{formatCurrency(requiredMonthlyIncome)}</p>
+        <p className="text-sm text-blue-600 mt-1">
+          Based on 33% debt-to-income ratio
+        </p>
+      </div>
+
+      {/* Amortization Schedule */}
+      <div>
+        <button
+          onClick={() => setShowAmortization(!showAmortization)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <span className="font-semibold text-gray-900">View Amortization Schedule</span>
+          <span className="text-gray-600">{showAmortization ? '−' : '+'}</span>
+        </button>
+
+        {showAmortization && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-3 py-2 text-left">Month</th>
+                  <th className="px-3 py-2 text-right">Payment</th>
+                  <th className="px-3 py-2 text-right">Principal</th>
+                  <th className="px-3 py-2 text-right">Interest</th>
+                  <th className="px-3 py-2 text-right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {generateAmortizationSchedule(12).map((row) => (
+                  <tr key={row.month} className="border-b border-gray-200">
+                    <td className="px-3 py-2">{row.month}</td>
+                    <td className="px-3 py-2 text-right">{formatCurrency(row.payment)}</td>
+                    <td className="px-3 py-2 text-right text-green-600">{formatCurrency(row.principal)}</td>
+                    <td className="px-3 py-2 text-right text-red-600">{formatCurrency(row.interest)}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Showing first 12 months of {numberOfPayments} total payments
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Disclaimers */}
+      <div className="mt-6 pt-6 border-t border-gray-200">
+        <p className="text-xs text-gray-500 leading-relaxed">
+          <strong>Note:</strong> This calculator provides estimates based on Saudi Arabia's mortgage regulations. 
+          Minimum down payment is 15% for Saudi residents and 30% for non-residents. Maximum loan-to-value (LTV) 
+          ratio is 85%. Maximum loan term is 25 years. Actual rates and terms may vary by lender. 
+          Consult with a licensed mortgage advisor for accurate information.
+        </p>
+      </div>
+    </div>
+  );
+}
