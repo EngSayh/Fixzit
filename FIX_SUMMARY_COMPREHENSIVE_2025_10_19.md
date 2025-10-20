@@ -44,20 +44,28 @@ This session addressed **9 critical issues** spanning documentation accuracy, se
 
 **Fix Applied**:
 ```typescript
-// NEW: Privacy-preserving email hash helper
-import crypto from 'crypto';
-
-function hashEmail(email: string): string {
-  return crypto.createHash('sha256').update(email).digest('hex').substring(0, 12);
+// NEW: Privacy-preserving email hash helper (Edge Runtime compatible)
+// Uses Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
+async function hashEmail(email: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(email);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.substring(0, 12);
 }
 
 // BEFORE: PII exposure
 console.warn('OAuth sign-in rejected: Invalid email format', { email: _user.email });
 
 // AFTER: Privacy-preserving
-const emailHash = hashEmail(_user.email);
+const emailHash = await hashEmail(_user.email);
 console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
 ```
+
+**Runtime Compatibility Note**:
+- ✅ **Edge Runtime compatible** - uses Web Crypto API (`crypto.subtle.digest`)
+- ✅ **Next.js middleware compatible** - async/await pattern supported
+- ✅ **Browser compatible** - no Node.js-specific APIs used
 
 **Locations Updated**:
 - Line ~47: No email provided warning
@@ -68,6 +76,7 @@ console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
 **Security Impact**:
 - ✅ No PII in production logs
 - ✅ GDPR compliant logging
+- ✅ Edge Runtime support (reduced attack surface)
 - ✅ One-way hash (cannot reverse to original email)
 - ✅ 12-character hash sufficient for debugging
 

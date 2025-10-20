@@ -186,13 +186,27 @@ $ pnpm dev --port 3000
 ## 🔐 Security Status
 
 ### Critical Security Checklist
-- [x] No API keys in source code
-- [x] No API keys in documentation  
+- [x] No API keys remaining in source code
+- [x] No API keys remaining in documentation  
 - [x] Error logging sanitized (no PII)
 - [x] Edge Runtime compatible
 - [x] All tests passing
 - [x] Dev server running successfully
 - [ ] **ACTION REQUIRED**: Rotate exposed GCP API key
+
+#### Exposed Key Details
+**What was exposed**: Google Maps API key `AIzaSyAhsO*****ffWRfU`  
+**Where**: `PR_131_FIXES_COMPLETE_2025_10_19.md` (lines 21, 136)  
+**Remediation Status**:
+- ✅ Redacted from all documentation (Commit: PR #131)
+- ✅ Removed from source code
+- ⚠️ **PENDING**: Key rotation in Google Cloud Console
+- ⚠️ **PENDING**: Update GitHub Secrets with new restricted key
+- ⚠️ **PENDING**: Verify new key in production deployment
+
+**Responsible**: DevOps/Security team  
+**Deadline**: Within 24 hours of discovery (2025-10-20)  
+**Tracking**: See SECURITY_AUDIT_2025_10_20.md lines 24-31 for rotation steps
 
 ### Security Reminders Added
 ✅ Key rotation instructions in documentation  

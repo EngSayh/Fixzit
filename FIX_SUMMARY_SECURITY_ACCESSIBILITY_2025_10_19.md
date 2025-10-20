@@ -258,9 +258,18 @@ Expected: ✅ JWT_SECRET takes precedence
 
 ### Key Rotation Performed
 - **Date:** October 19, 2025
-- **Old Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]` (must be revoked)
-- **New Key:** Stored securely in environment variables
-- **Status:** ⚠️ Manual revocation required in Google Cloud Console
+- **Old Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]` (exposed in git history)
+- **New Key:** Stored securely in GitHub Secrets as `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+- **Status:** ⚠️ **MANUAL ACTION REQUIRED** - Old key revocation pending
+
+#### Required Steps to Complete Rotation:
+1. Visit [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials)
+2. Locate the exposed key (check key creation date around project initialization)
+3. Click the key → "Delete" or "Regenerate"
+4. Verify new restricted key is active in GitHub Secrets
+5. Update this document with: `✅ Revoked on [YYYY-MM-DD]`
+
+**⚠️ SECURITY NOTICE**: Until the old key is revoked, the exposed credentials remain active and pose a security risk. Complete this step within 24 hours.
 
 ---
 

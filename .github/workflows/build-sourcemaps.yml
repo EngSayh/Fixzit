@@ -35,12 +35,18 @@ jobs:
       - name: Upload source maps to Sentry (if configured)
         # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
         # Secrets must be set in: Repository Settings > Secrets and variables > Actions
-        if: secrets.SENTRY_AUTH_TOKEN != ''
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: |
+          # Check if SENTRY_AUTH_TOKEN is set
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "⚠️  SENTRY_AUTH_TOKEN not configured, skipping Sentry upload"
+            exit 0
+          fi
+          
           # Install Sentry CLI
           npm install -g @sentry/cli
           

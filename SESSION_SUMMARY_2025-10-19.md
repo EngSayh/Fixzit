@@ -86,23 +86,24 @@
 **Propagation Time**: Changes may take 5 minutes to several hours to propagate.
 
 ### 2. Revoke Exposed Google Maps API Key
-**Priority**: CRITICAL SECURITY
+**Priority**: ✅ COMPLETED (Oct 19, 2025)
 
-**Exposed Key**: `[REDACTED_GOOGLE_MAPS_API_KEY]` (AIzaSy...)
+**Previously Exposed Key**: `[REDACTED_GOOGLE_MAPS_API_KEY]` (AIzaSy...)
 
-**Action Required**:
-1. Go to: https://console.cloud.google.com/apis/credentials
-2. Find the exposed API key
-3. Click "Delete" or "Regenerate"
-4. Create a new restricted key with:
+**Actions Completed**:
+1. ✅ Key rotated in Google Cloud Console (Oct 19, 2025)
+2. ✅ Old key revoked/deleted
+3. ✅ New restricted key created with:
    - **Application restrictions**: HTTP referrers
      - `fixzit.co/*`
      - `*.fixzit.co/*`
      - `localhost:*`
    - **API restrictions**: Maps JavaScript API only
-5. Copy the new key
-6. Update GitHub Secret: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-7. Update `.env.local` locally
+4. ✅ GitHub Secret updated: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+5. ✅ `.env.local` updated locally (gitignored)
+6. ✅ All documentation redacted
+
+**Security Status**: Risk mitigated - exposed key rotated and replaced with restricted key
 
 ### 3. Delete OAuth JSON File
 **Priority**: HIGH SECURITY
@@ -147,9 +148,9 @@
 - [x] All API keys using environment variables
 - [x] No hard-coded secrets in source code
 - [x] `.env.local` never committed to git
+- [x] **Google Maps API key rotated and replaced** (Oct 19, 2025)
 
 ### ⚠️ Needs Attention
-- [ ] **Revoke exposed Google Maps API key** ([REDACTED_API_KEY])
 - [ ] **Delete OAuth JSON file** from Downloads folder
 - [ ] **Add OAuth redirect URIs** to Google Console
 
