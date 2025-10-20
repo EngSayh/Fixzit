@@ -37,6 +37,21 @@ vi.mock('../UserMenu', () => ({
   default: () => <div data-testid="user-menu">UserMenu</div>,
 }));
 
+// Mock FormStateContext hook
+const mockFormState = {
+  hasUnsavedChanges: false,
+  unregisterForm: vi.fn(),
+  markFormDirty: vi.fn(),
+  markFormClean: vi.fn(),
+  requestSave: vi.fn().mockResolvedValue(undefined),
+  onSaveRequest: vi.fn().mockReturnValue({ formId: 'test-form', dispose: vi.fn() }),
+};
+
+vi.mock('@/contexts/FormStateContext', () => ({
+  useFormState: vi.fn(() => mockFormState),
+  FormStateProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 // Mock global fetch
 global.fetch = vi.fn();
 
@@ -46,6 +61,10 @@ describe('TopBar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset mock form state to default
+    mockFormState.hasUnsavedChanges = false;
+    mockFormState.requestSave = vi.fn().mockResolvedValue(undefined);
+    
     (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
       push: mockPush,
       replace: vi.fn(),
@@ -61,13 +80,11 @@ describe('TopBar', () => {
     vi.restoreAllMocks();
   });
 
-  const renderTopBar = (formStateProps = {}) => {
+  const renderTopBar = () => {
     return render(
       <TranslationProvider>
         <ResponsiveProvider>
-          <FormStateProvider {...formStateProps}>
-            <TopBar />
-          </FormStateProvider>
+          <TopBar />
         </ResponsiveProvider>
       </TranslationProvider>
     );
@@ -99,8 +116,9 @@ describe('TopBar', () => {
 
   describe('Logo Click', () => {
     it('should navigate to dashboard when logo is clicked', async () => {
-      renderTopBar({ hasUnsavedChanges: false });
-      const logo = screen.getByAltText(/fixzit logo/i);
+      mockFormState.hasUnsavedChanges = false;
+      renderTopBar();
+      const logo = screen.getByAltText(/fixzit/i);
       fireEvent.click(logo);
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/dashboard');
@@ -108,8 +126,9 @@ describe('TopBar', () => {
     });
 
     it('should show unsaved changes dialog when logo is clicked with unsaved changes', async () => {
-      renderTopBar({ hasUnsavedChanges: true });
-      const logo = screen.getByAltText(/fixzit logo/i);
+      mockFormState.hasUnsavedChanges = true;
+      renderTopBar();
+      const logo = screen.getByAltText(/fixzit/i);
       fireEvent.click(logo);
       await waitFor(() => {
         expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
@@ -117,8 +136,9 @@ describe('TopBar', () => {
     });
 
     it('should clear pendingNavigation when cancel is clicked', async () => {
-      renderTopBar({ hasUnsavedChanges: true });
-      const logo = screen.getByAltText(/fixzit logo/i);
+      mockFormState.hasUnsavedChanges = true;
+      renderTopBar();
+      const logo = screen.getByAltText(/fixzit/i);
       fireEvent.click(logo);
       await waitFor(() => {
         expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
@@ -131,8 +151,9 @@ describe('TopBar', () => {
     });
 
     it('should navigate when discard changes is clicked', async () => {
-      renderTopBar({ hasUnsavedChanges: true });
-      const logo = screen.getByAltText(/fixzit logo/i);
+      mockFormState.hasUnsavedChanges = true;
+      renderTopBar();
+      const logo = screen.getByAltText(/fixzit/i);
       fireEvent.click(logo);
       await waitFor(() => {
         expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
@@ -228,9 +249,10 @@ describe('TopBar', () => {
 
     it('should support keyboard navigation', () => {
       renderTopBar();
-      const logo = screen.getByAltText(/fixzit logo/i);
-      logo.focus();
-      expect(document.activeElement).toBe(logo);
+      // Find the button wrapper (not the image itself, which is not focusable)
+      const logoButton = screen.getByRole('button', { name: /go to home/i });
+      logoButton.focus();
+      expect(document.activeElement).toBe(logoButton);
     });
   });
 
