@@ -1,10 +1,14 @@
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
-import crypto from 'crypto';
 
-// Privacy-preserving email hash helper for secure logging
-function hashEmail(email: string): string {
-  return crypto.createHash('sha256').update(email).digest('hex').substring(0, 12);
+// Privacy-preserving email hash helper for secure logging (Edge-compatible)
+async function hashEmail(email: string): Promise<string> {
+  // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
+  const msgUint8 = new TextEncoder().encode(email);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.substring(0, 12);
 }
 
 // Validate required environment variables at startup
@@ -54,7 +58,7 @@ export const authConfig = {
         return false; // Reject sign-ins without email
       }
 
-      const emailHash = hashEmail(_user.email);
+      const emailHash = await hashEmail(_user.email);
       const emailParts = _user.email.split('@');
       if (emailParts.length !== 2) {
         console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
@@ -75,7 +79,8 @@ export const authConfig = {
       // TODO: Uncomment to verify user exists in database:
       // const dbUser = await getUserByEmail(_user.email);
       // if (!dbUser || !dbUser.isActive) {
-      //   console.warn('OAuth sign-in rejected: User not found or inactive', { emailHash: hashEmail(_user.email) });
+      //   const rejectedEmailHash = await hashEmail(_user.email);
+      //   console.warn('OAuth sign-in rejected: User not found or inactive', { emailHash: rejectedEmailHash });
       //   return false;
       // }
 
