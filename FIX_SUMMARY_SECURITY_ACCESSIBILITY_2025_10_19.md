@@ -39,14 +39,12 @@ Fixed 3 critical issues related to security hardening and accessibility improvem
 ```
 
 ### Verification
-```bash
-**Verification:**
+
 ```bash
 grep -r "AIzaSy" --include="*.md" --include="*.ts" --include="*.tsx" .
-# Should return NO matches in source files
-# Pattern searches are acceptable in documentation
 ```
-```
+
+Expected: Should return NO matches in source files. Pattern searches are acceptable in documentation.
 
 ### Security Impact
 - **Before:** CVSS 7.5 (High) - API key could be abused for unauthorized requests
@@ -161,17 +159,22 @@ $ pnpm lint
 ```
 
 ### Security Scan ✅
+
+Search for exposed API keys:
+
 ```bash
-# Search for exposed API keys
-```bash
-$ grep -rE "AIzaSy[A-Za-z0-9_-]{33}" .
-# Pattern search acceptable in documentation - not actual keys
+grep -rE "AIzaSy[A-Za-z0-9_-]{33}" .
 ```
 
-# Search for hardcoded secrets
-$ grep -rE "(mongodb\+srv|postgres)://[^@]+:[^@]+@" .
-# Result: Only documentation examples (safe)
+Result: Pattern search acceptable in documentation - not actual keys
+
+Search for hardcoded secrets:
+
+```bash
+grep -rE "(mongodb\+srv|postgres)://[^@]+:[^@]+@" .
 ```
+
+Result: Only documentation examples (safe)
 
 ---
 
@@ -180,7 +183,7 @@ $ grep -rE "(mongodb\+srv|postgres)://[^@]+:[^@]+@" .
 ### Manual Testing
 
 **1. Authentication Error Handling (Issue #2)**
-```
+
 Test Steps:
 1. Open Google Sign-In page
 2. Trigger authentication error (e.g., invalid credentials)
@@ -188,35 +191,41 @@ Test Steps:
 4. Verify error message is announced automatically
 
 Expected: Screen reader announces "Sign-in failed. Please try again."
-```
 
 **2. JWT Secret Validation (Issue #3)**
-```
+
 Test Scenarios:
 
-Scenario A: JWT_SECRET only
+**Scenario A: JWT_SECRET only**
+
 1. Set JWT_SECRET in .env.local
 2. Remove NEXTAUTH_SECRET
 3. Start server: pnpm dev
+
 Expected: ✅ Server starts successfully
 
-Scenario B: NEXTAUTH_SECRET only
+**Scenario B: NEXTAUTH_SECRET only**
+
 1. Remove JWT_SECRET
 2. Set NEXTAUTH_SECRET in .env.local
 3. Start server: pnpm dev
+
 Expected: ✅ Server starts successfully
 
-Scenario C: Neither set
+**Scenario C: Neither set**
+
 1. Remove both variables
 2. Start server: pnpm dev
+
 Expected: ❌ Error: "FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET..."
 
-Scenario D: Both set (JWT_SECRET priority)
+**Scenario D: Both set (JWT_SECRET priority)**
+
 1. Set both variables to different values
 2. Start server: pnpm dev
 3. Verify JWT_SECRET is used (check logs)
+
 Expected: ✅ JWT_SECRET takes precedence
-```
 
 ---
 

@@ -61,6 +61,7 @@ Status: Reviewed and mitigated
 **OAuth Provider Testing**:
 
 1. **Google OAuth Flow**:
+
    ```bash
    Test Scenario: User signs in with Google account
    ✅ Authorization redirect works
@@ -68,7 +69,7 @@ Status: Reviewed and mitigated
    ✅ Email domain whitelist enforced (@fixzit.com, @fixzit.co)
    ✅ Unauthorized domains rejected
    ✅ Session created with correct user data
-   ✅ Token refresh mechanism operational
+   ⚠️ Token refresh mechanism NOT implemented (see Known Limitations)
    ```
 
 2. **Session Management**:
@@ -383,6 +384,91 @@ providers: [
 ]
 ```
 
+### 4. OAuth Token Refresh Not Implemented
+
+**Issue**: JWT and session callbacks do not implement automatic token refresh or expiry checks
+
+**Current Behavior**: 
+- Access tokens from Google OAuth are short-lived (typically 1 hour)
+- NextAuth session tokens have 30-day maxAge
+- No automatic refresh when provider access token expires
+- Users must re-authenticate when access token expires
+
+**Impact**: Medium - users may need to re-login after 1 hour of inactivity
+
+**Security Note**: This is actually a safer default - short-lived tokens reduce security risk
+
+**Operational Workaround**: 
+- Sessions persist for 30 days for navigation and UI
+- Provider access tokens expire after 1 hour (Google default)
+- Users re-authenticate via OAuth when provider token expires
+- No sensitive provider API calls made client-side
+
+**Implementation Plan** (Sprint 2 - estimated 4-6 hours):
+
+```typescript
+// Future implementation in auth.config.ts
+async jwt({ token, account, user }) {
+  // Initial sign-in
+  if (account && user) {
+    return {
+      ...token,
+      accessToken: account.access_token,
+      refreshToken: account.refresh_token,
+      accessTokenExpires: account.expires_at * 1000,
+      user,
+    };
+  }
+
+  // Access token still valid
+  if (Date.now() < token.accessTokenExpires) {
+    return token;
+  }
+
+  // Access token expired, refresh it
+  return refreshAccessToken(token);
+}
+
+async function refreshAccessToken(token) {
+  try {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+        refresh_token: token.refreshToken,
+      }),
+    });
+
+    const refreshedTokens = await response.json();
+
+    if (!response.ok) throw refreshedTokens;
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.access_token,
+      accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+    };
+  } catch (error) {
+    console.error('Error refreshing access token:', error);
+    return {
+      ...token,
+      error: 'RefreshAccessTokenError',
+    };
+  }
+}
+```
+
+**Security Considerations**:
+- Store refresh tokens server-side only (never expose to client)
+- Implement refresh token rotation
+- Secure token storage in database
+- Handle refresh failures gracefully
+- Log refresh attempts for security monitoring
+
 ---
 
 ## Production Deployment Checklist
@@ -535,6 +621,7 @@ git push
 
 **Q1 2026**:
 - Upgrade to next-auth v5 stable (when released)
+- **Implement OAuth token refresh mechanism** (4-6 hours)
 - Implement database role sync for OAuth users
 - Add email/password provider as fallback
 - Enable two-factor authentication (2FA)

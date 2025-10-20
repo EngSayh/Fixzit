@@ -1,4 +1,4 @@
-# Critical Issues Resolution Plan - 2024-10-19
+# Critical Issues Resolution Plan - 2025-10-19
 
 **Status**: 🔴 HIGH PRIORITY - Multiple blocking issues identified  
 **Branch**: feat/topbar-enhancements  
@@ -15,6 +15,7 @@ Following the comprehensive code review and recent security hardening work, **3 
 3. 🟡 **Quality Gates Workflow** - Failing due to test framework issues
 
 **Current State**:
+
 - ✅ Security: All critical vulnerabilities fixed (OAuth, JWT, secrets)
 - ✅ TypeScript: 0 errors
 - ✅ ESLint: 0 warnings in production code
@@ -44,6 +45,7 @@ beforeEach(() => {
 ```
 
 **Files Affected** (from previous analysis):
+
 - `alert.route.test.ts` - Mixed jest.resetModules() with vi.spyOn()
 - `WorkOrdersView.test.tsx` - Needs conversion
 - `CatalogView.test.tsx` - SWR mock issues (documented separately)
@@ -52,7 +54,8 @@ beforeEach(() => {
 - ~10-15 additional test files
 
 **Evidence**:
-```
+
+```typescript
 Error: test.describe() was called in a wrong context
 Location: tests/unit/api/qa/log.route.test.ts:8:6
 ```
@@ -60,6 +63,7 @@ Location: tests/unit/api/qa/log.route.test.ts:8:6
 ### Decision: Use Vitest Exclusively
 
 **Rationale**:
+
 1. ✅ Modern, faster test runner
 2. ✅ Better Next.js 15 integration
 3. ✅ ESM-native (matches project setup)
@@ -71,6 +75,7 @@ Location: tests/unit/api/qa/log.route.test.ts:8:6
 #### Step 1: Create Vitest Setup (30 minutes)
 
 Create `vitest.setup.ts`:
+
 ```typescript
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
@@ -122,6 +127,7 @@ const spy = vi.spyOn(module, 'method');
 ```
 
 **Files to Convert** (Priority Order):
+
 1. `alert.route.test.ts` - Currently failing with mixed APIs
 2. `tests/unit/api/qa/log.route.test.ts` - Playwright context error
 3. `WorkOrdersView.test.tsx`
@@ -134,6 +140,7 @@ const spy = vi.spyOn(module, 'method');
 **Problem**: E2E tests (Playwright) mixed with unit tests (Vitest)
 
 **Solution**:
+
 ```bash
 # Move E2E tests to separate directory
 mkdir -p e2e
@@ -142,6 +149,7 @@ mv tests/unit/api/qa/log.route.test.ts e2e/  # This is E2E, not unit
 ```
 
 **Update `playwright.config.ts`**:
+
 ```typescript
 export default defineConfig({
   testDir: './e2e',  // Separate from unit tests
@@ -151,6 +159,7 @@ export default defineConfig({
 ```
 
 **Update `vitest.config.ts`**:
+
 ```typescript
 export default defineConfig({
   test: {
@@ -164,6 +173,7 @@ export default defineConfig({
 #### Step 4: Create MongoDB Mock (1 hour)
 
 Create `tests/mocks/mongodb-unified.ts`:
+
 ```typescript
 import { vi } from 'vitest';
 
@@ -226,13 +236,15 @@ gh run watch
 **Estimated Time**: 4-6 hours (14 roles × 20 minutes)
 
 **Current State**:
+
 - ✅ Infrastructure ready (MongoDB seeded, authentication verified)
 - ✅ 14 test users created (all roles)
 - ✅ Production server working
 - ❌ Comprehensive browser testing not executed
 
 **Test Results** (from Oct 5 report):
-```
+
+```typescript
 Smoke Tests: 0/8 passing
 Code Validation: 0/3 passing
 Help Page: 0/8 passing
@@ -247,6 +259,7 @@ Projects API: 2/10 passing (20%)
 #### Phase 1: Fix Failing Tests (2 hours)
 
 **1. API Health Tests** (15 minutes):
+
 ```bash
 # Check why health check failing
 curl http://localhost:3000/api/health
@@ -254,16 +267,19 @@ curl http://localhost:3000/api/health
 ```
 
 **2. Authentication Tests** (30 minutes):
+
 - Verify all 14 test users can authenticate
 - Check JWT token generation
 - Verify session persistence
 
 **3. Projects API Tests** (1 hour):
+
 - Fix authentication issues (only 20% passing)
 - Verify RBAC enforcement
 - Test CRUD operations per role
 
 **4. Marketplace Tests** (15 minutes):
+
 - Check public access (guest browsing)
 - Verify cart operations
 - Test checkout flow
@@ -285,6 +301,7 @@ curl http://localhost:3000/api/health
 | ... | ... | ... | ... | ... | ... |
 
 **Test Script Template**:
+
 ```typescript
 // e2e/role-based-access.spec.ts
 import { test, expect } from '@playwright/test';
@@ -330,6 +347,7 @@ test.describe('SUPER_ADMIN Role Tests', () => {
 ```
 
 **Execution Plan**:
+
 ```bash
 # 1. Start production server
 pnpm build
@@ -348,6 +366,7 @@ pnpm playwright show-report
 #### Phase 3: Document Results (30 minutes)
 
 Create comprehensive test report:
+
 - Pass/fail rates per role
 - Screenshots of failures
 - Performance metrics
@@ -374,7 +393,8 @@ Create comprehensive test report:
 **Estimated Fix Time**: 30 minutes
 
 **Error**:
-```
+
+```typescript
 Error: test.describe() was called in a wrong context
 Location: tests/unit/api/qa/log.route.test.ts:8:6
 ```
@@ -386,6 +406,7 @@ Location: tests/unit/api/qa/log.route.test.ts:8:6
 **1. Move E2E tests to separate directory** (Already covered in Issue #1, Step 3)
 
 **2. Update playwright.config.ts**:
+
 ```typescript
 import { defineConfig, devices } from '@playwright/test';
 
@@ -425,6 +446,7 @@ export default defineConfig({
 ```
 
 **3. Verify separation**:
+
 ```bash
 # Unit tests (Vitest)
 pnpm vitest run
@@ -449,6 +471,7 @@ pnpm playwright test
 ## Immediate Action Plan (Next 4 Hours)
 
 ### Hour 1: Test Framework Cleanup
+
 ```bash
 # Create branch
 git checkout -b fix/test-framework-standardization
@@ -460,6 +483,7 @@ git checkout -b fix/test-framework-standardization
 ```
 
 ### Hour 2-3: Convert Remaining Tests
+
 ```bash
 # Convert files in priority order:
 # 1. WorkOrdersView.test.tsx (30 min)
@@ -469,12 +493,14 @@ git checkout -b fix/test-framework-standardization
 ```
 
 ### Hour 3: Create MongoDB Mock
+
 ```bash
 # Create tests/mocks/mongodb-unified.ts (30 min)
 # Update test files to use mock (30 min)
 ```
 
 ### Hour 4: Verify & Commit
+
 ```bash
 # Run all tests
 pnpm vitest run
@@ -518,23 +544,27 @@ gh pr create --fill --draft \
 ## Medium Priority Issues (Address After Critical Fixes)
 
 ### 1. MongoDB Atlas Configuration
+
 **Status**: Needs Verification  
 **Action**: Verify `.env.local` has proper connection string  
 **Time**: 15 minutes
 
 ### 2. Duplicate Code Consolidation
+
 **Status**: Documented, not blocking  
 **Report**: `DUPLICATE_CODE_ANALYSIS_REPORT.md`  
 **Action**: Implement consolidation plan for PayTabs logic  
 **Time**: 2-3 hours
 
 ### 3. Dead Code Removal (Phase 2)
+
 **Status**: Analysis complete  
 **Report**: `DEAD_CODE_ANALYSIS_REPORT.md`  
 **Action**: Verify and remove ~10-15 unused exports  
 **Time**: 1-2 hours
 
 ### 4. Comprehensive Error Analysis Follow-up
+
 **Status**: 3,024 issues identified (lower priority)  
 **Report**: `SYSTEM_ERRORS_DETAILED_REPORT.md`  
 **Action**: Address remaining @ts-ignore and : any in production code  
@@ -547,6 +577,7 @@ gh pr create --fill --draft \
 **Note**: The `admin-module.tsx` file doesn't exist yet in the repository. When implementing, consider these UX improvements:
 
 ### 1. Role Permission Modal Context
+
 **Enhancement**: Pass `selectedRole` to modal for specific titles
 
 ```typescript
@@ -561,6 +592,7 @@ const [selectedRole, setSelectedRole] = useState<string | null>(null);
 ```
 
 ### 2. Interactive Permission Matrix
+
 **Enhancement**: Highlight active permissions when role card clicked
 
 ```typescript
@@ -571,6 +603,7 @@ const [highlightedRole, setHighlightedRole] = useState<string | null>(null);
 ```
 
 ### 3. System Permission Naming
+
 **Enhancement**: Use action-oriented permission names
 
 ```typescript
@@ -592,6 +625,7 @@ const [highlightedRole, setHighlightedRole] = useState<string | null>(null);
 ## Success Metrics
 
 ### Current Status
+
 | Category | Status | Progress |
 |----------|--------|----------|
 | Production Code Quality | ✅ Complete | 100% (0 'any' warnings) |
@@ -602,6 +636,7 @@ const [highlightedRole, setHighlightedRole] = useState<string | null>(null);
 | Documentation | ✅ Current | All reports updated |
 
 ### Target Status (After Critical Fixes)
+
 | Category | Target | Timeline |
 |----------|--------|----------|
 | Test Framework | ✅ Vitest Only | 3 hours |
@@ -614,16 +649,19 @@ const [highlightedRole, setHighlightedRole] = useState<string | null>(null);
 ## Timeline
 
 **Today (Oct 19, 2025)**:
+
 - ✅ Security fixes complete (commits 5e043392, 609a8abe)
 - 🔄 Start test framework standardization
 
 **Next Session (4 hours)**:
+
 - Hour 1: Test framework cleanup
 - Hour 2-3: Convert remaining tests
 - Hour 3: MongoDB mock
 - Hour 4: Verify and commit
 
 **Following Session (6 hours)**:
+
 - Hours 1-4: Execute comprehensive E2E tests
 - Hours 5-6: Document results and create deployment plan
 

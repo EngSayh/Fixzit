@@ -14,6 +14,8 @@ This session addressed **9 critical issues** spanning documentation accuracy, se
 
 **Quality Assurance**: ✅ TypeScript (0 errors) | ✅ ESLint (0 warnings)
 
+**Scope Note**: This document covers UI/UX enhancements, authentication security, translations, and configuration. It does **not** cover search functionality, database query implementation, or Atlas Search configuration. For search-related documentation, see the relevant API route files and their associated documentation.
+
 ---
 
 ## Issues Fixed (9 Total)

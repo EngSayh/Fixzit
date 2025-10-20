@@ -114,6 +114,15 @@ $ pnpm audit
 
 ---
 
+## ✅ Version Compatibility
+
+- **Next.js**: 15.0.3 ✅
+- **NextAuth**: v4.24.11 (latest stable) ⚠️
+  - ⚠️ NextAuth v4.24.11 does **NOT** officially support Next.js 15
+  - Next.js 15 compatibility is provided in the **v5 beta** line (5.0.0-beta.x)
+  - v4.24.11 is the latest stable release (as of October 2025)
+  - For production use with Next.js 15, consider upgrading to NextAuth v5 when it reaches stable release
+
 **Validated By**: GitHub Copilot Agent  
 **Date**: October 20, 2025  
 **Status**: Decision to keep v5 beta validated and documented
