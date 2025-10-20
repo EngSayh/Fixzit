@@ -1,94 +1,10 @@
 {
-  "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  "nodejs.memory": 4096,
-  "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 50,
-  "chat.tools.global.autoApprove": true,
-  "chat.tools.terminal.autoReplyToPrompts": true,
-  "github.copilot.chat.agent.runTasks": true,
-  "chat.notifyWindowOnConfirmation": false,
-  "chat.checkpoints.enabled": true,
-  "chat.editing.autoAccept": 2,
-  "github.copilot.enable": { "*": true },
-  "github.copilot.chat.enable": true,
-  "github.copilot.chat.virtualTools.threshold": 50,
-  "github.copilot.chat.tools.enabled": {
-    "changes": true,
-    "edit": true,
-    "githubRepo": true,
-    "new": true,
-    "problems": true,
-    "runCommands": true,
-    "runNotebooks": false,
-    "runTasks": true,
-    "runTests": true,
-    "search": true,
-    "todos": true,
-    "usages": true,
-    "vscodeAPI": true,
-    "extensions": false,
-    "openSimpleBrowser": false,
-    "testFailure": false
-  },
-  "chat.mcp.discovery.enabled": {
-    "claude-desktop": false,
-    "windsurf": false,
-    "cursor-global": false,
-    "cursor-workspace": false
-  },
-  "chat.tools.edits.autoApprove": {
-    "**/*": true
-  },
-  "chat.tools.terminal.autoApprove": {
-    "npm": true,
-    "pnpm": true,
-    "yarn": true,
-    "bun": true,
-    "node": true,
-    "npx": true,
-    "git": true,
-    "gh": true,
-    "bash": true,
-    "sh": true,
-    "python": true,
-    "pytest": true,
-    "jest": true,
-    "vitest": true,
-    "docker": true,
-    "docker-compose": true,
-    "make": true,
-    "kubectl": true
-  },
-  "security.workspace.trust.enabled": false,
-  "git.branchProtection": ["main", "master"],
-  "git.branchProtectionPrompt": "alwaysPrompt",
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "codium.codeCompletion.enable": true,
-  "coderabbit.autoReviewMode": "auto",
-  "coderabbit.maxFilesPerReview": 500,
-  "coderabbit.concurrentReviews": 3,
-  "extensions.autoUpdate": false,
-  "extensions.ignoreRecommendations": true,
-  "window.restoreWindows": "none",
+  "powershell.promptToUpdatePowerShell": false,
+  "powershell.startAutomatically": false,
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
-    "**/node_modules/**": true,
-    "**/.hg/store/**": true,
-    "**/dist/**": true,
-    "**/.next/**": true,
-    "**/build/**": true,
-    "**/.turbo/**": true
-  },
-  "chatgpt.openOnStartup": true,
-  "powershell.promptToUpdatePowerShell": false,
-  "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
-  "typescript.tsserver.maxTsServerMemory": 2048,
-  "typescript.preferences.includePackageJsonAutoImports": "off",
-  "typescript.disableAutomaticTypeAcquisition": true,
-  "extensions.experimental.affinity": {
-    "ms-vscode.powershell": 0
+    "**/node_modules/*/**": true,
+    "**/.next/**": true
   }
 }
