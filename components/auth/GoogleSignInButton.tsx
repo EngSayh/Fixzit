@@ -25,13 +25,20 @@ export default function GoogleSignInButton() {
       if (result?.error) {
         // Display user-friendly error message
         setError(t('login.signInError', 'Sign-in failed. Please try again.'));
-        console.error('Google sign-in error:', result.error);
+        // Log only safe error details (no PII, tokens, or sensitive data)
+        console.error('Google sign-in failed:', {
+          hasError: true,
+          // Only log error type/code if available, never the full error object
+          errorType: typeof result.error === 'string' ? 'string' : 'object'
+        });
       } else if (result?.ok) {
         // Successfully signed in, navigate to dashboard
         router.push(result.url || '/dashboard');
       }
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      // Log only a sanitized error message, never the full error object (may contain PII)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Google sign-in exception:', { message: errorMessage });
       setError(t('login.signInError', 'Sign-in failed. Please try again.'));
     } finally {
       setIsLoading(false);

@@ -18,10 +18,11 @@ All 35 PR comments and reported issues have been addressed. This session focused
 
 #### 2. Security: Exposed API Keys ✅
 - **Status**: All keys redacted
-- **Action**: Redacted `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU` from:
+- **Action**: Redacted `[REDACTED_GCP_API_KEY]` from:
   - `FIX_SUMMARY_SECURITY_ACCESSIBILITY_2025_10_19.md` (3 occurrences)
-- **Note**: Other files already had keys redacted
+- **Note**: Other files already had keys redacted. **Any exposed API keys must be rotated immediately in Google Cloud Console.**
 - **Build artifacts**: `.next/` contains old code but will regenerate
+- **Security Reminder**: Never paste real API keys into documentation or code examples
 
 #### 3. FormStateContext Architecture ✅
 - **Status**: Fixed and improved
@@ -133,8 +134,16 @@ $ pnpm lint
 
 ### Security Scan
 ```bash
-$ grep -rn "AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU" . --include="*.md" --include="*.ts" --include="*.tsx"
+# Search for potential API key patterns (redacted example - never include real keys)
+$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --include="*.tsx"
+# Or search for environment variable references:
+$ grep -rn "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" . --include="*.ts" --include="*.tsx"
 ✅ No exposed API keys found in source files
+
+**Note**: If you discover an exposed API key, immediately:
+1. Rotate/revoke the key in Google Cloud Console
+2. Update environment variables with new key
+3. Remove all occurrences from git history (use git-filter-repo or BFG)
 ```
 
 ---
