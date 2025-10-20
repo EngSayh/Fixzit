@@ -310,10 +310,6 @@ export function can(
     return !!ctx.isTechnicianAssigned;
   }
 
-  if (ctx.role === Role.TECHNICIAN && ['start_work','pause_work','complete_work','submit_estimate','attach_quote'].includes(action)) {
-    return !!ctx.isTechnicianAssigned;
-  }
-
   return true;
 }
 
@@ -576,18 +572,33 @@ export function hasRequiredMedia(ctx: ResourceCtx, mediaType: 'BEFORE' | 'AFTER'
 }
 
 /**
- * Validate FSM state transition with media and guard checks
+ * Validate FSM state transition with media and guard checks.
+ * Looks up the transition in WORK_ORDER_FSM and validates it against context.
+ * @param from - Starting status
+ * @param to - Target status
+ * @param actorRole - Role attempting the transition
+ * @param ctx - Resource context with media and assignment info
+ * @returns true if transition is valid and all guards pass
  */
 export function canTransition(
-  t: { requireMedia?: string[]; guard?: string },
+  from: WOStatus,
+  to: WOStatus,
+  actorRole: Role,
   ctx: ResourceCtx
 ): boolean {
+  // Find the transition definition
+  const transition = WORK_ORDER_FSM.transitions.find(
+    t => t.from === from && t.to === to && (t.by as Role[]).includes(actorRole)
+  );
+  
+  if (!transition) return false;
+  
   // Check required media attachments
-  if (t.requireMedia?.includes('BEFORE') && !hasRequiredMedia(ctx, 'BEFORE')) return false;
-  if (t.requireMedia?.includes('AFTER') && !hasRequiredMedia(ctx, 'AFTER')) return false;
+  if (transition.requireMedia?.includes('BEFORE') && !hasRequiredMedia(ctx, 'BEFORE')) return false;
+  if (transition.requireMedia?.includes('AFTER') && !hasRequiredMedia(ctx, 'AFTER')) return false;
   
   // Check guard condition for technician assignment
-  if (t.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+  if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
   
   return true;
 }
