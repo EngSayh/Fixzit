@@ -71,7 +71,7 @@
 
 **Action Required**:
 1. Go to: https://console.cloud.google.com/apis/credentials
-2. Select OAuth client: `887157574249-s5g75n2bu6p8v2aeghib7uos2fpj220j`
+2. Select OAuth client: `<OAUTH_CLIENT_ID_REDACTED>` (see Google Cloud Console)
 3. Edit "Authorized redirect URIs" section
 4. Add these three URIs:
    ```
@@ -250,7 +250,7 @@ feat: integrate NextAuth Google OAuth, middleware and session provider; add Goog
 
 ### Google Cloud Console
 - **Credentials**: https://console.cloud.google.com/apis/credentials
-- **OAuth Client ID**: `887157574249-s5g75n2bu6p8v2aeghib7uos2fpj220j`
+- **OAuth Client ID**: `<OAUTH_CLIENT_ID_REDACTED>` (see Google Cloud Console)
 - **Project**: `eastern-synapse-475602-c6`
 
 ### GitHub
