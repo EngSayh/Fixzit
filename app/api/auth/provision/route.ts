@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/server/lib/mongodb';
-import User from '@/server/models/User';
+import { dbConnect } from '@/db/mongoose';
+import { User } from '@/server/models/User';
 
 /**
  * POST /api/auth/provision
@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     // Check if user exists
-    let user = await User.findOne({ email }).lean();
+    const existingUser = await User.findOne({ email });
 
-    if (!user) {
+    if (!existingUser) {
       // Create new user with OAuth details
       // Extract first and last name from full name
       const nameParts = (name || email.split('@')[0]).split(' ');
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       const userCount = await User.countDocuments();
       const code = `USR${String(userCount + 1).padStart(6, '0')}`;
 
-      user = await User.create({
+      const newUser = await User.create({
         code,
         username,
         email,
@@ -60,33 +60,46 @@ export async function POST(request: NextRequest) {
       });
 
       console.log('New OAuth user provisioned', { 
-        userId: user._id, 
+        userId: newUser._id, 
         email,
         provider 
       });
+
+      return NextResponse.json(
+        { 
+          success: true, 
+          userId: newUser._id,
+          isNewUser: true 
+        },
+        { status: 200 }
+      );
     } else {
       // Update last login and profile image if changed
-      await User.findByIdAndUpdate(user._id, {
-        $set: {
-          'metadata.lastLogin': new Date(),
-          'metadata.profileImage': image,
+      const updatedUser = await User.findByIdAndUpdate(
+        existingUser._id,
+        {
+          $set: {
+            'metadata.lastLogin': new Date(),
+            'metadata.profileImage': image,
+          },
         },
-      });
+        { new: true }
+      );
 
       console.log('Existing OAuth user updated', { 
-        userId: user._id, 
+        userId: existingUser._id, 
         email 
       });
-    }
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        userId: user._id,
-        isNewUser: !user 
-      },
-      { status: 200 }
-    );
+      return NextResponse.json(
+        { 
+          success: true, 
+          userId: existingUser._id,
+          isNewUser: false 
+        },
+        { status: 200 }
+      );
+    }
   } catch (error) {
     console.error('User provisioning error:', error);
     return NextResponse.json(
