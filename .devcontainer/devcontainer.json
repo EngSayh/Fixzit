@@ -1,6 +1,6 @@
 {
   "name": "Fixzit Dev Container",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/git:1": {},
@@ -63,7 +63,8 @@
     "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
     "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}"
   },
-  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postCreateCommand": "bash -c 'if [ -f .devcontainer/setup.sh ]; then bash .devcontainer/setup.sh; else echo Setup script not found, skipping...; fi'",
   "remoteUser": "node",
-  "updateRemoteUserUID": true
+  "updateRemoteUserUID": true,
+  "waitFor": "onCreateCommand"
 }
