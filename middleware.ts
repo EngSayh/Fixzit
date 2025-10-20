@@ -25,9 +25,12 @@ const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 function matchesRoute(pathname: string, route: string): boolean {
   // Exact match
   if (pathname === route) return true;
-  // Segment boundary match: route must be followed by / to avoid false positives
-  // e.g., '/api/auth' matches '/api/auth/' but not '/api/authentication'
-  if (pathname.startsWith(route + '/')) return true;
+  // Segment boundary match: route must be followed by / or end of string to avoid false positives
+  // e.g., '/api/auth' matches '/api/auth/' or '/api/auth', but not '/api/authentication'
+  if (pathname.startsWith(route)) {
+    const nextChar = pathname[route.length];
+    if (nextChar === '/' || nextChar === undefined) return true;
+  }
   return false;
 }
 
