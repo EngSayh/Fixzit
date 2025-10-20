@@ -47,7 +47,11 @@ export const authConfig = {
     error: '/login',
   },
   callbacks: {
-    async signIn({ user: _user, account: _account, profile: _profile }) {
+    async signIn({ user: _user, account: _account, profile: _profile }: { 
+      user: any; 
+      account: any; 
+      profile?: any; 
+    }) {
       // OAuth Access Control - Email Domain Whitelist
       // Configure allowed email domains for OAuth sign-in
       const allowedDomains = ['fixzit.com', 'fixzit.co'];
@@ -109,20 +113,20 @@ export const authConfig = {
       console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });
       return true;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
       // Redirect to dashboard after successful login
       if (url.startsWith('/')) return `${baseUrl}${url}`;
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       // Add user ID to session
       if (token?.sub) {
         session.user.id = token.sub;
       }
       return session;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account }: { token: any; user?: any; account?: any }) {
       // Add user info to token
       if (user) {
         token.id = user.id;
