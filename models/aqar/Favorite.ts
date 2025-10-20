@@ -34,7 +34,13 @@ const FavoriteSchema = new Schema<IFavorite>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     
-    targetId: { type: Schema.Types.ObjectId, required: true },
+    targetId: { 
+      type: Schema.Types.ObjectId, 
+      required: true
+      // Note: Cannot use refPath directly since enum values (LISTING, PROJECT) 
+      // don't match model names (AqarListing, AqarProject)
+      // Populate manually in API routes based on targetType
+    },
     targetType: {
       type: String,
       enum: Object.values(FavoriteType),

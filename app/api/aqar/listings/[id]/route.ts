@@ -36,7 +36,13 @@ export async function GET(
     }
     
     // Increment view count (async, don't await)
-    AqarListing.findByIdAndUpdate(id, { $inc: { 'analytics.views': 1 }, 'analytics.lastViewedAt': new Date() }).exec();
+    AqarListing.findByIdAndUpdate(
+      id, 
+      { 
+        $inc: { 'analytics.views': 1 }, 
+        $set: { 'analytics.lastViewedAt': new Date() } 
+      }
+    ).exec().catch(() => {});
     
     return NextResponse.json({ listing });
   } catch (error) {
@@ -98,7 +104,7 @@ export async function PATCH(
         const value = body[field];
         
         // Validate enum fields
-        if (field === 'furnishing' && !['FURNISHED', 'SEMI_FURNISHED', 'UNFURNISHED'].includes(value)) {
+        if (field === 'furnishing' && !['FURNISHED', 'PARTLY', 'UNFURNISHED'].includes(value)) {
           return NextResponse.json({ error: `Invalid furnishing: ${value}` }, { status: 400 });
         }
         if (field === 'status' && !['DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'INACTIVE', 'SOLD', 'RENTED', 'EXPIRED', 'REJECTED'].includes(value)) {

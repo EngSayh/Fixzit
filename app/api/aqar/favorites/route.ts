@@ -34,8 +34,18 @@ export async function GET(request: NextRequest) {
     
     const favorites = await AqarFavorite.find(query)
       .sort({ createdAt: -1 })
-      .populate('targetId')
       .lean();
+    
+    // Manually populate based on targetType since enum values don't match model names
+    const { AqarListing, AqarProject } = await import('@/models/aqar');
+    
+    for (const fav of favorites) {
+      if (fav.targetType === 'LISTING') {
+        fav.target = await AqarListing.findById(fav.targetId).lean();
+      } else if (fav.targetType === 'PROJECT') {
+        fav.target = await AqarProject.findById(fav.targetId).lean();
+      }
+    }
     
     return NextResponse.json({ favorites });
   } catch (error) {
