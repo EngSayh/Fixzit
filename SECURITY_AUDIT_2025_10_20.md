@@ -4,7 +4,7 @@
 
 ### Issue 1: Exposed API Keys in Documentation ✅ FIXED
 
-**Problem**: GCP API key `AIzaSyAhsO*****ffWRfU` (partially redacted) was exposed in documentation files.
+**Problem**: GCP API key `<REDACTED_GOOGLE_MAPS_API_KEY>` (partially redacted) was exposed in documentation files.
 
 **Files Fixed**:
 1. `PR_131_FIXES_COMPLETE_2025_10_19.md` (line 21) - Replaced with `[REDACTED_GCP_API_KEY]`
@@ -23,7 +23,7 @@ $ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --inclu
 ```
 
 **⚠️ CRITICAL ACTION REQUIRED**:
-The exposed API key `AIzaSyAhsO*****ffWRfU` (full key previously exposed in git history) must be rotated:
+The exposed API key `<REDACTED_GOOGLE_MAPS_API_KEY>` (full key previously exposed in git history) must be rotated:
 1. Go to Google Cloud Console → APIs & Services → Credentials
 2. Delete or regenerate the compromised key
 3. Create new API key with proper restrictions

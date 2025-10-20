@@ -239,11 +239,22 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
       } catch (jwtError) {
         // JWT verification failed (expired, invalid signature, tampered token, etc.)
         console.error('JWT verification failed in middleware:', jwtError);
-        // Redirect protected routes to login, allow public routes to continue
-        if (pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')) {
-          return NextResponse.redirect(new URL('/login', request.url));
-        }
-        return NextResponse.next();
+        
+        // Clear invalid auth cookie
+        const response = pathname.startsWith('/fm/') || pathname.startsWith('/aqar/') || pathname.startsWith('/souq/')
+          ? NextResponse.redirect(new URL('/login', request.url))
+          : NextResponse.next();
+        
+        // Attach cleared cookie to response
+        response.cookies.set('fixzit_auth', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 0, // Expire immediately
+        });
+        
+        return response;
       }
     }
 

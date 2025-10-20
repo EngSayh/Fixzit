@@ -75,14 +75,9 @@ export const authConfig = {
         return false; // Reject unauthorized domains
       }
 
-      // Option 2: Database verification (recommended for additional security)
-      // TODO: Uncomment to verify user exists in database:
-      // const dbUser = await getUserByEmail(_user.email);
-      // if (!dbUser || !dbUser.isActive) {
-      //   const rejectedEmailHash = await hashEmail(_user.email);
-      //   console.warn('OAuth sign-in rejected: User not found or inactive', { emailHash: rejectedEmailHash });
-      //   return false;
-      // }
+      // Database verification is handled by middleware.ts after successful OAuth
+      // The middleware checks User.findOne({ email }) and validates isActive status
+      // This separation ensures Edge Runtime compatibility (auth.config.ts cannot access MongoDB)
 
       // Allow sign-in for whitelisted domains
       console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });

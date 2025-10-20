@@ -54,6 +54,11 @@ export interface ISavedSearch extends Document {
   // Status
   active: boolean;
   
+  // Instance methods
+  recordMatch(): Promise<void>;
+  recordNotification(): Promise<void>;
+  toggleActive(): Promise<void>;
+  
   // Timestamps
   createdAt: Date;
   updatedAt: Date;

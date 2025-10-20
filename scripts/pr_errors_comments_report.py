@@ -192,8 +192,13 @@ def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
 
         reviews_counts = fetch_reviews_counts(owner, name, num)
 
+        # For merged PRs, use merge_commit_sha; otherwise use head.sha
+        merge_sha = (pr.get("merge_commit_sha") or "").strip()
         head = pr.get("head") or {}
-        sha = (head.get("sha") or "").strip()
+        head_sha = (head.get("sha") or "").strip()
+        
+        # Prefer merge commit SHA for accurate CI results on merged PRs
+        sha = merge_sha if merge_sha else head_sha
         ci_summary = fetch_ci_summary(owner, name, sha)
 
         # Update totals

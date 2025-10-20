@@ -1,0 +1,145 @@
+/**
+ * Aqar Souq - Leads API
+ * 
+ * POST /api/aqar/leads - Create inquiry lead
+ * GET /api/aqar/leads - Get user's leads (owner/agent)
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { connectDb } from '@/lib/mongo';
+import { AqarLead, AqarListing } from '@/models/aqar';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+
+
+export const runtime = 'nodejs';
+
+// POST /api/aqar/leads
+export async function POST(request: NextRequest) {
+  try {
+    await connectDb();
+    
+    // Auth is optional for public inquiries
+    let userId: string | undefined;
+    try {
+      const user = await getSessionUser(request);
+      userId = user.id;
+    } catch {
+      // Public inquiry - no auth required
+    }
+    
+    const body = await request.json();
+    
+    const { listingId, projectId, inquirerName, inquirerPhone, inquirerEmail, intent, message, source } = body;
+    
+    // Validate required fields
+    if (!inquirerName || !inquirerPhone || !intent || !source) {
+      return NextResponse.json(
+        { error: 'inquirerName, inquirerPhone, intent, and source are required' },
+        { status: 400 }
+      );
+    }
+    
+    if (!listingId && !projectId) {
+      return NextResponse.json(
+        { error: 'Either listingId or projectId is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Get recipient (listing owner or project developer)
+    let recipientId;
+    
+    if (listingId) {
+      const listing = await AqarListing.findById(listingId);
+      if (!listing) {
+        return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+      }
+      recipientId = listing.listerId;
+      
+      // Increment inquiries count (async)
+      AqarListing.findByIdAndUpdate(listingId, {
+        $inc: { 'analytics.inquiries': 1 },
+      }).exec();
+    } else if (projectId) {
+      const { AqarProject } = await import('@/models/aqar');
+      const project = await AqarProject.findById(projectId);
+      if (!project) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      }
+      recipientId = project.developerId;
+      
+      // Increment inquiries count (async)
+      AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec();
+    }
+    
+    const lead = new AqarLead({
+      orgId: userId || recipientId,
+      listingId,
+      projectId,
+      source,
+      inquirerId: userId,
+      inquirerName,
+      inquirerPhone,
+      inquirerEmail,
+      recipientId,
+      intent,
+      message,
+    });
+    
+    await lead.save();
+    
+    // TODO: Send notification to recipient (email/SMS/push)
+    
+    return NextResponse.json({ lead }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating lead:', error);
+    return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
+  }
+}
+
+// GET /api/aqar/leads
+export async function GET(request: NextRequest) {
+  try {
+    await connectDb();
+    
+    const user = await getSessionUser(request);
+    
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+    const skip = (page - 1) * limit;
+    
+    const query: Record<string, unknown> = {
+      recipientId: user.id,
+    };
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    const [leads, total] = await Promise.all([
+      AqarLead.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('listingId')
+        .populate('projectId')
+        .lean(),
+      AqarLead.countDocuments(query),
+    ]);
+    
+    return NextResponse.json({
+      leads,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching leads:', error);
+    return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
+  }
+}

@@ -81,6 +81,15 @@ export interface ILead extends Document {
   crmContactId?: mongoose.Types.ObjectId;   // Link to CRM Contact
   crmDealId?: mongoose.Types.ObjectId;      // Link to CRM Deal
   
+  // Instance methods
+  addNote(authorId: mongoose.Types.ObjectId, content: string): Promise<void>;
+  assign(agentId: mongoose.Types.ObjectId): Promise<void>;
+  scheduleViewing(dateTime: Date): Promise<void>;
+  completeViewing(): Promise<void>;
+  markAsWon(userId: mongoose.Types.ObjectId): Promise<void>;
+  markAsLost(userId: mongoose.Types.ObjectId, reason?: string): Promise<void>;
+  markAsSpam(): Promise<void>;
+  
   // Timestamps
   createdAt: Date;
   updatedAt: Date;

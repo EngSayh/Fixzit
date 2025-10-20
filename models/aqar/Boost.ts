@@ -82,6 +82,16 @@ BoostSchema.index({ userId: 1, active: 1 });
 
 // Static: Get boost pricing
 BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
+  // Validate type
+  if (!Object.values(BoostType).includes(type)) {
+    throw new Error('Invalid boost type');
+  }
+  
+  // Validate days
+  if (!Number.isFinite(days) || days <= 0 || !Number.isInteger(days)) {
+    throw new Error('Days must be a positive integer');
+  }
+  
   const basePrice = {
     [BoostType.FEATURED]: 100,      // 100 SAR per day
     [BoostType.PINNED]: 50,         // 50 SAR per day

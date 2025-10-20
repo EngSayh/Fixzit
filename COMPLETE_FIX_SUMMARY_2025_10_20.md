@@ -21,33 +21,40 @@
 **Fixed Lines**: 21, 136
 
 **Before (Line 21)**:
+
 ```markdown
-- **Action**: Redacted `AIzaSyAhsO*****ffWRfU` from:
+- **Action**: Redacted `[REDACTED_GCP_API_KEY]` from documentation
 ```
 
 **After**:
+
 ```markdown
 - **Action**: Redacted `[REDACTED_GCP_API_KEY]` from:
 - **Security Reminder**: Never paste real API keys into documentation or code examples
 ```
 
 **Before (Line 136)**:
+
 ```bash
-$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md"
+# Search for potential API key patterns (redacted example - never include real keys)
+grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --include="*.tsx"
+# Or search for environment variable references:
+grep -rn "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" . --include="*.ts" --include="*.tsx"
 ```
 
 **After**:
+
 ```bash
 # Search for potential API key patterns (redacted example - never include real keys)
-$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --include="*.tsx"
+grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --include="*.tsx"
 # Or search for environment variable references:
-$ grep -rn "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" . --include="*.ts" --include="*.tsx"
+grep -rn "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" . --include="*.ts" --include="*.tsx"
+```
 
 **Note**: If you discover an exposed API key, immediately:
 1. Rotate/revoke the key in Google Cloud Console
 2. Update environment variables with new key
 3. Remove all occurrences from git history
-```
 
 ### 3. PII Exposure in GoogleSignInButton Error Logging ✅
 **File**: `components/auth/GoogleSignInButton.tsx`  
@@ -60,6 +67,7 @@ $ grep -rn "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" . --include="*.ts" --include="*.tsx
 - Stack traces
 
 **Before**:
+
 ```tsx
 if (result?.error) {
   console.error('Google sign-in error:', result.error); // ❌ Logs entire object
@@ -70,6 +78,7 @@ catch (error) {
 ```
 
 **After**:
+
 ```tsx
 if (result?.error) {
   // ✅ Log only safe error details (no PII, tokens, or sensitive data)
@@ -90,6 +99,7 @@ catch (error) {
 **Issue**: Node.js `crypto` module not supported in Edge Runtime
 
 **Before**:
+
 ```tsx
 import crypto from 'crypto'; // ❌ Not Edge-compatible
 
@@ -99,6 +109,7 @@ function hashEmail(email: string): string {
 ```
 
 **After**:
+
 ```tsx
 // ✅ Use Web Crypto API for Edge Runtime compatibility
 async function hashEmail(email: string): Promise<string> {
@@ -116,43 +127,7 @@ const emailHash = await hashEmail(_user.email);
 ### 5. NextAuth v5 Beta Validation ✅
 **Decision**: KEEP `next-auth@5.0.0-beta.29`
 
-**Documentation Created**:
-- `NEXTAUTH_VERSION_VALIDATION_2025_10_20.md` - Comprehensive analysis
-- Confirmed v4.24.11 supports Next.js 15 (correcting prior assumption)
-- Validated decision to stay with v5 beta (mature, tested, forward-compatible)
-- All tests passing, zero vulnerabilities
 
----
-
-## 📊 Verification Results
-
-### Security Scans
-```bash
-# API Key Scan (using pattern to avoid exposing actual keys)
-$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --include="*.tsx"
-✅ No matches found - Key successfully removed
-
-# Pattern-based search for other potential keys
-$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.ts" --include="*.tsx"
-✅ No exposed API keys in source files
-```
-
-### Code Quality
-```bash
-$ pnpm typecheck
-✅ PASS - 0 TypeScript errors
-
-$ pnpm lint
-✅ PASS - 0 ESLint warnings
-```
-
-### Dev Server
-```bash
-$ pnpm dev --port 3000
-✅ Server running on http://localhost:3000
-✅ Middleware compiling successfully
-✅ No Edge Runtime errors (crypto module issue fixed)
-```
 
 ---
 
@@ -195,7 +170,8 @@ $ pnpm dev --port 3000
 - [ ] **ACTION REQUIRED**: Rotate exposed GCP API key
 
 #### Exposed Key Details
-**What was exposed**: Google Maps API key `AIzaSyAhsO*****ffWRfU`  
+
+**What was exposed**: Google Maps API key pattern `AIza**********************` (REDACTED)  
 **Where**: `PR_131_FIXES_COMPLETE_2025_10_19.md` (lines 21, 136)  
 **Remediation Status**:
 - ✅ Redacted from all documentation (Commit: PR #131)
@@ -272,6 +248,12 @@ $ pnpm dev --port 3000
 **Ready for**: Production deployment (after key rotation)
 
 ---
+
+**⚠️ SECURITY WARNING**: This document previously contained the actual exposed API key in lines demonstrating the fix. The key has been redacted with `[REDACTED_GCP_API_KEY]` placeholders. The actual key MUST be rotated immediately and this file should be removed from git history using tools like `git-filter-repo` or BFG Repo-Cleaner.
+
+**⚠️ CRITICAL ACTION REQUIRED**: Even after this redaction, the actual key remains in git history. Use one of these tools to purge it completely:
+- [git-filter-repo](https://github.com/newren/git-filter-repo): `git filter-repo --path COMPLETE_FIX_SUMMARY_2025_10_20.md --invert-paths`
+- [BFG Repo-Cleaner](https://rtyley.github.io/bfg-repo-cleaner/): `bfg --replace-text <(echo '[REDACTED_GCP_API_KEY]')`
 
 **Session Completed**: October 20, 2025  
 **Agent**: GitHub Copilot  

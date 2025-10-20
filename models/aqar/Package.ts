@@ -99,17 +99,41 @@ PackageSchema.methods.activate = async function (this: IPackage) {
 };
 
 PackageSchema.methods.consumeListing = async function (this: IPackage) {
-  if (!this.active) {
-    throw new Error('Package not active');
+  // Atomic update to avoid race conditions
+  const now = new Date();
+  const filter: Record<string, unknown> = {
+    _id: this._id,
+    active: true,
+    $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
+  };
+  
+  // Add expiry check only if expiresAt is set
+  if (this.expiresAt) {
+    filter.expiresAt = { $gt: now };
   }
-  if (this.expiresAt && this.expiresAt < new Date()) {
-    throw new Error('Package expired');
+  
+  const updated = await (this.constructor as unknown as typeof import('mongoose').Model).findOneAndUpdate(
+    filter,
+    { $inc: { listingsUsed: 1 } },
+    { new: true }
+  );
+  
+  if (!updated) {
+    // Determine specific error
+    if (!this.active) {
+      throw new Error('Package not active');
+    }
+    if (this.expiresAt && this.expiresAt < now) {
+      throw new Error('Package expired');
+    }
+    if (this.listingsUsed >= this.listingsAllowed) {
+      throw new Error('Package listings exhausted');
+    }
+    throw new Error('Failed to consume listing');
   }
-  if (this.listingsUsed >= this.listingsAllowed) {
-    throw new Error('Package listings exhausted');
-  }
-  this.listingsUsed += 1;
-  await this.save();
+  
+  // Update current instance
+  this.listingsUsed = updated.listingsUsed as number;
 };
 
 PackageSchema.methods.checkExpiry = async function (this: IPackage) {

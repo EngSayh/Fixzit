@@ -91,7 +91,7 @@ Logo can be changed by super admin through:
 Add `data-modified="true"` attribute to forms with unsaved changes:
 ```tsx
 <form data-modified={hasChanges ? "true" : "false"}>
-  {/* form fields */}
+  <!-- form fields -->
 </form>
 ```
 
@@ -147,18 +147,7 @@ User Dropdown:
 
 **Conclusion:** The corporate number field IS showing and working correctly. No fix needed.
 
-**Test Credentials Available:**
-```
-Employee Number: EMP001
-Password: password123
-Role: Property Manager (Corporate)
-```
-
----
-
-### 6. **Login Tabs Design** ✅
-**Status:** Verified - No issue found, properly designed
-
+<!-- Test credentials redacted for security. Contact admin or check secure credential store for test account access. -->
 **Investigation Results:**
 - Tabs exist at `app/login/page.tsx` lines 220-245
 - Three tabs: Personal Email, Corporate Account, SSO Login
@@ -391,8 +380,9 @@ const [hasChanges, setHasChanges] = useState(false);
 <div className="px-4 py-2 space-y-2">
   <LanguageSelector variant="default" />
   <CurrencySelector variant="default" />
-  {/* Add more selectors here */}
+  <!-- Add more selectors here -->
 </div>
+<!-- You can add more selectors above as needed -->
 ```
 
 ---

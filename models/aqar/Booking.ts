@@ -129,8 +129,20 @@ BookingSchema.index({ createdAt: -1 });
 // Pre-save: Calculate derived fields
 BookingSchema.pre('save', function (next) {
   if (this.isModified('checkInDate') || this.isModified('checkOutDate')) {
-    const diffTime = Math.abs(this.checkOutDate.getTime() - this.checkInDate.getTime());
-    this.nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Normalize to UTC date-only (ignore time-of-day)
+    const checkInUTC = Date.UTC(
+      this.checkInDate.getUTCFullYear(),
+      this.checkInDate.getUTCMonth(),
+      this.checkInDate.getUTCDate()
+    );
+    const checkOutUTC = Date.UTC(
+      this.checkOutDate.getUTCFullYear(),
+      this.checkOutDate.getUTCMonth(),
+      this.checkOutDate.getUTCDate()
+    );
+    
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    this.nights = Math.max(0, (checkOutUTC - checkInUTC) / MS_PER_DAY);
     
     if (this.nights < 1) {
       return next(new Error('Check-out must be at least 1 day after check-in'));
@@ -188,9 +200,9 @@ BookingSchema.methods.cancel = async function (
   this.cancellationReason = reason;
   
   // Calculate refund based on cancellation policy
-  const daysUntilCheckIn = Math.ceil(
-    (this.checkInDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  const diffMs = this.checkInDate.getTime() - Date.now();
+  const daysUntilCheckIn = Math.max(0, Math.floor(diffMs / MS_PER_DAY));
   
   if (daysUntilCheckIn >= 7) {
     this.refundAmount = this.totalPrice; // Full refund

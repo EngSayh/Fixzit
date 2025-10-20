@@ -58,16 +58,13 @@ export interface IPayment extends Document {
   paidAt?: Date;
   failedAt?: Date;
   refundedAt?: Date;
+  refundAmount?: number;           // SAR - preserved original amount
   
   // Integration
   invoiceId?: mongoose.Types.ObjectId;     // Link to Finance Invoice
   
   // Metadata
   metadata?: Record<string, unknown>;
-  
-  // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const PaymentSchema = new Schema<IPayment>(
@@ -92,7 +89,6 @@ const PaymentSchema = new Schema<IPayment>(
       enum: Object.values(PaymentStatus),
       default: PaymentStatus.PENDING,
       required: true,
-      index: true,
     },
     
     method: {
@@ -100,12 +96,13 @@ const PaymentSchema = new Schema<IPayment>(
       enum: Object.values(PaymentMethod),
     },
     
-    gatewayTransactionId: { type: String, index: true },
+    gatewayTransactionId: { type: String },
     gatewayResponse: { type: Schema.Types.Mixed },
     
     paidAt: { type: Date },
     failedAt: { type: Date },
     refundedAt: { type: Date },
+    refundAmount: { type: Number, min: 0, default: null },
     
     invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice' },
     
@@ -117,10 +114,9 @@ const PaymentSchema = new Schema<IPayment>(
   }
 );
 
-// Indexes
+// Indexes (compound index covers status queries)
 PaymentSchema.index({ userId: 1, status: 1, createdAt: -1 });
 PaymentSchema.index({ gatewayTransactionId: 1 });
-PaymentSchema.index({ createdAt: -1 });
 
 // Static: Get standard fees
 PaymentSchema.statics.getStandardFees = function () {
@@ -167,7 +163,7 @@ PaymentSchema.methods.markAsRefunded = async function (
   this.status = PaymentStatus.REFUNDED;
   this.refundedAt = new Date();
   if (refundAmount !== undefined) {
-    this.amount = refundAmount;
+    this.refundAmount = refundAmount;
   }
   await this.save();
 };

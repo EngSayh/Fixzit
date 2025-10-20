@@ -137,6 +137,11 @@ MarketingRequestSchema.methods.accept = async function (
   if (this.status !== MarketingRequestStatus.PENDING) {
     throw new Error('Only pending requests can be accepted');
   }
+  
+  if (commissionPercent < 0 || commissionPercent > 100) {
+    throw new Error('Commission percentage must be between 0 and 100');
+  }
+  
   this.brokerId = brokerId;
   this.proposedCommissionPercent = commissionPercent;
   this.status = MarketingRequestStatus.ACCEPTED;
