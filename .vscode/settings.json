@@ -1,37 +1,7 @@
 {
   "powershell.promptToUpdatePowerShell": false,
   "powershell.startAutomatically": false,
-  "typescript.tsserver.maxTsServerMemory": 4096,
-  "terminal.integrated.env.windows": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  "terminal.integrated.env.osx": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  // Uncomment and configure the following if using GitHub Copilot
-  // "github.copilot.enable": true,
-  // "github.copilot.agentProxy": "http://localhost:3128",
-  // Uncomment and configure the following for security/branch protection hints
-  // "git.branchProtection.enabled": true,
-  "typescript.tsserver.maxTsServerMemory": 4096,
-  "terminal.integrated.env.windows": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  "terminal.integrated.env.osx": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  // Uncomment and configure the following if using GitHub Copilot
-  // "github.copilot.enable": true,
-  // "github.copilot.agentProxy": "http://localhost:3128",
-  // Uncomment and configure the following for security/branch protection hints
-  // "git.branchProtection.enabled": true,
-  
+
   // TypeScript/Node Memory Settings for Large Projects
   "typescript.tsserver.maxTsServerMemory": 4096,
   "terminal.integrated.env.windows": {
@@ -43,13 +13,14 @@
   "terminal.integrated.env.osx": {
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
-  
+
   // Git Branch Protection
   "git.branchProtection": ["main", "master", "develop"],
-  
+
   // GitHub Copilot (disabled by default, uncomment to enable)
   // "github.copilot.enable": true,
-  
+  // "github.copilot.agentProxy": "http://localhost:3128",
+
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,

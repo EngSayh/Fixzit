@@ -65,7 +65,8 @@ export type Action =
   | 'request_approval' | 'approve' | 'reject' | 'request_changes'
   | 'start_work' | 'pause_work' | 'complete_work' | 'close' | 'reopen'
   | 'export' | 'share'
-  | 'link_finance' | 'link_hr' | 'link_marketplace';
+  | 'link_finance' | 'link_hr' | 'link_marketplace'
+  | 'post_finance';
 
 /** SLA priorities (policy values are configurable per org) */
 export const SLA = {
@@ -168,7 +169,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   },
   [Role.CORPORATE_ADMIN]: {
     WO_CREATE: ['view','create','upload_media','comment'],
-    WO_TRACK_ASSIGN: ['view','assign','schedule','dispatch','update','export','share'],
+    WO_TRACK_ASSIGN: ['view','assign','schedule','dispatch','update','export','share','post_finance'],
     WO_PM: ['view','create','update','export'],
     WO_SERVICE_HISTORY: ['view','export'],
     PROP_LIST: ['view','create','update','delete','export'],
@@ -205,15 +206,10 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
     WO_PM: ['view'],
     WO_SERVICE_HISTORY: ['view'],
   },
-  [Role.EMPLOYEE]: {
+    [Role.EMPLOYEE]: {
     WO_CREATE: ['view','create','upload_media','comment'],
-    WO_TRACK_ASSIGN: ['view','assign','update','export'],
-    WO_PM: ['view'],
-    WO_SERVICE_HISTORY: ['view'],
-    PROP_LIST: ['view'],
-    PROP_UNITS_TENANTS: ['view'],
-    PROP_INSPECTIONS: ['view','create'],
-    PROP_DOCUMENTS: ['view','create'],
+    WO_TRACK_ASSIGN: ['view','assign','update','export','post_finance'],
+    WO_PM: ['view','create','update','export'],
   },
   [Role.PROPERTY_OWNER]: {
     WO_CREATE: ['view','create','upload_media','comment'],
@@ -331,7 +327,22 @@ export enum WOStatus {
   CLOSED = 'CLOSED',
 }
 
-export const WORK_ORDER_FSM = {
+/** FSM transition definition with optional RBAC action enforcement */
+type TransitionDef = {
+  from: string;
+  to: string;
+  by: Role[];
+  action?: Action;
+  requireMedia?: Array<'BEFORE' | 'AFTER'>;
+  guard?: 'technicianAssigned';
+  optional?: boolean;
+};
+
+export const WORK_ORDER_FSM: {
+  requiredMediaByStatus: Partial<Record<string, ReadonlyArray<'BEFORE' | 'AFTER'>>>;
+  transitions: TransitionDef[];
+  sla: typeof SLA;
+} = {
   requiredMediaByStatus: {
     ASSESSMENT: ['BEFORE'],
     WORK_COMPLETE: ['AFTER'],
@@ -599,6 +610,11 @@ export function canTransition(
   
   // Check guard condition for technician assignment
   if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+
+  // Enforce RBAC for transition-specific actions
+  if (transition.action) {
+    if (!can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, ctx)) return false;
+  }
   
   return true;
 }
