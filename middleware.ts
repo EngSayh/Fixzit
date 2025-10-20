@@ -183,7 +183,7 @@ export async function middleware(request: NextRequest) {
     // Basic JWT verification without database
     try {
       const payload = JSON.parse(atob(authToken.split('.')[1]));
-      
+
       // Check if token is expired
       if (payload.exp && payload.exp * 1000 < Date.now()) {
         // Token expired - clear cookie and redirect to login
@@ -191,7 +191,7 @@ export async function middleware(request: NextRequest) {
         response.cookies.delete('fixzit_auth');
         return response;
       }
-      
+
       const user = {
         id: payload.id,
         email: payload.email,
@@ -207,18 +207,10 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // Redirect based on user role (only if token is valid and not expired)
+      // Allow authenticated users to access root and login pages
+      // Do NOT auto-redirect - let users explicitly navigate
       if (pathname === '/' || pathname === '/login') {
-        // Redirect to appropriate dashboard based on role
-        if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
-          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
-        } else if (user.role === 'TENANT') {
-          return NextResponse.redirect(new URL('/fm/properties', request.url));
-        } else if (user.role === 'VENDOR') {
-          return NextResponse.redirect(new URL('/fm/marketplace', request.url));
-        } else {
-          return NextResponse.redirect(new URL('/fm/dashboard', request.url));
-        }
+        return NextResponse.next();
       }
 
       // FM routes - check role-based access

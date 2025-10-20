@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -89,6 +89,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   // Call useTranslation unconditionally at top level (React Rules of Hooks)
   const translationContext = useTranslation();
   const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
+
+  // Compute unread count once per render instead of repeated filters (performance optimization)
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   // Check authentication status on mount
   useEffect(() => {
@@ -223,17 +226,31 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   }, [notifOpen, userOpen, closeAllPopups]);
 
+  /**
+   * Formats a timestamp into a human-readable "time ago" string
+   * @param timestamp - ISO 8601 timestamp string
+   * @returns Formatted string like "2h ago", "Just now", "3d ago"
+   * @example
+   * formatTimeAgo('2024-01-20T10:30:00Z') // "2h ago" (if current time is 12:30)
+   */
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
 
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    if (diffInMinutes < 1) return t('common.justNow', 'Just now');
+    if (diffInMinutes < 60) return `${diffInMinutes}m ${t('common.ago', 'ago')}`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ${t('common.ago', 'ago')}`;
+    return `${Math.floor(diffInMinutes / 1440)}d ${t('common.ago', 'ago')}`;
   };
 
+  /**
+   * Returns Tailwind CSS text color class based on notification priority
+   * @param priority - Priority level: 'high', 'medium', 'low', or other
+   * @returns Tailwind text color class string
+   * @example
+   * getPriorityColor('high') // 'text-red-600'
+   */
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'text-red-600';
@@ -243,6 +260,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   };
 
+  /**
+   * Handles user logout: clears server session, removes client storage (preserves language), redirects to login
+   * @async
+   * @returns Promise that resolves after logout completes
+   * @example
+   * await handleLogout() // Clears auth, redirects to /login with language preserved
+   */
   const handleLogout = async () => {
     try {
       // Call logout API to clear server-side session
@@ -262,8 +286,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
       // Clear any other localStorage items related to the app, BUT preserve language settings
       Object.keys(localStorage).forEach(key => {
-        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) && 
-            key !== 'fxz.lang' && 
+        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) &&
+            key !== 'fxz.lang' &&
             key !== 'fxz.locale') {
           localStorage.removeItem(key);
         }
@@ -304,19 +328,19 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         </button>
         <AppSwitcher />
       </div>
-      
+
       {/* Global Search - Center */}
       <div className={`flex-1 max-w-2xl mx-4 ${screenInfo.isMobile ? 'hidden' : 'block'}`}>
         <GlobalSearch />
       </div>
-      
+
       {/* Mobile search button */}
       {screenInfo.isMobile && (
         <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
           <Search className="w-4 h-4" />
         </button>
       )}
-      
+
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Only show QuickActions for authenticated users */}
         {isAuthenticated && <QuickActions />}
@@ -331,29 +355,31 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               }}
               className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
               aria-label="Toggle notifications"
+              aria-haspopup="dialog"
+              aria-expanded={notifOpen}
             >
               <Bell className="w-5 h-5" />
-              {notifications.filter(n => !n.read).length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-[var(--fixzit-danger-light)] rounded-full animate-pulse"></span>
               )}
             </button>
             {notifOpen && (
             <Portal>
-              <div 
+              <div
                 role="dialog"
                 aria-label="Notifications"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
+                className="notification-container fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
                 style={{
                   top: '4rem',
-                  [isRTL ? 'left' : 'right']: '1rem'
+                  [isRTL ? 'right' : 'left']: '1rem'
                 }}
               >
                 <div className="p-3 border-b border-gray-200 flex items-center justify-between">
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {notifications.filter(n => !n.read).length > 0
-                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
+                    {unreadCount > 0
+                      ? `${unreadCount} ${t('common.unread', 'unread')}`
                       : t('common.noNotifications', 'No new notifications')
                     }
                   </div>
@@ -440,11 +466,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           </div>
         )}
         <div className="user-menu-container relative">
-          <button 
+          <button
             onClick={() => {
               setNotifOpen(false); // Close notifications when opening user menu
               setUserOpen(!userOpen);
-            }} 
+            }}
             className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
             aria-label="Toggle user menu"
           >
@@ -452,7 +478,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           </button>
           {userOpen && (
             <Portal>
-              <div 
+              <div
                 role="menu"
                 aria-label="User menu"
                 className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
@@ -479,7 +505,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 >
                   {t('nav.settings', 'Settings')}
                 </Link>
-                
+
                 {/* Language & Currency Section */}
                 <div className="border-t my-1 mx-2" />
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
@@ -489,7 +515,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   <LanguageSelector variant="default" />
                   <CurrencySelector variant="default" />
                 </div>
-                
+
                 <div className="border-t my-1 mx-2" />
                 <button
                   type="button"
