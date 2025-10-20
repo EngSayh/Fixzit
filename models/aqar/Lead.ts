@@ -192,6 +192,11 @@ LeadSchema.methods.assign = async function (
 };
 
 LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
+  // Don't regress from advanced states
+  const advancedStates = [LeadStatus.NEGOTIATING, LeadStatus.WON, LeadStatus.LOST];
+  if (advancedStates.includes(this.status)) {
+    throw new Error(`Cannot schedule viewing for lead in ${this.status} status`);
+  }
   this.viewingScheduledAt = dateTime;
   this.status = LeadStatus.VIEWING;
   await this.save();

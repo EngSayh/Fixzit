@@ -61,6 +61,15 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Validate targetType against allowed values
+    const ALLOWED_TARGET_TYPES = ['LISTING', 'PROJECT'];
+    if (!ALLOWED_TARGET_TYPES.includes(targetType)) {
+      return NextResponse.json(
+        { error: `Invalid targetType. Must be one of: ${ALLOWED_TARGET_TYPES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+    
     // Check if already favorited
     const existing = await AqarFavorite.findOne({
       userId: user.id,

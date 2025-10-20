@@ -146,13 +146,17 @@ ProjectSchema.index({ createdAt: -1 });
 
 // Methods
 ProjectSchema.methods.incrementViews = async function (this: IProject) {
-  this.views += 1;
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { views: 1 } }
+  );
 };
 
 ProjectSchema.methods.incrementInquiries = async function (this: IProject) {
-  this.inquiries += 1;
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { inquiries: 1 } }
+  );
 };
 
 const Project: Model<IProject> =

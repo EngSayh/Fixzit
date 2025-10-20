@@ -8,7 +8,7 @@ interface FormStateContextType {
   markFormDirty: (formId: string) => void;
   markFormClean: (formId: string) => void;
   requestSave: () => Promise<void>;
-  onSaveRequest: (callback: () => Promise<void>) => { formId: string; dispose: () => void };
+  onSaveRequest: (formId: string, callback: () => Promise<void>) => () => void;
 }
 
 const FormStateContext = createContext<FormStateContextType | undefined>(undefined);
@@ -42,8 +42,7 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const onSaveRequest = useCallback((callback: () => Promise<void>) => {
-    const formId = `form-${crypto.randomUUID()}`;
+  const onSaveRequest = useCallback((formId: string, callback: () => Promise<void>) => {
     setSaveCallbacks(prev => new Map(prev).set(formId, callback));
     
     const dispose = () => {
@@ -54,7 +53,7 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
       });
     };
     
-    return { formId, dispose };
+    return dispose;
   }, []);
 
   const requestSave = useCallback(async () => {
@@ -65,22 +64,37 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
     }
     
     // Get callbacks only for dirty forms
-    const callbacks = dirtyFormIds
-      .map(formId => saveCallbacks.get(formId))
-      .filter((cb): cb is () => Promise<void> => cb !== undefined);
+    const callbacksWithIds = dirtyFormIds
+      .map(formId => ({ formId, callback: saveCallbacks.get(formId) }))
+      .filter((item): item is { formId: string; callback: () => Promise<void> } => 
+        item.callback !== undefined
+      );
     
-    if (callbacks.length === 0) {
+    if (callbacksWithIds.length === 0) {
       console.warn('No save callbacks registered for dirty forms');
       return;
     }
     
-    const results = await Promise.allSettled(callbacks.map(cb => cb()));
+    const results = await Promise.allSettled(
+      callbacksWithIds.map(async ({ formId, callback }) => {
+        await callback();
+        return formId;
+      })
+    );
+    
+    // Mark successfully saved forms as clean
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        markFormClean(result.value);
+      }
+    });
+    
     const errors = results.filter(r => r.status === 'rejected');
     if (errors.length > 0) {
       console.error('Save errors occurred:', errors);
       throw new Error(`Failed to save ${errors.length} form(s)`);
     }
-  }, [saveCallbacks, dirtyForms]);
+  }, [saveCallbacks, dirtyForms, markFormClean]);
 
   const hasUnsavedChanges = dirtyForms.size > 0;
 

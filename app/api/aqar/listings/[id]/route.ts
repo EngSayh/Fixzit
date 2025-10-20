@@ -92,11 +92,44 @@ export async function PATCH(
       'status',
     ] as const;
     
-    allowedFields.forEach((field) => {
+    // Validate and assign fields with type/enum checks
+    for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        (listing as unknown as Record<string, unknown>)[field] = body[field];
+        const value = body[field];
+        
+        // Validate enum fields
+        if (field === 'furnishing' && !['FURNISHED', 'SEMI_FURNISHED', 'UNFURNISHED'].includes(value)) {
+          return NextResponse.json({ error: `Invalid furnishing: ${value}` }, { status: 400 });
+        }
+        if (field === 'status' && !['DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'INACTIVE', 'SOLD', 'RENTED', 'EXPIRED', 'REJECTED'].includes(value)) {
+          return NextResponse.json({ error: `Invalid status: ${value}` }, { status: 400 });
+        }
+        
+        // Validate numeric fields
+        if (field === 'price' || field === 'areaSqm') {
+          if (typeof value !== 'number' || value <= 0) {
+            return NextResponse.json({ error: `${field} must be a positive number` }, { status: 400 });
+          }
+        }
+        if (field === 'beds' || field === 'baths' || field === 'kitchens') {
+          if (typeof value !== 'number' || value < 0 || !Number.isInteger(value)) {
+            return NextResponse.json({ error: `${field} must be a non-negative integer` }, { status: 400 });
+          }
+        }
+        if (field === 'ageYears') {
+          if (typeof value !== 'number' || value < 0) {
+            return NextResponse.json({ error: 'ageYears must be non-negative' }, { status: 400 });
+          }
+        }
+        
+        // Validate string fields are non-empty
+        if ((field === 'title' || field === 'description') && (typeof value !== 'string' || value.trim().length === 0)) {
+          return NextResponse.json({ error: `${field} must be a non-empty string` }, { status: 400 });
+        }
+        
+        (listing as unknown as Record<string, unknown>)[field] = value;
       }
-    });
+    }
     
     await listing.save();
     

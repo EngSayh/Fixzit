@@ -134,19 +134,33 @@ MarketingRequestSchema.methods.accept = async function (
   brokerId: mongoose.Types.ObjectId,
   commissionPercent: number
 ) {
-  if (this.status !== MarketingRequestStatus.PENDING) {
-    throw new Error('Only pending requests can be accepted');
-  }
-  
   if (commissionPercent < 0 || commissionPercent > 100) {
     throw new Error('Commission percentage must be between 0 and 100');
   }
   
-  this.brokerId = brokerId;
-  this.proposedCommissionPercent = commissionPercent;
-  this.status = MarketingRequestStatus.ACCEPTED;
-  this.acceptedAt = new Date();
-  await this.save();
+  // Use atomic update with status filter to prevent race conditions
+  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
+    { 
+      _id: this._id,
+      status: MarketingRequestStatus.PENDING
+    },
+    {
+      $set: {
+        brokerId,
+        proposedCommissionPercent: commissionPercent,
+        status: MarketingRequestStatus.ACCEPTED,
+        acceptedAt: new Date()
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Only pending requests can be accepted');
+  }
+  
+  // Update this instance with new values
+  Object.assign(this, result.toObject());
 };
 
 MarketingRequestSchema.methods.reject = async function (
@@ -166,12 +180,34 @@ MarketingRequestSchema.methods.linkListing = async function (
   this: IMarketingRequest,
   listingId: mongoose.Types.ObjectId
 ) {
-  if (this.status !== MarketingRequestStatus.ACCEPTED) {
+  // Validate listing exists
+  const Listing = mongoose.model('AqarListing');
+  const listing = await Listing.findById(listingId);
+  if (!listing) {
+    throw new Error('Listing not found');
+  }
+  
+  // Use atomic update with status filter
+  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
+    {
+      _id: this._id,
+      status: MarketingRequestStatus.ACCEPTED
+    },
+    {
+      $set: {
+        listingId,
+        status: MarketingRequestStatus.LISTING_CREATED
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
     throw new Error('Can only link listing to accepted requests');
   }
-  this.listingId = listingId;
-  this.status = MarketingRequestStatus.LISTING_CREATED;
-  await this.save();
+  
+  // Update this instance
+  Object.assign(this, result.toObject());
 };
 
 const MarketingRequest: Model<IMarketingRequest> =

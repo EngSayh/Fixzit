@@ -20,7 +20,8 @@ export enum PaymentStatus {
   PROCESSING = 'PROCESSING',         // Payment in progress
   COMPLETED = 'COMPLETED',           // Payment successful
   FAILED = 'FAILED',                 // Payment failed
-  REFUNDED = 'REFUNDED',             // Refunded
+  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED', // Partially refunded
+  REFUNDED = 'REFUNDED',             // Fully refunded
 }
 
 export enum PaymentMethod {
@@ -157,14 +158,32 @@ PaymentSchema.methods.markAsRefunded = async function (
   this: IPayment,
   refundAmount?: number
 ) {
-  if (this.status !== PaymentStatus.COMPLETED) {
-    throw new Error('Can only refund completed payments');
+  if (this.status !== PaymentStatus.COMPLETED && this.status !== PaymentStatus.PARTIALLY_REFUNDED) {
+    throw new Error('Can only refund completed or partially refunded payments');
   }
-  this.status = PaymentStatus.REFUNDED;
+  
+  const actualRefundAmount = refundAmount ?? this.amount;
+  
+  // Validate refund amount
+  if (actualRefundAmount <= 0 || actualRefundAmount > this.amount) {
+    throw new Error(`Refund amount must be between 0 and ${this.amount}`);
+  }
+  
+  // Check for double refunds
+  const totalRefunded = (this.refundAmount ?? 0) + actualRefundAmount;
+  if (totalRefunded > this.amount) {
+    throw new Error(`Total refund (${totalRefunded}) exceeds payment amount (${this.amount})`);
+  }
+  
+  // Update refund amount
+  this.refundAmount = totalRefunded;
+  
+  // Set status based on refund completeness
+  this.status = totalRefunded >= this.amount 
+    ? PaymentStatus.REFUNDED 
+    : PaymentStatus.PARTIALLY_REFUNDED;
+    
   this.refundedAt = new Date();
-  if (refundAmount !== undefined) {
-    this.refundAmount = refundAmount;
-  }
   await this.save();
 };
 

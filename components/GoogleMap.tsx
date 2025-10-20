@@ -29,6 +29,7 @@ export default function GoogleMap({
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
   const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
   const mapClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const scriptRef = useRef<HTMLScriptElement | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +95,7 @@ export default function GoogleMap({
         setLoading(false);
       };
       document.head.appendChild(script);
+      scriptRef.current = script;
     } else {
       initMap();
     }
@@ -118,6 +120,16 @@ export default function GoogleMap({
       // Clear markers
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
+      
+      // Clean up script if we created it
+      if (scriptRef.current) {
+        scriptRef.current.onload = null;
+        scriptRef.current.onerror = null;
+        if (document.head.contains(scriptRef.current)) {
+          document.head.removeChild(scriptRef.current);
+        }
+        scriptRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng, zoom]);

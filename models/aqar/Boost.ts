@@ -115,13 +115,17 @@ BoostSchema.methods.activate = async function (this: IBoost) {
 };
 
 BoostSchema.methods.recordImpression = async function (this: IBoost) {
-  this.impressions += 1;
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { impressions: 1 } }
+  );
 };
 
 BoostSchema.methods.recordClick = async function (this: IBoost) {
-  this.clicks += 1;
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { clicks: 1 } }
+  );
 };
 
 BoostSchema.methods.checkExpiry = async function (this: IBoost) {

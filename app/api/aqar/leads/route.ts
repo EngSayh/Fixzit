@@ -39,6 +39,23 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Validate enum fields
+    const ALLOWED_INTENTS = ['BUY', 'RENT', 'DAILY'];
+    if (!ALLOWED_INTENTS.includes(intent)) {
+      return NextResponse.json(
+        { error: `Invalid intent. Must be one of: ${ALLOWED_INTENTS.join(', ')}` },
+        { status: 400 }
+      );
+    }
+    
+    const ALLOWED_SOURCES = ['LISTING_INQUIRY', 'PROJECT_INQUIRY', 'WHATSAPP', 'PHONE_CALL', 'WALK_IN', 'REFERRAL', 'OTHER'];
+    if (!ALLOWED_SOURCES.includes(source)) {
+      return NextResponse.json(
+        { error: `Invalid source. Must be one of: ${ALLOWED_SOURCES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+    
     if (!listingId && !projectId) {
       return NextResponse.json(
         { error: 'Either listingId or projectId is required' },

@@ -249,27 +249,46 @@ ListingSchema.virtual('searchText').get(function (this: IListing) {
   return `${this.title || ''} ${this.description || ''} ${this.amenities.join(' ')}`;
 });
 
-// Methods
+// Methods - using atomic updates to prevent race conditions
 ListingSchema.methods.incrementViews = async function (this: IListing) {
-  this.analytics.views += 1;
-  this.analytics.lastViewedAt = new Date();
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { 
+      $inc: { 'analytics.views': 1 },
+      $set: { 'analytics.lastViewedAt': new Date() }
+    }
+  );
 };
 
 ListingSchema.methods.incrementFavorites = async function (this: IListing) {
-  this.analytics.favorites += 1;
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { 'analytics.favorites': 1 } }
+  );
 };
 
 ListingSchema.methods.incrementInquiries = async function (this: IListing) {
-  this.analytics.inquiries += 1;
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { 'analytics.inquiries': 1 } }
+  );
 };
 
 // Pre-save hook: Validate compliance for AGENT listings
 ListingSchema.pre('save', function (this: IListing, next) {
   if (this.source === ListerType.AGENT) {
-    if (!this.compliance.falLicenseNo || !this.compliance.adPermitNo) {
+    // Validate non-empty strings for licenses
+    const hasFalLicense = 
+      this.compliance?.falLicenseNo && 
+      typeof this.compliance.falLicenseNo === 'string' && 
+      this.compliance.falLicenseNo.trim().length > 0;
+    
+    const hasAdPermit = 
+      this.compliance?.adPermitNo && 
+      typeof this.compliance.adPermitNo === 'string' && 
+      this.compliance.adPermitNo.trim().length > 0;
+    
+    if (!hasFalLicense || !hasAdPermit) {
       const err = new Error(
         'Broker ads require valid FAL license and per-ad permit (REGA requirement)'
       );
