@@ -12,30 +12,27 @@ echo "Starting batch layout fix..."
 # Returns: 0 on success, 1 on failure
 safe_sed() {
   local file="$1"
-  local pattern="$2"
-  
+  local sed_script="$2"
+
   if [ ! -f "$file" ]; then
     echo "  ⚠️  File not found: $file"
     return 1
   fi
-  
+
   echo "  Processing $file..."
-  # Store exit code immediately to avoid SC2319
-  sed -i.bak "$pattern" "$file" 2>/dev/null
-  local sed_exit=$?
-  
-  if [ $sed_exit -eq 0 ]; then
-    echo "  ✓ Successfully updated $file"
-    return 0
-  else
-    echo "  ✗ sed failed for $file (exit code: $sed_exit)"
-    # Restore from backup if sed failed
+  # Directly check the exit code of sed. If it fails, restore the backup.
+  # Removed `2>/dev/null` to allow sed errors to be visible for debugging.
+  if ! sed -i.bak "$sed_script" "$file"; then
+    echo "  ✗ sed command failed for $file (exit code: $?)."
     if [ -f "$file.bak" ]; then
+      echo "  ↩️  Restoring from backup..."
       mv "$file.bak" "$file"
-      echo "  ↩️  Restored from backup"
     fi
     return 1
   fi
+
+  echo "  ✓ Successfully updated $file"
+  return 0
 }
 
 # Marketplace pages
