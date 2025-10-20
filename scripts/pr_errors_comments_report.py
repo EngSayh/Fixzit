@@ -10,6 +10,7 @@ Fetches all PRs from the repository and generates a comprehensive report of:
 import subprocess
 import json
 import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -294,7 +295,6 @@ def main() -> None:
     report = build_report(owner, name, prs)
     
     # Use relative paths from script location
-    from pathlib import Path
     script_dir = Path(__file__).parent
     workspace_root = script_dir.parent
     

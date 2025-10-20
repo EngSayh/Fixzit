@@ -33,6 +33,7 @@ export default function GoogleMap({
   const onMapClickRef = useRef(onMapClick);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   // Keep callback ref in sync
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function GoogleMap({
         }
 
         setLoading(false);
+        setMapReady(true); // Signal that map is ready for markers
       } catch (err) {
         console.error('Failed to initialize map:', err);
         setError('Failed to load map');
@@ -134,9 +136,9 @@ export default function GoogleMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng, zoom]);
 
-  // Update markers
+  // Update markers (only run after map is ready)
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !mapReady) return;
 
     // Clear existing markers and cleanup
     infoWindowsRef.current.forEach(iw => iw.close());
@@ -185,7 +187,7 @@ export default function GoogleMap({
 
       markersRef.current.push(marker);
     });
-  }, [markers]);
+  }, [markers, mapReady]);
 
   if (error) {
     return (
