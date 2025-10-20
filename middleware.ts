@@ -15,6 +15,29 @@ if (!jwtSecretValue) {
 // JWT secret for legacy token verification
 const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 
+/**
+ * Check if a pathname matches a route pattern
+ * Uses exact matching or proper segment boundaries to avoid false positives
+ * @param pathname - The request pathname
+ * @param route - The route pattern to match against
+ * @returns true if pathname matches the route pattern
+ */
+function matchesRoute(pathname: string, route: string): boolean {
+  // Exact match
+  if (pathname === route) return true;
+  // Segment boundary match: route must be followed by / to avoid false positives
+  // e.g., '/api/auth' matches '/api/auth/' but not '/api/authentication'
+  if (pathname.startsWith(route + '/')) return true;
+  return false;
+}
+
+/**
+ * Check if pathname matches any route in the array
+ */
+function matchesAnyRoute(pathname: string, routes: string[]): boolean {
+  return routes.some(route => matchesRoute(pathname, route));
+}
+
 // Define public routes that don't require authentication
 const publicRoutes = [
   '/',
@@ -134,27 +157,27 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
   }
 
   // Handle public routes (including public marketplace browsing)
-  if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+  if (matchesAnyRoute(pathname, publicRoutes)) {
     return NextResponse.next();
   }
 
   // Handle public marketplace routes (browsing without login)
-  if (publicMarketplaceRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+  if (matchesAnyRoute(pathname, publicMarketplaceRoutes)) {
     return NextResponse.next();
   }
 
   // Handle API routes - require authentication
   if (pathname.startsWith('/api/')) {
     // Allow public API routes
-    if (pathname.startsWith('/api/auth/') ||
-        pathname.startsWith('/api/cms/') ||
-        pathname.startsWith('/api/help/') ||
-        pathname.startsWith('/api/assistant/')) {
+    if (matchesRoute(pathname, '/api/auth') ||
+        matchesRoute(pathname, '/api/cms') ||
+        matchesRoute(pathname, '/api/help') ||
+        matchesRoute(pathname, '/api/assistant')) {
       return NextResponse.next();
     }
 
     // Check for authentication on protected API routes
-    if (protectedApiRoutes.some(route => pathname.startsWith(route))) {
+    if (matchesAnyRoute(pathname, protectedApiRoutes)) {
       try {
         let user = null;
 
@@ -209,8 +232,8 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     if (!hasAuth) {
       // Redirect to login for unauthenticated users on protected routes
       if (
-        pathname.startsWith('/fm/') ||
-        protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))
+        matchesAnyRoute(pathname, fmRoutes) ||
+        matchesAnyRoute(pathname, protectedMarketplaceActions)
       ) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
@@ -263,7 +286,7 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     }
 
     // Protect admin UI with RBAC
-    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    if (matchesRoute(pathname, '/admin')) {
       const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
       if (!adminRoles.has(user.role)) {
         return NextResponse.redirect(new URL('/login', request.url));
@@ -286,14 +309,14 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     }
 
     // FM routes - check role-based access
-    if (fmRoutes.some(route => pathname.startsWith(route))) {
+    if (matchesAnyRoute(pathname, fmRoutes)) {
       const reqHeaders = new Headers(request.headers);
       reqHeaders.set('x-user', JSON.stringify(user));
       return NextResponse.next({ request: { headers: reqHeaders } });
     }
 
     // Protected marketplace actions - require auth and attach user
-    if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+    if (matchesAnyRoute(pathname, protectedMarketplaceActions)) {
       const reqHeaders = new Headers(request.headers);
       reqHeaders.set('x-user', JSON.stringify(user));
       return NextResponse.next({ request: { headers: reqHeaders } });

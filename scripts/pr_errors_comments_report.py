@@ -62,7 +62,7 @@ def fetch_all_prs(owner: str, name: str) -> List[Dict[str, Any]]:
 
 def fetch_reviews_counts(owner: str, name: str, pr_number: int) -> Dict[str, int]:
     """Fetch review counts for a specific PR"""
-    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
+    code, out, _ = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
     if code != 0:
         # Graceful fallback on permission issues
         return {"approved": 0, "changes_requested": 0, "commented": 0, "dismissed": 0}
@@ -108,7 +108,7 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
         return result
 
     # Check runs
-    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/check-runs"])
+    code, out, _ = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/check-runs"])
     if code == 0:
         data = json.loads(out)
         check_runs = data.get("check_runs", [])
@@ -130,7 +130,7 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
                 result["check_run"]["other"] += 1
 
     # Commit statuses
-    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/status"])
+    code, out, _ = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/status"])
     if code == 0:
         data = json.loads(out)
         statuses = data.get("statuses", [])
@@ -281,6 +281,12 @@ def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
 def main() -> None:
     """Main entry point"""
     repo = get_repo()
+    
+    # Validate repository format
+    if "/" not in repo:
+        print(f"Invalid repository format: {repo}. Expected 'owner/name'", file=sys.stderr)
+        sys.exit(1)
+    
     owner, name = repo.split("/", 1)
     prs = fetch_all_prs(owner, name)
     
@@ -293,13 +299,21 @@ def main() -> None:
     workspace_root = script_dir.parent
     
     out_path = workspace_root / "PR_ERRORS_COMMENTS_REPORT.md"
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(report)
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(report)
+    except (IOError, OSError) as e:
+        print(f"Failed to write report to {out_path}: {e}", file=sys.stderr)
+        sys.exit(1)
     
     # Also write machine-readable JSON for potential reuse
     json_path = workspace_root / "PR_ERRORS_COMMENTS_SUMMARY.json"
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(prs, f, ensure_ascii=False, indent=2)
+    try:
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(prs, f, ensure_ascii=False, indent=2)
+    except (IOError, OSError) as e:
+        print(f"Failed to write JSON to {json_path}: {e}", file=sys.stderr)
+        sys.exit(1)
     
     print(f"✅ Report generated: {out_path}")
     print(f"✅ JSON data saved: {json_path}")

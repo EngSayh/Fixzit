@@ -75,9 +75,35 @@ export const authConfig = {
         return false; // Reject unauthorized domains
       }
 
-      // Database verification is handled by middleware.ts after successful OAuth
-      // The middleware checks User.findOne({ email }) and validates isActive status
-      // This separation ensures Edge Runtime compatibility (auth.config.ts cannot access MongoDB)
+      // User provisioning: Check if user exists in database, create if needed
+      // This ensures OAuth users are registered in the system
+      try {
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const response = await fetch(`${baseUrl}/api/auth/provision`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: _user.email,
+            name: _user.name,
+            image: _user.image,
+            provider: _account?.provider,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('User provisioning failed', { 
+            emailHash, 
+            status: response.status 
+          });
+          // Allow sign-in to proceed even if provisioning fails (graceful degradation)
+          // User will be created on first middleware access if needed
+        }
+      } catch (error) {
+        console.error('User provisioning error', { emailHash, error });
+        // Allow sign-in to proceed (graceful degradation)
+      }
 
       // Allow sign-in for whitelisted domains
       console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });
@@ -101,9 +127,8 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
       }
-      if (account) {
-        token.accessToken = account.access_token;
-      }
+      // DO NOT store OAuth access tokens in JWT for security
+      // Tokens should be stored server-side if needed for API calls
       return token;
     },
   },
