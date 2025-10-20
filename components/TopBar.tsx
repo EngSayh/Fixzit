@@ -90,6 +90,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const translationContext = useTranslation();
   const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
 
+  // Compute unread count once per render instead of repeated filters (performance optimization)
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   // Check authentication status on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -235,10 +238,10 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
 
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    if (diffInMinutes < 1) return t('common.justNow', 'Just now');
+    if (diffInMinutes < 60) return `${diffInMinutes}m ${t('common.ago', 'ago')}`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ${t('common.ago', 'ago')}`;
+    return `${Math.floor(diffInMinutes / 1440)}d ${t('common.ago', 'ago')}`;
   };
 
   /**
@@ -352,9 +355,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               }}
               className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
               aria-label="Toggle notifications"
+              aria-haspopup="dialog"
+              aria-expanded={notifOpen}
             >
               <Bell className="w-5 h-5" />
-              {notifications.filter(n => !n.read).length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-[var(--fixzit-danger-light)] rounded-full animate-pulse"></span>
               )}
             </button>
@@ -373,8 +378,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {notifications.filter(n => !n.read).length > 0
-                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
+                    {unreadCount > 0
+                      ? `${unreadCount} ${t('common.unread', 'unread')}`
                       : t('common.noNotifications', 'No new notifications')
                     }
                   </div>

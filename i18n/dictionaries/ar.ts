@@ -32,6 +32,8 @@ const ar = {
     signOut: 'تسجيل الخروج',
     unread: 'غير مقروء',
     noNotifications: 'لا توجد إشعارات جديدة',
+    justNow: 'الآن',
+    ago: 'منذ',
     loading: 'جاري التحميل...',
     allCaughtUp: 'لقد قرأت كل شيء!',
     viewAll: 'عرض جميع الإشعارات',

@@ -301,6 +301,11 @@ export function can(
     return ctx.requesterUserId === ctx.userId;
   }
 
+  // Property owners/deputies must own the property being accessed
+  if (ctx.role === Role.PROPERTY_OWNER || ctx.role === Role.OWNER_DEPUTY) {
+    if (ctx.propertyId && !ctx.isOwnerOfProperty) return false;
+  }
+
   if (ctx.role === Role.TECHNICIAN && TECHNICIAN_ASSIGNED_ACTIONS.includes(action)) {
     return !!ctx.isTechnicianAssigned;
   }
