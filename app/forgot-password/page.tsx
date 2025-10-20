@@ -37,8 +37,8 @@ export default function ForgotPassword() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-[var(--fixzit-success)]" />
           </div>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Check Your Email</h1>
@@ -102,7 +102,7 @@ export default function ForgotPassword() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div className="flex items-center gap-2 p-3 bg-[var(--fixzit-danger-lightest)] border border-red-200 rounded-lg text-[var(--fixzit-danger-dark)]">
               <AlertCircle className="h-5 w-5" />
               <span className="text-sm">{error}</span>
             </div>

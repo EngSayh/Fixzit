@@ -25,7 +25,9 @@ export default function GoogleMap({
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
 
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.google) return;
@@ -46,8 +48,9 @@ export default function GoogleMap({
       ]
     });
 
+    // Store click listener reference for cleanup
     if (onMapClick) {
-      mapInstance.addListener('click', (event: google.maps.MapMouseEvent) => {
+      clickListenerRef.current = mapInstance.addListener('click', (event: google.maps.MapMouseEvent) => {
         if (event.latLng) {
           onMapClick(event.latLng.lat(), event.latLng.lng());
         }
@@ -66,17 +69,32 @@ export default function GoogleMap({
       script.async = true;
       script.defer = true;
       script.onload = initializeMap;
+      script.onerror = () => {
+        setError('Failed to load Google Maps. Please check your API key and internet connection.');
+        setLoading(false);
+      };
       document.head.appendChild(script);
     } else {
       initializeMap();
     }
 
     return () => {
+      // Cleanup click listener
+      if (clickListenerRef.current) {
+        google.maps.event.removeListener(clickListenerRef.current);
+        clickListenerRef.current = null;
+      }
+      
       // Cleanup markers
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
+      
+      // Cleanup map instance to prevent memory leaks
+      if (map) {
+        google.maps.event.clearInstanceListeners(map);
+      }
     };
-  }, [initializeMap]);
+  }, [initializeMap, map]);
 
   useEffect(() => {
     if (map) {
@@ -100,13 +118,24 @@ export default function GoogleMap({
         });
 
         if (markerData.info) {
+          // Create InfoWindow content using DOM nodes to prevent XSS
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'p-2';
+          
+          if (markerData.title) {
+            const titleElement = document.createElement('h3');
+            titleElement.className = 'font-semibold';
+            titleElement.textContent = markerData.title;
+            contentDiv.appendChild(titleElement);
+          }
+          
+          const infoElement = document.createElement('p');
+          infoElement.className = 'text-sm text-gray-600';
+          infoElement.textContent = markerData.info;
+          contentDiv.appendChild(infoElement);
+          
           const infoWindow = new google.maps.InfoWindow({
-            content: `
-              <div class="p-2">
-                <h3 class="font-semibold">${markerData.title || ''}</h3>
-                <p class="text-sm text-gray-600">${markerData.info}</p>
-              </div>
-            `
+            content: contentDiv
           });
 
           marker.addListener('click', () => {
@@ -122,11 +151,19 @@ export default function GoogleMap({
   return (
     <div className="relative" style={{ height }}>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+          <Loader className="w-8 h-8 animate-spin text-[var(--fixzit-primary)]" />
         </div>
       )}
-      <div ref={mapRef} className="w-full h-full rounded-lg" />
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-red-50 rounded-lg" role="alert">
+          <div className="text-center p-4">
+            <p className="text-red-600 font-semibold mb-2">Map Loading Error</p>
+            <p className="text-red-500 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
+      <div ref={mapRef} className="w-full h-full rounded-lg" aria-label="Google Map" />
     </div>
   );
 }

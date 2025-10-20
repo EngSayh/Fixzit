@@ -148,7 +148,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               />
             </label>
           </div>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-2 text-sm text-[var(--fixzit-danger)]">{error}</p>}
           <div className="mt-4 flex gap-2">
             <button
               onClick={createRFQ}

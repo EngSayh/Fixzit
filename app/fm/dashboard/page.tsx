@@ -104,9 +104,9 @@ export default function DashboardPage() {
           <Button variant="outline" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
             Notifications
-            <Badge className="ml-2 bg-red-500 text-white">3</Badge>
+            <Badge className="ml-2 bg-[var(--fixzit-danger-light)] text-white">3</Badge>
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
             <Plus className="w-4 h-4 mr-2" />
             Quick Action
           </Button>
@@ -118,14 +118,14 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Work Orders</CardTitle>
-            <ClipboardList className="h-4 w-4 text-blue-600" />
+            <ClipboardList className="h-4 w-4 text-[var(--fixzit-primary)]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.workOrders.total}</div>
             <p className="text-xs text-gray-600">
               {stats.workOrders.pending} pending • {stats.workOrders.overdue} overdue
             </p>
-            <Link href="/fm/work-orders" className="text-xs text-blue-600 hover:underline flex items-center mt-2">
+            <Link href="/fm/work-orders" className="text-xs text-[var(--fixzit-primary)] hover:underline flex items-center mt-2">
               View all <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>
@@ -134,14 +134,14 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Properties</CardTitle>
-            <Building2 className="h-4 w-4 text-green-600" />
+            <Building2 className="h-4 w-4 text-[var(--fixzit-success)]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.properties.total}</div>
             <p className="text-xs text-gray-600">
               {stats.properties.occupied} occupied • {stats.properties.maintenance} need attention
             </p>
-            <Link href="/fm/properties" className="text-xs text-green-600 hover:underline flex items-center mt-2">
+            <Link href="/fm/properties" className="text-xs text-[var(--fixzit-success)] hover:underline flex items-center mt-2">
               Manage <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>
@@ -166,14 +166,14 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue Invoices</CardTitle>
-            <DollarSign className="h-4 w-4 text-red-600" />
+            <DollarSign className="h-4 w-4 text-[var(--fixzit-danger)]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.finance.overdue}</div>
             <p className="text-xs text-gray-600">
               {stats.finance.amount.toLocaleString()} SAR pending
             </p>
-            <Link href="/fm/finance" className="text-xs text-red-600 hover:underline flex items-center mt-2">
+            <Link href="/fm/finance" className="text-xs text-[var(--fixzit-danger)] hover:underline flex items-center mt-2">
               View invoices <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>

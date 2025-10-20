@@ -41,10 +41,10 @@ export default function WorkOrdersBoardPage() {
   
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return 'bg-red-500 text-white';
-      case 'P2': return 'bg-orange-500 text-white';
-      case 'P3': return 'bg-yellow-500 text-black';
-      case 'P4': return 'bg-green-500 text-white';
+      case 'P1': return 'bg-[var(--fixzit-danger)] text-white';
+      case 'P2': return 'bg-[var(--fixzit-warning)] text-white';
+      case 'P3': return 'bg-[var(--fixzit-accent)] text-gray-900';
+      case 'P4': return 'bg-[var(--fixzit-success)] text-white';
       default: return 'bg-gray-500 text-white';
     }
   };
@@ -69,11 +69,11 @@ export default function WorkOrdersBoardPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">{t('workOrders.pending', 'Pending')}</h3>
-            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">2</span>
+            <span className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] px-2 py-1 rounded-full text-xs font-medium">2</span>
           </div>
           <div className="space-y-3">
             {workOrders.filter(wo => wo.status === 'pending').map(wo => (
-              <div key={wo.id} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div key={wo.id} className="p-3 bg-[var(--fixzit-accent-lightest)] border border-yellow-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}>
@@ -84,7 +84,7 @@ export default function WorkOrdersBoardPage() {
                 <p className="text-xs text-gray-600">{wo.property}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-gray-500">{wo.assignee}</span>
-                  <span className="text-xs text-red-600">{wo.daysOpen}d</span>
+                  <span className="text-xs text-[var(--fixzit-danger)]">{wo.daysOpen}d</span>
                 </div>
               </div>
             ))}
@@ -95,11 +95,11 @@ export default function WorkOrdersBoardPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">{t('workOrders.inProgress', 'In Progress')}</h3>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">1</span>
+            <span className="bg-[var(--fixzit-primary-lighter)] text-[var(--fixzit-primary-darker)] px-2 py-1 rounded-full text-xs font-medium">1</span>
           </div>
           <div className="space-y-3">
             {workOrders.filter(wo => wo.status === 'in-progress').map(wo => (
-              <div key={wo.id} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div key={wo.id} className="p-3 bg-[var(--fixzit-primary-lightest)] border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}>
@@ -110,7 +110,7 @@ export default function WorkOrdersBoardPage() {
                 <p className="text-xs text-gray-600">{wo.property}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-gray-500">{wo.assignee}</span>
-                  <span className="text-xs text-blue-600">{wo.daysOpen}d</span>
+                  <span className="text-xs text-[var(--fixzit-primary)]">{wo.daysOpen}d</span>
                 </div>
               </div>
             ))}
@@ -121,11 +121,11 @@ export default function WorkOrdersBoardPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">{t('workOrders.scheduled', 'Scheduled')}</h3>
-            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">1</span>
+            <span className="bg-[var(--fixzit-secondary-lighter)] text-[var(--fixzit-secondary-darker)] px-2 py-1 rounded-full text-xs font-medium">1</span>
           </div>
           <div className="space-y-3">
             {workOrders.filter(wo => wo.status === 'scheduled').map(wo => (
-              <div key={wo.id} className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <div key={wo.id} className="p-3 bg-[var(--fixzit-secondary-lightest)] border border-purple-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}>
@@ -136,7 +136,7 @@ export default function WorkOrdersBoardPage() {
                 <p className="text-xs text-gray-600">{wo.property}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-gray-500">{wo.assignee}</span>
-                  <span className="text-xs text-purple-600">{wo.daysOpen}d</span>
+                  <span className="text-xs text-[var(--fixzit-secondary)]">{wo.daysOpen}d</span>
                 </div>
               </div>
             ))}
@@ -147,10 +147,10 @@ export default function WorkOrdersBoardPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">{t('workOrders.completed', 'Completed')}</h3>
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">0</span>
+            <span className="bg-[var(--fixzit-success-lighter)] text-[var(--fixzit-success-darker)] px-2 py-1 rounded-full text-xs font-medium">0</span>
           </div>
           <div className="text-center py-8">
-            <div className="text-green-400 mb-2">✅</div>
+            <div className="text-[var(--fixzit-success-lighter)] mb-2">✅</div>
             <p className="text-sm text-gray-600">{t('workOrders.board.noCompleted', 'No completed work orders')}</p>
           </div>
         </div>

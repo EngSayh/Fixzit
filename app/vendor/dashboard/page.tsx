@@ -95,7 +95,7 @@ export default function VendorDashboard() {
                 <p className="text-sm text-gray-600">Rating</p>
                 <p className="text-2xl font-bold">{stats.rating}/5.0</p>
               </div>
-              <Star className="h-8 w-8 text-yellow-400 fill-current" />
+              <Star className="h-8 w-8 text-[var(--fixzit-accent-lighter)] fill-current" />
             </div>
           </div>
         </div>

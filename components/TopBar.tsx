@@ -9,6 +9,7 @@ import GlobalSearch from './topbar/GlobalSearch';
 import QuickActions from './topbar/QuickActions';
 import Portal from './Portal';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
@@ -65,6 +66,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -91,7 +94,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch('/api/auth/me', { credentials: 'include' });
         setIsAuthenticated(response.ok);
       } catch {
         setIsAuthenticated(false);
@@ -99,6 +102,53 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     };
     checkAuth();
   }, []);
+
+  // Check for unsaved changes (detect form modifications)
+  useEffect(() => {
+    const checkUnsavedChanges = () => {
+      const forms = document.querySelectorAll('form');
+      let hasChanges = false;
+      forms.forEach(form => {
+        if (form.dataset.modified === 'true') {
+          hasChanges = true;
+        }
+      });
+      setHasUnsavedChanges(hasChanges);
+    };
+
+    // Check periodically
+    const interval = setInterval(checkUnsavedChanges, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle logo click with unsaved changes check
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      setShowUnsavedDialog(true);
+    } else {
+      router.push('/');
+    }
+  };
+
+  // Handle save and navigate
+  const handleSaveAndNavigate = () => {
+    // Trigger form submission on the page
+    const forms = document.querySelectorAll('form[data-modified="true"]');
+    if (forms.length > 0) {
+      const form = forms[0] as HTMLFormElement;
+      form.requestSubmit();
+    }
+    setShowUnsavedDialog(false);
+    setTimeout(() => router.push('/'), 500);
+  };
+
+  // Handle discard and navigate
+  const handleDiscardAndNavigate = () => {
+    setShowUnsavedDialog(false);
+    setHasUnsavedChanges(false);
+    router.push('/');
+  };
 
   // Define fetchNotifications before using it
   const fetchNotifications = useCallback(async () => {
@@ -233,8 +283,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
       // Clear any other localStorage items related to the app, BUT preserve language settings
       Object.keys(localStorage).forEach(key => {
-        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) && 
-            key !== 'fxz.lang' && 
+        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) &&
+            key !== 'fxz.lang' &&
             key !== 'fxz.locale') {
           localStorage.removeItem(key);
         }
@@ -256,32 +306,42 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div className={`flex items-center gap-2 font-bold ${screenInfo.isMobile ? 'text-base' : 'text-lg'} ${isRTL ? 'text-right flex-row-reverse' : ''}`}>
-          <Building2 className="w-6 h-6 text-[#FFB400]" />
-          <span>{t('common.brand', 'FIXZIT ENTERPRISE')}</span>
-        </div>
+        {/* Logo with unsaved changes handler */}
+        <button
+          onClick={handleLogoClick}
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          aria-label="Go to home"
+        >
+          <Image
+            src="/img/logo.jpg"
+            alt="Fixzit Enterprise"
+            width={32}
+            height={32}
+            className="rounded-md"
+          />
+          <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
+            {t('common.brand', 'FIXZIT ENTERPRISE')}
+          </span>
+        </button>
         <AppSwitcher />
       </div>
-      
+
       {/* Global Search - Center */}
       <div className={`flex-1 max-w-2xl mx-4 ${screenInfo.isMobile ? 'hidden' : 'block'}`}>
         <GlobalSearch />
       </div>
-      
+
       {/* Mobile search button */}
       {screenInfo.isMobile && (
         <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
           <Search className="w-4 h-4" />
         </button>
       )}
-      
+
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Only show QuickActions for authenticated users */}
         {isAuthenticated && <QuickActions />}
-        <div className="flex items-center gap-2">
-          <LanguageSelector variant="compact" />
-          <CurrencySelector variant="compact" />
-        </div>
+        {/* Removed language and currency selectors - moved to profile dropdown */}
         {/* Only show notifications for authenticated users */}
         {isAuthenticated && (
           <div className="notification-container relative">
@@ -295,12 +355,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             >
               <Bell className="w-5 h-5" />
               {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-[var(--fixzit-danger-light)] rounded-full animate-pulse"></span>
               )}
             </button>
             {notifOpen && (
             <Portal>
-              <div 
+              <div
                 role="dialog"
                 aria-label="Notifications"
                 className="notification-container fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
@@ -366,7 +426,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                             </div>
                           </div>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
+                            <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full ml-2 flex-shrink-0"></div>
                           )}
                         </div>
                       </div>
@@ -385,7 +445,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="p-3 border-t border-gray-200 bg-gray-50">
                   <Link
                     href="/notifications"
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1"
+                    className="text-xs text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium flex items-center justify-center gap-1"
                     onClick={() => setNotifOpen(false)}
                   >
                     {t('common.viewAll', 'View all notifications')}
@@ -401,11 +461,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           </div>
         )}
         <div className="user-menu-container relative">
-          <button 
+          <button
             onClick={() => {
               setNotifOpen(false); // Close notifications when opening user menu
               setUserOpen(!userOpen);
-            }} 
+            }}
             className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
             aria-label="Toggle user menu"
           >
@@ -413,13 +473,15 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           </button>
           {userOpen && (
             <Portal>
-              <div 
+              <div
                 role="menu"
                 aria-label="User menu"
-                className="user-menu-container fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-48 max-w-[calc(100vw-2rem)]"
+                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
                 style={{
                   top: '4rem',
-                  [isRTL ? 'right' : 'left']: '1rem'
+                  // In RTL (Arabic), dropdown should be on LEFT side, so set left property
+                  // In LTR (English), dropdown should be on RIGHT side, so set right property
+                  ...(isRTL ? { left: '1rem' } : { right: '1rem' })
                 }}
               >
                 <Link
@@ -438,11 +500,22 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 >
                   {t('nav.settings', 'Settings')}
                 </Link>
+
+                {/* Language & Currency Section */}
+                <div className="border-t my-1 mx-2" />
+                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                  {t('common.preferences', 'Preferences')}
+                </div>
+                <div className="px-4 py-2 space-y-2">
+                  <LanguageSelector variant="default" />
+                  <CurrencySelector variant="default" />
+                </div>
+
                 <div className="border-t my-1 mx-2" />
                 <button
                   type="button"
                   role="menuitem"
-                  className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
+                  className="block w-full text-left px-4 py-2 hover:bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger)] rounded transition-colors cursor-pointer"
                   onClick={handleLogout}
                 >
                   {t('common.logout', 'Sign out')}
@@ -452,6 +525,42 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           )}
         </div>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      {showUnsavedDialog && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t('common.unsavedChanges', 'Unsaved Changes')}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {t('common.unsavedChangesMessage', 'You have unsaved changes. Do you want to save them before leaving?')}
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowUnsavedDialog(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={handleDiscardAndNavigate}
+                  className="px-4 py-2 text-[var(--fixzit-danger)] hover:bg-[var(--fixzit-danger-lightest)] rounded-md transition-colors"
+                >
+                  {t('common.discard', 'Discard')}
+                </button>
+                <button
+                  onClick={handleSaveAndNavigate}
+                  className="px-4 py-2 bg-[#0061A8] text-white hover:bg-[#004d86] rounded-md transition-colors"
+                >
+                  {t('common.saveAndContinue', 'Save & Continue')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
     </header>
   );
 }

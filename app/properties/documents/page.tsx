@@ -103,34 +103,34 @@ export default function PropertiesDocumentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Documents</p>
-              <p className="text-2xl font-bold text-blue-600">247</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">247</p>
             </div>
-            <div className="text-blue-400">📄</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">📄</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
-              <p className="text-2xl font-bold text-yellow-600">8</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">8</p>
             </div>
-            <div className="text-yellow-400">⚠️</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Expired</p>
-              <p className="text-2xl font-bold text-red-600">3</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">3</p>
             </div>
-            <div className="text-red-400">🔴</div>
+            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Storage Used</p>
-              <p className="text-2xl font-bold text-purple-600">2.4 GB</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">2.4 GB</p>
             </div>
             <div className="text-purple-400">💾</div>
           </div>
@@ -237,8 +237,8 @@ export default function PropertiesDocumentsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">{t('common.view', 'View')}</button>
-                      <button className="text-green-600 hover:text-green-900">{t('common.download', 'Download')}</button>
+                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.view', 'View')}</button>
+                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('common.download', 'Download')}</button>
                       <button className="text-orange-600 hover:text-orange-900">{t('common.edit', 'Edit')}</button>
                     </div>
                   </td>
@@ -250,16 +250,16 @@ export default function PropertiesDocumentsPage() {
       </div>
 
       {/* Expiring Documents Alert */}
-      <div className="card border-yellow-200 bg-yellow-50">
+      <div className="card border-yellow-200 bg-[var(--fixzit-accent-lightest)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-yellow-400">⚠️</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
             <div>
-              <h3 className="font-semibold text-yellow-800">Documents Expiring Soon</h3>
-              <p className="text-sm text-yellow-600">8 documents will expire within the next 30 days</p>
+              <h3 className="font-semibold text-[var(--fixzit-accent-darker)]">Documents Expiring Soon</h3>
+              <p className="text-sm text-[var(--fixzit-accent)]">8 documents will expire within the next 30 days</p>
             </div>
           </div>
-          <button className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+          <button className="px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-lg hover:bg-[var(--fixzit-accent-dark)] transition-colors">
             Review Now
           </button>
         </div>
@@ -271,34 +271,34 @@ export default function PropertiesDocumentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Legal Documents</p>
-              <p className="text-2xl font-bold text-blue-600">45</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">45</p>
             </div>
-            <div className="text-blue-400">⚖️</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">⚖️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Safety Certificates</p>
-              <p className="text-2xl font-bold text-red-600">23</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">23</p>
             </div>
-            <div className="text-red-400">🛡️</div>
+            <div className="text-[var(--fixzit-danger-lighter)]">🛡️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Contracts</p>
-              <p className="text-2xl font-bold text-green-600">89</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">89</p>
             </div>
-            <div className="text-green-400">📋</div>
+            <div className="text-[var(--fixzit-success-lighter)]">📋</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Insurance</p>
-              <p className="text-2xl font-bold text-purple-600">12</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">12</p>
             </div>
             <div className="text-purple-400">🛡️</div>
           </div>

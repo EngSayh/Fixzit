@@ -81,7 +81,7 @@ export default function SystemVerifier() {
           <button
             onClick={startMonitoring}
             disabled={isMonitoring}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50"
           >
             {isMonitoring ? 'Monitoring...' : 'Start Monitoring'}
           </button>
@@ -95,7 +95,7 @@ export default function SystemVerifier() {
           <button
             onClick={runVerification}
             disabled={isLoading}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-lg hover:bg-[var(--fixzit-success-dark)] disabled:opacity-50 flex items-center gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Checking...' : 'Verify Now'}
@@ -123,10 +123,10 @@ export default function SystemVerifier() {
           {/* Issues Count */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center gap-3">
-              <XCircle className="w-8 h-8 text-red-600" />
+              <XCircle className="w-8 h-8 text-[var(--fixzit-danger)]" />
               <div>
                 <h3 className="font-semibold text-gray-900">Issues Found</h3>
-                <div className="text-2xl font-bold text-red-600">{status.issues.length}</div>
+                <div className="text-2xl font-bold text-[var(--fixzit-danger)]">{status.issues.length}</div>
               </div>
             </div>
           </div>
@@ -134,10 +134,10 @@ export default function SystemVerifier() {
           {/* Fixes Applied */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center gap-3">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-[var(--fixzit-success)]" />
               <div>
                 <h3 className="font-semibold text-gray-900">Fixes Applied</h3>
-                <div className="text-2xl font-bold text-green-600">{status.fixes.length}</div>
+                <div className="text-2xl font-bold text-[var(--fixzit-success)]">{status.fixes.length}</div>
               </div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function SystemVerifier() {
           {/* Last Check */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center gap-3">
-              <Activity className="w-8 h-8 text-blue-600" />
+              <Activity className="w-8 h-8 text-[var(--fixzit-primary)]" />
               <div>
                 <h3 className="font-semibold text-gray-900">Last Check</h3>
                 <div className="text-sm text-gray-600">
@@ -164,14 +164,14 @@ export default function SystemVerifier() {
           {status.issues.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-red-600" />
+                <XCircle className="w-5 h-5 text-[var(--fixzit-danger)]" />
                 Issues Detected
               </h3>
               <div className="space-y-2">
                 {status.issues.map((issue, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-red-50 rounded-lg">
-                    <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-red-800">{issue}</span>
+                  <div key={index} className="flex items-start gap-3 p-3 bg-[var(--fixzit-danger-lightest)] rounded-lg">
+                    <XCircle className="w-4 h-4 text-[var(--fixzit-danger)] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-[var(--fixzit-danger-darker)]">{issue}</span>
                   </div>
                 ))}
               </div>
@@ -182,14 +182,14 @@ export default function SystemVerifier() {
           {status.fixes.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+                <CheckCircle className="w-5 h-5 text-[var(--fixzit-success)]" />
                 Fixes Applied
               </h3>
               <div className="space-y-2">
                 {status.fixes.map((fix, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-green-800">{fix}</span>
+                  <div key={index} className="flex items-start gap-3 p-3 bg-[var(--fixzit-success-lightest)] rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-[var(--fixzit-success-darker)]">{fix}</span>
                   </div>
                 ))}
               </div>
@@ -201,41 +201,41 @@ export default function SystemVerifier() {
       {/* System Components Status */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5 text-blue-600" />
+          <Shield className="w-5 h-5 text-[var(--fixzit-primary)]" />
           System Components
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <Database className="w-5 h-5 text-blue-600" />
+            <Database className="w-5 h-5 text-[var(--fixzit-primary)]" />
             <div>
               <div className="font-medium text-gray-900">Database</div>
               <div className="text-sm text-gray-600">MongoDB Connection</div>
             </div>
             <div className="ml-auto">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-[var(--fixzit-success-light)] rounded-full"></div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <Network className="w-5 h-5 text-green-600" />
+            <Network className="w-5 h-5 text-[var(--fixzit-success)]" />
             <div>
               <div className="font-medium text-gray-900">Network</div>
               <div className="text-sm text-gray-600">API Connectivity</div>
             </div>
             <div className="ml-auto">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-[var(--fixzit-success-light)] rounded-full"></div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <Zap className="w-5 h-5 text-yellow-600" />
+            <Zap className="w-5 h-5 text-[var(--fixzit-accent)]" />
             <div>
               <div className="font-medium text-gray-900">Performance</div>
               <div className="text-sm text-gray-600">System Health</div>
             </div>
             <div className="ml-auto">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-[var(--fixzit-success-light)] rounded-full"></div>
             </div>
           </div>
         </div>
@@ -244,26 +244,26 @@ export default function SystemVerifier() {
       {/* Auto-Fix Status */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 text-purple-600" />
+          <RefreshCw className="w-5 h-5 text-[var(--fixzit-secondary)]" />
           Auto-Fix System
         </h3>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] rounded-lg">
             <div>
-              <div className="font-medium text-blue-900">Error Boundary</div>
-              <div className="text-sm text-blue-700">Automatic error detection and recovery</div>
+              <div className="font-medium text-[var(--fixzit-primary-darkest)]">Error Boundary</div>
+              <div className="text-sm text-[var(--fixzit-primary-dark)]">Automatic error detection and recovery</div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-blue-700">Active</span>
+              <div className="w-3 h-3 bg-[var(--fixzit-success-light)] rounded-full"></div>
+              <span className="text-sm text-[var(--fixzit-primary-dark)]">Active</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-[var(--fixzit-success-lightest)] rounded-lg">
             <div>
               <div className="font-medium text-green-900">Health Monitoring</div>
-              <div className="text-sm text-green-700">Continuous system health checks</div>
+              <div className="text-sm text-[var(--fixzit-success-dark)]">Continuous system health checks</div>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-green-500' : 'bg-gray-400'}`}></div>
@@ -273,13 +273,13 @@ export default function SystemVerifier() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-[var(--fixzit-secondary-lightest)] rounded-lg">
             <div>
               <div className="font-medium text-purple-900">Auto Recovery</div>
               <div className="text-sm text-purple-700">Automatic error fixing and recovery</div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-[var(--fixzit-success-light)] rounded-full"></div>
               <span className="text-sm text-purple-700">Enabled</span>
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function SystemVerifier() {
         <div className="flex gap-3">
           <button
             onClick={() => autoFixManager.emergencyRecovery()}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-lg hover:bg-[var(--fixzit-danger-dark)]"
           >
             🚨 Emergency Recovery
           </button>
@@ -311,7 +311,7 @@ export default function SystemVerifier() {
 
           <button
             onClick={() => window.open('/help', '_blank')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)]"
           >
             📚 Get Help
           </button>

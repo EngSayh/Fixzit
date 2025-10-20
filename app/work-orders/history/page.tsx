@@ -70,34 +70,34 @@ export default function ServiceHistoryPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.history.totalCompleted', 'Total Completed')}</p>
-              <p className="text-2xl font-bold text-green-600">247</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">247</p>
             </div>
-            <div className="text-green-400">✅</div>
+            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('common.thisMonth', 'This Month')}</p>
-              <p className="text-2xl font-bold text-blue-600">23</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">23</p>
             </div>
-            <div className="text-blue-400">📅</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('common.avgRating', 'Avg. Rating')}</p>
-              <p className="text-2xl font-bold text-yellow-600">4.8</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">4.8</p>
             </div>
-            <div className="text-yellow-400">⭐</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">⭐</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('common.totalCost', 'Total Cost')}</p>
-              <p className="text-2xl font-bold text-purple-600">SAR 45,230</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">SAR 45,230</p>
             </div>
             <div className="text-purple-400">💰</div>
           </div>
@@ -179,7 +179,7 @@ export default function ServiceHistoryPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.cost}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                     <div className="flex items-center">
-                      <span className="text-yellow-400">⭐</span>
+                      <span className="text-[var(--fixzit-accent-lighter)]">⭐</span>
                       <span className="ml-1">{item.rating}/5</span>
                     </div>
                   </td>
@@ -190,8 +190,8 @@ export default function ServiceHistoryPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">{t('workOrders.history.view', 'View')}</button>
-                      <button className="text-green-600 hover:text-green-900">{t('workOrders.history.invoice', 'Invoice')}</button>
+                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('workOrders.history.view', 'View')}</button>
+                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('workOrders.history.invoice', 'Invoice')}</button>
                     </div>
                   </td>
                 </tr>

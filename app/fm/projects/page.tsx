@@ -62,7 +62,7 @@ export default function ProjectsPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
+            <Button className="bg-[var(--fixzit-indigo)] hover:bg-[var(--fixzit-indigo-dark)]">
               <Plus className="w-4 h-4 mr-2" />
               New Project
             </Button>
@@ -137,7 +137,7 @@ export default function ProjectsPage() {
             <Briefcase className="w-12 h-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Projects Found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first project.</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-indigo)] hover:bg-[var(--fixzit-indigo-dark)]">
               <Plus className="w-4 h-4 mr-2" />
               Create Project
             </Button>
@@ -169,15 +169,15 @@ function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void 
       case 'PLANNING':
         return 'bg-gray-100 text-gray-800';
       case 'APPROVED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]';
       case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]';
       case 'ON_HOLD':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]';
       case 'COMPLETED':
-        return 'bg-emerald-100 text-emerald-800';
+        return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]';
       case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)]';
       case 'CLOSED':
         return 'bg-purple-100 text-purple-800';
       default:
@@ -216,7 +216,7 @@ function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void 
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-indigo-600 h-2 rounded-full transition-all"
+              className="bg-[var(--fixzit-indigo)] h-2 rounded-full transition-all"
               style={{ width: `${project.progress?.overall || 0}%` }}
             />
           </div>
@@ -263,7 +263,7 @@ function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void 
             <Button variant="ghost" size="sm">
               <Edit className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+            <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -393,7 +393,7 @@ function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+        <Button type="submit" className="bg-[var(--fixzit-indigo)] hover:bg-[var(--fixzit-indigo-dark)]">
           Create Project
         </Button>
       </div>

@@ -49,7 +49,7 @@ export default function MarketplacePage() {
           <p className="text-gray-600 mb-4">
             {tabs.find(tab => tab.id === activeTab)?.description}
           </p>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+          <button className="px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-md hover:bg-[var(--fixzit-primary-dark)] transition-colors">
             Browse {tabs.find(tab => tab.id === activeTab)?.label}
           </button>
         </div>
