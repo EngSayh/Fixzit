@@ -1,0 +1,230 @@
+/**
+ * Aqar Souq - Lead Model
+ * 
+ * Property inquiry leads for CRM integration
+ * Links to Fixzit CRM module
+ */
+
+import mongoose, { Schema, Document, Model } from 'mongoose';
+
+export enum LeadStatus {
+  NEW = 'NEW',                   // Fresh inquiry
+  CONTACTED = 'CONTACTED',       // Agent reached out
+  QUALIFIED = 'QUALIFIED',       // Genuine interest
+  VIEWING = 'VIEWING',           // Scheduled property viewing
+  NEGOTIATING = 'NEGOTIATING',   // In negotiation
+  WON = 'WON',                   // Deal closed
+  LOST = 'LOST',                 // Deal lost
+  SPAM = 'SPAM',                 // Marked as spam
+}
+
+export enum LeadIntent {
+  BUY = 'BUY',
+  RENT = 'RENT',
+  DAILY = 'DAILY',
+}
+
+export enum LeadSource {
+  LISTING_INQUIRY = 'LISTING_INQUIRY',       // From listing detail page
+  PROJECT_INQUIRY = 'PROJECT_INQUIRY',       // From project page
+  PHONE_CALL = 'PHONE_CALL',                 // Phone inquiry
+  WHATSAPP = 'WHATSAPP',                     // WhatsApp inquiry
+  EMAIL = 'EMAIL',                           // Email inquiry
+  WALK_IN = 'WALK_IN',                       // Walk-in to office
+}
+
+export interface ILead extends Document {
+  // Organization
+  orgId: mongoose.Types.ObjectId;
+  
+  // Source
+  listingId?: mongoose.Types.ObjectId;
+  projectId?: mongoose.Types.ObjectId;
+  source: LeadSource;
+  
+  // Inquirer (potential client)
+  inquirerId?: mongoose.Types.ObjectId;    // User ID if logged in
+  inquirerName: string;
+  inquirerPhone: string;
+  inquirerEmail?: string;
+  inquirerNationalId?: string;             // If Nafath verified
+  
+  // Owner/Agent (recipient)
+  recipientId: mongoose.Types.ObjectId;
+  
+  // Intent
+  intent: LeadIntent;
+  message?: string;
+  
+  // Status & assignment
+  status: LeadStatus;
+  assignedTo?: mongoose.Types.ObjectId;    // Agent/salesperson
+  assignedAt?: Date;
+  
+  // Follow-up
+  notes: Array<{
+    authorId: mongoose.Types.ObjectId;
+    content: string;
+    createdAt: Date;
+  }>;
+  
+  // Viewing
+  viewingScheduledAt?: Date;
+  viewingCompletedAt?: Date;
+  
+  // Outcome
+  closedAt?: Date;
+  closedBy?: mongoose.Types.ObjectId;
+  lostReason?: string;
+  
+  // Integration
+  crmContactId?: mongoose.Types.ObjectId;   // Link to CRM Contact
+  crmDealId?: mongoose.Types.ObjectId;      // Link to CRM Deal
+  
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const LeadSchema = new Schema<ILead>(
+  {
+    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
+    
+    listingId: { type: Schema.Types.ObjectId, ref: 'AqarListing', index: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'AqarProject', index: true },
+    source: {
+      type: String,
+      enum: Object.values(LeadSource),
+      required: true,
+      index: true,
+    },
+    
+    inquirerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    inquirerName: { type: String, required: true, maxlength: 200 },
+    inquirerPhone: { type: String, required: true, index: true },
+    inquirerEmail: { type: String, maxlength: 200 },
+    inquirerNationalId: { type: String },
+    
+    recipientId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    
+    intent: {
+      type: String,
+      enum: Object.values(LeadIntent),
+      required: true,
+      index: true,
+    },
+    message: { type: String, maxlength: 2000 },
+    
+    status: {
+      type: String,
+      enum: Object.values(LeadStatus),
+      default: LeadStatus.NEW,
+      required: true,
+      index: true,
+    },
+    assignedTo: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    assignedAt: { type: Date },
+    
+    notes: [
+      {
+        authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        content: { type: String, required: true, maxlength: 2000 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    
+    viewingScheduledAt: { type: Date },
+    viewingCompletedAt: { type: Date },
+    
+    closedAt: { type: Date },
+    closedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    lostReason: { type: String, maxlength: 500 },
+    
+    crmContactId: { type: Schema.Types.ObjectId, ref: 'Contact' },
+    crmDealId: { type: Schema.Types.ObjectId, ref: 'Deal' },
+  },
+  {
+    timestamps: true,
+    collection: 'aqar_leads',
+  }
+);
+
+// Indexes
+LeadSchema.index({ recipientId: 1, status: 1, createdAt: -1 });
+LeadSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });
+LeadSchema.index({ inquirerPhone: 1 });
+LeadSchema.index({ createdAt: -1 });
+LeadSchema.index({ orgId: 1, status: 1, createdAt: -1 });
+
+// Methods
+LeadSchema.methods.addNote = async function (
+  this: ILead,
+  authorId: mongoose.Types.ObjectId,
+  content: string
+) {
+  this.notes.push({
+    authorId,
+    content,
+    createdAt: new Date(),
+  });
+  await this.save();
+};
+
+LeadSchema.methods.assign = async function (
+  this: ILead,
+  agentId: mongoose.Types.ObjectId
+) {
+  this.assignedTo = agentId;
+  this.assignedAt = new Date();
+  if (this.status === LeadStatus.NEW) {
+    this.status = LeadStatus.CONTACTED;
+  }
+  await this.save();
+};
+
+LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
+  this.viewingScheduledAt = dateTime;
+  this.status = LeadStatus.VIEWING;
+  await this.save();
+};
+
+LeadSchema.methods.completeViewing = async function (this: ILead) {
+  if (!this.viewingScheduledAt) {
+    throw new Error('No viewing scheduled');
+  }
+  this.viewingCompletedAt = new Date();
+  this.status = LeadStatus.NEGOTIATING;
+  await this.save();
+};
+
+LeadSchema.methods.markAsWon = async function (
+  this: ILead,
+  userId: mongoose.Types.ObjectId
+) {
+  this.status = LeadStatus.WON;
+  this.closedAt = new Date();
+  this.closedBy = userId;
+  await this.save();
+};
+
+LeadSchema.methods.markAsLost = async function (
+  this: ILead,
+  userId: mongoose.Types.ObjectId,
+  reason?: string
+) {
+  this.status = LeadStatus.LOST;
+  this.closedAt = new Date();
+  this.closedBy = userId;
+  this.lostReason = reason;
+  await this.save();
+};
+
+LeadSchema.methods.markAsSpam = async function (this: ILead) {
+  this.status = LeadStatus.SPAM;
+  await this.save();
+};
+
+const Lead: Model<ILead> =
+  mongoose.models.AqarLead || mongoose.model<ILead>('AqarLead', LeadSchema);
+
+export default Lead;
