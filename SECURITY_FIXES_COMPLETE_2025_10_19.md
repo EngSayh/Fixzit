@@ -45,6 +45,13 @@ async signIn({ user, account, profile }) {
 
 **After**:
 ```typescript
+import { createHash } from 'crypto';
+
+// Helper: Privacy-preserving email hash (SHA-256)
+function hashEmail(email: string): string {
+  return createHash('sha256').update(email.toLowerCase()).digest('hex').substring(0, 16);
+}
+
 async signIn({ user: _user, account: _account, profile: _profile }) {
   // OAuth Access Control - Email Domain Whitelist
   const allowedDomains = ['fixzit.com', 'fixzit.co'];
@@ -57,27 +64,34 @@ async signIn({ user: _user, account: _account, profile: _profile }) {
 
   const emailParts = _user.email.split('@');
   if (emailParts.length !== 2) {
-    console.warn('OAuth sign-in rejected: Invalid email format', { email: _user.email });
+    const emailHash = hashEmail(_user.email);
+    console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
     return false;
   }
 
   const emailDomain = emailParts[1].toLowerCase();
   if (!allowedDomains.includes(emailDomain)) {
+    const emailHash = hashEmail(_user.email);
     console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
-      email: _user.email, 
+      emailHash,
       domain: emailDomain,
       provider: _account?.provider 
     });
     return false;
   }
 
-  console.log('OAuth sign-in allowed', { email: _user.email, provider: _account?.provider });
+  const emailHash = hashEmail(_user.email);
+  console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });
   return true;
 }
 ```
 
+**Note**: `emailHash` is derived from SHA-256 hashing of the lowercased email address, truncated to 16 hex characters for privacy-preserving logging.
+
 ### Security Improvements
 - ✅ Email domain whitelist enforced (@fixzit.com, @fixzit.co)
+- ✅ Privacy-preserving logging using `emailHash` instead of raw email addresses
+- ✅ No PII (personally identifiable information) leaked in logs
 - ✅ Safe handling of missing emails (reject immediately)
 - ✅ Safe handling of malformed emails (reject immediately)
 - ✅ Case-insensitive domain matching
@@ -116,31 +130,36 @@ const JWT_SECRET = new TextEncoder().encode(
 **After**:
 ```typescript
 // Validate JWT secret at module load - fail fast if missing
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret.');
-  console.error('Please add JWT_SECRET to your .env.local file or environment configuration.');
-  process.exit(1);
+// Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET
+const jwtSecretValue = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+if (!jwtSecretValue) {
+  const errorMessage = 'FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set. Application cannot start without a secure JWT secret. Please add JWT_SECRET or NEXTAUTH_SECRET to your .env.local file or environment configuration.';
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
 
 // JWT secret for legacy token verification
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 ```
 
 ### Security Improvements
 - ✅ Startup validation at module load (before any requests)
-- ✅ Fails fast with `process.exit(1)` if JWT_SECRET missing
+- ✅ Fails fast by throwing Error if neither JWT_SECRET nor NEXTAUTH_SECRET is set
 - ✅ Clear error messages for operators
 - ✅ No insecure fallback secrets
 - ✅ Configuration issues caught immediately
 - ✅ Cannot run in production without secure secret
+- ✅ Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET for flexibility
 
 ### Breaking Change
-**Impact**: Application will not start if JWT_SECRET is missing
+**Impact**: Application will not start if neither JWT_SECRET nor NEXTAUTH_SECRET is set (throws Error during module initialization)
 
-**Migration**: Ensure JWT_SECRET is set in all environments:
+**Migration**: Ensure JWT_SECRET or NEXTAUTH_SECRET is set in all environments:
 ```bash
 # .env.local
 JWT_SECRET=<your-secure-secret-256-bits>
+# OR
+NEXTAUTH_SECRET=<your-secure-secret-256-bits>
 
 # Generate secure secret:
 openssl rand -base64 32
@@ -390,7 +409,7 @@ Status: Reviewed and addressed
 
 **Key Changes**:
 - Removed hardcoded fallback secret
-- Added startup validation with process.exit(1)
+- Added startup validation that throws Error if neither JWT_SECRET nor NEXTAUTH_SECRET is set
 - Replaced `atob()` with `jwtVerify()`
 - Enhanced error handling
 - Consistent verification across API and page routes

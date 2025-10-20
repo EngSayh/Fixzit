@@ -22,7 +22,7 @@
 
 **Before (Line 21)**:
 ```markdown
-- **Action**: Redacted `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU` from:
+- **Action**: Redacted `AIzaSyAhsO*****ffWRfU` from:
 ```
 
 **After**:
@@ -33,7 +33,7 @@
 
 **Before (Line 136)**:
 ```bash
-$ grep -rn "AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU" . --include="*.md"
+$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md"
 ```
 
 **After**:
@@ -128,11 +128,11 @@ const emailHash = await hashEmail(_user.email);
 
 ### Security Scans
 ```bash
-# API Key Scan
-$ grep -rn "AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU" . --include="*.md" --include="*.ts" --include="*.tsx"
+# API Key Scan (using pattern to avoid exposing actual keys)
+$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --include="*.tsx"
 ✅ No matches found - Key successfully removed
 
-# Pattern-based search
+# Pattern-based search for other potential keys
 $ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.ts" --include="*.tsx"
 ✅ No exposed API keys in source files
 ```

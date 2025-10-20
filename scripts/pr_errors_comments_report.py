@@ -62,7 +62,7 @@ def fetch_all_prs(owner: str, name: str) -> List[Dict[str, Any]]:
 
 def fetch_reviews_counts(owner: str, name: str, pr_number: int) -> Dict[str, int]:
     """Fetch review counts for a specific PR"""
-    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
+    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
     if code != 0:
         # Graceful fallback on permission issues
         return {"approved": 0, "changes_requested": 0, "commented": 0, "dismissed": 0}
