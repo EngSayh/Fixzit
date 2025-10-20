@@ -255,10 +255,38 @@ describe('TopBar', () => {
 
   describe('Performance', () => {
     it('should not refetch notifications unnecessarily', async () => {
-      const { rerender } = renderTopBar();
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(0);
+      // Mock fetch to track calls
+      const fetchSpy = vi.fn().mockImplementation((url) => {
+        if (url === '/api/auth/me') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ authenticated: true }),
+          } as Response);
+        }
+        if (typeof url === 'string' && url.startsWith('/api/notifications')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ items: [] }),
+          } as Response);
+        }
+        return Promise.resolve({ ok: false } as Response);
       });
+      global.fetch = fetchSpy;
+
+      const { rerender } = renderTopBar();
+      
+      // Wait for initial auth check
+      await waitFor(() => {
+        expect(fetchSpy).toHaveBeenCalledWith('/api/auth/me');
+      });
+
+      // Capture call count after initial render (should have auth check, but no notifications yet)
+      const initialCallCount = fetchSpy.mock.calls.length;
+      const notificationsCallsBefore = fetchSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].startsWith('/api/notifications')
+      ).length;
+
+      // Rerender the component
       rerender(
         <TranslationProvider>
           <ResponsiveProvider>
@@ -268,7 +296,16 @@ describe('TopBar', () => {
           </ResponsiveProvider>
         </TranslationProvider>
       );
-      expect(global.fetch).toHaveBeenCalledTimes(0);
+
+      // Wait a bit to ensure no additional fetches occur
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Assert that notifications were not fetched on initial render or rerender
+      const notificationsCallsAfter = fetchSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].startsWith('/api/notifications')
+      ).length;
+      expect(notificationsCallsAfter).toBe(notificationsCallsBefore);
+      expect(notificationsCallsAfter).toBe(0); // Should be 0 since dropdown wasn't opened
     });
 
     it('should cleanup on unmount', () => {
