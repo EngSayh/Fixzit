@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
           return listing;
         });
         
-        await session.endSession();
+        // Session already ended by withTransaction, no need to call endSession
         
         const listing = await AqarListing.findOne({ 
           listerId: user.id 
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         
         return NextResponse.json({ listing }, { status: 201 });
       } catch (txError) {
-        // Transaction auto-aborted - credits are refunded automatically
+        // Transaction auto-aborted by withTransaction, just end the session
         await session.endSession();
         
         if (txError instanceof Error && txError.message === 'NO_ACTIVE_PACKAGE') {
@@ -209,8 +209,6 @@ export async function POST(request: NextRequest) {
             { status: 402 }
           );
         }
-        await session.abortTransaction();
-        await session.endSession();
         throw txError; // Re-throw to be caught by outer catch block
       }
     }

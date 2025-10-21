@@ -79,8 +79,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    // Check ownership
-    if (listing.listerId.toString() !== user.id) {
+    // Check ownership (both user and tenant isolation)
+    if (listing.listerId.toString() !== user.id || (user.orgId && listing.orgId?.toString() !== user.orgId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
@@ -216,8 +216,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    // Check ownership
-    if (listing.listerId.toString() !== user.id) {
+    // Check ownership (both user and tenant isolation)
+    if (listing.listerId.toString() !== user.id || (user.orgId && listing.orgId?.toString() !== user.orgId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     

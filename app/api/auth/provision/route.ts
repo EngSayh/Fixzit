@@ -62,8 +62,11 @@ export async function POST(request: NextRequest) {
     // Connect to database (single connection for entire request)
     const conn = await dbConnect();
 
+    // Normalize email to prevent duplicates (case-insensitive, trim whitespace)
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (!existingUser) {
       // Create new user with OAuth details
@@ -111,7 +114,7 @@ export async function POST(request: NextRequest) {
           newUser = await User.create([{
             code,
             username,
-            email,
+            email: normalizedEmail,
             password: '', // OAuth users don't have passwords
             personal: {
               firstName,

@@ -2,12 +2,14 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { jwtVerify } from 'jose';
+import { dbConnect } from '@/db/mongoose';
+import { User } from '@/server/models/User';
 
 // Validate JWT secret at module load - fail fast if missing
-// Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET
-const jwtSecretValue = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+// Require dedicated JWT_SECRET instead of falling back to NEXTAUTH_SECRET to prevent token confusion
+const jwtSecretValue = process.env.JWT_SECRET;
 if (!jwtSecretValue) {
-  const errorMessage = 'FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set. Application cannot start without a secure JWT secret. Please add JWT_SECRET or NEXTAUTH_SECRET to your .env.local file or environment configuration.';
+  const errorMessage = 'FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret. Please add JWT_SECRET to your .env.local file or environment configuration.';
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
@@ -186,11 +188,15 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
 
         // Check for NextAuth session first
         if (session?.user) {
+          // Fetch actual user data from database to get real role and orgId
+          await dbConnect();
+          const dbUser = await User.findOne({ email: session.user.email }).select('_id email professional.role orgId').lean() as any;
+          
           user = {
-            id: session.user.id || '',
+            id: dbUser?._id?.toString() || session.user.id || '',
             email: session.user.email || '',
-            role: 'USER', // Default role for OAuth users
-            orgId: null
+            role: dbUser?.professional?.role || 'USER',
+            orgId: dbUser?.orgId?.toString() || null
           };
         } else {
           // Fall back to legacy JWT token with proper signature verification

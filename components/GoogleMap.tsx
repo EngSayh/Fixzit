@@ -3,11 +3,60 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from 'lucide-react';
 
+// Module-level singleton Promise to prevent race conditions
+let googleMapsLoadPromise: Promise<void> | null = null;
+
 // Global script refcount to safely manage shared Google Maps API script
 declare global {
   interface Window {
     __googleMapsRefCount?: number;
   }
+}
+
+/**
+ * Load Google Maps script using singleton pattern.
+ * Multiple simultaneous calls will share the same Promise.
+ */
+function loadGoogleMapsScript(): Promise<void> {
+  // Return existing promise if script is loading or loaded
+  if (googleMapsLoadPromise) {
+    return googleMapsLoadPromise;
+  }
+
+  // Check if already loaded
+  if (window.google?.maps) {
+    googleMapsLoadPromise = Promise.resolve();
+    return googleMapsLoadPromise;
+  }
+
+  // Create new loading promise
+  googleMapsLoadPromise = new Promise((resolve, reject) => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    
+    if (!apiKey) {
+      reject(new Error('Google Maps API key not found in environment variables'));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = () => {
+      script.dataset.loaded = 'true';
+      resolve();
+    };
+    
+    script.onerror = () => {
+      googleMapsLoadPromise = null; // Reset on error to allow retry
+      reject(new Error('Failed to load Google Maps script'));
+    };
+    
+    document.head.appendChild(script);
+  });
+
+  return googleMapsLoadPromise;
 }
 
 interface GoogleMapProps {
@@ -36,7 +85,6 @@ export default function GoogleMap({
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
   const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
   const mapClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,10 +97,18 @@ export default function GoogleMap({
 
   // Load Google Maps script once on mount
   useEffect(() => {
-    const initMap = () => {
-      if (!mapRef.current || mapInstanceRef.current) return; // Skip if map already created
+    let mounted = true;
 
+    const initMap = async () => {
       try {
+        // Use singleton loader to prevent race conditions
+        await loadGoogleMapsScript();
+        
+        if (!mounted || !mapRef.current || mapInstanceRef.current) return;
+
+        // Increment refcount
+        window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
+
         // Create map once
         const map = new google.maps.Map(mapRef.current, {
           center,
@@ -79,78 +135,32 @@ export default function GoogleMap({
         setMapReady(true); // Signal that map is ready for markers
       } catch (err) {
         console.error('Failed to initialize map:', err);
-        setError('Failed to load map');
-        setLoading(false);
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load map');
+          setLoading(false);
+        }
       }
     };
 
-    // Load Google Maps script with singleton pattern to prevent race conditions
-    if (!window.google) {
-      // Check if script is already being loaded by another instance
-      const existingScript = document.querySelector<HTMLScriptElement>(
-        'script[src*="maps.googleapis.com/maps/api/js"]'
-      );
-      
-      if (existingScript) {
-        // Script is already loading or loaded
-        // Check if already loaded by checking for 'data-loaded' attribute
-        if (existingScript.dataset.loaded === 'true') {
-          // Script already loaded - init map immediately
-          initMap();
-        } else {
-          // Script is loading - wait for load event
-          existingScript.addEventListener('load', initMap, { once: true });
-        }
-        window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
-      } else {
-        // Load script
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-        
-        if (!apiKey) {
-          console.error('Google Maps API key not found in environment variables');
-          setError('Map configuration error');
-          setLoading(false);
-          return;
-        }
-
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-          // Mark script as loaded to prevent race condition on late mounts
-          script.dataset.loaded = 'true';
-          initMap();
-        };
-        script.onerror = () => {
-          setError('Failed to load Google Maps. Please check your internet connection.');
-          setLoading(false);
-        };
-        document.head.appendChild(script);
-        scriptRef.current = script;
-        
-        // Initialize refcount
-        window.__googleMapsRefCount = 1;
-      }
-    } else {
-      // Increment refcount for existing script
-      window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
-      initMap();
-    }
+    initMap();
 
     return () => {
+      mounted = false;
+
       // Close all InfoWindows
       infoWindowsRef.current.forEach(iw => iw.close());
       infoWindowsRef.current = [];
       
       // Remove all event listeners
-      listenersRef.current.forEach(listener => {
-        google.maps.event.removeListener(listener);
-      });
+      if (window.google?.maps) {
+        listenersRef.current.forEach(listener => {
+          google.maps.event.removeListener(listener);
+        });
+      }
       listenersRef.current = [];
       
       // Remove map click listener
-      if (mapClickListenerRef.current) {
+      if (mapClickListenerRef.current && window.google?.maps) {
         google.maps.event.removeListener(mapClickListenerRef.current);
         mapClickListenerRef.current = null;
       }
@@ -166,13 +176,6 @@ export default function GoogleMap({
       // (other components may still need it, and it's a singleton)
       if (window.__googleMapsRefCount) {
         window.__googleMapsRefCount -= 1;
-        
-        // Optionally clean up script element if last instance (but keep window.google)
-        if (window.__googleMapsRefCount === 0 && scriptRef.current) {
-          scriptRef.current.onload = null;
-          scriptRef.current.onerror = null;
-          // Don't remove script or delete window.google - they're singletons
-        }
       }
     };
     // NOTE: onMapClick is intentionally excluded from deps because onMapClickRef is used
