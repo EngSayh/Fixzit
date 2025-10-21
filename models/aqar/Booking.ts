@@ -142,11 +142,14 @@ BookingSchema.pre('validate', function (next) {
     );
     
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    this.nights = Math.max(0, (checkOutUTC - checkInUTC) / MS_PER_DAY);
+    const nightsDiff = (checkOutUTC - checkInUTC) / MS_PER_DAY;
     
-    if (this.nights < 1) {
+    // Validate that check-out is at least 1 day after check-in (don't mask with Math.max)
+    if (nightsDiff < 1) {
       return next(new Error('Check-out must be at least 1 day after check-in'));
     }
+    
+    this.nights = nightsDiff;
   }
   
   if (this.isModified('pricePerNight') || this.isModified('nights')) {
@@ -158,31 +161,55 @@ BookingSchema.pre('validate', function (next) {
   next();
 });
 
-// Methods
+// Methods - Use atomic updates with state preconditions to prevent race conditions
 BookingSchema.methods.confirm = async function (this: IBooking) {
-  if (this.status !== BookingStatus.PENDING) {
-    throw new Error('Only pending bookings can be confirmed');
+  const result = await mongoose.model<IBooking>('AqarBooking').findOneAndUpdate(
+    { _id: this._id, status: BookingStatus.PENDING },
+    { $set: { status: BookingStatus.CONFIRMED } },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot confirm: booking not found or not in PENDING status');
   }
-  this.status = BookingStatus.CONFIRMED;
-  await this.save();
+  
+  // Update local instance
+  this.status = result.status;
+  return result;
 };
 
 BookingSchema.methods.checkIn = async function (this: IBooking) {
-  if (this.status !== BookingStatus.CONFIRMED) {
-    throw new Error('Only confirmed bookings can be checked in');
+  const result = await mongoose.model<IBooking>('AqarBooking').findOneAndUpdate(
+    { _id: this._id, status: BookingStatus.CONFIRMED },
+    { $set: { status: BookingStatus.CHECKED_IN, checkedInAt: new Date() } },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot check in: booking not found or not in CONFIRMED status');
   }
-  this.status = BookingStatus.CHECKED_IN;
-  this.checkedInAt = new Date();
-  await this.save();
+  
+  // Update local instance
+  this.status = result.status;
+  this.checkedInAt = result.checkedInAt;
+  return result;
 };
 
 BookingSchema.methods.checkOut = async function (this: IBooking) {
-  if (this.status !== BookingStatus.CHECKED_IN) {
-    throw new Error('Only checked-in bookings can be checked out');
+  const result = await mongoose.model<IBooking>('AqarBooking').findOneAndUpdate(
+    { _id: this._id, status: BookingStatus.CHECKED_IN },
+    { $set: { status: BookingStatus.CHECKED_OUT, checkedOutAt: new Date() } },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot check out: booking not found or not in CHECKED_IN status');
   }
-  this.status = BookingStatus.CHECKED_OUT;
-  this.checkedOutAt = new Date();
-  await this.save();
+  
+  // Update local instance
+  this.status = result.status;
+  this.checkedOutAt = result.checkedOutAt;
+  return result;
 };
 
 BookingSchema.methods.cancel = async function (
@@ -190,29 +217,49 @@ BookingSchema.methods.cancel = async function (
   userId: mongoose.Types.ObjectId,
   reason?: string
 ) {
-  if ([BookingStatus.CHECKED_OUT, BookingStatus.CANCELLED].includes(this.status)) {
-    throw new Error('Cannot cancel completed or already cancelled booking');
-  }
-  
-  this.status = BookingStatus.CANCELLED;
-  this.cancelledAt = new Date();
-  this.cancelledBy = userId;
-  this.cancellationReason = reason;
-  
-  // Calculate refund based on cancellation policy
+  // Calculate refund based on cancellation policy (before atomic update)
   const MS_PER_DAY = 1000 * 60 * 60 * 24;
   const diffMs = this.checkInDate.getTime() - Date.now();
   const daysUntilCheckIn = Math.max(0, Math.floor(diffMs / MS_PER_DAY));
   
+  let refundAmount: number;
   if (daysUntilCheckIn >= 7) {
-    this.refundAmount = this.totalPrice; // Full refund
+    refundAmount = this.totalPrice; // Full refund
   } else if (daysUntilCheckIn >= 3) {
-    this.refundAmount = Math.round(this.totalPrice * 0.5); // 50% refund
+    refundAmount = Math.round(this.totalPrice * 0.5); // 50% refund
   } else {
-    this.refundAmount = 0; // No refund
+    refundAmount = 0; // No refund
   }
   
-  await this.save();
+  // Atomic update with preconditions: only allow cancellation from non-terminal states
+  const result = await mongoose.model<IBooking>('AqarBooking').findOneAndUpdate(
+    { 
+      _id: this._id, 
+      status: { $nin: [BookingStatus.CHECKED_OUT, BookingStatus.CANCELLED] }
+    },
+    { 
+      $set: { 
+        status: BookingStatus.CANCELLED,
+        cancelledAt: new Date(),
+        cancelledBy: userId,
+        cancellationReason: reason,
+        refundAmount
+      } 
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot cancel: booking not found or already in terminal state (CHECKED_OUT or CANCELLED)');
+  }
+  
+  // Update local instance
+  this.status = result.status;
+  this.cancelledAt = result.cancelledAt;
+  this.cancelledBy = result.cancelledBy;
+  this.cancellationReason = result.cancellationReason;
+  this.refundAmount = result.refundAmount;
+  return result;
 };
 
 const Booking: Model<IBooking> =

@@ -184,9 +184,8 @@ LeadSchema.methods.addNote = async function (
       },
     }
   );
-  // Reload the document from DB with populated notes to get fresh data
-  // (this.populate() won't show the new note because this instance is stale)
-  const updated = await mongoose.model('AqarLead').findById(this._id).populate('notes.authorId');
+  // Reload the document from DB to get fresh data (don't use populate on embedded array)
+  const updated = await mongoose.model('AqarLead').findById(this._id);
   if (updated) {
     this.notes = (updated as ILead).notes;
   }
@@ -231,67 +230,70 @@ LeadSchema.methods.assign = async function (
 };
 
 LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
-  // Terminal states (WON, LOST, SPAM) are immutable
-  const terminalStates = [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM];
-  if (terminalStates.includes(this.status)) {
-    throw new Error(`Cannot schedule viewing for lead in terminal state: ${this.status}`);
-  }
-  // Don't regress from NEGOTIATING
-  if (this.status === LeadStatus.NEGOTIATING) {
-    throw new Error(`Cannot schedule viewing for lead already in NEGOTIATING status`);
-  }
-  
-  // Use atomic update to prevent race conditions
-  await mongoose.model('AqarLead').findByIdAndUpdate(
-    this._id,
+  // Use atomic update with preconditions to prevent race conditions and enforce state transitions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      // Terminal states (WON, LOST, SPAM) are immutable, also prevent regression from NEGOTIATING
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM, LeadStatus.NEGOTIATING] }
+    },
     {
       $set: {
         viewingScheduledAt: dateTime,
         status: LeadStatus.VIEWING,
       },
-    }
+    },
+    { new: true }
   );
+  
+  if (!result) {
+    throw new Error(`Cannot schedule viewing: lead not found or in invalid state (current: ${this.status})`);
+  }
+  
+  // Update local instance
+  this.viewingScheduledAt = (result as ILead).viewingScheduledAt;
+  this.status = (result as ILead).status;
 };
 
 LeadSchema.methods.completeViewing = async function (this: ILead) {
   if (!this.viewingScheduledAt) {
     throw new Error('No viewing scheduled');
   }
-  // Terminal states (WON, LOST, SPAM) are immutable
-  const terminalStates = [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM];
-  if (terminalStates.includes(this.status)) {
-    throw new Error(`Cannot complete viewing for lead in terminal state: ${this.status}`);
-  }
   
-  // Use atomic update to prevent race conditions
-  await mongoose.model('AqarLead').findByIdAndUpdate(
-    this._id,
+  // Use atomic update with preconditions in query to prevent race conditions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      // Terminal states (WON, LOST, SPAM) are immutable - check in DB query
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
     {
       $set: {
         viewingCompletedAt: new Date(),
         status: LeadStatus.NEGOTIATING,
       },
-    }
+    },
+    { new: true }
   );
+  
+  if (!result) {
+    throw new Error(`Cannot complete viewing: lead not found or in terminal state (current: ${this.status})`);
+  }
+  
+  // Update local instance
+  this.viewingCompletedAt = (result as ILead).viewingCompletedAt;
+  this.status = (result as ILead).status;
 };
 
 LeadSchema.methods.markAsWon = async function (
   this: ILead,
   userId: mongoose.Types.ObjectId
 ) {
-  // Terminal state guard: WON is immutable once set
-  if (this.status === LeadStatus.WON) {
-    throw new Error('Lead already marked as WON');
-  }
-  // Prevent transitions from other terminal states
-  if (this.status === LeadStatus.LOST || this.status === LeadStatus.SPAM) {
-    throw new Error(`Cannot mark lead as WON from terminal state: ${this.status}`);
-  }
-  
-  // Use atomic update to prevent race conditions (avoids lost updates from concurrent markAsWon calls)
+  // Use atomic update with preconditions in DB query to prevent race conditions (TOCTOU)
   const result = await mongoose.model('AqarLead').findOneAndUpdate(
     {
       _id: this._id,
+      // Only allow transition from non-terminal states
       status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
     },
     {
@@ -319,19 +321,11 @@ LeadSchema.methods.markAsLost = async function (
   userId: mongoose.Types.ObjectId,
   reason?: string
 ) {
-  // Terminal state guard: LOST is immutable once set
-  if (this.status === LeadStatus.LOST) {
-    throw new Error('Lead already marked as LOST');
-  }
-  // Prevent transitions from other terminal states
-  if (this.status === LeadStatus.WON || this.status === LeadStatus.SPAM) {
-    throw new Error(`Cannot mark lead as LOST from terminal state: ${this.status}`);
-  }
-  
-  // Use atomic update to prevent race conditions
+  // Use atomic update with preconditions in DB query to prevent race conditions (TOCTOU)
   const result = await mongoose.model('AqarLead').findOneAndUpdate(
     {
       _id: this._id,
+      // Only allow transition from non-terminal states
       status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
     },
     {
