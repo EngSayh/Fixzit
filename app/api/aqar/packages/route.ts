@@ -119,7 +119,14 @@ export async function POST(request: NextRequest) {
       session.endSession();
     }
   } catch (error) {
-    console.error('Error purchasing package:', error);
-    return NextResponse.json({ error: 'Failed to purchase package' }, { status: 500 });
+    // Sanitized error logging - correlation ID, no PII
+    const errorId = `pkg_purchase_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.error('Error purchasing package', {
+      errorId,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      // DO NOT log: userId, payment details, connection strings, stack traces
+    });
+    return NextResponse.json({ error: 'Failed to purchase package', errorId }, { status: 500 });
   }
 }

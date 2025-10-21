@@ -146,9 +146,16 @@ export async function GET(request: NextRequest) {
       facets: facets[0] || {},
     });
   } catch (error) {
-    console.error('Error searching listings:', error);
+    // Sanitized error logging - correlation ID, no PII, no sensitive internals
+    const errorId = `search_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.error('Error searching listings', {
+      errorId,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      // DO NOT log: query details, coordinates, user data, connection strings, stack traces
+    });
     return NextResponse.json(
-      { error: 'Failed to search listings' },
+      { error: 'Failed to search listings', errorId },
       { status: 500 }
     );
   }

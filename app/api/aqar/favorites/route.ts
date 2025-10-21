@@ -11,19 +11,6 @@ import { connectDb } from '@/lib/mongo';
 import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
-// Type for favorite with populated target
-interface FavoriteWithTarget {
-  _id: string;
-  userId: string;
-  orgId: string;
-  targetId: string;
-  targetType: 'LISTING' | 'PROJECT';
-  notes?: string;
-  tags?: string[];
-  createdAt: Date;
-  target?: any; // Populated listing or project
-}
-
 export const runtime = 'nodejs';
 
 // GET /api/aqar/favorites
@@ -146,9 +133,18 @@ export async function POST(request: NextRequest) {
     
     await favorite.save();
     
-    // Increment favorites count on listing/project (async)
+    // Increment favorites count on listing/project with error handling
     if (targetType === 'LISTING') {
-      AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
+      AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } })
+        .exec()
+        .catch((analyticsError) => {
+          // Log analytics error but don't fail the request
+          console.error('Failed to increment listing favorites analytics', {
+            targetId,
+            targetType,
+            message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+          });
+        });
     }
     
     return NextResponse.json({ favorite }, { status: 201 });

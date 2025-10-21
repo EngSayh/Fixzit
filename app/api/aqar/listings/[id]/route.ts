@@ -46,7 +46,11 @@ export async function GET(
     
     return NextResponse.json({ listing });
   } catch (error) {
-    console.error('Error fetching listing:', error);
+    // Sanitized error logging - no PII, no full error object
+    console.error('Error fetching listing:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error
+    });
     return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
   }
 }
@@ -141,7 +145,11 @@ export async function PATCH(
     
     return NextResponse.json({ listing });
   } catch (error) {
-    console.error('Error updating listing:', error);
+    // Sanitized error logging - no PII, no full error object
+    console.error('Error updating listing:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error
+    });
     return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 });
   }
 }
@@ -177,7 +185,11 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting listing:', error);
+    // Sanitized error logging - no PII, no full error object
+    console.error('Error deleting listing:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error
+    });
     return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 });
   }
 }
