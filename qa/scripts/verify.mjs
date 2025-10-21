@@ -8,9 +8,10 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const FAST = process.argv.includes('--fast');
+// Default to fast mode to avoid collecting every page locally. Set VERIFY_FULL=true to run full E2E.
+const FAST = process.env.VERIFY_FULL !== 'true' && !process.argv.includes('--full');
 
-async function ping(url, attempts=60) {
+async function ping(url, attempts=30) {
   for (let i=0;i<attempts;i++){
     const ok = await new Promise(r=>{
       const req = http.get(url, res=>{ res.resume(); r(res.statusCode<500);});
@@ -25,7 +26,21 @@ async function ping(url, attempts=60) {
 async function run(cmd, args, name) {
   return new Promise((resolve, reject)=>{
     const p = spawn(cmd, args, { stdio: 'inherit', env: process.env });
-    p.on('exit', code => code===0 ? resolve() : reject(new Error(`${name} failed (${code})`)));
+
+    // Watchdog: if child doesn't exit or produce output for 60s, kill it to avoid hangs
+    let lastOutput = Date.now();
+    const watchdog = setInterval(()=>{
+      if(Date.now() - lastOutput > 60000){
+        p.kill('SIGKILL');
+        clearInterval(watchdog);
+        reject(new Error(`${name} hung for >60s and was killed by watchdog`));
+      }
+    }, 5000);
+
+    p.stdout?.on('data', ()=> lastOutput = Date.now());
+    p.stderr?.on('data', ()=> lastOutput = Date.now());
+
+    p.on('exit', code => { clearInterval(watchdog); code===0 ? resolve() : reject(new Error(`${name} failed (${code})`)); });
   });
 }
 
