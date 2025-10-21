@@ -42,11 +42,12 @@ jobs:
         # Native conditional - skips if SENTRY_AUTH_TOKEN is not set
         # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
         if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@v3
         with:
           environment: production
           ignore_empty: true
           set_commits: auto
+          # v3 supports glob patterns for sourcemaps
           sourcemaps: |
             .next/static/**/*.map
             public/**/*.map

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarListing, AqarPackage } from '@/models/aqar';
+import { AqarListing, AqarPackage, ListingStatus } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 export const runtime = 'nodejs';
@@ -61,12 +61,79 @@ export async function POST(request: NextRequest) {
       await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
     }
     
-    // Create listing
+    // Whitelist allowed client fields (prevent injection of system-controlled fields)
+    const {
+      // Core details
+      intent,
+      propertyType,
+      title,
+      description,
+      // Location
+      address,
+      city,
+      neighborhood,
+      geo,
+      // Specifications
+      areaSqm,
+      beds,
+      baths,
+      kitchens,
+      ageYears,
+      furnishing,
+      amenities,
+      streetWidthM,
+      facing,
+      // Media
+      media,
+      // Pricing
+      price,
+      rentFrequency,
+      // Source
+      source,
+      // Compliance (optional)
+      compliance,
+      // Property reference (optional)
+      propertyRef,
+    } = body;
+    
+    // Basic validation on whitelisted fields
+    if (!intent || !propertyType || !address || !city || price === undefined) {
+      return NextResponse.json(
+        { error: 'Missing required fields: intent, propertyType, address, city, price' },
+        { status: 400 }
+      );
+    }
+    
+    // Create listing with whitelisted fields only
     const listing = new AqarListing({
-      ...body,
+      // Whitelisted client fields
+      intent,
+      propertyType,
+      title,
+      description,
+      address,
+      city,
+      neighborhood,
+      geo,
+      areaSqm,
+      beds,
+      baths,
+      kitchens,
+      ageYears,
+      furnishing,
+      amenities: amenities || [],
+      streetWidthM,
+      facing,
+      media: media || [],
+      price,
+      rentFrequency,
+      source,
+      compliance: compliance || {},
+      propertyRef,
+      // Server-controlled fields
       listerId: user.id,
-      orgId: user.orgId || user.id, // Fallback to user ID
-      status: 'DRAFT', // Start as draft
+      orgId: user.orgId || user.id,
+      status: ListingStatus.DRAFT, // Always start as draft
     });
     
     await listing.save();
