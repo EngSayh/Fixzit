@@ -171,18 +171,33 @@ LeadSchema.methods.addNote = async function (
   authorId: mongoose.Types.ObjectId,
   content: string
 ) {
-  this.notes.push({
-    authorId,
-    content,
-    createdAt: new Date(),
-  });
-  await this.save();
+  // Use atomic $push to prevent race conditions when multiple agents add notes simultaneously
+  await mongoose.model('AqarLead').findByIdAndUpdate(
+    this._id,
+    {
+      $push: {
+        notes: {
+          authorId,
+          content,
+          createdAt: new Date(),
+        },
+      },
+    }
+  );
+  // Refresh document to reflect new note
+  await this.populate('notes.authorId');
 };
 
 LeadSchema.methods.assign = async function (
   this: ILead,
   agentId: mongoose.Types.ObjectId
 ) {
+  // Terminal states (WON, LOST, SPAM) are immutable
+  const terminalStates = [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM];
+  if (terminalStates.includes(this.status)) {
+    throw new Error(`Cannot reassign lead in terminal state: ${this.status}`);
+  }
+  
   this.assignedTo = agentId;
   this.assignedAt = new Date();
   if (this.status === LeadStatus.NEW) {
@@ -192,23 +207,48 @@ LeadSchema.methods.assign = async function (
 };
 
 LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
-  // Don't regress from advanced states
-  const advancedStates = [LeadStatus.NEGOTIATING, LeadStatus.WON, LeadStatus.LOST];
-  if (advancedStates.includes(this.status)) {
-    throw new Error(`Cannot schedule viewing for lead in ${this.status} status`);
+  // Terminal states (WON, LOST, SPAM) are immutable
+  const terminalStates = [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM];
+  if (terminalStates.includes(this.status)) {
+    throw new Error(`Cannot schedule viewing for lead in terminal state: ${this.status}`);
   }
-  this.viewingScheduledAt = dateTime;
-  this.status = LeadStatus.VIEWING;
-  await this.save();
+  // Don't regress from NEGOTIATING
+  if (this.status === LeadStatus.NEGOTIATING) {
+    throw new Error(`Cannot schedule viewing for lead already in NEGOTIATING status`);
+  }
+  
+  // Use atomic update to prevent race conditions
+  await mongoose.model('AqarLead').findByIdAndUpdate(
+    this._id,
+    {
+      $set: {
+        viewingScheduledAt: dateTime,
+        status: LeadStatus.VIEWING,
+      },
+    }
+  );
 };
 
 LeadSchema.methods.completeViewing = async function (this: ILead) {
   if (!this.viewingScheduledAt) {
     throw new Error('No viewing scheduled');
   }
-  this.viewingCompletedAt = new Date();
-  this.status = LeadStatus.NEGOTIATING;
-  await this.save();
+  // Terminal states (WON, LOST, SPAM) are immutable
+  const terminalStates = [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM];
+  if (terminalStates.includes(this.status)) {
+    throw new Error(`Cannot complete viewing for lead in terminal state: ${this.status}`);
+  }
+  
+  // Use atomic update to prevent race conditions
+  await mongoose.model('AqarLead').findByIdAndUpdate(
+    this._id,
+    {
+      $set: {
+        viewingCompletedAt: new Date(),
+        status: LeadStatus.NEGOTIATING,
+      },
+    }
+  );
 };
 
 LeadSchema.methods.markAsWon = async function (

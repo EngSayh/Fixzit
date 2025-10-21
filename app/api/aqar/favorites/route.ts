@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
 import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
@@ -37,8 +38,8 @@ export async function GET(request: NextRequest) {
     
     // Batch-fetch targets to eliminate N+1 queries
     // Step 1: Collect all targetIds by targetType
-    const listingIds: string[] = [];
-    const projectIds: string[] = [];
+    const listingIds: mongoose.Types.ObjectId[] = [];
+    const projectIds: mongoose.Types.ObjectId[] = [];
     
     for (const fav of favorites) {
       if (fav.targetType === 'LISTING') {

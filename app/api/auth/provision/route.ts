@@ -35,9 +35,18 @@ export async function POST(request: NextRequest) {
       // Generate username from email
       const username = email.split('@')[0];
       
-      // Generate unique user code
-      const userCount = await User.countDocuments();
-      const code = `USR${String(userCount + 1).padStart(6, '0')}`;
+      // Generate unique user code atomically using MongoDB counter
+      // This prevents race conditions when multiple users register simultaneously
+      const conn = await dbConnect();
+      if (!conn.db) {
+        throw new Error('Database not available');
+      }
+      const counter = await conn.db.collection('counters').findOneAndUpdate(
+        { _id: 'userCode' as any },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: 'after' }
+      );
+      const code = `USR${String(counter?.seq || 1).padStart(6, '0')}`;
 
       const newUser = await User.create({
         code,
@@ -75,15 +84,14 @@ export async function POST(request: NextRequest) {
       );
     } else {
       // Update last login and profile image if changed
-      const updatedUser = await User.findByIdAndUpdate(
+      await User.findByIdAndUpdate(
         existingUser._id,
         {
           $set: {
             'metadata.lastLogin': new Date(),
             'metadata.profileImage': image,
           },
-        },
-        { new: true }
+        }
       );
 
       console.log('Existing OAuth user updated', { 
@@ -101,9 +109,15 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('User provisioning error:', error);
+    // Sanitized error logging - no PII (email), no connection strings, no stack traces
+    const errorId = `provision_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.error('User provisioning error', {
+      errorId,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+    });
     return NextResponse.json(
-      { error: 'Failed to provision user' },
+      { error: 'Failed to provision user', errorId },
       { status: 500 }
     );
   }

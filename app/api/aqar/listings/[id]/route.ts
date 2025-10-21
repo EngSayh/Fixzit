@@ -137,6 +137,52 @@ export async function PATCH(
           return NextResponse.json({ error: `${field} must be a non-empty string` }, { status: 400 });
         }
         
+        // Validate complex fields
+        if (field === 'amenities') {
+          if (!Array.isArray(value)) {
+            return NextResponse.json({ error: 'amenities must be an array' }, { status: 400 });
+          }
+          if (value.some((item: unknown) => typeof item !== 'string' || item.trim().length === 0)) {
+            return NextResponse.json({ error: 'amenities must be an array of non-empty strings' }, { status: 400 });
+          }
+        }
+        
+        if (field === 'media') {
+          if (!Array.isArray(value)) {
+            return NextResponse.json({ error: 'media must be an array' }, { status: 400 });
+          }
+          for (let i = 0; i < value.length; i++) {
+            const item = value[i];
+            if (typeof item !== 'object' || item === null) {
+              return NextResponse.json({ error: `media[${i}] must be an object` }, { status: 400 });
+            }
+            if (typeof item.url !== 'string' || item.url.trim().length === 0) {
+              return NextResponse.json({ error: `media[${i}].url must be a non-empty string` }, { status: 400 });
+            }
+            if (!['IMAGE', 'VIDEO', 'TOUR_360'].includes(item.type)) {
+              return NextResponse.json({ error: `media[${i}].type must be IMAGE, VIDEO, or TOUR_360` }, { status: 400 });
+            }
+            if (typeof item.order !== 'number' || !Number.isInteger(item.order) || item.order < 0) {
+              return NextResponse.json({ error: `media[${i}].order must be a non-negative integer` }, { status: 400 });
+            }
+          }
+        }
+        
+        if (field === 'address') {
+          if (typeof value !== 'object' || value === null) {
+            return NextResponse.json({ error: 'address must be an object' }, { status: 400 });
+          }
+          if (typeof value.street !== 'string' || value.street.trim().length === 0) {
+            return NextResponse.json({ error: 'address.street must be a non-empty string' }, { status: 400 });
+          }
+          if (typeof value.city !== 'string' || value.city.trim().length === 0) {
+            return NextResponse.json({ error: 'address.city must be a non-empty string' }, { status: 400 });
+          }
+          if (typeof value.country !== 'string' || value.country.trim().length === 0) {
+            return NextResponse.json({ error: 'address.country must be a non-empty string' }, { status: 400 });
+          }
+        }
+        
         (listing as unknown as Record<string, unknown>)[field] = value;
       }
     }
