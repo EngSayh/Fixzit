@@ -20,6 +20,48 @@
 
 ---
 
+## Security Architecture: User Approval Status
+
+**⚠️ CRITICAL SECURITY PRINCIPLE**: User approval status (`user.isApproved`) is controlled **server-side only** and **NEVER** by client session updates.
+
+### How Approval Works
+
+1. **Admin Action (Server-Side)**:
+   - Admin updates `user.isApproved` in MongoDB via API route
+   - Change persists in database immediately
+   - Example: `PATCH /api/users/[id]` with admin authentication
+
+2. **Session Refresh (Automatic)**:
+   - User's next request fetches fresh session via NextAuth callbacks
+   - `jwt()` callback queries MongoDB: `User.findById(token.sub)`
+   - `session()` callback populates `session.user.isApproved` from DB
+   - Client receives updated session data
+
+3. **Client Session (Read-Only)**:
+   - Client calls `useSession()` or `getSession()`
+   - Receives current approval status from server
+   - **CANNOT** modify approval status via client-side code
+   - Any client tampering is ignored (DB is source of truth)
+
+### Why This Matters
+
+- **Authorization Bypass Prevention**: Clients cannot elevate their own privileges
+- **Single Source of Truth**: MongoDB database is authoritative
+- **Session Consistency**: All requests see same approval status until next refresh
+- **Audit Trail**: All approval changes logged in server-side admin actions
+
+### Implementation Reference
+
+See `auth.ts` callbacks (lines ~15-45) for session hydration logic:
+- `jwt()` callback: Fetches user from DB, populates token
+- `session()` callback: Transfers DB state to session object
+- Middleware: Enforces approval check on protected routes
+
+**DO NOT**: Attempt to update `session.user.isApproved` from client code
+**DO**: Use admin API routes with proper authentication to modify user approval
+
+---
+
 ## Comprehensive Testing Plan
 
 ### ✅ Phase 1: Static Analysis (COMPLETED)
@@ -226,7 +268,11 @@ async signIn({ user, account }) {
       
       return true;
     } catch (error) {
-      console.error('Database verification failed during OAuth login:', error);
+      // Sanitized error logging - no PII (email), no connection strings, no stack traces
+      console.error('Database verification failed during OAuth login', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        type: error instanceof Error ? error.constructor.name : typeof error
+      });
       // Fail secure: deny access on error
       return false;
     }
