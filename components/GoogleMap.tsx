@@ -47,12 +47,13 @@ export default function GoogleMap({
     onMapClickRef.current = onMapClick;
   }, [onMapClick]);
 
+  // Load Google Maps script once on mount
   useEffect(() => {
     const initMap = () => {
-      if (!mapRef.current) return;
+      if (!mapRef.current || mapInstanceRef.current) return; // Skip if map already created
 
       try {
-        // Create map
+        // Create map once
         const map = new google.maps.Map(mapRef.current, {
           center,
           zoom,
@@ -83,31 +84,43 @@ export default function GoogleMap({
       }
     };
 
-    // Load Google Maps script
+    // Load Google Maps script with singleton pattern to prevent race conditions
     if (!window.google) {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      // Check if script is already being loaded by another instance
+      const existingScript = document.querySelector<HTMLScriptElement>(
+        'script[src*="maps.googleapis.com/maps/api/js"]'
+      );
       
-      if (!apiKey) {
-        console.error('Google Maps API key not found in environment variables');
-        setError('Map configuration error');
-        setLoading(false);
-        return;
-      }
+      if (existingScript) {
+        // Script is already loading, wait for it
+        existingScript.addEventListener('load', initMap, { once: true });
+        window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
+      } else {
+        // Load script
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+        
+        if (!apiKey) {
+          console.error('Google Maps API key not found in environment variables');
+          setError('Map configuration error');
+          setLoading(false);
+          return;
+        }
 
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initMap;
-      script.onerror = () => {
-        setError('Failed to load Google Maps. Please check your internet connection.');
-        setLoading(false);
-      };
-      document.head.appendChild(script);
-      scriptRef.current = script;
-      
-      // Initialize refcount
-      window.__googleMapsRefCount = 1;
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+        script.async = true;
+        script.defer = true;
+        script.onload = initMap;
+        script.onerror = () => {
+          setError('Failed to load Google Maps. Please check your internet connection.');
+          setLoading(false);
+        };
+        document.head.appendChild(script);
+        scriptRef.current = script;
+        
+        // Initialize refcount
+        window.__googleMapsRefCount = 1;
+      }
     } else {
       // Increment refcount for existing script
       window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
@@ -135,27 +148,33 @@ export default function GoogleMap({
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
       
-      // Decrement refcount and clean up script only when no instances remain
+      // Decrement refcount but DON'T delete window.google
+      // (other components may still need it, and it's a singleton)
       if (window.__googleMapsRefCount) {
         window.__googleMapsRefCount -= 1;
         
+        // Optionally clean up script element if last instance (but keep window.google)
         if (window.__googleMapsRefCount === 0 && scriptRef.current) {
           scriptRef.current.onload = null;
           scriptRef.current.onerror = null;
-          if (document.head.contains(scriptRef.current)) {
-            document.head.removeChild(scriptRef.current);
-          }
-          scriptRef.current = null;
-          // @ts-expect-error - intentionally clearing global
-          delete window.google;
+          // Don't remove script or delete window.google - they're singletons
         }
       }
     };
     // NOTE: onMapClick is intentionally excluded from deps because onMapClickRef is used
     // to avoid stale closures. The click listener is registered once and uses the ref
     // which is kept in sync with the latest onMapClick value via a separate useEffect.
+    // Load script only once on mount, not on center/zoom changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center.lat, center.lng, zoom]);
+  }, []);
+
+  // Update map center and zoom when props change (without recreating the map)
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setCenter(center);
+      mapInstanceRef.current.setZoom(zoom);
+    }
+  }, [center, zoom]);
 
   // Update markers (only run after map is ready)
   useEffect(() => {
