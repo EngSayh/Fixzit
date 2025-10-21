@@ -188,7 +188,10 @@ export async function POST(request: NextRequest) {
     if (targetType === 'LISTING') {
       (async () => {
         try {
-          await AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
+          await AqarListing.findByIdAndUpdate(targetId, { 
+            $inc: { 'analytics.favorites': 1 },
+            $set: { 'analytics.lastFavoritedAt': new Date() }
+          }).exec();
         } catch (analyticsError) {
           console.error('Failed to increment listing favorites analytics', {
             targetId,
@@ -200,7 +203,10 @@ export async function POST(request: NextRequest) {
     } else if (targetType === 'PROJECT') {
       (async () => {
         try {
-          await AqarProject.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
+          await AqarProject.findByIdAndUpdate(targetId, { 
+            $inc: { 'analytics.favorites': 1 },
+            $set: { 'analytics.lastFavoritedAt': new Date() }
+          }).exec();
         } catch (analyticsError) {
           console.error('Failed to increment project favorites analytics', {
             targetId,

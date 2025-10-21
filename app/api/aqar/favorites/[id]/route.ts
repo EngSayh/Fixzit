@@ -47,7 +47,10 @@ export async function DELETE(
       try {
         await AqarListing.findByIdAndUpdate(
           favorite.targetId, 
-          { $inc: { 'analytics.favorites': -1 } }
+          { 
+            $inc: { 'analytics.favorites': -1 },
+            $set: { 'analytics.lastUpdatedAt': new Date() }
+          }
         );
       } catch (analyticsError) {
         // Log analytics error but don't fail the request (deletion already succeeded)
