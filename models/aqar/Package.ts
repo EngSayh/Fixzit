@@ -119,7 +119,8 @@ PackageSchema.methods.consumeListing = async function (this: IPackage) {
   );
   
   if (!updated) {
-    // Determine specific error
+    // Determine specific error - NOTE: State may have changed between findOneAndUpdate and this check
+    // This provides best-effort error messaging for debugging
     if (!this.active) {
       throw new Error('Package not active');
     }
@@ -129,14 +130,17 @@ PackageSchema.methods.consumeListing = async function (this: IPackage) {
     if (this.listingsUsed >= this.listingsAllowed) {
       throw new Error('Package listings exhausted');
     }
-    throw new Error('Failed to consume listing');
+    // Catch-all: Could be expired, exhausted, or inactive (state changed after check)
+    throw new Error('Failed to consume listing - package may be expired, exhausted, or inactive');
   }
   
   // Update current instance
   this.listingsUsed = updated.listingsUsed as number;
 };
 
-PackageSchema.methods.checkExpiry = async function (this: IPackage) {
+// Method to update package status if expired
+// Named to reflect side effect (update), not just check
+PackageSchema.methods.updateIfExpired = async function (this: IPackage) {
   if (this.active && this.expiresAt && this.expiresAt < new Date()) {
     this.active = false;
     await this.save();

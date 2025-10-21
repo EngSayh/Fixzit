@@ -167,13 +167,28 @@ MarketingRequestSchema.methods.reject = async function (
   this: IMarketingRequest,
   reason?: string
 ) {
-  if (this.status !== MarketingRequestStatus.PENDING) {
+  // Use atomic update with status filter to prevent race conditions
+  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
+    {
+      _id: this._id,
+      status: MarketingRequestStatus.PENDING
+    },
+    {
+      $set: {
+        status: MarketingRequestStatus.REJECTED,
+        rejectedAt: new Date(),
+        rejectionReason: reason
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
     throw new Error('Only pending requests can be rejected');
   }
-  this.status = MarketingRequestStatus.REJECTED;
-  this.rejectedAt = new Date();
-  this.rejectionReason = reason;
-  await this.save();
+  
+  // Update this instance with new values
+  Object.assign(this, result.toObject());
 };
 
 MarketingRequestSchema.methods.linkListing = async function (
