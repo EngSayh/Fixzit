@@ -15,7 +15,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 export const runtime = 'nodejs';
 
 // Strongly-typed favorite with attached target entity
-type FavoriteWithTarget = Omit<Partial<Record<string, any>>, 'target'> & {
+type _FavoriteWithTarget = Omit<Partial<Record<string, unknown>>, 'target'> & {
   target?: IListing | IProject | null;
 };
 

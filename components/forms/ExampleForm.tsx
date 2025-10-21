@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useFormState } from '@/contexts/FormStateContext';
 
 export default function ExampleForm() {
-  const { setHasUnsavedChanges, registerSaveHandler, unregisterSaveHandler } = useFormState();
+  const { markFormDirty, markFormClean, onSaveRequest } = useFormState();
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [pristine, setPristine] = useState(true);
+  const formId = 'exampleForm';
 
   // Register save handler on mount
   useEffect(() => {
@@ -25,6 +26,9 @@ export default function ExampleForm() {
           throw new Error(`Save failed: ${response.status} ${errorText}`);
         }
 
+        // Mark form as clean after successful save
+        markFormClean(formId);
+        
         // Optionally handle successful save
         const data = await response.json();
         console.log('Save successful:', data);
@@ -32,18 +36,20 @@ export default function ExampleForm() {
         console.error('Error saving form:', error);
         // Optionally show user-facing error state
         // You could add state like setErrorMessage(error.message);
-      throw error; // Re-throw to let FormStateContext handle it if needed
-    }
-  };
+        throw error; // Re-throw to let FormStateContext handle it if needed
+      }
+    };
 
-  registerSaveHandler('exampleForm', handleSave);
-  return () => unregisterSaveHandler('exampleForm');
-}, [formData, registerSaveHandler, unregisterSaveHandler]);  // Track changes
+    const dispose = onSaveRequest(formId, handleSave);
+    return dispose;
+  }, [formData, onSaveRequest, formId, markFormClean]);
+  
+  // Track changes
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (pristine) {
       setPristine(false);
-      setHasUnsavedChanges(true);
+      markFormDirty(formId);
     }
   };
 

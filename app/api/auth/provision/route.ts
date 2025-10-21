@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import { dbConnect } from '@/db/mongoose';
 import { User } from '@/server/models/User';
 

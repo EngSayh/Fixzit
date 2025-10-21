@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useFormState } from '@/contexts/FormStateContext';
 
 /**
@@ -8,7 +8,7 @@ import { useFormState } from '@/contexts/FormStateContext';
  * 
  * @param isDirty - Whether the form has unsaved changes
  * @param onSave - Async function to save the form data
- * @param formId - Unique identifier for this form (optional, auto-generated if not provided)
+ * @param formId - Unique identifier for this form (required)
  * 
  * @example
  * ```tsx
@@ -23,27 +23,24 @@ import { useFormState } from '@/contexts/FormStateContext';
 export function useFormDirtyState(
   isDirty: boolean,
   onSave: () => Promise<void>,
-  formId: string = `form-${Math.random().toString(36).substring(2, 11)}`
+  formId: string
 ) {
-  const formState = useFormState();
+  const { markFormDirty, markFormClean, onSaveRequest } = useFormState();
 
   // Update the global dirty state when this form's state changes
   useEffect(() => {
-    formState.setUnsavedChanges(isDirty);
-  }, [isDirty, formState]);
-
-  // Register/unregister save handler
-  useEffect(() => {
     if (isDirty) {
-      formState.registerSaveHandler(formId, onSave);
+      markFormDirty(formId);
     } else {
-      formState.unregisterSaveHandler(formId);
+      markFormClean(formId);
     }
+  }, [isDirty, formId, markFormDirty, markFormClean]);
 
-    return () => {
-      formState.unregisterSaveHandler(formId);
-    };
-  }, [formId, isDirty, onSave, formState]);
+  // Register save handler on mount, unregister on unmount
+  useEffect(() => {
+    const dispose = onSaveRequest(formId, onSave);
+    return dispose;
+  }, [formId, onSave, onSaveRequest]);
 
   return {
     isDirty,
