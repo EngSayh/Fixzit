@@ -32,6 +32,8 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {
       userId: user.id,
     };
+    // Enforce tenant/org isolation when available
+    if (user.orgId) query.orgId = user.orgId;
     
     if (targetType) {
       query.targetType = targetType;
@@ -45,22 +47,29 @@ export async function GET(request: NextRequest) {
     // Step 1: Collect all targetIds by targetType
     const listingIds: mongoose.Types.ObjectId[] = [];
     const projectIds: mongoose.Types.ObjectId[] = [];
-    
+
     for (const fav of favorites) {
-      if (fav.targetType === 'LISTING') {
-        listingIds.push(fav.targetId);
-      } else if (fav.targetType === 'PROJECT') {
-        projectIds.push(fav.targetId);
+      try {
+        const tid = fav.targetId && mongoose.Types.ObjectId.isValid(fav.targetId) ? new mongoose.Types.ObjectId(fav.targetId) : null;
+        if (!tid) continue;
+        if (fav.targetType === 'LISTING') {
+          listingIds.push(tid);
+        } else if (fav.targetType === 'PROJECT') {
+          projectIds.push(tid);
+        }
+      } catch (_e) {
+        // skip invalid ids
+        continue;
       }
     }
     
     // Step 2: Batch-fetch all listings and projects in parallel
     const [listings, projects] = await Promise.all([
       listingIds.length > 0 
-        ? AqarListing.find({ _id: { $in: listingIds } }).lean()
+        ? AqarListing.find({ _id: { $in: listingIds }, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean()
         : [],
       projectIds.length > 0
-        ? AqarProject.find({ _id: { $in: projectIds } }).lean()
+        ? AqarProject.find({ _id: { $in: projectIds }, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean()
         : []
     ]);
     
@@ -95,14 +104,18 @@ export async function POST(request: NextRequest) {
     
     const user = await getSessionUser(request);
     
-    const body = await request.json();
-    const { targetId, targetType, notes, tags } = body;
+  const body = await request.json();
+  let { targetId, targetType, notes, tags } = body;
     
     if (!targetId || !targetType) {
       return NextResponse.json(
         { error: 'targetId and targetType are required' },
         { status: 400 }
       );
+    }
+    // Validate targetId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return NextResponse.json({ error: 'Invalid targetId' }, { status: 400 });
     }
     
     // Validate targetType against allowed values
@@ -117,8 +130,9 @@ export async function POST(request: NextRequest) {
     // Check if already favorited
     const existing = await AqarFavorite.findOne({
       userId: user.id,
-      targetId,
+      targetId: new mongoose.Types.ObjectId(targetId),
       targetType,
+      ...(user.orgId ? { orgId: user.orgId } : {}),
     });
     
     if (existing) {
@@ -129,22 +143,28 @@ export async function POST(request: NextRequest) {
     }
     
     // Verify referenced target exists to prevent favorites for non-existent entities
+    const targetObjectId = new mongoose.Types.ObjectId(targetId);
     if (targetType === 'LISTING') {
-      const listingExists = await AqarListing.findById(targetId).lean();
+      const listingExists = await AqarListing.findOne({ _id: targetObjectId, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean();
       if (!listingExists) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
     } else if (targetType === 'PROJECT') {
-      const projectExists = await AqarProject.findById(targetId).lean();
+      const projectExists = await AqarProject.findOne({ _id: targetObjectId, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean();
       if (!projectExists) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
     }
 
+    // sanitize inputs
+    notes = typeof notes === 'string' ? notes.trim().slice(0, 2000) : undefined;
+    if (!Array.isArray(tags)) tags = [];
+  tags = tags.map((t: unknown) => String(t).slice(0, 100)).slice(0, 20);
+
     const favorite = new AqarFavorite({
       userId: user.id,
-      orgId: user.orgId || user.id,
-      targetId,
+      ...(user.orgId ? { orgId: user.orgId } : {}),
+      targetId: targetObjectId,
       targetType,
       notes,
       tags,
