@@ -121,13 +121,13 @@ jobs:
           pushd "$build_dir" > /dev/null
           case "${{ steps.pm.outputs.manager }}" in
             pnpm)
-              pnpm build
+              NODE_OPTIONS="--max-old-space-size=8192" pnpm build
               ;;
             yarn)
-              yarn build
+              NODE_OPTIONS="--max-old-space-size=8192" yarn build
               ;;
             *)
-              npm run build
+              NODE_OPTIONS="--max-old-space-size=8192" npm run build
               ;;
           esac
 
