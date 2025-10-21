@@ -19,48 +19,6 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     
-    // Validate required fields
-    const requiredFields = [
-      'intent',
-      'propertyType',
-      'title',
-      'description',
-      'city',
-      'price',
-      'areaSqm',
-      'geo',
-      'source',
-    ];
-    
-    const missingFields = requiredFields.filter((field) => !body[field]);
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    
-    // Check if user has active package (for agents/developers)
-    if (body.source === 'AGENT' || body.source === 'DEVELOPER') {
-      const activePackage = await AqarPackage.findOne({
-        userId: user.id,
-        active: true,
-        expiresAt: { $gt: new Date() },
-        $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
-      });
-      
-      if (!activePackage) {
-        return NextResponse.json(
-          { error: 'No active listing package. Please purchase a package first.' },
-          { status: 402 }
-        );
-      }
-      
-      // Consume package listing
-      await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
-    }
-    
     // Whitelist allowed client fields (prevent injection of system-controlled fields)
     const {
       // Core details
@@ -95,14 +53,75 @@ export async function POST(request: NextRequest) {
       // Property reference (optional)
       propertyRef,
     } = body;
-    
-    // Basic validation on whitelisted fields
-    if (!intent || !propertyType || !address || !city || price === undefined) {
+
+    // Build sanitized body object and run required field check once
+    const sanitizedBody: Record<string, unknown> = {
+      intent,
+      propertyType,
+      title,
+      description,
+      address,
+      city,
+      neighborhood,
+      geo,
+      areaSqm,
+      beds,
+      baths,
+      kitchens,
+      ageYears,
+      furnishing,
+      amenities,
+      streetWidthM,
+      facing,
+      media,
+      price,
+      rentFrequency,
+      source,
+      compliance,
+      propertyRef,
+    };
+
+    const requiredFields = [
+      'intent',
+      'propertyType',
+      'title',
+      'description',
+      'city',
+      'price',
+      'areaSqm',
+      'geo',
+      'source',
+    ];
+
+    const missingFields = requiredFields.filter((field) => !sanitizedBody[field]);
+    if (missingFields.length > 0) {
       return NextResponse.json(
-        { error: 'Missing required fields: intent, propertyType, address, city, price' },
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
         { status: 400 }
       );
     }
+    
+    // Check if user has active package (for agents/developers)
+    if (body.source === 'AGENT' || body.source === 'DEVELOPER') {
+      const activePackage = await AqarPackage.findOne({
+        userId: user.id,
+        active: true,
+        expiresAt: { $gt: new Date() },
+        $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
+      });
+      
+      if (!activePackage) {
+        return NextResponse.json(
+          { error: 'No active listing package. Please purchase a package first.' },
+          { status: 402 }
+        );
+      }
+      
+      // Consume package listing
+      await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
+    }
+    
+    // Basic validation on whitelisted fields already covered by sanitized required check
     
     // Create listing with whitelisted fields only
     const listing = new AqarListing({
