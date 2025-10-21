@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Consume package listing
-      await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
+      // Consume package listing (model is now properly typed)
+      await activePackage.consumeListing();
     }
     
     // Basic validation on whitelisted fields already covered by sanitized required check

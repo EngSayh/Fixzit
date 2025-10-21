@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Get pricing
-    const pricing = (AqarPackage as never as { getPricing: (type: PackageType) => { price: number; listings: number; days: number } }).getPricing(type as PackageType);
+    // Get pricing (model is now properly typed)
+    const pricing = AqarPackage.getPricing(type as PackageType);
     
     // Use Mongoose transaction for atomicity
     // If payment creation fails, package creation is rolled back

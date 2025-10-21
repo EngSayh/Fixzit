@@ -73,10 +73,16 @@ export async function POST(request: NextRequest) {
       }
       recipientId = listing.listerId;
       
-      // Increment inquiries count (async)
+      // Increment inquiries count (async, non-blocking)
       AqarListing.findByIdAndUpdate(listingId, {
         $inc: { 'analytics.inquiries': 1 },
-      }).exec();
+      }).exec().catch((error) => {
+        console.error('Failed to increment listing inquiries', {
+          listingId: listingId.toString(),
+          message: error instanceof Error ? error.message : 'Unknown error',
+          type: error instanceof Error ? error.constructor.name : typeof error,
+        });
+      });
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
       const project = await AqarProject.findById(projectId);
@@ -85,8 +91,14 @@ export async function POST(request: NextRequest) {
       }
       recipientId = project.developerId;
       
-      // Increment inquiries count (async)
-      AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec();
+      // Increment inquiries count (async, non-blocking)
+      AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec().catch((error) => {
+        console.error('Failed to increment project inquiries', {
+          projectId: projectId.toString(),
+          message: error instanceof Error ? error.message : 'Unknown error',
+          type: error instanceof Error ? error.constructor.name : typeof error,
+        });
+      });
     }
     
     const lead = new AqarLead({

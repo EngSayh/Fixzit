@@ -39,6 +39,16 @@ export interface IPackage extends Document {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+  
+  // Instance methods
+  activate(): Promise<void>;
+  consumeListing(): Promise<void>;
+  updateIfExpired(): Promise<void>;
+}
+
+// Model interface with statics
+export interface IAqarPackageModel extends Model<IPackage> {
+  getPricing(type: PackageType): { price: number; listings: number; days: number };
 }
 
 const PackageSchema = new Schema<IPackage>(
@@ -147,7 +157,7 @@ PackageSchema.methods.updateIfExpired = async function (this: IPackage) {
   }
 };
 
-const Package: Model<IPackage> =
-  mongoose.models.AqarPackage || mongoose.model<IPackage>('AqarPackage', PackageSchema);
+const Package: IAqarPackageModel =
+  (mongoose.models.AqarPackage as IAqarPackageModel) || mongoose.model<IPackage, IAqarPackageModel>('AqarPackage', PackageSchema);
 
 export default Package;
