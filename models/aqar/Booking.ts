@@ -98,8 +98,8 @@ const BookingSchema = new Schema<IBooking>(
       index: true,
     },
     
-    guestPhone: { type: String },
-    guestNationalId: { type: String },
+    guestPhone: { type: String, select: false },
+    guestNationalId: { type: String, select: false },
     specialRequests: { type: String, maxlength: 1000 },
     hostNotes: { type: String, maxlength: 1000 },
     
@@ -126,8 +126,8 @@ BookingSchema.index({ guestId: 1, status: 1, checkInDate: -1 });
 BookingSchema.index({ hostId: 1, status: 1, checkInDate: -1 });
 BookingSchema.index({ createdAt: -1 });
 
-// Pre-save: Calculate derived fields
-BookingSchema.pre('save', function (next) {
+// Pre-validate: Calculate derived fields (must run before validation so required fields are present)
+BookingSchema.pre('validate', function (next) {
   if (this.isModified('checkInDate') || this.isModified('checkOutDate')) {
     // Normalize to UTC date-only (ignore time-of-day)
     const checkInUTC = Date.UTC(
