@@ -135,18 +135,36 @@ export async function PATCH(
         
         // Validate complex fields
         if (field === 'amenities') {
-          if (!Array.isArray(value) || !value.every(item => typeof item === 'string')) {
-            return NextResponse.json({ error: 'amenities must be an array of strings' }, { status: 400 });
+          if (!Array.isArray(value) || !value.every(item => typeof item === 'string' && item.trim().length > 0)) {
+            return NextResponse.json({ error: 'amenities must be an array of non-empty strings' }, { status: 400 });
           }
         }
         if (field === 'media') {
-          if (!Array.isArray(value)) {
-            return NextResponse.json({ error: 'media must be an array' }, { status: 400 });
+          if (!Array.isArray(value) || !value.every(item => 
+            item && 
+            typeof item === 'object' && 
+            typeof item.url === 'string' && 
+            item.url.trim().length > 0 &&
+            typeof item.type === 'string' &&
+            ['image', 'video', 'tour'].includes(item.type)
+          )) {
+            return NextResponse.json({ 
+              error: 'media must be an array of objects with url (non-empty string) and type (image|video|tour)' 
+            }, { status: 400 });
           }
         }
         if (field === 'address') {
           if (!value || typeof value !== 'object' || Array.isArray(value)) {
             return NextResponse.json({ error: 'address must be a non-null object' }, { status: 400 });
+          }
+          // Validate required address fields
+          const requiredAddressFields = ['street', 'city', 'country'];
+          for (const addrField of requiredAddressFields) {
+            if (!value[addrField] || typeof value[addrField] !== 'string' || value[addrField].trim().length === 0) {
+              return NextResponse.json({ 
+                error: `address.${addrField} is required and must be a non-empty string` 
+              }, { status: 400 });
+            }
           }
         }
         if (field === 'neighborhood') {

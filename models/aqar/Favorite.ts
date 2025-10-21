@@ -57,9 +57,9 @@ const FavoriteSchema = new Schema<IFavorite>(
   }
 );
 
-// Indexes
-FavoriteSchema.index({ userId: 1, targetType: 1, createdAt: -1 });
-FavoriteSchema.index({ userId: 1, targetId: 1, targetType: 1 }, { unique: true }); // Prevent duplicates
+// Indexes - include orgId for proper multi-tenant isolation
+FavoriteSchema.index({ userId: 1, orgId: 1, targetType: 1, createdAt: -1 });
+FavoriteSchema.index({ userId: 1, orgId: 1, targetId: 1, targetType: 1 }, { unique: true }); // Prevent duplicates per org
 
 const Favorite: Model<IFavorite> =
   mongoose.models.AqarFavorite || mongoose.model<IFavorite>('AqarFavorite', FavoriteSchema);

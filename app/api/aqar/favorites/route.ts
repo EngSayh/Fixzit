@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
 import { AqarFavorite } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
@@ -97,6 +98,14 @@ export async function POST(request: NextRequest) {
     if (!targetId || !targetType) {
       return NextResponse.json(
         { error: 'targetId and targetType are required' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate targetId is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return NextResponse.json(
+        { error: 'Invalid targetId format - must be a valid MongoDB ObjectId' },
         { status: 400 }
       );
     }
