@@ -178,7 +178,7 @@ $ grep -rn "console.log.*email\|console.log.*token" . --include="*.ts" --include
 - [x] API keys have proper restrictions (domain, IP, API limits)
 - [ ] **ACTION REQUIRED**: Rotate exposed GCP API key (Manual Google Cloud Console access needed - see detailed steps above)
   - **Reason**: Requires human with GCP admin access to revoke/create keys
-  - **Updated**: 2025-10-21 - Detailed rotation steps documented
+  - **Updated**: 2025-10-20 - Detailed rotation steps documented
 
 ### Error Handling
 - [x] Error messages sanitized (no PII)

@@ -171,9 +171,23 @@ LeadSchema.methods.addNote = async function (
   authorId: mongoose.Types.ObjectId,
   content: string
 ) {
+  // Enforce schema's 2000-character limit before pushing note
+  if (typeof content !== 'string') {
+    throw new Error('Note content must be a string');
+  }
+  
+  const trimmedContent = content.trim();
+  if (trimmedContent.length === 0) {
+    throw new Error('Note content cannot be empty');
+  }
+  
+  if (trimmedContent.length > 2000) {
+    throw new Error('Note content cannot exceed 2000 characters');
+  }
+  
   this.notes.push({
     authorId,
-    content,
+    content: trimmedContent,
     createdAt: new Date(),
   });
   await this.save();
@@ -192,9 +206,9 @@ LeadSchema.methods.assign = async function (
 };
 
 LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
-  // Don't regress from advanced states
-  const advancedStates = [LeadStatus.NEGOTIATING, LeadStatus.WON, LeadStatus.LOST];
-  if (advancedStates.includes(this.status)) {
+  // Don't regress from advanced states (including SPAM)
+  const disallowedStates = [LeadStatus.NEGOTIATING, LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM];
+  if (disallowedStates.includes(this.status)) {
     throw new Error(`Cannot schedule viewing for lead in ${this.status} status`);
   }
   

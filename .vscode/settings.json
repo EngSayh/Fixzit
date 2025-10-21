@@ -39,28 +39,14 @@
     "cursor-global": false,
     "cursor-workspace": false
   },
-  "chat.tools.edits.autoApprove": {
-    "**/*": true
-  },
+  // Edits inherit global manual-approval policy - no blanket auto-approval for safety
+  "chat.tools.edits.autoApprove": {},
+  // Terminal commands require explicit approval - only allow safe read-only tools
   "chat.tools.terminal.autoApprove": {
-    "npm": true,
-    "pnpm": true,
-    "yarn": true,
-    "bun": true,
     "node": true,
-    "npx": true,
-    "git": true,
-    "gh": true,
-    "bash": true,
-    "sh": true,
-    "python": true,
     "pytest": true,
     "jest": true,
-    "vitest": true,
-    "docker": true,
-    "docker-compose": true,
-    "make": true,
-    "kubectl": true
+    "vitest": true
   },
   // Workspace trust is enabled for security - verify repository sources before opening
   "security.workspace.trust.enabled": true,

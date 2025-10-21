@@ -203,10 +203,10 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
             // Verify JWT signature and decode payload
             const { payload } = await jwtVerify(authToken, JWT_SECRET);
             user = {
-              id: payload.id as string || '',
-              email: payload.email as string || '',
-              role: payload.role as string || 'USER',
-              orgId: payload.orgId as string | null || null
+              id: (payload.id as string) ?? '',
+              email: (payload.email as string) ?? '',
+              role: (payload.role as string) ?? 'USER',
+              orgId: (payload.orgId as string | null) ?? null
             };
           } catch (_jwtError) {
             // JWT verification failed (expired, invalid signature, etc.)
@@ -257,10 +257,10 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
         // Verify JWT signature and decode payload (secure method)
         const { payload } = await jwtVerify(authToken, JWT_SECRET);
         user = {
-          id: payload.id as string || '',
-          email: payload.email as string || '',
-          role: payload.role as string || 'USER',
-          orgId: payload.orgId as string | null || null
+          id: (payload.id as string) ?? '',
+          email: (payload.email as string) ?? '',
+          role: (payload.role as string) ?? 'USER',
+          orgId: (payload.orgId as string | null) ?? null
         };
       } catch (jwtError) {
         // JWT verification failed (expired, invalid signature, tampered token, etc.)

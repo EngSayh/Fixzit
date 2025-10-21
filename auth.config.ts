@@ -15,11 +15,13 @@ async function hashEmail(email: string): Promise<string> {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
 
 const missingVars: string[] = [];
 if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
 if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
 if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
+if (!NEXTAUTH_URL) missingVars.push('NEXTAUTH_URL');
 
 if (missingVars.length > 0) {
   throw new Error(

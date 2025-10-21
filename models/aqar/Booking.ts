@@ -150,39 +150,72 @@ BookingSchema.pre('save', function (next) {
   }
   
   if (this.isModified('pricePerNight') || this.isModified('nights')) {
-    this.totalPrice = this.pricePerNight * this.nights;
-    this.platformFee = Math.round(this.totalPrice * 0.15); // 15% platform fee
-    this.hostPayout = this.totalPrice - this.platformFee;
+    // Precise money handling using integer arithmetic (SAR stored as halalas * 100 for precision)
+    // All intermediate calculations use integers to avoid floating-point errors
+    const totalPriceHalalas = Math.round(this.pricePerNight * this.nights * 100);
+    const platformFeeHalalas = Math.round(totalPriceHalalas * 15 / 100); // 15% platform fee
+    const hostPayoutHalalas = totalPriceHalalas - platformFeeHalalas;
+    
+    // Convert back to SAR (stored as decimal for display)
+    this.totalPrice = totalPriceHalalas / 100;
+    this.platformFee = platformFeeHalalas / 100;
+    this.hostPayout = hostPayoutHalalas / 100;
   }
   
   next();
 });
 
-// Methods
+// Atomic methods to prevent race conditions - use findOneAndUpdate instead of check-then-update
 BookingSchema.methods.confirm = async function (this: IBooking) {
-  if (this.status !== BookingStatus.PENDING) {
-    throw new Error('Only pending bookings can be confirmed');
+  const Model = this.constructor as mongoose.Model<IBooking>;
+  const updated = await Model.findOneAndUpdate(
+    { _id: this._id, status: BookingStatus.PENDING },
+    { $set: { status: BookingStatus.CONFIRMED } },
+    { new: true }
+  );
+  
+  if (!updated) {
+    throw new Error('Only pending bookings can be confirmed (booking may have been modified)');
   }
-  this.status = BookingStatus.CONFIRMED;
-  await this.save();
+  
+  // Update this instance with new values
+  this.status = updated.status;
 };
 
 BookingSchema.methods.checkIn = async function (this: IBooking) {
-  if (this.status !== BookingStatus.CONFIRMED) {
-    throw new Error('Only confirmed bookings can be checked in');
+  const Model = this.constructor as mongoose.Model<IBooking>;
+  const now = new Date();
+  const updated = await Model.findOneAndUpdate(
+    { _id: this._id, status: BookingStatus.CONFIRMED },
+    { $set: { status: BookingStatus.CHECKED_IN, checkedInAt: now } },
+    { new: true }
+  );
+  
+  if (!updated) {
+    throw new Error('Only confirmed bookings can be checked in (booking may have been modified)');
   }
-  this.status = BookingStatus.CHECKED_IN;
-  this.checkedInAt = new Date();
-  await this.save();
+  
+  // Update this instance with new values
+  this.status = updated.status;
+  this.checkedInAt = updated.checkedInAt;
 };
 
 BookingSchema.methods.checkOut = async function (this: IBooking) {
-  if (this.status !== BookingStatus.CHECKED_IN) {
-    throw new Error('Only checked-in bookings can be checked out');
+  const Model = this.constructor as mongoose.Model<IBooking>;
+  const now = new Date();
+  const updated = await Model.findOneAndUpdate(
+    { _id: this._id, status: BookingStatus.CHECKED_IN },
+    { $set: { status: BookingStatus.CHECKED_OUT, checkedOutAt: now } },
+    { new: true }
+  );
+  
+  if (!updated) {
+    throw new Error('Only checked-in bookings can be checked out (booking may have been modified)');
   }
-  this.status = BookingStatus.CHECKED_OUT;
-  this.checkedOutAt = new Date();
-  await this.save();
+  
+  // Update this instance with new values
+  this.status = updated.status;
+  this.checkedOutAt = updated.checkedOutAt;
 };
 
 BookingSchema.methods.cancel = async function (

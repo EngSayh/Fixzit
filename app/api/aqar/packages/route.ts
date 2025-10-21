@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Get pricing
-    const pricing = (AqarPackage as never as { getPricing: (type: PackageType) => { price: number; listings: number; days: number } }).getPricing(type as PackageType);
+    // Get pricing - AqarPackage now properly typed with getPricing static method
+    const pricing = AqarPackage.getPricing(type as PackageType);
     
     // Create package
     const pkg = new AqarPackage({

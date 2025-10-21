@@ -73,10 +73,10 @@ export async function POST(request: NextRequest) {
       }
       recipientId = listing.listerId;
       
-      // Increment inquiries count (async)
+      // Increment inquiries count (fire-and-forget with error logging)
       AqarListing.findByIdAndUpdate(listingId, {
         $inc: { 'analytics.inquiries': 1 },
-      }).exec();
+      }).exec().catch((err) => console.error('Failed to increment listing inquiries:', { listingId, error: err }));
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
       const project = await AqarProject.findById(projectId);
@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
       }
       recipientId = project.developerId;
       
-      // Increment inquiries count (async)
-      AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec();
+      // Increment inquiries count (fire-and-forget with error logging)
+      AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec().catch((err) => console.error('Failed to increment project inquiries:', { projectId, error: err }));
     }
     
     const lead = new AqarLead({
@@ -123,8 +123,15 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+    
+    // Safe parseInt with fallbacks and NaN handling
+    const pageStr = searchParams.get('page');
+    const limitStr = searchParams.get('limit');
+    const parsedPage = pageStr ? parseInt(pageStr, 10) : NaN;
+    const parsedLimit = limitStr ? parseInt(limitStr, 10) : NaN;
+    
+    const page = !isNaN(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const limit = Math.min(!isNaN(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20, 100); // Cap at 100
     const skip = (page - 1) * limit;
     
     const query: Record<string, unknown> = {

@@ -114,18 +114,24 @@ BoostSchema.methods.activate = async function (this: IBoost) {
   await this.save();
 };
 
+// NOTE: These methods perform atomic DB updates but do NOT update the in-memory document instance.
+// Callers must reload the document (e.g., via findById) to see updated impressions/clicks values.
 BoostSchema.methods.recordImpression = async function (this: IBoost) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },
     { $inc: { impressions: 1 } }
   );
+  // this.impressions is now stale - reload document if fresh value is needed
 };
 
+// NOTE: This method performs atomic DB update but does NOT update the in-memory document instance.
+// Callers must reload the document (e.g., via findById) to see updated clicks value.
 BoostSchema.methods.recordClick = async function (this: IBoost) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },
     { $inc: { clicks: 1 } }
   );
+  // this.clicks is now stale - reload document if fresh value is needed
 };
 
 BoostSchema.methods.checkExpiry = async function (this: IBoost) {

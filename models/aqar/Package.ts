@@ -39,6 +39,16 @@ export interface IPackage extends Document {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+  
+  // Instance methods
+  activate(): Promise<void>;
+  consumeListing(): Promise<void>;
+  checkExpiry(): Promise<void>;
+}
+
+// Model interface with static methods
+export interface IPackageModel extends Model<IPackage> {
+  getPricing(type: PackageType): { price: number; listings: number; days: number };
 }
 
 const PackageSchema = new Schema<IPackage>(
@@ -74,28 +84,59 @@ const PackageSchema = new Schema<IPackage>(
 // Indexes
 PackageSchema.index({ userId: 1, active: 1, expiresAt: -1 });
 
-// Static: Get package pricing
+// Static: Get package pricing with input validation
 PackageSchema.statics.getPricing = function (type: PackageType) {
   const pricing = {
     [PackageType.STARTER]: { price: 50, listings: 5, days: 30 },
     [PackageType.STANDARD]: { price: 150, listings: 20, days: 30 },
     [PackageType.PREMIUM]: { price: 250, listings: 50, days: 30 },
   };
+  
+  // Validate input - fail fast for invalid types
+  if (!pricing[type]) {
+    throw new Error(`Invalid PackageType: ${type}. Must be one of: ${Object.keys(pricing).join(', ')}`);
+  }
+  
   return pricing[type];
 };
 
-// Methods
+// Methods - atomic activate to prevent race conditions
 PackageSchema.methods.activate = async function (this: IPackage) {
-  if (this.active) {
-    throw new Error('Package already activated');
+  const Model = this.constructor as mongoose.Model<IPackage>;
+  const expiresAt = new Date(Date.now() + this.validityDays * 24 * 60 * 60 * 1000);
+  
+  // Atomic update with preconditions - prevents concurrent activation
+  const updated = await Model.findOneAndUpdate(
+    {
+      _id: this._id,
+      active: false,
+      paidAt: { $exists: true }
+    },
+    {
+      $set: {
+        active: true,
+        activatedAt: new Date(),
+        expiresAt: expiresAt
+      }
+    },
+    { new: true }
+  );
+  
+  if (!updated) {
+    // Check specific failure reasons for better error messages
+    if (this.active) {
+      throw new Error('Package already activated');
+    }
+    if (!this.paidAt) {
+      throw new Error('Package not paid');
+    }
+    throw new Error('Package activation failed - concurrent modification detected');
   }
-  if (!this.paidAt) {
-    throw new Error('Package not paid');
-  }
-  this.active = true;
-  this.activatedAt = new Date();
-  this.expiresAt = new Date(Date.now() + this.validityDays * 24 * 60 * 60 * 1000);
-  await this.save();
+  
+  // Update this instance with new values
+  this.active = updated.active;
+  this.activatedAt = updated.activatedAt;
+  this.expiresAt = updated.expiresAt;
 };
 
 PackageSchema.methods.consumeListing = async function (this: IPackage) {
@@ -146,7 +187,7 @@ PackageSchema.methods.checkExpiry = async function (this: IPackage) {
   }
 };
 
-const Package: Model<IPackage> =
-  mongoose.models.AqarPackage || mongoose.model<IPackage>('AqarPackage', PackageSchema);
+const Package: IPackageModel =
+  (mongoose.models.AqarPackage as IPackageModel) || mongoose.model<IPackage, IPackageModel>('AqarPackage', PackageSchema);
 
 export default Package;
