@@ -86,9 +86,13 @@
   "git.branchProtectionPrompt": "alwaysPrompt",
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
   "codium.codeCompletion.enable": true,
-  "coderabbit.autoReviewMode": "auto",
-  "coderabbit.maxFilesPerReview": 500,
-  "coderabbit.concurrentReviews": 3,
+  // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
+  // and reduce extension timeouts on large repositories. These safer defaults
+  // keep the extension useful while preventing large, automatic full-repo
+  // reviews that cause the agent to pause or stop.
+  "coderabbit.autoReviewMode": "manual",
+  "coderabbit.maxFilesPerReview": 100,
+  "coderabbit.concurrentReviews": 1,
   "extensions.autoUpdate": false,
   "extensions.ignoreRecommendations": true,
   "window.restoreWindows": "none",
