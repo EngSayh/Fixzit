@@ -279,10 +279,39 @@ LeadSchema.methods.markAsWon = async function (
   this: ILead,
   userId: mongoose.Types.ObjectId
 ) {
-  this.status = LeadStatus.WON;
-  this.closedAt = new Date();
-  this.closedBy = userId;
-  await this.save();
+  // Terminal state guard: WON is immutable once set
+  if (this.status === LeadStatus.WON) {
+    throw new Error('Lead already marked as WON');
+  }
+  // Prevent transitions from other terminal states
+  if (this.status === LeadStatus.LOST || this.status === LeadStatus.SPAM) {
+    throw new Error(`Cannot mark lead as WON from terminal state: ${this.status}`);
+  }
+  
+  // Use atomic update to prevent race conditions (avoids lost updates from concurrent markAsWon calls)
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    {
+      $set: {
+        status: LeadStatus.WON,
+        closedAt: new Date(),
+        closedBy: userId,
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot mark lead as WON - invalid state or concurrent modification');
+  }
+  
+  // Update in-memory instance
+  this.status = (result as ILead).status;
+  this.closedAt = (result as ILead).closedAt;
+  this.closedBy = (result as ILead).closedBy;
 };
 
 LeadSchema.methods.markAsLost = async function (
@@ -290,16 +319,73 @@ LeadSchema.methods.markAsLost = async function (
   userId: mongoose.Types.ObjectId,
   reason?: string
 ) {
-  this.status = LeadStatus.LOST;
-  this.closedAt = new Date();
-  this.closedBy = userId;
-  this.lostReason = reason;
-  await this.save();
+  // Terminal state guard: LOST is immutable once set
+  if (this.status === LeadStatus.LOST) {
+    throw new Error('Lead already marked as LOST');
+  }
+  // Prevent transitions from other terminal states
+  if (this.status === LeadStatus.WON || this.status === LeadStatus.SPAM) {
+    throw new Error(`Cannot mark lead as LOST from terminal state: ${this.status}`);
+  }
+  
+  // Use atomic update to prevent race conditions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    {
+      $set: {
+        status: LeadStatus.LOST,
+        closedAt: new Date(),
+        closedBy: userId,
+        lostReason: reason,
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot mark lead as LOST - invalid state or concurrent modification');
+  }
+  
+  // Update in-memory instance
+  this.status = (result as ILead).status;
+  this.closedAt = (result as ILead).closedAt;
+  this.closedBy = (result as ILead).closedBy;
+  this.lostReason = (result as ILead).lostReason;
 };
 
 LeadSchema.methods.markAsSpam = async function (this: ILead) {
-  this.status = LeadStatus.SPAM;
-  await this.save();
+  // Terminal state guard: SPAM is immutable once set
+  if (this.status === LeadStatus.SPAM) {
+    throw new Error('Lead already marked as SPAM');
+  }
+  // Prevent transitions from WON/LOST (once a lead is WON or LOST, it cannot be marked as spam)
+  if (this.status === LeadStatus.WON || this.status === LeadStatus.LOST) {
+    throw new Error(`Cannot mark lead as SPAM from terminal state: ${this.status}`);
+  }
+  
+  // Use atomic update to prevent race conditions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    {
+      $set: {
+        status: LeadStatus.SPAM,
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot mark lead as SPAM - invalid state or concurrent modification');
+  }
+  
+  // Update in-memory instance
+  this.status = (result as ILead).status;
 };
 
 const Lead: Model<ILead> =
