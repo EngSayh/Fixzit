@@ -2,13 +2,15 @@
 
 **Date**: October 19, 2025  
 **Current Version**: next-auth@5.0.0-beta.29  
-**Recommendation**: **✅ APPROVED FOR PRODUCTION**
+**Recommendation**: **✅ CONDITIONALLY APPROVED FOR PRODUCTION (pending test completion)**
 
 ---
 
 ## Executive Decision
 
-**✅ KEEP next-auth v5.0.0-beta.29** for production deployment (pending final test validation).
+**✅ CONDITIONALLY APPROVED FOR PRODUCTION (pending test completion)**
+
+This approval is conditional on completing the outstanding integration, E2E and load testing items and ensuring OAuth redirect URIs are configured. See "Approval Conditions" near the end of this document for gating criteria.
 
 ### Rationale Summary
 
