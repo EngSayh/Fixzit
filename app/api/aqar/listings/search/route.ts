@@ -127,20 +127,6 @@ export async function GET(request: NextRequest) {
   if (furnishing) query.furnishing = furnishing;
   if (amenities && amenities.length > 0) query.amenities = { $all: amenities };
     
-    // Geo search
-    if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
-      // Use geo field (2dsphere index exists on Listing schema) with $near
-      query.geo = {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [lng, lat],
-          },
-          $maxDistance: radiusKm * 1000, // Convert km to meters
-        },
-      };
-    }
-    
     // Build sort
     let sortQuery: Record<string, 1 | -1> = {};
     switch (sort) {
@@ -160,38 +146,103 @@ export async function GET(request: NextRequest) {
         sortQuery = { publishedAt: -1 };
     }
     
-    // Execute query
-    const [listings, total] = await Promise.all([
-      AqarListing.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
-      AqarListing.countDocuments(query),
-    ]);
+    // Check if geo search is active
+    const hasGeoSearch = lat !== undefined && lng !== undefined && radiusKm !== undefined;
     
-    // Calculate facets
-    const facets = await AqarListing.aggregate([
-      { $match: query },
-      {
-        $facet: {
-          propertyTypes: [
-            { $group: { _id: '$propertyType', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-          ],
-          cities: [
-            { $group: { _id: '$city', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-          ],
-          priceRanges: [
-            {
-              $bucket: {
-                groupBy: '$price',
-                boundaries: [0, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000],
-                default: '10M+',
-                output: { count: { $sum: 1 } },
-              },
-            },
-          ],
+    let listings, total, facets;
+    
+    if (hasGeoSearch) {
+      // Use aggregation with $geoNear as first stage (MongoDB requirement for geo in aggregation)
+      // $geoNear must be the first stage and performs both geo filtering and sorting by distance
+      const geoNearStage = {
+        $geoNear: {
+          near: {
+            type: 'Point' as const,
+            coordinates: [lng, lat] as [number, number],
+          },
+          distanceField: 'distance',
+          maxDistance: radiusKm! * 1000, // Convert km to meters
+          query: query, // Apply other filters
+          spherical: true,
         },
-      },
-    ]);
+      };
+      
+      // Build aggregation pipeline
+      const pipeline = [
+        geoNearStage,
+        { $sort: sortQuery },
+        { $skip: skip },
+        { $limit: limit },
+      ];
+      
+      // Execute geo-aware aggregation for listings
+      listings = await AqarListing.aggregate(pipeline);
+      
+      // Count total matching documents
+      const countPipeline = [geoNearStage, { $count: 'total' }];
+      const countResult = await AqarListing.aggregate(countPipeline);
+      total = countResult[0]?.total || 0;
+      
+      // Calculate facets with geo filter
+      facets = await AqarListing.aggregate([
+        geoNearStage,
+        {
+          $facet: {
+            propertyTypes: [
+              { $group: { _id: '$propertyType', count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+            ],
+            cities: [
+              { $group: { _id: '$city', count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+            ],
+            priceRanges: [
+              {
+                $bucket: {
+                  groupBy: '$price',
+                  boundaries: [0, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000],
+                  default: '10M+',
+                  output: { count: { $sum: 1 } },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+    } else {
+      // No geo search - use standard find query
+      [listings, total] = await Promise.all([
+        AqarListing.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
+        AqarListing.countDocuments(query),
+      ]);
+      
+      // Calculate facets without geo
+      facets = await AqarListing.aggregate([
+        { $match: query },
+        {
+          $facet: {
+            propertyTypes: [
+              { $group: { _id: '$propertyType', count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+            ],
+            cities: [
+              { $group: { _id: '$city', count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+            ],
+            priceRanges: [
+              {
+                $bucket: {
+                  groupBy: '$price',
+                  boundaries: [0, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000],
+                  default: '10M+',
+                  output: { count: { $sum: 1 } },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+    }
     
     return NextResponse.json({
       listings,
