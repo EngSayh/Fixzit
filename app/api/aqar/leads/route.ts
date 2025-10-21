@@ -20,10 +20,19 @@ export async function POST(request: NextRequest) {
     
     // Auth is optional for public inquiries
     let userId: string | undefined;
+    let userOrgId: string | undefined;
     try {
       const user = await getSessionUser(request);
       userId = user.id;
-    } catch {
+      userOrgId = user.orgId;
+    } catch (authError) {
+      // Distinguish between "not authenticated" (public inquiry allowed) vs actual errors
+      if (authError instanceof Error && authError.message !== 'Unauthorized') {
+        console.error('Auth error in leads POST:', {
+          message: authError.message,
+          stack: authError.stack,
+        });
+      }
       // Public inquiry - no auth required
     }
     
@@ -31,12 +40,38 @@ export async function POST(request: NextRequest) {
     
     const { listingId, projectId, inquirerName, inquirerPhone, inquirerEmail, intent, message, source } = body;
     
+    // Input sanitization and validation
+    const sanitizedName = inquirerName?.toString().trim().slice(0, 100);
+    const sanitizedPhone = inquirerPhone?.toString().trim().slice(0, 20);
+    const sanitizedEmail = inquirerEmail?.toString().trim().toLowerCase().slice(0, 100);
+    const sanitizedMessage = message?.toString().trim().slice(0, 1000);
+    
     // Validate required fields
-    if (!inquirerName || !inquirerPhone || !intent || !source) {
+    if (!sanitizedName || !sanitizedPhone || !intent || !source) {
       return NextResponse.json(
         { error: 'inquirerName, inquirerPhone, intent, and source are required' },
         { status: 400 }
       );
+    }
+    
+    // Validate phone format (basic international format check)
+    const phoneRegex = /^[\d\s\-+()]{7,20}$/;
+    if (!phoneRegex.test(sanitizedPhone)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate email format if provided
+    if (sanitizedEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(sanitizedEmail)) {
+        return NextResponse.json(
+          { error: 'Invalid email format' },
+          { status: 400 }
+        );
+      }
     }
     
     // Validate enum fields
@@ -73,16 +108,35 @@ export async function POST(request: NextRequest) {
       }
       recipientId = listing.listerId;
       
-      // Increment inquiries count (async, non-blocking)
-      AqarListing.findByIdAndUpdate(listingId, {
-        $inc: { 'analytics.inquiries': 1 },
-      }).exec().catch((error) => {
-        console.error('Failed to increment listing inquiries', {
-          listingId: listingId.toString(),
-          message: error instanceof Error ? error.message : 'Unknown error',
-          type: error instanceof Error ? error.constructor.name : typeof error,
-        });
-      });
+      // Validate recipientId is a valid ObjectId
+      if (!recipientId) {
+        return NextResponse.json({ error: 'Listing has no owner' }, { status: 400 });
+      }
+      
+      // Increment inquiries count with timestamp (async, non-blocking with retry logic)
+      (async () => {
+        let retries = 3;
+        while (retries > 0) {
+          try {
+            await AqarListing.findByIdAndUpdate(listingId, {
+              $inc: { 'analytics.inquiries': 1 },
+              $set: { 'analytics.lastInquiryAt': new Date() }
+            }).exec();
+            break;
+          } catch (error) {
+            retries--;
+            if (retries === 0) {
+              console.error('Failed to increment listing inquiries after retries', {
+                listingId: listingId.toString(),
+                message: error instanceof Error ? error.message : 'Unknown error',
+                type: error instanceof Error ? error.constructor.name : typeof error,
+              });
+            } else {
+              await new Promise(resolve => setTimeout(resolve, 100 * (4 - retries)));
+            }
+          }
+        }
+      })();
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
       const project = await AqarProject.findById(projectId);
@@ -91,28 +145,49 @@ export async function POST(request: NextRequest) {
       }
       recipientId = project.developerId;
       
-      // Increment inquiries count (async, non-blocking)
-      AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec().catch((error) => {
-        console.error('Failed to increment project inquiries', {
-          projectId: projectId.toString(),
-          message: error instanceof Error ? error.message : 'Unknown error',
-          type: error instanceof Error ? error.constructor.name : typeof error,
-        });
-      });
+      // Validate recipientId is a valid ObjectId
+      if (!recipientId) {
+        return NextResponse.json({ error: 'Project has no developer' }, { status: 400 });
+      }
+      
+      // Increment inquiries count with timestamp (async, non-blocking with retry logic)
+      (async () => {
+        let retries = 3;
+        while (retries > 0) {
+          try {
+            await AqarProject.findByIdAndUpdate(projectId, { 
+              $inc: { inquiries: 1 },
+              $set: { lastInquiryAt: new Date() }
+            }).exec();
+            break;
+          } catch (error) {
+            retries--;
+            if (retries === 0) {
+              console.error('Failed to increment project inquiries after retries', {
+                projectId: projectId.toString(),
+                message: error instanceof Error ? error.message : 'Unknown error',
+                type: error instanceof Error ? error.constructor.name : typeof error,
+              });
+            } else {
+              await new Promise(resolve => setTimeout(resolve, 100 * (4 - retries)));
+            }
+          }
+        }
+      })();
     }
     
     const lead = new AqarLead({
-      orgId: userId || recipientId,
+      orgId: userOrgId || recipientId,
       listingId,
       projectId,
       source,
       inquirerId: userId,
-      inquirerName,
-      inquirerPhone,
-      inquirerEmail,
+      inquirerName: sanitizedName,
+      inquirerPhone: sanitizedPhone,
+      inquirerEmail: sanitizedEmail,
       recipientId,
       intent,
-      message,
+      message: sanitizedMessage,
     });
     
     await lead.save();
