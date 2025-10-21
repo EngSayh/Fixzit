@@ -78,7 +78,7 @@ jobs:
           echo "💾 Total source map size: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
           
           # Show Sentry status
-          if [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
+          if [ -n "${SENTRY_AUTH_TOKEN}" ]; then
             echo "✅ Sentry upload configured" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Sentry upload skipped (SENTRY_AUTH_TOKEN not configured)" >> $GITHUB_STEP_SUMMARY

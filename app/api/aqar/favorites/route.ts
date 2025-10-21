@@ -9,10 +9,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
+import { AqarFavorite, AqarListing, AqarProject, IListing, IProject } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 export const runtime = 'nodejs';
+
+// Strongly-typed favorite with attached target entity
+type FavoriteWithTarget = Omit<Partial<Record<string, any>>, 'target'> & {
+  target?: IListing | IProject | null;
+};
 
 // GET /api/aqar/favorites
 export async function GET(request: NextRequest) {
@@ -123,6 +128,19 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Verify referenced target exists to prevent favorites for non-existent entities
+    if (targetType === 'LISTING') {
+      const listingExists = await AqarListing.findById(targetId).lean();
+      if (!listingExists) {
+        return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+      }
+    } else if (targetType === 'PROJECT') {
+      const projectExists = await AqarProject.findById(targetId).lean();
+      if (!projectExists) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      }
+    }
+
     const favorite = new AqarFavorite({
       userId: user.id,
       orgId: user.orgId || user.id,
@@ -134,13 +152,22 @@ export async function POST(request: NextRequest) {
     
     await favorite.save();
     
-    // Increment favorites count on listing/project with error handling
+    // Increment favorites count on listing/project with error handling (non-blocking)
     if (targetType === 'LISTING') {
       AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } })
         .exec()
         .catch((analyticsError) => {
-          // Log analytics error but don't fail the request
           console.error('Failed to increment listing favorites analytics', {
+            targetId,
+            targetType,
+            message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+          });
+        });
+    } else if (targetType === 'PROJECT') {
+      AqarProject.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } })
+        .exec()
+        .catch((analyticsError) => {
+          console.error('Failed to increment project favorites analytics', {
             targetId,
             targetType,
             message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
