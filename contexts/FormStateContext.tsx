@@ -1,13 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
+// Allow legacy code to signal form state changes via window events
 
 interface FormStateContextType {
   hasUnsavedChanges: boolean;
   unregisterForm: (formId: string) => void;
   markFormDirty: (formId: string) => void;
   markFormClean: (formId: string) => void;
-  requestSave: () => Promise<void>;
+  requestSave: (options?: { timeout?: number }) => Promise<void>;
   onSaveRequest: (formId: string, callback: () => Promise<void>) => () => void;
 }
 
@@ -17,6 +18,19 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
   const [dirtyForms, setDirtyForms] = useState<Set<string>>(new Set());
   const [saveCallbacks, setSaveCallbacks] = useState<Map<string, () => Promise<void>>>(new Map());
   const isSavingRef = useRef<boolean>(false); // Reentrancy guard
+
+  // Define these callbacks first so they can be used in useEffect below
+  const markFormDirty = useCallback((formId: string) => {
+    setDirtyForms(prev => new Set(prev).add(formId));
+  }, []);
+
+  const markFormClean = useCallback((formId: string) => {
+    setDirtyForms(prev => {
+      const next = new Set(prev);
+      next.delete(formId);
+      return next;
+    });
+  }, []);
 
   const unregisterForm = useCallback((formId: string) => {
     setDirtyForms(prev => {
@@ -31,17 +45,36 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const markFormDirty = useCallback((formId: string) => {
-    setDirtyForms(prev => new Set(prev).add(formId));
-  }, []);
+  // --- Legacy / non-React integrations: listen to window events so forms outside
+  // React can notify the FormStateProvider about dirty/clean events. This helps
+  // migrate pages that still rely on dataset flags or global scripts.
+  useEffect(() => {
+    const handleDirty = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent)?.detail;
+        if (detail && detail.formId) markFormDirty(detail.formId);
+      } catch (_e) {
+        // ignore malformed events
+      }
+    };
 
-  const markFormClean = useCallback((formId: string) => {
-    setDirtyForms(prev => {
-      const next = new Set(prev);
-      next.delete(formId);
-      return next;
-    });
-  }, []);
+    const handleClean = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent)?.detail;
+        if (detail && detail.formId) markFormClean(detail.formId);
+      } catch (_e) {
+        // ignore malformed events
+      }
+    };
+
+    window.addEventListener('fxz:form:dirty', handleDirty as EventListener);
+    window.addEventListener('fxz:form:clean', handleClean as EventListener);
+
+    return () => {
+      window.removeEventListener('fxz:form:dirty', handleDirty as EventListener);
+      window.removeEventListener('fxz:form:clean', handleClean as EventListener);
+    };
+  }, [markFormDirty, markFormClean]);
 
   const onSaveRequest = useCallback((formId: string, callback: () => Promise<void>) => {
     setSaveCallbacks(prev => new Map(prev).set(formId, callback));
@@ -63,7 +96,7 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
     return dispose;
   }, []);
 
-  const requestSave = useCallback(async () => {
+  const requestSave = useCallback(async (options?: { timeout?: number }) => {
     // Reentrancy guard: prevent concurrent save operations
     if (isSavingRef.current) {
       console.warn('Save operation already in progress, skipping concurrent call');
@@ -71,6 +104,7 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
     }
     
     isSavingRef.current = true;
+    const timeoutMs = options?.timeout ?? 10000; // Default 10s timeout
     
     try {
       // Only save forms that are marked as dirty
@@ -91,11 +125,16 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
         return;
       }
       
+      // Wrap save operations with timeout
+      const saveWithTimeout = async (formId: string, callback: () => Promise<void>) => {
+        const timeoutPromise = new Promise<never>((_resolve, reject) =>
+          setTimeout(() => reject(new Error(`Save timeout for form: ${formId}`)), timeoutMs)
+        );
+        return Promise.race([callback(), timeoutPromise]).then(() => formId);
+      };
+      
       const results = await Promise.allSettled(
-        callbacksWithIds.map(async ({ formId, callback }) => {
-          await callback();
-          return formId;
-        })
+        callbacksWithIds.map(({ formId, callback }) => saveWithTimeout(formId, callback))
       );
       
       // Mark successfully saved forms as clean

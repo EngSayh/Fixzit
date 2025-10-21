@@ -116,16 +116,40 @@ export const authConfig = {
       return baseUrl;
     },
     async session({ session, token }) {
-      // Add user ID to session
+      // Add user ID and role to session from token
       if (token?.sub) {
         session.user.id = token.sub;
+      }
+      if (token?.role) {
+        session.user.role = token.role as string;
+      }
+      if (token?.orgId) {
+        session.user.orgId = token.orgId as string;
       }
       return session;
     },
     async jwt({ token, user, account: _account }) {
-      // Add user info to token
+      // Propagate user info from database to token on first sign-in
       if (user) {
         token.id = user.id;
+        // Fetch user role from database via provision API
+        try {
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const response = await fetch(`${baseUrl}/api/auth/user/${user.email}`, {
+            headers: { 'x-internal-auth': process.env.NEXTAUTH_SECRET || '' },
+          });
+          if (response.ok) {
+            const userData = await response.json();
+            token.role = userData.role || 'USER';
+            token.orgId = userData.orgId;
+          } else {
+            // Default to USER role if lookup fails
+            token.role = 'USER';
+          }
+        } catch (_error) {
+          // Default to USER role on error
+          token.role = 'USER';
+        }
       }
       // DO NOT store OAuth access tokens in JWT for security
       // Tokens should be stored server-side if needed for API calls
