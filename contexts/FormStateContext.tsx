@@ -52,6 +52,12 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
         next.delete(formId);
         return next;
       });
+      // Also remove from dirtyForms to avoid stale dirty state
+      setDirtyForms(prev => {
+        const next = new Set(prev);
+        next.delete(formId);
+        return next;
+      });
     };
     
     return dispose;

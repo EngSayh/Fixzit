@@ -82,6 +82,8 @@ BoostSchema.index({ userId: 1, active: 1 });
 
 // Static: Get boost pricing
 BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
+  const MAX_DAYS = 365; // Maximum allowed boost duration to prevent overflow
+  
   // Validate type
   if (!Object.values(BoostType).includes(type)) {
     throw new Error('Invalid boost type');
@@ -90,6 +92,10 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
   // Validate days
   if (!Number.isFinite(days) || days <= 0 || !Number.isInteger(days)) {
     throw new Error('Days must be a positive integer');
+  }
+  
+  if (days > MAX_DAYS) {
+    throw new Error(`Days cannot exceed ${MAX_DAYS}`);
   }
   
   const basePrice = {

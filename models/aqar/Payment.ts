@@ -158,10 +158,6 @@ PaymentSchema.methods.markAsRefunded = async function (
   this: IPayment,
   refundAmount?: number
 ) {
-  if (this.status !== PaymentStatus.COMPLETED && this.status !== PaymentStatus.PARTIALLY_REFUNDED) {
-    throw new Error('Can only refund completed or partially refunded payments');
-  }
-  
   const actualRefundAmount = refundAmount ?? this.amount;
   
   // Validate refund amount
@@ -169,22 +165,53 @@ PaymentSchema.methods.markAsRefunded = async function (
     throw new Error(`Refund amount must be between 0 and ${this.amount}`);
   }
   
-  // Check for double refunds
-  const totalRefunded = (this.refundAmount ?? 0) + actualRefundAmount;
-  if (totalRefunded > this.amount) {
-    throw new Error(`Total refund (${totalRefunded}) exceeds payment amount (${this.amount})`);
+  // Atomic update with predicates to prevent race conditions
+  const currentRefundAmount = this.refundAmount ?? 0;
+  const newTotalRefunded = currentRefundAmount + actualRefundAmount;
+  
+  // Validate total before attempting DB update
+  if (newTotalRefunded > this.amount) {
+    throw new Error(`Total refund (${newTotalRefunded}) exceeds payment amount (${this.amount})`);
   }
   
-  // Update refund amount
-  this.refundAmount = totalRefunded;
-  
-  // Set status based on refund completeness
-  this.status = totalRefunded >= this.amount 
+  const newStatus = newTotalRefunded >= this.amount 
     ? PaymentStatus.REFUNDED 
     : PaymentStatus.PARTIALLY_REFUNDED;
-    
-  this.refundedAt = new Date();
-  await this.save();
+  
+  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
+    {
+      _id: this._id,
+      status: { $in: [PaymentStatus.COMPLETED, PaymentStatus.PARTIALLY_REFUNDED] },
+      // Ensure we don't exceed refundable amount in the DB query
+      $expr: {
+        $lte: [
+          { $add: [{ $ifNull: ['$refundAmount', 0] }, actualRefundAmount] },
+          '$amount'
+        ]
+      }
+    },
+    {
+      $inc: { refundAmount: actualRefundAmount },
+      $set: {
+        status: newStatus,
+        refundedAt: new Date()
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    // Re-check current state for better error message
+    if (this.status !== PaymentStatus.COMPLETED && this.status !== PaymentStatus.PARTIALLY_REFUNDED) {
+      throw new Error('Can only refund completed or partially refunded payments');
+    }
+    throw new Error('Refund failed: concurrent modification or refund amount exceeded');
+  }
+  
+  // Update in-memory instance
+  this.refundAmount = (result as IPayment).refundAmount;
+  this.status = (result as IPayment).status;
+  this.refundedAt = (result as IPayment).refundedAt;
 };
 
 const Payment: Model<IPayment> =

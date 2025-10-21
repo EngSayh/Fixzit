@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from 'lucide-react';
 
+// Global script refcount to safely manage shared Google Maps API script
+declare global {
+  interface Window {
+    __googleMapsRefCount?: number;
+  }
+}
+
 interface GoogleMapProps {
   center: { lat: number; lng: number };
   zoom?: number;
@@ -16,7 +23,7 @@ interface GoogleMapProps {
 }
 
 // Simple, reliable Google Maps implementation
-export default function GoogleMap({ 
+export default function GoogleMap({
   center, 
   zoom = 13, 
   markers = [], 
@@ -98,7 +105,12 @@ export default function GoogleMap({
       };
       document.head.appendChild(script);
       scriptRef.current = script;
+      
+      // Initialize refcount
+      window.__googleMapsRefCount = 1;
     } else {
+      // Increment refcount for existing script
+      window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
       initMap();
     }
 
@@ -123,16 +135,25 @@ export default function GoogleMap({
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
       
-      // Clean up script if we created it
-      if (scriptRef.current) {
-        scriptRef.current.onload = null;
-        scriptRef.current.onerror = null;
-        if (document.head.contains(scriptRef.current)) {
-          document.head.removeChild(scriptRef.current);
+      // Decrement refcount and clean up script only when no instances remain
+      if (window.__googleMapsRefCount) {
+        window.__googleMapsRefCount -= 1;
+        
+        if (window.__googleMapsRefCount === 0 && scriptRef.current) {
+          scriptRef.current.onload = null;
+          scriptRef.current.onerror = null;
+          if (document.head.contains(scriptRef.current)) {
+            document.head.removeChild(scriptRef.current);
+          }
+          scriptRef.current = null;
+          // @ts-expect-error - intentionally clearing global
+          delete window.google;
         }
-        scriptRef.current = null;
       }
     };
+    // NOTE: onMapClick is intentionally excluded from deps because onMapClickRef is used
+    // to avoid stale closures. The click listener is registered once and uses the ref
+    // which is kept in sync with the latest onMapClick value via a separate useEffect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng, zoom]);
 

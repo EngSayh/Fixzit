@@ -151,8 +151,8 @@ BookingSchema.pre('save', function (next) {
   
   if (this.isModified('pricePerNight') || this.isModified('nights')) {
     this.totalPrice = this.pricePerNight * this.nights;
-    this.platformFee = Math.round(this.totalPrice * 0.15); // 15% platform fee
-    this.hostPayout = this.totalPrice - this.platformFee;
+    this.platformFee = Math.round(this.totalPrice * 0.15); // 15% platform fee, rounded to SAR
+    this.hostPayout = Math.round(this.totalPrice - this.platformFee); // Also rounded to SAR for consistency
   }
   
   next();

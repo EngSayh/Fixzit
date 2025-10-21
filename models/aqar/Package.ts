@@ -96,16 +96,41 @@ PackageSchema.statics.getPricing = function (type: PackageType) {
 
 // Methods
 PackageSchema.methods.activate = async function (this: IPackage) {
-  if (this.active) {
-    throw new Error('Package already activated');
+  // Atomic activation to prevent concurrent activation races
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + this.validityDays * 24 * 60 * 60 * 1000);
+  
+  const result = await (this.constructor as unknown as typeof import('mongoose').Model).findOneAndUpdate(
+    {
+      _id: this._id,
+      active: false,
+      paidAt: { $exists: true, $ne: null }
+    },
+    {
+      $set: {
+        active: true,
+        activatedAt: now,
+        expiresAt: expiresAt
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    // Determine specific error
+    if (this.active) {
+      throw new Error('Package already activated');
+    }
+    if (!this.paidAt) {
+      throw new Error('Package not paid');
+    }
+    throw new Error('Failed to activate package');
   }
-  if (!this.paidAt) {
-    throw new Error('Package not paid');
-  }
+  
+  // Update in-memory instance
   this.active = true;
-  this.activatedAt = new Date();
-  this.expiresAt = new Date(Date.now() + this.validityDays * 24 * 60 * 60 * 1000);
-  await this.save();
+  this.activatedAt = now;
+  this.expiresAt = expiresAt;
 };
 
 PackageSchema.methods.consumeListing = async function (this: IPackage) {

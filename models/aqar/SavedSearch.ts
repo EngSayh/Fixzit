@@ -120,19 +120,43 @@ SavedSearchSchema.index({ 'criteria.geoCenter': '2dsphere' });
 
 // Methods
 SavedSearchSchema.methods.recordMatch = async function (this: ISavedSearch) {
+  // Atomic increment to prevent lost updates from concurrent match recording
+  await (this.constructor as typeof import('mongoose').Model).findByIdAndUpdate(
+    this._id,
+    { $inc: { matchCount: 1 } },
+    { new: true }
+  );
+  // Update in-memory instance to stay consistent
   this.matchCount += 1;
-  await this.save();
 };
 
 SavedSearchSchema.methods.recordNotification = async function (this: ISavedSearch) {
+  // Atomic increment + set to prevent lost updates from concurrent notifications
+  const now = new Date();
+  await (this.constructor as typeof import('mongoose').Model).findByIdAndUpdate(
+    this._id,
+    { 
+      $inc: { notificationsSent: 1 },
+      $set: { lastNotifiedAt: now }
+    },
+    { new: true }
+  );
+  // Update in-memory instance to stay consistent
   this.notificationsSent += 1;
-  this.lastNotifiedAt = new Date();
-  await this.save();
+  this.lastNotifiedAt = now;
 };
 
 SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
-  this.active = !this.active;
-  await this.save();
+  // Atomic toggle using aggregation pipeline to flip boolean
+  const result = await (this.constructor as typeof import('mongoose').Model).findByIdAndUpdate(
+    this._id,
+    [{ $set: { active: { $not: '$active' } } }],
+    { new: true }
+  );
+  // Update in-memory instance to reflect new value
+  if (result) {
+    this.active = (result as ISavedSearch).active;
+  }
 };
 
 const SavedSearch: Model<ISavedSearch> =

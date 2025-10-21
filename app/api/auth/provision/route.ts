@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { dbConnect } from '@/db/mongoose';
 import { User } from '@/server/models/User';
 
@@ -19,8 +20,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Connect to database
-    await dbConnect();
+    // Connect to database (single connection for entire request)
+    const conn = await dbConnect();
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -37,16 +38,29 @@ export async function POST(request: NextRequest) {
       
       // Generate unique user code atomically using MongoDB counter
       // This prevents race conditions when multiple users register simultaneously
-      const conn = await dbConnect();
       if (!conn.db) {
         throw new Error('Database not available');
       }
-      const counter = await conn.db.collection('counters').findOneAndUpdate(
-        { _id: 'userCode' as any },
-        { $inc: { seq: 1 } },
+      
+      interface CounterDoc {
+        _id: string;
+        seq: number;
+      }
+      
+      const result = await conn.db.collection<CounterDoc>('counters').findOneAndUpdate(
+        { _id: 'userCode' },
+        { 
+          $inc: { seq: 1 },
+          $setOnInsert: { seq: 0 }
+        },
         { upsert: true, returnDocument: 'after' }
       );
-      const code = `USR${String(counter?.seq || 1).padStart(6, '0')}`;
+      
+      if (!result?.seq && result?.seq !== 0) {
+        throw new Error('Failed to generate user code: counter initialization failed');
+      }
+      
+      const code = `USR${String(result.seq).padStart(6, '0')}`;
 
       const newUser = await User.create({
         code,

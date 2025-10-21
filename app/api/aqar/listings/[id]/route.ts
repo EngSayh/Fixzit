@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarListing, ListingStatus } from '@/models/aqar';
+import { AqarListing, ListingStatus, FurnishingStatus } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import mongoose from 'mongoose';
@@ -35,14 +35,16 @@ export async function GET(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    // Increment view count (async, don't await)
+    // Increment view count (async, don't await) - attach error logging
     AqarListing.findByIdAndUpdate(
       id, 
       { 
         $inc: { 'analytics.views': 1 }, 
         $set: { 'analytics.lastViewedAt': new Date() } 
       }
-    ).exec().catch(() => {});
+    ).exec().catch((err) => {
+      console.error('Failed to increment listing views analytics', { listingId: id, message: err instanceof Error ? err.message : String(err) });
+    });
     
     return NextResponse.json({ listing });
   } catch (error) {
@@ -108,7 +110,7 @@ export async function PATCH(
         const value = body[field];
         
         // Validate enum fields
-        if (field === 'furnishing' && !['FURNISHED', 'PARTLY', 'UNFURNISHED'].includes(value)) {
+        if (field === 'furnishing' && !Object.values(FurnishingStatus).includes(value as FurnishingStatus)) {
           return NextResponse.json({ error: `Invalid furnishing: ${value}` }, { status: 400 });
         }
         if (field === 'status' && !Object.values(ListingStatus).includes(value as ListingStatus)) {
@@ -159,8 +161,8 @@ export async function PATCH(
             if (typeof item.url !== 'string' || item.url.trim().length === 0) {
               return NextResponse.json({ error: `media[${i}].url must be a non-empty string` }, { status: 400 });
             }
-            if (!['IMAGE', 'VIDEO', 'TOUR_360'].includes(item.type)) {
-              return NextResponse.json({ error: `media[${i}].type must be IMAGE, VIDEO, or TOUR_360` }, { status: 400 });
+            if (!['IMAGE', 'VIDEO', 'VR'].includes(item.type)) {
+              return NextResponse.json({ error: `media[${i}].type must be IMAGE, VIDEO, or VR` }, { status: 400 });
             }
             if (typeof item.order !== 'number' || !Number.isInteger(item.order) || item.order < 0) {
               return NextResponse.json({ error: `media[${i}].order must be a non-negative integer` }, { status: 400 });
@@ -169,17 +171,9 @@ export async function PATCH(
         }
         
         if (field === 'address') {
-          if (typeof value !== 'object' || value === null) {
-            return NextResponse.json({ error: 'address must be an object' }, { status: 400 });
-          }
-          if (typeof value.street !== 'string' || value.street.trim().length === 0) {
-            return NextResponse.json({ error: 'address.street must be a non-empty string' }, { status: 400 });
-          }
-          if (typeof value.city !== 'string' || value.city.trim().length === 0) {
-            return NextResponse.json({ error: 'address.city must be a non-empty string' }, { status: 400 });
-          }
-          if (typeof value.country !== 'string' || value.country.trim().length === 0) {
-            return NextResponse.json({ error: 'address.country must be a non-empty string' }, { status: 400 });
+          // Listing model uses a flat string address field. Validate accordingly.
+          if (typeof value !== 'string' || value.trim().length === 0) {
+            return NextResponse.json({ error: 'address must be a non-empty string' }, { status: 400 });
           }
         }
         

@@ -159,8 +159,12 @@ MarketingRequestSchema.methods.accept = async function (
     throw new Error('Only pending requests can be accepted');
   }
   
-  // Update this instance with new values
-  Object.assign(this, result.toObject());
+  // Update this instance with new values (explicit assignment to preserve Mongoose tracking)
+  const data = result.toObject();
+  this.brokerId = data.brokerId;
+  this.proposedCommissionPercent = data.proposedCommissionPercent;
+  this.status = data.status;
+  this.acceptedAt = data.acceptedAt;
 };
 
 MarketingRequestSchema.methods.reject = async function (
@@ -187,8 +191,11 @@ MarketingRequestSchema.methods.reject = async function (
     throw new Error('Only pending requests can be rejected');
   }
   
-  // Update this instance with new values
-  Object.assign(this, result.toObject());
+  // Update this instance with new values (explicit assignment to preserve Mongoose tracking)
+  const data = result.toObject();
+  this.status = data.status;
+  this.rejectedAt = data.rejectedAt;
+  this.rejectionReason = data.rejectionReason;
 };
 
 MarketingRequestSchema.methods.linkListing = async function (
@@ -197,9 +204,26 @@ MarketingRequestSchema.methods.linkListing = async function (
 ) {
   // Validate listing exists
   const Listing = mongoose.model('AqarListing');
-  const listing = await Listing.findById(listingId);
+  const listing = await Listing.findById(listingId).lean<{
+    listerId: mongoose.Types.ObjectId;
+    orgId?: mongoose.Types.ObjectId;
+  }>();
+  
   if (!listing) {
     throw new Error('Listing not found');
+  }
+  
+  // Verify ownership: listing must belong to the same owner/organization as the request
+  const listingOwnerIdStr = listing.listerId?.toString();
+  const requestOwnerIdStr = this.ownerId?.toString();
+  const listingOrgIdStr = listing.orgId?.toString();
+  const requestOrgIdStr = this.orgId?.toString();
+  
+  const ownerMatch = listingOwnerIdStr && requestOwnerIdStr && listingOwnerIdStr === requestOwnerIdStr;
+  const orgMatch = listingOrgIdStr && requestOrgIdStr && listingOrgIdStr === requestOrgIdStr;
+  
+  if (!ownerMatch && !orgMatch) {
+    throw new Error('Listing does not belong to this owner/organization');
   }
   
   // Use atomic update with status filter

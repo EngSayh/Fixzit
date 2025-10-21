@@ -184,26 +184,50 @@ LeadSchema.methods.addNote = async function (
       },
     }
   );
-  // Refresh document to reflect new note
-  await this.populate('notes.authorId');
+  // Reload the document from DB with populated notes to get fresh data
+  // (this.populate() won't show the new note because this instance is stale)
+  const updated = await mongoose.model('AqarLead').findById(this._id).populate('notes.authorId');
+  if (updated) {
+    this.notes = (updated as ILead).notes;
+  }
 };
 
 LeadSchema.methods.assign = async function (
   this: ILead,
   agentId: mongoose.Types.ObjectId
 ) {
-  // Terminal states (WON, LOST, SPAM) are immutable
-  const terminalStates = [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM];
-  if (terminalStates.includes(this.status)) {
-    throw new Error(`Cannot reassign lead in terminal state: ${this.status}`);
+  // Atomic update with terminal state filter to prevent race conditions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    [
+      {
+        $set: {
+          assignedTo: agentId,
+          assignedAt: new Date(),
+          status: {
+            $cond: [
+              { $eq: ['$status', LeadStatus.NEW] },
+              LeadStatus.CONTACTED,
+              '$status'
+            ]
+          }
+        }
+      }
+    ],
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error(`Cannot reassign lead in terminal state`);
   }
   
-  this.assignedTo = agentId;
-  this.assignedAt = new Date();
-  if (this.status === LeadStatus.NEW) {
-    this.status = LeadStatus.CONTACTED;
-  }
-  await this.save();
+  // Update in-memory instance
+  this.assignedTo = (result as ILead).assignedTo;
+  this.assignedAt = (result as ILead).assignedAt;
+  this.status = (result as ILead).status;
 };
 
 LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
