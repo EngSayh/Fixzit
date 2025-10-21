@@ -41,7 +41,17 @@
    - Role: Read and write to any database
 5. **Whitelist IP:**
    - Security → Network Access
-   - Add IP Address → Allow access from anywhere (0.0.0.0/0) for development
+   - Add IP Address → **⚠️ DEVELOPMENT ONLY: Allow access from anywhere (0.0.0.0/0)**
+   
+   **🔒 SECURITY WARNING**: 
+   - `0.0.0.0/0` is **ONLY** acceptable for local development
+   - **NEVER use in production** - your database will be exposed to the entire internet
+   - **Before going live**: Restrict access to specific IP ranges or your deployment infrastructure
+   - **Production best practices**:
+     - Use VPC peering or private networking
+     - Whitelist only your application server IPs
+     - Enable MongoDB Atlas IP Access List with specific CIDR blocks
+     - Consider using AWS PrivateLink or Azure Private Endpoint
 6. **Get connection string:**
    - Click "Connect" on your cluster
    - "Connect your application"
@@ -197,6 +207,25 @@ NODE_ENV=development
    - Press `Enter` (confirm)
    - Press `Ctrl+X` (exit)
 
+### ⚠️ CRITICAL SECURITY WARNING
+
+**NEVER commit `.env.local` to git!**
+
+**Verify `.env.local` is in `.gitignore`:**
+```bash
+grep -F ".env.local" /workspaces/Fixzit/.gitignore
+```
+Expected output: `.env.local` (exact match)
+
+**If `.env.local` was ever committed:**
+1. **IMMEDIATELY rotate ALL credentials** (MongoDB, OAuth, JWT secrets, API keys)
+2. Generate new secrets and update `.env.local`
+3. Remove the file from git history:
+   ```bash
+   git filter-repo --invert-paths --path '.env.local' --force
+   ```
+4. **WARNING**: This rewrites git history. Coordinate with team before executing.
+
 ### ✅ Verification:
 ```bash
 # Check no CHANGEME values remain
@@ -311,10 +340,15 @@ npm run dev
 { $inc: { 'analytics.leads': 1 }, $set: { 'analytics.lastLeadAt': new Date() } }
 ```
 
-### Quick fix command:
+### Automated fix script:
 ```bash
-# I can help with these if you want me to apply the fixes automatically
+# Apply MongoDB analytics fixes automatically
+sed -i "s/'analytics.lastFavoritedAt': new Date()/\$set: { 'analytics.lastFavoritedAt': new Date() }/g" app/api/aqar/favorites/route.ts
+sed -i "s/'analytics.lastUpdatedAt': new Date()/\$set: { 'analytics.lastUpdatedAt': new Date() }/g" app/api/aqar/favorites/[id]/route.ts
+sed -i "s/'analytics.lastLeadAt': new Date()/\$set: { 'analytics.lastLeadAt': new Date() }/g" app/api/aqar/leads/route.ts
 ```
+
+**Manual alternative**: Copy the correct syntax above and update each file individually.
 
 ---
 

@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarLead, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
+import type { Types } from 'mongoose';
 
 
 export const runtime = 'nodejs';
@@ -115,27 +117,15 @@ export async function POST(request: NextRequest) {
       
       // Increment inquiries count with timestamp (async, non-blocking with retry logic)
       (async () => {
-        let retries = 3;
-        while (retries > 0) {
-          try {
-            await AqarListing.findByIdAndUpdate(listingId, {
-              $inc: { 'analytics.inquiries': 1 },
-              $set: { 'analytics.lastInquiryAt': new Date() }
-            }).exec();
-            break;
-          } catch (error) {
-            retries--;
-            if (retries === 0) {
-              console.error('Failed to increment listing inquiries after retries', {
-                listingId: listingId.toString(),
-                message: error instanceof Error ? error.message : 'Unknown error',
-                type: error instanceof Error ? error.constructor.name : typeof error,
-              });
-            } else {
-              await new Promise(resolve => setTimeout(resolve, 100 * (4 - retries)));
-            }
-          }
-        }
+        await incrementAnalyticsWithRetry({
+          model: AqarListing,
+          id: listingId as Types.ObjectId,
+          updateOp: {
+            $inc: { 'analytics.inquiries': 1 },
+            $set: { 'analytics.lastInquiryAt': new Date() }
+          },
+          entityType: 'listing'
+        });
       })();
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
@@ -152,27 +142,15 @@ export async function POST(request: NextRequest) {
       
       // Increment inquiries count with timestamp (async, non-blocking with retry logic)
       (async () => {
-        let retries = 3;
-        while (retries > 0) {
-          try {
-            await AqarProject.findByIdAndUpdate(projectId, { 
-              $inc: { inquiries: 1 },
-              $set: { lastInquiryAt: new Date() }
-            }).exec();
-            break;
-          } catch (error) {
-            retries--;
-            if (retries === 0) {
-              console.error('Failed to increment project inquiries after retries', {
-                projectId: projectId.toString(),
-                message: error instanceof Error ? error.message : 'Unknown error',
-                type: error instanceof Error ? error.constructor.name : typeof error,
-              });
-            } else {
-              await new Promise(resolve => setTimeout(resolve, 100 * (4 - retries)));
-            }
-          }
-        }
+        await incrementAnalyticsWithRetry({
+          model: AqarProject,
+          id: projectId as Types.ObjectId,
+          updateOp: { 
+            $inc: { inquiries: 1 },
+            $set: { lastInquiryAt: new Date() }
+          },
+          entityType: 'project'
+        });
       })();
     }
     

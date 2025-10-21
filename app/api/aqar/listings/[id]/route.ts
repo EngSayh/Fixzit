@@ -161,8 +161,8 @@ export async function PATCH(
             if (typeof item.url !== 'string' || item.url.trim().length === 0) {
               return NextResponse.json({ error: `media[${i}].url must be a non-empty string` }, { status: 400 });
             }
-            if (!['IMAGE', 'VIDEO', 'VR'].includes(item.type)) {
-              return NextResponse.json({ error: `media[${i}].type must be IMAGE, VIDEO, or VR` }, { status: 400 });
+            if (!['IMAGE', 'VIDEO', 'VR'].includes(item.kind)) {
+              return NextResponse.json({ error: `media[${i}].kind must be IMAGE, VIDEO, or VR` }, { status: 400 });
             }
             if (typeof item.order !== 'number' || !Number.isInteger(item.order) || item.order < 0) {
               return NextResponse.json({ error: `media[${i}].order must be a non-negative integer` }, { status: 400 });

@@ -20,8 +20,6 @@
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
 
-  "nodejs.memory": 4096,
-
   // Git Branch Protection
   "git.branchProtection": ["main", "master", "develop"],
   "git.branchProtectionPrompt": "alwaysPrompt",

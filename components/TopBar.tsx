@@ -128,18 +128,18 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     setIsSaving(true);
     setSaveError(null);
     try {
-      // Dispatch an event so page components that own forms can handle the
-      // actual submit+navigation flow. This avoids racing on timeouts and
-      // ensures the page can `await` its own save logic and navigate only on
-      // success.
-      const ev = new CustomEvent('fxz:saveFormsAndNavigate', { detail: { target: pendingNavigation } });
+      // Step 1: Dispatch custom event for page-level form handling
+      // This gives pages full control over their save+navigate flow
+      const ev = new CustomEvent('fxz:saveFormsAndNavigate', { 
+        detail: { target: pendingNavigation } 
+      });
       window.dispatchEvent(ev);
 
-      // Also attempt the centralized requestSave() as a fallback for forms
-      // that registered with the FormStateProvider API.
+      // Step 2: Await the centralized FormStateProvider save
+      // This ensures proper coordination - we wait for forms to complete
       await formState.requestSave();
 
-      // Success path only
+      // Step 3: Success path only - close dialog and navigate
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
         router.push(pendingNavigation);
@@ -528,6 +528,30 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="unsaved-dialog-title"
+            onKeyDown={(e) => {
+              // Trap focus inside dialog on Tab
+              if (e.key === 'Tab') {
+                const focusableElements = e.currentTarget.querySelectorAll(
+                  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                );
+                const firstElement = focusableElements[0] as HTMLElement;
+                const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+                
+                if (e.shiftKey && document.activeElement === firstElement) {
+                  e.preventDefault();
+                  lastElement?.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                  e.preventDefault();
+                  firstElement?.focus();
+                }
+              }
+              // Close dialog on Escape
+              if (e.key === 'Escape' && !isSaving) {
+                setShowUnsavedDialog(false);
+                setPendingNavigation(null);
+                setSaveError(null);
+              }
+            }}
           >
             <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
               <h3 

@@ -83,7 +83,10 @@ const PaymentSchema = new Schema<IPayment>(
     currency: { type: String, default: 'SAR', required: true },
     
     relatedId: { type: Schema.Types.ObjectId, index: true },
-    relatedModel: { type: String },
+    relatedModel: { 
+      type: String,
+      enum: ['AqarPackage', 'AqarBoost', 'AqarListing', 'Booking'], // Explicit allowed values
+    },
     
     status: {
       type: String,
