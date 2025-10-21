@@ -41,31 +41,40 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if user has active package (for agents/developers)
+    // Check if user has active package AND atomically consume listing slot
+    // This prevents race conditions where multiple requests could exceed quota
     if (body.source === 'AGENT' || body.source === 'DEVELOPER') {
-      const activePackage = await AqarPackage.findOne({
-        userId: user.id,
-        active: true,
-        expiresAt: { $gt: new Date() },
-        $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
-      });
+      const updatedPackage = await AqarPackage.findOneAndUpdate(
+        {
+          userId: user.id,
+          active: true,
+          expiresAt: { $gt: new Date() },
+          $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
+        },
+        {
+          $inc: { listingsUsed: 1 }
+        },
+        {
+          new: true, // Return updated document
+        }
+      );
       
-      if (!activePackage) {
+      if (!updatedPackage) {
         return NextResponse.json(
-          { error: 'No active listing package. Please purchase a package first.' },
+          { error: 'No active listing package with available slots. Please purchase a package first.' },
           { status: 402 }
         );
       }
-      
-      // Consume package listing
-      await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
     }
     
     // Create listing
+    // Fix orgId fallback: only use user.id when orgId is null/undefined, not empty string
+    const orgId = user.orgId !== null && user.orgId !== undefined ? user.orgId : user.id;
+    
     const listing = new AqarListing({
       ...body,
       listerId: user.id,
-      orgId: user.orgId || user.id, // Fallback to user ID
+      orgId, // Use nullish-aware fallback
       status: 'DRAFT', // Start as draft
     });
     

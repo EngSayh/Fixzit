@@ -18,29 +18,46 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     
-    // Parse query parameters
+    // Parse and validate numeric query parameters
+    const parseNum = (key: string): number | undefined => {
+      const raw = searchParams.get(key);
+      if (!raw) return undefined;
+      const parsed = Number.parseInt(raw, 10);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+    
+    const parseFloat = (key: string): number | undefined => {
+      const raw = searchParams.get(key);
+      if (!raw) return undefined;
+      const parsed = Number.parseFloat(raw);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+    
+    // Parse query parameters with NaN safety
     const intent = searchParams.get('intent'); // BUY|RENT|DAILY
     const propertyType = searchParams.get('propertyType');
     const city = searchParams.get('city');
     const neighborhoods = searchParams.get('neighborhoods')?.split(',');
-    const minPrice = searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : undefined;
-    const maxPrice = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : undefined;
-    const minBeds = searchParams.get('minBeds') ? parseInt(searchParams.get('minBeds')!) : undefined;
-    const maxBeds = searchParams.get('maxBeds') ? parseInt(searchParams.get('maxBeds')!) : undefined;
-    const minArea = searchParams.get('minArea') ? parseInt(searchParams.get('minArea')!) : undefined;
-    const maxArea = searchParams.get('maxArea') ? parseInt(searchParams.get('maxArea')!) : undefined;
+    const minPrice = parseNum('minPrice');
+    const maxPrice = parseNum('maxPrice');
+    const minBeds = parseNum('minBeds');
+    const maxBeds = parseNum('maxBeds');
+    const minArea = parseNum('minArea');
+    const maxArea = parseNum('maxArea');
     const furnishing = searchParams.get('furnishing');
     const amenities = searchParams.get('amenities')?.split(',');
     
-    // Geo search
-    const lat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : undefined;
-    const lng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : undefined;
-    const radiusKm = searchParams.get('radiusKm') ? parseFloat(searchParams.get('radiusKm')!) : undefined;
+    // Geo search with validation
+    const lat = parseFloat('lat');
+    const lng = parseFloat('lng');
+    const radiusKm = parseFloat('radiusKm');
     
-    // Sorting & pagination
-    const sort = searchParams.get('sort') || 'relevance'; // relevance|price-asc|price-desc|date-desc|featured
-    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+    // Sorting & pagination with bounds
+    const sort = searchParams.get('sort') || 'date-desc'; // date-desc|price-asc|price-desc|featured
+    const pageRaw = parseNum('page');
+    const limitRaw = parseNum('limit');
+    const page = pageRaw && pageRaw >= 1 ? pageRaw : 1;
+    const limit = limitRaw && limitRaw >= 1 && limitRaw <= 100 ? limitRaw : 20;
     const skip = (page - 1) * limit;
     
     // Build query
@@ -84,6 +101,8 @@ export async function GET(request: NextRequest) {
     }
     
     // Build sort
+    // Note: 'relevance' removed - true relevance scoring requires Atlas Search $search
+    // Use date-desc as default for chronological ordering
     let sortQuery: Record<string, 1 | -1> = {};
     switch (sort) {
       case 'price-asc':
@@ -92,13 +111,12 @@ export async function GET(request: NextRequest) {
       case 'price-desc':
         sortQuery = { price: -1 };
         break;
-      case 'date-desc':
-        sortQuery = { publishedAt: -1 };
-        break;
       case 'featured':
         sortQuery = { featuredLevel: -1, publishedAt: -1 };
         break;
+      case 'date-desc':
       default:
+        // Default to most recent first
         sortQuery = { publishedAt: -1 };
     }
     

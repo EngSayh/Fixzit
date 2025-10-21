@@ -39,10 +39,30 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Decrement favorites count (async)
+    // Decrement favorites count with proper error handling
     if (favorite.targetType === 'LISTING') {
-      const { AqarListing } = await import('@/models/aqar');
-      AqarListing.findByIdAndUpdate(favorite.targetId, { $inc: { 'analytics.favorites': -1 } }).exec();
+      try {
+        const { AqarListing } = await import('@/models/aqar');
+        // Await the update and guard against negative counts
+        await AqarListing.findByIdAndUpdate(
+          favorite.targetId,
+          {
+            $inc: { 'analytics.favorites': -1 },
+            // Ensure favorites count doesn't go below 0
+            $max: { 'analytics.favorites': 0 }
+          }
+        ).exec();
+      } catch (analyticsError) {
+        // Log analytics failure but don't fail the delete operation
+        console.error(
+          'Failed to decrement favorites count:',
+          {
+            targetId: favorite.targetId,
+            action: 'decrement',
+            error: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+          }
+        );
+      }
     }
     
     await favorite.deleteOne();

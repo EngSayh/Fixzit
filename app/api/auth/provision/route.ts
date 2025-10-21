@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { User } from '@/server/models/User';
+import { createHash } from 'crypto';
 
 /**
  * POST /api/auth/provision
  * User provisioning endpoint for OAuth sign-ins
- * Creates or updates user record in database when users sign in via OAuth
+ * SECURED: Requires internal API token to prevent unauthorized user creation
  */
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Validate internal API token to prevent public access
+    const authHeader = request.headers.get('authorization');
+    const internalToken = process.env.INTERNAL_API_TOKEN;
+    
+    if (!internalToken || !authHeader || authHeader !== `Bearer ${internalToken}`) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid internal API token' },
+        { status: 401 }
+      );
+    }
+    
     const body = await request.json();
     const { email, name, image, provider } = body;
 
@@ -35,9 +47,15 @@ export async function POST(request: NextRequest) {
       // Generate username from email
       const username = email.split('@')[0];
       
-      // Generate unique user code
-      const userCount = await User.countDocuments();
-      const code = `USR${String(userCount + 1).padStart(6, '0')}`;
+      // Generate unique user code atomically to prevent race conditions
+      // Using atomic counter instead of countDocuments()
+      const Counter = (await import('@/models/Counter')).default;
+      const counter = await Counter.findOneAndUpdate(
+        { _id: 'userCode' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      const code = `USR${String(counter.seq).padStart(6, '0')}`;
 
       const newUser = await User.create({
         code,
@@ -59,9 +77,11 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Hash email for logging (PII protection)
+      const emailHash = createHash('sha256').update(email).digest('hex').substring(0, 16);
       console.log('New OAuth user provisioned', { 
-        userId: newUser._id, 
-        email,
+        userId: newUser._id,
+        emailHash, // Log hash instead of plaintext email
         provider 
       });
 
@@ -75,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     } else {
       // Update last login and profile image if changed
-      const updatedUser = await User.findByIdAndUpdate(
+      const _updatedUser = await User.findByIdAndUpdate(
         existingUser._id,
         {
           $set: {
@@ -86,9 +106,11 @@ export async function POST(request: NextRequest) {
         { new: true }
       );
 
+      // Hash email for logging (PII protection)
+      const emailHash = createHash('sha256').update(email).digest('hex').substring(0, 16);
       console.log('Existing OAuth user updated', { 
-        userId: existingUser._id, 
-        email 
+        userId: existingUser._id,
+        emailHash // Log hash instead of plaintext email
       });
 
       return NextResponse.json(

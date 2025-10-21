@@ -103,7 +103,8 @@ const PaymentSchema = new Schema<IPayment>(
     paidAt: { type: Date },
     failedAt: { type: Date },
     refundedAt: { type: Date },
-    refundAmount: { type: Number, min: 0, default: null },
+    // Fix: Make refundAmount optional (no default) so validators only run when value is set
+    refundAmount: { type: Number, min: 0 },
     
     invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice' },
     
@@ -164,9 +165,9 @@ PaymentSchema.methods.markAsRefunded = async function (
   
   const actualRefundAmount = refundAmount ?? this.amount;
   
-  // Validate refund amount
+  // Validate refund amount (must be greater than 0, not equal to 0)
   if (actualRefundAmount <= 0 || actualRefundAmount > this.amount) {
-    throw new Error(`Refund amount must be between 0 and ${this.amount}`);
+    throw new Error(`Refund amount must be greater than 0 and no more than ${this.amount}`);
   }
   
   // Check for double refunds

@@ -167,13 +167,32 @@ MarketingRequestSchema.methods.reject = async function (
   this: IMarketingRequest,
   reason?: string
 ) {
-  if (this.status !== MarketingRequestStatus.PENDING) {
-    throw new Error('Only pending requests can be rejected');
+  // Use atomic update with status precondition to prevent race conditions
+  const MarketingRequest = this.constructor as mongoose.Model<IMarketingRequest>;
+  
+  const result = await MarketingRequest.findOneAndUpdate(
+    {
+      _id: this._id,
+      status: MarketingRequestStatus.PENDING, // Only update if status is PENDING
+    },
+    {
+      $set: {
+        status: MarketingRequestStatus.REJECTED,
+        rejectedAt: new Date(),
+        rejectionReason: reason,
+      },
+    },
+    {
+      new: true, // Return updated document
+    }
+  );
+  
+  if (!result) {
+    throw new Error('Only pending requests can be rejected or request not found');
   }
-  this.status = MarketingRequestStatus.REJECTED;
-  this.rejectedAt = new Date();
-  this.rejectionReason = reason;
-  await this.save();
+  
+  // Update current document instance with new values
+  Object.assign(this, result.toObject());
 };
 
 MarketingRequestSchema.methods.linkListing = async function (

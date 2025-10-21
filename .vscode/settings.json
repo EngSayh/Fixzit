@@ -5,7 +5,8 @@
   "nodejs.memory": 4096,
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 50,
-  "chat.tools.global.autoApprove": true,
+  // AI edits require explicit approval for safety - contributors must review changes manually
+  "chat.tools.global.autoApprove": false,
   "chat.tools.terminal.autoReplyToPrompts": true,
   "github.copilot.chat.agent.runTasks": true,
   "chat.notifyWindowOnConfirmation": false,
@@ -61,7 +62,8 @@
     "make": true,
     "kubectl": true
   },
-  "security.workspace.trust.enabled": false,
+  // Workspace trust is enabled for security - verify repository sources before opening
+  "security.workspace.trust.enabled": true,
   "git.branchProtection": ["main", "master"],
   "git.branchProtectionPrompt": "alwaysPrompt",
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,

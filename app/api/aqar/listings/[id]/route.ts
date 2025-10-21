@@ -133,7 +133,30 @@ export async function PATCH(
           return NextResponse.json({ error: `${field} must be a non-empty string` }, { status: 400 });
         }
         
-        (listing as unknown as Record<string, unknown>)[field] = value;
+        // Validate complex fields
+        if (field === 'amenities') {
+          if (!Array.isArray(value) || !value.every(item => typeof item === 'string')) {
+            return NextResponse.json({ error: 'amenities must be an array of strings' }, { status: 400 });
+          }
+        }
+        if (field === 'media') {
+          if (!Array.isArray(value)) {
+            return NextResponse.json({ error: 'media must be an array' }, { status: 400 });
+          }
+        }
+        if (field === 'address') {
+          if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return NextResponse.json({ error: 'address must be a non-null object' }, { status: 400 });
+          }
+        }
+        if (field === 'neighborhood') {
+          if (typeof value !== 'string' || value.trim().length === 0) {
+            return NextResponse.json({ error: 'neighborhood must be a non-empty string' }, { status: 400 });
+          }
+        }
+        
+        // Use type-safe Mongoose assignment instead of double type assertion
+        listing.set(field, value);
       }
     }
     

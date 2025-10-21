@@ -129,32 +129,50 @@ export default function PropertyEditForm({ propertyId }: { propertyId: string })
   const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Register form
+  // Use refs to avoid re-registering save callback on every keystroke
+  const nameRef = useRef(name);
+  const addressRef = useRef(address);
+  
+  // Keep refs in sync with state
   useEffect(() => {
-    const saveData = async () => {
-      setSaving(true);
-      try {
-        const response = await fetch(`/api/properties/${propertyId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, address }),
-        });
-        
-        if (!response.ok) throw new Error('Save failed');
-        
-        formState.markFormClean(formId);
-      } finally {
-        setSaving(false);
-      }
-    };
+    nameRef.current = name;
+  }, [name]);
+  
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
 
+  // Stabilize save callback with useCallback
+  const saveData = useCallback(async () => {
+    setSaving(true);
+    try {
+      // Read latest values from refs instead of closure
+      const response = await fetch(`/api/properties/${propertyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: nameRef.current, 
+          address: addressRef.current 
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Save failed');
+      
+      formState.markFormClean(formId);
+    } finally {
+      setSaving(false);
+    }
+  }, [formState, formId, propertyId]); // Only stable dependencies
+
+  // Register form with stable callback
+  useEffect(() => {
     const dispose = formState.onSaveRequest(formId, saveData);
 
     return () => {
       dispose();
       formState.unregisterForm(formId);
     };
-  }, [formState, formId, name, address, propertyId]);
+  }, [formState, formId, saveData]); // saveData is now stable
 
   // Mark dirty on field changes
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {

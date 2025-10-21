@@ -36,16 +36,44 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
     
-    // Manually populate based on targetType since enum values don't match model names
+    // Fix N+1 query problem: bulk load all targets
     const { AqarListing, AqarProject } = await import('@/models/aqar');
+    
+    // Group targetIds by type
+    const listingIds: string[] = [];
+    const projectIds: string[] = [];
     
     for (const fav of favorites) {
       if (fav.targetType === 'LISTING') {
-        const listing = await AqarListing.findById(fav.targetId).lean();
-        (fav as any).target = listing; // Add populated target data
+        listingIds.push(fav.targetId.toString());
       } else if (fav.targetType === 'PROJECT') {
-        const project = await AqarProject.findById(fav.targetId).lean();
-        (fav as any).target = project; // Add populated target data
+        projectIds.push(fav.targetId.toString());
+      }
+    }
+    
+    // Bulk query for all listings and projects (2 queries instead of N)
+    const [listings, projects] = await Promise.all([
+      listingIds.length > 0 
+        ? AqarListing.find({ _id: { $in: listingIds } }).lean()
+        : Promise.resolve([]),
+      projectIds.length > 0
+        ? AqarProject.find({ _id: { $in: projectIds } }).lean()
+        : Promise.resolve([])
+    ]);
+    
+    // Build lookup maps keyed by id
+    const listingMap = new Map(listings.map(l => [l._id.toString(), l]));
+    const projectMap = new Map(projects.map(p => [p._id.toString(), p]));
+    
+    // Attach targets in single pass
+    for (const fav of favorites) {
+      const targetIdStr = fav.targetId.toString();
+      if (fav.targetType === 'LISTING') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (fav as any).target = listingMap.get(targetIdStr);
+      } else if (fav.targetType === 'PROJECT') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (fav as any).target = projectMap.get(targetIdStr);
       }
     }
     
@@ -82,20 +110,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if already favorited
-    const existing = await AqarFavorite.findOne({
-      userId: user.id,
-      targetId,
-      targetType,
-    });
-    
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Already in favorites' },
-        { status: 409 }
-      );
-    }
-    
+    // Create favorite - rely on unique compound index to prevent duplicates
+    // The model should have: index({ userId: 1, targetId: 1, targetType: 1 }, { unique: true })
     const favorite = new AqarFavorite({
       userId: user.id,
       orgId: user.orgId || user.id,
@@ -105,12 +121,40 @@ export async function POST(request: NextRequest) {
       tags,
     });
     
-    await favorite.save();
+    try {
+      await favorite.save();
+    } catch (saveError: unknown) {
+      // Check for duplicate key error (MongoDB error code 11000)
+      const isMongoError = saveError && typeof saveError === 'object' && 'code' in saveError;
+      if (isMongoError && ((saveError as { code?: number }).code === 11000 || (saveError as { name?: string }).name === 'MongoServerError')) {
+        return NextResponse.json(
+          { error: 'Already in favorites' },
+          { status: 409 }
+        );
+      }
+      // Re-throw other errors
+      throw saveError;
+    }
     
-    // Increment favorites count on listing/project (async)
+    // Increment favorites count with proper error handling
     if (targetType === 'LISTING') {
-      const { AqarListing } = await import('@/models/aqar');
-      AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
+      try {
+        const { AqarListing } = await import('@/models/aqar');
+        await AqarListing.findByIdAndUpdate(
+          targetId,
+          { $inc: { 'analytics.favorites': 1 } }
+        ).exec();
+      } catch (analyticsError) {
+        // Log but don't fail the request
+        console.error(
+          'Failed to increment favorites count:',
+          {
+            targetId,
+            targetType,
+            error: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+          }
+        );
+      }
     }
     
     return NextResponse.json({ favorite }, { status: 201 });

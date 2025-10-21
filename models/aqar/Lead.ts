@@ -197,6 +197,12 @@ LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date
   if (advancedStates.includes(this.status)) {
     throw new Error(`Cannot schedule viewing for lead in ${this.status} status`);
   }
+  
+  // Validate viewing is scheduled for future date/time
+  if (!(dateTime instanceof Date) || dateTime.getTime() <= Date.now()) {
+    throw new Error('Viewing must be scheduled for a future date/time');
+  }
+  
   this.viewingScheduledAt = dateTime;
   this.status = LeadStatus.VIEWING;
   await this.save();

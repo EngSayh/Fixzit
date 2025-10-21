@@ -99,7 +99,7 @@ PackageSchema.methods.activate = async function (this: IPackage) {
 };
 
 PackageSchema.methods.consumeListing = async function (this: IPackage) {
-  // Atomic update to avoid race conditions
+  // Atomic update to avoid race conditions with type-safe Model cast
   const now = new Date();
   const filter: Record<string, unknown> = {
     _id: this._id,
@@ -112,24 +112,27 @@ PackageSchema.methods.consumeListing = async function (this: IPackage) {
     filter.expiresAt = { $gt: now };
   }
   
-  const updated = await (this.constructor as unknown as typeof import('mongoose').Model).findOneAndUpdate(
+  // Use proper Model typing instead of unsafe double cast
+  const PackageModel = this.constructor as mongoose.Model<IPackage>;
+  const updated = await PackageModel.findOneAndUpdate(
     filter,
     { $inc: { listingsUsed: 1 } },
     { new: true }
   );
   
   if (!updated) {
-    // Determine specific error
+    // Determine specific error with contextual details
+    const packageId = String(this._id);
     if (!this.active) {
-      throw new Error('Package not active');
+      throw new Error(`Package ${packageId} not active`);
     }
     if (this.expiresAt && this.expiresAt < now) {
-      throw new Error('Package expired');
+      throw new Error(`Package ${packageId} expired on ${this.expiresAt.toISOString()}`);
     }
     if (this.listingsUsed >= this.listingsAllowed) {
-      throw new Error('Package listings exhausted');
+      throw new Error(`Package ${packageId} listings exhausted (${this.listingsUsed}/${this.listingsAllowed})`);
     }
-    throw new Error('Failed to consume listing');
+    throw new Error(`Failed to consume listing for package ${packageId}`);
   }
   
   // Update current instance

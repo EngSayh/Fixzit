@@ -24,11 +24,35 @@ $ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --inclu
 
 **⚠️ CRITICAL ACTION REQUIRED**:
 The exposed API key `<REDACTED_GOOGLE_MAPS_API_KEY>` (full key previously exposed in git history) must be rotated:
-1. Go to Google Cloud Console → APIs & Services → Credentials
-2. Delete or regenerate the compromised key
-3. Create new API key with proper restrictions
-4. Update environment variables (.env.local, production secrets)
-5. Never commit API keys to git history
+
+**⚠️ MANUAL STEPS REQUIRED (Cannot be automated by AI agent)**:
+1. **Access Google Cloud Console** → APIs & Services → Credentials
+   - This requires your Google Cloud admin credentials
+2. **Revoke/Delete** the compromised key `AIzaSyAh...` (ends in "5SQ")
+3. **Create new API key** with strict restrictions:
+   - Application restrictions: HTTP referrers only
+   - Add allowed referrers: `https://yourdomain.com/*`, `http://localhost:3000/*` (dev only)
+   - API restrictions: Maps JavaScript API, Places API, Geocoding API only
+4. **Update environment variables**:
+   - Add new key to `.env.local` as `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<new-key>`
+   - Update GitHub Secrets: Settings → Secrets → Actions → `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+   - Update production deployment secrets (Vercel/hosting platform)
+5. **Remove old key from git history** (if not already done):
+   ```bash
+   git filter-repo --replace-text <(echo "OLD_KEY==>REDACTED")
+   ```
+6. **Add to .gitignore**: Ensure `.env*.local` is ignored
+7. **Add pre-commit hook** to prevent future key commits:
+   ```bash
+   # .git/hooks/pre-commit
+   if git diff --cached | grep -E "AIza[0-9A-Za-z_-]{35}"; then
+     echo "ERROR: Google API key detected in commit!"
+     exit 1
+   fi
+   ```
+8. **Verify** services work with new key
+
+**Status**: ⏳ Awaiting manual Google Cloud Console access
 
 ---
 
@@ -152,7 +176,9 @@ $ grep -rn "console.log.*email\|console.log.*token" . --include="*.ts" --include
 - [x] Environment variables used for secrets
 - [x] Production secrets in GitHub Secrets
 - [x] API keys have proper restrictions (domain, IP, API limits)
-- [ ] **ACTION REQUIRED**: Rotate exposed GCP API key
+- [ ] **ACTION REQUIRED**: Rotate exposed GCP API key (Manual Google Cloud Console access needed - see detailed steps above)
+  - **Reason**: Requires human with GCP admin access to revoke/create keys
+  - **Updated**: 2025-10-21 - Detailed rotation steps documented
 
 ### Error Handling
 - [x] Error messages sanitized (no PII)
