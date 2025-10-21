@@ -8,9 +8,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite } from '@/models/aqar';
+import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
+// Type for favorite with populated target
+interface FavoriteWithTarget {
+  _id: string;
+  userId: string;
+  orgId: string;
+  targetId: string;
+  targetType: 'LISTING' | 'PROJECT';
+  notes?: string;
+  tags?: string[];
+  createdAt: Date;
+  target?: any; // Populated listing or project
+}
 
 export const runtime = 'nodejs';
 
@@ -36,20 +48,47 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
     
-    // Manually populate based on targetType since enum values don't match model names
-    const { AqarListing, AqarProject } = await import('@/models/aqar');
+    // Batch-fetch targets to eliminate N+1 queries
+    // Step 1: Collect all targetIds by targetType
+    const listingIds: string[] = [];
+    const projectIds: string[] = [];
     
     for (const fav of favorites) {
       if (fav.targetType === 'LISTING') {
-        const listing = await AqarListing.findById(fav.targetId).lean();
-        (fav as any).target = listing; // Add populated target data
+        listingIds.push(fav.targetId);
       } else if (fav.targetType === 'PROJECT') {
-        const project = await AqarProject.findById(fav.targetId).lean();
-        (fav as any).target = project; // Add populated target data
+        projectIds.push(fav.targetId);
       }
     }
     
-    return NextResponse.json({ favorites });
+    // Step 2: Batch-fetch all listings and projects in parallel
+    const [listings, projects] = await Promise.all([
+      listingIds.length > 0 
+        ? AqarListing.find({ _id: { $in: listingIds } }).lean()
+        : [],
+      projectIds.length > 0
+        ? AqarProject.find({ _id: { $in: projectIds } }).lean()
+        : []
+    ]);
+    
+    // Step 3: Create lookup maps for O(1) access
+    const listingMap = new Map(listings.map(l => [l._id.toString(), l]));
+    const projectMap = new Map(projects.map(p => [p._id.toString(), p]));
+    
+    // Step 4: Attach targets to favorites
+    const favoritesWithTargets = favorites.map(fav => {
+      const targetIdStr = fav.targetId.toString();
+      
+      if (fav.targetType === 'LISTING') {
+        return { ...fav, target: listingMap.get(targetIdStr) || null };
+      } else if (fav.targetType === 'PROJECT') {
+        return { ...fav, target: projectMap.get(targetIdStr) || null };
+      }
+      
+      return fav;
+    });
+    
+    return NextResponse.json({ favorites: favoritesWithTargets });
   } catch (error) {
     console.error('Error fetching favorites:', error);
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
@@ -109,7 +148,6 @@ export async function POST(request: NextRequest) {
     
     // Increment favorites count on listing/project (async)
     if (targetType === 'LISTING') {
-      const { AqarListing } = await import('@/models/aqar');
       AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
     }
     

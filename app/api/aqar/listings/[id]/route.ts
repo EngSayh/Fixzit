@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarListing } from '@/models/aqar';
+import { AqarListing, ListingStatus } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import mongoose from 'mongoose';
@@ -107,8 +107,8 @@ export async function PATCH(
         if (field === 'furnishing' && !['FURNISHED', 'PARTLY', 'UNFURNISHED'].includes(value)) {
           return NextResponse.json({ error: `Invalid furnishing: ${value}` }, { status: 400 });
         }
-        if (field === 'status' && !['DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'INACTIVE', 'SOLD', 'RENTED', 'EXPIRED', 'REJECTED'].includes(value)) {
-          return NextResponse.json({ error: `Invalid status: ${value}` }, { status: 400 });
+        if (field === 'status' && !Object.values(ListingStatus).includes(value as ListingStatus)) {
+          return NextResponse.json({ error: `Invalid status: ${value}. Must be one of: ${Object.values(ListingStatus).join(', ')}` }, { status: 400 });
         }
         
         // Validate numeric fields

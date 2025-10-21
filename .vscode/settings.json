@@ -5,7 +5,8 @@
   "nodejs.memory": 4096,
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 50,
-  "chat.tools.global.autoApprove": true,
+  // SECURITY: Global auto-approve disabled - require manual approval for sensitive operations
+  "chat.tools.global.autoApprove": false,
   "chat.tools.terminal.autoReplyToPrompts": true,
   "github.copilot.chat.agent.runTasks": true,
   "chat.notifyWindowOnConfirmation": false,
@@ -38,30 +39,42 @@
     "cursor-global": false,
     "cursor-workspace": false
   },
+  // SECURITY: File edits require manual approval except for specific trusted patterns
+  // Auto-approved: documentation, tests, config files (non-executable)
   "chat.tools.edits.autoApprove": {
-    "**/*": true
+    "**/*.md": true,
+    "**/*.test.ts": true,
+    "**/*.test.tsx": true,
+    "**/*.spec.ts": true,
+    "**/*.spec.tsx": true,
+    "**/docs/**/*.ts": true,
+    "**/.vscode/*.json": false,
+    "**/.github/**": false
   },
+  // SECURITY: Terminal commands require manual approval except for safe read-only operations
+  // Auto-approved: package managers (install/build), git (read operations), testing
+  // NOT approved: bash/sh scripts, docker, kubectl, system commands
   "chat.tools.terminal.autoApprove": {
-    "npm": true,
-    "pnpm": true,
-    "yarn": true,
-    "bun": true,
-    "node": true,
-    "npx": true,
-    "git": true,
-    "gh": true,
-    "bash": true,
-    "sh": true,
-    "python": true,
-    "pytest": true,
+    "npm install": true,
+    "npm ci": true,
+    "npm run build": true,
+    "npm run test": true,
+    "pnpm install": true,
+    "pnpm build": true,
+    "pnpm test": true,
+    "yarn install": true,
+    "git status": true,
+    "git log": true,
+    "git diff": true,
+    "git branch": true,
+    "gh pr list": true,
+    "gh pr view": true,
     "jest": true,
     "vitest": true,
-    "docker": true,
-    "docker-compose": true,
-    "make": true,
-    "kubectl": true
+    "pytest": true
   },
-  "security.workspace.trust.enabled": false,
+  // SECURITY: Workspace trust ENABLED to prevent untrusted code execution
+  "security.workspace.trust.enabled": true,
   "git.branchProtection": ["main", "master"],
   "git.branchProtectionPrompt": "alwaysPrompt",
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,

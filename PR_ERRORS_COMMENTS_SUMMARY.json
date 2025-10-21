@@ -44550,7 +44550,7 @@
     "updated_at": "2025-10-18T15:49:01Z",
     "closed_at": null,
     "merged_at": null,
-    "merge_commit_sha": "4e396c761e52d0bb7d4611e5b517c0bca431da68",
+    "merge_commit_sha": null,
     "assignee": null,
     "assignees": [],
     "requested_reviewers": [],
