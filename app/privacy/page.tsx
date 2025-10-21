@@ -108,32 +108,32 @@ export default function PrivacyPage() {
       <section className="py-8 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
-              <Lock className="w-8 h-8 text-blue-600 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-primary-lightest)] rounded-lg">
+              <Lock className="w-8 h-8 text-[var(--fixzit-primary)] flex-shrink-0" />
               <div>
                 <div className="font-semibold text-gray-900">{t('privacy.encrypted', 'Encrypted')}</div>
                 <div className="text-sm text-gray-600">{t('privacy.encryptedDesc', 'End-to-end encryption')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
-              <Eye className="w-8 h-8 text-green-600 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-success-lightest)] rounded-lg">
+              <Eye className="w-8 h-8 text-[var(--fixzit-success)] flex-shrink-0" />
               <div>
                 <div className="font-semibold text-gray-900">{t('privacy.transparent', 'Transparent')}</div>
                 <div className="text-sm text-gray-600">{t('privacy.transparentDesc', 'Clear data usage')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
-              <Shield className="w-8 h-8 text-purple-600 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-secondary-lightest)] rounded-lg">
+              <Shield className="w-8 h-8 text-[var(--fixzit-secondary)] flex-shrink-0" />
               <div>
                 <div className="font-semibold text-gray-900">{t('privacy.compliant', 'Compliant')}</div>
                 <div className="text-sm text-gray-600">{t('privacy.compliantDesc', 'GDPR & CCPA certified')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg">
-              <FileText className="w-8 h-8 text-yellow-600 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-accent-lightest)] rounded-lg">
+              <FileText className="w-8 h-8 text-[var(--fixzit-accent)] flex-shrink-0" />
               <div>
                 <div className="font-semibold text-gray-900">{t('privacy.yourRights', 'Your Rights')}</div>
                 <div className="text-sm text-gray-600">{t('privacy.yourRightsDesc', 'Full data control')}</div>
@@ -161,7 +161,7 @@ export default function PrivacyPage() {
         <div className="mx-auto max-w-4xl px-4 lg:px-6">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-              <Mail className="w-6 h-6 text-blue-600" />
+              <Mail className="w-6 h-6 text-[var(--fixzit-primary)]" />
               {t('privacy.contactTitle', 'Privacy Questions?')}
             </h2>
             <p className="text-gray-700 mb-6">
@@ -173,7 +173,7 @@ export default function PrivacyPage() {
                 <Mail className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" />
                 <div>
                   <div className="font-semibold text-gray-900 mb-1">{t('privacy.email', 'Email')}</div>
-                  <a href="mailto:privacy@fixzit.com" className="text-blue-600 hover:text-blue-800">
+                  <a href="mailto:privacy@fixzit.com" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
                     privacy@fixzit.com
                   </a>
                 </div>
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
                 <Phone className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" />
                 <div>
                   <div className="font-semibold text-gray-900 mb-1">{t('privacy.phone', 'Phone')}</div>
-                  <a href="tel:+971XXXXXXXX" className="text-blue-600 hover:text-blue-800">
+                  <a href="tel:+971XXXXXXXX" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
                     +971 XX XXX XXXX
                   </a>
                 </div>

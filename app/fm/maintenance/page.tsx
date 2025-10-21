@@ -97,8 +97,8 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Wrench className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-[var(--fixzit-primary-lighter)] rounded-lg">
+                <Wrench className="h-6 w-6 text-[var(--fixzit-primary)]" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Tasks</p>
@@ -111,8 +111,8 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-[var(--fixzit-success-lighter)] rounded-lg">
+                <CheckCircle className="h-6 w-6 text-[var(--fixzit-success)]" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Completed</p>
@@ -125,8 +125,8 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
+              <div className="p-3 bg-[var(--fixzit-accent-lighter)] rounded-lg">
+                <Clock className="h-6 w-6 text-[var(--fixzit-accent)]" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">In Progress</p>
@@ -139,8 +139,8 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div className="p-3 bg-[var(--fixzit-danger-lighter)] rounded-lg">
+                <AlertTriangle className="h-6 w-6 text-[var(--fixzit-danger)]" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
@@ -203,7 +203,7 @@ export default function MaintenancePage() {
                       <Edit className="h-4 w-4 mr-2" />
                       {t('common.edit', 'Edit')}
                     </Button>
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                    <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
                       <Trash2 className="h-4 w-4 mr-2" />
                       {t('common.delete', 'Delete')}
                     </Button>

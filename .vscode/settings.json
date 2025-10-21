@@ -1,121 +1,282 @@
-{
-  "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
-  },
-  "nodejs.memory": 4096,
-  "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 50,
-  // ============================================================================
-  // SECURITY MODEL:
-  // - Global auto-approve is DISABLED (false)
-  // - Specific per-tool rules below explicitly opt-in ONLY safe operations
+{{
+
+  "powershell.promptToUpdatePowerShell": false,  "powershell.promptToUpdatePowerShell": false,
+
+  "powershell.startAutomatically": false,  "powershell.startAutomatically": false,
+
+  "powershell.integratedConsole.showOnStartup": false,
+
+  "powershell.sideBar.CommandExplorerVisibility": false,  // TypeScript/Node Memory Settings for Large Projects
+
+  "typescript.tsserver.maxTsServerMemory": 4096,
+
+  // TypeScript/Node Memory Settings for Large Projects  "terminal.integrated.env.windows": {
+
+  "typescript.tsserver.maxTsServerMemory": 4096,    "NODE_OPTIONS": "--max-old-space-size=4096"
+
+  "typescript.preferences.includePackageJsonAutoImports": "off",  },
+
+  "typescript.disableAutomaticTypeAcquisition": true,  "terminal.integrated.env.linux": {
+
+      "NODE_OPTIONS": "--max-old-space-size=4096"
+
+  "terminal.integrated.env.windows": {  },
+
+    "NODE_OPTIONS": "--max-old-space-size=4096"<<<<<<< HEAD
+
+  },  "nodejs.memory": 4096,
+
+  "terminal.integrated.env.linux": {  "chat.agent.enabled": true,
+
+    "NODE_OPTIONS": "--max-old-space-size=4096"  "chat.agent.maxRequests": 50,
+
+  },  // ============================================================================
+
+  "terminal.integrated.env.osx": {  // SECURITY MODEL:
+
+    "NODE_OPTIONS": "--max-old-space-size=4096"  // - Global auto-approve is DISABLED (false)
+
+  },  // - Specific per-tool rules below explicitly opt-in ONLY safe operations
+
   // - File edits: Only docs/tests auto-approved (NOT .vscode, .github, or src)
-  // - Terminal: Only safe read-only + build/test commands auto-approved
-  // - All other operations require manual approval
-  // ============================================================================
+
+  // Git Branch Protection  // - Terminal: Only safe read-only + build/test commands auto-approved
+
+  "git.branchProtection": ["main", "master", "develop"],  // - All other operations require manual approval
+
+  "git.branchProtectionPrompt": "alwaysPrompt",  // ============================================================================
+
   "chat.tools.global.autoApprove": false,
-  "chat.tools.terminal.autoReplyToPrompts": true,
-  "github.copilot.chat.agent.runTasks": true,
-  "chat.notifyWindowOnConfirmation": false,
-  "chat.checkpoints.enabled": true,
-  "chat.editing.autoAccept": 2,
-  "github.copilot.enable": { "*": true },
-  "github.copilot.chat.enable": true,
-  "github.copilot.chat.virtualTools.threshold": 50,
-  "github.copilot.chat.tools.enabled": {
-    "changes": true,
-    "edit": true,
-    "githubRepo": true,
-    "new": true,
-    "problems": true,
-    "runCommands": true,
-    "runNotebooks": false,
-    "runTasks": true,
-    "runTests": true,
-    "search": true,
-    "todos": true,
-    "usages": true,
-    "vscodeAPI": true,
-    "extensions": false,
-    "openSimpleBrowser": false,
+
+  // GitHub Copilot Settings  "chat.tools.terminal.autoReplyToPrompts": true,
+
+  "github.copilot.enable": { "*": true },  "github.copilot.chat.agent.runTasks": true,
+
+  "github.copilot.chat.enable": true,  "chat.notifyWindowOnConfirmation": false,
+
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,  "chat.checkpoints.enabled": true,
+
+  "github.copilot.chat.agent.runTasks": true,  "chat.editing.autoAccept": 2,
+
+  "github.copilot.chat.virtualTools.threshold": 50,  "github.copilot.enable": { "*": true },
+
+  "github.copilot.chat.tools.enabled": {  "github.copilot.chat.enable": true,
+
+    "changes": true,  "github.copilot.chat.virtualTools.threshold": 50,
+
+    "edit": true,  "github.copilot.chat.tools.enabled": {
+
+    "githubRepo": true,    "changes": true,
+
+    "new": true,    "edit": true,
+
+    "problems": true,    "githubRepo": true,
+
+    "runCommands": true,    "new": true,
+
+    "runNotebooks": false,    "problems": true,
+
+    "runTasks": true,    "runCommands": true,
+
+    "runTests": true,    "runNotebooks": false,
+
+    "search": true,    "runTasks": true,
+
+    "todos": true,    "runTests": true,
+
+    "usages": true,    "search": true,
+
+    "vscodeAPI": true,    "todos": true,
+
+    "extensions": false,    "usages": true,
+
+    "openSimpleBrowser": false,    "vscodeAPI": true,
+
+    "testFailure": false    "extensions": false,
+
+  },    "openSimpleBrowser": false,
+
     "testFailure": false
-  },
-  "chat.mcp.discovery.enabled": {
-    "claude-desktop": false,
-    "windsurf": false,
-    "cursor-global": false,
-    "cursor-workspace": false
-  },
-  // SECURITY: File edits require manual approval except for specific trusted patterns
+
+  // Chat Agent Settings  },
+
+  "chat.agent.enabled": true,  "chat.mcp.discovery.enabled": {
+
+  "chat.agent.maxRequests": 50,    "claude-desktop": false,
+
+  "chat.tools.global.autoApprove": false,    "windsurf": false,
+
+  "chat.tools.terminal.autoReplyToPrompts": true,    "cursor-global": false,
+
+  "chat.notifyWindowOnConfirmation": false,    "cursor-workspace": false
+
+  "chat.checkpoints.enabled": true,  },
+
+  "chat.editing.autoAccept": 2,  // SECURITY: File edits require manual approval except for specific trusted patterns
+
   // Auto-approved: documentation, tests, config files (non-executable)
-  "chat.tools.edits.autoApprove": {
-    "**/*.md": true,
-    "**/*.test.ts": true,
-    "**/*.test.tsx": true,
-    "**/*.spec.ts": true,
-    "**/*.spec.tsx": true,
-    "**/docs/**/*.ts": true,
+
+  // MCP Discovery  "chat.tools.edits.autoApprove": {
+
+  "chat.mcp.discovery.enabled": {    "**/*.md": true,
+
+    "claude-desktop": false,    "**/*.test.ts": true,
+
+    "windsurf": false,    "**/*.test.tsx": true,
+
+    "cursor-global": false,    "**/*.spec.ts": true,
+
+    "cursor-workspace": false    "**/*.spec.tsx": true,
+
+  },    "**/docs/**/*.ts": true,
+
     "**/.vscode/*.json": false,
-    "**/.github/**": false
-  },
-  // SECURITY: Terminal commands require manual approval except for safe read-only operations
-  // Auto-approved: package managers (install/build), git (read operations), testing
-  // NOT approved: bash/sh scripts, docker, kubectl, system commands
-  "chat.tools.terminal.autoApprove": {
-    "npm install": true,
-    "npm ci": true,
-    "npm run build": true,
-    "npm run test": true,
-    "pnpm install": true,
+
+  // File Edit Auto-Approve (docs and tests only)    "**/.github/**": false
+
+  "chat.tools.edits.autoApprove": {  },
+
+    "**/*.md": true,  // SECURITY: Terminal commands require manual approval except for safe read-only operations
+
+    "**/*.test.ts": true,  // Auto-approved: package managers (install/build), git (read operations), testing
+
+    "**/*.test.tsx": true,  // NOT approved: bash/sh scripts, docker, kubectl, system commands
+
+    "**/*.spec.ts": true,  "chat.tools.terminal.autoApprove": {
+
+    "**/*.spec.tsx": true,    "npm install": true,
+
+    "**/docs/**/*.ts": true,    "npm ci": true,
+
+    "**/.vscode/*.json": false,    "npm run build": true,
+
+    "**/.github/**": false    "npm run test": true,
+
+  },    "pnpm install": true,
+
     "pnpm build": true,
-    "pnpm test": true,
-    "yarn install": true,
-    "git status": true,
-    "git log": true,
-    "git diff": true,
-    "git branch": true,
-    "gh pr list": true,
-    "gh pr view": true,
-    "jest": true,
-    "vitest": true,
-    "pytest": true
-  },
-  // SECURITY: Workspace trust ENABLED to prevent untrusted code execution
-  "security.workspace.trust.enabled": true,
-  "git.branchProtection": ["main", "master"],
-  "git.branchProtectionPrompt": "alwaysPrompt",
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "codium.codeCompletion.enable": true,
-  // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
-  // and reduce extension timeouts on large repositories. These safer defaults
+
+  // Terminal Auto-Approve (safe commands only)    "pnpm test": true,
+
+  "chat.tools.terminal.autoApprove": {    "yarn install": true,
+
+    "npm install": true,    "git status": true,
+
+    "npm ci": true,    "git log": true,
+
+    "npm run build": true,    "git diff": true,
+
+    "npm run test": true,    "git branch": true,
+
+    "pnpm install": true,    "gh pr list": true,
+
+    "pnpm build": true,    "gh pr view": true,
+
+    "pnpm test": true,    "jest": true,
+
+    "yarn install": true,    "vitest": true,
+
+    "git status": true,    "pytest": true
+
+    "git log": true,  },
+
+    "git diff": true,  // SECURITY: Workspace trust ENABLED to prevent untrusted code execution
+
+    "git branch": true,  "security.workspace.trust.enabled": true,
+
+    "gh pr list": true,  "git.branchProtection": ["main", "master"],
+
+    "gh pr view": true,  "git.branchProtectionPrompt": "alwaysPrompt",
+
+    "jest": true,  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+
+    "vitest": true,  "codium.codeCompletion.enable": true,
+
+    "pytest": true  // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
+
+  },  // and reduce extension timeouts on large repositories. These safer defaults
+
   // keep the extension useful while preventing large, automatic full-repo
-  // reviews that cause the agent to pause or stop.
-  "coderabbit.autoReviewMode": "manual",
+
+  // Security & Trust  // reviews that cause the agent to pause or stop.
+
+  "security.workspace.trust.enabled": true,  "coderabbit.autoReviewMode": "manual",
+
   "coderabbit.maxFilesPerReview": 100,
-  "coderabbit.concurrentReviews": 1,
-  "extensions.autoUpdate": false,
-  "extensions.ignoreRecommendations": true,
-  "window.restoreWindows": "none",
+
+  // CodeRabbit Settings (reduced scope to prevent agent stops)  "coderabbit.concurrentReviews": 1,
+
+  "coderabbit.autoReviewMode": "manual",  "extensions.autoUpdate": false,
+
+  "coderabbit.maxFilesPerReview": 100,  "extensions.ignoreRecommendations": true,
+
+  "coderabbit.concurrentReviews": 1,  "window.restoreWindows": "none",
+
+  "files.watcherExclude": {
+
+  // Extension Management    "**/.git/objects/**": true,
+
+  "extensions.autoUpdate": false,    "**/.git/subtree-cache/**": true,
+
+  "extensions.ignoreRecommendations": true,    "**/node_modules/**": true,
+
+  "extensions.experimental.affinity": {    "**/.hg/store/**": true,
+
+    "ms-vscode.powershell": 0    "**/dist/**": true,
+
+  },    "**/.next/**": true,
+
+    "**/build/**": true,
+
+  // Window & Startup    "**/.turbo/**": true
+
+  "window.restoreWindows": "none",  },
+
+  "chatgpt.openOnStartup": true,  "chatgpt.openOnStartup": true,
+
+  "powershell.promptToUpdatePowerShell": false,
+
+  // File Watcher Exclusions  "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
+
+  "files.watcherExclude": {  "powershell.startAutomatically": false,
+
+    "**/.git/objects/**": true,  "powershell.integratedConsole.showOnStartup": false,
+
+    "**/.git/subtree-cache/**": true,  "powershell.sideBar.CommandExplorerVisibility": false,
+
+    "**/node_modules/**": true,  "typescript.tsserver.maxTsServerMemory": 2048,
+
+    "**/.hg/store/**": true,  "typescript.preferences.includePackageJsonAutoImports": "off",
+
+    "**/dist/**": true,  "typescript.disableAutomaticTypeAcquisition": true,
+
+    "**/.next/**": true,  "extensions.experimental.affinity": {
+
+    "**/build/**": true,    "ms-vscode.powershell": 0
+
+    "**/.turbo/**": true=======
+
+  },  "terminal.integrated.env.osx": {
+
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+
+  // Codium  },
+
+  "codium.codeCompletion.enable": true
+
+}  // Git Branch Protection
+
+  "git.branchProtection": ["main", "master", "develop"],
+
+  // GitHub Copilot (disabled by default, uncomment to enable)
+  // "github.copilot.enable": true,
+  // "github.copilot.agentProxy": "http://localhost:3128",
+
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
-    "**/node_modules/**": true,
-    "**/.hg/store/**": true,
-    "**/dist/**": true,
-    "**/.next/**": true,
-    "**/build/**": true,
-    "**/.turbo/**": true
-  },
-  "chatgpt.openOnStartup": true,
-  "powershell.promptToUpdatePowerShell": false,
-  "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
-  "powershell.startAutomatically": false,
-  "powershell.integratedConsole.showOnStartup": false,
-  "powershell.sideBar.CommandExplorerVisibility": false,
-  "typescript.tsserver.maxTsServerMemory": 2048,
-  "typescript.preferences.includePackageJsonAutoImports": "off",
-  "typescript.disableAutomaticTypeAcquisition": true,
-  "extensions.experimental.affinity": {
-    "ms-vscode.powershell": 0
+    "**/node_modules/*/**": true,
+    "**/.next/**": true
+>>>>>>> origin/main
   }
 }

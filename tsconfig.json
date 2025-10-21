@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "5.0",
     "target": "es2017",
     "lib": [
       "dom",
@@ -45,8 +44,10 @@
       "jest"
     ],
     // NOTE: baseUrl is deprecated and will stop functioning in TypeScript 7.0
-    // Using "ignoreDeprecations": "6.0" to silence the warning as recommended by Microsoft
-    // See: https://aka.ms/ts6 for migration information
+    // TypeScript team recommends migration but it's not urgent (TS 7.0 not released)
+    // Attempted fix with ignoreDeprecations: "6.0" caused TS5103 error
+    // Decision: Accept the deprecation warning as informational only
+    // See: https://aka.ms/ts6 for migration information when TS 7.0 is released
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -55,26 +56,20 @@
       "@/server/*": [
         "./server/*"
       ],
-      "@modules/*": [
-        "./src/modules/*"
-      ],
       "@components/*": [
-        "./src/components/*"
+        "./components/*"
       ],
       "@lib/*": [
-        "./src/lib/*"
+        "./lib/*"
       ],
       "@hooks/*": [
-        "./src/hooks/*"
-      ],
-      "@schemas/*": [
-        "./src/schemas/*"
+        "./hooks/*"
       ],
       "@types/*": [
-        "./src/types/*"
+        "./types/*"
       ],
       "@utils/*": [
-        "./src/utils/*"
+        "./utils/*"
       ]
     }
   },

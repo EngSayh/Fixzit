@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-upload:
     runs-on: ubuntu-latest
@@ -37,10 +41,11 @@ jobs:
           # Add your environment variables here if needed
           # MONGODB_URI: ${{ secrets.MONGODB_URI }}
           # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          # etc.
       
       - name: Upload source maps to Sentry (if configured)
-        # Native conditional - skips if SENTRY_AUTH_TOKEN is not set
-        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
+        # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
+        # Secrets must be set in: Repository Settings > Secrets and variables > Actions
         if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         uses: getsentry/action-release@v3
         with:
@@ -49,7 +54,71 @@ jobs:
           set_commits: auto
           # v3 supports glob patterns for sourcemaps
           sourcemaps: |
+      - name: Upload source maps to Sentry (if configured)
+        # Proxy secret through env variable to check in if condition
+        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
+        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
+        uses: getsentry/action-release@v1
+        with:
+          environment: production
+          ignore_empty: true
+          set_commits: auto
+          sourcemaps: |
             .next/static/**/*.map
+            public/**/*.map
+        env:
+          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        # Proxy secret through env variable to check in if condition
+        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
+        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
+        uses: getsentry/action-release@v1
+        with:
+          environment: production
+          ignore_empty: true
+          set_commits: auto
+          sourcemaps: |
+            .next/static/**/*.map
+            public/**/*.map
+        env:
+          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        # Proxy secret through env variable to check in if condition
+        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
+        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
+        uses: getsentry/action-release@v1
+        with:
+          environment: production
+          ignore_empty: true
+          set_commits: auto
+          sourcemaps: |
+            .next/static/**/*.map
+            public/**/*.map
+        env:
+          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        # Proxy secret through env variable to check in if condition
+        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
+        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
+        uses: getsentry/action-release@v1
+        with:
+          environment: production
+          ignore_empty: true
+          set_commits: auto
+          sourcemaps: |
+            .next/static/**/*.map
+            public/**/*.map
+        env:
+          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
             public/**/*.map
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

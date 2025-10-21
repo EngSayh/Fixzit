@@ -57,7 +57,7 @@ export default function AssetsPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
               <Plus className="w-4 h-4 mr-2" />
               New Asset
             </Button>
@@ -134,7 +134,7 @@ export default function AssetsPage() {
             <Building2 className="w-12 h-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
             <p className="text-gray-600 mb-4">Get started by adding your first asset to the registry.</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
               <Plus className="w-4 h-4 mr-2" />
               Add Asset
             </Button>
@@ -183,11 +183,11 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />;
       case 'MAINTENANCE':
-        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+        return <AlertTriangle className="w-4 h-4 text-[var(--fixzit-accent)]" />;
       case 'OUT_OF_SERVICE':
-        return <XCircle className="w-4 h-4 text-red-600" />;
+        return <XCircle className="w-4 h-4 text-[var(--fixzit-danger)]" />;
       default:
         return <Settings className="w-4 h-4 text-gray-600" />;
     }
@@ -270,7 +270,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
             <Button variant="ghost" size="sm" onClick={handleEdit}>
               <Edit className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={handleDelete}>
+            <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]" onClick={handleDelete}>
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -446,7 +446,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+        <Button type="submit" className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
           Create Asset
         </Button>
       </div>

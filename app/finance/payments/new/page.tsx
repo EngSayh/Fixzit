@@ -226,12 +226,12 @@ export default function NewPaymentPage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
                 <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-gray-400 ml-auto">1m ago</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
                 <span className="text-gray-600">{t('finance.payment.payerCustomer', 'Payer')} {t('common.selected', 'selected')}</span>
                 <span className="text-gray-400 ml-auto">3m ago</span>
               </div>

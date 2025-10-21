@@ -138,7 +138,7 @@ export default function NewInvoicePage() {
                   />
                 </div>
                 <div className="col-span-1">
-                  <button className="text-red-600 hover:text-red-900">🗑️</button>
+                  <button className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-darkest)]">🗑️</button>
                 </div>
               </div>
 
@@ -220,12 +220,12 @@ export default function NewInvoicePage() {
             <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
                 <span className="text-gray-600">Form auto-saved</span>
                 <span className="text-gray-400 ml-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
                 <span className="text-gray-600">Customer selected</span>
                 <span className="text-gray-400 ml-auto">5m ago</span>
               </div>

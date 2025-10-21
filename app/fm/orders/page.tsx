@@ -245,7 +245,7 @@ export default function OrdersPage() {
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
@@ -310,7 +310,7 @@ export default function OrdersPage() {
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
                           </Button>

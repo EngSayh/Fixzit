@@ -106,7 +106,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-sm text-gray-600">{t('profile.card.accountStatus', 'Account Status')}</span>
-                <span className="text-sm font-medium text-green-600">{t('profile.card.active', 'Active')}</span>
+                <span className="text-sm font-medium text-[var(--fixzit-success)]">{t('profile.card.active', 'Active')}</span>
               </div>
             </div>
           </div>

@@ -104,34 +104,34 @@ export default function WorkOrderApprovalsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.pendingApproval', 'Pending Approval')}</p>
-              <p className="text-2xl font-bold text-yellow-600">3</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
             </div>
-            <div className="text-yellow-400">⏳</div>
+            <div className="text-[var(--fixzit-accent-lighter)]">⏳</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.approvedToday', 'Approved Today')}</p>
-              <p className="text-2xl font-bold text-green-600">5</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">5</p>
             </div>
-            <div className="text-green-400">✅</div>
+            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.avgTime', 'Avg. Approval Time')}</p>
-              <p className="text-2xl font-bold text-blue-600">2.3h</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">2.3h</p>
             </div>
-            <div className="text-blue-400">⏱️</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">⏱️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.totalApproved', 'Total Approved')}</p>
-              <p className="text-2xl font-bold text-purple-600">247</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">247</p>
             </div>
             <div className="text-purple-400">📊</div>
           </div>
@@ -142,7 +142,7 @@ export default function WorkOrderApprovalsPage() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{t('workOrders.approvals.pending', 'Pending Approvals')}</h3>
-          <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+          <span className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] px-3 py-1 rounded-full text-sm font-medium">
             {pendingApprovals.length} {t('workOrders.pending', 'pending')}
           </span>
         </div>
@@ -173,10 +173,10 @@ export default function WorkOrderApprovalsPage() {
                 </div>
 
                 <div className="flex gap-2 ml-4">
-                  <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                  <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-lg hover:bg-[var(--fixzit-success-dark)] transition-colors">
                     {t('common.approve', 'Approve')}
                   </button>
-                  <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                  <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-lg hover:bg-[var(--fixzit-danger-dark)] transition-colors">
                     {t('common.reject', 'Reject')}
                   </button>
                   <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">

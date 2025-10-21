@@ -65,7 +65,8 @@ export type Action =
   | 'request_approval' | 'approve' | 'reject' | 'request_changes'
   | 'start_work' | 'pause_work' | 'complete_work' | 'close' | 'reopen'
   | 'export' | 'share'
-  | 'link_finance' | 'link_hr' | 'link_marketplace';
+  | 'link_finance' | 'link_hr' | 'link_marketplace'
+  | 'post_finance';
 
 /** SLA priorities (policy values are configurable per org) */
 export const SLA = {
@@ -148,6 +149,11 @@ export const ROLE_MODULE_ACCESS: Record<Role, Partial<Record<ModuleKey, boolean>
 /* =========================
  * 3) Role × Submodule → Actions (RBAC core)
  * ========================= */
+/** Actions that only assigned technicians can perform */
+export const TECHNICIAN_ASSIGNED_ACTIONS: Action[] = [
+  'start_work','pause_work','complete_work','submit_estimate','attach_quote'
+];
+
 type ActionsBySubmodule = Partial<Record<SubmoduleKey, Action[]>>;
 export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   [Role.SUPER_ADMIN]: {
@@ -163,7 +169,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   },
   [Role.CORPORATE_ADMIN]: {
     WO_CREATE: ['view','create','upload_media','comment'],
-    WO_TRACK_ASSIGN: ['view','assign','schedule','dispatch','update','export','share'],
+    WO_TRACK_ASSIGN: ['view','assign','schedule','dispatch','update','export','share','post_finance'],
     WO_PM: ['view','create','update','export'],
     WO_SERVICE_HISTORY: ['view','export'],
     PROP_LIST: ['view','create','update','delete','export'],
@@ -200,15 +206,10 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
     WO_PM: ['view'],
     WO_SERVICE_HISTORY: ['view'],
   },
-  [Role.EMPLOYEE]: {
+    [Role.EMPLOYEE]: {
     WO_CREATE: ['view','create','upload_media','comment'],
-    WO_TRACK_ASSIGN: ['view','assign','update','export'],
-    WO_PM: ['view'],
-    WO_SERVICE_HISTORY: ['view'],
-    PROP_LIST: ['view'],
-    PROP_UNITS_TENANTS: ['view'],
-    PROP_INSPECTIONS: ['view','create'],
-    PROP_DOCUMENTS: ['view','create'],
+    WO_TRACK_ASSIGN: ['view','assign','update','export','post_finance'],
+    WO_PM: ['view','create','update','export'],
   },
   [Role.PROPERTY_OWNER]: {
     WO_CREATE: ['view','create','upload_media','comment'],
@@ -234,7 +235,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   [Role.TECHNICIAN]: {
     WO_CREATE: ['view','comment'],
     WO_TRACK_ASSIGN: [
-      'view','update','submit_estimate','attach_quote','upload_media','start_work','pause_work','complete_work'
+      'view','update',...TECHNICIAN_ASSIGNED_ACTIONS,'upload_media'
     ],
     WO_PM: ['view','update'],
     WO_SERVICE_HISTORY: ['view'],
@@ -273,6 +274,7 @@ type ResourceCtx = {
   isOrgMember: boolean;
   isOwnerOfProperty?: boolean;
   isTechnicianAssigned?: boolean;
+  uploadedMedia?: Array<'BEFORE' | 'DURING' | 'AFTER' | 'QUOTE'>;
 };
 
 export function can(
@@ -291,14 +293,16 @@ export function can(
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
   if (ctx.role === Role.TENANT && action !== 'create') {
+    // Tenants can only access their own work orders - enforce strict ownership
     return ctx.requesterUserId === ctx.userId;
   }
 
+  // Property owners/deputies must own the property being accessed
   if (ctx.role === Role.PROPERTY_OWNER || ctx.role === Role.OWNER_DEPUTY) {
     if (ctx.propertyId && !ctx.isOwnerOfProperty) return false;
   }
 
-  if (ctx.role === Role.TECHNICIAN && ['start_work','pause_work','complete_work','submit_estimate','attach_quote'].includes(action)) {
+  if (ctx.role === Role.TECHNICIAN && TECHNICIAN_ASSIGNED_ACTIONS.includes(action)) {
     return !!ctx.isTechnicianAssigned;
   }
 
@@ -323,7 +327,22 @@ export enum WOStatus {
   CLOSED = 'CLOSED',
 }
 
-export const WORK_ORDER_FSM = {
+/** FSM transition definition with optional RBAC action enforcement */
+type TransitionDef = {
+  from: string;
+  to: string;
+  by: Role[];
+  action?: Action;
+  requireMedia?: Array<'BEFORE' | 'AFTER'>;
+  guard?: 'technicianAssigned';
+  optional?: boolean;
+};
+
+export const WORK_ORDER_FSM: {
+  requiredMediaByStatus: Partial<Record<string, ReadonlyArray<'BEFORE' | 'AFTER'>>>;
+  transitions: TransitionDef[];
+  sla: typeof SLA;
+} = {
   requiredMediaByStatus: {
     ASSESSMENT: ['BEFORE'],
     WORK_COMPLETE: ['AFTER'],
@@ -530,6 +549,10 @@ export const FMDocument = mongoose.models.FMDocument ?? mongoose.model('FMDocume
 export const DEFAULT_APPROVALS = APPROVAL_POLICIES;
 export const DEFAULT_SLA = SLA;
 
+/**
+ * Smoke test utility for basic RBAC and FSM checks.
+ * Intended for development and maintenance validation, not for production use.
+ */
 export function smokeTests() {
   const tenantCtx: ResourceCtx = {
     orgId: 'o1', plan: Plan.STANDARD, role: Role.TENANT, userId: 'u1',
@@ -549,11 +572,49 @@ export function smokeTests() {
  * 10) Helper: FSM guard example
  * ========================= */
 
-export function canTransition(from: WOStatus, to: WOStatus, actorRole: Role, ctx: ResourceCtx) {
-  const t = WORK_ORDER_FSM.transitions.find(x => x.from === from && x.to === to && (x.by as Role[]).includes(actorRole));
-  if (!t) return false;
-  if (t.requireMedia?.includes('BEFORE') && !ctx) return false;
-  if (t.requireMedia?.includes('AFTER') && !ctx) return false;
-  if ((t as any).guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+/**
+ * Check if required media attachments exist in the work order context
+ */
+export function hasRequiredMedia(ctx: ResourceCtx, mediaType: 'BEFORE' | 'AFTER'): boolean {
+  if (!ctx.uploadedMedia || ctx.uploadedMedia.length === 0) {
+    return false;
+  }
+  return ctx.uploadedMedia.includes(mediaType);
+}
+
+/**
+ * Validate FSM state transition with media and guard checks.
+ * Looks up the transition in WORK_ORDER_FSM and validates it against context.
+ * @param from - Starting status
+ * @param to - Target status
+ * @param actorRole - Role attempting the transition
+ * @param ctx - Resource context with media and assignment info
+ * @returns true if transition is valid and all guards pass
+ */
+export function canTransition(
+  from: WOStatus,
+  to: WOStatus,
+  actorRole: Role,
+  ctx: ResourceCtx
+): boolean {
+  // Find the transition definition
+  const transition = WORK_ORDER_FSM.transitions.find(
+    t => t.from === from && t.to === to && (t.by as Role[]).includes(actorRole)
+  );
+  
+  if (!transition) return false;
+  
+  // Check required media attachments
+  if (transition.requireMedia?.includes('BEFORE') && !hasRequiredMedia(ctx, 'BEFORE')) return false;
+  if (transition.requireMedia?.includes('AFTER') && !hasRequiredMedia(ctx, 'AFTER')) return false;
+  
+  // Check guard condition for technician assignment
+  if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) return false;
+
+  // Enforce RBAC for transition-specific actions
+  if (transition.action) {
+    if (!can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, ctx)) return false;
+  }
+  
   return true;
 }

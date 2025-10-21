@@ -56,7 +56,7 @@ export default function AIChatPage() {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-[var(--fixzit-primary)] rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -103,7 +103,7 @@ export default function AIChatPage() {
 
             {isLoading && (
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-[var(--fixzit-primary)] rounded-full flex items-center justify-center">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
                 <div className="bg-gray-100 p-4 rounded-lg">
@@ -128,7 +128,7 @@ export default function AIChatPage() {
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
-                className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
               </button>
