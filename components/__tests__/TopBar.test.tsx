@@ -69,6 +69,20 @@ vi.mock('../Portal', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="portal">{children}</div>,
 }));
 
+// Mock FormState Context
+vi.mock('@/contexts/FormStateContext', () => ({
+  useFormState: () => ({
+    hasUnsavedChanges: false,
+    registerForm: vi.fn(),
+    unregisterForm: vi.fn(),
+    markFormDirty: vi.fn(),
+    markFormClean: vi.fn(),
+    requestSave: vi.fn(async () => Promise.resolve()),
+    onSaveRequest: vi.fn(() => () => {}),
+  }),
+  FormStateProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 describe('TopBar', () => {
   beforeEach(() => {
     // Clear localStorage before each test
