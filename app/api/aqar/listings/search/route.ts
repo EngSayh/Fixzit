@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarListing } from '@/models/aqar';
+import { AqarListing, FurnishingStatus, ListingIntent, PropertyType } from '@/models/aqar';
 
 export const runtime = 'nodejs'; // Atlas Search requires Node.js runtime
 
@@ -24,10 +24,16 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city');
     const neighborhoods = searchParams.get('neighborhoods')?.split(',');
     
-    // Parse and validate numeric params (set undefined if invalid)
+    // Parse numeric helper
     const parseNumeric = (value: string | null, parser: (s: string) => number): number | undefined => {
       if (!value || value.trim() === '') return undefined;
-      const parsed = parser(value.trim());
+      const raw = value.trim();
+      let parsed: number;
+      if (parser === parseInt) {
+        parsed = parseInt(raw, 10);
+      } else {
+        parsed = parser(raw);
+      }
       return Number.isFinite(parsed) ? parsed : undefined;
     };
     
@@ -38,12 +44,51 @@ export async function GET(request: NextRequest) {
     const minArea = parseNumeric(searchParams.get('minArea'), parseInt);
     const maxArea = parseNumeric(searchParams.get('maxArea'), parseInt);
     const furnishing = searchParams.get('furnishing');
-    const amenities = searchParams.get('amenities')?.split(',');
+    const amenitiesRaw = searchParams.get('amenities');
+    const amenities = amenitiesRaw ? amenitiesRaw.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+
+    // Validate enums and numeric ranges early and return 400 on invalid inputs
+    // Intent
+    if (intent && !Object.values(ListingIntent).includes(intent as ListingIntent)) {
+      return NextResponse.json({ error: `Invalid intent: ${intent}` }, { status: 400 });
+    }
+    // Property type
+    if (propertyType && !Object.values(PropertyType).includes(propertyType as PropertyType)) {
+      return NextResponse.json({ error: `Invalid propertyType: ${propertyType}` }, { status: 400 });
+    }
     
     // Geo search with validation
     const lat = parseNumeric(searchParams.get('lat'), parseFloat);
     const lng = parseNumeric(searchParams.get('lng'), parseFloat);
-    const radiusKm = parseNumeric(searchParams.get('radiusKm'), parseFloat);
+    let radiusKm = parseNumeric(searchParams.get('radiusKm'), parseFloat);
+
+    // Numeric range checks
+    if (minPrice !== undefined && minPrice < 0) return NextResponse.json({ error: 'minPrice must be >= 0' }, { status: 400 });
+    if (maxPrice !== undefined && maxPrice < 0) return NextResponse.json({ error: 'maxPrice must be >= 0' }, { status: 400 });
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) return NextResponse.json({ error: 'minPrice cannot be greater than maxPrice' }, { status: 400 });
+    
+    const MAX_BEDS = 50;
+    if (minBeds !== undefined && (minBeds < 0 || minBeds > MAX_BEDS)) return NextResponse.json({ error: `minBeds must be between 0 and ${MAX_BEDS}` }, { status: 400 });
+    if (maxBeds !== undefined && (maxBeds < 0 || maxBeds > MAX_BEDS)) return NextResponse.json({ error: `maxBeds must be between 0 and ${MAX_BEDS}` }, { status: 400 });
+    if (minBeds !== undefined && maxBeds !== undefined && minBeds > maxBeds) return NextResponse.json({ error: 'minBeds cannot be greater than maxBeds' }, { status: 400 });
+
+    if (minArea !== undefined && minArea < 0) return NextResponse.json({ error: 'minArea must be >= 0' }, { status: 400 });
+    if (maxArea !== undefined && maxArea < 0) return NextResponse.json({ error: 'maxArea must be >= 0' }, { status: 400 });
+    if (minArea !== undefined && maxArea !== undefined && minArea > maxArea) return NextResponse.json({ error: 'minArea cannot be greater than maxArea' }, { status: 400 });
+
+    // Furnishing enum
+    if (furnishing && !Object.values(FurnishingStatus).includes(furnishing as FurnishingStatus)) {
+      return NextResponse.json({ error: `Invalid furnishing: ${furnishing}` }, { status: 400 });
+    }
+
+    // Geo validation and caps
+    const MAX_RADIUS_KM = 100; // sensible cap
+    if (radiusKm !== undefined) {
+      if (radiusKm < 0) return NextResponse.json({ error: 'radiusKm must be >= 0' }, { status: 400 });
+      if (radiusKm > MAX_RADIUS_KM) radiusKm = MAX_RADIUS_KM;
+    }
+    if (lat !== undefined && (lat < -90 || lat > 90)) return NextResponse.json({ error: 'lat must be between -90 and 90' }, { status: 400 });
+    if (lng !== undefined && (lng < -180 || lng > 180)) return NextResponse.json({ error: 'lng must be between -180 and 180' }, { status: 400 });
     
     // Sorting & pagination with clamping
     const sort = searchParams.get('sort') || 'relevance'; // relevance|price-asc|price-desc|date-desc|featured
@@ -79,11 +124,12 @@ export async function GET(request: NextRequest) {
       if (minArea !== undefined) (query.areaSqm as Record<string, number>).$gte = minArea;
       if (maxArea !== undefined) (query.areaSqm as Record<string, number>).$lte = maxArea;
     }
-    if (furnishing) query.furnishing = furnishing;
-    if (amenities && amenities.length > 0) query.amenities = { $all: amenities };
+  if (furnishing) query.furnishing = furnishing;
+  if (amenities && amenities.length > 0) query.amenities = { $all: amenities };
     
     // Geo search
     if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
+      // Use geo field (2dsphere index exists on Listing schema) with $near
       query.geo = {
         $near: {
           $geometry: {
