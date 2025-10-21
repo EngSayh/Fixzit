@@ -152,27 +152,32 @@ export async function POST(request: NextRequest) {
     
     await favorite.save();
     
-    // Increment favorites count on listing/project with error handling (non-blocking)
+    // Increment favorites count on listing/project in detached async blocks that await the update
+    // but do not block the response. Errors are caught and logged to avoid silent failures.
     if (targetType === 'LISTING') {
-      AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } })
-        .exec()
-        .catch((analyticsError) => {
+      (async () => {
+        try {
+          await AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
+        } catch (analyticsError) {
           console.error('Failed to increment listing favorites analytics', {
             targetId,
             targetType,
             message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
           });
-        });
+        }
+      })();
     } else if (targetType === 'PROJECT') {
-      AqarProject.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } })
-        .exec()
-        .catch((analyticsError) => {
+      (async () => {
+        try {
+          await AqarProject.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
+        } catch (analyticsError) {
           console.error('Failed to increment project favorites analytics', {
             targetId,
             targetType,
             message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
           });
-        });
+        }
+      })();
     }
     
     return NextResponse.json({ favorite }, { status: 201 });
