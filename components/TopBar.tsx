@@ -27,6 +27,7 @@ const fallbackTranslations: Record<string, string> = {
   'common.viewAll': 'View all notifications',
   'nav.profile': 'Profile',
   'nav.settings': 'Settings',
+  'common.preferences': 'Preferences',
   'common.logout': 'Sign out'
 };
 
@@ -127,7 +128,17 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     setIsSaving(true);
     setSaveError(null);
     try {
+      // Dispatch an event so page components that own forms can handle the
+      // actual submit+navigation flow. This avoids racing on timeouts and
+      // ensures the page can `await` its own save logic and navigate only on
+      // success.
+      const ev = new CustomEvent('fxz:saveFormsAndNavigate', { detail: { target: pendingNavigation } });
+      window.dispatchEvent(ev);
+
+      // Also attempt the centralized requestSave() as a fallback for forms
+      // that registered with the FormStateProvider API.
       await formState.requestSave();
+
       // Success path only
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
