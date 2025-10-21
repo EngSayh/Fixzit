@@ -18,12 +18,12 @@ export const runtime = 'nodejs';
 // GET /api/aqar/listings/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDb();
     
-    const { id } = params;
+    const { id } = await params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });
@@ -54,14 +54,14 @@ export async function GET(
 // PATCH /api/aqar/listings/[id]
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDb();
     
     const user = await getSessionUser(request);
     
-    const { id } = params;
+    const { id } = await params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });
@@ -149,14 +149,14 @@ export async function PATCH(
 // DELETE /api/aqar/listings/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDb();
     
     const user = await getSessionUser(request);
     
-    const { id } = params;
+    const { id } = await params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });

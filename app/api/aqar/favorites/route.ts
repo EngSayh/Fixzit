@@ -41,9 +41,11 @@ export async function GET(request: NextRequest) {
     
     for (const fav of favorites) {
       if (fav.targetType === 'LISTING') {
-        fav.target = await AqarListing.findById(fav.targetId).lean();
+        const listing = await AqarListing.findById(fav.targetId).lean();
+        (fav as any).target = listing; // Add populated target data
       } else if (fav.targetType === 'PROJECT') {
-        fav.target = await AqarProject.findById(fav.targetId).lean();
+        const project = await AqarProject.findById(fav.targetId).lean();
+        (fav as any).target = project; // Add populated target data
       }
     }
     

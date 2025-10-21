@@ -63,7 +63,6 @@
     "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
     "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}"
   },
-  "postCreateCommand": "bash .devcontainer/setup.sh",
-  "remoteUser": "node",
-  "updateRemoteUserUID": true
+  "postCreateCommand": "npm install",
+  "remoteUser": "node"
 }

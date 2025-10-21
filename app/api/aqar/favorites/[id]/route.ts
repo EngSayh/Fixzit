@@ -15,14 +15,14 @@ export const runtime = 'nodejs';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDb();
     
-    const user = await getSessionUser(request);
+    const { id } = await params;
     
-    const { id } = params;
+    const user = await getSessionUser(request);
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid favorite ID' }, { status: 400 });
