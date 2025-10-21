@@ -94,8 +94,11 @@ export async function POST(request: NextRequest) {
       
       await payment.save({ session });
       
-      // Update package with payment ID (properly typed)
-      pkg.paymentId = payment._id as mongoose.Types.ObjectId;
+      // Update package with payment ID (with runtime validation)
+      if (!payment._id || !(payment._id instanceof mongoose.Types.ObjectId)) {
+        throw new Error('Invalid payment ID after save');
+      }
+      pkg.paymentId = payment._id;
       await pkg.save({ session });
       
       // Commit transaction - both package and payment succeed together

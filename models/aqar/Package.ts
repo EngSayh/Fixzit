@@ -42,7 +42,7 @@ export interface IPackage extends Document {
   
   // Instance methods
   activate(): Promise<void>;
-  consumeListing(): Promise<void>;
+  consumeListing(session?: mongoose.ClientSession): Promise<void>;
   updateIfExpired(): Promise<void>;
 }
 
@@ -133,7 +133,7 @@ PackageSchema.methods.activate = async function (this: IPackage) {
   this.expiresAt = expiresAt;
 };
 
-PackageSchema.methods.consumeListing = async function (this: IPackage) {
+PackageSchema.methods.consumeListing = async function (this: IPackage, session?: mongoose.ClientSession) {
   // Atomic update to avoid race conditions
   const now = new Date();
   const filter: Record<string, unknown> = {
@@ -150,7 +150,7 @@ PackageSchema.methods.consumeListing = async function (this: IPackage) {
   const updated = await (this.constructor as unknown as typeof import('mongoose').Model).findOneAndUpdate(
     filter,
     { $inc: { listingsUsed: 1 } },
-    { new: true }
+    { new: true, ...(session && { session }) }
   );
   
   if (!updated) {

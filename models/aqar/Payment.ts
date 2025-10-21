@@ -137,21 +137,62 @@ PaymentSchema.methods.markAsCompleted = async function (
   transactionId?: string,
   response?: Record<string, unknown>
 ) {
-  this.status = PaymentStatus.COMPLETED;
-  this.paidAt = new Date();
-  if (transactionId) this.gatewayTransactionId = transactionId;
-  if (response) this.gatewayResponse = response;
-  await this.save();
+  // Atomic update with state precondition to prevent invalid transitions
+  const result = await mongoose.model('AqarPayment').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: PaymentStatus.PENDING // Only allow PENDING → COMPLETED
+    },
+    {
+      $set: {
+        status: PaymentStatus.COMPLETED,
+        paidAt: new Date(),
+        ...(transactionId && { gatewayTransactionId: transactionId }),
+        ...(response && { gatewayResponse: response })
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error(`Cannot mark payment as completed: not in PENDING status (current: ${this.status})`);
+  }
+  
+  // Update local instance
+  this.status = (result as IPayment).status;
+  this.paidAt = (result as IPayment).paidAt;
+  if (transactionId) this.gatewayTransactionId = (result as IPayment).gatewayTransactionId;
+  if (response) this.gatewayResponse = (result as IPayment).gatewayResponse;
 };
 
 PaymentSchema.methods.markAsFailed = async function (
   this: IPayment,
   response?: Record<string, unknown>
 ) {
-  this.status = PaymentStatus.FAILED;
-  this.failedAt = new Date();
-  if (response) this.gatewayResponse = response;
-  await this.save();
+  // Atomic update with state precondition to prevent invalid transitions
+  const result = await mongoose.model('AqarPayment').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: PaymentStatus.PENDING // Only allow PENDING → FAILED
+    },
+    {
+      $set: {
+        status: PaymentStatus.FAILED,
+        failedAt: new Date(),
+        ...(response && { gatewayResponse: response })
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error(`Cannot mark payment as failed: not in PENDING status (current: ${this.status})`);
+  }
+  
+  // Update local instance
+  this.status = (result as IPayment).status;
+  this.failedAt = (result as IPayment).failedAt;
+  if (response) this.gatewayResponse = (result as IPayment).gatewayResponse;
 };
 
 PaymentSchema.methods.markAsRefunded = async function (

@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       
       try {
         // 1. Consume package listing atomically (with session)
-        await activePackage.consumeListing();
+        await activePackage.consumeListing(session);
         
         // 2. Create listing with whitelisted fields only
         const listing = new AqarListing({
