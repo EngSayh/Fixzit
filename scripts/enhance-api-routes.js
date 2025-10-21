@@ -110,8 +110,12 @@ async function analyzeRoute(filePath) {
 // Generate OpenAPI doc comment for a method
 function generateOpenAPIDoc(method, routePath, existingValidation) {
   const projectRoot = process.cwd();
-  const cleanPath = routePath
-    .replace(path.join(projectRoot, 'app/api'), '/api')
+  // Use path.posix for consistent forward slashes across all platforms
+  const normalizedRoute = routePath.split(path.sep).join(path.posix.sep);
+  const normalizedRoot = projectRoot.split(path.sep).join(path.posix.sep);
+  
+  const cleanPath = normalizedRoute
+    .replace(`${normalizedRoot}/app/api`, '/api')
     .replace('/route.ts', '')
     .replace('[id]', '{id}')
     .replace('[slug]', '{slug}');

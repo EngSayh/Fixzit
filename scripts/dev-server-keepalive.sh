@@ -11,8 +11,8 @@ CHECK_INTERVAL=10  # Check every 10 seconds
 
 echo "🚀 Starting Next.js Dev Server Keep-Alive Monitor"
 echo "📝 Log file: $LOG_FILE"
-echo "� PID file: $PID_FILE"
-echo "�🔍 Checking every ${CHECK_INTERVAL}s"
+echo "📋 PID file: $PID_FILE"
+echo "🔍 Checking every ${CHECK_INTERVAL}s"
 echo ""
 
 # Function to start the server

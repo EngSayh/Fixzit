@@ -117,9 +117,13 @@ export const authConfig = {
     },
     async session({ session, token }) {
       // Add user ID and role to session from token
-      if (token?.sub) {
-        session.user.id = token.sub;
+      // Validate token.sub exists (required for session.user.id)
+      if (!token?.sub) {
+        throw new Error('JWT token missing required sub claim');
       }
+      
+      session.user.id = token.sub;
+      
       if (token?.role) {
         session.user.role = token.role as string;
       }

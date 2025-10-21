@@ -25,7 +25,7 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    id?: string;
+    id: string; // Required to match Session.user.id
     role?: string;
     orgId?: string;
   }
