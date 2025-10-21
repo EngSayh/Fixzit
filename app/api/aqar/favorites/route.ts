@@ -25,15 +25,16 @@ export async function GET(request: NextRequest) {
     await connectDb();
     
     const user = await getSessionUser(request);
+    // Consistent tenant isolation - use orgId if available, fallback to userId
+    const tenantOrgId = user.orgId || user.id;
     
     const { searchParams } = new URL(request.url);
     const targetType = searchParams.get('targetType'); // LISTING|PROJECT
     
     const query: Record<string, unknown> = {
       userId: user.id,
+      orgId: tenantOrgId,
     };
-    // Enforce tenant/org isolation when available
-    if (user.orgId) query.orgId = user.orgId;
     
     if (targetType) {
       query.targetType = targetType;
@@ -63,13 +64,13 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Step 2: Batch-fetch all listings and projects in parallel
+    // Step 2: Batch-fetch all listings and projects in parallel (with tenant isolation)
     const [listings, projects] = await Promise.all([
       listingIds.length > 0 
-        ? AqarListing.find({ _id: { $in: listingIds }, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean()
+        ? AqarListing.find({ _id: { $in: listingIds }, orgId: tenantOrgId }).lean()
         : [],
       projectIds.length > 0
-        ? AqarProject.find({ _id: { $in: projectIds }, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean()
+        ? AqarProject.find({ _id: { $in: projectIds }, orgId: tenantOrgId }).lean()
         : []
     ]);
     
@@ -103,6 +104,8 @@ export async function POST(request: NextRequest) {
     await connectDb();
     
     const user = await getSessionUser(request);
+    // Consistent tenant isolation - use orgId if available, fallback to userId
+    const tenantOrgId = user.orgId || user.id;
     
   const body = await request.json();
   let { targetId, targetType, notes, tags } = body;
@@ -127,12 +130,12 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if already favorited
+    // Check if already favorited (with tenant isolation)
     const existing = await AqarFavorite.findOne({
       userId: user.id,
+      orgId: tenantOrgId,
       targetId: new mongoose.Types.ObjectId(targetId),
       targetType,
-      ...(user.orgId ? { orgId: user.orgId } : {}),
     });
     
     if (existing) {
@@ -142,15 +145,15 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Verify referenced target exists to prevent favorites for non-existent entities
+    // Verify referenced target exists within same tenant (prevent cross-tenant favorites)
     const targetObjectId = new mongoose.Types.ObjectId(targetId);
     if (targetType === 'LISTING') {
-      const listingExists = await AqarListing.findOne({ _id: targetObjectId, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean();
+      const listingExists = await AqarListing.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
       if (!listingExists) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
     } else if (targetType === 'PROJECT') {
-      const projectExists = await AqarProject.findOne({ _id: targetObjectId, ...(user.orgId ? { orgId: user.orgId } : {}) }).lean();
+      const projectExists = await AqarProject.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
       if (!projectExists) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
@@ -163,14 +166,22 @@ export async function POST(request: NextRequest) {
 
     const favorite = new AqarFavorite({
       userId: user.id,
-      ...(user.orgId ? { orgId: user.orgId } : {}),
+      orgId: tenantOrgId,
       targetId: targetObjectId,
       targetType,
       notes,
       tags,
     });
     
-    await favorite.save();
+    // Handle duplicate key race condition gracefully
+    try {
+      await favorite.save();
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {
+        return NextResponse.json({ error: 'Already in favorites' }, { status: 409 });
+      }
+      throw err;
+    }
     
     // Increment favorites count on listing/project in detached async blocks that await the update
     // but do not block the response. Errors are caught and logged to avoid silent failures.

@@ -200,8 +200,13 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
           }
 
           try {
-            // Verify JWT signature and decode payload
-            const { payload } = await jwtVerify(authToken, JWT_SECRET);
+            // Verify JWT signature and decode payload with security hardening
+            const { payload } = await jwtVerify(authToken, JWT_SECRET, {
+              algorithms: ['HS256'],
+              clockTolerance: 5, // Allow 5 seconds clock skew
+              // issuer: 'fixzit',      // Uncomment when issuer is set in token
+              // audience: 'fixzit-app' // Uncomment when audience is set in token
+            });
             user = {
               id: payload.id as string || '',
               email: payload.email as string || '',
@@ -254,8 +259,13 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
       };
     } else if (authToken) {
       try {
-        // Verify JWT signature and decode payload (secure method)
-        const { payload } = await jwtVerify(authToken, JWT_SECRET);
+        // Verify JWT signature and decode payload (secure method) with security hardening
+        const { payload } = await jwtVerify(authToken, JWT_SECRET, {
+          algorithms: ['HS256'],
+          clockTolerance: 5, // Allow 5 seconds clock skew
+          // issuer: 'fixzit',      // Uncomment when issuer is set in token
+          // audience: 'fixzit-app' // Uncomment when audience is set in token
+        });
         user = {
           id: payload.id as string || '',
           email: payload.email as string || '',

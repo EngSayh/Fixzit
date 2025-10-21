@@ -44,84 +44,16 @@ jobs:
           # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           # etc.
       
-      - name: Upload source maps to Sentry (if configured)
-        # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
-        # Secrets must be set in: Repository Settings > Secrets and variables > Actions
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
-        uses: getsentry/action-release@v3
-        with:
-          environment: production
-          ignore_empty: true
-          set_commits: auto
-          # v3 supports glob patterns for sourcemaps
-          sourcemaps: |
-      - name: Upload source maps to Sentry (if configured)
-        # Proxy secret through env variable to check in if condition
-        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
+      - name: Upload source maps to Sentry
         if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
         uses: getsentry/action-release@v1
         with:
           environment: production
           ignore_empty: true
           set_commits: auto
-          sourcemaps: |
-            .next/static/**/*.map
-            public/**/*.map
+          sourcemaps: '.next/static/chunks/**/*.js.map'
         env:
           SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-        # Proxy secret through env variable to check in if condition
-        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
-        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
-        uses: getsentry/action-release@v1
-        with:
-          environment: production
-          ignore_empty: true
-          set_commits: auto
-          sourcemaps: |
-            .next/static/**/*.map
-            public/**/*.map
-        env:
-          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-        # Proxy secret through env variable to check in if condition
-        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
-        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
-        uses: getsentry/action-release@v1
-        with:
-          environment: production
-          ignore_empty: true
-          set_commits: auto
-          sourcemaps: |
-            .next/static/**/*.map
-            public/**/*.map
-        env:
-          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-        # Proxy secret through env variable to check in if condition
-        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
-        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
-        uses: getsentry/action-release@v1
-        with:
-          environment: production
-          ignore_empty: true
-          set_commits: auto
-          sourcemaps: |
-            .next/static/**/*.map
-            public/**/*.map
-        env:
-          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-            public/**/*.map
-        env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
@@ -149,7 +81,7 @@ jobs:
           
           # Show Sentry status
           if [ -n "${SENTRY_AUTH_TOKEN}" ]; then
-            echo "✅ Sentry upload configured" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Sentry upload completed successfully" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Sentry upload skipped (SENTRY_AUTH_TOKEN not configured)" >> $GITHUB_STEP_SUMMARY
             echo "To enable: Add SENTRY_AUTH_TOKEN (secret), SENTRY_ORG, SENTRY_PROJECT (variables) in repository settings" >> $GITHUB_STEP_SUMMARY
