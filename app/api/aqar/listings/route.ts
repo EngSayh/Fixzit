@@ -117,10 +117,63 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Consume package listing (model is now properly typed)
-      await activePackage.consumeListing();
+      // Use MongoDB transaction to atomically consume credits and create listing
+      // This ensures that if listing creation fails, credits are not consumed
+      const session = await AqarPackage.startSession();
+      session.startTransaction();
+      
+      try {
+        // 1. Consume package listing atomically (with session)
+        await activePackage.consumeListing();
+        
+        // 2. Create listing with whitelisted fields only
+        const listing = new AqarListing({
+          // Whitelisted client fields
+          intent,
+          propertyType,
+          title,
+          description,
+          address,
+          city,
+          neighborhood,
+          geo,
+          areaSqm,
+          beds,
+          baths,
+          kitchens,
+          ageYears,
+          furnishing,
+          amenities: amenities || [],
+          streetWidthM,
+          facing,
+          media: media || [],
+          price,
+          rentFrequency,
+          source,
+          compliance: compliance || {},
+          propertyRef,
+          // Server-controlled fields
+          listerId: user.id,
+          orgId: user.orgId || user.id,
+          status: ListingStatus.DRAFT, // Always start as draft
+        });
+        
+        await listing.save({ session });
+        
+        // Commit transaction - both operations succeeded
+        await session.commitTransaction();
+        await session.endSession();
+        
+        return NextResponse.json({ listing }, { status: 201 });
+      } catch (txError) {
+        // Rollback transaction - credits are refunded automatically
+        await session.abortTransaction();
+        await session.endSession();
+        throw txError; // Re-throw to be caught by outer catch block
+      }
     }
     
+    // For non-package sources (OWNER, etc.), create listing directly
     // Basic validation on whitelisted fields already covered by sanitized required check
     
     // Create listing with whitelisted fields only
