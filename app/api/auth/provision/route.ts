@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
       console.log('New OAuth user provisioned', { 
         userId: newUser._id, 
-        email,
+        code: newUser.code,
         provider 
       });
 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
       console.log('Existing OAuth user updated', { 
         userId: existingUser._id, 
-        email 
+        code: existingUser.code
       });
 
       return NextResponse.json(

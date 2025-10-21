@@ -18,6 +18,7 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
   const [dirtyForms, setDirtyForms] = useState<Set<string>>(new Set());
   const [saveCallbacks, setSaveCallbacks] = useState<Map<string, () => Promise<void>>>(new Map());
   const isSavingRef = useRef<boolean>(false); // Reentrancy guard
+  const inProgressSavesRef = useRef<Map<string, Promise<void>>>(new Map()); // Track in-progress saves per form
 
   // Define these callbacks first so they can be used in useEffect below
   const markFormDirty = useCallback((formId: string) => {
@@ -80,27 +81,49 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
     setSaveCallbacks(prev => new Map(prev).set(formId, callback));
     
     const dispose = () => {
-      setSaveCallbacks(prev => {
-        const next = new Map(prev);
-        next.delete(formId);
-        return next;
-      });
-      // Also remove from dirtyForms to avoid stale dirty state
-      setDirtyForms(prev => {
-        const next = new Set(prev);
-        next.delete(formId);
-        return next;
-      });
+      // Check if there's an in-progress save for this form before deleting
+      const inProgressSave = inProgressSavesRef.current.get(formId);
+      if (inProgressSave) {
+        console.warn(`Disposer called while save in progress for form: ${formId}. Waiting for completion.`);
+        // Wait for in-progress save to finish before disposing
+        inProgressSave.finally(() => {
+          setSaveCallbacks(prev => {
+            const next = new Map(prev);
+            next.delete(formId);
+            return next;
+          });
+          // Also remove from dirtyForms to avoid stale dirty state
+          setDirtyForms(prev => {
+            const next = new Set(prev);
+            next.delete(formId);
+            return next;
+          });
+          inProgressSavesRef.current.delete(formId);
+        });
+      } else {
+        setSaveCallbacks(prev => {
+          const next = new Map(prev);
+          next.delete(formId);
+          return next;
+        });
+        // Also remove from dirtyForms to avoid stale dirty state
+        setDirtyForms(prev => {
+          const next = new Set(prev);
+          next.delete(formId);
+          return next;
+        });
+      }
     };
     
     return dispose;
   }, []);
 
   const requestSave = useCallback(async (options?: { timeout?: number }) => {
-    // Reentrancy guard: prevent concurrent save operations
+    // Reentrancy guard: prevent concurrent global save operations but allow new saves to queue
     if (isSavingRef.current) {
-      console.warn('Save operation already in progress, skipping concurrent call');
-      return;
+      const error = new Error('Save operation already in progress. Please wait for current save to complete.');
+      console.warn(error.message);
+      return Promise.reject(error);
     }
     
     isSavingRef.current = true;
@@ -125,12 +148,22 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      // Wrap save operations with timeout
+      // Wrap save operations with timeout and track in-progress saves
       const saveWithTimeout = async (formId: string, callback: () => Promise<void>) => {
         const timeoutPromise = new Promise<never>((_resolve, reject) =>
           setTimeout(() => reject(new Error(`Save timeout for form: ${formId}`)), timeoutMs)
         );
-        return Promise.race([callback(), timeoutPromise]).then(() => formId);
+        const savePromise = Promise.race([callback(), timeoutPromise]).then(() => {
+          // Return void explicitly
+        });
+        
+        // Track this save as in-progress
+        inProgressSavesRef.current.set(formId, savePromise);
+        
+        return savePromise.then(() => formId).finally(() => {
+          // Remove from in-progress tracking when done
+          inProgressSavesRef.current.delete(formId);
+        });
       };
       
       const results = await Promise.allSettled(
@@ -146,8 +179,19 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
       
       const errors = results.filter(r => r.status === 'rejected');
       if (errors.length > 0) {
-        console.error('Save errors occurred:', errors);
-        throw new Error(`Failed to save ${errors.length} form(s)`);
+        // Aggregate error details per form
+        const errorDetails = errors
+          .map((r, idx) => {
+            if (r.status === 'rejected') {
+              const formId = callbacksWithIds[idx]?.formId || 'unknown';
+              return `Form ${formId}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`;
+            }
+            return '';
+          })
+          .filter(Boolean)
+          .join('; ');
+        
+        throw new Error(`Failed to save ${errors.length} form(s): ${errorDetails}`);
       }
     } finally {
       // Always clear the flag, even if errors occurred
