@@ -2,7 +2,7 @@
 
 ## API Key Received
 ```
-AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
+[REDACTED - API Key stored in GitHub Secrets and .env.local]
 ```
 
 ## Setup Instructions
@@ -14,7 +14,7 @@ Since GitHub CLI cannot set secrets from Codespaces, please add manually:
 1. Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
 2. Click "New repository secret"
 3. Name: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-4. Value: `AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU`
+4. Value: `[Your Google Maps API Key]`
 5. Click "Add secret"
 
 ### 2. Add to Local Environment
@@ -28,8 +28,8 @@ cp env.example .env.local
 
 Then add to `.env.local`:
 ```bash
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
-GOOGLE_MAPS_API_KEY=AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=[Your_Google_Maps_API_Key]
+GOOGLE_MAPS_API_KEY=[Your_Google_Maps_API_Key]
 ```
 
 ### 3. Restart Dev Server
