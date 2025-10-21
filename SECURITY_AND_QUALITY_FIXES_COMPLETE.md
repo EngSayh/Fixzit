@@ -289,7 +289,8 @@ json_path = workspace_root / "PR_ERRORS_COMMENTS_SUMMARY.json"
 5. **Optional - Purge from Git History**:
    ```bash
    # WARNING: This rewrites git history
-   git filter-repo --invert-paths --path-glob '**/*SESSION_SUMMARY*.md' --force
+   # Replace with actual files that contained the exposed key
+   git filter-repo --invert-paths --path 'GOOGLE_MAPS_API_SETUP.md' --force
    ```
 
 ---

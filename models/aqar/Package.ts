@@ -174,11 +174,24 @@ PackageSchema.methods.consumeListing = async function (this: IPackage, session?:
 };
 
 // Method to update package status if expired
-// Named to reflect side effect (update), not just check
+// Uses atomic update to prevent TOCTOU race conditions
 PackageSchema.methods.updateIfExpired = async function (this: IPackage) {
-  if (this.active && this.expiresAt && this.expiresAt < new Date()) {
+  // Atomic update - only one process will successfully flip the flag
+  const result = await mongoose.model('AqarPackage').findOneAndUpdate(
+    {
+      _id: this._id,
+      active: true,
+      expiresAt: { $lt: new Date() }
+    },
+    {
+      $set: { active: false }
+    },
+    { new: true }
+  );
+  
+  // Update local instance if change occurred
+  if (result) {
     this.active = false;
-    await this.save();
   }
 };
 

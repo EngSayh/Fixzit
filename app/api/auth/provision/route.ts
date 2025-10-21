@@ -81,9 +81,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log('New OAuth user provisioned', { 
-        userId: newUser._id, 
-        code: newUser.code,
+      console.log('New OAuth user provisioned successfully', { 
         provider 
       });
 
@@ -97,20 +95,38 @@ export async function POST(request: NextRequest) {
       );
     } else {
       // Update last login and profile image if changed
-      await User.findByIdAndUpdate(
-        existingUser._id,
-        {
-          $set: {
-            'metadata.lastLogin': new Date(),
-            'metadata.profileImage': image,
+      try {
+        const updated = await User.findByIdAndUpdate(
+          existingUser._id,
+          {
+            $set: {
+              'metadata.lastLogin': new Date(),
+              'metadata.profileImage': image,
+            },
           },
-        }
-      );
+          { new: true }
+        );
 
-      console.log('Existing OAuth user updated', { 
-        userId: existingUser._id, 
-        code: existingUser.code
-      });
+        if (!updated) {
+          console.error('User update failed: user not found', {
+            userId: existingUser._id
+          });
+          return NextResponse.json(
+            { error: 'User update failed' },
+            { status: 500 }
+          );
+        }
+
+        console.log('Existing OAuth user updated successfully');
+      } catch (updateError) {
+        console.error('User update failed', {
+          message: updateError instanceof Error ? updateError.message : 'Unknown error',
+        });
+        return NextResponse.json(
+          { error: 'Failed to update user' },
+          { status: 500 }
+        );
+      }
 
       return NextResponse.json(
         { 

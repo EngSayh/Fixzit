@@ -138,8 +138,15 @@ export const authConfig = {
         token.id = user.id;
         // Fetch user role from database via provision API
         try {
+          // Guard against undefined/null email and URL-encode for safety
+          if (!user.email) {
+            token.role = 'USER';
+            return token;
+          }
+          
           const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-          const response = await fetch(`${baseUrl}/api/auth/user/${user.email}`, {
+          const encodedEmail = encodeURIComponent(user.email);
+          const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
             headers: { 'x-internal-auth': process.env.NEXTAUTH_SECRET || '' },
           });
           if (response.ok) {

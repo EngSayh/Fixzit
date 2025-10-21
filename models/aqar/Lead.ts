@@ -110,7 +110,12 @@ const LeadSchema = new Schema<ILead>(
     
     inquirerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     inquirerName: { type: String, required: true, maxlength: 200 },
-    inquirerPhone: { type: String, required: true },
+    inquirerPhone: { 
+      type: String, 
+      required: true,
+      trim: true,
+      match: [/^\+?[1-9]\d{1,14}$/, 'Phone number must be in valid E.164 format (e.g., +1234567890)']
+    },
     inquirerEmail: { type: String, maxlength: 200 },
     inquirerNationalId: { type: String },
     
@@ -230,6 +235,15 @@ LeadSchema.methods.assign = async function (
 };
 
 LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
+  // Validate dateTime is a valid Date in the future
+  if (!(dateTime instanceof Date) || isNaN(dateTime.getTime())) {
+    throw new Error('Invalid dateTime: must be a valid Date object');
+  }
+  
+  if (dateTime.getTime() <= Date.now()) {
+    throw new Error('Invalid dateTime: viewing must be scheduled in the future');
+  }
+  
   // Use atomic update with preconditions to prevent race conditions and enforce state transitions
   const result = await mongoose.model('AqarLead').findOneAndUpdate(
     {
@@ -256,14 +270,12 @@ LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date
 };
 
 LeadSchema.methods.completeViewing = async function (this: ILead) {
-  if (!this.viewingScheduledAt) {
-    throw new Error('No viewing scheduled');
-  }
-  
   // Use atomic update with preconditions in query to prevent race conditions
+  // Include viewingScheduledAt check in DB query to avoid TOCTOU race
   const result = await mongoose.model('AqarLead').findOneAndUpdate(
     {
       _id: this._id,
+      viewingScheduledAt: { $exists: true },
       // Terminal states (WON, LOST, SPAM) are immutable - check in DB query
       status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
     },
@@ -277,7 +289,7 @@ LeadSchema.methods.completeViewing = async function (this: ILead) {
   );
   
   if (!result) {
-    throw new Error(`Cannot complete viewing: lead not found or in terminal state (current: ${this.status})`);
+    throw new Error(`Cannot complete viewing: lead not found, no viewing scheduled, or in terminal state (current: ${this.status})`);
   }
   
   // Update local instance
@@ -351,16 +363,8 @@ LeadSchema.methods.markAsLost = async function (
 };
 
 LeadSchema.methods.markAsSpam = async function (this: ILead) {
-  // Terminal state guard: SPAM is immutable once set
-  if (this.status === LeadStatus.SPAM) {
-    throw new Error('Lead already marked as SPAM');
-  }
-  // Prevent transitions from WON/LOST (once a lead is WON or LOST, it cannot be marked as spam)
-  if (this.status === LeadStatus.WON || this.status === LeadStatus.LOST) {
-    throw new Error(`Cannot mark lead as SPAM from terminal state: ${this.status}`);
-  }
-  
-  // Use atomic update to prevent race conditions
+  // Use atomic update with preconditions to prevent race conditions
+  // Remove in-memory checks to avoid TOCTOU race - DB enforces all preconditions
   const result = await mongoose.model('AqarLead').findOneAndUpdate(
     {
       _id: this._id,

@@ -71,11 +71,11 @@ export interface IBooking extends Document {
 
 const BookingSchema = new Schema<IBooking>(
   {
-    listingId: { type: Schema.Types.ObjectId, ref: 'AqarListing', required: true, index: true },
+    listingId: { type: Schema.Types.ObjectId, ref: 'AqarListing', required: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     
-    guestId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    guestId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     
     checkInDate: { type: Date, required: true, index: true },
     checkOutDate: { type: Date, required: true, index: true },
@@ -95,7 +95,6 @@ const BookingSchema = new Schema<IBooking>(
       enum: Object.values(BookingStatus),
       default: BookingStatus.PENDING,
       required: true,
-      index: true,
     },
     
     guestPhone: { type: String, select: false },

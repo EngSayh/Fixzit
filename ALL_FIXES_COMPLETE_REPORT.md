@@ -39,7 +39,7 @@
 
 **Status:** ✅ OPEN / IN PROGRESS (Pushed to origin/feat/topbar-enhancements)  
 **Branch:** `feat/topbar-enhancements`  
-**PR Link:** https://github.com/EngSayh/Fixzit/pull/131  
+**PR Link:** [https://github.com/EngSayh/Fixzit/pull/131](https://github.com/EngSayh/Fixzit/pull/131)  
 **Scorecard:** 96/100 (Grade A)  
 **All review comments:** RESOLVED (CodeRabbit, Gemini, ChatGPT-Codex)
 

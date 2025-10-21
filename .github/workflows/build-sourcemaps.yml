@@ -45,7 +45,7 @@ jobs:
           # etc.
       
       - name: Upload source maps to Sentry
-        if: ${{ env.SENTRY_TOKEN_CHECK != '' }}
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         uses: getsentry/action-release@v1
         with:
           environment: production
@@ -53,7 +53,6 @@ jobs:
           set_commits: auto
           sourcemaps: '.next/static/chunks/**/*.js.map'
         env:
-          SENTRY_TOKEN_CHECK: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}

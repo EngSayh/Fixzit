@@ -112,7 +112,7 @@ Status: Reviewed and mitigated
    ✅ Email domain whitelist enforced (@fixzit.com, @fixzit.co)
    ✅ Unauthorized domains rejected
    ✅ Session created with correct user data
-   ✅ Token refresh mechanism operational
+   ✅ Session data refreshed from DB on each request (maxAge: 30 days)
    ```
 
 2. **Session Management**:
@@ -122,7 +122,11 @@ Status: Reviewed and mitigated
    ✅ Session expires after 30 days (maxAge)
    ✅ Expired session redirects to login
    ✅ Multiple concurrent sessions handled
-   ✅ Session revocation works
+   ✅ Session revocation works (logout clears session)
+   
+   ⚠️ Token refresh mechanism: NOT YET IMPLEMENTED
+   Current: Sessions rely on maxAge expiry (30 days)
+   Backlog: Implement automatic token refresh with provider refresh tokens
    ```
 
 3. **Middleware Protection**:
@@ -134,6 +138,22 @@ Status: Reviewed and mitigated
    ✅ JWT signature verification prevents forgery
    ✅ Admin routes enforce RBAC correctly
    ```
+
+**Current Session Behavior**:
+- Sessions are valid for 30 days (maxAge configuration)
+- No automatic token refresh implemented
+- Users must re-authenticate after session expiry
+- Session data refreshed from database on each request (user approval status, role updates)
+
+**Token Refresh Backlog Item**:
+```typescript
+// Future enhancement: Implement token refresh
+// - Add expiry checks in jwt() callback
+// - Store refresh tokens securely
+// - Implement automatic refresh before expiry
+// - Handle refresh token expiration gracefully
+// Estimated effort: 4-6 hours
+```
 
 ### 🔄 Phase 4: End-to-End Tests (PLANNED)
 
@@ -259,12 +279,12 @@ async signIn({ user, account }) {
       
       // Deny access if user not in database or inactive
       if (!dbUser) {
-        console.warn(`OAuth login denied: User ${user.email} not found in database`);
+        console.warn('OAuth login denied: User not found in database');
         return false;
       }
       
       if (!dbUser.isActive) {
-        console.warn(`OAuth login denied: User ${user.email} is inactive`);
+        console.warn('OAuth login denied: User account is inactive');
         return false;
       }
       
@@ -715,6 +735,6 @@ The comprehensive testing plan, security hardening, risk mitigation, and monitor
 
 - [NextAuth.js v5 Migration Guide](https://authjs.dev/getting-started/migrating-to-v5)
 - [NEXTAUTH_VERSION_ANALYSIS.md](./NEXTAUTH_VERSION_ANALYSIS.md) - Detailed version comparison
-- [SESSION_COMPLETE_2025_01_19.md](./SESSION_COMPLETE_2025_01_19.md) - Security fixes summary
+- [SESSION_COMPLETE_2025_10_19.md](./SESSION_COMPLETE_2025_10_19.md) - Security fixes summary
 - [Next.js 15 Documentation](https://nextjs.org/docs)
 - [Auth.js Security Guidelines](https://authjs.dev/security)

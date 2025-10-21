@@ -119,7 +119,8 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestSave = useCallback(async (options?: { timeout?: number }) => {
-    // Reentrancy guard: prevent concurrent global save operations but allow new saves to queue
+    // Reentrancy guard: reject concurrent global save operations to prevent race conditions
+    // This prevents multiple simultaneous save attempts that could lead to data inconsistency
     if (isSavingRef.current) {
       const error = new Error('Save operation already in progress. Please wait for current save to complete.');
       console.warn(error.message);

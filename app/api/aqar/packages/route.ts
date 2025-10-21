@@ -37,8 +37,17 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ packages });
   } catch (error) {
-    console.error('Error fetching packages:', error);
-    return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
+    // Generate correlation ID for tracking
+    const correlationId = `pkg_get_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    // Sanitized error logging - no PII, no sensitive data
+    console.error('Error fetching packages', {
+      correlationId,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+    });
+    
+    return NextResponse.json({ error: 'Failed to fetch packages', correlationId }, { status: 500 });
   }
 }
 
@@ -49,7 +58,17 @@ export async function POST(request: NextRequest) {
     
     const user = await getSessionUser(request);
     
-    const body = await request.json();
+    // Parse JSON with error handling
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch (_parseError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
+    
     const { type } = body; // STARTER|STANDARD|PREMIUM
     
     if (!Object.values(PackageType).includes(type as PackageType)) {

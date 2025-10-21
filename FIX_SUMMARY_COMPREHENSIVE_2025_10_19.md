@@ -14,7 +14,49 @@ This session addressed **9 critical issues** spanning documentation accuracy, se
 
 **Quality Assurance**: ✅ TypeScript (0 errors) | ✅ ESLint (0 warnings)
 
-**Database Operations**: Standard MongoDB find/aggregate queries (no Atlas Search dependency)
+**Database Operations**: Standard MongoDB find/aggregate queries with text search using `$regex` and `$text` operators (no Atlas Search dependency required)
+
+**Query Implementation Details**:
+```javascript
+// Example property search queries used in the system:
+// 1. Basic text search with regex (case-insensitive)
+db.properties.find({
+  $or: [
+    { title: { $regex: searchTerm, $options: 'i' } },
+    { description: { $regex: searchTerm, $options: 'i' } },
+    { location: { $regex: searchTerm, $options: 'i' } }
+  ]
+});
+
+// 2. Compound filters with aggregation
+db.properties.aggregate([
+  { $match: { 
+    type: { $in: ['villa', 'apartment'] },
+    price: { $gte: minPrice, $lte: maxPrice },
+    bedrooms: { $gte: minBedrooms }
+  }},
+  { $sort: { createdAt: -1 } },
+  { $limit: 20 }
+]);
+
+// 3. Geospatial queries for map bounds
+db.properties.find({
+  location: {
+    $geoWithin: {
+      $box: [[swLng, swLat], [neLng, neLat]]
+    }
+  }
+});
+```
+
+**Supported Query Parameters**:
+- `search`: Text search across title, description, location (using `$regex`)
+- `type`: Property type filter (`villa`, `apartment`, `townhouse`, `land`, `commercial`)
+- `minPrice`/`maxPrice`: Price range filters
+- `bedrooms`/`bathrooms`: Room count filters
+- `bounds`: Geographic bounding box for map queries (`sw_lat`, `sw_lng`, `ne_lat`, `ne_lng`)
+- `sort`: Sort order (`price_asc`, `price_desc`, `date_asc`, `date_desc`)
+- `limit`: Results per page (default: 20, max: 100)
 
 ---
 

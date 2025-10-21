@@ -161,13 +161,12 @@ $ pnpm lint
 ### Security Scan ✅
 ```bash
 # Search for exposed API keys
-```bash
 $ grep -rE "AIzaSy[A-Za-z0-9_-]{33}" .
 # Pattern search acceptable in documentation - not actual keys
-```
 
 # Search for hardcoded secrets
 $ grep -rE "(mongodb\+srv|postgres)://[^@]+:[^@]+@" .
+```
 # Result: Only documentation examples (safe)
 ```
 

@@ -9,6 +9,66 @@ import { connectDb } from '@/lib/mongo';
 import { AqarListing, AqarPackage, ListingStatus } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
+// Helper function to build listing data object from request body and user
+function buildListingData(body: Record<string, unknown>, user: { id: string; orgId?: string }) {
+  const {
+    intent,
+    propertyType,
+    title,
+    description,
+    address,
+    city,
+    neighborhood,
+    geo,
+    areaSqm,
+    beds,
+    baths,
+    kitchens,
+    ageYears,
+    furnishing,
+    amenities,
+    streetWidthM,
+    facing,
+    media,
+    price,
+    rentFrequency,
+    source,
+    compliance,
+    propertyRef,
+  } = body;
+
+  return {
+    // Whitelisted client fields
+    intent,
+    propertyType,
+    title,
+    description,
+    address,
+    city,
+    neighborhood,
+    geo,
+    areaSqm,
+    beds,
+    baths,
+    kitchens,
+    ageYears,
+    furnishing,
+    amenities: amenities || [],
+    streetWidthM,
+    facing,
+    media: media || [],
+    price,
+    rentFrequency,
+    source,
+    compliance: compliance || {},
+    propertyRef,
+    // Server-controlled fields
+    listerId: user.id,
+    orgId: user.orgId || user.id,
+    status: ListingStatus.DRAFT, // Always start as draft
+  };
+}
+
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
@@ -127,36 +187,7 @@ export async function POST(request: NextRequest) {
         await activePackage.consumeListing(session);
         
         // 2. Create listing with whitelisted fields only
-        const listing = new AqarListing({
-          // Whitelisted client fields
-          intent,
-          propertyType,
-          title,
-          description,
-          address,
-          city,
-          neighborhood,
-          geo,
-          areaSqm,
-          beds,
-          baths,
-          kitchens,
-          ageYears,
-          furnishing,
-          amenities: amenities || [],
-          streetWidthM,
-          facing,
-          media: media || [],
-          price,
-          rentFrequency,
-          source,
-          compliance: compliance || {},
-          propertyRef,
-          // Server-controlled fields
-          listerId: user.id,
-          orgId: user.orgId || user.id,
-          status: ListingStatus.DRAFT, // Always start as draft
-        });
+        const listing = new AqarListing(buildListingData(sanitizedBody, user));
         
         await listing.save({ session });
         
@@ -177,36 +208,7 @@ export async function POST(request: NextRequest) {
     // Basic validation on whitelisted fields already covered by sanitized required check
     
     // Create listing with whitelisted fields only
-    const listing = new AqarListing({
-      // Whitelisted client fields
-      intent,
-      propertyType,
-      title,
-      description,
-      address,
-      city,
-      neighborhood,
-      geo,
-      areaSqm,
-      beds,
-      baths,
-      kitchens,
-      ageYears,
-      furnishing,
-      amenities: amenities || [],
-      streetWidthM,
-      facing,
-      media: media || [],
-      price,
-      rentFrequency,
-      source,
-      compliance: compliance || {},
-      propertyRef,
-      // Server-controlled fields
-      listerId: user.id,
-      orgId: user.orgId || user.id,
-      status: ListingStatus.DRAFT, // Always start as draft
-    });
+    const listing = new AqarListing(buildListingData(sanitizedBody, user));
     
     await listing.save();
     
