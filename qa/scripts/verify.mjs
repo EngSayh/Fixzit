@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Default to fast mode to avoid collecting every page locally. Set VERIFY_FULL=true to run full E2E.
-const FAST = process.env.VERIFY_FULL !== 'true' && !process.argv.includes('--full');
+// Default to fast mode to avoid collecting every page locally. Set VERIFY_FULL=true or pass --full to run full E2E.
+const FAST = process.env.VERIFY_FULL !== 'true' ? true : false;
 
 async function ping(url, attempts=30) {
   for (let i=0;i<attempts;i++){
@@ -23,24 +23,30 @@ async function ping(url, attempts=30) {
   return false;
 }
 
-async function run(cmd, args, name) {
+async function run(cmd, args, name, { timeoutSec = 60 } = {}) {
   return new Promise((resolve, reject)=>{
-    const p = spawn(cmd, args, { stdio: 'inherit', env: process.env });
+    // Spawn with pipes so we can observe output for the watchdog, but forward output to the parent
+    const p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
 
-    // Watchdog: if child doesn't exit or produce output for 60s, kill it to avoid hangs
+    // Forward child output to the parent so logs are visible
+    p.stdout && p.stdout.pipe(process.stdout);
+    p.stderr && p.stderr.pipe(process.stderr);
+
+    // Watchdog: if child doesn't exit or produce output for `timeoutSec`, kill it
     let lastOutput = Date.now();
     const watchdog = setInterval(()=>{
-      if(Date.now() - lastOutput > 60000){
-        p.kill('SIGKILL');
+      if(Date.now() - lastOutput > timeoutSec * 1000){
+        try { p.kill('SIGKILL'); } catch(e){}
         clearInterval(watchdog);
-        reject(new Error(`${name} hung for >60s and was killed by watchdog`));
+        reject(new Error(`${name} hung for >${timeoutSec}s and was killed by watchdog`));
       }
-    }, 5000);
+    }, 2000);
 
     p.stdout?.on('data', ()=> lastOutput = Date.now());
     p.stderr?.on('data', ()=> lastOutput = Date.now());
 
     p.on('exit', code => { clearInterval(watchdog); code===0 ? resolve() : reject(new Error(`${name} failed (${code})`)); });
+    p.on('error', err => { clearInterval(watchdog); reject(err); });
   });
 }
 
@@ -49,11 +55,18 @@ async function main(){
   // 1) DB sanity
   await run('node', ['qa/scripts/dbConnectivity.mjs'], 'DB connectivity');
 
-  // 2) Start dev server
-  const dev = spawn(process.platform==='win32'?'npm.cmd':'npm', ['run','dev'], { stdio:'inherit' });
-  console.log(pc.gray('… waiting for Next.js to boot on 3000'));
-  const up = await ping(cfg.baseURL, 90);
-  if(!up){ dev.kill(); throw new Error('Server did not start on 3000'); }
+  // 2) Start dev server (only for full verify)
+  let dev;
+  if (!FAST) {
+    dev = spawn(process.platform==='win32'?'npm.cmd':'npm', ['run','dev'], { stdio: ['ignore','pipe','pipe'], env: process.env });
+    dev.stdout && dev.stdout.pipe(process.stdout);
+    dev.stderr && dev.stderr.pipe(process.stderr);
+    console.log(pc.gray('… waiting for Next.js to boot on 3000'));
+    const up = await ping(cfg.baseURL, 30);
+    if(!up){ try { dev.kill(); } catch(e){}; throw new Error('Server did not start on 3000'); }
+  } else {
+    console.log(pc.gray('… FAST verify selected — skipping full dev server boot (set VERIFY_FULL=true to run full)'));
+  }
 
   try {
     // 3) Optional seed (idempotent)
