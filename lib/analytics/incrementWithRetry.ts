@@ -17,7 +17,10 @@ interface IncrementOptions<T = unknown> {
 }
 
 /**
- * Increment analytics with exponential backoff retry
+ * Increment analytics with linear backoff retry
+ * 
+ * Uses a linear backoff strategy: baseDelay, baseDelay*2, baseDelay*3, etc.
+ * This provides increasing delays on retries without the aggressive growth of exponential backoff.
  * 
  * @param options - Configuration for the increment operation
  * @returns Promise that resolves when increment succeeds or all retries are exhausted

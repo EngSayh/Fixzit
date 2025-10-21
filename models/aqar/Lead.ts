@@ -114,7 +114,7 @@ const LeadSchema = new Schema<ILead>(
       type: String, 
       required: true,
       trim: true,
-      match: [/^\+?[1-9]\d{1,14}$/, 'Phone number must be in valid E.164 format (e.g., +1234567890)']
+      match: [/^\+[1-9]\d{1,14}$/, 'Phone number must be in E.164 format with leading + and 1-15 digits (e.g., +1234567890)']
     },
     inquirerEmail: { type: String, maxlength: 200 },
     inquirerNationalId: { type: String },

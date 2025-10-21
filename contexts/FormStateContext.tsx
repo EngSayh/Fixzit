@@ -168,28 +168,34 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
       };
       
       const results = await Promise.allSettled(
-        callbacksWithIds.map(({ formId, callback }) => saveWithTimeout(formId, callback))
+        callbacksWithIds.map(({ formId, callback }) => 
+          saveWithTimeout(formId, callback).then(
+            (savedFormId) => ({ status: 'success' as const, formId: savedFormId }),
+            (error) => ({ status: 'error' as const, formId, error })
+          )
+        )
       );
       
       // Mark successfully saved forms as clean
       results.forEach(result => {
-        if (result.status === 'fulfilled') {
-          markFormClean(result.value);
+        if (result.status === 'fulfilled' && result.value.status === 'success') {
+          markFormClean(result.value.formId);
         }
       });
       
-      const errors = results.filter(r => r.status === 'rejected');
+      // Aggregate errors using formId from the result objects (not array index)
+      const errors = results
+        .filter((r): r is PromiseFulfilledResult<{ status: 'error'; formId: string; error: unknown }> => 
+          r.status === 'fulfilled' && r.value.status === 'error'
+        )
+        .map(r => r.value);
+      
       if (errors.length > 0) {
-        // Aggregate error details per form
         const errorDetails = errors
-          .map((r, idx) => {
-            if (r.status === 'rejected') {
-              const formId = callbacksWithIds[idx]?.formId || 'unknown';
-              return `Form ${formId}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`;
-            }
-            return '';
+          .map(({ formId, error }) => {
+            const message = error instanceof Error ? error.message : String(error);
+            return `Form ${formId}: ${message}`;
           })
-          .filter(Boolean)
           .join('; ');
         
         throw new Error(`Failed to save ${errors.length} form(s): ${errorDetails}`);

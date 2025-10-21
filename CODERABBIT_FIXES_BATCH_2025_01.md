@@ -253,7 +253,7 @@ try {
 **Vulnerability Details**:
 - **CVE ID**: CVE-2025-62522
 - **GHSA ID**: GHSA-93m4-6634-74q7
-- **Severity**: Moderate (CVSS 4.0)
+- **Severity**: Medium (CVSS v4.0 score: 6.0)
 - **Weakness**: CWE-22 (Path Traversal)
 - **Affected**: vite >= 7.1.0, <= 7.1.10
 - **Patched**: vite 7.1.11

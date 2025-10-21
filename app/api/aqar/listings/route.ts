@@ -163,41 +163,52 @@ export async function POST(request: NextRequest) {
     
     // Check if user has active package (for agents/developers)
     if (body.source === 'AGENT' || body.source === 'DEVELOPER') {
-      const activePackage = await AqarPackage.findOne({
-        userId: user.id,
-        active: true,
-        expiresAt: { $gt: new Date() },
-        $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
-      });
-      
-      if (!activePackage) {
-        return NextResponse.json(
-          { error: 'No active listing package. Please purchase a package first.' },
-          { status: 402 }
-        );
-      }
-      
-      // Use MongoDB transaction to atomically consume credits and create listing
+      // Use MongoDB transaction to atomically check package and create listing
       // This ensures that if listing creation fails, credits are not consumed
       const session = await AqarPackage.startSession();
-      session.startTransaction();
       
       try {
-        // 1. Consume package listing atomically (with session)
-        await activePackage.consumeListing(session);
+        await session.withTransaction(async () => {
+          // 1. Find and lock active package atomically (within transaction)
+          const activePackage = await AqarPackage.findOne({
+            userId: user.id,
+            active: true,
+            expiresAt: { $gt: new Date() },
+            $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
+          }, null, { session });
+          
+          if (!activePackage) {
+            throw new Error('NO_ACTIVE_PACKAGE');
+          }
+          
+          // 2. Consume package listing atomically (with session)
+          await activePackage.consumeListing(session);
+          
+          // 3. Create listing with whitelisted fields only
+          const listing = new AqarListing(buildListingData(sanitizedBody, user));
+          await listing.save({ session });
+          
+          // Transaction will auto-commit if we reach here without throwing
+          return listing;
+        });
         
-        // 2. Create listing with whitelisted fields only
-        const listing = new AqarListing(buildListingData(sanitizedBody, user));
-        
-        await listing.save({ session });
-        
-        // Commit transaction - both operations succeeded
-        await session.commitTransaction();
         await session.endSession();
+        
+        const listing = await AqarListing.findOne({ 
+          listerId: user.id 
+        }).sort({ createdAt: -1 }).limit(1);
         
         return NextResponse.json({ listing }, { status: 201 });
       } catch (txError) {
-        // Rollback transaction - credits are refunded automatically
+        // Transaction auto-aborted - credits are refunded automatically
+        await session.endSession();
+        
+        if (txError instanceof Error && txError.message === 'NO_ACTIVE_PACKAGE') {
+          return NextResponse.json(
+            { error: 'No active listing package. Please purchase a package first.' },
+            { status: 402 }
+          );
+        }
         await session.abortTransaction();
         await session.endSession();
         throw txError; // Re-throw to be caught by outer catch block

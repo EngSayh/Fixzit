@@ -45,6 +45,7 @@ jobs:
           # etc.
       
       - name: Upload source maps to Sentry
+        id: sentry-upload
         if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         uses: getsentry/action-release@v1
         with:
@@ -56,6 +57,16 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      
+      - name: Set Sentry upload status
+        if: always()
+        id: sentry-status
+        run: |
+          if [ "${{ steps.sentry-upload.outcome }}" == "success" ]; then
+            echo "uploaded=true" >> $GITHUB_OUTPUT
+          else
+            echo "uploaded=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Archive source maps as artifacts
         uses: actions/upload-artifact@v4
@@ -79,7 +90,7 @@ jobs:
           echo "💾 Total source map size: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
           
           # Show Sentry status
-          if [ -n "${SENTRY_AUTH_TOKEN}" ]; then
+          if [ "${{ steps.sentry-status.outputs.uploaded }}" == "true" ]; then
             echo "✅ Sentry upload completed successfully" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Sentry upload skipped (SENTRY_AUTH_TOKEN not configured)" >> $GITHUB_STEP_SUMMARY

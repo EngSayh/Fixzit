@@ -141,7 +141,8 @@ PaymentSchema.methods.markAsCompleted = async function (
   response?: Record<string, unknown>
 ) {
   // Atomic update with state precondition to prevent invalid transitions
-  const result = await mongoose.model('AqarPayment').findOneAndUpdate(
+  // Use this.constructor for consistency with other instance methods
+  const result = await (this.constructor as typeof mongoose.Model).findOneAndUpdate(
     {
       _id: this._id,
       status: PaymentStatus.PENDING // Only allow PENDING → COMPLETED

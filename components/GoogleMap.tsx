@@ -92,8 +92,15 @@ export default function GoogleMap({
       );
       
       if (existingScript) {
-        // Script is already loading, wait for it
-        existingScript.addEventListener('load', initMap, { once: true });
+        // Script is already loading or loaded
+        // Check if already loaded by checking for 'data-loaded' attribute
+        if (existingScript.dataset.loaded === 'true') {
+          // Script already loaded - init map immediately
+          initMap();
+        } else {
+          // Script is loading - wait for load event
+          existingScript.addEventListener('load', initMap, { once: true });
+        }
         window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
       } else {
         // Load script
@@ -110,7 +117,11 @@ export default function GoogleMap({
         script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
         script.async = true;
         script.defer = true;
-        script.onload = initMap;
+        script.onload = () => {
+          // Mark script as loaded to prevent race condition on late mounts
+          script.dataset.loaded = 'true';
+          initMap();
+        };
         script.onerror = () => {
           setError('Failed to load Google Maps. Please check your internet connection.');
           setLoading(false);
@@ -147,6 +158,9 @@ export default function GoogleMap({
       // Clear markers
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
+      
+      // Clear map instance reference to prevent stale map on remount
+      mapInstanceRef.current = null;
       
       // Decrement refcount but DON'T delete window.google
       // (other components may still need it, and it's a singleton)

@@ -19,6 +19,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate and sanitize optional OAuth fields
+    const ALLOWED_PROVIDERS = ['google', 'github', 'microsoft', 'apple', 'oauth'];
+    const MAX_NAME_LENGTH = 100;
+    const MAX_URL_LENGTH = 2048;
+    
+    // Sanitize name: trim, limit length, remove control characters
+    let sanitizedName: string | null = null;
+    if (name && typeof name === 'string') {
+      const trimmed = name.trim().replace(/[\x00-\x1F\x7F]/g, '');
+      sanitizedName = trimmed.length > 0 && trimmed.length <= MAX_NAME_LENGTH ? trimmed : null;
+    }
+    
+    // Validate image URL: must be valid URL or data URI, within length limits
+    let sanitizedImage: string | null = null;
+    if (image && typeof image === 'string') {
+      const trimmed = image.trim();
+      if (trimmed.length > 0 && trimmed.length <= MAX_URL_LENGTH) {
+        // Basic URL validation
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:image/')) {
+          try {
+            if (trimmed.startsWith('data:')) {
+              // Validate data URI format
+              sanitizedImage = /^data:image\/(png|jpg|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(trimmed) ? trimmed : null;
+            } else {
+              // Validate HTTP(S) URL
+              new URL(trimmed);
+              sanitizedImage = trimmed;
+            }
+          } catch {
+            sanitizedImage = null;
+          }
+        }
+      }
+    }
+    
+    // Validate provider against allowlist
+    const sanitizedProvider = (provider && typeof provider === 'string' && ALLOWED_PROVIDERS.includes(provider.toLowerCase()))
+      ? provider.toLowerCase()
+      : 'oauth';
+
     // Connect to database (single connection for entire request)
     const conn = await dbConnect();
 
@@ -28,71 +68,85 @@ export async function POST(request: NextRequest) {
     if (!existingUser) {
       // Create new user with OAuth details
       // Extract first and last name from full name
-      const nameParts = (name || email.split('@')[0]).split(' ');
+      const nameParts = (sanitizedName || email.split('@')[0]).split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
       // Generate username from email
       const username = email.split('@')[0];
       
-      // Generate unique user code atomically using MongoDB counter
-      // This prevents race conditions when multiple users register simultaneously
-      if (!conn.db) {
-        throw new Error('Database not available');
-      }
+      // Use MongoDB transaction for atomic counter increment + user creation
+      const session = await conn.startSession();
       
-      interface CounterDoc {
-        _id: string;
-        seq: number;
-      }
-      
-      const result = await conn.db.collection<CounterDoc>('counters').findOneAndUpdate(
-        { _id: 'userCode' },
-        { 
-          $inc: { seq: 1 },
-          $setOnInsert: { seq: 0 }
-        },
-        { upsert: true, returnDocument: 'after' }
-      );
-      
-      if (!result?.seq && result?.seq !== 0) {
-        throw new Error('Failed to generate user code: counter initialization failed');
-      }
-      
-      const code = `USR${String(result.seq).padStart(6, '0')}`;
+      try {
+        let code: string;
+        let newUser: typeof User.prototype;
+        
+        await session.withTransaction(async () => {
+          // Generate unique user code atomically using MongoDB counter
+          if (!conn.db) {
+            throw new Error('Database not available');
+          }
+          
+          interface CounterDoc {
+            _id: string;
+            seq: number;
+          }
+          
+          const result = await conn.db.collection<CounterDoc>('counters').findOneAndUpdate(
+            { _id: 'userCode' },
+            { 
+              $inc: { seq: 1 },
+              $setOnInsert: { seq: 0 }
+            },
+            { upsert: true, returnDocument: 'after', session }
+          );
+          
+          if (!result?.seq && result?.seq !== 0) {
+            throw new Error('Failed to generate user code: counter initialization failed');
+          }
+          
+          code = `USR${String(result.seq).padStart(6, '0')}`;
 
-      const newUser = await User.create({
-        code,
-        username,
-        email,
-        password: '', // OAuth users don't have passwords
-        personal: {
-          firstName,
-          lastName,
-        },
-        professional: {
-          role: 'USER', // Default role for OAuth users
-        },
-        status: 'ACTIVE',
-        metadata: {
-          authProvider: provider || 'oauth',
-          profileImage: image,
-          lastLogin: new Date(),
-        },
-      });
+          newUser = await User.create([{
+            code,
+            username,
+            email,
+            password: '', // OAuth users don't have passwords
+            personal: {
+              firstName,
+              lastName,
+            },
+            professional: {
+              role: 'USER', // Default role for OAuth users
+            },
+            status: 'ACTIVE',
+            metadata: {
+              authProvider: sanitizedProvider,
+              profileImage: sanitizedImage,
+              lastLogin: new Date(),
+            },
+          }], { session });
+        });
+        
+        await session.endSession();
 
-      console.log('New OAuth user provisioned successfully', { 
-        provider 
-      });
+        console.log('New OAuth user provisioned successfully', { 
+          provider: sanitizedProvider
+        });
 
-      return NextResponse.json(
-        { 
-          success: true, 
-          userId: newUser._id,
-          isNewUser: true 
-        },
-        { status: 200 }
-      );
+        return NextResponse.json(
+          { 
+            success: true, 
+            userId: newUser._id,
+            isNewUser: true 
+          },
+          { status: 200 }
+        );
+      } catch (txError) {
+        await session.endSession();
+        throw txError;
+      }
     } else {
       // Update last login and profile image if changed
       try {
@@ -101,7 +155,7 @@ export async function POST(request: NextRequest) {
           {
             $set: {
               'metadata.lastLogin': new Date(),
-              'metadata.profileImage': image,
+              'metadata.profileImage': sanitizedImage,
             },
           },
           { new: true }

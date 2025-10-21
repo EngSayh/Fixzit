@@ -15,11 +15,13 @@ async function hashEmail(email: string): Promise<string> {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 
 const missingVars: string[] = [];
 if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
 if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
 if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
+if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
 
 if (missingVars.length > 0) {
   throw new Error(
@@ -147,7 +149,11 @@ export const authConfig = {
           const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
           const encodedEmail = encodeURIComponent(user.email);
           const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
-            headers: { 'x-internal-auth': process.env.NEXTAUTH_SECRET || '' },
+            headers: { 
+              // Use dedicated internal API secret instead of reusing NEXTAUTH_SECRET
+              // This follows security best practice of not reusing signing secrets for authentication
+              'x-internal-auth': process.env.INTERNAL_API_SECRET || '' 
+            },
           });
           if (response.ok) {
             const userData = await response.json();

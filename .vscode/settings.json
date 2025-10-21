@@ -118,11 +118,13 @@
   // and reduce extension timeouts on large repositories. These safer defaults
   // keep the extension useful while preventing large, automatic full-repo
   // reviews that cause the agent to pause or stop.
-  "coderabbit.autoReviewMode": "manual",
+  "coderabbit.autoReviewMode": "prompt",
   "coderabbit.maxFilesPerReview": 100,
   "coderabbit.concurrentReviews": 1,
 
   // Extension Management
+  // NOTE: Auto-update disabled - IMPORTANT: Review extensions monthly for security patches
+  // Run "Extensions: Check for Extension Updates" regularly or schedule via reminders
   "extensions.autoUpdate": false,
   "extensions.ignoreRecommendations": true,
   "extensions.experimental.affinity": {
@@ -131,7 +133,8 @@
 
   // Window & Startup
   "window.restoreWindows": "none",
-  "chatgpt.openOnStartup": true,
+  // ChatGPT startup disabled by default - enable per-user preference if desired
+  "chatgpt.openOnStartup": false,
 
   // File Watcher Exclusions
   "files.watcherExclude": {

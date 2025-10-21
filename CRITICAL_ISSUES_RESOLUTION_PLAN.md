@@ -85,17 +85,25 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock environment variables
+// Mock environment variables - DO NOT use real secrets in test setup
+// Load these from .env.test or CI environment instead
 beforeAll(() => {
   process.env.NODE_ENV = 'test';
-  process.env.JWT_SECRET = 'test-secret-for-testing-only';
-  process.env.NEXTAUTH_SECRET = 'test-nextauth-secret';
+  process.env.JWT_SECRET = process.env.TEST_JWT_SECRET || 'test-jwt-secret-minimum-32-characters-long';
+  process.env.NEXTAUTH_SECRET = process.env.TEST_NEXTAUTH_SECRET || 'test-nextauth-secret-min-32-chars';
 });
 
 // Global test utilities
 global.testUtils = {
   // Add common test utilities here
 };
+```
+
+**Note**: For local development, create `.env.test`:
+```bash
+# .env.test (gitignored)
+TEST_JWT_SECRET=your-local-test-jwt-secret-here
+TEST_NEXTAUTH_SECRET=your-local-test-nextauth-secret-here
 ```
 
 #### Step 2: Convert Remaining Test Files (2 hours)
@@ -311,10 +319,50 @@ test.describe('SUPER_ADMIN Role Tests', () => {
     // Login with super admin credentials
     await page.goto('http://localhost:3000/login');
     await page.fill('[name="email"]', 'superadmin@fixzit.com');
-    await page.fill('[name="password"]', process.env.E2E_TEST_PASSWORD);
+    await page.fill('[name="password"]', process.env.E2E_TEST_PASSWORD || 'fallback-for-local-dev');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/fm\/dashboard/);
   });
+```
+
+#### Required Environment Variables for E2E Tests
+
+**Location**: Create `.env.test` in project root (gitignored)
+
+```bash
+# E2E Test Credentials - DO NOT COMMIT
+E2E_TEST_PASSWORD=your-test-password-here
+MONGODB_URI=mongodb://localhost:27017/fixzit-test
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=test-secret-minimum-32-chars-long
+
+# Optional: Test user emails
+E2E_SUPER_ADMIN_EMAIL=superadmin@fixzit.com
+E2E_ADMIN_EMAIL=admin@fixzit.com
+E2E_TENANT_EMAIL=tenant@example.com
+```
+
+**Usage**:
+```bash
+# Load env vars and run E2E tests
+source .env.test && pnpm test:e2e
+
+# Or use dotenv-cli
+pnpm add -D dotenv-cli
+npx dotenv -e .env.test -- pnpm playwright test
+```
+
+**Security Notes**:
+- Never commit `.env.test` - ensure it's in `.gitignore`
+- Use different credentials for CI/CD (set in GitHub Secrets)
+- Rotate test passwords regularly
+
+---
+
+### E2E Test Example
+
+```typescript
+// e2e/role-based-access.spec.ts continued
 
   test('should access all admin pages', async ({ page }) => {
     // Dashboard
