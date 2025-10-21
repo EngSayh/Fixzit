@@ -18,29 +18,41 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     
-    // Parse query parameters
+    // Parse query parameters with proper validation
     const intent = searchParams.get('intent'); // BUY|RENT|DAILY
     const propertyType = searchParams.get('propertyType');
     const city = searchParams.get('city');
     const neighborhoods = searchParams.get('neighborhoods')?.split(',');
-    const minPrice = searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : undefined;
-    const maxPrice = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : undefined;
-    const minBeds = searchParams.get('minBeds') ? parseInt(searchParams.get('minBeds')!) : undefined;
-    const maxBeds = searchParams.get('maxBeds') ? parseInt(searchParams.get('maxBeds')!) : undefined;
-    const minArea = searchParams.get('minArea') ? parseInt(searchParams.get('minArea')!) : undefined;
-    const maxArea = searchParams.get('maxArea') ? parseInt(searchParams.get('maxArea')!) : undefined;
+    
+    // Parse and validate numeric params (set undefined if invalid)
+    const parseNumeric = (value: string | null, parser: (s: string) => number): number | undefined => {
+      if (!value || value.trim() === '') return undefined;
+      const parsed = parser(value.trim());
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+    
+    const minPrice = parseNumeric(searchParams.get('minPrice'), parseInt);
+    const maxPrice = parseNumeric(searchParams.get('maxPrice'), parseInt);
+    const minBeds = parseNumeric(searchParams.get('minBeds'), parseInt);
+    const maxBeds = parseNumeric(searchParams.get('maxBeds'), parseInt);
+    const minArea = parseNumeric(searchParams.get('minArea'), parseInt);
+    const maxArea = parseNumeric(searchParams.get('maxArea'), parseInt);
     const furnishing = searchParams.get('furnishing');
     const amenities = searchParams.get('amenities')?.split(',');
     
-    // Geo search
-    const lat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : undefined;
-    const lng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : undefined;
-    const radiusKm = searchParams.get('radiusKm') ? parseFloat(searchParams.get('radiusKm')!) : undefined;
+    // Geo search with validation
+    const lat = parseNumeric(searchParams.get('lat'), parseFloat);
+    const lng = parseNumeric(searchParams.get('lng'), parseFloat);
+    const radiusKm = parseNumeric(searchParams.get('radiusKm'), parseFloat);
     
-    // Sorting & pagination
+    // Sorting & pagination with clamping
     const sort = searchParams.get('sort') || 'relevance'; // relevance|price-asc|price-desc|date-desc|featured
-    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+    
+    // Clamp page and limit to safe ranges
+    const rawPage = parseNumeric(searchParams.get('page'), parseInt) || 1;
+    const rawLimit = parseNumeric(searchParams.get('limit'), parseInt) || 20;
+    const page = Math.max(1, Math.min(1000, rawPage)); // 1-1000
+    const limit = Math.max(1, Math.min(100, rawLimit)); // 1-100
     const skip = (page - 1) * limit;
     
     // Build query

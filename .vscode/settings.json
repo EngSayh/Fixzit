@@ -5,7 +5,14 @@
   "nodejs.memory": 4096,
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 50,
-  // SECURITY: Global auto-approve disabled - require manual approval for sensitive operations
+  // ============================================================================
+  // SECURITY MODEL:
+  // - Global auto-approve is DISABLED (false)
+  // - Specific per-tool rules below explicitly opt-in ONLY safe operations
+  // - File edits: Only docs/tests auto-approved (NOT .vscode, .github, or src)
+  // - Terminal: Only safe read-only + build/test commands auto-approved
+  // - All other operations require manual approval
+  // ============================================================================
   "chat.tools.global.autoApprove": false,
   "chat.tools.terminal.autoReplyToPrompts": true,
   "github.copilot.chat.agent.runTasks": true,

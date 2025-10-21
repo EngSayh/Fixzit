@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite } from '@/models/aqar';
+import { AqarFavorite, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import mongoose from 'mongoose';
@@ -39,13 +39,24 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Decrement favorites count (async)
-    if (favorite.targetType === 'LISTING') {
-      const { AqarListing } = await import('@/models/aqar');
-      AqarListing.findByIdAndUpdate(favorite.targetId, { $inc: { 'analytics.favorites': -1 } }).exec();
-    }
-    
+    // Delete favorite first
     await favorite.deleteOne();
+    
+    // Decrement analytics after successful deletion (with error handling)
+    if (favorite.targetType === 'LISTING') {
+      try {
+        await AqarListing.findByIdAndUpdate(
+          favorite.targetId, 
+          { $inc: { 'analytics.favorites': -1 } }
+        );
+      } catch (analyticsError) {
+        // Log analytics error but don't fail the request (deletion already succeeded)
+        console.error('Failed to decrement listing favorites analytics', {
+          targetId: favorite.targetId.toString(),
+          message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+        });
+      }
+    }
     
     return NextResponse.json({ success: true });
   } catch (error) {
