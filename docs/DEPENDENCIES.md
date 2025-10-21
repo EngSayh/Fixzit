@@ -1,7 +1,7 @@
 # Dependency Risk Management & Justification
 
 **Document Owner**: Eng. Sultan Al Hassni  
-**Last Updated**: October 19, 2025  
+**Last Updated**: October 21, 2025  
 **Status**: Active
 
 ---

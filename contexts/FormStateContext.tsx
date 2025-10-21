@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 interface FormStateContextType {
   hasUnsavedChanges: boolean;
@@ -16,6 +16,7 @@ const FormStateContext = createContext<FormStateContextType | undefined>(undefin
 export function FormStateProvider({ children }: { children: ReactNode }) {
   const [dirtyForms, setDirtyForms] = useState<Set<string>>(new Set());
   const [saveCallbacks, setSaveCallbacks] = useState<Map<string, () => Promise<void>>>(new Map());
+  const isSavingRef = useRef<boolean>(false); // Reentrancy guard
 
   const unregisterForm = useCallback((formId: string) => {
     setDirtyForms(prev => {
@@ -57,42 +58,55 @@ export function FormStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestSave = useCallback(async () => {
-    // Only save forms that are marked as dirty
-    const dirtyFormIds = Array.from(dirtyForms);
-    if (dirtyFormIds.length === 0) {
-      return; // No dirty forms to save
-    }
-    
-    // Get callbacks only for dirty forms
-    const callbacksWithIds = dirtyFormIds
-      .map(formId => ({ formId, callback: saveCallbacks.get(formId) }))
-      .filter((item): item is { formId: string; callback: () => Promise<void> } => 
-        item.callback !== undefined
-      );
-    
-    if (callbacksWithIds.length === 0) {
-      console.warn('No save callbacks registered for dirty forms');
+    // Reentrancy guard: prevent concurrent save operations
+    if (isSavingRef.current) {
+      console.warn('Save operation already in progress, skipping concurrent call');
       return;
     }
     
-    const results = await Promise.allSettled(
-      callbacksWithIds.map(async ({ formId, callback }) => {
-        await callback();
-        return formId;
-      })
-    );
+    isSavingRef.current = true;
     
-    // Mark successfully saved forms as clean
-    results.forEach(result => {
-      if (result.status === 'fulfilled') {
-        markFormClean(result.value);
+    try {
+      // Only save forms that are marked as dirty
+      const dirtyFormIds = Array.from(dirtyForms);
+      if (dirtyFormIds.length === 0) {
+        return; // No dirty forms to save
       }
-    });
-    
-    const errors = results.filter(r => r.status === 'rejected');
-    if (errors.length > 0) {
-      console.error('Save errors occurred:', errors);
-      throw new Error(`Failed to save ${errors.length} form(s)`);
+      
+      // Get callbacks only for dirty forms
+      const callbacksWithIds = dirtyFormIds
+        .map(formId => ({ formId, callback: saveCallbacks.get(formId) }))
+        .filter((item): item is { formId: string; callback: () => Promise<void> } => 
+          item.callback !== undefined
+        );
+      
+      if (callbacksWithIds.length === 0) {
+        console.warn('No save callbacks registered for dirty forms');
+        return;
+      }
+      
+      const results = await Promise.allSettled(
+        callbacksWithIds.map(async ({ formId, callback }) => {
+          await callback();
+          return formId;
+        })
+      );
+      
+      // Mark successfully saved forms as clean
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          markFormClean(result.value);
+        }
+      });
+      
+      const errors = results.filter(r => r.status === 'rejected');
+      if (errors.length > 0) {
+        console.error('Save errors occurred:', errors);
+        throw new Error(`Failed to save ${errors.length} form(s)`);
+      }
+    } finally {
+      // Always clear the flag, even if errors occurred
+      isSavingRef.current = false;
     }
   }, [saveCallbacks, dirtyForms, markFormClean]);
 

@@ -176,13 +176,23 @@ const emailHash = await hashEmail(_user.email);
 **Remediation Status**:
 - ✅ Redacted from all documentation (Commit: PR #131)
 - ✅ Removed from source code
-- ⚠️ **PENDING**: Key rotation in Google Cloud Console
+- ⚠️ **URGENT**: Key rotation in Google Cloud Console (OVERDUE - deadline was 2025-10-20)
 - ⚠️ **PENDING**: Update GitHub Secrets with new restricted key
 - ⚠️ **PENDING**: Verify new key in production deployment
+- ⚠️ **PENDING**: Delete old key after verification
 
 **Responsible**: DevOps/Security team  
-**Deadline**: Within 24 hours of discovery (2025-10-20)  
+**Deadline**: IMMEDIATE (was within 24 hours of discovery, now overdue as of 2025-10-21)  
 **Tracking**: See SECURITY_AUDIT_2025_10_20.md lines 24-31 for rotation steps
+
+**⚠️ CRITICAL NOTE**: Until key rotation completes, the exposed key remains a security risk. Manual access to Google Cloud Console is required to:
+1. Create new API key with same restrictions
+2. Update all deployment environments (dev, staging, production)
+3. Update GitHub Secrets (GOOGLE_MAPS_API_KEY)
+4. Deploy updated configuration
+5. Verify functionality with new key
+6. Delete old exposed key from GCP Console
+7. Update this document to reflect completion
 
 ### Security Reminders Added
 ✅ Key rotation instructions in documentation  

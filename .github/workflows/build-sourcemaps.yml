@@ -1,17 +1,22 @@
-name: Build and Upload Source Maps
+name: Build & Upload Sourcemaps (Sentry)
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  build-upload:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -23,50 +28,32 @@ jobs:
         run: npm ci
       
       - name: Build with source maps
-        run: npm run build
+        run: |
+          export NEXT_TELEMETRY_DISABLED=1
+          npm run build
         env:
           CI: 'true'
           NODE_ENV: production
-          # Add your environment variables here
+          # Add your environment variables here if needed
           # MONGODB_URI: ${{ secrets.MONGODB_URI }}
           # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          # etc.
       
       - name: Upload source maps to Sentry (if configured)
-        # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
-        # Secrets must be set in: Repository Settings > Secrets and variables > Actions
-        continue-on-error: true
+        # Native conditional - skips if SENTRY_AUTH_TOKEN is not set
+        # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        uses: getsentry/action-release@v1
+        with:
+          environment: production
+          ignore_empty: true
+          set_commits: auto
+          sourcemaps: |
+            .next/static/**/*.map
+            public/**/*.map
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        run: |
-          # Check if SENTRY_AUTH_TOKEN is set
-          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
-            echo "⚠️  SENTRY_AUTH_TOKEN not configured, skipping Sentry upload"
-            exit 0
-          fi
-          
-          # Install Sentry CLI
-          npm install -g @sentry/cli
-          
-          # Upload source maps
-          sentry-cli releases new "$GITHUB_SHA"
-          sentry-cli releases files "$GITHUB_SHA" upload-sourcemaps .next --rewrite
-          sentry-cli releases finalize "$GITHUB_SHA"
-          
-          echo "✅ Source maps uploaded to Sentry"
-      
-      # Alternative: Upload to custom error tracking service
-      # - name: Upload source maps to custom service
-      #   run: |
-      #     # Example: Upload .map files to your own service
-      #     find .next -name "*.map" -type f | while read mapfile; do
-      #       curl -X POST \
-      #         -F "file=@$mapfile" \
-      #         -H "Authorization: Bearer ${{ secrets.ERROR_TRACKING_TOKEN }}" \
-      #         https://your-error-tracking-service.com/api/sourcemaps
-      #     done
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
       
       - name: Archive source maps as artifacts
         uses: actions/upload-artifact@v4
@@ -82,9 +69,17 @@ jobs:
           echo "✅ Source maps generated" >> $GITHUB_STEP_SUMMARY
           
           # Count source maps
-          MAP_COUNT=$(find .next -name "*.map" -type f | wc -l)
+          MAP_COUNT=$(find .next -name "*.map" -type f | wc -l || echo "0")
           echo "📊 Source maps generated: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
           
           # Calculate total size
-          TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + | grep total$ | awk '{print $1}')
+          TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | grep total$ | awk '{print $1}' || echo "0")
           echo "💾 Total source map size: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
+          
+          # Show Sentry status
+          if [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
+            echo "✅ Sentry upload configured" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Sentry upload skipped (SENTRY_AUTH_TOKEN not configured)" >> $GITHUB_STEP_SUMMARY
+            echo "To enable: Add SENTRY_AUTH_TOKEN (secret), SENTRY_ORG, SENTRY_PROJECT (variables) in repository settings" >> $GITHUB_STEP_SUMMARY
+          fi

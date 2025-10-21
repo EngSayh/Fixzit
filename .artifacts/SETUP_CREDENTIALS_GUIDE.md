@@ -156,9 +156,19 @@ INTERNAL_API_TOKEN=0123456789abcdef0123456789abcdef
 2. **Replace ALL CHANGEME values:**
 
 ```bash
-# Database - MongoDB Atlas (from Task 1)
+# Database - Choose appropriate URI for your environment:
+
+# For MongoDB Atlas (Production/Cloud) - TLS required:
 MONGODB_URI=mongodb+srv://fixzit-user:YOUR_ACTUAL_PASSWORD@fixzit.abc123.mongodb.net/fixzit?retryWrites=true&w=majority&tls=true
+
+# For Local Development - No TLS needed:
+# MONGODB_URI=mongodb://localhost:27017/fixzit
+
 MONGODB_DB=fixzit
+
+# Note: Atlas and production deployments require TLS (&tls=true)
+# Local MongoDB installations typically don't need TLS
+# Use the appropriate connection string for your environment
 
 # JWT Secret (from Task 4)
 JWT_SECRET=YOUR_64_HEX_CHARACTERS_HERE

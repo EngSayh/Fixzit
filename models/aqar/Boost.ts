@@ -102,16 +102,42 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
 
 // Methods
 BoostSchema.methods.activate = async function (this: IBoost) {
-  if (this.active) {
-    throw new Error('Boost already activated');
+  // Atomic activation: check preconditions and update in single operation
+  // Prevents race conditions where multiple concurrent activations could occur
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + this.durationDays * 24 * 60 * 60 * 1000);
+  
+  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
+    {
+      _id: this._id,
+      active: false, // Precondition: must not be already active
+      paidAt: { $ne: null }, // Precondition: must be paid
+    },
+    {
+      $set: {
+        active: true,
+        activatedAt: now,
+        expiresAt: expiresAt,
+      },
+    },
+    { new: true } // Return updated document
+  );
+  
+  if (!result) {
+    // Check why activation failed
+    if (this.active) {
+      throw new Error('Boost already activated');
+    }
+    if (!this.paidAt) {
+      throw new Error('Boost not paid');
+    }
+    throw new Error('Boost activation failed due to concurrent modification');
   }
-  if (!this.paidAt) {
-    throw new Error('Boost not paid');
-  }
+  
+  // Update current document instance with new values
   this.active = true;
-  this.activatedAt = new Date();
-  this.expiresAt = new Date(Date.now() + this.durationDays * 24 * 60 * 60 * 1000);
-  await this.save();
+  this.activatedAt = now;
+  this.expiresAt = expiresAt;
 };
 
 BoostSchema.methods.recordImpression = async function (this: IBoost) {
@@ -129,9 +155,25 @@ BoostSchema.methods.recordClick = async function (this: IBoost) {
 };
 
 BoostSchema.methods.checkExpiry = async function (this: IBoost) {
-  if (this.active && this.expiresAt && this.expiresAt < new Date()) {
+  // Atomic expiry check: update all expired boosts in single operation
+  // Prevents race conditions where multiple concurrent checks could occur
+  const now = new Date();
+  
+  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
+    {
+      _id: this._id,
+      active: true, // Only check active boosts
+      expiresAt: { $lt: now }, // Only boosts that have expired
+    },
+    {
+      $set: { active: false },
+    },
+    { new: true } // Return updated document
+  );
+  
+  if (result) {
+    // Boost was expired and deactivated
     this.active = false;
-    await this.save();
   }
 };
 

@@ -43,28 +43,60 @@ From [GitHub Docs on Secrets](https://docs.github.com/en/actions/security-guides
 
 ---
 
-## ✅ Solution Applied
+## ✅ Solution Applied: Option A (Native Conditional)
 
-### Correct Approach: Direct Conditional
+### **Implemented Approach** (.github/workflows/build-sourcemaps.yml)
 
-**New Code (Lines 35-38):**
+**Uses native GitHub Actions conditional** to skip Sentry upload step cleanly when secrets/variables are not configured:
+
 ```yaml
 - name: Upload source maps to Sentry (if configured)
-  # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
-  # Secrets must be set in: Repository Settings > Secrets and variables > Actions
+  # Native conditional - skips if SENTRY_AUTH_TOKEN is not set
+  # To configure: Settings → Secrets (SENTRY_AUTH_TOKEN) and Variables (SENTRY_ORG, SENTRY_PROJECT)
   if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+  uses: getsentry/action-release@v1
+  with:
+    environment: production
+    ignore_empty: true
+    set_commits: auto
+    sourcemaps: |
+      .next/static/**/*.map
+      public/**/*.map
   env:
     SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-    SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-    SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+    SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+    SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
 ```
 
-### Why This Works:
+### Why This Approach (Option A):
 
-1. ✅ **Native Context Access**: Uses GitHub Actions expression syntax `${{ ... }}`
-2. ✅ **Proper Secret Check**: `secrets.SENTRY_AUTH_TOKEN != ''` is evaluated by GitHub Actions runner
-3. ✅ **Simplified Logic**: Removed unnecessary intermediate step
-4. ✅ **Clear Documentation**: Added comment explaining when step is skipped
+1. ✅ **Native GitHub Actions conditional**: Uses `if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}`
+2. ✅ **Clean skip behavior**: Step is skipped (not failed) when secret is missing
+3. ✅ **No runtime bash checks**: Removed `continue-on-error` and shell conditionals
+4. ✅ **Uses getsentry/action-release@v1**: Official Sentry action (no manual CLI install)
+5. ✅ **Proper secret/variable separation**: 
+   - `SENTRY_AUTH_TOKEN` → Secret (sensitive)
+   - `SENTRY_ORG`, `SENTRY_PROJECT` → Variables (non-sensitive)
+
+### Configuration Required:
+
+**Repository Settings → Secrets and variables → Actions:**
+- **Secrets**: Add `SENTRY_AUTH_TOKEN` (Sentry auth token with org:read, project:releases, project:write)
+- **Variables**: Add `SENTRY_ORG` (e.g., `fixzit`) and `SENTRY_PROJECT` (e.g., `web-app`)
+
+### Build Summary Enhancement:
+
+The workflow includes a status indicator in the build summary:
+- If SENTRY_AUTH_TOKEN configured: "✅ Sentry upload configured"
+- If not configured: "⚠️ Sentry upload skipped" with setup instructions
+
+### Why Not Option B (Runtime Check):
+
+Option B (runtime bash check + continue-on-error) was the original implementation documented here. We've **migrated to Option A** because:
+- More idiomatic GitHub Actions pattern
+- Clearer workflow visualization (skipped vs failed)
+- No need for `continue-on-error` masking
+- Simpler code (no bash conditionals)
 
 ---
 

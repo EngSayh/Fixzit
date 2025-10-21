@@ -165,7 +165,31 @@ const ListingSchema = new Schema<IListing>(
     neighborhood: { type: String, index: true },
     geo: {
       type: { type: String, enum: ['Point'], default: 'Point', required: true },
-      coordinates: { type: [Number], required: true },
+      coordinates: {
+        type: [Number],
+        required: true,
+        validate: {
+          validator: function (coords: number[]) {
+            // Validate: exactly 2 numbers [longitude, latitude]
+            if (!Array.isArray(coords) || coords.length !== 2) {
+              return false;
+            }
+            const [lng, lat] = coords;
+            // Longitude: -180 to 180, Latitude: -90 to 90
+            return (
+              typeof lng === 'number' &&
+              typeof lat === 'number' &&
+              lng >= -180 &&
+              lng <= 180 &&
+              lat >= -90 &&
+              lat <= 90 &&
+              !isNaN(lng) &&
+              !isNaN(lat)
+            );
+          },
+          message: 'Coordinates must be [longitude, latitude] where longitude is -180 to 180 and latitude is -90 to 90',
+        },
+      },
     },
     
     areaSqm: { type: Number, min: 0 },
@@ -192,8 +216,8 @@ const ListingSchema = new Schema<IListing>(
     source: { type: String, enum: Object.values(ListerType), required: true, index: true },
     
     compliance: {
-      falLicenseNo: { type: String, sparse: true },
-      adPermitNo: { type: String, sparse: true },
+      falLicenseNo: { type: String },
+      adPermitNo: { type: String },
       brokerageContractId: { type: String },
       verifiedOwner: { type: Boolean, default: false },
     },
@@ -239,7 +263,8 @@ ListingSchema.index({
   price: 1,
   status: 1,
 }); // Compound search index
-ListingSchema.index({ 'compliance.adPermitNo': 1 }, { sparse: true }); // Compliance queries
+ListingSchema.index({ 'compliance.falLicenseNo': 1 }, { sparse: true }); // FAL license lookup (sparse: only index documents with this field)
+ListingSchema.index({ 'compliance.adPermitNo': 1 }, { sparse: true }); // Ad permit lookup (sparse: only index documents with this field)
 ListingSchema.index({ createdAt: -1 }); // Recency sort
 ListingSchema.index({ publishedAt: -1 }); // Published sort
 ListingSchema.index({ featuredLevel: -1, publishedAt: -1 }); // Featured first

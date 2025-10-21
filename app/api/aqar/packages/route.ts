@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
 import { AqarPackage, AqarPayment, PackageType } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
@@ -61,45 +62,62 @@ export async function POST(request: NextRequest) {
     // Get pricing
     const pricing = (AqarPackage as never as { getPricing: (type: PackageType) => { price: number; listings: number; days: number } }).getPricing(type as PackageType);
     
-    // Create package
-    const pkg = new AqarPackage({
-      userId: user.id,
-      orgId: user.orgId || user.id,
-      type,
-      listingsAllowed: pricing.listings,
-      validityDays: pricing.days,
-      price: pricing.price,
-    });
+    // Use Mongoose transaction for atomicity
+    // If payment creation fails, package creation is rolled back
+    const session = await mongoose.startSession();
+    session.startTransaction();
     
-    await pkg.save();
-    
-    // Create payment
-    const payment = new AqarPayment({
-      userId: user.id,
-      orgId: user.orgId || user.id,
-      type: 'PACKAGE',
-      amount: pricing.price,
-      currency: 'SAR',
-      relatedId: pkg._id,
-      relatedModel: 'AqarPackage',
-      status: 'PENDING',
-    });
-    
-    await payment.save();
-    
-    pkg.paymentId = payment._id as never;
-    await pkg.save();
-    
-    // TODO: Redirect to payment gateway
-    
-    return NextResponse.json(
-      {
-        package: pkg,
-        payment,
-        redirectUrl: `/aqar/payments/${payment._id}`,
-      },
-      { status: 201 }
-    );
+    try {
+      // Create package
+      const pkg = new AqarPackage({
+        userId: user.id,
+        orgId: user.orgId || user.id,
+        type,
+        listingsAllowed: pricing.listings,
+        validityDays: pricing.days,
+        price: pricing.price,
+      });
+      
+      await pkg.save({ session });
+      
+      // Create payment
+      const payment = new AqarPayment({
+        userId: user.id,
+        orgId: user.orgId || user.id,
+        type: 'PACKAGE',
+        amount: pricing.price,
+        currency: 'SAR',
+        relatedId: pkg._id,
+        relatedModel: 'AqarPackage',
+        status: 'PENDING',
+      });
+      
+      await payment.save({ session });
+      
+      // Update package with payment ID (properly typed)
+      pkg.paymentId = payment._id as mongoose.Types.ObjectId;
+      await pkg.save({ session });
+      
+      // Commit transaction - both package and payment succeed together
+      await session.commitTransaction();
+      
+      // TODO: Redirect to payment gateway
+      
+      return NextResponse.json(
+        {
+          package: pkg,
+          payment,
+          redirectUrl: `/aqar/payments/${payment._id}`,
+        },
+        { status: 201 }
+      );
+    } catch (transactionError) {
+      // Rollback on any error
+      await session.abortTransaction();
+      throw transactionError; // Re-throw to outer catch
+    } finally {
+      session.endSession();
+    }
   } catch (error) {
     console.error('Error purchasing package:', error);
     return NextResponse.json({ error: 'Failed to purchase package' }, { status: 500 });

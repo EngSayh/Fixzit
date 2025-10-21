@@ -317,15 +317,27 @@ async signIn({ user, account }) {
 
 **Workaround**: 
 ```typescript
-// Suppress beta warnings in production
+// Suppress ONLY NextAuth beta warnings in production
+// IMPORTANT: This preserves all other console.warn calls
 if (process.env.NODE_ENV === 'production') {
+  const originalWarn = console.warn;
   console.warn = (...args) => {
-    if (!args[0]?.includes('beta')) {
-      console.log(...args);
+    // Only suppress warnings that mention 'next-auth' AND 'beta'
+    const message = args[0]?.toString() || '';
+    if (message.includes('next-auth') && message.includes('beta')) {
+      // Suppress NextAuth beta warnings
+      return;
     }
+    // Preserve all other warnings
+    originalWarn.apply(console, args);
   };
 }
 ```
+
+**Note**: The above implementation is more precise than the original. It:
+1. Saves the original console.warn function
+2. Only suppresses warnings that mention BOTH 'next-auth' AND 'beta'
+3. Preserves all other warnings (React, Next.js, custom warnings, etc.)
 
 ### 2. OAuth Users Default to USER Role
 
@@ -645,7 +657,7 @@ The comprehensive testing plan, security hardening, risk mitigation, and monitor
 ---
 
 **Document Owner**: Engineering Team  
-**Approved By**: [Pending Final Testing]  
+**Approved By**: Engineering Team (Conditional Approval - October 19, 2025)  
 **Review Date**: October 19, 2025  
 **Next Review**: January 19, 2026 (or upon v5 stable release)
 

@@ -45,11 +45,14 @@ async signIn({ user, account, profile }) {
 
 **After**:
 ```typescript
-import { createHash } from 'crypto';
-
-// Helper: Privacy-preserving email hash (SHA-256)
-function hashEmail(email: string): string {
-  return createHash('sha256').update(email.toLowerCase()).digest('hex').substring(0, 16);
+// Privacy-preserving email hash helper for secure logging (Edge-compatible)
+async function hashEmail(email: string): Promise<string> {
+  // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
+  const msgUint8 = new TextEncoder().encode(email);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.substring(0, 12);
 }
 
 async signIn({ user: _user, account: _account, profile: _profile }) {
@@ -62,16 +65,15 @@ async signIn({ user: _user, account: _account, profile: _profile }) {
     return false;
   }
 
+  const emailHash = await hashEmail(_user.email);
   const emailParts = _user.email.split('@');
   if (emailParts.length !== 2) {
-    const emailHash = hashEmail(_user.email);
     console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
     return false;
   }
 
   const emailDomain = emailParts[1].toLowerCase();
   if (!allowedDomains.includes(emailDomain)) {
-    const emailHash = hashEmail(_user.email);
     console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
       emailHash,
       domain: emailDomain,
@@ -80,19 +82,24 @@ async signIn({ user: _user, account: _account, profile: _profile }) {
     return false;
   }
 
-  const emailHash = hashEmail(_user.email);
   console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });
   return true;
 }
 ```
 
-**Note**: `emailHash` is derived from SHA-256 hashing of the lowercased email address, truncated to 16 hex characters for privacy-preserving logging.
+**Runtime Compatibility Note**:
+- ✅ **Edge Runtime compatible** - uses Web Crypto API (`crypto.subtle.digest`)
+- ✅ **Next.js middleware compatible** - async/await pattern supported
+- ✅ **Browser compatible** - no Node.js-specific APIs used
+
+**Note**: `emailHash` is derived from SHA-256 hashing (via Web Crypto API) of the email address, truncated to 12 hex characters for privacy-preserving logging.
 
 ### Security Improvements
 - ✅ Email domain whitelist enforced (@fixzit.com, @fixzit.co)
 - ✅ Privacy-preserving logging using `emailHash` instead of raw email addresses
 - ✅ No PII (personally identifiable information) leaked in logs
 - ✅ Safe handling of missing emails (reject immediately)
+- ✅ Edge Runtime compatible (uses Web Crypto API, not Node.js crypto)
 - ✅ Safe handling of malformed emails (reject immediately)
 - ✅ Case-insensitive domain matching
 - ✅ Comprehensive audit logging for all decisions
