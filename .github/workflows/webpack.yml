@@ -44,7 +44,7 @@ jobs:
       - name: Build Next.js
         run: npm run build
         env:
-          NODE_OPTIONS: --max-old-space-size=4096
+          NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
           
       - name: Upload Build Artifacts

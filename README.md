@@ -104,6 +104,13 @@
    
    # The system uses ONLY real MongoDB - mock database has been completely removed
    ```
+   
+   **⚠️ SECURITY WARNING**:
+   - **NEVER commit `.env`, `.env.local`, or `.env.production` files to version control**
+   - These files contain sensitive credentials (database passwords, API keys, secrets)
+   - Always use `env.example` as a template (with placeholder values, no real credentials)
+   - Add `.env*` to `.gitignore` to prevent accidental commits
+   - For production, use secure environment variable management (GitHub Secrets, AWS Secrets Manager, etc.)
 
 3. **Start Development Server**
 
@@ -161,7 +168,7 @@ Business Modules:
 
 #### Full-Stack Architecture
 
-- **Framework**: Next.js 14 (React 18)
+- **Framework**: Next.js 15.5.4 (React 18.2.0)
 - **Language**: TypeScript for type safety
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT with bcryptjs

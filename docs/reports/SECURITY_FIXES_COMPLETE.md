@@ -12,7 +12,7 @@
 
 **Issues Fixed**:
 
-- ✅ **Hardcoded MongoDB Credentials** - Removed `mongodb+srv://fixzitadmin:FixzitAdmin2024@...` from source code
+- ✅ **Hardcoded MongoDB Credentials** - Removed `mongodb+srv://[REDACTED]@...` from source code
 - ✅ **Missing 'reports' Role** - Added to obsoleteRoles array to match documentation
 - ✅ **No User Confirmation** - Added interactive "yes" prompt before destructive operations
 - ✅ **No Error Handling** - Wrapped all deleteMany calls in try/catch blocks
@@ -22,7 +22,7 @@
 
 ```javascript
 // BEFORE: Hardcoded credentials (SECURITY VIOLATION)
-const c = new MongoClient('mongodb+srv://fixzitadmin:FixzitAdmin2024@fixzit.vgfiiff.mongodb.net/fixzit');
+const c = new MongoClient('mongodb+srv://[REDACTED]@fixzit.vgfiiff.mongodb.net/fixzit');
 
 // AFTER: Environment variable with validation
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -97,7 +97,7 @@ if (isDevelopment) {
 
 ```javascript
 // BEFORE: Credentials in source code
-const c = new MongoClient('mongodb+srv://fixzitadmin:FixzitAdmin2024@fixzit.vgfiiff.mongodb.net/fixzit');
+const c = new MongoClient('mongodb+srv://[REDACTED]@fixzit.vgfiiff.mongodb.net/fixzit');
 
 // AFTER: Environment-based with validation
 const MONGODB_URI = process.env.MONGODB_URI;

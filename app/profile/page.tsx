@@ -9,7 +9,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 type TabType = 'account' | 'notifications' | 'security';
 
 export default function ProfilePage() {
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('account');
   const [user, setUser] = useState({
     name: 'Admin User',
@@ -76,7 +76,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8" dir={isRTL ? 'rtl' : 'ltr'}>
       <Toaster position="top-right" />
       
       <div className="mb-6">

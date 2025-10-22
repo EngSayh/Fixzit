@@ -1,0 +1,392 @@
+/**
+ * Aqar Souq - Lead Model
+ * 
+ * Property inquiry leads for CRM integration
+ * Links to Fixzit CRM module
+ */
+
+import mongoose, { Schema, Document, Model } from 'mongoose';
+
+export enum LeadStatus {
+  NEW = 'NEW',                   // Fresh inquiry
+  CONTACTED = 'CONTACTED',       // Agent reached out
+  QUALIFIED = 'QUALIFIED',       // Genuine interest
+  VIEWING = 'VIEWING',           // Scheduled property viewing
+  NEGOTIATING = 'NEGOTIATING',   // In negotiation
+  WON = 'WON',                   // Deal closed
+  LOST = 'LOST',                 // Deal lost
+  SPAM = 'SPAM',                 // Marked as spam
+}
+
+export enum LeadIntent {
+  BUY = 'BUY',
+  RENT = 'RENT',
+  DAILY = 'DAILY',
+}
+
+export enum LeadSource {
+  LISTING_INQUIRY = 'LISTING_INQUIRY',       // From listing detail page
+  PROJECT_INQUIRY = 'PROJECT_INQUIRY',       // From project page
+  PHONE_CALL = 'PHONE_CALL',                 // Phone inquiry
+  WHATSAPP = 'WHATSAPP',                     // WhatsApp inquiry
+  EMAIL = 'EMAIL',                           // Email inquiry
+  WALK_IN = 'WALK_IN',                       // Walk-in to office
+}
+
+export interface ILead extends Document {
+  // Organization
+  orgId: mongoose.Types.ObjectId;
+  
+  // Source
+  listingId?: mongoose.Types.ObjectId;
+  projectId?: mongoose.Types.ObjectId;
+  source: LeadSource;
+  
+  // Inquirer (potential client)
+  inquirerId?: mongoose.Types.ObjectId;    // User ID if logged in
+  inquirerName: string;
+  inquirerPhone: string;
+  inquirerEmail?: string;
+  inquirerNationalId?: string;             // If Nafath verified
+  
+  // Owner/Agent (recipient)
+  recipientId: mongoose.Types.ObjectId;
+  
+  // Intent
+  intent: LeadIntent;
+  message?: string;
+  
+  // Status & assignment
+  status: LeadStatus;
+  assignedTo?: mongoose.Types.ObjectId;    // Agent/salesperson
+  assignedAt?: Date;
+  
+  // Follow-up
+  notes: Array<{
+    authorId: mongoose.Types.ObjectId;
+    content: string;
+    createdAt: Date;
+  }>;
+  
+  // Viewing
+  viewingScheduledAt?: Date;
+  viewingCompletedAt?: Date;
+  
+  // Outcome
+  closedAt?: Date;
+  closedBy?: mongoose.Types.ObjectId;
+  lostReason?: string;
+  
+  // Integration
+  crmContactId?: mongoose.Types.ObjectId;   // Link to CRM Contact
+  crmDealId?: mongoose.Types.ObjectId;      // Link to CRM Deal
+  
+  // Instance methods
+  addNote(authorId: mongoose.Types.ObjectId, content: string): Promise<void>;
+  assign(agentId: mongoose.Types.ObjectId): Promise<void>;
+  scheduleViewing(dateTime: Date): Promise<void>;
+  completeViewing(): Promise<void>;
+  markAsWon(userId: mongoose.Types.ObjectId): Promise<void>;
+  markAsLost(userId: mongoose.Types.ObjectId, reason?: string): Promise<void>;
+  markAsSpam(): Promise<void>;
+  
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const LeadSchema = new Schema<ILead>(
+  {
+    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
+    
+    listingId: { type: Schema.Types.ObjectId, ref: 'AqarListing', index: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'AqarProject', index: true },
+    source: {
+      type: String,
+      enum: Object.values(LeadSource),
+      required: true,
+      index: true,
+    },
+    
+    inquirerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    inquirerName: { type: String, required: true, maxlength: 200 },
+    inquirerPhone: { 
+      type: String, 
+      required: true,
+      trim: true,
+      match: [/^\+[1-9]\d{1,14}$/, 'Phone number must be in E.164 format with leading + and 1-15 digits (e.g., +1234567890)']
+    },
+    inquirerEmail: { type: String, maxlength: 200 },
+    inquirerNationalId: { type: String },
+    
+    recipientId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    
+    intent: {
+      type: String,
+      enum: Object.values(LeadIntent),
+      required: true,
+      index: true,
+    },
+    message: { type: String, maxlength: 2000 },
+    
+    status: {
+      type: String,
+      enum: Object.values(LeadStatus),
+      default: LeadStatus.NEW,
+      required: true,
+      index: true,
+    },
+    assignedTo: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    assignedAt: { type: Date },
+    
+    notes: [
+      {
+        authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        content: { type: String, required: true, maxlength: 2000 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    
+    viewingScheduledAt: { type: Date },
+    viewingCompletedAt: { type: Date },
+    
+    closedAt: { type: Date },
+    closedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    lostReason: { type: String, maxlength: 500 },
+    
+    crmContactId: { type: Schema.Types.ObjectId, ref: 'Contact' },
+    crmDealId: { type: Schema.Types.ObjectId, ref: 'Deal' },
+  },
+  {
+    timestamps: true,
+    collection: 'aqar_leads',
+  }
+);
+
+// Indexes
+LeadSchema.index({ recipientId: 1, status: 1, createdAt: -1 });
+LeadSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });
+LeadSchema.index({ inquirerPhone: 1 });
+LeadSchema.index({ createdAt: -1 });
+LeadSchema.index({ orgId: 1, status: 1, createdAt: -1 });
+
+// Methods
+LeadSchema.methods.addNote = async function (
+  this: ILead,
+  authorId: mongoose.Types.ObjectId,
+  content: string
+) {
+  // Use atomic $push to prevent race conditions when multiple agents add notes simultaneously
+  await mongoose.model('AqarLead').findByIdAndUpdate(
+    this._id,
+    {
+      $push: {
+        notes: {
+          authorId,
+          content,
+          createdAt: new Date(),
+        },
+      },
+    }
+  );
+  // Reload the document from DB to get fresh data (don't use populate on embedded array)
+  const updated = await mongoose.model('AqarLead').findById(this._id);
+  if (updated) {
+    this.notes = (updated as ILead).notes;
+  }
+};
+
+LeadSchema.methods.assign = async function (
+  this: ILead,
+  agentId: mongoose.Types.ObjectId
+) {
+  // Atomic update with terminal state filter to prevent race conditions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    [
+      {
+        $set: {
+          assignedTo: agentId,
+          assignedAt: new Date(),
+          status: {
+            $cond: [
+              { $eq: ['$status', LeadStatus.NEW] },
+              LeadStatus.CONTACTED,
+              '$status'
+            ]
+          }
+        }
+      }
+    ],
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error(`Cannot reassign lead in terminal state`);
+  }
+  
+  // Update in-memory instance
+  this.assignedTo = (result as ILead).assignedTo;
+  this.assignedAt = (result as ILead).assignedAt;
+  this.status = (result as ILead).status;
+};
+
+LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
+  // Validate dateTime is a valid Date in the future
+  if (!(dateTime instanceof Date) || isNaN(dateTime.getTime())) {
+    throw new Error('Invalid dateTime: must be a valid Date object');
+  }
+  
+  if (dateTime.getTime() <= Date.now()) {
+    throw new Error('Invalid dateTime: viewing must be scheduled in the future');
+  }
+  
+  // Use atomic update with preconditions to prevent race conditions and enforce state transitions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      // Terminal states (WON, LOST, SPAM) are immutable, also prevent regression from NEGOTIATING
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM, LeadStatus.NEGOTIATING] }
+    },
+    {
+      $set: {
+        viewingScheduledAt: dateTime,
+        status: LeadStatus.VIEWING,
+      },
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error(`Cannot schedule viewing: lead not found or in invalid state (current: ${this.status})`);
+  }
+  
+  // Update local instance
+  this.viewingScheduledAt = (result as ILead).viewingScheduledAt;
+  this.status = (result as ILead).status;
+};
+
+LeadSchema.methods.completeViewing = async function (this: ILead) {
+  // Use atomic update with preconditions in query to prevent race conditions
+  // Include viewingScheduledAt check in DB query to avoid TOCTOU race
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      viewingScheduledAt: { $exists: true },
+      // Terminal states (WON, LOST, SPAM) are immutable - check in DB query
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    {
+      $set: {
+        viewingCompletedAt: new Date(),
+        status: LeadStatus.NEGOTIATING,
+      },
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error(`Cannot complete viewing: lead not found, no viewing scheduled, or in terminal state (current: ${this.status})`);
+  }
+  
+  // Update local instance
+  this.viewingCompletedAt = (result as ILead).viewingCompletedAt;
+  this.status = (result as ILead).status;
+};
+
+LeadSchema.methods.markAsWon = async function (
+  this: ILead,
+  userId: mongoose.Types.ObjectId
+) {
+  // Use atomic update with preconditions in DB query to prevent race conditions (TOCTOU)
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      // Only allow transition from non-terminal states
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    {
+      $set: {
+        status: LeadStatus.WON,
+        closedAt: new Date(),
+        closedBy: userId,
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot mark lead as WON - invalid state or concurrent modification');
+  }
+  
+  // Update in-memory instance
+  this.status = (result as ILead).status;
+  this.closedAt = (result as ILead).closedAt;
+  this.closedBy = (result as ILead).closedBy;
+};
+
+LeadSchema.methods.markAsLost = async function (
+  this: ILead,
+  userId: mongoose.Types.ObjectId,
+  reason?: string
+) {
+  // Use atomic update with preconditions in DB query to prevent race conditions (TOCTOU)
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      // Only allow transition from non-terminal states
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    {
+      $set: {
+        status: LeadStatus.LOST,
+        closedAt: new Date(),
+        closedBy: userId,
+        lostReason: reason,
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot mark lead as LOST - invalid state or concurrent modification');
+  }
+  
+  // Update in-memory instance
+  this.status = (result as ILead).status;
+  this.closedAt = (result as ILead).closedAt;
+  this.closedBy = (result as ILead).closedBy;
+  this.lostReason = (result as ILead).lostReason;
+};
+
+LeadSchema.methods.markAsSpam = async function (this: ILead) {
+  // Use atomic update with preconditions to prevent race conditions
+  // Remove in-memory checks to avoid TOCTOU race - DB enforces all preconditions
+  const result = await mongoose.model('AqarLead').findOneAndUpdate(
+    {
+      _id: this._id,
+      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
+    },
+    {
+      $set: {
+        status: LeadStatus.SPAM,
+      }
+    },
+    { new: true }
+  );
+  
+  if (!result) {
+    throw new Error('Cannot mark lead as SPAM - invalid state or concurrent modification');
+  }
+  
+  // Update in-memory instance
+  this.status = (result as ILead).status;
+};
+
+const Lead: Model<ILead> =
+  mongoose.models.AqarLead || mongoose.model<ILead>('AqarLead', LeadSchema);
+
+export default Lead;

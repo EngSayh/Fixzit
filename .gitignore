@@ -44,6 +44,8 @@ Thumbs.db
 /reports/
 /exports/
 /screenshots/
+/.archived-data/
+/docs/archive/
 
 # Runtime files
 server.pid

@@ -140,7 +140,7 @@ describe('I18nProvider', () => {
     });
 
     // Document updates + event dispatch
-    const handler = jest.fn();
+    const handler = vi.fn();
     window.addEventListener('fixzit:language-change', handler);
     await act(async () => {
       ctxRef.setLocale('en');

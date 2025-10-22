@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+import { useFormState } from '@/contexts/FormStateContext';
 
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {
@@ -26,6 +27,7 @@ const fallbackTranslations: Record<string, string> = {
   'common.viewAll': 'View all notifications',
   'nav.profile': 'Profile',
   'nav.settings': 'Settings',
+  'common.preferences': 'Preferences',
   'common.logout': 'Sign out'
 };
 
@@ -67,10 +69,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
+
+  // Use FormStateContext for unsaved changes detection
+  const { hasUnsavedChanges, requestSave } = useFormState();
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -90,14 +95,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const translationContext = useTranslation();
   const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
 
-  // Compute unread count once per render instead of repeated filters (performance optimization)
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   // Check authentication status on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me', { credentials: 'include' });
+        const response = await fetch('/api/auth/me');
         setIsAuthenticated(response.ok);
       } catch {
         setIsAuthenticated(false);
@@ -106,51 +108,62 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     checkAuth();
   }, []);
 
-  // Check for unsaved changes (detect form modifications)
-  useEffect(() => {
-    const checkUnsavedChanges = () => {
-      const forms = document.querySelectorAll('form');
-      let hasChanges = false;
-      forms.forEach(form => {
-        if (form.dataset.modified === 'true') {
-          hasChanges = true;
-        }
-      });
-      setHasUnsavedChanges(hasChanges);
-    };
-
-    // Check periodically
-    const interval = setInterval(checkUnsavedChanges, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
     if (hasUnsavedChanges) {
       e.preventDefault();
       setShowUnsavedDialog(true);
+      setPendingNavigation('/');
     } else {
       router.push('/');
     }
   };
 
-  // Handle save and navigate
-  const handleSaveAndNavigate = () => {
-    // Trigger form submission on the page
-    const forms = document.querySelectorAll('form[data-modified="true"]');
-    if (forms.length > 0) {
-      const form = forms[0] as HTMLFormElement;
-      form.requestSubmit();
+  // Handle save and navigate - use event-driven pattern with proper error handling
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  
+  const handleSaveAndNavigate = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      // Step 1: Dispatch custom event for page-level form handling
+      // This gives pages full control over their save+navigate flow
+      const ev = new CustomEvent('fxz:saveFormsAndNavigate', { 
+        detail: { target: pendingNavigation } 
+      });
+      window.dispatchEvent(ev);
+
+      // Step 2: Await the centralized FormStateProvider save
+      // This ensures proper coordination - we wait for forms to complete
+      await requestSave();
+
+      // Step 3: Success path only - close dialog and navigate
+      setShowUnsavedDialog(false);
+      if (pendingNavigation) {
+        router.push(pendingNavigation);
+        setPendingNavigation(null);
+      }
+    } catch (error) {
+      console.error('Failed to save form:', error);
+      // Set user-facing error - keep dialog open
+      setSaveError(
+        error instanceof Error 
+          ? error.message 
+          : 'Failed to save changes. Please try again or discard changes.'
+      );
+    } finally {
+      setIsSaving(false);
     }
-    setShowUnsavedDialog(false);
-    setTimeout(() => router.push('/'), 500);
   };
 
   // Handle discard and navigate
   const handleDiscardAndNavigate = () => {
     setShowUnsavedDialog(false);
-    setHasUnsavedChanges(false);
-    router.push('/');
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    }
   };
 
   // Define fetchNotifications before using it
@@ -226,31 +239,17 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   }, [notifOpen, userOpen, closeAllPopups]);
 
-  /**
-   * Formats a timestamp into a human-readable "time ago" string
-   * @param timestamp - ISO 8601 timestamp string
-   * @returns Formatted string like "2h ago", "Just now", "3d ago"
-   * @example
-   * formatTimeAgo('2024-01-20T10:30:00Z') // "2h ago" (if current time is 12:30)
-   */
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
 
-    if (diffInMinutes < 1) return t('common.justNow', 'Just now');
-    if (diffInMinutes < 60) return `${diffInMinutes}m ${t('common.ago', 'ago')}`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ${t('common.ago', 'ago')}`;
-    return `${Math.floor(diffInMinutes / 1440)}d ${t('common.ago', 'ago')}`;
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  /**
-   * Returns Tailwind CSS text color class based on notification priority
-   * @param priority - Priority level: 'high', 'medium', 'low', or other
-   * @returns Tailwind text color class string
-   * @example
-   * getPriorityColor('high') // 'text-red-600'
-   */
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'text-red-600';
@@ -260,13 +259,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   };
 
-  /**
-   * Handles user logout: clears server session, removes client storage (preserves language), redirects to login
-   * @async
-   * @returns Promise that resolves after logout completes
-   * @example
-   * await handleLogout() // Clears auth, redirects to /login with language preserved
-   */
   const handleLogout = async () => {
     try {
       // Call logout API to clear server-side session
@@ -286,8 +278,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
       // Clear any other localStorage items related to the app, BUT preserve language settings
       Object.keys(localStorage).forEach(key => {
-        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) &&
-            key !== 'fxz.lang' &&
+        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) && 
+            key !== 'fxz.lang' && 
             key !== 'fxz.locale') {
           localStorage.removeItem(key);
         }
@@ -328,19 +320,19 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         </button>
         <AppSwitcher />
       </div>
-
+      
       {/* Global Search - Center */}
       <div className={`flex-1 max-w-2xl mx-4 ${screenInfo.isMobile ? 'hidden' : 'block'}`}>
         <GlobalSearch />
       </div>
-
+      
       {/* Mobile search button */}
       {screenInfo.isMobile && (
         <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
           <Search className="w-4 h-4" />
         </button>
       )}
-
+      
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Only show QuickActions for authenticated users */}
         {isAuthenticated && <QuickActions />}
@@ -355,31 +347,29 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               }}
               className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
               aria-label="Toggle notifications"
-              aria-haspopup="dialog"
-              aria-expanded={notifOpen}
             >
               <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-[var(--fixzit-danger-light)] rounded-full animate-pulse"></span>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
               )}
             </button>
             {notifOpen && (
             <Portal>
-              <div
+              <div 
                 role="dialog"
                 aria-label="Notifications"
-                className="notification-container fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
+                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
                 style={{
                   top: '4rem',
-                  [isRTL ? 'right' : 'left']: '1rem'
+                  [isRTL ? 'left' : 'right']: '1rem'
                 }}
               >
                 <div className="p-3 border-b border-gray-200 flex items-center justify-between">
                 <div>
                   <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {unreadCount > 0
-                      ? `${unreadCount} ${t('common.unread', 'unread')}`
+                    {notifications.filter(n => !n.read).length > 0
+                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
                       : t('common.noNotifications', 'No new notifications')
                     }
                   </div>
@@ -431,7 +421,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                             </div>
                           </div>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full ml-2 flex-shrink-0"></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
                           )}
                         </div>
                       </div>
@@ -450,7 +440,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="p-3 border-t border-gray-200 bg-gray-50">
                   <Link
                     href="/notifications"
-                    className="text-xs text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium flex items-center justify-center gap-1"
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1"
                     onClick={() => setNotifOpen(false)}
                   >
                     {t('common.viewAll', 'View all notifications')}
@@ -466,11 +456,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           </div>
         )}
         <div className="user-menu-container relative">
-          <button
+          <button 
             onClick={() => {
               setNotifOpen(false); // Close notifications when opening user menu
               setUserOpen(!userOpen);
-            }}
+            }} 
             className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
             aria-label="Toggle user menu"
           >
@@ -478,15 +468,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           </button>
           {userOpen && (
             <Portal>
-              <div
+              <div 
                 role="menu"
                 aria-label="User menu"
                 className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
                 style={{
                   top: '4rem',
-                  // In RTL (Arabic), dropdown should be on LEFT side, so set left property
-                  // In LTR (English), dropdown should be on RIGHT side, so set right property
-                  ...(isRTL ? { left: '1rem' } : { right: '1rem' })
+                  [isRTL ? 'left' : 'right']: '1rem'
                 }}
               >
                 <Link
@@ -505,7 +493,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 >
                   {t('nav.settings', 'Settings')}
                 </Link>
-
+                
                 {/* Language & Currency Section */}
                 <div className="border-t my-1 mx-2" />
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
@@ -515,12 +503,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   <LanguageSelector variant="default" />
                   <CurrencySelector variant="default" />
                 </div>
-
+                
                 <div className="border-t my-1 mx-2" />
                 <button
                   type="button"
                   role="menuitem"
-                  className="block w-full text-left px-4 py-2 hover:bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger)] rounded transition-colors cursor-pointer"
+                  className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
                   onClick={handleLogout}
                 >
                   {t('common.logout', 'Sign out')}
@@ -534,32 +522,85 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       {/* Unsaved Changes Dialog */}
       {showUnsavedDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-dialog-title"
+            onKeyDown={(e) => {
+              // Trap focus inside dialog on Tab
+              if (e.key === 'Tab') {
+                const focusableElements = e.currentTarget.querySelectorAll(
+                  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                );
+                const firstElement = focusableElements[0] as HTMLElement;
+                const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+                
+                if (e.shiftKey && document.activeElement === firstElement) {
+                  e.preventDefault();
+                  lastElement?.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                  e.preventDefault();
+                  firstElement?.focus();
+                }
+              }
+              // Close dialog on Escape
+              if (e.key === 'Escape' && !isSaving) {
+                setShowUnsavedDialog(false);
+                setPendingNavigation(null);
+                setSaveError(null);
+              }
+            }}
+          >
             <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 
+                id="unsaved-dialog-title"
+                className="text-lg font-semibold text-gray-900 mb-2"
+              >
                 {t('common.unsavedChanges', 'Unsaved Changes')}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4">
                 {t('common.unsavedChangesMessage', 'You have unsaved changes. Do you want to save them before leaving?')}
               </p>
+              
+              {/* Error message display */}
+              {saveError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-800">{saveError}</p>
+                </div>
+              )}
+              
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={() => setShowUnsavedDialog(false)}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  onClick={() => {
+                    setShowUnsavedDialog(false);
+                    setPendingNavigation(null);
+                    setSaveError(null);
+                  }}
+                  disabled={isSaving}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   onClick={handleDiscardAndNavigate}
-                  className="px-4 py-2 text-[var(--fixzit-danger)] hover:bg-[var(--fixzit-danger-lightest)] rounded-md transition-colors"
+                  disabled={isSaving}
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('common.discard', 'Discard')}
                 </button>
                 <button
                   onClick={handleSaveAndNavigate}
-                  className="px-4 py-2 bg-[#0061A8] text-white hover:bg-[#004d86] rounded-md transition-colors"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-[#0061A8] text-white hover:bg-[#004d86] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {t('common.saveAndContinue', 'Save & Continue')}
+                  {isSaving && (
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {isSaving ? t('common.saving', 'Saving...') : t('common.saveAndContinue', 'Save & Continue')}
                 </button>
               </div>
             </div>
