@@ -85,6 +85,7 @@ export const authConfig = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.INTERNAL_API_TOKEN}`,
           },
           body: JSON.stringify({
             email: _user.email,
