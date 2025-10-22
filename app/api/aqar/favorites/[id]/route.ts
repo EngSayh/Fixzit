@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite, AqarListing } from '@/models/aqar';
+import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import mongoose from 'mongoose';
@@ -55,6 +55,22 @@ export async function DELETE(
       } catch (analyticsError) {
         // Log analytics error but don't fail the request (deletion already succeeded)
         console.error('Failed to decrement listing favorites analytics', {
+          targetId: favorite.targetId.toString(),
+          message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+        });
+      }
+    } else if (favorite.targetType === 'PROJECT') {
+      try {
+        await AqarProject.findByIdAndUpdate(
+          favorite.targetId, 
+          { 
+            $inc: { 'analytics.favorites': -1 },
+            $set: { 'analytics.lastUpdatedAt': new Date() }
+          }
+        );
+      } catch (analyticsError) {
+        // Log analytics error but don't fail the request (deletion already succeeded)
+        console.error('Failed to decrement project favorites analytics', {
           targetId: favorite.targetId.toString(),
           message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
         });

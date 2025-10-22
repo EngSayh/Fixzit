@@ -19,6 +19,7 @@ export interface IFavorite extends Document {
   // Target
   targetId: mongoose.Types.ObjectId;
   targetType: FavoriteType;
+  targetTypeModel?: string; // Virtual field for refPath mapping
   
   // Metadata
   notes?: string;
@@ -36,10 +37,8 @@ const FavoriteSchema = new Schema<IFavorite>(
     
     targetId: { 
       type: Schema.Types.ObjectId, 
-      required: true
-      // Note: Cannot use refPath directly since enum values (LISTING, PROJECT) 
-      // don't match model names (AqarListing, AqarProject)
-      // Populate manually in API routes based on targetType
+      required: true,
+      refPath: 'targetTypeModel'
     },
     targetType: {
       type: String,
@@ -47,9 +46,16 @@ const FavoriteSchema = new Schema<IFavorite>(
       required: true,
       index: true,
     },
+    // Virtual field for refPath - maps enum to model name
+    targetTypeModel: {
+      type: String,
+      default: function(this: IFavorite) {
+        return this.targetType === FavoriteType.LISTING ? 'AqarListing' : 'AqarProject';
+      }
+    },
     
-    notes: { type: String, maxlength: 1000 },
-    tags: [{ type: String, maxlength: 50 }],
+    notes: { type: String, maxLength: 1000 },
+    tags: [{ type: String, maxLength: 50 }],
   },
   {
     timestamps: true,

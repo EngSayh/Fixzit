@@ -194,6 +194,7 @@ export async function POST(request: NextRequest) {
           }).exec();
         } catch (analyticsError) {
           console.error('Failed to increment listing favorites analytics', {
+            userId: user.id,
             targetId,
             targetType,
             message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
@@ -209,6 +210,7 @@ export async function POST(request: NextRequest) {
           }).exec();
         } catch (analyticsError) {
           console.error('Failed to increment project favorites analytics', {
+            userId: user.id,
             targetId,
             targetType,
             message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'

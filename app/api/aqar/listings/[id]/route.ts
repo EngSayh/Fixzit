@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarListing, ListingStatus, FurnishingStatus } from '@/models/aqar';
+import { AqarListing, AqarFavorite, AqarLead, ListingStatus, FurnishingStatus } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import mongoose from 'mongoose';
@@ -117,6 +117,30 @@ export async function PATCH(
           return NextResponse.json({ error: `Invalid status: ${value}. Must be one of: ${Object.values(ListingStatus).join(', ')}` }, { status: 400 });
         }
         
+        // Validate status transitions (prevent invalid state changes)
+        if (field === 'status') {
+          const currentStatus = listing.status;
+          const newStatus = value as ListingStatus;
+          
+          // Define valid status transitions
+          const validTransitions: Record<ListingStatus, ListingStatus[]> = {
+            [ListingStatus.DRAFT]: [ListingStatus.PENDING, ListingStatus.ACTIVE, ListingStatus.INACTIVE],
+            [ListingStatus.PENDING]: [ListingStatus.ACTIVE, ListingStatus.REJECTED, ListingStatus.INACTIVE],
+            [ListingStatus.ACTIVE]: [ListingStatus.INACTIVE, ListingStatus.SOLD, ListingStatus.RENTED],
+            [ListingStatus.INACTIVE]: [ListingStatus.ACTIVE, ListingStatus.DRAFT],
+            [ListingStatus.REJECTED]: [ListingStatus.DRAFT],
+            [ListingStatus.SOLD]: [ListingStatus.ACTIVE], // Allow reactivation if sale falls through
+            [ListingStatus.RENTED]: [ListingStatus.ACTIVE], // Allow reactivation if tenant leaves
+          };
+          
+          const allowedTransitions = validTransitions[currentStatus] || [];
+          if (!allowedTransitions.includes(newStatus) && currentStatus !== newStatus) {
+            return NextResponse.json({ 
+              error: `Invalid status transition from ${currentStatus} to ${newStatus}. Allowed transitions: ${allowedTransitions.join(', ')}` 
+            }, { status: 400 });
+          }
+        }
+        
         // Validate numeric fields
         if (field === 'price' || field === 'areaSqm') {
           if (typeof value !== 'number' || value <= 0) {
@@ -221,7 +245,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    await listing.deleteOne();
+    // Cascade delete related data
+    await Promise.all([
+      listing.deleteOne(),
+      // Delete all favorites referencing this listing
+      AqarFavorite.deleteMany({ targetId: id, targetType: 'LISTING' }),
+      // Delete all leads referencing this listing
+      AqarLead.deleteMany({ listingId: id }),
+    ]);
     
     return NextResponse.json({ success: true });
   } catch (error) {

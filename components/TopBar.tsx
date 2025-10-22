@@ -75,8 +75,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const pathname = usePathname();
 
   // Use FormStateContext for unsaved changes detection
-  const formState = useFormState();
-  const hasUnsavedChanges = formState.hasUnsavedChanges;
+  const { hasUnsavedChanges, requestSave } = useFormState();
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -137,7 +136,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
       // Step 2: Await the centralized FormStateProvider save
       // This ensures proper coordination - we wait for forms to complete
-      await formState.requestSave();
+      await requestSave();
 
       // Step 3: Success path only - close dialog and navigate
       setShowUnsavedDialog(false);

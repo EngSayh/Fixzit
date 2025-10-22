@@ -10,7 +10,7 @@ import { connectDb } from '@/lib/mongo';
 import { AqarLead, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
-import type { Types } from 'mongoose';
+import mongoose, { type Types } from 'mongoose';
 
 
 export const runtime = 'nodejs';
@@ -98,6 +98,15 @@ export async function POST(request: NextRequest) {
         { error: 'Either listingId or projectId is required' },
         { status: 400 }
       );
+    }
+    
+    // Validate ObjectId format for listingId and projectId
+    if (listingId && !mongoose.Types.ObjectId.isValid(listingId)) {
+      return NextResponse.json({ error: 'Invalid listingId format' }, { status: 400 });
+    }
+    
+    if (projectId && !mongoose.Types.ObjectId.isValid(projectId)) {
+      return NextResponse.json({ error: 'Invalid projectId format' }, { status: 400 });
     }
     
     // Get recipient (listing owner or project developer)

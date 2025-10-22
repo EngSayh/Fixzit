@@ -136,7 +136,7 @@ export default function GoogleMap({
       } catch (err) {
         console.error('Failed to initialize map:', err);
         if (mounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load map');
+          setError(err instanceof Error ? err.message : 'Unable to load map. Please check your connection and try again.');
           setLoading(false);
         }
       }

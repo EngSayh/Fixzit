@@ -69,9 +69,11 @@ export const authConfig = {
 
       const emailDomain = emailParts[1].toLowerCase();
       if (!allowedDomains.includes(emailDomain)) {
+        // Hash domain for privacy in logs
+        const domainHash = await hashEmail(emailDomain);
         console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
           emailHash, 
-          domain: emailDomain,
+          domainHash,
           provider: _account?.provider 
         });
         return false; // Reject unauthorized domains
