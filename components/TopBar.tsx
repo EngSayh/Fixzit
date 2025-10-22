@@ -288,7 +288,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   };
 
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
+    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Logo with unsaved changes handler */}
         <button
@@ -338,7 +338,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               aria-label="Toggle notifications"
             >
               <Bell className="w-5 h-5" />
-              {notifications.filter(n => !n.read).length > 0 && (
+                          {notifications.filter(n => !n.read).length > 0 && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
               )}
             </button>
@@ -410,7 +410,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                             </div>
                           </div>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
+                            <div className="w-2 h-2 bg-brand-500 rounded-full ml-2 flex-shrink-0"></div>
                           )}
                         </div>
                       </div>
@@ -429,7 +429,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="p-3 border-t border-gray-200 bg-gray-50">
                   <Link
                     href="/notifications"
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1"
+                    className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
                     onClick={() => setNotifOpen(false)}
                   >
                     {t('common.viewAll', 'View all notifications')}
