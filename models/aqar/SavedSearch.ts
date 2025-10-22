@@ -85,7 +85,17 @@ const SavedSearchSchema = new Schema<ISavedSearch>(
       amenities: [{ type: String }],
       geoCenter: {
         type: { type: String, enum: ['Point'] },
-        coordinates: { type: [Number] },
+        coordinates: {
+          type: [Number],
+          validate: {
+            validator: function(coords: number[]) {
+              return coords.length === 2 && 
+                     coords[0] >= -180 && coords[0] <= 180 && // longitude
+                     coords[1] >= -90 && coords[1] <= 90;     // latitude
+            },
+            message: 'GeoJSON coordinates must be exactly [longitude, latitude] within valid ranges'
+          }
+        },
       },
       geoRadiusKm: { type: Number, min: 0 },
     },
@@ -118,14 +128,21 @@ SavedSearchSchema.index({ userId: 1, active: 1, createdAt: -1 });
 SavedSearchSchema.index({ 'criteria.city': 1 });
 SavedSearchSchema.index({ 'criteria.geoCenter': '2dsphere' });
 
-// Methods
+// Methods - use atomic operations to prevent race conditions
 SavedSearchSchema.methods.recordMatch = async function (this: ISavedSearch) {
-  this.matchCount += 1;
-  await this.save();
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { matchCount: 1 } }
+  );
+  this.matchCount += 1; // Update in-memory
 };
 
 SavedSearchSchema.methods.recordNotification = async function (this: ISavedSearch) {
-  this.notificationsSent += 1;
+  await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id },
+    { $inc: { notificationsSent: 1 } }
+  );
+  this.notificationsSent += 1; // Update in-memory
   this.lastNotifiedAt = new Date();
   await this.save();
 };

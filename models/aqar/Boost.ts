@@ -102,16 +102,31 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
 
 // Methods
 BoostSchema.methods.activate = async function (this: IBoost) {
-  if (this.active) {
-    throw new Error('Boost already activated');
-  }
   if (!this.paidAt) {
     throw new Error('Boost not paid');
   }
+  
+  // Atomic update to prevent race condition
+  const expiresAt = new Date(Date.now() + this.durationDays * 24 * 60 * 60 * 1000);
+  const result = await (this.constructor as typeof import('mongoose').Model).updateOne(
+    { _id: this._id, active: false },
+    {
+      $set: {
+        active: true,
+        activatedAt: new Date(),
+        expiresAt
+      }
+    }
+  );
+  
+  if (result.modifiedCount === 0) {
+    throw new Error('Boost already activated or not found');
+  }
+  
+  // Update in-memory document
   this.active = true;
   this.activatedAt = new Date();
-  this.expiresAt = new Date(Date.now() + this.durationDays * 24 * 60 * 60 * 1000);
-  await this.save();
+  this.expiresAt = expiresAt;
 };
 
 // NOTE: These methods perform atomic DB updates but do NOT update the in-memory document instance.

@@ -56,7 +56,9 @@ while true; do
         if [ -f "$PID_FILE" ]; then
             kill $(cat "$PID_FILE") 2>/dev/null
         fi
-        pkill -f "next dev" 2>/dev/null
+        # More specific kill to avoid affecting unrelated processes
+        pkill -f "node.*next.*dev.*--turbopack" 2>/dev/null || \
+        pkill -f "node.*next.*dev" 2>/dev/null
         sleep 2
         start_server
         sleep 5

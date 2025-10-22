@@ -35,7 +35,6 @@ jobs:
       - name: Upload source maps to Sentry (if configured)
         # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
         # Secrets must be set in: Repository Settings > Secrets and variables > Actions
-        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}

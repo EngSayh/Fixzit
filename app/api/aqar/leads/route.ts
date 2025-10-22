@@ -89,8 +89,22 @@ export async function POST(request: NextRequest) {
       AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec().catch((err) => console.error('Failed to increment project inquiries:', { projectId, error: err }));
     }
     
+    // Fetch organization from recipient if available
+    let orgId = userId;
+    if (recipientId) {
+      try {
+        const { Organization } = await import('@/server/models/Organization');
+        const org = await Organization.findOne({ userId: recipientId }).select('_id').lean().exec();
+        if (org && !Array.isArray(org) && '_id' in org) {
+          orgId = org._id.toString();
+        }
+      } catch (orgError) {
+        console.error('Failed to fetch organization:', { recipientId, error: orgError });
+      }
+    }
+    
     const lead = new AqarLead({
-      orgId: userId || recipientId,
+      orgId,
       listingId,
       projectId,
       source,

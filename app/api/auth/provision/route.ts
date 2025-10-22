@@ -14,7 +14,28 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const internalToken = process.env.INTERNAL_API_TOKEN;
     
-    if (!internalToken || !authHeader || authHeader !== `Bearer ${internalToken}`) {
+    if (!internalToken || !authHeader) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid internal API token' },
+        { status: 401 }
+      );
+    }
+    
+    // Use timing-safe comparison to prevent timing attacks
+    const expectedToken = `Bearer ${internalToken}`;
+    if (authHeader.length !== expectedToken.length) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid internal API token' },
+        { status: 401 }
+      );
+    }
+    
+    // Compare byte-by-byte with constant time
+    const crypto = await import('crypto');
+    const authBuffer = Buffer.from(authHeader, 'utf-8');
+    const expectedBuffer = Buffer.from(expectedToken, 'utf-8');
+    
+    if (!crypto.timingSafeEqual(authBuffer, expectedBuffer)) {
       return NextResponse.json(
         { error: 'Unauthorized - Invalid internal API token' },
         { status: 401 }

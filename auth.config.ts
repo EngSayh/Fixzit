@@ -37,7 +37,7 @@ export const authConfig = {
       clientSecret: GOOGLE_CLIENT_SECRET,
       authorization: {
         params: {
-          prompt: 'consent',
+          prompt: 'select_account',
           access_type: 'offline',
           response_type: 'code',
         },
@@ -81,6 +81,11 @@ export const authConfig = {
       // This ensures OAuth users are registered in the system
       try {
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
         const response = await fetch(`${baseUrl}/api/auth/provision`, {
           method: 'POST',
           headers: {
@@ -93,7 +98,10 @@ export const authConfig = {
             image: _user.image,
             provider: _account?.provider,
           }),
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeout);
 
         if (!response.ok) {
           console.error('User provisioning failed', { 
@@ -104,7 +112,11 @@ export const authConfig = {
           // User will be created on first middleware access if needed
         }
       } catch (error) {
-        console.error('User provisioning error', { emailHash, error });
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error('User provisioning timeout', { emailHash });
+        } else {
+          console.error('User provisioning error', { emailHash, error });
+        }
         // Allow sign-in to proceed (graceful degradation)
       }
 

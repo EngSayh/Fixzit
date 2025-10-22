@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const intent = searchParams.get('intent'); // BUY|RENT|DAILY
     const propertyType = searchParams.get('propertyType');
     const city = searchParams.get('city');
-    const neighborhoods = searchParams.get('neighborhoods')?.split(',');
+    const neighborhoods = searchParams.get('neighborhoods')?.split(',').map(s => s.trim()).filter(Boolean);
     const minPrice = parseNum('minPrice');
     const maxPrice = parseNum('maxPrice');
     const minBeds = parseNum('minBeds');
@@ -45,12 +45,40 @@ export async function GET(request: NextRequest) {
     const minArea = parseNum('minArea');
     const maxArea = parseNum('maxArea');
     const furnishing = searchParams.get('furnishing');
-    const amenities = searchParams.get('amenities')?.split(',');
+    const amenities = searchParams.get('amenities')?.split(',').map(s => s.trim()).filter(Boolean);
     
     // Geo search with validation
-    const lat = parseFloat('lat');
-    const lng = parseFloat('lng');
-    const radiusKm = parseFloat('radiusKm');
+    const latRaw = searchParams.get('lat');
+    const lngRaw = searchParams.get('lng');
+    const radiusKmRaw = searchParams.get('radiusKm');
+    
+    let lat: number | undefined;
+    let lng: number | undefined;
+    let radiusKm: number | undefined;
+    
+    if (latRaw !== null) {
+      const latParsed = parseFloat(latRaw);
+      if (isNaN(latParsed) || latParsed < -90 || latParsed > 90) {
+        return NextResponse.json({ error: 'Invalid latitude: must be between -90 and 90' }, { status: 400 });
+      }
+      lat = latParsed;
+    }
+    
+    if (lngRaw !== null) {
+      const lngParsed = parseFloat(lngRaw);
+      if (isNaN(lngParsed) || lngParsed < -180 || lngParsed > 180) {
+        return NextResponse.json({ error: 'Invalid longitude: must be between -180 and 180' }, { status: 400 });
+      }
+      lng = lngParsed;
+    }
+    
+    if (radiusKmRaw !== null) {
+      const radiusKmParsed = parseFloat(radiusKmRaw);
+      if (isNaN(radiusKmParsed) || radiusKmParsed <= 0 || radiusKmParsed > 500) {
+        return NextResponse.json({ error: 'Invalid radiusKm: must be between 0 and 500' }, { status: 400 });
+      }
+      radiusKm = radiusKmParsed;
+    }
     
     // Sorting & pagination with bounds
     const sort = searchParams.get('sort') || 'date-desc'; // date-desc|price-asc|price-desc|featured
@@ -164,7 +192,11 @@ export async function GET(request: NextRequest) {
       facets: facets[0] || {},
     });
   } catch (error) {
-    console.error('Error searching listings:', error);
+    // Log sanitized error without PII
+    console.error('Error searching listings:', {
+      name: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message.substring(0, 100) : 'Unknown error'
+    });
     return NextResponse.json(
       { error: 'Failed to search listings' },
       { status: 500 }

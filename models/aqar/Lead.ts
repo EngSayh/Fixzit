@@ -226,6 +226,12 @@ LeadSchema.methods.completeViewing = async function (this: ILead) {
   if (!this.viewingScheduledAt) {
     throw new Error('No viewing scheduled');
   }
+  
+  // Validate viewing is in the past or current
+  if (this.viewingScheduledAt > new Date()) {
+    throw new Error('Cannot complete viewing before scheduled time');
+  }
+  
   this.viewingCompletedAt = new Date();
   this.status = LeadStatus.NEGOTIATING;
   await this.save();

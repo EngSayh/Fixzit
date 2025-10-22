@@ -43,13 +43,11 @@ export async function DELETE(
     if (favorite.targetType === 'LISTING') {
       try {
         const { AqarListing } = await import('@/models/aqar');
-        // Await the update and guard against negative counts
-        await AqarListing.findByIdAndUpdate(
-          favorite.targetId,
+        // Atomically decrement only if count > 0 to prevent negative values
+        await AqarListing.updateOne(
+          { _id: favorite.targetId, 'analytics.favorites': { $gt: 0 } },
           {
-            $inc: { 'analytics.favorites': -1 },
-            // Ensure favorites count doesn't go below 0
-            $max: { 'analytics.favorites': 0 }
+            $inc: { 'analytics.favorites': -1 }
           }
         ).exec();
       } catch (analyticsError) {

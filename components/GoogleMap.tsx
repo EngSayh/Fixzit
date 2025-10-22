@@ -103,6 +103,11 @@ export default function GoogleMap({
     }
 
     return () => {
+      // Only clean up if Google Maps loaded
+      if (!window.google?.maps) {
+        return;
+      }
+      
       // Close all InfoWindows
       infoWindowsRef.current.forEach(iw => iw.close());
       infoWindowsRef.current = [];
@@ -138,7 +143,7 @@ export default function GoogleMap({
 
   // Update markers (only run after map is ready)
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapReady) return;
+    if (!mapInstanceRef.current || !mapReady || !window.google?.maps) return;
 
     // Clear existing markers and cleanup
     infoWindowsRef.current.forEach(iw => iw.close());

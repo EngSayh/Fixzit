@@ -145,11 +145,11 @@ export async function PATCH(
             typeof item === 'object' && 
             typeof item.url === 'string' && 
             item.url.trim().length > 0 &&
-            typeof item.type === 'string' &&
-            ['image', 'video', 'tour'].includes(item.type)
+            typeof item.kind === 'string' &&
+            ['IMAGE', 'VIDEO', 'VR'].includes(item.kind)
           )) {
             return NextResponse.json({ 
-              error: 'media must be an array of objects with url (non-empty string) and type (image|video|tour)' 
+              error: 'media must be an array of objects with url (non-empty string) and kind (IMAGE|VIDEO|VR)' 
             }, { status: 400 });
           }
         }

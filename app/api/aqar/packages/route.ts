@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     
     await payment.save();
     
-    pkg.paymentId = payment._id as never;
+    pkg.paymentId = payment._id as mongoose.Types.ObjectId;
     await pkg.save();
     
     // TODO: Redirect to payment gateway

@@ -7,7 +7,7 @@
   "chat.agent.maxRequests": 50,
   // AI edits require explicit approval for safety - contributors must review changes manually
   "chat.tools.global.autoApprove": false,
-  "chat.tools.terminal.autoReplyToPrompts": true,
+  "chat.tools.terminal.autoReplyToPrompts": false,
   "github.copilot.chat.agent.runTasks": true,
   "chat.notifyWindowOnConfirmation": false,
   "chat.checkpoints.enabled": true,
@@ -57,7 +57,7 @@
   "coderabbit.autoReviewMode": "auto",
   "coderabbit.maxFilesPerReview": 500,
   "coderabbit.concurrentReviews": 3,
-  "extensions.autoUpdate": false,
+  "extensions.autoUpdate": "onlyEnabledExtensions",
   "extensions.ignoreRecommendations": true,
   "window.restoreWindows": "none",
   "files.watcherExclude": {

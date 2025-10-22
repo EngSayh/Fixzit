@@ -6,10 +6,11 @@
     "configurations": [
         
         {
-            "type": "chrome",
+            "type": "pwa-chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
+            // Use ${env:PORT} if you want to parameterize the port, or update to your actual dev server port
+            "url": "http://localhost:${env:PORT}",
             "webRoot": "${workspaceFolder}"
         }
     ]
