@@ -5,6 +5,9 @@ import { jwtVerify } from 'jose';
 import { dbConnect } from '@/db/mongoose';
 import { User } from '@/server/models/User';
 
+// Force Node.js runtime for middleware (required for mongoose/database operations)
+export const runtime = 'nodejs';
+
 // Validate JWT secret at module load - fail fast if missing
 // Require dedicated JWT_SECRET instead of falling back to NEXTAUTH_SECRET to prevent token confusion
 const jwtSecretValue = process.env.JWT_SECRET;
