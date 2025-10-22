@@ -15,14 +15,14 @@ export const runtime = 'nodejs';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDb();
     
     const user = await getSessionUser(request);
     
-    const { id } = params;
+    const { id } = await params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid favorite ID' }, { status: 400 });
@@ -39,10 +39,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Decrement favorites count (async)
+    // Decrement favorites count (async with error logging)
     if (favorite.targetType === 'LISTING') {
       const { AqarListing } = await import('@/models/aqar');
-      AqarListing.findByIdAndUpdate(favorite.targetId, { $inc: { 'analytics.favorites': -1 } }).exec();
+      AqarListing.findByIdAndUpdate(favorite.targetId, { 
+        $inc: { 'analytics.favorites': -1 },
+        $max: { 'analytics.favorites': 0 } // Prevent negative counts
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update listing favorites count:', err);
+      });
     }
     
     await favorite.deleteOne();
