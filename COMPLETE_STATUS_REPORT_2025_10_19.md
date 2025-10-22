@@ -11,13 +11,13 @@
 
 This report documents the completion of **ALL** pending tasks from the past 48 hours (October 17-19, 2025). The repository is now in excellent health with:
 
-- ✅ **Zero TypeScript errors**
-- ✅ **Zero ESLint warnings**
-- ✅ **All security vulnerabilities fixed** (OAuth, JWT, secrets)
-- ✅ **Test framework fully standardized to Vitest**
-- ✅ **Edge Runtime compatibility established**
-- ✅ **MongoDB mocks centralized**
-- ✅ **Comprehensive documentation complete**
+- ⚠️ TypeScript: 5 TS2688 errors detected — missing type definitions for: `google.maps`, `jest`, `node`, `react`, `react-dom`. Action: add the corresponding devDependencies (e.g. `@types/jest`, `@types/node`, `@types/react`, `@types/react-dom`) or include appropriate type packages and re-run type checks.
+- ⚠️ ESLint: failing due to missing `@types/react` and `@types/node`. Note: `next lint` is deprecated in some Next.js toolchains — migrate to running `eslint` directly or follow the Next.js linting migration guidance. Action: install missing `@types/*` packages and update lint scripts.
+- ✅ All security vulnerabilities fixed (OAuth, JWT, secrets)
+- ✅ Test framework fully standardized to Vitest
+- ✅ Edge Runtime compatibility established
+- ✅ MongoDB mocks centralized
+- ✅ Comprehensive documentation complete
 
 ---
 
@@ -357,24 +357,44 @@ b110fd33 - Oct 19 04:34 - fix: additional code quality improvements
 
 ## 📦 Dependencies & Versions
 
-### Key Dependencies (Verified Current)
-```json
-{
-  "next": "15.0.4",
-  "next-auth": "5.0.0-beta.29",
-  "react": "18.3.1",
-  "typescript": "5.7.2",
-  "vitest": "3.2.4",
-  "@playwright/test": "^1.41.0",
-  "jose": "^5.1.3",
-  "mongodb": "^6.3.0"
-}
+### Documented versions (report)
+```text
+next: 15.0.4
+next-auth: 5.0.0-beta.29
+react: 18.3.1
+typescript: 5.7.2
+vitest: 3.2.4
+jose: ^5.1.3
+mongodb: ^6.3.0
 ```
 
-### Critical Version Decisions Documented
-1. **NextAuth v5 beta** - Kept (Next.js 15 requirement, 29 beta releases shows maturity)
-2. **Vitest over Jest** - Standardized (modern, faster, better ESM/Next.js 15 support)
-3. **jose for JWT** - Adopted (industry-standard, proper signature verification)
+### Verified repository versions
+```text
+next: 15.5.4
+typescript: 5.9.3
+jose: 5.2.0
+mongodb: 6.20.0
+```
+
+Discrepancy summary & remediation
+- Mismatched package versions detected. Action: update package.json to the verified versions (or align documentation to repo), then run `pnpm install`.
+- Missing type definitions causing TS2688 errors. Action: add devDependencies:
+  - `@types/jest`
+  - `@types/node`
+  - `@types/react`
+  - `@types/react-dom`
+  - (for Google Maps types) `@types/google.maps` or include the shipped types as appropriate
+  Then run: `pnpm install && pnpm typecheck`.
+- ESLint failing due to missing types and potential lint pipeline changes. Action:
+  1. Install `@types/react` and `@types/node` as devDependencies.
+  2. Replace `next lint` usage if deprecated with direct `eslint` command per Next.js guidance.
+  3. Run: `pnpm lint` and iterate until clean.
+- Verification steps (after fixes):
+  - `pnpm install`
+  - `pnpm typecheck`
+  - `pnpm lint`
+  - `pnpm vitest run`
+```
 
 ---
 

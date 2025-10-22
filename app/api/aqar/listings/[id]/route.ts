@@ -11,6 +11,8 @@ import { connectDb } from '@/lib/mongo';
 import { AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { FurnishingStatus, ListingStatus } from '@/models/aqar/Listing';
+import { withCorrelation, ok, badRequest, notFound } from '@/lib/api/http';
+import { isValidObjectIdSafe } from '@/lib/api/validation';
 
 import mongoose from 'mongoose';
 
@@ -21,37 +23,41 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    await connectDb();
-    
-    const { id } = await params;
-    
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });
-    }
-    
-    const listing = await AqarListing.findById(id).lean();
-    
-    if (!listing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    }
-    
-    // Increment view count (async, don't await, but log errors)
-    AqarListing.findByIdAndUpdate(
-      id, 
-      { 
-        $inc: { 'analytics.views': 1 }, 
-        $set: { 'analytics.lastViewedAt': new Date() } 
+  return withCorrelation(async (correlationId) => {
+    try {
+      await connectDb();
+      
+      const { id } = await params;
+      
+      if (!isValidObjectIdSafe(id)) {
+        return badRequest('Invalid listing ID', { correlationId });
       }
-    ).exec().catch((err: Error) => {
-      console.error('Failed to update listing analytics:', err);
-    });
-    
-    return NextResponse.json({ listing });
-  } catch (error) {
-    console.error('Error fetching listing:', error);
-    return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
-  }
+      
+      const listing = await AqarListing.findById(id)
+        .select('_id title price areaSqm city status media amenities geo analytics')
+        .lean();
+      
+      if (!listing) {
+        return notFound('Listing not found', { correlationId });
+      }
+      
+      // Best-effort analytics increment with error capture (no await to avoid blocking response)
+      AqarListing.findByIdAndUpdate(
+        id, 
+        { 
+          $inc: { 'analytics.views': 1 }, 
+          $set: { 'analytics.lastViewedAt': new Date() } 
+        }
+      ).exec().catch((err: Error) => {
+        console.warn('VIEW_INC_FAILED', { correlationId, id, err: String(err?.message || err) });
+      });
+      
+      return ok({ listing }, { correlationId });
+    } catch (error) {
+      console.error('Error fetching listing:', error);
+      return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
+    }
+  });
 }
 
 // PATCH /api/aqar/listings/[id]

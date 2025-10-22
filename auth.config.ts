@@ -4,7 +4,8 @@ import Google from 'next-auth/providers/google';
 // Privacy-preserving email hash helper for secure logging (Edge-compatible)
 async function hashEmail(email: string): Promise<string> {
   // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
-  const msgUint8 = new TextEncoder().encode(email);
+  const salt = process.env.LOG_HASH_SALT ?? '';
+  const msgUint8 = new TextEncoder().encode(email + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -20,13 +21,21 @@ const missingVars: string[] = [];
 if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
 if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
 if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
+if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
+  missingVars.push('NEXTAUTH_URL');
+}
 
 if (missingVars.length > 0) {
   throw new Error(
-    `Missing required environment variables for NextAuth: ${missingVars.join(', ')}. ` +
-    'Please add these to your .env.local file or GitHub Secrets.'
+    'Missing required authentication configuration. See README env section.'
   );
 }
+
+// Environment-driven OAuth allowed domains
+const allowedDomains = (process.env.OAUTH_ALLOWED_DOMAINS ?? 'fixzit.com,fixzit.co')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
 
 export const authConfig = {
   providers: [
@@ -49,29 +58,31 @@ export const authConfig = {
   callbacks: {
     async signIn({ user: _user, account: _account, profile: _profile }) {
       // OAuth Access Control - Email Domain Whitelist
-      // Configure allowed email domains for OAuth sign-in
-      const allowedDomains = ['fixzit.com', 'fixzit.co'];
       
       // Safely check email and extract domain
       if (!_user?.email) {
-        console.warn('OAuth sign-in rejected: No email provided');
+        if (process.env.LOG_LEVEL === 'debug') {
+          console.debug('OAuth sign-in rejected: No email provided');
+        }
         return false; // Reject sign-ins without email
       }
 
       const emailHash = await hashEmail(_user.email);
       const emailParts = _user.email.split('@');
       if (emailParts.length !== 2) {
-        console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
+        if (process.env.LOG_LEVEL === 'debug') {
+          console.debug('OAuth sign-in rejected: Invalid email format', { emailHash });
+        }
         return false; // Reject malformed emails
       }
 
       const emailDomain = emailParts[1].toLowerCase();
       if (!allowedDomains.includes(emailDomain)) {
-        console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
-          emailHash, 
-          domain: emailDomain,
-          provider: _account?.provider 
-        });
+        if (process.env.LOG_LEVEL === 'debug') {
+          console.debug('OAuth sign-in rejected: Domain not whitelisted', { 
+            domain: emailDomain
+          });
+        }
         return false; // Reject unauthorized domains
       }
 

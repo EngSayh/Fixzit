@@ -1,0 +1,289 @@
+openapi: 3.0.3
+info:
+  title: Fixzit Aqar Real Estate API
+  version: 1.0.0
+  description: REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development
+  - url: https://fixzit.co/api
+    description: Production
+
+paths:
+  /aqar/listings:
+    post:
+      summary: Create property listing
+      tags: [Listings]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListingCreate'
+      responses:
+        '201':
+          description: Listing created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  listing:
+                    $ref: '#/components/schemas/Listing'
+                  correlationId:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /aqar/listings/{id}:
+    get:
+      summary: Get listing by ID
+      tags: [Listings]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  listing:
+                    $ref: '#/components/schemas/Listing'
+                  correlationId:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /aqar/listings/search:
+    get:
+      summary: Search listings with filters
+      tags: [Listings]
+      parameters:
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: lat
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: radiusKm
+          in: query
+          schema:
+            type: number
+            minimum: 0.1
+            maximum: 20
+          description: 'Capped to 20km for performance'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: OK
+
+  /aqar/leads:
+    post:
+      summary: Create lead (public, rate-limited to 10 req/min)
+      tags: [Leads]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCreate'
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          description: Too Many Requests
+
+  /aqar/favorites:
+    post:
+      summary: Add favorite
+      tags: [Favorites]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteCreate'
+      responses:
+        '201':
+          description: Created
+        '409':
+          description: Conflict (already favorited)
+
+  /aqar/packages:
+    post:
+      summary: Purchase package (atomic transaction)
+      tags: [Packages]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [STARTER, STANDARD, PREMIUM]
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Forbidden
+    NotFound:
+      description: Not found
+    ServerError:
+      description: Internal Server Error
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            name:
+              type: string
+            code:
+              oneOf:
+                - type: string
+                - type: integer
+            userMessage:
+              type: string
+            devMessage:
+              type: string
+            correlationId:
+              type: string
+
+    ListingCreate:
+      type: object
+      required: [intent, propertyType, title, description, city, price, areaSqm, geo, source]
+      properties:
+        intent:
+          type: string
+          enum: [BUY, RENT, DAILY]
+        propertyType:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        city:
+          type: string
+        price:
+          type: number
+          minimum: 1
+        areaSqm:
+          type: number
+          minimum: 1
+        geo:
+          type: object
+          required: [type, coordinates]
+          properties:
+            type:
+              type: string
+              enum: [Point]
+            coordinates:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+        source:
+          type: string
+          enum: [OWNER, AGENT, DEVELOPER]
+
+    Listing:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        price:
+          type: number
+        areaSqm:
+          type: number
+        city:
+          type: string
+        status:
+          type: string
+
+    LeadCreate:
+      type: object
+      required: [inquirerName, inquirerPhone, intent, source]
+      properties:
+        listingId:
+          type: string
+        projectId:
+          type: string
+        inquirerName:
+          type: string
+        inquirerPhone:
+          type: string
+        intent:
+          type: string
+          enum: [BUY, RENT, DAILY]
+        source:
+          type: string
+
+    FavoriteCreate:
+      type: object
+      required: [targetId, targetType]
+      properties:
+        targetId:
+          type: string
+        targetType:
+          type: string
+          enum: [LISTING, PROJECT]

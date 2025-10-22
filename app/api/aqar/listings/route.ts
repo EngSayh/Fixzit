@@ -4,85 +4,87 @@
  * POST /api/aqar/listings
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing, AqarPackage } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { withCorrelation, ok, badRequest, forbidden, serverError } from '@/lib/api/http';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  try {
-    await connectDb();
-    
-    const user = await getSessionUser(request);
-    
-    const body = await request.json();
-    
-    // Validate required fields
-    const requiredFields = [
-      'intent',
-      'propertyType',
-      'title',
-      'description',
-      'city',
-      'price',
-      'areaSqm',
-      'geo',
-      'source',
-    ];
-    
-    const missingFields = requiredFields.filter((field) => !body[field]);
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    
-    // Check if user has active package (for agents/developers)
-    if (body.source === 'AGENT' || body.source === 'DEVELOPER') {
-      const activePackage = await AqarPackage.findOne({
-        userId: user.id,
-        active: true,
-        expiresAt: { $gt: new Date() },
-        $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
-      });
+  return withCorrelation(async (correlationId) => {
+    try {
+      await connectDb();
       
-      if (!activePackage) {
-        return NextResponse.json(
-          { error: 'No active listing package. Please purchase a package first.' },
-          { status: 402 }
-        );
+      const user = await getSessionUser(request);
+      
+      // JSON validation guard
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== 'object') {
+        return badRequest('Invalid JSON body', { correlationId });
       }
       
-      // Consume package listing
-      await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
+      // Type-aware validation
+      const missingString = ['intent', 'propertyType', 'title', 'description', 'city', 'source']
+        .filter((f) => typeof body[f] !== 'string' || !body[f].trim());
+      const invalidNumbers = ['price', 'areaSqm']
+        .filter((f) => typeof body[f] !== 'number' || body[f] <= 0);
+      const validGeo =
+        body.geo?.type === 'Point' &&
+        Array.isArray(body.geo.coordinates) &&
+        body.geo.coordinates.length === 2 &&
+        body.geo.coordinates.every((n: unknown) => typeof n === 'number');
+      
+      const missing = [...missingString, ...invalidNumbers, ...(validGeo ? [] : ['geo'])];
+      if (missing.length) {
+        return badRequest(`Missing/invalid fields: ${missing.join(', ')}`, { correlationId });
+      }
+      
+      // Check if user has active package (for agents/developers)
+      if (body.source === 'AGENT' || body.source === 'DEVELOPER') {
+        const activePackage = await AqarPackage.findOne({
+          userId: user.id,
+          active: true,
+          expiresAt: { $gt: new Date() },
+          $expr: { $lt: ['$listingsUsed', '$listingsAllowed'] },
+        });
+        
+        if (!activePackage) {
+          return forbidden('No active listing package. Please purchase a package first.', { correlationId });
+        }
+        
+        // Consume package listing
+        await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
+      }
+      
+      // Create listing
+      const created = await AqarListing.create({
+        ...body,
+        listerId: user.id,
+        orgId: user.orgId || user.id,
+        status: 'DRAFT',
+      });
+      
+      // Sanitize response
+      const { _id, title, price, areaSqm, city, status, listerId, orgId, media, amenities, geo, createdAt } =
+        created.toObject?.() ?? created;
+      
+      return ok(
+        { listing: { _id, title, price, areaSqm, city, status, listerId, orgId, media, amenities, geo, createdAt } },
+        { correlationId },
+        201
+      );
+    } catch (error: unknown) {
+      const msg = String((error as Error)?.message || '');
+      if (/package|quota/i.test(msg)) {
+        return forbidden('Package quota required or exhausted', { correlationId });
+      }
+      if (/broker ads require/i.test(msg)) {
+        return badRequest('Broker ad prerequisites not met', { correlationId });
+      }
+      console.error('LISTINGS_POST_ERROR', { correlationId, msg });
+      return serverError('Unexpected error', { correlationId });
     }
-    
-    // Create listing
-    const listing = new AqarListing({
-      ...body,
-      listerId: user.id,
-      orgId: user.orgId || user.id, // Fallback to user ID
-      status: 'DRAFT', // Start as draft
-    });
-    
-    await listing.save();
-    
-    return NextResponse.json({ listing }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating listing:', error);
-    
-    if (error instanceof Error && error.message.includes('Package')) {
-      return NextResponse.json({ error: error.message }, { status: 402 });
-    }
-    
-    if (error instanceof Error && error.message.includes('Broker ads require')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    
-    return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 });
-  }
+  });
 }

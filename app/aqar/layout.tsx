@@ -1,6 +1,15 @@
+'use client';
+import { useTranslation } from '@/contexts/TranslationContext';
+
 export default function AqarLayout({ children }: { children: React.ReactNode }) {
+  // Always call hooks unconditionally
+  const { locale: ctxLocale, isRTL } = useTranslation();
+  
+  const locale = ctxLocale || 'en';
+  const dir = isRTL ? 'rtl' : 'ltr';
+  
   return (
-    <div className="w-full h-full">
+    <div dir={dir} lang={locale} className="w-full h-full">
       {children}
     </div>
   );

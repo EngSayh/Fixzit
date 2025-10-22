@@ -39,11 +39,13 @@ export async function GET(request: NextRequest) {
     const furnishing = searchParams.get('furnishing');
     const amenities = searchParams.get('amenities')?.split(',').filter(Boolean);
     
-    // Geo search with bounded radiusKm (0.1km to 50km)
+    // Geo search with bounded radiusKm (0.1km to 20km - capped for DoS prevention)
     const lat = parseNum(searchParams.get('lat'));
     const lng = parseNum(searchParams.get('lng'));
     const radiusKmRaw = parseNum(searchParams.get('radiusKm'));
-    const radiusKm = radiusKmRaw ? Math.min(Math.max(radiusKmRaw, 0.1), 50) : undefined;
+    const MAX_RADIUS_KM = 20;
+    const MIN_RADIUS_KM = 0.1;
+    const radiusKm = radiusKmRaw ? Math.min(Math.max(radiusKmRaw, MIN_RADIUS_KM), MAX_RADIUS_KM) : undefined;
     
     // Sorting & pagination with bounds
     const sort = searchParams.get('sort') || 'relevance'; // relevance|price-asc|price-desc|date-desc|featured
@@ -112,12 +114,13 @@ export async function GET(request: NextRequest) {
         sortQuery = { publishedAt: -1 };
     }
     
-    // Execute query - remove $near from countDocuments (MongoDB limitation)
+    // Execute query with field projection for performance
     const countQuery = { ...query };
     delete (countQuery as { geo?: unknown }).geo;
     
+    const select = '_id title price areaSqm city status media.coverImage analytics.views publishedAt';
     const [listings, total] = await Promise.all([
-      AqarListing.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
+      AqarListing.find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
       AqarListing.countDocuments(countQuery),
     ]);
     

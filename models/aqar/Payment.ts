@@ -7,6 +7,21 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+// Scrubbing function for sensitive gateway data
+function scrubGateway(obj: unknown): unknown {
+  if (!obj || typeof obj !== 'object') return obj;
+  const redactKeys = ['card', 'cvv', 'cvc', 'token', 'authorization', 'auth', 'signature', 'secret', 'customer_email'];
+  const result = { ...obj } as Record<string, unknown>;
+  for (const k of Object.keys(result)) {
+    if (redactKeys.includes(k.toLowerCase())) {
+      result[k] = '<REDACTED>';
+    } else if (typeof result[k] === 'object' && result[k] !== null) {
+      result[k] = scrubGateway(result[k]);
+    }
+  }
+  return result;
+}
+
 export enum PaymentType {
   PACKAGE = 'PACKAGE',               // Listing package
   BOOST = 'BOOST',                   // Listing boost
@@ -98,7 +113,7 @@ const PaymentSchema = new Schema<IPayment>(
     },
     
     gatewayTransactionId: { type: String },
-    gatewayResponse: { type: Schema.Types.Mixed },
+    gatewayResponse: { type: Schema.Types.Mixed, select: false, set: scrubGateway },
     
     paidAt: { type: Date },
     failedAt: { type: Date },
@@ -107,7 +122,7 @@ const PaymentSchema = new Schema<IPayment>(
     
     invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice' },
     
-    metadata: { type: Schema.Types.Mixed },
+    metadata: { type: Schema.Types.Mixed, select: false, set: scrubGateway },
   },
   {
     timestamps: true,
