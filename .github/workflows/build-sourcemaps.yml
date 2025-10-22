@@ -1,17 +1,26 @@
-name: Build and Upload Source Maps
+name: Build & Upload Sourcemaps (Sentry)
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-upload:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -23,11 +32,14 @@ jobs:
         run: npm ci
       
       - name: Build with source maps
-        run: npm run build
+        run: |
+          export NEXT_TELEMETRY_DISABLED=1
+          npm run build
         env:
           CI: 'true'
           NODE_ENV: production
-          # Add your environment variables here
+          NODE_OPTIONS: --max-old-space-size=8192
+          # Add your environment variables here if needed
           # MONGODB_URI: ${{ secrets.MONGODB_URI }}
           # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           # etc.
@@ -57,16 +69,15 @@ jobs:
           
           echo "✅ Source maps uploaded to Sentry"
       
-      # Alternative: Upload to custom error tracking service
-      # - name: Upload source maps to custom service
-      #   run: |
-      #     # Example: Upload .map files to your own service
-      #     find .next -name "*.map" -type f | while read mapfile; do
-      #       curl -X POST \
-      #         -F "file=@$mapfile" \
-      #         -H "Authorization: Bearer ${{ secrets.ERROR_TRACKING_TOKEN }}" \
-      #         https://your-error-tracking-service.com/api/sourcemaps
-      #     done
+      - name: Set Sentry upload status
+        if: always()
+        id: sentry-status
+        run: |
+          if [ "${{ steps.sentry-upload.outcome }}" == "success" ]; then
+            echo "uploaded=true" >> $GITHUB_OUTPUT
+          else
+            echo "uploaded=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Archive source maps as artifacts
         uses: actions/upload-artifact@v4
@@ -82,9 +93,17 @@ jobs:
           echo "✅ Source maps generated" >> $GITHUB_STEP_SUMMARY
           
           # Count source maps
-          MAP_COUNT=$(find .next -name "*.map" -type f | wc -l)
+          MAP_COUNT=$(find .next -name "*.map" -type f | wc -l || echo "0")
           echo "📊 Source maps generated: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
           
           # Calculate total size
-          TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + | grep total$ | awk '{print $1}')
+          TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | grep total$ | awk '{print $1}' || echo "0")
           echo "💾 Total source map size: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
+          
+          # Show Sentry status
+          if [ "${{ steps.sentry-status.outputs.uploaded }}" == "true" ]; then
+            echo "✅ Sentry upload completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Sentry upload skipped (SENTRY_AUTH_TOKEN not configured)" >> $GITHUB_STEP_SUMMARY
+            echo "To enable: Add SENTRY_AUTH_TOKEN (secret), SENTRY_ORG, SENTRY_PROJECT (variables) in repository settings" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,18 +1,43 @@
 {
+  "powershell.promptToUpdatePowerShell": false,
+  "powershell.startAutomatically": false,
+  "powershell.integratedConsole.showOnStartup": false,
+  "powershell.sideBar.CommandExplorerVisibility": false,
+  "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
+
+  // TypeScript/Node Memory Settings for Large Projects
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.disableAutomaticTypeAcquisition": true,
+
+  "terminal.integrated.env.windows": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
   "terminal.integrated.env.linux": {
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
-  "nodejs.memory": 4096,
-  "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 50,
-  "chat.tools.global.autoApprove": true,
-  "chat.tools.terminal.autoReplyToPrompts": true,
-  "github.copilot.chat.agent.runTasks": true,
-  "chat.notifyWindowOnConfirmation": false,
-  "chat.checkpoints.enabled": true,
-  "chat.editing.autoAccept": 2,
+  "terminal.integrated.env.osx": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+
+  // Git Branch Protection
+  "git.branchProtection": ["main", "master", "develop"],
+  "git.branchProtectionPrompt": "alwaysPrompt",
+
+  // ============================================================================
+  // SECURITY MODEL:
+  // - Global auto-approve is DISABLED (false)
+  // - Specific per-tool rules below explicitly opt-in ONLY safe operations
+  // - File edits: Only docs/tests auto-approved (NOT .vscode, .github, or src)
+  // - Terminal: Only safe read-only + build/test commands auto-approved
+  // - All other operations require manual approval
+  // ============================================================================
+
+  // GitHub Copilot Settings
   "github.copilot.enable": { "*": true },
   "github.copilot.chat.enable": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "github.copilot.chat.agent.runTasks": true,
   "github.copilot.chat.virtualTools.threshold": 50,
   "github.copilot.chat.tools.enabled": {
     "changes": true,
@@ -32,46 +57,86 @@
     "openSimpleBrowser": false,
     "testFailure": false
   },
+
+  // Chat Agent Settings
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 50,
+  "chat.tools.global.autoApprove": false,
+  "chat.tools.terminal.autoReplyToPrompts": true,
+  "chat.notifyWindowOnConfirmation": false,
+  "chat.checkpoints.enabled": true,
+  "chat.editing.autoAccept": 2,
+
+  // MCP Discovery
   "chat.mcp.discovery.enabled": {
     "claude-desktop": false,
     "windsurf": false,
     "cursor-global": false,
     "cursor-workspace": false
   },
+
+  // SECURITY: File edits require manual approval except for specific trusted patterns
+  // Auto-approved: documentation, tests, config files (non-executable)
   "chat.tools.edits.autoApprove": {
-    "**/*": true
+    "**/*.md": true,
+    "**/*.test.ts": true,
+    "**/*.test.tsx": true,
+    "**/*.spec.ts": true,
+    "**/*.spec.tsx": true,
+    "**/docs/**/*.ts": true,
+    "**/.vscode/*.json": false,
+    "**/.github/**": false
   },
+
+  // SECURITY: Terminal commands require manual approval except for safe read-only operations
+  // Auto-approved: package managers (install/build), git (read operations), testing
+  // NOT approved: bash/sh scripts, docker, kubectl, system commands
   "chat.tools.terminal.autoApprove": {
-    "npm": true,
-    "pnpm": true,
-    "yarn": true,
-    "bun": true,
-    "node": true,
-    "npx": true,
-    "git": true,
-    "gh": true,
-    "bash": true,
-    "sh": true,
-    "python": true,
-    "pytest": true,
+    "npm install": true,
+    "npm ci": true,
+    "npm run build": true,
+    "npm run test": true,
+    "pnpm install": true,
+    "pnpm build": true,
+    "pnpm test": true,
+    "yarn install": true,
+    "git status": true,
+    "git log": true,
+    "git diff": true,
+    "git branch": true,
+    "gh pr list": true,
+    "gh pr view": true,
     "jest": true,
     "vitest": true,
-    "docker": true,
-    "docker-compose": true,
-    "make": true,
-    "kubectl": true
+    "pytest": true
   },
-  "security.workspace.trust.enabled": false,
-  "git.branchProtection": ["main", "master"],
-  "git.branchProtectionPrompt": "alwaysPrompt",
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "codium.codeCompletion.enable": true,
-  "coderabbit.autoReviewMode": "auto",
-  "coderabbit.maxFilesPerReview": 500,
-  "coderabbit.concurrentReviews": 3,
+
+  // SECURITY: Workspace trust ENABLED to prevent untrusted code execution
+  "security.workspace.trust.enabled": true,
+
+  // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
+  // and reduce extension timeouts on large repositories. These safer defaults
+  // keep the extension useful while preventing large, automatic full-repo
+  // reviews that cause the agent to pause or stop.
+  "coderabbit.autoReviewMode": "prompt",
+  "coderabbit.maxFilesPerReview": 100,
+  "coderabbit.concurrentReviews": 1,
+
+  // Extension Management
+  // NOTE: Auto-update disabled - IMPORTANT: Review extensions monthly for security patches
+  // Run "Extensions: Check for Extension Updates" regularly or schedule via reminders
   "extensions.autoUpdate": false,
   "extensions.ignoreRecommendations": true,
+  "extensions.experimental.affinity": {
+    "ms-vscode.powershell": 0
+  },
+
+  // Window & Startup
   "window.restoreWindows": "none",
+  // ChatGPT startup disabled by default - enable per-user preference if desired
+  "chatgpt.openOnStartup": false,
+
+  // File Watcher Exclusions
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,

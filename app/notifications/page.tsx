@@ -350,18 +350,18 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Notifications</p>
-              <p className="text-2xl font-bold text-blue-600">{notifications.length}</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">{notifications.length}</p>
             </div>
-            <div className="text-blue-400">📢</div>
+            <div className="text-[var(--fixzit-primary-lighter)]">📢</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Unread</p>
-              <p className="text-2xl font-bold text-red-600">{unreadCount}</p>
+              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">{unreadCount}</p>
             </div>
-            <div className="text-red-400">🔴</div>
+            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
           </div>
         </div>
         <div className="card">
@@ -379,11 +379,11 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Today</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-[var(--fixzit-success)]">
                 {notifications.filter((n: NotificationDoc) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
-            <div className="text-green-400">📅</div>
+            <div className="text-[var(--fixzit-success-lighter)]">📅</div>
           </div>
         </div>
       </div>
@@ -452,7 +452,7 @@ export default function NotificationsPage() {
           >
             Urgent ({tabCounts.urgent})
             {tabCounts.urgent > 0 && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--fixzit-danger-light)] rounded-full"></span>
             )}
           </button>
         </div>
@@ -486,7 +486,7 @@ export default function NotificationsPage() {
                       type="checkbox"
                       checked={selectedNotifications.has(String(notif._id || ''))}
                       onChange={() => handleSelectNotification(String(notif._id || ''))}
-                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="mt-1 h-4 w-4 text-[var(--fixzit-primary)] focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
                     <div className="flex-1">
@@ -495,7 +495,7 @@ export default function NotificationsPage() {
                           {notif.title}
                         </h3>
                         {!notif.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
                         )}
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(notif.priority)}`}>
                           {notif.priority.toUpperCase()}
@@ -518,7 +518,7 @@ export default function NotificationsPage() {
                     {!notif.read && (
                       <button
                         onClick={() => markAsRead(String(notif._id || ''))}
-                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                        className="p-1 text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] hover:bg-[var(--fixzit-primary-lighter)] rounded"
                         title="Mark as read"
                       >
                         <Check size={16} />
@@ -558,7 +558,7 @@ export default function NotificationsPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={bulkMarkAsRead}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    className="px-3 py-1 text-sm bg-[var(--fixzit-primary)] text-white rounded hover:bg-[var(--fixzit-primary-dark)] transition-colors"
                   >
                     Mark as Read ({selectedNotifications.size})
                   </button>
@@ -570,19 +570,19 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={exportNotifications}
-                    className="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                    className="px-3 py-1 text-sm bg-[var(--fixzit-secondary)] text-white rounded hover:bg-[var(--fixzit-secondary-dark)] transition-colors"
                   >
                     Export ({selectedNotifications.size})
                   </button>
                   <button
                     onClick={archiveNotifications}
-                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                    className="px-3 py-1 text-sm bg-[var(--fixzit-success)] text-white rounded hover:bg-[var(--fixzit-success-dark)] transition-colors"
                   >
                     Archive ({selectedNotifications.size})
                   </button>
                   <button
                     onClick={deleteNotifications}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                    className="px-3 py-1 text-sm bg-[var(--fixzit-danger)] text-white rounded hover:bg-[var(--fixzit-danger-dark)] transition-colors"
                   >
                     Delete ({selectedNotifications.size})
                   </button>
@@ -599,28 +599,28 @@ export default function NotificationsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button
             onClick={handleEmailSettings}
-            className="btn-ghost text-center hover:bg-blue-50 transition-colors"
+            className="btn-ghost text-center hover:bg-[var(--fixzit-primary-lightest)] transition-colors"
           >
             <div className="text-2xl mb-2">📧</div>
             <div className="text-sm font-medium">Email Settings</div>
           </button>
           <button
             onClick={handlePushNotifications}
-            className="btn-ghost text-center hover:bg-green-50 transition-colors"
+            className="btn-ghost text-center hover:bg-[var(--fixzit-success-lightest)] transition-colors"
           >
             <div className="text-2xl mb-2">📱</div>
             <div className="text-sm font-medium">Push Notifications</div>
           </button>
           <button
             onClick={handleMuteCategories}
-            className="btn-ghost text-center hover:bg-yellow-50 transition-colors"
+            className="btn-ghost text-center hover:bg-[var(--fixzit-accent-lightest)] transition-colors"
           >
             <div className="text-2xl mb-2">🔕</div>
             <div className="text-sm font-medium">Mute Categories</div>
           </button>
           <button
             onClick={handleNotificationReport}
-            className="btn-ghost text-center hover:bg-purple-50 transition-colors"
+            className="btn-ghost text-center hover:bg-[var(--fixzit-secondary-lightest)] transition-colors"
           >
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">Notification Report</div>
@@ -634,7 +634,7 @@ export default function NotificationsPage() {
           </button>
           <button
             onClick={handleClearAll}
-            className="btn-ghost text-center hover:bg-red-50 transition-colors"
+            className="btn-ghost text-center hover:bg-[var(--fixzit-danger-lightest)] transition-colors"
           >
             <div className="text-2xl mb-2">🗑️</div>
             <div className="text-sm font-medium">Clear All</div>

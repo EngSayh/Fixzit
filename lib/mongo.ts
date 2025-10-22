@@ -52,12 +52,14 @@ declare global {
 }
 
 // Global connection promise
-let conn = global._mongoose as Promise<DatabaseHandle>;
+// Check if global is available (not in Edge Runtime)
+const globalObj = (typeof global !== 'undefined' ? global : globalThis) as typeof global;
+let conn = globalObj._mongoose as Promise<DatabaseHandle>;
 
 if (!conn) {
   // Always attempt real MongoDB connection
   if (uri) {
-    conn = global._mongoose = mongoose.connect(uri, {
+    conn = globalObj._mongoose = mongoose.connect(uri, {
       dbName,
       autoIndex: true,
       maxPoolSize: 10,

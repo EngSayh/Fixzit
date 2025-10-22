@@ -137,27 +137,27 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
   }
 
   // Handle public routes (including public marketplace browsing)
-  if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+  if (matchesAnyRoute(pathname, publicRoutes)) {
     return NextResponse.next();
   }
 
   // Handle public marketplace routes (browsing without login)
-  if (publicMarketplaceRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+  if (matchesAnyRoute(pathname, publicMarketplaceRoutes)) {
     return NextResponse.next();
   }
 
   // Handle API routes - require authentication
   if (pathname.startsWith('/api/')) {
     // Allow public API routes
-    if (pathname.startsWith('/api/auth/') ||
-        pathname.startsWith('/api/cms/') ||
-        pathname.startsWith('/api/help/') ||
-        pathname.startsWith('/api/assistant/')) {
+    if (matchesRoute(pathname, '/api/auth') ||
+        matchesRoute(pathname, '/api/cms') ||
+        matchesRoute(pathname, '/api/help') ||
+        matchesRoute(pathname, '/api/assistant')) {
       return NextResponse.next();
     }
 
     // Check for authentication on protected API routes
-    if (protectedApiRoutes.some(route => pathname.startsWith(route))) {
+    if (matchesAnyRoute(pathname, protectedApiRoutes)) {
       try {
         let user = null;
 
@@ -220,8 +220,8 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     if (!hasAuth) {
       // Redirect to login for unauthenticated users on protected routes
       if (
-        pathname.startsWith('/fm/') ||
-        protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))
+        matchesAnyRoute(pathname, fmRoutes) ||
+        matchesAnyRoute(pathname, protectedMarketplaceActions)
       ) {
         return NextResponse.redirect(new URL('/login', request.url));
       }

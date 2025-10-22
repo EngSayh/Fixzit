@@ -3,6 +3,8 @@
  * Automatically creates financial transactions when work orders are closed
  */
 
+import { FMFinancialTransaction } from '@/src/server/models/FMFinancialTransaction';
+
 export interface WorkOrderFinancialData {
   workOrderId: string;
   propertyId: string;
@@ -76,7 +78,7 @@ export async function onWorkOrderClosed(
 
   // 1. Create expense transaction (always)
   const expenseTransaction: FinancialTransaction = {
-    id: `TXN-EXP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `TXN-EXP-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
     type: 'EXPENSE',
     workOrderId,
     propertyId: financialData.propertyId,
@@ -91,14 +93,29 @@ export async function onWorkOrderClosed(
     updatedAt: new Date()
   };
 
-  // TODO: Save to FMFinancialTxn collection
-  console.log('[Finance] Created expense transaction:', expenseTransaction.id);
-  results.expenseTransaction = expenseTransaction;
+  // Save expense to database
+  const savedExpense = await FMFinancialTransaction.create({
+    type: 'EXPENSE',
+    workOrderId: expenseTransaction.workOrderId,
+    propertyId: expenseTransaction.propertyId,
+    ownerId: expenseTransaction.ownerId,
+    amount: expenseTransaction.amount,
+    currency: expenseTransaction.currency,
+    category: expenseTransaction.category,
+    description: expenseTransaction.description,
+    transactionDate: expenseTransaction.date,
+    status: 'POSTED'
+  });
+  console.log('[Finance] Created expense transaction:', savedExpense.transactionNumber);
+  results.expenseTransaction = {
+    ...expenseTransaction,
+    id: savedExpense._id.toString()
+  };
 
   // 2. Create invoice if chargeable
   if (financialData.chargeable) {
     const invoiceTransaction: FinancialTransaction = {
-      id: `TXN-INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `TXN-INV-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       type: 'INVOICE',
       workOrderId,
       propertyId: financialData.propertyId,
@@ -115,17 +132,41 @@ export async function onWorkOrderClosed(
       updatedAt: new Date()
     };
 
-    // TODO: Save to FMFinancialTxn collection
-    console.log('[Finance] Created invoice:', invoiceTransaction.id);
-    results.invoiceTransaction = invoiceTransaction;
+    // Save invoice to database
+    const savedInvoice = await FMFinancialTransaction.create({
+      type: 'INVOICE',
+      workOrderId: invoiceTransaction.workOrderId,
+      propertyId: invoiceTransaction.propertyId,
+      ownerId: invoiceTransaction.ownerId,
+      tenantId: invoiceTransaction.tenantId,
+      amount: invoiceTransaction.amount,
+      currency: invoiceTransaction.currency,
+      category: invoiceTransaction.category,
+      description: invoiceTransaction.description,
+      transactionDate: invoiceTransaction.date,
+      dueDate: invoiceTransaction.dueDate,
+      status: 'PENDING'
+    });
+    console.log('[Finance] Created invoice:', savedInvoice.transactionNumber);
+    results.invoiceTransaction = {
+      ...invoiceTransaction,
+      id: savedInvoice._id.toString()
+    };
   }
 
-  // 3. Update owner statement
+  // 3. Update owner statement with SAVED transactions (not pre-save objects)
   try {
-    await updateOwnerStatement(financialData.ownerId, financialData.propertyId, [
-      expenseTransaction,
-      ...(results.invoiceTransaction ? [results.invoiceTransaction] : [])
-    ]);
+    const savedTransactions: FinancialTransaction[] = [];
+    
+    if (results.expenseTransaction) {
+      savedTransactions.push(results.expenseTransaction);
+    }
+    
+    if (results.invoiceTransaction) {
+      savedTransactions.push(results.invoiceTransaction);
+    }
+    
+    await updateOwnerStatement(financialData.ownerId, financialData.propertyId, savedTransactions);
     results.statementUpdated = true;
   } catch (error) {
     console.error('[Finance] Failed to update owner statement:', error);
@@ -142,17 +183,28 @@ export async function updateOwnerStatement(
   propertyId: string,
   transactions: FinancialTransaction[]
 ): Promise<void> {
-  // TODO: Query existing statement or create new one
-  // For now, just log
-  console.log('[Finance] Updating statement for owner', ownerId, 'property', propertyId);
-  console.log('[Finance] Adding', transactions.length, 'transactions');
+  // Query existing transactions from database to calculate totals
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
   
-  // Calculate totals
-  const expenses = transactions
+  const existingTransactions = await FMFinancialTransaction.find({
+    ownerId,
+    propertyId,
+    'statementPeriod.month': currentMonth,
+    'statementPeriod.year': currentYear
+  });
+
+  console.log('[Finance] Updating statement for owner', ownerId, 'property', propertyId);
+  console.log('[Finance] Adding', transactions.length, 'new transactions');
+  console.log('[Finance] Total transactions in period:', existingTransactions.length + transactions.length);
+  
+  // Calculate totals from database records
+  const expenses = existingTransactions
     .filter(t => t.type === 'EXPENSE')
     .reduce((sum, t) => sum + t.amount, 0);
   
-  const revenue = transactions
+  const revenue = existingTransactions
     .filter(t => t.type === 'INVOICE' && t.status === 'PAID')
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -169,8 +221,34 @@ export async function generateOwnerStatement(
   propertyId: string,
   period: { from: Date; to: Date }
 ): Promise<OwnerStatement> {
-  // TODO: Query FMFinancialTxn collection for transactions in period
-  const transactions: FinancialTransaction[] = [];
+  // Query FMFinancialTransaction collection for transactions in period
+  const dbTransactions = await FMFinancialTransaction.find({
+    ownerId,
+    propertyId,
+    transactionDate: {
+      $gte: period.from,
+      $lte: period.to
+    }
+  }).sort({ transactionDate: 1 });
+
+  // Convert to interface format
+  const transactions: FinancialTransaction[] = dbTransactions.map(t => ({
+    id: t._id.toString(),
+    type: t.type as 'EXPENSE' | 'INVOICE' | 'PAYMENT',
+    workOrderId: t.workOrderId?.toString() || '',
+    propertyId: t.propertyId,
+    ownerId: t.ownerId,
+    tenantId: t.tenantId,
+    amount: t.amount,
+    currency: t.currency,
+    category: t.category,
+    description: t.description,
+    date: t.transactionDate,
+    dueDate: t.dueDate,
+    status: t.status as 'PENDING' | 'POSTED' | 'PAID' | 'CANCELLED',
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt
+  }));
 
   const totalExpenses = transactions
     .filter(t => t.type === 'EXPENSE')
@@ -196,10 +274,33 @@ export async function generateOwnerStatement(
  * Get pending invoices for tenant
  */
 export async function getTenantPendingInvoices(
-  _tenantId: string
+  tenantId: string
 ): Promise<FinancialTransaction[]> {
-  // TODO: Query FMFinancialTxn collection
-  return [];
+  // Query FMFinancialTransaction collection for pending invoices
+  const dbInvoices = await FMFinancialTransaction.find({
+    tenantId,
+    type: 'INVOICE',
+    status: 'PENDING'
+  }).sort({ dueDate: 1 });
+
+  // Convert to interface format
+  return dbInvoices.map(t => ({
+    id: t._id.toString(),
+    type: 'INVOICE',
+    workOrderId: t.workOrderId?.toString() || '',
+    propertyId: t.propertyId,
+    ownerId: t.ownerId,
+    tenantId: t.tenantId,
+    amount: t.amount,
+    currency: t.currency,
+    category: t.category,
+    description: t.description,
+    date: t.transactionDate,
+    dueDate: t.dueDate,
+    status: 'PENDING',
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt
+  }));
 }
 
 /**
@@ -211,22 +312,59 @@ export async function recordPayment(
   paymentMethod: string,
   reference: string
 ): Promise<FinancialTransaction> {
-  // TODO: Create payment transaction and update invoice status
-  const payment: FinancialTransaction = {
-    id: `TXN-PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  // Find and update the invoice
+  const invoice = await FMFinancialTransaction.findById(invoiceId);
+  if (!invoice) {
+    throw new Error(`Invoice ${invoiceId} not found`);
+  }
+
+  // Mark invoice as paid
+  await invoice.markAsPaid({
+    paymentMethod,
+    paymentRef: reference,
+    receivedFrom: invoice.tenantId || 'Unknown',
+    receivedBy: 'System'
+  });
+
+  // Create payment transaction
+  const savedPayment = await FMFinancialTransaction.create({
     type: 'PAYMENT',
-    workOrderId: '',
-    propertyId: '',
-    ownerId: '',
+    workOrderId: invoice.workOrderId,
+    propertyId: invoice.propertyId,
+    ownerId: invoice.ownerId,
+    tenantId: invoice.tenantId,
     amount,
     currency: 'SAR',
     category: 'PAYMENT',
-    description: `Payment for invoice #${invoiceId} via ${paymentMethod}`,
-    date: new Date(),
+    description: `Payment for invoice #${invoice.transactionNumber} via ${paymentMethod}`,
+    transactionDate: new Date(),
+    status: 'POSTED',
+    paymentDetails: {
+      paymentMethod,
+      paymentRef: reference,
+      receivedFrom: invoice.tenantId || 'Unknown',
+      receivedBy: 'System',
+      receivedDate: new Date()
+    }
+  });
+
+  // Convert to interface format
+  const payment: FinancialTransaction = {
+    id: savedPayment._id.toString(),
+    type: 'PAYMENT',
+    workOrderId: savedPayment.workOrderId?.toString() || '',
+    propertyId: savedPayment.propertyId,
+    ownerId: savedPayment.ownerId,
+    tenantId: savedPayment.tenantId,
+    amount: savedPayment.amount,
+    currency: savedPayment.currency,
+    category: savedPayment.category,
+    description: savedPayment.description,
+    date: savedPayment.transactionDate,
     status: 'POSTED',
     postingRef: reference,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    createdAt: savedPayment.createdAt,
+    updatedAt: savedPayment.updatedAt
   };
 
   console.log('[Finance] Recorded payment:', payment.id);

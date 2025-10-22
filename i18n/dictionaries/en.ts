@@ -32,6 +32,8 @@ const en = {
     signOut: 'Sign out',
     unread: 'unread',
     noNotifications: 'No new notifications',
+    justNow: 'Just now',
+    ago: 'ago',
     loading: 'Loading...',
     allCaughtUp: "You're all caught up!",
     viewAll: 'View all notifications',

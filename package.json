@@ -14,8 +14,9 @@
     "agent:run": "bash tools/agent-runner.sh",
     "agent:verify": "npm run typecheck && npm run lint && npm run build",
     "qa:verify": "node scripts/qa/halt-fix-verify.mjs",
-    "verify": "node qa/scripts/verify.mjs",
+    "verify": "node qa/scripts/verify.mjs --fast",
     "verify:fast": "node qa/scripts/verify.mjs --fast",
+    "verify:full": "VERIFY_FULL=true node qa/scripts/verify.mjs",
     "qa:seed": "node qa/scripts/seed.mjs",
     "qa:db": "node qa/scripts/dbConnectivity.mjs",
     "qa:scan:placeholders": "node qa/scripts/scanPlaceholders.mjs",
@@ -167,6 +168,12 @@
     "wait-on": "^7.2.0"
   },
   "overrides": {
-    "postcss-selector-parser": "6.0.13"
+    "postcss-selector-parser": "6.0.13",
+    "vite": "^7.1.11"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "^7.1.11"
+    }
   }
 }

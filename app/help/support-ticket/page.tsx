@@ -241,7 +241,7 @@ export default function SupportTicketPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg font-medium hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
               </button>

@@ -1,0 +1,74 @@
+import { NextResponse } from 'next/server';
+import { FMPMPlan } from '@/src/server/models/FMPMPlan';
+
+/**
+ * GET /api/pm/plans
+ * List all PM plans with optional filters
+ */
+export async function GET(request: Request) {
+  try {
+    
+    const { searchParams } = new URL(request.url);
+    const propertyId = searchParams.get('propertyId');
+    const status = searchParams.get('status');
+    const category = searchParams.get('category');
+    
+    const query: Record<string, string> = {};
+    if (propertyId) query.propertyId = propertyId;
+    if (status) query.status = status;
+    if (category) query.category = category;
+    
+    const plans = await FMPMPlan.find(query)
+      .sort({ nextScheduledDate: 1 })
+      .lean();
+    
+    return NextResponse.json({
+      success: true,
+      data: plans,
+      count: plans.length
+    });
+  } catch (error) {
+    console.error('[API] Failed to fetch PM plans:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch PM plans' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/pm/plans
+ * Create new PM plan
+ */
+export async function POST(request: Request) {
+  try {
+    
+    const body = await request.json();
+    
+    // Validate required fields
+    if (!body.title || !body.propertyId || !body.recurrencePattern) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+    
+    // Create PM plan
+    const plan = await FMPMPlan.create({
+      ...body,
+      status: body.status || 'ACTIVE',
+      nextScheduledDate: body.startDate || new Date()
+    });
+    
+    return NextResponse.json({
+      success: true,
+      data: plan
+    }, { status: 201 });
+  } catch (error) {
+    console.error('[API] Failed to create PM plan:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create PM plan' },
+      { status: 500 }
+    );
+  }
+}
