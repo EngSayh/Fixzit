@@ -89,6 +89,23 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Verify target resource exists before creating favorite
+    let targetExists = false;
+    if (targetType === 'LISTING') {
+      const { AqarListing } = await import('@/models/aqar');
+      targetExists = !!(await AqarListing.exists({ _id: targetId }));
+    } else if (targetType === 'PROJECT') {
+      const { AqarProject } = await import('@/models/aqar');
+      targetExists = !!(await AqarProject.exists({ _id: targetId }));
+    }
+    
+    if (!targetExists) {
+      return NextResponse.json(
+        { error: 'Target resource not found' },
+        { status: 404 }
+      );
+    }
+    
     // Ensure orgId is a valid ObjectId - convert string if necessary
     const orgIdValue = user.orgId || user.id;
     const orgId = mongoose.Types.ObjectId.isValid(orgIdValue)

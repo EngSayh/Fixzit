@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { FurnishingType, ListingStatus } from '@/models/aqar/Listing';
 
 import mongoose from 'mongoose';
 
@@ -35,7 +36,7 @@ export async function GET(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    // Increment view count (async, don't await - fire and forget with error logging)
+    // Increment view count (async, don't await, but log errors)
     AqarListing.findByIdAndUpdate(
       id, 
       { 
@@ -105,11 +106,11 @@ export async function PATCH(
       if (body[field] !== undefined) {
         const value = body[field];
         
-        // Validate enum fields - aligned with models/aqar/Listing.ts enums
-        if (field === 'furnishing' && !['FURNISHED', 'UNFURNISHED', 'PARTLY'].includes(value)) {
+        // Validate enum fields using actual schema enums
+        if (field === 'furnishing' && !Object.values(FurnishingType).includes(value)) {
           return NextResponse.json({ error: `Invalid furnishing: ${value}` }, { status: 400 });
         }
-        if (field === 'status' && !['DRAFT', 'PENDING', 'ACTIVE', 'INACTIVE', 'SOLD', 'RENTED', 'REJECTED'].includes(value)) {
+        if (field === 'status' && !Object.values(ListingStatus).includes(value)) {
           return NextResponse.json({ error: `Invalid status: ${value}` }, { status: 400 });
         }
         
