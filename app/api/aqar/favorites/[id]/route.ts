@@ -48,6 +48,14 @@ export async function DELETE(
       }).exec().catch((err: Error) => {
         console.error('Failed to update listing favorites count:', err);
       });
+    } else if (favorite.targetType === 'PROJECT') {
+      const { AqarProject } = await import('@/models/aqar');
+      AqarProject.findByIdAndUpdate(favorite.targetId, { 
+        $inc: { 'analytics.favorites': -1 },
+        $max: { 'analytics.favorites': 0 } // Prevent negative counts
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update project favorites count:', err);
+      });
     }
     
     await favorite.deleteOne();

@@ -34,7 +34,7 @@ const FavoriteSchema = new Schema<IFavorite>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     
-    targetId: { type: Schema.Types.ObjectId, required: true },
+    targetId: { type: Schema.Types.ObjectId, refPath: 'targetType', required: true },
     targetType: {
       type: String,
       enum: Object.values(FavoriteType),

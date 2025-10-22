@@ -105,11 +105,11 @@ export async function PATCH(
       if (body[field] !== undefined) {
         const value = body[field];
         
-        // Validate enum fields
-        if (field === 'furnishing' && !['FURNISHED', 'SEMI_FURNISHED', 'UNFURNISHED'].includes(value)) {
+        // Validate enum fields - aligned with models/aqar/Listing.ts enums
+        if (field === 'furnishing' && !['FURNISHED', 'UNFURNISHED', 'PARTLY'].includes(value)) {
           return NextResponse.json({ error: `Invalid furnishing: ${value}` }, { status: 400 });
         }
-        if (field === 'status' && !['DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'INACTIVE', 'SOLD', 'RENTED', 'EXPIRED', 'REJECTED'].includes(value)) {
+        if (field === 'status' && !['DRAFT', 'PENDING', 'ACTIVE', 'INACTIVE', 'SOLD', 'RENTED', 'REJECTED'].includes(value)) {
           return NextResponse.json({ error: `Invalid status: ${value}` }, { status: 400 });
         }
         

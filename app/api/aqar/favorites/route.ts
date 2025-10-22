@@ -89,9 +89,22 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Ensure orgId is a valid ObjectId - convert string if necessary
+    const orgIdValue = user.orgId || user.id;
+    const orgId = mongoose.Types.ObjectId.isValid(orgIdValue)
+      ? new mongoose.Types.ObjectId(orgIdValue)
+      : undefined;
+    
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Invalid organization ID' },
+        { status: 400 }
+      );
+    }
+    
     const favorite = new AqarFavorite({
       userId: user.id,
-      orgId: user.orgId || user.id,
+      orgId,
       targetId,
       targetType,
       notes,
@@ -124,6 +137,13 @@ export async function POST(request: NextRequest) {
         $inc: { 'analytics.favorites': 1 } 
       }).exec().catch((err: Error) => {
         console.error('Failed to update listing favorites count:', err);
+      });
+    } else if (targetType === 'PROJECT') {
+      const { AqarProject } = await import('@/models/aqar');
+      AqarProject.findByIdAndUpdate(targetId, { 
+        $inc: { 'analytics.favorites': 1 } 
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update project favorites count:', err);
       });
     }
     

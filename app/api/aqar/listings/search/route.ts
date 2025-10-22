@@ -18,29 +18,39 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     
+    // Helper to parse numeric values safely (returns undefined on NaN)
+    const parseNum = (v: string | null): number | undefined => {
+      if (v === null) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    
     // Parse query parameters
     const intent = searchParams.get('intent'); // BUY|RENT|DAILY
     const propertyType = searchParams.get('propertyType');
     const city = searchParams.get('city');
-    const neighborhoods = searchParams.get('neighborhoods')?.split(',');
-    const minPrice = searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : undefined;
-    const maxPrice = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : undefined;
-    const minBeds = searchParams.get('minBeds') ? parseInt(searchParams.get('minBeds')!) : undefined;
-    const maxBeds = searchParams.get('maxBeds') ? parseInt(searchParams.get('maxBeds')!) : undefined;
-    const minArea = searchParams.get('minArea') ? parseInt(searchParams.get('minArea')!) : undefined;
-    const maxArea = searchParams.get('maxArea') ? parseInt(searchParams.get('maxArea')!) : undefined;
+    const neighborhoods = searchParams.get('neighborhoods')?.split(',').filter(Boolean);
+    const minPrice = parseNum(searchParams.get('minPrice'));
+    const maxPrice = parseNum(searchParams.get('maxPrice'));
+    const minBeds = parseNum(searchParams.get('minBeds'));
+    const maxBeds = parseNum(searchParams.get('maxBeds'));
+    const minArea = parseNum(searchParams.get('minArea'));
+    const maxArea = parseNum(searchParams.get('maxArea'));
     const furnishing = searchParams.get('furnishing');
-    const amenities = searchParams.get('amenities')?.split(',');
+    const amenities = searchParams.get('amenities')?.split(',').filter(Boolean);
     
-    // Geo search
-    const lat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : undefined;
-    const lng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : undefined;
-    const radiusKm = searchParams.get('radiusKm') ? parseFloat(searchParams.get('radiusKm')!) : undefined;
+    // Geo search with bounded radiusKm (0.1km to 50km)
+    const lat = parseNum(searchParams.get('lat'));
+    const lng = parseNum(searchParams.get('lng'));
+    const radiusKmRaw = parseNum(searchParams.get('radiusKm'));
+    const radiusKm = radiusKmRaw ? Math.min(Math.max(radiusKmRaw, 0.1), 50) : undefined;
     
-    // Sorting & pagination
+    // Sorting & pagination with bounds
     const sort = searchParams.get('sort') || 'relevance'; // relevance|price-asc|price-desc|date-desc|featured
-    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+    const pageRaw = parseNum(searchParams.get('page')) ?? 1;
+    const limitRaw = parseNum(searchParams.get('limit')) ?? 20;
+    const page = Math.max(1, Math.floor(pageRaw));
+    const limit = Math.min(100, Math.max(1, Math.floor(limitRaw)));
     const skip = (page - 1) * limit;
     
     // Build query
@@ -102,19 +112,19 @@ export async function GET(request: NextRequest) {
         sortQuery = { publishedAt: -1 };
     }
     
-    // Execute query
+    // Execute query - remove $near from countDocuments (MongoDB limitation)
+    const countQuery = { ...query };
+    delete (countQuery as { geo?: unknown }).geo;
+    
     const [listings, total] = await Promise.all([
       AqarListing.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
-      AqarListing.countDocuments(query),
+      AqarListing.countDocuments(countQuery),
     ]);
     
     // Calculate facets - $near cannot be used in $match within $facet
-    // Create a separate query for facets without the geo filter
-    const facetQuery = { ...query };
-    delete (facetQuery as { geo?: unknown }).geo; // Remove $near operator for facet aggregation
-    
+    // Reuse the same query without geo filter
     const facets = await AqarListing.aggregate([
-      { $match: facetQuery },
+      { $match: countQuery },
       {
         $facet: {
           propertyTypes: [
