@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const ALLOWED_SOURCES = ['LISTING_INQUIRY', 'PROJECT_INQUIRY', 'WHATSAPP', 'PHONE_CALL', 'WALK_IN', 'REFERRAL', 'OTHER'];
+    // Align with LeadSource enum - includes EMAIL, excludes REFERRAL/OTHER which aren't in the enum
+    const ALLOWED_SOURCES = ['LISTING_INQUIRY', 'PROJECT_INQUIRY', 'WHATSAPP', 'PHONE_CALL', 'EMAIL', 'WALK_IN'];
     if (!ALLOWED_SOURCES.includes(source)) {
       return NextResponse.json(
         { error: `Invalid source. Must be one of: ${ALLOWED_SOURCES.join(', ')}` },
@@ -95,8 +96,8 @@ export async function POST(request: NextRequest) {
       try {
         const { Organization } = await import('@/server/models/Organization');
         const org = await Organization.findOne({ userId: recipientId }).select('_id').lean().exec();
-        if (org && !Array.isArray(org) && '_id' in org) {
-          orgId = org._id.toString();
+        if (org && !Array.isArray(org) && '_id' in org && typeof org._id === 'object') {
+          orgId = (org._id as { toString(): string }).toString();
         }
       } catch (orgError) {
         console.error('Failed to fetch organization:', { recipientId, error: orgError });

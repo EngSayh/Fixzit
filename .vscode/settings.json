@@ -11,7 +11,7 @@
   "github.copilot.chat.agent.runTasks": true,
   "chat.notifyWindowOnConfirmation": false,
   "chat.checkpoints.enabled": true,
-  "chat.editing.autoAccept": 2,
+  "chat.editing.autoAccept": 0, // Changed to 0 for consistent manual approval policy
   "github.copilot.enable": { "*": true },
   "github.copilot.chat.enable": true,
   "github.copilot.chat.virtualTools.threshold": 50,
@@ -57,6 +57,8 @@
   "coderabbit.autoReviewMode": "auto",
   "coderabbit.maxFilesPerReview": 500,
   "coderabbit.concurrentReviews": 3,
+  // Changed from false to onlyEnabledExtensions to allow security updates for approved extensions
+  // Manual tracking: Review extension updates monthly (see .vscode/EXTENSION_UPDATE_LOG.md)
   "extensions.autoUpdate": "onlyEnabledExtensions",
   "extensions.ignoreRecommendations": true,
   "window.restoreWindows": "none",

@@ -414,12 +414,45 @@ export async function POST(request: NextRequest) {
 
 **After**:
 ```typescript
+import { timingSafeEqual } from 'crypto';
+
 export async function POST(request: NextRequest) {
-  // SECURITY: Validate internal API token
+  // SECURITY: Validate internal API token with timing-safe comparison
   const authHeader = request.headers.get('authorization');
   const internalToken = process.env.INTERNAL_API_TOKEN;
   
-  if (!internalToken || !authHeader || authHeader !== `Bearer ${internalToken}`) {
+  if (!internalToken || !authHeader) {
+    return NextResponse.json(
+      { error: 'Unauthorized - Invalid internal API token' },
+      { status: 401 }
+    );
+  }
+  
+  // Validate Bearer format first
+  if (!authHeader.startsWith('Bearer ')) {
+    return NextResponse.json(
+      { error: 'Unauthorized - Invalid authorization format' },
+      { status: 401 }
+    );
+  }
+  
+  // Extract token and use timing-safe comparison
+  const providedToken = authHeader.slice(7); // Remove 'Bearer '
+  const expectedToken = internalToken;
+  
+  // Ensure equal length before comparison
+  if (providedToken.length !== expectedToken.length) {
+    return NextResponse.json(
+      { error: 'Unauthorized - Invalid internal API token' },
+      { status: 401 }
+    );
+  }
+  
+  // Use timing-safe comparison to prevent timing attacks
+  const providedBuffer = Buffer.from(providedToken, 'utf-8');
+  const expectedBuffer = Buffer.from(expectedToken, 'utf-8');
+  
+  if (!timingSafeEqual(providedBuffer, expectedBuffer)) {
     return NextResponse.json(
       { error: 'Unauthorized - Invalid internal API token' },
       { status: 401 }

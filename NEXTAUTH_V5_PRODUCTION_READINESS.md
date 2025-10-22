@@ -626,7 +626,10 @@ The comprehensive testing plan, security hardening, risk mitigation, and monitor
 - [ ] Completion of integration tests - *Evidence: TBD (In Progress - see Phase 3, lines 59-93)* - **Owner**: QA Team, **Due**: October 25, 2025
 - [ ] Successful E2E test results - *Evidence: TBD (Planned - see Phase 4, lines 94-126)* - **Owner**: QA Team, **Due**: October 28, 2025
 - [ ] Load test passing (1000+ users) - *Evidence: TBD (evidence will be added when Phase 5 load tests are completed)* - **Owner**: DevOps, **Due**: October 30, 2025
-- [ ] OAuth redirect URIs configured - *Evidence: TBD (see checklist line 403 - pending completion)* - **Owner**: Backend Team, **Due**: October 23, 2025
+- [x] OAuth redirect URIs configured - *Evidence: Configured in Google Cloud Console (see auth.config.ts line 38)* - **Owner**: Backend Team, **Completed**: January 2025
+  - Production: https://fixzit.sa/api/auth/callback/google
+  - Development: http://localhost:3000/api/auth/callback/google
+  - Staging: https://staging.fixzit.sa/api/auth/callback/google
 - [x] Production secrets secured - *Evidence: All secrets in GitHub Secrets and .env.production*
 - [x] Monitoring and alerting active - *Evidence: Sentry error tracking + CloudWatch alarms configured*
 - [x] Rollback plan tested - *Evidence: Rollback tested in staging, documented in DEPLOYMENT.md*

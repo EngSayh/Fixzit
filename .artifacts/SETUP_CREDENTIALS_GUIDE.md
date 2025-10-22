@@ -131,7 +131,21 @@ openssl rand -hex 32
 openssl rand -hex 16
 ```
 
-### Option B: Online generators (if openssl not available)
+### Option B: Node.js crypto module (cross-platform)
+```bash
+# Generate NEXTAUTH_SECRET (32 bytes, base64)
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+# Generate JWT_SECRET (64 hex characters)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# Generate INTERNAL_API_TOKEN (32 hex characters)
+node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+```
+
+### Option C: Online generators (⚠️ Use with caution - offline methods preferred)
+**Security Warning**: Online generators send secrets over the network. Use offline methods (Options A or B) for production.
+
 - NEXTAUTH_SECRET: https://generate-secret.vercel.app/32
 - JWT_SECRET: https://www.random.org/strings/?num=1&len=64&digits=on&loweralpha=on&unique=on&format=plain
 - INTERNAL_API_TOKEN: https://www.random.org/strings/?num=1&len=32&digits=on&loweralpha=on&unique=on&format=plain
