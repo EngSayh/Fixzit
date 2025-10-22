@@ -120,8 +120,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   };
 
   // Handle save and navigate - use event-driven pattern with proper error handling
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
   const handleSaveAndNavigate = async () => {
     setIsSaving(true);
