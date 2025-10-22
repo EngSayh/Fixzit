@@ -15,6 +15,9 @@ if (!jwtSecretValue) {
 // JWT secret for legacy token verification
 const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 
+// Admin roles - hoisted to module scope to avoid re-allocation per request
+const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+
 // Define public routes that don't require authentication
 const publicRoutes = [
   '/',
@@ -168,14 +171,22 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
           };
         } else {
           // Fall back to legacy JWT token with proper signature verification
-          const authToken = request.cookies.get('fixzit_auth')?.value;
+          // Support both cookie and Authorization: Bearer header
+          const bearer = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+          const authToken = bearer || request.cookies.get('fixzit_auth')?.value;
           if (!authToken) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
           }
 
           try {
-            // Verify JWT signature and decode payload
-            const { payload } = await jwtVerify(authToken, JWT_SECRET);
+            // Verify JWT signature and decode payload with clock tolerance and optional issuer/audience
+            const { payload } = await jwtVerify(authToken, JWT_SECRET, {
+              // Add small clock tolerance for time sync issues (5 seconds)
+              clockTolerance: 5,
+              // If your tokens include issuer/audience claims, uncomment and configure:
+              // issuer: 'fixzit-auth',
+              // audience: 'fixzit-app',
+            });
             user = {
               id: payload.id as string || '',
               email: payload.email as string || '',
@@ -228,8 +239,14 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
       };
     } else if (authToken) {
       try {
-        // Verify JWT signature and decode payload (secure method)
-        const { payload } = await jwtVerify(authToken, JWT_SECRET);
+        // Verify JWT signature and decode payload with clock tolerance and optional issuer/audience
+        const { payload } = await jwtVerify(authToken, JWT_SECRET, {
+          // Add small clock tolerance for time sync issues (5 seconds)
+          clockTolerance: 5,
+          // If your tokens include issuer/audience claims, uncomment and configure:
+          // issuer: 'fixzit-auth',
+          // audience: 'fixzit-app',
+        });
         user = {
           id: payload.id as string || '',
           email: payload.email as string || '',
@@ -264,8 +281,7 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
 
     // Protect admin UI with RBAC
     if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-      const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
-      if (!adminRoles.has(user.role)) {
+      if (!ADMIN_ROLES.has(user.role)) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
     }
