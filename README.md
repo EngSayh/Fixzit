@@ -168,7 +168,7 @@ Business Modules:
 
 #### Full-Stack Architecture
 
-- **Framework**: Next.js 14 (React 18)
+- **Framework**: Next.js 15.5.4 (React 18.2.0)
 - **Language**: TypeScript for type safety
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT with bcryptjs

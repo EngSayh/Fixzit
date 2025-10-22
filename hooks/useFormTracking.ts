@@ -45,7 +45,10 @@ export function useFormTracking(options: UseFormTrackingOptions) {
   useEffect(() => {
     if (!mounted.current && onBeforeSave) {
       mounted.current = true;
-      const unsubscribe = onSaveRequest(formId, onBeforeSave);
+      const saveCallback = async () => {
+        await onBeforeSave();
+      };
+      const unsubscribe = onSaveRequest(formId, saveCallback);
       
       return () => {
         unsubscribe();
