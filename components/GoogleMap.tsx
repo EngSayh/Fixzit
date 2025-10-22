@@ -15,6 +15,27 @@ interface GoogleMapProps {
   onMapClick?: (lat: number, lng: number) => void;
 }
 
+// Helper function to create InfoWindow content safely
+function createInfoWindowContent(title?: string, info?: string): HTMLDivElement {
+  const contentDiv = document.createElement('div');
+  contentDiv.style.padding = '8px';
+  
+  if (title) {
+    const titleElement = document.createElement('strong');
+    titleElement.textContent = title;
+    contentDiv.appendChild(titleElement);
+    contentDiv.appendChild(document.createElement('br'));
+  }
+  
+  if (info) {
+    const infoText = document.createElement('span');
+    infoText.textContent = info;
+    contentDiv.appendChild(infoText);
+  }
+  
+  return contentDiv;
+}
+
 // Simple, reliable Google Maps implementation
 export default function GoogleMap({ 
   center, 
@@ -132,7 +153,21 @@ export default function GoogleMap({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center.lat, center.lng, zoom]);
+  }, []); // Run only once on mount
+
+  // Update center when it changes (without re-initializing map)
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setCenter(center);
+    }
+  }, [center]);
+
+  // Update zoom when it changes (without re-initializing map)
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setZoom(zoom);
+    }
+  }, [zoom]);
 
   // Update markers
   useEffect(() => {
@@ -154,21 +189,9 @@ export default function GoogleMap({
         title: markerData.title,
       });
 
-      if (markerData.info) {
-        // Create safe DOM elements to prevent XSS
-        const contentDiv = document.createElement('div');
-        contentDiv.style.padding = '8px';
-        
-        if (markerData.title) {
-          const titleElement = document.createElement('strong');
-          titleElement.textContent = markerData.title;
-          contentDiv.appendChild(titleElement);
-          contentDiv.appendChild(document.createElement('br'));
-        }
-        
-        const infoText = document.createElement('span');
-        infoText.textContent = markerData.info;
-        contentDiv.appendChild(infoText);
+      if (markerData.info || markerData.title) {
+        // Use helper function for InfoWindow content
+        const contentDiv = createInfoWindowContent(markerData.title, markerData.info);
 
         const infoWindow = new google.maps.InfoWindow({
           content: contentDiv

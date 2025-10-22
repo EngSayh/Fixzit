@@ -74,8 +74,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const pathname = usePathname();
 
   // Use FormStateContext for unsaved changes detection
-  const formState = useFormState();
-  const hasUnsavedChanges = formState.hasUnsavedChanges;
+  const { hasUnsavedChanges, requestSave } = useFormState();
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -127,7 +126,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     setIsSaving(true);
     setSaveError(null);
     try {
-      await formState.requestSave();
+      await requestSave();
       // Success path only
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
@@ -558,7 +557,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <button
                   onClick={handleSaveAndNavigate}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-[#0061A8] text-white hover:bg-[#004d86] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSaving && (
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
