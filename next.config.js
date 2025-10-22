@@ -74,6 +74,22 @@ const nextConfig = {
     optimisticClientCache: true,
   },
 
+  // 🚀 Turbopack Configuration (Next.js 15 Development Bundler)
+  // Used when running `npm run dev` (which uses --turbo flag)
+  // Turbopack is 700x faster than Webpack for hot reloads
+  // ✅ FIXES WARNING: "Webpack is configured while Turbopack is not"
+  turbopack: {
+    // Configure module resolution for Turbopack
+    resolveAlias: {
+      '@': '.',
+    },
+    // Optimize module rules (Turbopack automatically handles most cases)
+    rules: {
+      // Turbopack handles CSS/SCSS/PostCSS automatically
+      // No additional configuration needed
+    },
+  },
+
   // TypeScript and ESLint
   // ROOT CAUSE FIX: Next.js 15 build worker hangs during concurrent type-checking
   // with large projects (584 TS files, 2297 total files, 561K types)
@@ -87,22 +103,10 @@ const nextConfig = {
     ignoreDuringBuilds: true, // Run `npm run lint` separately
   },
 
-  // 🔧 Webpack customization for production builds only
-  // ⚠️ WARNING EXPLANATION: "Webpack is configured while Turbopack is not"
-  //
-  // This warning is EXPECTED and SAFE to ignore when running `npm run dev` (uses --turbo flag)
+  // ✅ FIXED: Turbopack configuration added above to silence warning
   // 
-  // WHY THIS HAPPENS:
-  // - `npm run dev` uses Turbopack (Next.js 15's fast bundler) via --turbo flag
-  // - Turbopack ignores webpack config in development
-  // - This webpack config is ONLY used during production builds (`npm run build`)
-  //
-  // IF YOU NEED WEBPACK IN DEV MODE:
-  // - Run `npm run dev:webpack` instead (slower but uses webpack config)
-  //
-  // PRODUCTION BUILDS:
-  // - `npm run build` always uses Webpack (not Turbopack)
-  // - All these optimizations will be applied during production builds
+  // This webpack config is ONLY used during production builds (`npm run build`)
+  // When running `npm run dev`, Turbopack is used instead (configured above)
   //
   webpack: (config, { isServer, dev }) => {
     // Production-only webpack optimizations below

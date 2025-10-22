@@ -54,6 +54,7 @@ export function requireAbility(action: string) {
         'TECHNICIAN': ['READ', 'UPDATE'],
         'MAINTENANCE': ['READ', 'UPDATE'],
         'EMPLOYEE': ['READ', 'UPDATE'],
+        'USER': ['READ'], // OAuth users default role
         'TENANT': ['CREATE', 'READ'],
         'VENDOR': ['READ', 'UPDATE'],
         'FINANCE': ['CREATE', 'READ', 'UPDATE', 'DELETE'],

@@ -33,19 +33,19 @@ export default function MapPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="h-screen flex flex-col">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Interactive Property Map</h1>
           <p className="text-gray-600">Explore properties on the map</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2">
+      <div className="flex-1">
         <GoogleMap
           center={center}
           zoom={DEFAULT_ZOOM}
-          height="70vh"
+          height="100%"
           markers={markers}
           onMapClick={(lat, lng) => {
             const b = { n: lat + CLICK_BBOX_DELTA, s: lat - CLICK_BBOX_DELTA, e: lng + CLICK_BBOX_DELTA, w: lng - CLICK_BBOX_DELTA, z: DEFAULT_ZOOM };

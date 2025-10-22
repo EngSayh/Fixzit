@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import TopBar from '../TopBar';
 
 // Mock next/navigation
@@ -67,6 +68,20 @@ vi.mock('../i18n/CurrencySelector', () => ({
 // Mock Portal component
 vi.mock('../Portal', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="portal">{children}</div>,
+}));
+
+// Mock FormState Context
+vi.mock('@/contexts/FormStateContext', () => ({
+  useFormState: () => ({
+    hasUnsavedChanges: false,
+    registerForm: vi.fn(),
+    unregisterForm: vi.fn(),
+    markFormDirty: vi.fn(),
+    markFormClean: vi.fn(),
+    requestSave: vi.fn(async () => Promise.resolve()),
+    onSaveRequest: vi.fn(() => () => {}),
+  }),
+  FormStateProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 describe('TopBar', () => {

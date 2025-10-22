@@ -60,29 +60,33 @@ const categoriesState: SWRCategoriesState = {}
 // Capture useSWR calls to assert query key recomputation
 const useSWRCalls: Array<{ key: any; fetcher: any; opts: any }> = []
 
-// Mock swr default export
+// Mock swr default export - returns different state based on the key
 jestLike.mock('swr', () => {
   return {
     __esModule: true,
     default: (key: any, fetcher: any, opts: any) => {
       useSWRCalls.push({ key, fetcher, opts })
+      
+      // If the key is for categories, return categories state
+      if (typeof key === 'string' && key.includes('/api/marketplace/categories')) {
+        return {
+          data: categoriesState.data,
+          error: categoriesState.error,
+          isLoading: categoriesState.isLoading !== undefined ? categoriesState.isLoading : false,
+          mutate: jestLike.fn(),
+        }
+      }
+      
+      // Otherwise return products state
       return {
         data: productsState.data,
         error: productsState.error,
-        isLoading: productsState.isLoading ?? false,
+        isLoading: productsState.isLoading !== undefined ? productsState.isLoading : false,
         mutate: productsState.mutate ?? jestLike.fn(),
       }
     },
   }
 })
-
-// For categories, our component invokes useSWR a second time; we provide a chained mock layer.
-// In this approach, we intercept the module and patch default implementation per key.
-const originalDefineProperty = Object.defineProperty
-Object.defineProperty = function (obj: any, prop: any, descriptor: any) {
-  // Let Jest/Vitest define mocks normally
-  return originalDefineProperty(obj, prop, descriptor)
-}
 
 // After SWR mock is set up above, import component under test
 import CatalogView from './CatalogView'
@@ -98,26 +102,6 @@ function setSWRCategories(state: Partial<SWRCategoriesState>) {
   categoriesState.data = state.data
   categoriesState.error = state.error
   categoriesState.isLoading = state.isLoading
-}
-
-// Patch the SWR mock to return categories for the categories key
-// We need to distinguish calls based on key path
-jestLike.mocked = jestLike.mocked || ((v: any) => v)
-
-const swrModule = jestLike.mocked(require('swr'), true)
-const originalUseSWR = swrModule.default
-;(swrModule as any).default = (key: any, fetcher: any, opts: any) => {
-  // If the key is for categories, return categories state
-  if (typeof key === 'string' && key.startsWith('/api/marketplace/categories')) {
-    useSWRCalls.push({ key, fetcher, opts })
-    return {
-      data: categoriesState.data,
-      error: categoriesState.error,
-      isLoading: categoriesState.isLoading ?? false,
-      mutate: jestLike.fn(),
-    }
-  }
-  return originalUseSWR(key, fetcher, opts)
 }
 
 function makeProduct(overrides: Partial<any> = {}) {
@@ -198,7 +182,8 @@ describe('CatalogView - loading and empty states', () => {
   })
 
   it('shows empty state message when no products and no error', () => {
-    setSWRProducts({ data: makeCatalog([]), error: undefined })
+    setSWRProducts({ data: makeCatalog([]), error: undefined, isLoading: false })
+    setSWRCategories({ data: makeCategories([{ id: 'c1', name: 'Materials', slug: 'materials' }]), error: undefined, isLoading: false })
     render(<CatalogView />)
     expect(screen.getByText(/No products match your filters/i)).toBeInTheDocument()
     expect(screen.getByText(/Adjust your filters or check back later/i)).toBeInTheDocument()

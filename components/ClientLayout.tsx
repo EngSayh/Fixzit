@@ -124,7 +124,17 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  const CopilotWidget = dynamic(() => import('./CopilotWidget'), { ssr: false });
+  const CopilotWidget = dynamic(
+    () => import('./CopilotWidget').catch((err) => {
+      console.error('Failed to load CopilotWidget:', err);
+      // Return a fallback component
+      return { default: () => null };
+    }), 
+    { 
+      ssr: false,
+      loading: () => null // Prevent flash of loading state
+    }
+  );
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">

@@ -109,8 +109,13 @@ async function analyzeRoute(filePath) {
 
 // Generate OpenAPI doc comment for a method
 function generateOpenAPIDoc(method, routePath, existingValidation) {
-  const cleanPath = routePath
-    .replace('/workspaces/Fixzit/app/api', '/api')
+  const projectRoot = process.cwd();
+  // Use path.posix for consistent forward slashes across all platforms
+  const normalizedRoute = routePath.split(path.sep).join(path.posix.sep);
+  const normalizedRoot = projectRoot.split(path.sep).join(path.posix.sep);
+  
+  const cleanPath = normalizedRoute
+    .replace(`${normalizedRoot}/app/api`, '/api')
     .replace('/route.ts', '')
     .replace('[id]', '{id}')
     .replace('[slug]', '{slug}');
@@ -304,7 +309,7 @@ async function main() {
     routes = [SINGLE_ROUTE];
   } else {
     routes = await glob('app/api/**/route.ts', {
-      cwd: '/workspaces/Fixzit',
+      cwd: process.cwd(),
       absolute: true,
       ignore: ['**/node_modules/**', '**/*.test.ts', '**/*.FIXED.ts']
     });
