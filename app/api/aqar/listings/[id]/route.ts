@@ -35,16 +35,14 @@ export async function GET(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    // Increment view count (async, don't await, but log errors)
-    AqarListing.findByIdAndUpdate(id, { $inc: { 'analytics.views': 1 }, 'analytics.lastViewedAt': new Date() })
-      .exec()
-      .catch(err => console.error('View count update failed:', err));
+    // Increment view count (async, don't await - fire and forget with error logging)
+    AqarListing.findByIdAndUpdate(
       id, 
       { 
         $inc: { 'analytics.views': 1 }, 
         $set: { 'analytics.lastViewedAt': new Date() } 
       }
-    ).exec().catch((err) => {
+    ).exec().catch((err: Error) => {
       console.error('Failed to update listing analytics:', err);
     });
     

@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarLead, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-
+import mongoose from 'mongoose';
 
 export const runtime = 'nodejs';
 
@@ -20,9 +20,12 @@ export async function POST(request: NextRequest) {
     
     // Auth is optional for public inquiries
     let userId: string | undefined;
+    let orgId: string | undefined;
     try {
       const user = await getSessionUser(request);
       userId = user.id;
+      // Use orgId for multi-tenant consistency, fallback to user.id
+      orgId = user.orgId || user.id;
     } catch {
       // Public inquiry - no auth required
     }
@@ -67,17 +70,29 @@ export async function POST(request: NextRequest) {
     let recipientId;
     
     if (listingId) {
+      // Validate ObjectId before querying
+      if (!mongoose.Types.ObjectId.isValid(listingId)) {
+        return NextResponse.json({ error: 'Invalid listingId' }, { status: 400 });
+      }
+      
       const listing = await AqarListing.findById(listingId);
       if (!listing) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
       recipientId = listing.listerId;
       
-      // Increment inquiries count (async)
+      // Increment inquiries count (async with error logging)
       AqarListing.findByIdAndUpdate(listingId, {
         $inc: { 'analytics.inquiries': 1 },
-      }).exec();
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update listing inquiries count:', err);
+      });
     } else if (projectId) {
+      // Validate ObjectId before querying
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return NextResponse.json({ error: 'Invalid projectId' }, { status: 400 });
+      }
+      
       const { AqarProject } = await import('@/models/aqar');
       const project = await AqarProject.findById(projectId);
       if (!project) {
@@ -85,12 +100,16 @@ export async function POST(request: NextRequest) {
       }
       recipientId = project.developerId;
       
-      // Increment inquiries count (async)
-      AqarProject.findByIdAndUpdate(projectId, { $inc: { inquiries: 1 } }).exec();
+      // Increment inquiries count (async with error logging)
+      AqarProject.findByIdAndUpdate(projectId, { 
+        $inc: { inquiries: 1 } 
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update project inquiries count:', err);
+      });
     }
     
     const lead = new AqarLead({
-      orgId: userId || recipientId,
+      orgId: orgId || recipientId,
       listingId,
       projectId,
       source,
@@ -125,13 +144,25 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
-    const skip = (page - 1) * limit;
+    
+    // Validate and sanitize pagination parameters
+    const safePage = !isNaN(page) && page > 0 ? page : 1;
+    const safeLimit = !isNaN(limit) && limit > 0 && limit <= 100 ? limit : 20;
+    const skip = (safePage - 1) * safeLimit;
     
     const query: Record<string, unknown> = {
       recipientId: user.id,
     };
     
+    // Validate status against allowed values
     if (status) {
+      const ALLOWED_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'VIEWING', 'NEGOTIATING', 'WON', 'LOST', 'CLOSED'];
+      if (!ALLOWED_STATUSES.includes(status)) {
+        return NextResponse.json(
+          { error: `Invalid status. Must be one of: ${ALLOWED_STATUSES.join(', ')}` },
+          { status: 400 }
+        );
+      }
       query.status = status;
     }
     
@@ -139,7 +170,7 @@ export async function GET(request: NextRequest) {
       AqarLead.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
+        .limit(safeLimit)
         .populate('listingId')
         .populate('projectId')
         .lean(),
@@ -149,10 +180,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       leads,
       pagination: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / safeLimit),
       },
     });
   } catch (error) {

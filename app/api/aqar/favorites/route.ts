@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarFavorite } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-
+import mongoose from 'mongoose';
 
 export const runtime = 'nodejs';
 
@@ -61,6 +61,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return NextResponse.json({ error: 'Invalid targetId' }, { status: 400 });
+    }
+    
     // Validate targetType against allowed values
     const ALLOWED_TARGET_TYPES = ['LISTING', 'PROJECT'];
     if (!ALLOWED_TARGET_TYPES.includes(targetType)) {
@@ -93,12 +98,33 @@ export async function POST(request: NextRequest) {
       tags,
     });
     
-    await favorite.save();
+    try {
+      await favorite.save();
+    } catch (saveError) {
+      // Check for duplicate key error (MongoDB error code 11000)
+      const isMongoDupKey =
+        saveError &&
+        typeof saveError === 'object' &&
+        'code' in saveError &&
+        (saveError as { code?: number }).code === 11000;
+      
+      if (isMongoDupKey) {
+        return NextResponse.json(
+          { error: 'Already in favorites' },
+          { status: 409 }
+        );
+      }
+      throw saveError; // Re-throw other errors
+    }
     
-    // Increment favorites count on listing/project (async)
+    // Increment favorites count on listing/project (async with error logging)
     if (targetType === 'LISTING') {
       const { AqarListing } = await import('@/models/aqar');
-      AqarListing.findByIdAndUpdate(targetId, { $inc: { 'analytics.favorites': 1 } }).exec();
+      AqarListing.findByIdAndUpdate(targetId, { 
+        $inc: { 'analytics.favorites': 1 } 
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update listing favorites count:', err);
+      });
     }
     
     return NextResponse.json({ favorite }, { status: 201 });
