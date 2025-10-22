@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { FurnishingType, ListingStatus } from '@/models/aqar/Listing';
+import { FurnishingStatus, ListingStatus } from '@/models/aqar/Listing';
 
 import mongoose from 'mongoose';
 
@@ -107,7 +107,7 @@ export async function PATCH(
         const value = body[field];
         
         // Validate enum fields using actual schema enums
-        if (field === 'furnishing' && !Object.values(FurnishingType).includes(value)) {
+        if (field === 'furnishing' && !Object.values(FurnishingStatus).includes(value)) {
           return NextResponse.json({ error: `Invalid furnishing: ${value}` }, { status: 400 });
         }
         if (field === 'status' && !Object.values(ListingStatus).includes(value)) {

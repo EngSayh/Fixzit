@@ -3,62 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from 'lucide-react';
 
-// Module-level singleton Promise to prevent race conditions
-let googleMapsLoadPromise: Promise<void> | null = null;
-
-// Global script refcount to safely manage shared Google Maps API script
-declare global {
-  interface Window {
-    __googleMapsRefCount?: number;
-  }
-}
-
-/**
- * Load Google Maps script using singleton pattern.
- * Multiple simultaneous calls will share the same Promise.
- */
-function loadGoogleMapsScript(): Promise<void> {
-  // Return existing promise if script is loading or loaded
-  if (googleMapsLoadPromise) {
-    return googleMapsLoadPromise;
-  }
-
-  // Check if already loaded
-  if (window.google?.maps) {
-    googleMapsLoadPromise = Promise.resolve();
-    return googleMapsLoadPromise;
-  }
-
-  // Create new loading promise
-  googleMapsLoadPromise = new Promise((resolve, reject) => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    
-    if (!apiKey) {
-      reject(new Error('Google Maps API key not found in environment variables'));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-    script.async = true;
-    script.defer = true;
-    
-    script.onload = () => {
-      script.dataset.loaded = 'true';
-      resolve();
-    };
-    
-    script.onerror = () => {
-      googleMapsLoadPromise = null; // Reset on error to allow retry
-      reject(new Error('Failed to load Google Maps script'));
-    };
-    
-    document.head.appendChild(script);
-  });
-
-  return googleMapsLoadPromise;
-}
-
 interface GoogleMapProps {
   center: { lat: number; lng: number };
   zoom?: number;
@@ -116,6 +60,7 @@ export default function GoogleMap({
     onMapClickRef.current = onMapClick;
   }, [onMapClick]);
 
+  // Initialize map once on mount
   useEffect(() => {
     const initMap = () => {
       if (!mapRef.current) return;

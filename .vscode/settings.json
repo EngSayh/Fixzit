@@ -146,17 +146,5 @@
     "**/.next/**": true,
     "**/build/**": true,
     "**/.turbo/**": true
-  },
-  "chatgpt.openOnStartup": true,
-  "powershell.promptToUpdatePowerShell": false,
-  "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
-  "powershell.startAutomatically": false,
-  "powershell.integratedConsole.showOnStartup": false,
-  "powershell.sideBar.CommandExplorerVisibility": false,
-  "typescript.tsserver.maxTsServerMemory": 2048,
-  "typescript.preferences.includePackageJsonAutoImports": "off",
-  "typescript.disableAutomaticTypeAcquisition": true,
-  "extensions.experimental.affinity": {
-    "ms-vscode.powershell": 0
   }
 }

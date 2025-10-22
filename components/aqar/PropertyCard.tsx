@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'link';
+import Link from 'next/link';
 import { Bed, Bath, Maximize, MapPin, Heart, Eye, Phone, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 
@@ -231,7 +231,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = `tel:${property.agentId.contact.phone}`;
+                    window.location.href = `tel:${property.agentId?.contact?.phone}`;
                   }}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                   aria-label="Call agent"

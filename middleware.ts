@@ -48,11 +48,31 @@ const protectedApiRoutes = [
   '/api/finance/invoices',
   '/api/users',
   '/api/work-orders',
+  '/api/work-orders/mobile',
   '/api/finance',
   '/api/support',
   '/api/admin',
   '/api/notifications'
 ];
+
+/**
+ * Helper function to check if a pathname matches a specific route pattern.
+ * Supports exact matches and wildcard patterns (ending with /*).
+ */
+function matchesRoute(pathname: string, route: string): boolean {
+  if (route.endsWith('/*')) {
+    const prefix = route.slice(0, -2);
+    return pathname === prefix || pathname.startsWith(prefix + '/');
+  }
+  return pathname === route;
+}
+
+/**
+ * Helper function to check if a pathname matches any route in an array of patterns.
+ */
+function matchesAnyRoute(pathname: string, routes: string[]): boolean {
+  return routes.some(route => matchesRoute(pathname, route));
+}
 
 // Define FM module routes (require authentication)
 const fmRoutes = [
