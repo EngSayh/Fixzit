@@ -12,7 +12,13 @@ import { AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { FurnishingStatus, ListingStatus } from '@/models/aqar/Listing';
 import { withCorrelation, ok, badRequest, notFound } from '@/lib/api/http';
-import { isValidObjectIdSafe } from '@/lib/api/validation';
+import {
+  isValidObjectIdSafe,
+  validatePositiveNumber,
+  validateNonNegativeInteger,
+  validateNonNegativeNumber,
+  validateNonEmptyString,
+} from '@/lib/api/validation';
 
 import mongoose from 'mongoose';
 
@@ -120,26 +126,32 @@ export async function PATCH(
           return NextResponse.json({ error: `Invalid status: ${value}` }, { status: 400 });
         }
         
-        // Validate numeric fields
+        // Validate numeric fields using shared helpers
         if (field === 'price' || field === 'areaSqm') {
-          if (typeof value !== 'number' || value <= 0) {
-            return NextResponse.json({ error: `${field} must be a positive number` }, { status: 400 });
+          const result = validatePositiveNumber(value, field);
+          if (!result.valid) {
+            return NextResponse.json({ error: result.error }, { status: 400 });
           }
         }
         if (field === 'beds' || field === 'baths' || field === 'kitchens') {
-          if (typeof value !== 'number' || value < 0 || !Number.isInteger(value)) {
-            return NextResponse.json({ error: `${field} must be a non-negative integer` }, { status: 400 });
+          const result = validateNonNegativeInteger(value, field);
+          if (!result.valid) {
+            return NextResponse.json({ error: result.error }, { status: 400 });
           }
         }
         if (field === 'ageYears') {
-          if (typeof value !== 'number' || value < 0) {
-            return NextResponse.json({ error: 'ageYears must be non-negative' }, { status: 400 });
+          const result = validateNonNegativeNumber(value, field);
+          if (!result.valid) {
+            return NextResponse.json({ error: result.error }, { status: 400 });
           }
         }
         
         // Validate string fields are non-empty
-        if ((field === 'title' || field === 'description') && (typeof value !== 'string' || value.trim().length === 0)) {
-          return NextResponse.json({ error: `${field} must be a non-empty string` }, { status: 400 });
+        if (field === 'title' || field === 'description') {
+          const result = validateNonEmptyString(value, field);
+          if (!result.valid) {
+            return NextResponse.json({ error: result.error }, { status: 400 });
+          }
         }
         
         (listing as unknown as Record<string, unknown>)[field] = value;

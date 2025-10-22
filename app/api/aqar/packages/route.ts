@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
   try {
     await connectDb();
     
-    const user = await getSessionUser(request);
+    // Handle auth failures locally (return 401 instead of 500)
+    const user = await getSessionUser(request).catch(() => null);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('active') === 'true';
@@ -62,8 +66,8 @@ export async function POST(request: NextRequest) {
         return badRequest('Invalid package type. Must be STARTER, STANDARD, or PREMIUM', { correlationId });
       }
       
-      // Get pricing
-      const pricing = (AqarPackage as never as { getPricing: (type: PackageType) => { price: number; listings: number; days: number } }).getPricing(type as PackageType);
+      // Get pricing using properly typed model
+      const pricing = AqarPackage.getPricing(type as PackageType);
       
       // Use atomic transaction for multi-document operation
       const session = await mongoose.startSession();

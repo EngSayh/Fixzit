@@ -39,9 +39,18 @@ export interface IPackage extends Document {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+  
+  // Instance methods
+  activate(): Promise<void>;
+  consumeListing(): Promise<void>;
 }
 
-const PackageSchema = new Schema<IPackage>(
+// Model interface for statics
+export interface IAqarPackageModel extends Model<IPackage> {
+  getPricing(type: PackageType): { price: number; listings: number; days: number };
+}
+
+const PackageSchema = new Schema<IPackage, IAqarPackageModel>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
@@ -143,7 +152,7 @@ PackageSchema.methods.checkExpiry = async function (this: IPackage) {
   }
 };
 
-const Package: Model<IPackage> =
-  mongoose.models.AqarPackage || mongoose.model<IPackage>('AqarPackage', PackageSchema);
+const Package: IAqarPackageModel =
+  (mongoose.models.AqarPackage as IAqarPackageModel) || mongoose.model<IPackage, IAqarPackageModel>('AqarPackage', PackageSchema);
 
 export default Package;

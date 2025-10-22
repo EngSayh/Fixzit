@@ -58,9 +58,32 @@ export async function POST(request: NextRequest) {
         await (activePackage as unknown as { consumeListing: () => Promise<void> }).consumeListing();
       }
       
-      // Create listing
+      // Create listing with whitelisted fields only (prevent mass-assignment)
+      const payload = {
+        // Required fields
+        intent: body.intent,
+        propertyType: body.propertyType,
+        title: body.title,
+        description: body.description,
+        city: body.city,
+        price: body.price,
+        areaSqm: body.areaSqm,
+        geo: body.geo,
+        source: body.source,
+        // Optional fields (safe to accept on create)
+        beds: body.beds,
+        baths: body.baths,
+        kitchens: body.kitchens,
+        ageYears: body.ageYears,
+        furnishing: body.furnishing,
+        amenities: body.amenities,
+        media: body.media,
+        address: body.address,
+        neighborhood: body.neighborhood,
+      };
+      
       const created = await AqarListing.create({
-        ...body,
+        ...payload,
         listerId: user.id,
         orgId: user.orgId || user.id,
         status: 'DRAFT',

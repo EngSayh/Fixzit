@@ -102,7 +102,7 @@ export default function GoogleMap({
       
       if (!apiKey) {
         console.error('Google Maps API key not found in environment variables');
-        setError('Map configuration error');
+        setError('Unable to load map. Please check configuration.');
         setLoading(false);
         return;
       }

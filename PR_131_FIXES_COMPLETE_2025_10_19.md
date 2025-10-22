@@ -170,7 +170,7 @@ Exit code: 1
 ### Security Scan
 
 ```bash
-$ grep -rn "AIzaSyAhsOJLVQDcpyGoGayMjt0L_y9i7ffWRfU" . --include="*.md" --include="*.ts" --include="*.tsx"
+$ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --include="*.tsx"
 
 ./FIX_SUMMARY_SECURITY_ACCESSIBILITY_2025_10_19.md:21:...
 ./PR_131_FIXES_COMPLETE_2025_10_19.md:136:...

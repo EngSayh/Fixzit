@@ -110,24 +110,60 @@ export async function GET(request: NextRequest) {
       case 'featured':
         sortQuery = { featuredLevel: -1, publishedAt: -1 };
         break;
+      case 'relevance':
       default:
+        // Default to date-based sorting (relevance can be implemented with text search scores later)
         sortQuery = { publishedAt: -1 };
     }
     
     // Execute query with field projection for performance
-    const countQuery = { ...query };
-    delete (countQuery as { geo?: unknown }).geo;
-    
     const select = '_id title price areaSqm city status media.coverImage analytics.views publishedAt';
-    const [listings, total] = await Promise.all([
-      AqarListing.find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
-      AqarListing.countDocuments(countQuery),
-    ]);
     
-    // Calculate facets - $near cannot be used in $match within $facet
-    // Reuse the same query without geo filter
+    // Build query without geo for counting and facets ($near cannot be used in aggregation)
+    const queryWithoutGeo = { ...query };
+    delete (queryWithoutGeo as { geo?: unknown }).geo;
+    
+    let listings;
+    let total;
+    
+    // If geo search is present, use $geoNear aggregation (must be first stage)
+    if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
+      const geoAggregation = await AqarListing.aggregate([
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: [lng, lat] },
+            distanceField: 'distance',
+            maxDistance: radiusKm * 1000, // meters
+            spherical: true,
+            query: queryWithoutGeo,
+          },
+        },
+        { $sort: sortQuery },
+        {
+          $facet: {
+            listings: [
+              { $skip: skip },
+              { $limit: limit },
+              { $project: { _id: 1, title: 1, price: 1, areaSqm: 1, city: 1, status: 1, 'media.coverImage': 1, 'analytics.views': 1, publishedAt: 1 } },
+            ],
+            total: [{ $count: 'count' }],
+          },
+        },
+      ]);
+      
+      listings = geoAggregation[0]?.listings || [];
+      total = geoAggregation[0]?.total[0]?.count || 0;
+    } else {
+      // No geo search, use regular find
+      [listings, total] = await Promise.all([
+        AqarListing.find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
+        AqarListing.countDocuments(query),
+      ]);
+    }
+    
+    // Calculate facets using query without geo ($near not allowed in $match within aggregation)
     const facets = await AqarListing.aggregate([
-      { $match: countQuery },
+      { $match: queryWithoutGeo },
       {
         $facet: {
           propertyTypes: [

@@ -22,13 +22,17 @@ $ grep -rn "AIza[0-9A-Za-z_-]\{35\}" . --include="*.md" --include="*.ts" --inclu
 ✅ No matches found - Key successfully removed
 ```
 
-**⚠️ CRITICAL ACTION REQUIRED**:
-The exposed API key `<REDACTED_GOOGLE_MAPS_API_KEY>` (full key previously exposed in git history) must be rotated:
+**⚠️ ACTION REQUIRED**:
+The exposed API key `<REDACTED_GOOGLE_MAPS_API_KEY>` (full key previously exposed in git history) **MUST BE ROTATED BEFORE PRODUCTION**:
 1. Go to Google Cloud Console → APIs & Services → Credentials
 2. Delete or regenerate the compromised key
-3. Create new API key with proper restrictions
+3. Create new API key with proper restrictions (HTTP referrer, API limits)
 4. Update environment variables (.env.local, production secrets)
-5. Never commit API keys to git history
+5. Purge old key from git history using git-filter-repo or BFG
+6. Run secret scanning tools (gitleaks/truffleHog) to verify removal
+7. Document rotation completion with timestamp
+
+**Until rotation is complete, this system should NOT be considered production-ready.**
 
 ---
 
@@ -151,8 +155,10 @@ $ grep -rn "console.log.*email\|console.log.*token" . --include="*.ts" --include
 - [x] No API keys in documentation
 - [x] Environment variables used for secrets
 - [x] Production secrets in GitHub Secrets
-- [x] API keys have proper restrictions (domain, IP, API limits)
-- [ ] **ACTION REQUIRED**: Rotate exposed GCP API key
+- [ ] **PENDING**: API key rotation - GCP Maps key must be regenerated
+- [ ] **PENDING**: API keys have proper restrictions (domain, IP, API limits) - apply to new key
+- [ ] **PENDING**: Git history purge - Remove old key from all commits
+- [ ] **PENDING**: Secret scan verification - Run gitleaks/truffleHog after purge
 
 ### Error Handling
 - [x] Error messages sanitized (no PII)
@@ -213,7 +219,7 @@ $ grep -rn "console.log.*email\|console.log.*token" . --include="*.ts" --include
 
 ## ✅ Summary
 
-**All Critical Security Issues**: FIXED ✅
+**All Critical Security Issues**: PARTIALLY FIXED ⚠️
 
 **Fixed Issues**:
 1. ✅ Removed exposed GCP API key from documentation
@@ -221,16 +227,25 @@ $ grep -rn "console.log.*email\|console.log.*token" . --include="*.ts" --include
 3. ✅ Validated NextAuth v5 beta decision
 4. ✅ Added security reminders and best practices
 
+**Pending Actions** (PRODUCTION BLOCKERS):
+1. ⚠️ **CRITICAL**: Rotate exposed GCP API key
+2. ⚠️ **CRITICAL**: Purge old key from git history
+3. ⚠️ **CRITICAL**: Run secret scanning verification
+4. ⚠️ **CRITICAL**: Apply proper restrictions to new key
+
 **Verification**:
-- ✅ TypeScript: 0 errors
-- ✅ ESLint: 0 warnings  
-- ✅ API key scan: Clean
+- ⚠️ TypeScript: 5 TS2688 errors - missing type definitions (non-security issue)
+- ⚠️ ESLint: Missing @types packages (non-security issue)
+- ✅ API key scan: Keys removed from current files
+- ⚠️ Git history: Old key still present - requires purge
 - ✅ PII logging: Sanitized
 
-**Status**: **SECURE FOR PRODUCTION** 🔒
+**Status**: **⚠️ NOT PRODUCTION-READY UNTIL KEY ROTATION COMPLETE**
+
+**Status**: **⚠️ NOT PRODUCTION-READY UNTIL API KEY ROTATION COMPLETE**
 
 ---
 
 **Audit Date**: October 20, 2025  
 **Auditor**: GitHub Copilot Agent  
-**Next Review**: Before production deployment
+**Next Review**: After key rotation completion, then before production deployment
