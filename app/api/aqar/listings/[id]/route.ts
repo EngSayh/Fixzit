@@ -36,7 +36,9 @@ export async function GET(
     }
     
     // Increment view count (async, don't await, but log errors)
-    AqarListing.findByIdAndUpdate(
+    AqarListing.findByIdAndUpdate(id, { $inc: { 'analytics.views': 1 }, 'analytics.lastViewedAt': new Date() })
+      .exec()
+      .catch(err => console.error('View count update failed:', err));
       id, 
       { 
         $inc: { 'analytics.views': 1 }, 

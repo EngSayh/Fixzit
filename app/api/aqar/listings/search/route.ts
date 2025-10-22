@@ -108,9 +108,13 @@ export async function GET(request: NextRequest) {
       AqarListing.countDocuments(query),
     ]);
     
-    // Calculate facets
+    // Calculate facets - $near cannot be used in $match within $facet
+    // Create a separate query for facets without the geo filter
+    const facetQuery = { ...query };
+    delete (facetQuery as { geo?: unknown }).geo; // Remove $near operator for facet aggregation
+    
     const facets = await AqarListing.aggregate([
-      { $match: query },
+      { $match: facetQuery },
       {
         $facet: {
           propertyTypes: [
