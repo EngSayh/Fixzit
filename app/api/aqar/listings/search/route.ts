@@ -9,8 +9,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing, FurnishingStatus, ListingIntent, PropertyType } from '@/models/aqar';
+import type { PipelineStage } from 'mongoose';
 
 export const runtime = 'nodejs'; // Atlas Search requires Node.js runtime
+
+// Type for search results with distance field (from $geoNear)
+interface ListingSearchResult {
+  _id: string;
+  title: string;
+  price: number;
+  areaSqm?: number;
+  beds?: number;
+  baths?: number;
+  distance?: number; // Added by $geoNear
+  [key: string]: unknown;
+}
+
+// Type for facet results
+interface FacetResult {
+  _id: string;
+  count: number;
+}
+
+interface SearchFacets {
+  propertyTypes: FacetResult[];
+  cities: FacetResult[];
+  priceRanges: Array<{ _id: number | string; count: number }>;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -149,12 +174,14 @@ export async function GET(request: NextRequest) {
     // Check if geo search is active
     const hasGeoSearch = lat !== undefined && lng !== undefined && radiusKm !== undefined;
     
-    let listings, total, facets;
+    let listings: ListingSearchResult[];
+    let total: number;
+    let facets: SearchFacets[];
     
     if (hasGeoSearch) {
       // Use aggregation with $geoNear as first stage (MongoDB requirement for geo in aggregation)
       // $geoNear must be the first stage and performs both geo filtering and sorting by distance
-      const geoNearStage = {
+      const geoNearStage: PipelineStage.GeoNear = {
         $geoNear: {
           near: {
             type: 'Point' as const,
@@ -168,7 +195,7 @@ export async function GET(request: NextRequest) {
       };
       
       // Build aggregation pipeline
-      const pipeline = [
+      const pipeline: PipelineStage[] = [
         geoNearStage,
         { $sort: sortQuery },
         { $skip: skip },
@@ -176,15 +203,15 @@ export async function GET(request: NextRequest) {
       ];
       
       // Execute geo-aware aggregation for listings
-      listings = await AqarListing.aggregate(pipeline);
+      listings = await AqarListing.aggregate<ListingSearchResult>(pipeline);
       
       // Count total matching documents
-      const countPipeline = [geoNearStage, { $count: 'total' }];
-      const countResult = await AqarListing.aggregate(countPipeline);
+      const countPipeline: PipelineStage[] = [geoNearStage, { $count: 'total' }];
+      const countResult = await AqarListing.aggregate<{ total: number }>(countPipeline);
       total = countResult[0]?.total || 0;
       
       // Calculate facets with geo filter
-      facets = await AqarListing.aggregate([
+      const facetsPipeline: PipelineStage[] = [
         geoNearStage,
         {
           $facet: {
@@ -208,16 +235,20 @@ export async function GET(request: NextRequest) {
             ],
           },
         },
-      ]);
+      ];
+      facets = await AqarListing.aggregate<SearchFacets>(facetsPipeline);
     } else {
       // No geo search - use standard find query
-      [listings, total] = await Promise.all([
+      const [listingsRaw, totalCount] = await Promise.all([
         AqarListing.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
         AqarListing.countDocuments(query),
       ]);
       
+      listings = listingsRaw as unknown as ListingSearchResult[];
+      total = totalCount;
+      
       // Calculate facets without geo
-      facets = await AqarListing.aggregate([
+      const facetsPipeline: PipelineStage[] = [
         { $match: query },
         {
           $facet: {
@@ -241,7 +272,8 @@ export async function GET(request: NextRequest) {
             ],
           },
         },
-      ]);
+      ];
+      facets = await AqarListing.aggregate<SearchFacets>(facetsPipeline);
     }
     
     return NextResponse.json({

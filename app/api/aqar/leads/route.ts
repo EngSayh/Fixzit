@@ -10,6 +10,7 @@ import { connectDb } from '@/lib/mongo';
 import { AqarLead, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
+import { checkRateLimit } from '@/lib/rateLimit';
 import mongoose, { type Types } from 'mongoose';
 
 
@@ -19,6 +20,17 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     await connectDb();
+    
+    // Apply rate limiting for public endpoint (10 requests per hour per IP)
+    const rateLimitResponse = checkRateLimit(request, {
+      maxRequests: 10,
+      windowMs: 60 * 60 * 1000, // 1 hour
+      message: 'Too many lead submissions. Please try again in an hour.',
+    });
+    
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
     
     // Auth is optional for public inquiries
     let userId: string | undefined;
