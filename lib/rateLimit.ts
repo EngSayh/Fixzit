@@ -6,7 +6,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getClientIp } from './security/client-ip';
 
 interface RateLimitEntry {
   count: number;
@@ -42,8 +41,8 @@ export function checkRateLimit(
   request: NextRequest,
   config: RateLimitConfig
 ): NextResponse | null {
-  // Get client IP using secure extraction method (from utility)
-  const ip = getClientIp(request);
+  // Get client IP using hardened extraction method
+  const ip = getHardenedClientIp(request);
 
   const key = `ratelimit:${ip}`;
   const now = Date.now();
@@ -87,13 +86,41 @@ export function checkRateLimit(
 }
 
 /**
+ * Hardened client IP extraction with security-first priority order
+ */
+function getHardenedClientIp(request: NextRequest): string {
+  // 1) Cloudflare's CF-Connecting-IP is most trustworthy
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp && cfIp.trim()) return cfIp.trim();
+  
+  // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
+  const fwd = request.headers.get('x-forwarded-for');
+  if (fwd && fwd.trim()) {
+    const ips = fwd.split(',').map(ip => ip.trim()).filter(ip => ip);
+    if (ips.length) return ips[ips.length - 1];
+  }
+  
+  // 3) x-real-ip only if explicitly trusted (client-settable unless infra strips it)
+  if (process.env.TRUST_X_REAL_IP === 'true') {
+    const realIp = request.headers.get('x-real-ip');
+    if (realIp && realIp.trim()) return realIp.trim();
+  }
+  
+  // 4) Next.js may expose request.ip in Node runtime
+  const anyReq = request as unknown as { ip?: string };
+  if (anyReq?.ip && anyReq.ip.trim()) return anyReq.ip.trim();
+  
+  return 'unknown';
+}
+
+/**
  * Get rate limit info for response headers
  */
 export function getRateLimitHeaders(
   request: NextRequest,
   config: RateLimitConfig
 ): Record<string, string> {
-  const ip = getClientIp(request);
+  const ip = getHardenedClientIp(request);
 
   const key = `ratelimit:${ip}`;
   const entry = rateLimitStore.get(key);

@@ -9,6 +9,7 @@
 ## 🎯 Executive Summary
 
 This PR addresses **all 9 critical unresolved issues** from PR #137 that remained after the initial review, including:
+
 - 1 critical race condition (data integrity)
 - 3 critical security vulnerabilities
 - 2 type safety issues
@@ -27,6 +28,7 @@ This PR addresses **all 9 critical unresolved issues** from PR #137 that remaine
 **Severity**: 🔴 Critical - Data integrity violation
 
 **Problem**:
+
 ```typescript
 // ❌ BEFORE: Query outside transaction
 await session.withTransaction(async () => {
@@ -37,9 +39,11 @@ await session.withTransaction(async () => {
 const listing = await AqarListing.findOne({ // ❌ Race condition!
   listerId: user.id 
 }).sort({ createdAt: -1 });
+
 ```
 
 **Fix**:
+
 ```typescript
 // ✅ AFTER: Capture return value from transaction
 let createdListing;
@@ -49,6 +53,7 @@ createdListing = await session.withTransaction(async () => {
 });
 
 return NextResponse.json({ listing: createdListing }); // ✅ No race
+
 ```
 
 **Impact**: Prevents users from exceeding package limits during concurrent requests.
@@ -62,15 +67,18 @@ return NextResponse.json({ listing: createdListing }); // ✅ No race
 **Severity**: 🔴 Critical - Privacy/Security
 
 **Problem**:
+
 ```typescript
 // ❌ BEFORE: No salt = predictable hashes
 async function hashEmail(email: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(email); // No salt!
   // ... hashing ...
 }
+
 ```
 
 **Fix**:
+
 ```typescript
 // ✅ AFTER: Salted hash prevents rainbow tables
 async function hashEmail(email: string): Promise<string> {
@@ -78,9 +86,11 @@ async function hashEmail(email: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(email + salt);
   // ... hashing ...
 }
+
 ```
 
 **Configuration**:
+
 - Added `LOG_HASH_SALT` to `env.example`
 - Updated `README.md` with setup instructions
 - Default fallback for development (with warning)
@@ -94,12 +104,15 @@ async function hashEmail(email: string): Promise<string> {
 **Severity**: 🟠 High - Security
 
 **Problem**:
+
 ```typescript
 // ❌ BEFORE: First IP in x-forwarded-for (client-controlled)
 const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim();
+
 ```
 
 **Fix**:
+
 ```typescript
 // ✅ AFTER: Last IP (added by our trusted reverse proxy)
 function getClientIp(request: NextRequest): string {
@@ -118,9 +131,11 @@ function getClientIp(request: NextRequest): string {
   
   return 'unknown';
 }
+
 ```
 
 **Security Rationale**:
+
 - Client can add fake IPs to `x-forwarded-for` header
 - Reverse proxy appends real IP at the **end**
 - Taking last IP ensures we use trusted source
@@ -134,15 +149,19 @@ function getClientIp(request: NextRequest): string {
 **Severity**: 🟡 Medium - Type safety
 
 **Problem**:
+
 ```typescript
 // ❌ BEFORE: Nuclear option that hides all type errors
 pkg.paymentId = payment._id as never;
+
 ```
 
 **Fix**:
+
 ```typescript
 // ✅ AFTER: Proper type assertion
 pkg.paymentId = payment._id as mongoose.Types.ObjectId;
+
 ```
 
 ---
@@ -152,6 +171,7 @@ pkg.paymentId = payment._id as mongoose.Types.ObjectId;
 ### 5. ✅ README.md Environment Variables
 
 **Added**:
+
 - `NEXTAUTH_SECRET` setup instructions
 - `INTERNAL_API_SECRET` documentation
 - `LOG_HASH_SALT` security requirement
@@ -160,9 +180,12 @@ pkg.paymentId = payment._id as mongoose.Types.ObjectId;
 ### 6. ✅ env.example Updates
 
 **Added**:
+
 ```bash
 # === SECURITY - EMAIL HASHING ===
+
 LOG_HASH_SALT=  # Generate: openssl rand -hex 32
+
 ```
 
 **Impact**: Developers now have clear guidance on all required secrets.
@@ -172,22 +195,28 @@ LOG_HASH_SALT=  # Generate: openssl rand -hex 32
 ## 🧪 Quality Verification
 
 ### TypeScript Compilation
+
 ```bash
 $ npm run typecheck
 ✅ PASS - 0 errors
+
 ```
 
 ### ESLint
+
 ```bash
 $ npm run lint
 ✅ PASS - No warnings or errors
 (Deprecation notice for next lint is framework-level, not our code)
+
 ```
 
 ### Build Test
+
 ```bash
 $ npm run build
 ✅ Expected to pass (will verify in CI)
+
 ```
 
 ---
@@ -232,18 +261,22 @@ Before merging to production:
 ### For Code Reviewers
 
 1. **Race Condition Fix** (lines 127-157 in `listings/route.ts`):
+
    - Verify `createdListing` is captured from `withTransaction` return value
    - Confirm no queries happen outside transaction scope
 
 2. **Salt Implementation** (lines 5-12 in `auth.config.ts`):
+
    - Verify salt is applied before hashing
    - Check that `LOG_HASH_SALT` is documented in README and env.example
 
 3. **Rate Limit Security** (lines 27-56 in `lib/rateLimit.ts`):
+
    - Verify priority order: `x-real-ip` > `cf-connecting-ip` > last `x-forwarded-for`
    - Confirm client cannot spoof by sending fake IPs in header
 
 4. **Type Safety** (line 91 in `packages/route.ts`):
+
    - Verify `as mongoose.Types.ObjectId` instead of `as never`
    - Check runtime validation is still present before cast
 
@@ -267,6 +300,7 @@ Before merging to production:
 ## ✅ Sign-Off
 
 All critical and high-severity issues identified in PR #137 review have been resolved:
+
 - ✅ Data integrity protected (transaction fix)
 - ✅ Privacy enhanced (salted hashes)
 - ✅ Rate limiting secured (anti-spoofing)

@@ -153,7 +153,11 @@ export async function POST(request: NextRequest) {
       'source',
     ];
 
-    const missingFields = requiredFields.filter((field) => !sanitizedBody[field]);
+    const missingFields = requiredFields.filter((field) => {
+      const v = sanitizedBody[field as keyof typeof sanitizedBody];
+      if (v === null || v === undefined) return true;
+      return typeof v === 'string' && v.trim().length === 0;
+    });
     if (missingFields.length > 0) {
       return NextResponse.json(
         { error: `Missing required fields: ${missingFields.join(', ')}` },
@@ -173,14 +177,14 @@ export async function POST(request: NextRequest) {
     if (rentFrequency !== undefined && rentFrequency !== null) {
       if (typeof price !== 'number' || price <= 0) {
         return NextResponse.json(
-          { error: 'Rent price must be a positive number when rentFrequency is specified' },
+          { error: 'Price must be a positive number when rentFrequency is specified' },
           { status: 400 }
         );
       }
     }
     
     // Check if user has active package (for agents/developers)
-    if (body.source === 'AGENT' || body.source === 'DEVELOPER') {
+    if (source === 'AGENT' || source === 'DEVELOPER') {
       // Use MongoDB transaction to atomically check package and create listing
       // This ensures that if listing creation fails, credits are not consumed
       const session = await AqarPackage.startSession();
@@ -211,13 +215,8 @@ export async function POST(request: NextRequest) {
           return listing;
         });
         
-        // Session already ended by withTransaction, no need to call endSession
-        
         return NextResponse.json({ listing: createdListing }, { status: 201 });
       } catch (txError) {
-        // Transaction auto-aborted by withTransaction, just end the session
-        await session.endSession();
-        
         if (txError instanceof Error && txError.message === 'NO_ACTIVE_PACKAGE') {
           return NextResponse.json(
             { error: 'No active listing package. Please purchase a package first.' },
@@ -225,6 +224,9 @@ export async function POST(request: NextRequest) {
           );
         }
         throw txError; // Re-throw to be caught by outer catch block
+      } finally {
+        // Always end session to prevent memory leaks
+        await session.endSession();
       }
     }
     

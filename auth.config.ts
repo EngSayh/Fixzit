@@ -4,13 +4,26 @@ import Google from 'next-auth/providers/google';
 // Privacy-preserving email hash helper for secure logging (Edge-compatible)
 async function hashEmail(email: string): Promise<string> {
   // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
-  // Add salt to prevent rainbow table attacks
-  const salt = process.env.LOG_HASH_SALT || 'fixzit-default-salt-change-in-production';
-  const msgUint8 = new TextEncoder().encode(email + salt);
+  // Add salt to prevent rainbow table attacks (REQUIRED in production)
+  const salt = process.env.LOG_HASH_SALT;
+  
+  // Enforce salt requirement in production
+  if (process.env.NODE_ENV === 'production') {
+    if (!salt || salt.trim().length === 0) {
+      throw new Error('FATAL: LOG_HASH_SALT is required in production environment. Generate with: openssl rand -hex 32');
+    }
+    if (salt.length < 32) {
+      throw new Error('FATAL: LOG_HASH_SALT must be at least 32 characters. Current length: ' + salt.length);
+    }
+  }
+  
+  // Use delimiter to prevent length-extension attacks
+  const finalSalt = salt || 'dev-only-salt-REPLACE-IN-PROD';
+  const msgUint8 = new TextEncoder().encode(`${finalSalt}|${email}`);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.substring(0, 12);
+  return hashHex.substring(0, 16); // 64 bits for better collision resistance
 }
 
 // Validate required environment variables at startup
@@ -18,12 +31,16 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
+const LOG_HASH_SALT = process.env.LOG_HASH_SALT;
 
 const missingVars: string[] = [];
 if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
 if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
 if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
 if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
+if (process.env.NODE_ENV === 'production' && !LOG_HASH_SALT) {
+  missingVars.push('LOG_HASH_SALT (required in production for secure email hashing)');
+}
 
 if (missingVars.length > 0) {
   throw new Error(
