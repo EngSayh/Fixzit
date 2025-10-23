@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getClientIp } from './security/client-ip';
 
 interface RateLimitEntry {
   count: number;
@@ -31,36 +32,6 @@ export interface RateLimitConfig {
 }
 
 /**
- * Extract client IP address from request
- * Prioritizes trusted proxy headers and falls back to connection info
- * 
- * @param request - Next.js request object
- * @returns Client IP address or 'unknown'
- */
-function getClientIp(request: NextRequest): string {
-  // In production with Vercel/Cloudflare, use their trusted headers
-  // x-real-ip is more reliable than x-forwarded-for (harder to spoof)
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
-  
-  // Cloudflare's CF-Connecting-IP is trustworthy
-  const cfIp = request.headers.get('cf-connecting-ip');
-  if (cfIp) return cfIp.trim();
-  
-  // x-forwarded-for: take LAST IP (added by our reverse proxy, not client)
-  // This prevents spoofing since client can't modify what the proxy appends
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    const ips = forwardedFor.split(',').map(ip => ip.trim());
-    // Take the last IP (added by our trusted reverse proxy)
-    return ips[ips.length - 1];
-  }
-  
-  // Fallback for direct connections (development)
-  return 'unknown';
-}
-
-/**
  * Rate limit checker for API endpoints
  * 
  * @param request - Next.js request object
@@ -71,7 +42,7 @@ export function checkRateLimit(
   request: NextRequest,
   config: RateLimitConfig
 ): NextResponse | null {
-  // Get client IP using secure extraction method
+  // Get client IP using secure extraction method (from utility)
   const ip = getClientIp(request);
 
   const key = `ratelimit:${ip}`;
