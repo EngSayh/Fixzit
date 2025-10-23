@@ -42,10 +42,17 @@ if (process.env.NODE_ENV === 'production' && !LOG_HASH_SALT) {
   missingVars.push('LOG_HASH_SALT (required in production for secure email hashing)');
 }
 
-if (missingVars.length > 0) {
+// Skip validation during CI build (secrets not needed for build, only for runtime)
+if (missingVars.length > 0 && process.env.CI !== 'true') {
   throw new Error(
     `Missing required environment variables for NextAuth: ${missingVars.join(', ')}. ` +
     'Please add these to your .env.local file or GitHub Secrets.'
+  );
+}
+// In CI, log warning but allow build to continue
+if (missingVars.length > 0 && process.env.CI === 'true') {
+  console.warn(
+    `⚠️  Warning: Missing environment variables (will be required at runtime): ${missingVars.join(', ')}`
   );
 }
 
