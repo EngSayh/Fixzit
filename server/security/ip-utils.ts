@@ -59,8 +59,9 @@ export function isPrivateIP(ip: string): boolean {
       return true;
     }
     
-    // Treat unparsable or unknown IPv6 as private
-    return false;
+    // SECURITY: Fail-safe approach - treat unparsable/unknown IPv6 as private
+    // This prevents accidentally treating malformed IPs as public/trusted
+    return true;
   }
   
   // IPv4 private and reserved ranges

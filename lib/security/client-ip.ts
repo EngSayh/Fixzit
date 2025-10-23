@@ -38,15 +38,11 @@ import { NextRequest } from 'next/server';
  * ```
  */
 export function getClientIp(request: NextRequest): string {
-  // Priority 1: x-real-ip (most reliable, set by reverse proxy)
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
-  
-  // Priority 2: Cloudflare's CF-Connecting-IP (trustworthy)
+  // Priority 1: Cloudflare's CF-Connecting-IP (most trustworthy when behind Cloudflare)
   const cfIp = request.headers.get('cf-connecting-ip');
   if (cfIp) return cfIp.trim();
   
-  // Priority 3: Last IP in x-forwarded-for (appended by our reverse proxy)
+  // Priority 2: Last IP in x-forwarded-for (appended by our reverse proxy)
   // This prevents spoofing since client can add fake IPs to the beginning,
   // but cannot modify what the reverse proxy appends to the end
   const forwardedFor = request.headers.get('x-forwarded-for');
@@ -55,6 +51,10 @@ export function getClientIp(request: NextRequest): string {
     // Take the LAST IP (added by our trusted reverse proxy)
     return ips[ips.length - 1];
   }
+  
+  // Priority 3: x-real-ip (can be spoofed, use only as last resort)
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
   
   // Fallback for direct connections (development, testing)
   return 'unknown';

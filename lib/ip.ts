@@ -42,10 +42,8 @@ export function extractClientIP(request: NextRequest): string {
         }
       }
       
-      // Last resort: use hop-skipped IP even if private (better than unknown)
-      if (hopSkippedIP) {
-        return hopSkippedIP;
-      }
+      // SECURITY: Do not return private IPs - they can leak internal addresses or be spoofed
+      // If no public IP found, return 'unknown' instead of exposing internal topology
     }
   }
   

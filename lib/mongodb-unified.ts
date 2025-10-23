@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'production') {
   if (!MONGODB_URI || MONGODB_URI.trim().length === 0) {
     throw new Error('FATAL: MONGODB_URI or DATABASE_URL is required in production');
   }
-  if (!MONGODB_URI.includes('mongodb+srv://') && !MONGODB_URI.includes('mongodb://')) {
+  if (!MONGODB_URI.startsWith('mongodb+srv://') && !MONGODB_URI.startsWith('mongodb://')) {
     throw new Error('FATAL: Invalid MongoDB URI format in production. Must start with mongodb:// or mongodb+srv://');
   }
 }
