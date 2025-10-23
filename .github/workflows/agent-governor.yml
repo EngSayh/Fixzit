@@ -43,6 +43,10 @@ jobs:
 
       - name: Build project
         run: npm run build
+        env:
+          MONGODB_URI: mongodb://localhost:27017/fixzit-ci-test
+          NEXTAUTH_SECRET: ci-test-secret-key-min-32-chars-long
+          NEXTAUTH_URL: http://localhost:3000
         # CRITICAL: Removed continue-on-error - build failures must block PRs
       
       - name: Upload inventory artifacts
