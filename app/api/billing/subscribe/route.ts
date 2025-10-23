@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Subscription creation failed:', error);
+    console.error('Subscription creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);
   }
 }

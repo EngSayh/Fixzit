@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('PayTabs error:', error);
+    console.error('PayTabs error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { ok: false, error: 'Payment processing failed' },
       { status: 500 }

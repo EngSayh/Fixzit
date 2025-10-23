@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount fetch failed:', error);
+    console.error('Discount fetch failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
@@ -115,7 +115,7 @@ export async function PUT(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount update failed:', error);
+    console.error('Discount update failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

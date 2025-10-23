@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier fetch failed:', error);
+    console.error('Price tier fetch failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier creation failed:', error);
+    console.error('Price tier creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }

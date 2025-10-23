@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Owner group assignment failed:', error);
+    console.error('Owner group assignment failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to assign owner group' }, 500, req);
   }
 }

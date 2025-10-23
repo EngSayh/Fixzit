@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Contract creation failed:', error);
+    console.error('Contract creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500, req);
   }
 }

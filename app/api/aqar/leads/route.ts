@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error) {
-    console.error('Error creating lead:', error);
+    console.error('Error creating lead:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
   }
 }
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching leads:', error);
+    console.error('Error fetching leads:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
   }
 }

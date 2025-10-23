@@ -230,7 +230,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: results.slice(0, 20) });
 
   } catch (error) {
-    console.error('Search API error:', error);
+    console.error('Search API error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ results: [] }, 500, req);
   }
 }

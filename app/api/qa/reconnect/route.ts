@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ Database reconnection failed:', error);
+    console.error('❌ Database reconnection failed:', error instanceof Error ? error.message : 'Unknown error');
 
     return NextResponse.json({
       success: false,

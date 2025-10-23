@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error) {
-    console.error('Failed to process QA alert:', error);
+    console.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to process alert' }, 500, req);
   }
 }
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ alerts }, 200, req);
   } catch (error) {
-    console.error('Failed to fetch QA alerts:', error);
+    console.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
   }
 }

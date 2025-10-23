@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] Properties fetch failed:`, error);
+    console.error(`[${correlationId}] Properties fetch failed:`, error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch properties', correlationId }, 500, req);
   }
 }

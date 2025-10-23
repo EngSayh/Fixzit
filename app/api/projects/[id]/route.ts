@@ -75,7 +75,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(project, 200, req);
   } catch (error: unknown) {
-    console.error('GET /api/projects/[id] error:', error);
+    console.error('GET /api/projects/[id] error:', error instanceof Error ? error.message : 'Unknown error');
     return handleApiError(error);
   }
 }

@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
       return unauthorizedError('Invalid or expired token');
     }
     // For all other errors, log and return internal server error
-    console.error('Get current user error:', error);
+    console.error('Get current user error:', error instanceof Error ? error.message : 'Unknown error');
     return internalServerError('Internal server error', error);
   }
 }

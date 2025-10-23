@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching favorites:', error);
+    console.error('Error fetching favorites:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
   }
 }
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ favorite }, { status: 201 });
   } catch (error) {
-    console.error('Error adding favorite:', error);
+    console.error('Error adding favorite:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to add favorite' }, { status: 500 });
   }
 }

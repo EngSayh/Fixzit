@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     healthStatus.status = 'degraded';
     healthStatus.database = 'disconnected';
-    console.error('Database health check failed:', error);
+    console.error('Database health check failed:', error instanceof Error ? error.message : 'Unknown error');
   }
 
   // Check memory usage

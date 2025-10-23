@@ -211,7 +211,7 @@ The Fixzit Enterprise Team
 
   } catch (error) {
     const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] Welcome email error:`, error);
+    console.error(`[${correlationId}] Welcome email error:`, error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse(
       { error: 'Failed to send welcome email', correlationId },
       500,

@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: { applicationId: app._id } }, { status: 201 });
   } catch (error) {
-    console.error('LinkedIn apply error:', error);
+    console.error('LinkedIn apply error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to apply with LinkedIn' }, 500, req);
   }
 }

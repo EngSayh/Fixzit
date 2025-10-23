@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse(asset, 201, req);
   } catch (error: unknown) {
-    console.error('POST /api/assets error:', error);
+    console.error('POST /api/assets error:', error instanceof Error ? error.message : 'Unknown error');
     return handleApiError(error);
   }
 }
@@ -185,7 +185,7 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(result[1] / limit)
     });
   } catch (error: unknown) {
-    console.error('GET /api/assets error:', error);
+    console.error('GET /api/assets error:', error instanceof Error ? error.message : 'Unknown error');
     return handleApiError(error);
   }
 }

@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] Projects fetch failed:`, error);
+    console.error(`[${correlationId}] Projects fetch failed:`, error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch projects', correlationId }, 500, req);
   }
 }

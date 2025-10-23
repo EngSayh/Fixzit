@@ -71,7 +71,7 @@ export async function POST() {
       data: results
     });
   } catch (error) {
-    console.error('[API] SLA check failed:', error);
+    console.error('[API] SLA check failed:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'SLA check failed' },
       { status: 500 }
@@ -135,7 +135,7 @@ export async function GET() {
       data: preview
     });
   } catch (error) {
-    console.error('[API] SLA preview failed:', error);
+    console.error('[API] SLA preview failed:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'SLA preview failed' },
       { status: 500 }
