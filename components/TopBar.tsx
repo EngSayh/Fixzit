@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
 import AppSwitcher from './topbar/AppSwitcher';
@@ -67,9 +68,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+  // Use NextAuth session for authentication (supports both OAuth and JWT)
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === 'authenticated';
 
   const router = useRouter();
   const pathname = usePathname();
@@ -94,19 +98,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   // Call useTranslation unconditionally at top level (React Rules of Hooks)
   const translationContext = useTranslation();
   const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
-
-  // Check authentication status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        setIsAuthenticated(response.ok);
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
-    checkAuth();
-  }, []);
 
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -261,12 +252,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   const handleLogout = async () => {
     try {
-      // Call logout API to clear server-side session
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-
       // Save language and locale preferences before clearing storage
       const savedLang = localStorage.getItem('fxz.lang');
       const savedLocale = localStorage.getItem('fxz.locale');
@@ -289,11 +274,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (savedLang) localStorage.setItem('fxz.lang', savedLang);
       if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
-      // Force a hard reload to clear all state and redirect to login
-      window.location.href = '/login';
+      // Use NextAuth signOut for both OAuth and JWT sessions
+      // This properly clears both NextAuth session and server-side JWT
+      await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
       console.error('Logout error:', error);
-      // Still redirect even if API call fails - use hard reload
+      // Still redirect even if signOut fails
       window.location.href = '/login';
     }
   };
