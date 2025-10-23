@@ -74,13 +74,38 @@ export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10
 }
 
 /**
- * IP-based rate limiting key generator
+ * Hardened IP extraction with security-first priority order
+ * 
+ * SECURITY: Uses LAST IP from X-Forwarded-For (appended by trusted proxy)
+ * to prevent header spoofing attacks where client controls first IP.
+ * 
+ * Priority order:
+ * 1. CF-Connecting-IP (Cloudflare) - most trustworthy
+ * 2. X-Forwarded-For LAST IP - appended by our infrastructure
+ * 3. X-Real-IP - only if TRUST_X_REAL_IP=true
+ * 4. Fallback to 'unknown'
  */
 export function getClientIP(request: NextRequest): string {
+  // 1) Cloudflare's CF-Connecting-IP is most trustworthy
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp && cfIp.trim()) return cfIp.trim();
+  
+  // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
+  // SECURITY: Never use [0] as that's client-controlled
   const forwarded = request.headers.get('x-forwarded-for');
-  const realIP = request.headers.get('x-real-ip');
-  const ip = forwarded?.split(',')[0] || realIP || 'unknown';
-  return ip.trim();
+  if (forwarded && forwarded.trim()) {
+    const ips = forwarded.split(',').map(ip => ip.trim()).filter(ip => ip);
+    if (ips.length) return ips[ips.length - 1]; // LAST IP is from our proxy
+  }
+  
+  // 3) X-Real-IP only if explicitly trusted (client-settable unless infra strips it)
+  if (process.env.TRUST_X_REAL_IP === 'true') {
+    const realIP = request.headers.get('x-real-ip');
+    if (realIP && realIP.trim()) return realIP.trim();
+  }
+  
+  // 4) Fallback
+  return 'unknown';
 }
 
 /**

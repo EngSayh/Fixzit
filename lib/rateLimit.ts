@@ -87,17 +87,34 @@ export function checkRateLimit(
 
 /**
  * Hardened client IP extraction with security-first priority order
+ * 
+ * SECURITY: Uses LAST IP from X-Forwarded-For (appended by trusted proxy)
+ * to prevent header spoofing attacks where client controls first IP.
+ * 
+ * Priority order:
+ * 1. CF-Connecting-IP (Cloudflare) - most trustworthy
+ * 2. X-Forwarded-For LAST IP - appended by our infrastructure
+ * 3. X-Real-IP - only if TRUST_X_REAL_IP=true
+ * 4. Next.js request.ip (Node runtime)
+ * 5. Fallback to 'unknown'
+ * 
+ * @example
+ * ```typescript
+ * import { getHardenedClientIp } from '@/lib/rateLimit';
+ * const ip = getHardenedClientIp(request);
+ * ```
  */
-function getHardenedClientIp(request: NextRequest): string {
+export function getHardenedClientIp(request: NextRequest): string {
   // 1) Cloudflare's CF-Connecting-IP is most trustworthy
   const cfIp = request.headers.get('cf-connecting-ip');
   if (cfIp && cfIp.trim()) return cfIp.trim();
   
   // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
+  // SECURITY: Never use [0] as that's client-controlled
   const fwd = request.headers.get('x-forwarded-for');
   if (fwd && fwd.trim()) {
     const ips = fwd.split(',').map(ip => ip.trim()).filter(ip => ip);
-    if (ips.length) return ips[ips.length - 1];
+    if (ips.length) return ips[ips.length - 1]; // LAST IP is from our proxy
   }
   
   // 3) x-real-ip only if explicitly trusted (client-settable unless infra strips it)
