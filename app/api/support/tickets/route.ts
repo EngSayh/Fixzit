@@ -91,7 +91,16 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectToDatabase();
-    const user = await getSessionUser(req);
+    
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+      return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    }
+    
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
       return createSecureResponse({ error: "Forbidden"}, 403, req);
     }

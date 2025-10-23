@@ -19,7 +19,14 @@ export async function GET(request: NextRequest) {
   try {
     await connectDb();
     
-    const user = await getSessionUser(request);
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('active') === 'true';
@@ -56,7 +63,14 @@ export async function POST(request: NextRequest) {
   try {
     await connectDb();
     
-    const user = await getSessionUser(request);
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     // Parse JSON with error handling
     let body: Record<string, unknown>;

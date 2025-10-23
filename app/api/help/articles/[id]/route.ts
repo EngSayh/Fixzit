@@ -32,7 +32,15 @@ const patchSchema = z.object({
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-    const user = await getSessionUser(req);
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+      return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    }
+    
     const body = await req.json().catch(() => ({}));
     const data = patchSchema.parse(body);
     const db = await getDatabase();

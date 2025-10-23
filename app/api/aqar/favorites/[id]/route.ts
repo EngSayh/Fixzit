@@ -22,7 +22,14 @@ export async function DELETE(
     
     const { id } = await params;
     
-    const user = await getSessionUser(request);
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid favorite ID' }, { status: 400 });

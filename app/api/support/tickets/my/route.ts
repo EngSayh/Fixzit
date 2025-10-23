@@ -36,10 +36,24 @@ export async function GET(req: NextRequest){
     return rateLimitError();
   }
 
-  await connectToDatabase();
-  const user = await getSessionUser(req);
-  const items = await SupportTicket.find({ createdByUserId: user.id }).sort({ createdAt:-1 }).limit(200);
-  return createSecureResponse({ items }, 200, req);
+  try {
+    await connectToDatabase();
+    
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+      return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    }
+    
+    const items = await SupportTicket.find({ createdByUserId: user.id }).sort({ createdAt:-1 }).limit(200);
+    return createSecureResponse({ items }, 200, req);
+  } catch (error) {
+    console.error('My tickets query failed:', error);
+    return createSecureResponse({ error: 'Failed to fetch your tickets' }, 500, req);
+  }
 }
 
 
