@@ -72,7 +72,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   // Use NextAuth session for authentication (supports both OAuth and JWT)
-  const { data: session, status } = useSession();
+  const { data: _session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
 
   const router = useRouter();
