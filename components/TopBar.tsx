@@ -303,6 +303,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Logo with unsaved changes handler */}
         <button
+          type="button"
           onClick={handleLogoClick}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           aria-label="Go to home"
@@ -499,7 +500,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
                   {t('common.preferences', 'Preferences')}
                 </div>
-                <div className="px-4 py-2 space-y-2">
+                <div className="px-4 py-2 space-y-2" role="none">
                   <LanguageSelector variant="default" />
                   <CurrencySelector variant="default" />
                 </div>
