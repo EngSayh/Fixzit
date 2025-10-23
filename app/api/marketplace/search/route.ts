@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    console.error('Marketplace search failed', error);
+    console.error('Marketplace search failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Search failed' }, 500, request);
   }
 }

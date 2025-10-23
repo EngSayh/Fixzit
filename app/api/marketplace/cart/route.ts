@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       }
     }, 200, request);
   } catch (error) {
-    console.error('Marketplace cart fetch failed', error);
+    console.error('Marketplace cart fetch failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to load cart' }, 500, request);
   }
 }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    console.error('Marketplace add to cart failed', error);
+    console.error('Marketplace add to cart failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to update cart' }, 500, request);
   }
 }
