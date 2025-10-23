@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
-    console.error('Convert to employee error:', error);
+    console.error('Convert to employee error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }

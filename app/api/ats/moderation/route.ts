@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: job });
   } catch (error) {
-    console.error('Moderation error:', error);
+    console.error('Moderation error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to moderate job' }, 500, req);
   }
 }

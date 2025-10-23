@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
-    console.error("Public post error:", error);
+    console.error("Public post error:", error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to submit job" }, 500, req);
   }
 }
