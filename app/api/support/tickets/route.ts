@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
     try {
       user = await getSessionUser(req);
     } catch (authError) {
-      console.error('Authentication failed:', authError);
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
     

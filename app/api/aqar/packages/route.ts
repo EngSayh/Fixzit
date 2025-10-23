@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     try {
       user = await getSessionUser(request);
     } catch (authError) {
-      console.error('Authentication failed:', authError);
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     try {
       user = await getSessionUser(request);
     } catch (authError) {
-      console.error('Authentication failed:', authError);
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
