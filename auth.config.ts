@@ -169,11 +169,23 @@ export const authConfig = {
           
           const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
           const encodedEmail = encodeURIComponent(user.email);
+          
+          // Enforce INTERNAL_API_SECRET in production
+          const internalSecret = process.env.INTERNAL_API_SECRET;
+          if (process.env.NODE_ENV === 'production') {
+            if (!internalSecret || internalSecret.trim().length === 0) {
+              throw new Error('FATAL: INTERNAL_API_SECRET is required in production for internal API authentication');
+            }
+            if (internalSecret.length < 32) {
+              throw new Error('FATAL: INTERNAL_API_SECRET must be at least 32 characters in production');
+            }
+          }
+          
           const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
             headers: { 
               // Use dedicated internal API secret instead of reusing NEXTAUTH_SECRET
               // This follows security best practice of not reusing signing secrets for authentication
-              'x-internal-auth': process.env.INTERNAL_API_SECRET || '' 
+              'x-internal-auth': internalSecret || '' 
             },
           });
           if (response.ok) {

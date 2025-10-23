@@ -5,8 +5,19 @@ declare global {
   var _mongooseConnection: typeof mongoose | undefined;
 }
 
+// Production enforcement: no fallback chains or defaults
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
+
+// Enforce production requirements
+if (process.env.NODE_ENV === 'production') {
+  if (!MONGODB_URI || MONGODB_URI.trim().length === 0) {
+    throw new Error('FATAL: MONGODB_URI or DATABASE_URL is required in production');
+  }
+  if (!MONGODB_URI.includes('mongodb+srv://') && !MONGODB_URI.includes('mongodb://')) {
+    throw new Error('FATAL: Invalid MongoDB URI format in production. Must start with mongodb:// or mongodb+srv://');
+  }
+}
 
 /**
  * Validates MongoDB URI is configured
