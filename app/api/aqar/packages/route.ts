@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       if (!payment._id || !(payment._id instanceof mongoose.Types.ObjectId)) {
         throw new Error('Invalid payment ID after save');
       }
-      pkg.paymentId = payment._id;
+      pkg.paymentId = payment._id as mongoose.Types.ObjectId;
       await pkg.save({ session });
       
       // Commit transaction - both package and payment succeed together

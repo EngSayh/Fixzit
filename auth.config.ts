@@ -4,7 +4,9 @@ import Google from 'next-auth/providers/google';
 // Privacy-preserving email hash helper for secure logging (Edge-compatible)
 async function hashEmail(email: string): Promise<string> {
   // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
-  const msgUint8 = new TextEncoder().encode(email);
+  // Add salt to prevent rainbow table attacks
+  const salt = process.env.LOG_HASH_SALT || 'fixzit-default-salt-change-in-production';
+  const msgUint8 = new TextEncoder().encode(email + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');

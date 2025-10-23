@@ -184,9 +184,10 @@ export async function POST(request: NextRequest) {
       // Use MongoDB transaction to atomically check package and create listing
       // This ensures that if listing creation fails, credits are not consumed
       const session = await AqarPackage.startSession();
+      let createdListing;
       
       try {
-        await session.withTransaction(async () => {
+        createdListing = await session.withTransaction(async () => {
           // 1. Find and lock active package atomically (within transaction)
           const activePackage = await AqarPackage.findOne({
             userId: user.id,
@@ -206,17 +207,13 @@ export async function POST(request: NextRequest) {
           const listing = new AqarListing(buildListingData(sanitizedBody, user));
           await listing.save({ session });
           
-          // Transaction will auto-commit if we reach here without throwing
+          // Return listing from within transaction to prevent race condition
           return listing;
         });
         
         // Session already ended by withTransaction, no need to call endSession
         
-        const listing = await AqarListing.findOne({ 
-          listerId: user.id 
-        }).sort({ createdAt: -1 }).limit(1);
-        
-        return NextResponse.json({ listing }, { status: 201 });
+        return NextResponse.json({ listing: createdListing }, { status: 201 });
       } catch (txError) {
         // Transaction auto-aborted by withTransaction, just end the session
         await session.endSession();
