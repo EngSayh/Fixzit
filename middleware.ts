@@ -8,6 +8,16 @@ import { User } from '@/server/models/User';
 // Force Node.js runtime for middleware (required for mongoose/database operations)
 export const runtime = 'nodejs';
 
+// Type for database user query result
+interface DbUserResult {
+  _id: { toString(): string };
+  email: string;
+  professional?: {
+    role?: string;
+  };
+  orgId?: { toString(): string };
+}
+
 // Validate JWT secret at module load - fail fast if missing
 // Require dedicated JWT_SECRET instead of falling back to NEXTAUTH_SECRET to prevent token confusion
 const jwtSecretValue = process.env.JWT_SECRET;
@@ -193,7 +203,7 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
         if (session?.user) {
           // Fetch actual user data from database to get real role and orgId
           await dbConnect();
-          const dbUser = await User.findOne({ email: session.user.email }).select('_id email professional.role orgId').lean() as any;
+          const dbUser = await User.findOne({ email: session.user.email }).select('_id email professional.role orgId').lean() as DbUserResult | null;
           
           user = {
             id: dbUser?._id?.toString() || session.user.id || '',
@@ -260,11 +270,15 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     // Get user info from NextAuth session or JWT token
     let user = null;
     if (session?.user) {
+      // Fetch actual user data from database to get real role and orgId
+      await dbConnect();
+      const dbUser = await User.findOne({ email: session.user.email }).select('_id email professional.role orgId').lean() as DbUserResult | null;
+      
       user = {
-        id: session.user.id || '',
+        id: dbUser?._id?.toString() || session.user.id || '',
         email: session.user.email || '',
-        role: 'USER', // Default role for OAuth users
-        orgId: null
+        role: dbUser?.professional?.role || 'USER',
+        orgId: dbUser?.orgId?.toString() || null
       };
     } else if (authToken) {
       try {
