@@ -8,12 +8,12 @@
 
 ## 🎯 Executive Summary
 
-This PR addresses **all 9 critical unresolved issues** from PR #137 that remained after the initial review, including:
+This PR addresses **6 critical unresolved issues** from PR #137 that remained after the initial review, including:
 
-- 1 critical race condition (data integrity)
-- 3 critical security vulnerabilities
-- 2 type safety issues
-- 3 documentation/configuration issues
+- 2 critical issues (race condition + email hashing security)
+- 1 high-severity security vulnerability (rate limiting bypass)
+- 1 medium-severity type safety issue
+- 2 medium-severity documentation/configuration issues
 
 **Status**: ✅ **ALL ISSUES RESOLVED**
 
@@ -39,7 +39,6 @@ await session.withTransaction(async () => {
 const listing = await AqarListing.findOne({ // ❌ Race condition!
   listerId: user.id 
 }).sort({ createdAt: -1 });
-
 ```
 
 **Fix**:
@@ -53,7 +52,6 @@ createdListing = await session.withTransaction(async () => {
 });
 
 return NextResponse.json({ listing: createdListing }); // ✅ No race
-
 ```
 
 **Impact**: Prevents users from exceeding package limits during concurrent requests.
@@ -74,7 +72,6 @@ async function hashEmail(email: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(email); // No salt!
   // ... hashing ...
 }
-
 ```
 
 **Fix**:
@@ -86,7 +83,6 @@ async function hashEmail(email: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(email + salt);
   // ... hashing ...
 }
-
 ```
 
 **Configuration**:
@@ -108,7 +104,6 @@ async function hashEmail(email: string): Promise<string> {
 ```typescript
 // ❌ BEFORE: First IP in x-forwarded-for (client-controlled)
 const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim();
-
 ```
 
 **Fix**:
@@ -131,7 +126,6 @@ function getClientIp(request: NextRequest): string {
   
   return 'unknown';
 }
-
 ```
 
 **Security Rationale**:
@@ -153,7 +147,6 @@ function getClientIp(request: NextRequest): string {
 ```typescript
 // ❌ BEFORE: Nuclear option that hides all type errors
 pkg.paymentId = payment._id as never;
-
 ```
 
 **Fix**:
@@ -161,7 +154,6 @@ pkg.paymentId = payment._id as never;
 ```typescript
 // ✅ AFTER: Proper type assertion
 pkg.paymentId = payment._id as mongoose.Types.ObjectId;
-
 ```
 
 ---
@@ -183,9 +175,7 @@ pkg.paymentId = payment._id as mongoose.Types.ObjectId;
 
 ```bash
 # === SECURITY - EMAIL HASHING ===
-
 LOG_HASH_SALT=  # Generate: openssl rand -hex 32
-
 ```
 
 **Impact**: Developers now have clear guidance on all required secrets.
@@ -232,7 +222,7 @@ $ npm run build
 | 5 | Missing env docs in README | 🟡 Medium | `README.md` | ✅ Fixed |
 | 6 | Missing env template entry | 🟡 Medium | `env.example` | ✅ Fixed |
 
-**Total Resolved**: 6 code + configuration issues  
+**Total Resolved**: 6 issues (code + configuration)  
 **Critical**: 2  
 **High**: 1  
 **Medium**: 3  
@@ -312,4 +302,4 @@ All critical and high-severity issues identified in PR #137 review have been res
 ---
 
 **Generated**: October 23, 2025  
-**Quality Gates**: TypeScript ✅ | ESLint ✅ | Build ✅  
+**Quality Gates**: TypeScript ✅ | ESLint ✅ | Build ✅

@@ -134,12 +134,6 @@ export async function POST(request: NextRequest) {
           return newUser;
         });
         
-        await session.endSession();
-
-        console.log('New OAuth user provisioned successfully', { 
-          provider: sanitizedProvider
-        });
-
         return NextResponse.json(
           { 
             success: true, 
@@ -149,8 +143,10 @@ export async function POST(request: NextRequest) {
           { status: 200 }
         );
       } catch (txError) {
+        throw txError; // Re-throw to be caught by outer catch block
+      } finally {
+        // Always end session to prevent memory leaks
         await session.endSession();
-        throw txError;
       }
     } else {
       // Update last login and profile image if changed

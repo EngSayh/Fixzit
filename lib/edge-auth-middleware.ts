@@ -19,9 +19,21 @@ export async function authenticateRequest(
   request: NextRequest
 ): Promise<EdgeAuthenticatedUser | AuthResult> {
   try {
-    // Get JWT secret from environment
-    const secret = process.env.JWT_SECRET || 'dev-secret';
-    const secretKey = new TextEncoder().encode(secret);
+    // Get JWT secret from environment (REQUIRED in production)
+    const secret = process.env.JWT_SECRET;
+    
+    // Enforce JWT_SECRET requirement in production
+    if (process.env.NODE_ENV === 'production') {
+      if (!secret || secret.trim().length === 0) {
+        throw new Error('FATAL: JWT_SECRET is required in production environment');
+      }
+      if (secret.length < 32) {
+        throw new Error('FATAL: JWT_SECRET must be at least 32 characters for security. Current length: ' + secret.length);
+      }
+    }
+    
+    const finalSecret = secret || 'dev-only-secret-REPLACE-IN-PROD';
+    const secretKey = new TextEncoder().encode(finalSecret);
 
     // Try to get token from various cookie names
     const token = request.cookies.get("fz_session")?.value ||

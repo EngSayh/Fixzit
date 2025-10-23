@@ -41,8 +41,19 @@ interface DatabaseHandle {
 // MongoDB-only implementation - no mock database
 
 // Environment configuration
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB || 'fixzit';
+
+// Enforce MONGODB_URI requirement in production
+if (process.env.NODE_ENV === 'production') {
+  if (!uri || uri.trim().length === 0) {
+    throw new Error('FATAL: MONGODB_URI is required in production environment. Please configure MongoDB connection.');
+  }
+  // Validate MongoDB connection string format (basic check)
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    throw new Error('FATAL: MONGODB_URI must start with mongodb:// or mongodb+srv://');
+  }
+}
 
 export const isMockDB = false; // Always use real MongoDB
 
@@ -58,8 +69,10 @@ let conn = globalObj._mongoose as Promise<DatabaseHandle>;
 
 if (!conn) {
   // Always attempt real MongoDB connection
-  if (uri) {
-    conn = globalObj._mongoose = mongoose.connect(uri, {
+  const connectionUri = uri || 'mongodb://localhost:27017'; // Dev fallback only
+  
+  if (connectionUri) {
+    conn = globalObj._mongoose = mongoose.connect(connectionUri, {
       dbName,
       autoIndex: true,
       maxPoolSize: 10,
