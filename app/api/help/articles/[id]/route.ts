@@ -37,7 +37,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     try {
       user = await getSessionUser(req);
     } catch (authError) {
-      console.error('Authentication failed:', authError);
+      // Log only sanitized error message to avoid exposing sensitive data
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
     

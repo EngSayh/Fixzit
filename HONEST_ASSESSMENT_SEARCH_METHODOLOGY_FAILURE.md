@@ -3,6 +3,7 @@
 ## 🔴 What Went Wrong - User's Valid Concerns
 
 ### User's Questions (All Valid):
+
 1. **"Why everytime we rerun the search you find new issues?"**
 2. **"What went wrong with the previous search that you missed?"**
 3. **"I see more errors on PR137 and you completely ignore them"**
@@ -39,7 +40,7 @@
 **Files to Check** (I didn't properly analyze):
 - ✅ `.github/workflows/agent-governor.yml` - Has `continue-on-error: true` on ALL steps
 - ✅ `.github/workflows/fixzit-quality-gates.yml` - Complex workflow, didn't check for errors
-- ✅ `.github/workflows/webpack.yml` - Has `continue-on-error: false` 
+- ✅ `.github/workflows/webpack.yml` - Has `continue-on-error: false`
 - ✅ `.github/workflows/guardrails.yml` - Missing proper error handling
 - ❌ Never analyzed workflow logic or failure modes
 - ❌ Never checked if scripts referenced in workflows exist
@@ -50,6 +51,7 @@
 ### 2. PR #137 Actual Comments (I Didn't Read Properly)
 
 **What I Should Have Done**:
+
 ```bash
 gh pr view 137 --comments --json comments
 # Read ALL comments, not just CodeRabbit summary

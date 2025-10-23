@@ -12,14 +12,55 @@
  * - 127.0.0.0/8 (Loopback)
  * - 169.254.0.0/16 (Link-local)
  * - ::1/128 (IPv6 loopback)
- * - fc00::/7 (IPv6 private)
+ * - fe80::/10 (IPv6 link-local)
+ * - fc00::/7 (IPv6 ULA - Unique Local Address)
+ * - ff00::/8 (IPv6 multicast)
+ * - 2001:db8::/32 (IPv6 documentation)
+ * - ::ffff:0:0/96 (IPv4-mapped IPv6)
  */
 export function isPrivateIP(ip: string): boolean {
   if (!ip || ip === 'unknown') return true;
   
-  // IPv6 loopback and private ranges
+  // IPv6 ranges with proper CIDR-aware matching
   if (ip.includes(':')) {
-    return ip === '::1' || ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80:');
+    const normalized = ip.toLowerCase();
+    
+    // ::1/128 - IPv6 loopback
+    if (normalized === '::1') return true;
+    
+    // fe80::/10 - Link-local (fe80 to febf)
+    if (normalized.startsWith('fe80:') || normalized.startsWith('fe9') || 
+        normalized.startsWith('fea') || normalized.startsWith('feb')) {
+      return true;
+    }
+    
+    // fc00::/7 - Unique Local Address (fc00 to fdff)
+    if (normalized.startsWith('fc') || normalized.startsWith('fd')) {
+      return true;
+    }
+    
+    // ff00::/8 - Multicast
+    if (normalized.startsWith('ff')) {
+      return true;
+    }
+    
+    // 2001:db8::/32 - Documentation
+    if (normalized.startsWith('2001:db8:') || normalized.startsWith('2001:0db8:')) {
+      return true;
+    }
+    
+    // ::ffff:0:0/96 - IPv4-mapped IPv6 addresses
+    if (normalized.startsWith('::ffff:')) {
+      // Extract the IPv4 part and check it
+      const ipv4Match = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)/);
+      if (ipv4Match) {
+        return isPrivateIP(ipv4Match[1]); // Recursive check on IPv4 part
+      }
+      return true;
+    }
+    
+    // Treat unparsable or unknown IPv6 as private
+    return false;
   }
   
   // IPv4 private and reserved ranges

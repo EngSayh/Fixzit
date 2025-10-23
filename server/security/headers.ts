@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isPrivateIP, validateTrustedProxyCount } from './ip-utils';
+import { extractClientIP } from '@/lib/ip';
 
 /**
  * Security headers middleware to add common security headers to API responses
@@ -91,49 +91,12 @@ export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10
  * - Ensure your edge proxy appends to X-Forwarded-For
  * - Optional: Set TRUST_X_REAL_IP=true only if infra sanitizes this header
  */
+/**
+ * Get client IP using shared extraction logic
+ * @see lib/ip.ts:extractClientIP for implementation details
+ */
 export function getClientIP(request: NextRequest): string {
-  // 1) Cloudflare's CF-Connecting-IP is most trustworthy
-  const cfIp = request.headers.get('cf-connecting-ip');
-  if (cfIp && cfIp.trim()) return cfIp.trim();
-  
-  // 2) X-Forwarded-For with trusted proxy counting
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded && forwarded.trim()) {
-    const ips = forwarded.split(',').map(ip => ip.trim()).filter(ip => ip);
-    if (ips.length) {
-      const trustedProxyCount = validateTrustedProxyCount();
-      
-      // Skip trusted proxy hops from the right
-      const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
-      const hopSkippedIP = ips[clientIPIndex];
-      
-      // If hop-skipped IP is valid and public, use it
-      if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
-        return hopSkippedIP;
-      }
-      
-      // Fallback: find leftmost public IP
-      for (const ip of ips) {
-        if (!isPrivateIP(ip)) {
-          return ip;
-        }
-      }
-      
-      // Last resort: use hop-skipped IP even if private (better than unknown)
-      if (hopSkippedIP) {
-        return hopSkippedIP;
-      }
-    }
-  }
-  
-  // 3) X-Real-IP only if explicitly trusted
-  if (process.env.TRUST_X_REAL_IP === 'true') {
-    const realIP = request.headers.get('x-real-ip');
-    if (realIP && realIP.trim()) return realIP.trim();
-  }
-  
-  // 4) Fallback
-  return 'unknown';
+  return extractClientIP(request);
 }
 
 /**

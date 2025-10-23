@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { isPrivateIP, validateTrustedProxyCount } from '@/server/security/ip-utils';
+import { extractClientIP } from './ip';
 
 interface RateLimitEntry {
   count: number;
@@ -87,56 +87,11 @@ export function checkRateLimit(
 }
 
 /**
- * Hardened IP extraction with infrastructure-aware trusted proxy counting
- * 
- * SECURITY: Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops,
- * with fallback to leftmost public IP to prevent header spoofing attacks.
- * 
- * This function mirrors server/security/headers.ts getClientIP() for consistency.
+ * Get client IP using shared extraction logic
+ * @see lib/ip.ts:extractClientIP for implementation details
  */
 export function getHardenedClientIp(request: NextRequest): string {
-  // 1) Cloudflare's CF-Connecting-IP is most trustworthy
-  const cfIp = request.headers.get('cf-connecting-ip');
-  if (cfIp && cfIp.trim()) return cfIp.trim();
-  
-  // 2) X-Forwarded-For with trusted proxy counting
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded && forwarded.trim()) {
-    const ips = forwarded.split(',').map(ip => ip.trim()).filter(ip => ip);
-    if (ips.length) {
-      const trustedProxyCount = validateTrustedProxyCount();
-      
-      // Skip trusted proxy hops from the right
-      const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
-      const hopSkippedIP = ips[clientIPIndex];
-      
-      // If hop-skipped IP is valid and public, use it
-      if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
-        return hopSkippedIP;
-      }
-      
-      // Fallback: find leftmost public IP
-      for (const ip of ips) {
-        if (!isPrivateIP(ip)) {
-          return ip;
-        }
-      }
-      
-      // Last resort: use hop-skipped IP even if private
-      if (hopSkippedIP) {
-        return hopSkippedIP;
-      }
-    }
-  }
-  
-  // 3) X-Real-IP only if explicitly trusted
-  if (process.env.TRUST_X_REAL_IP === 'true') {
-    const realIP = request.headers.get('x-real-ip');
-    if (realIP && realIP.trim()) return realIP.trim();
-  }
-  
-  // 4) Fallback
-  return 'unknown';
+  return extractClientIP(request);
 }
 
 /**
