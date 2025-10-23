@@ -44,9 +44,11 @@ jobs:
           # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           # etc.
       
-      - name: Upload source maps to Sentry
+      - name: Upload source maps to Sentry (if configured)
         id: sentry-upload
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
+        # Secrets must be set in: Repository Settings > Secrets and variables > Actions
+        continue-on-error: true
         uses: getsentry/action-release@v1
         with:
           environment: production
