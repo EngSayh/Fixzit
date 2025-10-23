@@ -100,7 +100,8 @@ export function validateProxyConfiguration(): void {
     }
     
   } catch (error) {
-    console.error(`🔴 Proxy configuration error: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`🔴 Proxy configuration error: ${errorMessage}`);
     console.error(`   Set TRUSTED_PROXY_COUNT to the number of trusted proxy hops in your infrastructure.`);
     console.error(`   Examples: 0 (direct), 1 (edge proxy), 2 (load balancer + edge proxy)`);
     throw error; // Fail-fast on invalid configuration

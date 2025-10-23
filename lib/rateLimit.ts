@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { isPrivateIP, validateTrustedProxyCount } from '@/server/security/ip-utils';
 
 interface RateLimitEntry {
   count: number;
