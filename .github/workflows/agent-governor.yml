@@ -29,23 +29,24 @@ jobs:
       
       - name: TypeScript check
         run: npm run typecheck
-        continue-on-error: true
-      
+        # CRITICAL: Removed continue-on-error - typecheck failures must block PRs
+
       - name: Lint check
         run: npm run lint
-        continue-on-error: true
-      
+        # CRITICAL: Removed continue-on-error - lint failures must block PRs
+
       - name: Run tests
         run: npm run test --workspaces --if-present
-        continue-on-error: true
-      
-      - name: Run E2E smoke tests
-        run: npm run e2e:smoke --if-present
-        continue-on-error: true
-      
+        # CRITICAL: Removed continue-on-error - test failures must block PRs
+
+      # E2E smoke tests temporarily disabled - script does not exist
+      # TODO: Create e2e:smoke script or remove from workflow
+      # - name: Run E2E smoke tests
+      #   run: npm run e2e:smoke --if-present
+
       - name: Build project
         run: npm run build
-        continue-on-error: true
+        # CRITICAL: Removed continue-on-error - build failures must block PRs
       
       - name: Upload inventory artifacts
         uses: actions/upload-artifact@v4
