@@ -90,8 +90,8 @@ export default function Reports() {
       <div className="fxz-topbar">
         <div className="fxz-brand">{t.brand}</div>
         <div className="fxz-top-actions">
-          <button className="fxz-btn primary" onClick={() => alert('New Report')}>{t.newReport}</button>
-          <button className="fxz-btn secondary" onClick={toggleLang}>{t.langBtn}</button>
+          <button type="button" className="fxz-btn primary" onClick={() => alert('New Report')}>{t.newReport}</button>
+          <button type="button" className="fxz-btn secondary" onClick={toggleLang}>{t.langBtn}</button>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default function Reports() {
           <div className="fxz-content">
             <h2 style={{margin: '0 0 6px'}}>{t.reports}</h2>
             <div className="fxz-pills" data-tabs="reports">
-              <button className="fxz-pill active" data-tab="dashboard" onClick={() => {
+              <button type="button" className="fxz-pill active" data-tab="dashboard" onClick={() => {
                 document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
                   p.classList.toggle('active', p.getAttribute('data-tab') === 'dashboard');
                 });
@@ -128,7 +128,7 @@ export default function Reports() {
                   p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'dashboard');
                 });
               }}>{t.dashboard}</button>
-              <button className="fxz-pill" data-tab="builder" onClick={() => {
+              <button type="button" className="fxz-pill" data-tab="builder" onClick={() => {
                 document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
                   p.classList.toggle('active', p.getAttribute('data-tab') === 'builder');
                 });
@@ -136,7 +136,7 @@ export default function Reports() {
                   p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'builder');
                 });
               }}>{t.builder}</button>
-              <button className="fxz-pill" data-tab="viewer" onClick={() => {
+              <button type="button" className="fxz-pill" data-tab="viewer" onClick={() => {
                 document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
                   p.classList.toggle('active', p.getAttribute('data-tab') === 'viewer');
                 });

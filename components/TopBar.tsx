@@ -329,7 +329,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       
       {/* Mobile search button */}
       {screenInfo.isMobile && (
-        <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
+        <button type="button" className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
           <Search className="w-4 h-4" />
         </button>
       )}
