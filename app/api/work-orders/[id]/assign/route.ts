@@ -7,6 +7,7 @@ import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const schema = z.object({
   assigneeUserId: z.string().optional(),
@@ -43,7 +44,7 @@ const schema = z.object({
  */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

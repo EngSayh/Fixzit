@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { rateLimit } from '@/server/security/rateLimit';
 import { zodValidationError, rateLimitError, duplicateKeyError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -68,7 +69,7 @@ const signupSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const clientIp = getClientIP(req);
     const rl = rateLimit(`auth-signup:${clientIp}`, 5, 900);
     if (!rl.allowed) {
       return rateLimitError();

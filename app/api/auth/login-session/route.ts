@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const SessionLoginSchema = z.object({
   email: z.string().email().optional(),
@@ -59,7 +60,7 @@ const SessionLoginSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const clientIp = getClientIP(req);
     const rl = rateLimit(`auth-login-session:${clientIp}`, 5, 900);
     if (!rl.allowed) {
       return rateLimitError();

@@ -6,6 +6,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getDatabase } from '@/lib/mongodb-unified';
+import { getClientIP } from '@/server/security/headers';
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
@@ -38,7 +39,7 @@ const isEmailConfigured = () => {
 
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -222,7 +223,7 @@ The Fixzit Enterprise Team
 // GET method to check welcome email status
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

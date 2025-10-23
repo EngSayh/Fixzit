@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const createSchema = z.object({
   subject: z.string().min(4),
@@ -39,7 +40,7 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest){
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest){
 // Admin list with filters
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

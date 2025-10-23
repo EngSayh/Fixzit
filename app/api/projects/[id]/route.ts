@@ -7,6 +7,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
@@ -52,7 +53,7 @@ const updateProjectSchema = z.object({
  */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -111,7 +112,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

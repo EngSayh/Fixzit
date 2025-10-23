@@ -7,6 +7,7 @@ import Redis from 'ioredis';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { getClientIP } from '@/server/security/headers';
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
 /**
@@ -28,7 +29,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
   }
   // Distributed rate limiting using Redis for multi-instance environments
   const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous';
+  const ip = getClientIP(req);
   const rateKey = `incidents:rate:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
   const windowSecs = 30; // 30s window
   const maxRequests = 3;
