@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('🚨 Job application error:', error);
+    console.error('🚨 Job application error:', error instanceof Error ? error.message : 'Unknown error');
 
     // Determine error type and provide appropriate response
     let errorMessage = 'An unexpected error occurred';

@@ -183,7 +183,7 @@ The Fixzit Enterprise Team
     } catch (sendGridError: unknown) {
       // SendGrid failed - log error and track failure
       const error = sendGridError as Error;
-      console.error('❌ SendGrid error:', error);
+      console.error('❌ SendGrid error:', error instanceof Error ? error.message : 'Unknown error');
       
       try {
         const db = await getDatabase();
@@ -279,7 +279,7 @@ export async function GET(req: NextRequest) {
     }, 200, req);
 
   } catch (error) {
-    console.error('Error querying email status:', error);
+    console.error('Error querying email status:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({
       error: 'Failed to query email status',
       email

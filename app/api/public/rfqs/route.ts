@@ -178,7 +178,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error('Public RFQ fetch error:', error);
+    console.error('Public RFQ fetch error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

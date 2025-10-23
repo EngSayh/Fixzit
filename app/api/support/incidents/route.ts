@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     // Fallback: if Redis is unavailable, allow the request but log the error
-    console.error('Rate limiting failed:', error);
+    console.error('Rate limiting failed:', error instanceof Error ? error.message : 'Unknown error');
   } finally {
     await redis.quit();
   }

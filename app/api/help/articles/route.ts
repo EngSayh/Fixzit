@@ -170,7 +170,7 @@ export async function GET(req: NextRequest){
     response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     return response;
   } catch (error) {
-    console.error('Error fetching help articles:', error);
+    console.error('Error fetching help articles:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch help articles' }, 500, req);
   }
 }
