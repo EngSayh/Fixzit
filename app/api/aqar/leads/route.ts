@@ -19,9 +19,7 @@ export const runtime = 'nodejs';
 // POST /api/aqar/leads
 export async function POST(request: NextRequest) {
   try {
-    await connectDb();
-    
-    // Apply rate limiting for public endpoint (10 requests per hour per IP)
+    // Apply rate limiting BEFORE DB connection to shed load early
     const rateLimitResponse = checkRateLimit(request, {
       maxRequests: 10,
       windowMs: 60 * 60 * 1000, // 1 hour
@@ -31,6 +29,8 @@ export async function POST(request: NextRequest) {
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
+    
+    await connectDb();
     
     // Auth is optional for public inquiries
     let userId: string | undefined;

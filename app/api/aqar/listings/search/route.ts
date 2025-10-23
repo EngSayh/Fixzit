@@ -167,7 +167,13 @@ export async function GET(request: NextRequest) {
       case 'featured':
         sortQuery = { featuredLevel: -1, publishedAt: -1 };
         break;
+      case 'relevance':
       default:
+        // TODO: Implement text-based relevance scoring using $text search
+        // For now, fall back to newest first (date-desc)
+        // Options:
+        // 1. Non-geo: Add text index, use $text: { $search: q }, sort by { score: { $meta: 'textScore' } }
+        // 2. Geo: Use Atlas Search with compound (geo + text) since $geoNear must be first stage
         sortQuery = { publishedAt: -1 };
     }
     

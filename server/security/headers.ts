@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isPrivateIP, validateTrustedProxyCount } from './ip-utils';
 
 /**
  * Security headers middleware to add common security headers to API responses
@@ -74,31 +75,58 @@ export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10
 }
 
 /**
- * Hardened IP extraction with security-first priority order
+ * Hardened IP extraction with infrastructure-aware trusted proxy counting
  * 
- * SECURITY: Uses LAST IP from X-Forwarded-For (appended by trusted proxy)
- * to prevent header spoofing attacks where client controls first IP.
+ * SECURITY: Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops,
+ * with fallback to leftmost public IP to prevent header spoofing attacks.
  * 
  * Priority order:
  * 1. CF-Connecting-IP (Cloudflare) - most trustworthy
- * 2. X-Forwarded-For LAST IP - appended by our infrastructure
+ * 2. X-Forwarded-For with hop-skipping based on TRUSTED_PROXY_COUNT
  * 3. X-Real-IP - only if TRUST_X_REAL_IP=true
  * 4. Fallback to 'unknown'
+ * 
+ * Infrastructure Requirements:
+ * - Set TRUSTED_PROXY_COUNT to number of trusted proxy hops (default: 1)
+ * - Ensure your edge proxy appends to X-Forwarded-For
+ * - Optional: Set TRUST_X_REAL_IP=true only if infra sanitizes this header
  */
 export function getClientIP(request: NextRequest): string {
   // 1) Cloudflare's CF-Connecting-IP is most trustworthy
   const cfIp = request.headers.get('cf-connecting-ip');
   if (cfIp && cfIp.trim()) return cfIp.trim();
   
-  // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
-  // SECURITY: Never use [0] as that's client-controlled
+  // 2) X-Forwarded-For with trusted proxy counting
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded && forwarded.trim()) {
     const ips = forwarded.split(',').map(ip => ip.trim()).filter(ip => ip);
-    if (ips.length) return ips[ips.length - 1]; // LAST IP is from our proxy
+    if (ips.length) {
+      const trustedProxyCount = validateTrustedProxyCount();
+      
+      // Skip trusted proxy hops from the right
+      const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
+      const hopSkippedIP = ips[clientIPIndex];
+      
+      // If hop-skipped IP is valid and public, use it
+      if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
+        return hopSkippedIP;
+      }
+      
+      // Fallback: find leftmost public IP
+      for (const ip of ips) {
+        if (!isPrivateIP(ip)) {
+          return ip;
+        }
+      }
+      
+      // Last resort: use hop-skipped IP even if private (better than unknown)
+      if (hopSkippedIP) {
+        return hopSkippedIP;
+      }
+    }
   }
   
-  // 3) X-Real-IP only if explicitly trusted (client-settable unless infra strips it)
+  // 3) X-Real-IP only if explicitly trusted
   if (process.env.TRUST_X_REAL_IP === 'true') {
     const realIP = request.headers.get('x-real-ip');
     if (realIP && realIP.trim()) return realIP.trim();

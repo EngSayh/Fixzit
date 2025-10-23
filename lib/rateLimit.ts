@@ -86,47 +86,55 @@ export function checkRateLimit(
 }
 
 /**
- * Hardened client IP extraction with security-first priority order
+ * Hardened IP extraction with infrastructure-aware trusted proxy counting
  * 
- * SECURITY: Uses LAST IP from X-Forwarded-For (appended by trusted proxy)
- * to prevent header spoofing attacks where client controls first IP.
+ * SECURITY: Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops,
+ * with fallback to leftmost public IP to prevent header spoofing attacks.
  * 
- * Priority order:
- * 1. CF-Connecting-IP (Cloudflare) - most trustworthy
- * 2. X-Forwarded-For LAST IP - appended by our infrastructure
- * 3. X-Real-IP - only if TRUST_X_REAL_IP=true
- * 4. Next.js request.ip (Node runtime)
- * 5. Fallback to 'unknown'
- * 
- * @example
- * ```typescript
- * import { getHardenedClientIp } from '@/lib/rateLimit';
- * const ip = getHardenedClientIp(request);
- * ```
+ * This function mirrors server/security/headers.ts getClientIP() for consistency.
  */
 export function getHardenedClientIp(request: NextRequest): string {
   // 1) Cloudflare's CF-Connecting-IP is most trustworthy
   const cfIp = request.headers.get('cf-connecting-ip');
   if (cfIp && cfIp.trim()) return cfIp.trim();
   
-  // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
-  // SECURITY: Never use [0] as that's client-controlled
-  const fwd = request.headers.get('x-forwarded-for');
-  if (fwd && fwd.trim()) {
-    const ips = fwd.split(',').map(ip => ip.trim()).filter(ip => ip);
-    if (ips.length) return ips[ips.length - 1]; // LAST IP is from our proxy
+  // 2) X-Forwarded-For with trusted proxy counting
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded && forwarded.trim()) {
+    const ips = forwarded.split(',').map(ip => ip.trim()).filter(ip => ip);
+    if (ips.length) {
+      const trustedProxyCount = validateTrustedProxyCount();
+      
+      // Skip trusted proxy hops from the right
+      const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
+      const hopSkippedIP = ips[clientIPIndex];
+      
+      // If hop-skipped IP is valid and public, use it
+      if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
+        return hopSkippedIP;
+      }
+      
+      // Fallback: find leftmost public IP
+      for (const ip of ips) {
+        if (!isPrivateIP(ip)) {
+          return ip;
+        }
+      }
+      
+      // Last resort: use hop-skipped IP even if private
+      if (hopSkippedIP) {
+        return hopSkippedIP;
+      }
+    }
   }
   
-  // 3) x-real-ip only if explicitly trusted (client-settable unless infra strips it)
+  // 3) X-Real-IP only if explicitly trusted
   if (process.env.TRUST_X_REAL_IP === 'true') {
-    const realIp = request.headers.get('x-real-ip');
-    if (realIp && realIp.trim()) return realIp.trim();
+    const realIP = request.headers.get('x-real-ip');
+    if (realIP && realIP.trim()) return realIP.trim();
   }
   
-  // 4) Next.js may expose request.ip in Node runtime
-  const anyReq = request as unknown as { ip?: string };
-  if (anyReq?.ip && anyReq.ip.trim()) return anyReq.ip.trim();
-  
+  // 4) Fallback
   return 'unknown';
 }
 

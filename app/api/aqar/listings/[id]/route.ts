@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    // Increment view count (async, don't await) - attach error logging
+    // Increment view count (async, don't await) - attach error logging with stack trace
     AqarListing.findByIdAndUpdate(
       id, 
       { 
@@ -43,7 +43,13 @@ export async function GET(
         $set: { 'analytics.lastViewedAt': new Date() } 
       }
     ).exec().catch((err) => {
-      console.error('Failed to increment listing views analytics', { listingId: id, message: err instanceof Error ? err.message : String(err) });
+      console.error('Failed to increment listing views analytics', { 
+        listingId: id, 
+        error: { 
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined
+        } 
+      });
     });
     
     return NextResponse.json({ listing });
