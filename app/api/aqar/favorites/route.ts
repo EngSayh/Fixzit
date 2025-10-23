@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const targetType = searchParams.get('targetType'); // LISTING|PROJECT
     
+    // Pagination with validation
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const skip = (page - 1) * limit;
+    
     const query: Record<string, unknown> = {
       userId: user.id,
       orgId: tenantOrgId,
@@ -48,9 +53,15 @@ export async function GET(request: NextRequest) {
       query.targetType = targetType;
     }
     
-    const favorites = await AqarFavorite.find(query)
-      .sort({ createdAt: -1 })
-      .lean();
+    // Fetch favorites with pagination and total count in parallel
+    const [favorites, total] = await Promise.all([
+      AqarFavorite.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      AqarFavorite.countDocuments(query)
+    ]);
     
     // Batch-fetch targets to eliminate N+1 queries
     // Step 1: Collect all targetIds by targetType
@@ -99,7 +110,15 @@ export async function GET(request: NextRequest) {
       return fav;
     });
     
-    return NextResponse.json({ favorites: favoritesWithTargets });
+    return NextResponse.json({
+      favorites: favoritesWithTargets,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching favorites:', error);
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
