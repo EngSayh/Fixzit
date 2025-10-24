@@ -146,14 +146,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex flex-col">
       {/* Left Panel - Branding */}
       <div className={`hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className="max-w-md text-center">
-          <div className="mb-8">
+            <div className="mb-8">
             <div className="flex justify-center mb-6">
               <div className="bg-white p-6 rounded-2xl shadow-lg">
-                <div className="w-20 h-20 bg-[#0061A8] rounded-xl flex items-center justify-center text-white font-bold text-2xl">
+                <div className="w-20 h-20 bg-brand-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl">
                   F
                 </div>
               </div>
@@ -224,7 +224,7 @@ export default function LoginPage() {
                 onClick={() => setLoginMethod('personal')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                   loginMethod === 'personal'
-                    ? 'bg-[#0061A8] text-white'
+                    ? 'bg-brand-500 text-white'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -234,7 +234,7 @@ export default function LoginPage() {
                 onClick={() => setLoginMethod('corporate')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                   loginMethod === 'corporate'
-                    ? 'bg-[#0061A8] text-white'
+                    ? 'bg-brand-500 text-white'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -244,7 +244,7 @@ export default function LoginPage() {
                 onClick={() => setLoginMethod('sso')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                   loginMethod === 'sso'
-                    ? 'bg-[#0061A8] text-white'
+                    ? 'bg-brand-500 text-white'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -366,7 +366,7 @@ export default function LoginPage() {
                     id="rememberMe"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
+                    className="w-4 h-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
                   />
                   <label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer select-none">
                     {t('login.rememberMe', 'Remember me for 30 days')}
@@ -375,7 +375,7 @@ export default function LoginPage() {
 
                 {/* Forgot Password */}
                 <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
-                  <Link href="/forgot-password" className="text-sm text-[#0061A8] hover:underline">
+                  <Link href="/forgot-password" className="text-sm text-brand-500 hover:text-brand-600 transition-colors">
                     {t('common.forgotPassword', 'Forgot Password?')}
                   </Link>
                 </div>
@@ -392,7 +392,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loading || (!email && loginMethod === 'personal') || (!employeeNumber && loginMethod === 'corporate') || !password}
-                  className="w-full h-12 bg-[#0061A8] hover:bg-[#0061A8]/90 text-white font-semibold"
+                  className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors"
                 >
                   {loading ? (
                     <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -429,13 +429,13 @@ export default function LoginPage() {
 
                 <button
                   onClick={() => setLoginMethod('personal')}
-                  className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
+                  className="w-full py-2 text-brand-500 hover:text-brand-600 font-medium transition-colors"
                 >
                   {t('login.usePersonalEmail', 'Use Personal Email')}
                 </button>
                 <button
                   onClick={() => setLoginMethod('corporate')}
-                  className="w-full py-2 text-[#0061A8] hover:text-[#0061A8]/80 font-medium"
+                  className="w-full py-2 text-brand-500 hover:text-brand-600 font-medium transition-colors"
                 >
                   {t('login.useCorporateAccount', 'Use Corporate Account')}
                 </button>
@@ -507,7 +507,7 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 {t('login.noAccount', "Don't have an account?")}{' '}
-                <Link href="/signup" className="text-[#0061A8] hover:underline font-medium">
+                <Link href="/signup" className="text-brand-500 hover:text-brand-600 font-medium transition-colors">
                   {t('login.createAccount', 'Sign up here')}
                 </Link>
               </p>
