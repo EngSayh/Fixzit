@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/hooks/useScreenSize';
+import { useTranslation } from './TranslationContext';
 
 
 interface ResponsiveContextType {
@@ -16,6 +17,7 @@ const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undef
 
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
+  const { isRTL } = useTranslation();
 
   const responsiveClasses = getResponsiveClasses(screenInfo);
 
@@ -23,8 +25,7 @@ export function ResponsiveProvider({ children }: { children: ReactNode }) {
     screenInfo,
     isReady,
     responsiveClasses,
-    // isRTL will be available when used in components with useResponsive hook
-    isRTL: false, // This will be overridden in the useResponsive hook
+    isRTL, // Get RTL status from TranslationContext
     updateScreenInfo
   };
 
