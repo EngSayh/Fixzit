@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Phone, MessageSquare, MapPin, Award, TrendingUp, CheckCircle } from 'lucide-react';
+import { Star, Phone, MessageSquare, Award, TrendingUp, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export interface AgentCardProps {
@@ -44,7 +44,7 @@ export interface AgentCardProps {
 }
 
 export default function AgentCard({ agent, compact = false }: { agent: AgentCardProps; compact?: boolean }) {
-  const [showContact, setShowContact] = useState(false);
+  const [_showContact, _setShowContact] = useState(false);
 
   const fullName = agent.displayName || `${agent.firstName} ${agent.lastName}`;
 
@@ -86,7 +86,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
           ) : (
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FFB400] to-[#FF8C00] flex items-center justify-center">
               <span className="text-white font-bold text-lg">
-                {agent.firstName[0]}{agent.lastName[0]}
+                {agent.firstName?.trim()?.[0] ?? ''}{agent.lastName?.trim()?.[0] ?? ''}
               </span>
             </div>
           )}
@@ -109,7 +109,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-            <span>{agent.statistics.averageRating.toFixed(1)}</span>
+            <span>{typeof agent.statistics?.averageRating === 'number' && !isNaN(agent.statistics.averageRating) ? agent.statistics.averageRating.toFixed(1) : 'N/A'}</span>
             <span className="text-gray-400">•</span>
             <span>{agent.statistics.activeListings} listings</span>
           </div>
@@ -158,7 +158,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
               ) : (
                 <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/20 flex items-center justify-center">
                   <span className="text-white font-bold text-2xl">
-                    {agent.firstName[0]}{agent.lastName[0]}
+                    {agent.firstName?.trim()?.[0] ?? ''}{agent.lastName?.trim()?.[0] ?? ''}
                   </span>
                 </div>
               )}
@@ -217,7 +217,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center justify-center gap-1">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <p className="text-2xl font-bold text-gray-900">{agent.statistics.averageRating.toFixed(1)}</p>
+              <p className="text-2xl font-bold text-gray-900">{typeof agent.statistics?.averageRating === 'number' && !isNaN(agent.statistics.averageRating) ? agent.statistics.averageRating.toFixed(1) : 'N/A'}</p>
             </div>
             <p className="text-xs text-gray-600">{agent.statistics.totalReviews} Reviews</p>
           </div>

@@ -8,6 +8,7 @@ import { getPresignedGetUrl, buildResumeKey } from '@/lib/storage/s3';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
@@ -31,7 +32,7 @@ const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
  */
 export async function GET(req: NextRequest, props: { params: Promise<{ file: string }> }) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ file: str
 
 export async function POST(req: NextRequest, props: { params: Promise<{ file: string }> }) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

@@ -179,8 +179,8 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
 
         {/* Property Type */}
         <p className="text-gray-500 text-xs mb-3">
-          {property.propertyType.replace('_', ' ')}
-          {property.features.furnished && ` • ${property.features.furnished.replace('_', ' ')}`}
+          {property.propertyType.replace(/_/g, ' ')}
+          {property.features.furnished && ` • ${property.features.furnished.replace(/_/g, ' ')}`}
         </p>
 
         {/* Features */}

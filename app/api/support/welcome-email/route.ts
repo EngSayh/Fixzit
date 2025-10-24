@@ -6,6 +6,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getDatabase } from '@/lib/mongodb-unified';
+import { getClientIP } from '@/server/security/headers';
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
@@ -38,7 +39,7 @@ const isEmailConfigured = () => {
 
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -182,7 +183,7 @@ The Fixzit Enterprise Team
     } catch (sendGridError: unknown) {
       // SendGrid failed - log error and track failure
       const error = sendGridError as Error;
-      console.error('❌ SendGrid error:', error);
+      console.error('❌ SendGrid error:', error instanceof Error ? error.message : 'Unknown error');
       
       try {
         const db = await getDatabase();
@@ -210,7 +211,7 @@ The Fixzit Enterprise Team
 
   } catch (error) {
     const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] Welcome email error:`, error);
+    console.error(`[${correlationId}] Welcome email error:`, error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse(
       { error: 'Failed to send welcome email', correlationId },
       500,
@@ -222,7 +223,7 @@ The Fixzit Enterprise Team
 // GET method to check welcome email status
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -278,7 +279,7 @@ export async function GET(req: NextRequest) {
     }, 200, req);
 
   } catch (error) {
-    console.error('Error querying email status:', error);
+    console.error('Error querying email status:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({
       error: 'Failed to query email status',
       email

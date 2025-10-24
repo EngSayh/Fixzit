@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { extractClientIP } from './ip';
 
 interface RateLimitEntry {
   count: number;
@@ -41,12 +42,8 @@ export function checkRateLimit(
   request: NextRequest,
   config: RateLimitConfig
 ): NextResponse | null {
-  // Get client IP from headers (Vercel, Cloudflare, or direct)
-  const ip = 
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
-    request.headers.get('cf-connecting-ip') ||
-    'unknown';
+  // Get client IP using hardened extraction method
+  const ip = getHardenedClientIp(request);
 
   const key = `ratelimit:${ip}`;
   const now = Date.now();
@@ -90,16 +87,21 @@ export function checkRateLimit(
 }
 
 /**
+ * Get client IP using shared extraction logic
+ * @see lib/ip.ts:extractClientIP for implementation details
+ */
+export function getHardenedClientIp(request: NextRequest): string {
+  return extractClientIP(request);
+}
+
+/**
  * Get rate limit info for response headers
  */
 export function getRateLimitHeaders(
   request: NextRequest,
   config: RateLimitConfig
 ): Record<string, string> {
-  const ip = 
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown';
+  const ip = getHardenedClientIp(request);
 
   const key = `ratelimit:${ip}`;
   const entry = rateLimitStore.get(key);

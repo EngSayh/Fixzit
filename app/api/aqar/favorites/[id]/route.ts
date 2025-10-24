@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite } from '@/models/aqar';
+import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import mongoose from 'mongoose';
@@ -20,9 +20,17 @@ export async function DELETE(
   try {
     await connectDb();
     
-    const user = await getSessionUser(request);
-    
     const { id } = await params;
+    
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      // Log only sanitized error message to avoid exposing sensitive data
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid favorite ID' }, { status: 400 });
@@ -39,30 +47,55 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Decrement favorites count (async with error logging)
-    if (favorite.targetType === 'LISTING') {
-      const { AqarListing } = await import('@/models/aqar');
-      AqarListing.findByIdAndUpdate(favorite.targetId, { 
-        $inc: { 'analytics.favorites': -1 },
-        $max: { 'analytics.favorites': 0 } // Prevent negative counts
-      }).exec().catch((err: Error) => {
-        console.error('Failed to update listing favorites count:', err);
-      });
-    } else if (favorite.targetType === 'PROJECT') {
-      const { AqarProject } = await import('@/models/aqar');
-      AqarProject.findByIdAndUpdate(favorite.targetId, { 
-        $inc: { 'analytics.favorites': -1 },
-        $max: { 'analytics.favorites': 0 } // Prevent negative counts
-      }).exec().catch((err: Error) => {
-        console.error('Failed to update project favorites count:', err);
-      });
-    }
-    
+    // Delete favorite first
     await favorite.deleteOne();
+    
+    // Decrement analytics after successful deletion (with error handling)
+    if (favorite.targetType === 'LISTING') {
+      try {
+        await AqarListing.findByIdAndUpdate(
+          favorite.targetId, 
+          [
+            { 
+              $set: { 
+                'analytics.favorites': { $max: [{ $subtract: ['$analytics.favorites', 1] }, 0] },
+                'analytics.lastUpdatedAt': new Date() 
+              } 
+            }
+          ]
+        );
+      } catch (analyticsError) {
+        // Log analytics error but don't fail the request (deletion already succeeded)
+        console.error('Failed to decrement listing favorites analytics', {
+          targetId: favorite.targetId.toString(),
+          message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+        });
+      }
+    } else if (favorite.targetType === 'PROJECT') {
+      try {
+        await AqarProject.findByIdAndUpdate(
+          favorite.targetId, 
+          [
+            { 
+              $set: { 
+                'analytics.favorites': { $max: [{ $subtract: ['$analytics.favorites', 1] }, 0] },
+                'analytics.lastUpdatedAt': new Date() 
+              } 
+            }
+          ]
+        );
+      } catch (analyticsError) {
+        // Log analytics error but don't fail the request (deletion already succeeded)
+        console.error('Failed to decrement project favorites analytics', {
+          targetId: favorite.targetId.toString(),
+          message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+        });
+      }
+    }
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting favorite:', error);
+    console.error('Error deleting favorite:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to delete favorite' }, { status: 500 });
   }
 }

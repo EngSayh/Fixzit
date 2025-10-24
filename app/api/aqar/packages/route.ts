@@ -10,7 +10,6 @@ import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
 import { AqarPackage, AqarPayment, PackageType } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { withCorrelation, ok, badRequest, serverError } from '@/lib/api/http';
 
 
 export const runtime = 'nodejs';
@@ -20,9 +19,12 @@ export async function GET(request: NextRequest) {
   try {
     await connectDb();
     
-    // Handle auth failures locally (return 401 instead of 500)
-    const user = await getSessionUser(request).catch(() => null);
-    if (!user) {
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -42,88 +44,125 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ packages });
   } catch (error) {
-    console.error('Error fetching packages:', error);
-    return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
+    // Generate correlation ID for tracking
+    const correlationId = `pkg_get_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    // Sanitized error logging - no PII, no sensitive data
+    console.error('Error fetching packages', {
+      correlationId,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+    });
+    
+    return NextResponse.json({ error: 'Failed to fetch packages', correlationId }, { status: 500 });
   }
 }
 
 // POST /api/aqar/packages
 export async function POST(request: NextRequest) {
-  return withCorrelation(async (correlationId) => {
+  try {
+    await connectDb();
+    
+    // Handle authentication separately to return 401 instead of 500
+    let user;
     try {
-      await connectDb();
-      
-      const user = await getSessionUser(request);
-      
-      const body = await request.json().catch(() => null);
-      if (!body || typeof body !== 'object') {
-        return badRequest('Invalid JSON', { correlationId });
-      }
-      
-      const { type } = body;
-      
-      if (!Object.values(PackageType).includes(type as PackageType)) {
-        return badRequest('Invalid package type. Must be STARTER, STANDARD, or PREMIUM', { correlationId });
-      }
-      
-      // Get pricing using properly typed model
-      const pricing = AqarPackage.getPricing(type as PackageType);
-      
-      // Use atomic transaction for multi-document operation
-      const session = await mongoose.startSession();
-      let pkg: InstanceType<typeof AqarPackage> | undefined;
-      let payment: InstanceType<typeof AqarPayment> | undefined;
-      
-      await session.withTransaction(async () => {
-        // Create package
-        pkg = new AqarPackage({
-          userId: user.id,
-          orgId: user.orgId || user.id,
-          type,
-          listingsAllowed: pricing.listings,
-          validityDays: pricing.days,
-          price: pricing.price,
-        });
-        await pkg.save({ session });
-        
-        // Create payment
-        payment = new AqarPayment({
-          userId: user.id,
-          orgId: user.orgId || user.id,
-          type: 'PACKAGE',
-          amount: pricing.price,
-          currency: 'SAR',
-          relatedId: pkg._id,
-          relatedModel: 'AqarPackage',
-          status: 'PENDING',
-        });
-        await payment.save({ session });
-        
-        // Link payment to package
-        pkg.paymentId = payment._id as never;
-        await pkg.save({ session });
+      user = await getSessionUser(request);
+    } catch (authError) {
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Parse JSON with error handling
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch (_parseError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
+    
+    const { type } = body; // STARTER|STANDARD|PREMIUM
+    
+    if (!Object.values(PackageType).includes(type as PackageType)) {
+      return NextResponse.json(
+        { error: 'Invalid package type. Must be STARTER, STANDARD, or PREMIUM' },
+        { status: 400 }
+      );
+    }
+    
+    // Get pricing (model is now properly typed)
+    const pricing = AqarPackage.getPricing(type as PackageType);
+    
+    // Use Mongoose transaction for atomicity
+    // If payment creation fails, package creation is rolled back
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      // Create package
+      const pkg = new AqarPackage({
+        userId: user.id,
+        orgId: user.orgId || user.id,
+        type,
+        listingsAllowed: pricing.listings,
+        validityDays: pricing.days,
+        price: pricing.price,
       });
       
-      session.endSession();
+      await pkg.save({ session });
       
-      if (!pkg || !payment) {
-        throw new Error('Transaction failed to create package or payment');
+      // Create payment
+      const payment = new AqarPayment({
+        userId: user.id,
+        orgId: user.orgId || user.id,
+        type: 'PACKAGE',
+        amount: pricing.price,
+        currency: 'SAR',
+        relatedId: pkg._id,
+        relatedModel: 'AqarPackage',
+        status: 'PENDING',
+      });
+      
+      await payment.save({ session });
+      
+      // Update package with payment ID (with runtime validation)
+      if (!payment._id || !(payment._id instanceof mongoose.Types.ObjectId)) {
+        throw new Error('Invalid payment ID after save');
       }
+      pkg.paymentId = payment._id as mongoose.Types.ObjectId;
+      await pkg.save({ session });
+      
+      // Commit transaction - both package and payment succeed together
+      await session.commitTransaction();
       
       // TODO: Redirect to payment gateway
       
-      return ok(
+      return NextResponse.json(
         {
-          package: pkg.toObject?.() ?? pkg,
-          payment: payment.toObject?.() ?? payment,
+          package: pkg,
+          payment,
           redirectUrl: `/aqar/payments/${payment._id}`,
         },
-        { correlationId },
-        201
+        { status: 201 }
       );
-    } catch (e: unknown) {
-      console.error('PACKAGES_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
-      return serverError('Unexpected error', { correlationId });
+    } catch (transactionError) {
+      // Rollback on any error
+      await session.abortTransaction();
+      throw transactionError; // Re-throw to outer catch
+    } finally {
+      session.endSession();
     }
-  });
+  } catch (error) {
+    // Sanitized error logging - correlation ID, no PII
+    const errorId = `pkg_purchase_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.error('Error purchasing package', {
+      errorId,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      // DO NOT log: userId, payment details, connection strings, stack traces
+    });
+    return NextResponse.json({ error: 'Failed to purchase package', errorId }, { status: 500 });
+  }
 }

@@ -6,6 +6,7 @@ import { getUserFromToken } from '@/lib/auth';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { getClientIP } from '@/server/security/headers';
 /**
  * @openapi
  * /api/ats/jobs:
@@ -25,7 +26,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
  */
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
       pagination: { page, limit, total, pages: Math.ceil(total / limit) }
     });
   } catch (error) {
-    console.error('Jobs list error:', error);
+    console.error('Jobs list error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to fetch jobs' },
       { status: 500 }
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
-    console.error('Job creation error:', error);
+    console.error('Job creation error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to create job' },
       { status: 500 }

@@ -46,6 +46,9 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
+          MONGODB_URI: mongodb://localhost:27017/fixzit-ci-test
+          NEXTAUTH_SECRET: ci-test-secret-key-min-32-chars-long
+          NEXTAUTH_URL: http://localhost:3000
           
       - name: Upload Build Artifacts
         if: success()

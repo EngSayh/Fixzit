@@ -384,7 +384,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           <p className="text-xs opacity-80">{t.subtitle(profile?.session.name, profile?.session.role)}</p>
         </div>
         {!embedded && (
-          <button onClick={() => setIsOpen(false)} className="rounded-full p-1 hover:bg-white/10" aria-label={t.close}>
+          <button type="button" onClick={() => setIsOpen(false)} className="rounded-full p-1 hover:bg-white/10" aria-label={t.close}>
             <X className="h-4 w-4" />
           </button>
         )}
@@ -458,10 +458,10 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
                 <div className="mb-2 text-xs font-semibold text-gray-600">{quickActions.find(a => a.name === activeTool)?.label}</div>
                 {renderForm(activeTool)}
                 <div className="mt-3 flex items-center justify-end gap-2">
-                  <button onClick={() => { resetForm(activeTool); setActiveTool(null); }} className="rounded-full px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100">
+                  <button type="button" onClick={() => { resetForm(activeTool); setActiveTool(null); }} className="rounded-full px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100">
                     {t.cancel}
                   </button>
-                  <button onClick={() => submitTool(activeTool)} className="rounded-full bg-[#0061A8] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004f88]">
+                  <button type="button" onClick={() => submitTool(activeTool)} className="rounded-full bg-[#0061A8] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004f88]">
                     {t.run}
                   </button>
                 </div>

@@ -192,8 +192,8 @@ const ListingSchema = new Schema<IListing>(
     source: { type: String, enum: Object.values(ListerType), required: true, index: true },
     
     compliance: {
-      falLicenseNo: { type: String, sparse: true },
-      adPermitNo: { type: String, sparse: true },
+      falLicenseNo: { type: String },
+      adPermitNo: { type: String },
       brokerageContractId: { type: String },
       verifiedOwner: { type: Boolean, default: false },
     },

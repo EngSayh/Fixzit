@@ -45,17 +45,18 @@ curl http://localhost:3000/api/auth/me
 
 ## What I've Fixed vs What You're Seeing
 
-### ✅ What's Fixed in the Code:
+### ✅ What's Fixed in the Code
 
 1. **Middleware** - No longer auto-redirects from `/` to dashboard
 2. **Auth Check** - `/api/auth/me` returns error when no cookie
 3. **ClientLayout** - Sets role to 'guest' when no auth
 
-### ⚠️ What You're Experiencing:
+### ⚠️ What You're Experiencing
 
 **Old cookie still in your browser!**
 
 When you:
+
 - Visit `localhost:3000/`
 - Browser automatically sends old `fixzit_auth` cookie
 - Server validates it and shows you as logged in
@@ -66,10 +67,12 @@ When you:
 ## The Real Test
 
 **Before clearing cookies:**
+
 - Visit `localhost:3000/` → Shows dashboard (because you have valid cookie)
 - This is CORRECT behavior for authenticated users
 
 **After clearing cookies:**
+
 - Visit `localhost:3000/` → Shows landing page (no cookie = guest)
 - This proves the fix is working
 
@@ -78,11 +81,13 @@ When you:
 ## ⚠️ IMPORTANT
 
 **The "auto-login" you're seeing is actually:**
+
 - Your browser sending a valid authentication cookie
 - The system correctly recognizing you're authenticated
 - **This is how web authentication works!**
 
 **The fix I made:**
+
 - Prevents AUTOMATIC REDIRECT from `/` to dashboard
 - But if you have a valid cookie, the system correctly shows you're logged in
 - To appear "not logged in", you must:
@@ -97,17 +102,25 @@ When you:
 Run this to verify the fix:
 
 \`\`\`bash
+
 # 1. Check middleware doesn't redirect
-curl -I http://localhost:3000/
+
+curl -I <http://localhost:3000/>
+
 # Should return: HTTP/1.1 200 OK
 
 # 2. Check auth without cookie
-curl http://localhost:3000/api/auth/me
+
+curl <http://localhost:3000/api/auth/me>
+
 # Should return: {"error":"Missing authentication token"}
 
 # 3. View middleware fix
+
 grep -A 3 "Do NOT auto-redirect" middleware.ts
-# Should show: return NextResponse.next();
+
+# Should show: return NextResponse.next()
+
 \`\`\`
 
 **All 3 tests pass! ✅**
@@ -119,10 +132,13 @@ The fix IS working. You just have a persistent cookie in your browser.
 ## To Completely Reset
 
 \`\`\`bash
+
 # Clear browser cookies for localhost:3000
-# Then visit: http://localhost:3000/
+
+# Then visit: <http://localhost:3000/>
+
 # You'll see the landing page as a guest
+
 \`\`\`
 
 **That's the proof the fix works!**
-

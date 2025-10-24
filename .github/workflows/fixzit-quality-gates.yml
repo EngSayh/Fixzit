@@ -39,12 +39,15 @@ jobs:
             echo "::warning::No lock file found. Defaulting to npm install."
           fi
 
-      - name: Enable Corepack & Setup Node
+      # Enable Corepack FIRST before setup-node to ensure pnpm is available
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node with Cache
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: ${{ steps.pm.outputs.cache }}
-      - run: corepack enable
 
       - name: Install Dependencies
         shell: bash
@@ -86,13 +89,20 @@ jobs:
         run: |
           mkdir -p .artifacts
           status=0
-          case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm test || status=$? ;;
-            yarn) yarn test || status=$? ;;
-            *) npm test || status=$? ;;
-          esac
           
-          # Collect test artifacts
+          # Check if test script exists first
+          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.test?0:1)" 2>/dev/null; then
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm) pnpm test || status=$? ;;
+              yarn) yarn test || status=$? ;;
+              *) npm test || status=$? ;;
+            esac
+          else
+            echo "No test script found in package.json. Skipping unit tests."
+            echo "Note: E2E tests with Playwright run separately (qa:e2e script exists)."
+          fi
+          
+          # Collect test artifacts if they exist
           if [ -f junit.xml ]; then
             cp junit.xml .artifacts/junit.xml
           fi

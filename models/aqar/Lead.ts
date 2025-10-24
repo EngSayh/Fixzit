@@ -110,7 +110,7 @@ const LeadSchema = new Schema<ILead>(
     
     inquirerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     inquirerName: { type: String, required: true, maxlength: 200 },
-    inquirerPhone: { type: String, required: true, index: true },
+    inquirerPhone: { type: String, required: true },
     inquirerEmail: { type: String, maxlength: 200 },
     inquirerNationalId: { type: String },
     
