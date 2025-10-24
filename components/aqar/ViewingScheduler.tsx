@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Clock, Phone, Video, MapPin, CheckCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Phone, Video, MapPin, CheckCircle } from 'lucide-react';
 
 export interface ViewingSchedulerProps {
   propertyId: string;
@@ -42,7 +42,7 @@ export default function ViewingScheduler({
   const [viewingType, setViewingType] = useState<'IN_PERSON' | 'VIRTUAL' | 'VIDEO_CALL'>('IN_PERSON');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [alternativeDates, setAlternativeDates] = useState<Date[]>([]);
+  // const [alternativeDates, setAlternativeDates] = useState<Date[]>([]); // Reserved for future multi-date selection
   const [participants, setParticipants] = useState([{ name: '', phone: '', relationship: 'Primary' }]);
   const [specialRequests, setSpecialRequests] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,7 +66,7 @@ export default function ViewingScheduler({
   const afternoonSlots = ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
   const eveningSlots = ['17:00', '17:30', '18:00', '18:30', '19:00'];
 
-  const allTimeSlots = [...morningSlots, ...afternoonSlots, ...eveningSlots];
+  // const allTimeSlots = [...morningSlots, ...afternoonSlots, ...eveningSlots]; // Available if needed for future features
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-SA', {
