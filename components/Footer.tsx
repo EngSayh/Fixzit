@@ -42,15 +42,15 @@ export default function Footer() {
           <div>
             <div className="font-semibold mb-2">{t('footer.company', 'Company')}</div>
             <ul className="space-y-1 opacity-80">
-              <li><Link href="/cms/about" className="hover:underline">{t('footer.about', 'About')}</Link></li>
+              <li><Link href="/about" className="hover:underline">{t('footer.about', 'About')}</Link></li>
               <li><Link href="/careers" className="hover:underline">{t('footer.careers', 'Careers')}</Link></li>
             </ul>
           </div>
           <div>
             <div className="font-semibold mb-2">{t('footer.legal', 'Legal')}</div>
             <ul className="space-y-1 opacity-80">
-              <li><Link href="/cms/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link></li>
-              <li><Link href="/cms/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link></li>
+              <li><Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link></li>
+              <li><Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link></li>
             </ul>
           </div>
           <div>
@@ -72,8 +72,8 @@ export default function Footer() {
   <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
-            <Link href="/cms/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
-            <Link href="/cms/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
+            <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
+            <Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
             <Link href="/support" className="hover:underline">{t('footer.support', 'Support')}</Link>
           </div>
         </div>
