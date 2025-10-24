@@ -89,12 +89,12 @@ export default function ProfilePage() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-center">
-              <div className="w-20 h-20 bg-[#0061A8] rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User size={32} className="text-white" />
               </div>
               <h2 className="text-xl font-semibold text-gray-900">{user.name}</h2>
               <p className="text-gray-600">{user.email}</p>
-              <span className="inline-block mt-2 px-3 py-1 bg-[#00A859] text-white text-sm rounded-full">
+              <span className="inline-block mt-2 px-3 py-1 bg-success text-white text-sm rounded-full">
                 {user.role}
               </span>
             </div>
@@ -121,7 +121,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('account')}
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'account'
-                      ? 'text-[#0061A8] border-b-2 border-[#0061A8]'
+                      ? 'text-brand-500 border-b-2 border-brand-500'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -131,7 +131,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('notifications')}
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'notifications'
-                      ? 'text-[#0061A8] border-b-2 border-[#0061A8]'
+                      ? 'text-brand-500 border-b-2 border-brand-500'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -141,7 +141,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('security')}
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'security'
-                      ? 'text-[#0061A8] border-b-2 border-[#0061A8]'
+                      ? 'text-brand-500 border-b-2 border-brand-500'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                       type="text"
                       value={user.name}
                       onChange={(e) => setUser({ ...user, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
 
@@ -174,7 +174,7 @@ export default function ProfilePage() {
                       type="email"
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
 
@@ -187,7 +187,7 @@ export default function ProfilePage() {
                       value={user.phone}
                       onChange={(e) => setUser({ ...user, phone: e.target.value })}
                       placeholder="+966 50 123 4567"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
 
@@ -206,7 +206,7 @@ export default function ProfilePage() {
                     </button>
                     <button
                       onClick={handleSaveAccount}
-                      className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90"
+                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
                     >
                       {t('profile.account.save', 'Save Changes')}
                     </button>
@@ -229,7 +229,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             emailNotifications: e.target.checked
                           })}
-                          className="w-4 h-4 text-[#0061A8] focus:ring-[#0061A8] rounded"
+                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -241,7 +241,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             pushNotifications: e.target.checked
                           })}
-                          className="w-4 h-4 text-[#0061A8] focus:ring-[#0061A8] rounded"
+                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             smsNotifications: e.target.checked
                           })}
-                          className="w-4 h-4 text-[#0061A8] focus:ring-[#0061A8] rounded"
+                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
                     </div>
@@ -271,7 +271,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             workOrderUpdates: e.target.checked
                           })}
-                          className="w-4 h-4 text-[#0061A8] focus:ring-[#0061A8] rounded"
+                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -283,7 +283,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             maintenanceAlerts: e.target.checked
                           })}
-                          className="w-4 h-4 text-[#0061A8] focus:ring-[#0061A8] rounded"
+                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -295,7 +295,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             invoiceReminders: e.target.checked
                           })}
-                          className="w-4 h-4 text-[#0061A8] focus:ring-[#0061A8] rounded"
+                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
                     </div>
@@ -304,7 +304,7 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleSaveNotifications}
-                      className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90"
+                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
                     >
                       {t('profile.notifications.save', 'Save Preferences')}
                     </button>
@@ -329,7 +329,7 @@ export default function ProfilePage() {
                             ...securitySettings,
                             currentPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -343,7 +343,7 @@ export default function ProfilePage() {
                             ...securitySettings,
                             newPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -357,7 +357,7 @@ export default function ProfilePage() {
                             ...securitySettings,
                             confirmPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -377,7 +377,7 @@ export default function ProfilePage() {
                           ...securitySettings,
                           twoFactorEnabled: e.target.checked
                         })}
-                        className="w-4 h-4 text-[#0061A8] focus:ring-[#0061A8] rounded"
+                        className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                       />
                     </label>
                   </div>
@@ -385,7 +385,7 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleSaveSecurity}
-                      className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90"
+                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
                     >
                       {t('profile.security.update', 'Update Security')}
                     </button>
@@ -402,19 +402,19 @@ export default function ProfilePage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.quickActions.title', 'Quick Actions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link href="/settings" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <Settings className="h-6 w-6 text-[#0061A8] mb-2" />
+            <Settings className="h-6 w-6 text-brand-500 mb-2" />
             <h3 className="font-medium text-gray-900">{t('profile.quickActions.system', 'System Settings')}</h3>
             <p className="text-sm text-gray-600">{t('profile.quickActions.systemDesc', 'Configure application preferences')}</p>
           </Link>
 
           <Link href="/notifications" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <Bell className="h-6 w-6 text-[#00A859] mb-2" />
+            <Bell className="h-6 w-6 text-success mb-2" />
             <h3 className="font-medium text-gray-900">{t('profile.quickActions.notifications', 'Notification Settings')}</h3>
             <p className="text-sm text-gray-600">{t('profile.quickActions.notificationsDesc', 'Manage alerts and notifications')}</p>
           </Link>
 
           <Link href="/security" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <Shield className="h-6 w-6 text-[#FFB400] mb-2" />
+            <Shield className="h-6 w-6 text-accent mb-2" />
             <h3 className="font-medium text-gray-900">{t('profile.quickActions.security', 'Security Settings')}</h3>
             <p className="text-sm text-gray-600">{t('profile.quickActions.securityDesc', 'Password and access management')}</p>
           </Link>
