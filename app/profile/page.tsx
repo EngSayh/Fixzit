@@ -1,25 +1,60 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Settings, Shield, Bell } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 type TabType = 'account' | 'notifications' | 'security';
 
+interface UserData {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  joinDate: string;
+}
+
+interface NotificationSettings {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  smsNotifications: boolean;
+  workOrderUpdates: boolean;
+  maintenanceAlerts: boolean;
+  invoiceReminders: boolean;
+}
+
+interface SecuritySettings {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  twoFactorEnabled: boolean;
+}
+
 export default function ProfilePage() {
   const { t, isRTL } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('account');
-  const [user, setUser] = useState({
-    name: 'Admin User',
-    email: 'admin@fixzit.co',
+  const [loading, setLoading] = useState(true);
+  
+  // Original data for reset functionality
+  const [originalUser, setOriginalUser] = useState<UserData>({
+    name: '',
+    email: '',
     phone: '',
-    role: 'Administrator',
-    joinDate: 'January 2024'
+    role: '',
+    joinDate: ''
   });
 
-  const [notificationSettings, setNotificationSettings] = useState({
+  const [user, setUser] = useState<UserData>({
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    joinDate: ''
+  });
+
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     emailNotifications: true,
     pushNotifications: false,
     smsNotifications: false,
@@ -28,29 +63,126 @@ export default function ProfilePage() {
     invoiceReminders: false
   });
 
-  const [securitySettings, setSecuritySettings] = useState({
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
     twoFactorEnabled: false
   });
 
+  // Fetch user profile data on mount
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/user/profile', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+
+        const data = await response.json();
+        
+        if (data.user) {
+          const userData: UserData = {
+            name: data.user.name || 'Admin User',
+            email: data.user.email || 'admin@fixzit.co',
+            phone: data.user.phone || '',
+            role: data.user.role || 'Administrator',
+            joinDate: data.user.joinDate || 'January 2024'
+          };
+          setUser(userData);
+          setOriginalUser(userData);
+        }
+
+        if (data.notificationSettings) {
+          setNotificationSettings(data.notificationSettings);
+        }
+
+        if (data.securitySettings) {
+          setSecuritySettings(prev => ({
+            ...prev,
+            twoFactorEnabled: data.securitySettings.twoFactorEnabled || false
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast.error(t('profile.toast.loadError', 'Failed to load profile data'));
+        // Set default values on error
+        const defaultUser: UserData = {
+          name: 'Admin User',
+          email: 'admin@fixzit.co',
+          phone: '',
+          role: 'Administrator',
+          joinDate: 'January 2024'
+        };
+        setUser(defaultUser);
+        setOriginalUser(defaultUser);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [t]);
+
   const handleSaveAccount = async () => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          phone: user.phone
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update account');
+      }
+
+      const data = await response.json();
+      
+      // Update original user data after successful save
+      setOriginalUser(user);
+      
       toast.success(t('profile.toast.accountSaved', 'Account settings saved successfully!'));
-    } catch (_error) {
+    } catch (error) {
+      console.error('Error saving account:', error);
       toast.error(t('profile.toast.accountError', 'Failed to save account settings'));
     }
   };
 
+  const handleCancelAccount = () => {
+    // Reset to originally fetched data
+    setUser(originalUser);
+    toast.success(t('profile.toast.changesCancelled', 'Changes cancelled'));
+  };
+
   const handleSaveNotifications = async () => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch('/api/user/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notificationSettings),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update notifications');
+      }
+
       toast.success(t('profile.toast.notificationsSaved', 'Notification preferences updated!'));
-    } catch (_error) {
+    } catch (error) {
+      console.error('Error saving notifications:', error);
       toast.error(t('profile.toast.notificationsError', 'Failed to update notifications'));
     }
   };
@@ -60,18 +192,46 @@ export default function ProfilePage() {
       toast.error(t('profile.toast.passwordMismatch', 'Passwords do not match'));
       return;
     }
+
+    if (securitySettings.newPassword && securitySettings.newPassword.length < 8) {
+      toast.error(t('profile.toast.passwordTooShort', 'Password must be at least 8 characters'));
+      return;
+    }
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch('/api/user/security', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: securitySettings.currentPassword,
+          newPassword: securitySettings.newPassword,
+          twoFactorEnabled: securitySettings.twoFactorEnabled
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update security settings');
+      }
+
       toast.success(t('profile.toast.securitySaved', 'Security settings updated!'));
+      
+      // Clear password fields after successful update
       setSecuritySettings({
         ...securitySettings,
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-    } catch (_error) {
-      toast.error(t('profile.toast.securityError', 'Failed to update security settings'));
+    } catch (error) {
+      console.error('Error saving security:', error);
+      toast.error(
+        error instanceof Error 
+          ? error.message 
+          : t('profile.toast.securityError', 'Failed to update security settings')
+      );
     }
   };
 
@@ -88,16 +248,27 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User size={32} className="text-white" />
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <User size={32} className="text-gray-400" />
+                </div>
+                <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-4 animate-pulse"></div>
+                <div className="h-6 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900">{user.name}</h2>
-              <p className="text-gray-600">{user.email}</p>
-              <span className="inline-block mt-2 px-3 py-1 bg-success text-white text-sm rounded-full">
-                {user.role}
-              </span>
-            </div>
+            ) : (
+              <div className="text-center">
+                <div className="w-20 h-20 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User size={32} className="text-white" />
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">{user.name}</h2>
+                <p className="text-gray-600">{user.email}</p>
+                <span className="inline-block mt-2 px-3 py-1 bg-success text-white text-sm rounded-full">
+                  {user.role}
+                </span>
+              </div>
+            )}
 
             <div className="mt-6 space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
@@ -193,20 +364,15 @@ export default function ProfilePage() {
 
                   <div className="flex justify-end gap-3">
                     <button
-                      onClick={() => setUser({
-                        name: 'Admin User',
-                        email: 'admin@fixzit.co',
-                        phone: '',
-                        role: 'Administrator',
-                        joinDate: 'January 2024'
-                      })}
-                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      onClick={handleCancelAccount}
+                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       {t('profile.account.cancel', 'Cancel')}
                     </button>
                     <button
                       onClick={handleSaveAccount}
-                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+                      disabled={loading}
+                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
                     >
                       {t('profile.account.save', 'Save Changes')}
                     </button>
