@@ -84,7 +84,17 @@ const clientIp = getClientIp(request); // Secure extraction
 
 These files use the vulnerable pattern: `req.headers.get('x-forwarded-for')?.split(',')[0]`
 
-**Should be replaced with**: `import { getClientIp } from '@/lib/security/client-ip';`
+**Should be replaced with**: `import { getClientIP } from '@/server/security/headers';` then call `getClientIP(req)`
+
+**Example fix**:
+```typescript
+// Before (VULNERABLE):
+const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+
+// After (SECURE):
+import { getClientIP } from '@/server/security/headers';
+const clientIp = getClientIP(req);
+```
 
 #### High-Priority API Routes (Security-Sensitive)
 
@@ -113,30 +123,30 @@ app/api/work-orders/[id]/assign/route.ts
 #### Asset Management APIs
 
 ```
-app/api/assets/route.ts (line 91, 141)
-app/api/assets/[id]/route.ts (line 74, 167)
+app/api/assets/route.ts (line 91, 141) - Use: getClientIP(req)
+app/api/assets/[id]/route.ts (line 74, 167) - Use: getClientIP(req)
 ```
 
 #### Finance APIs
 
 ```
-app/api/finance/invoices/route.ts (line 41, 97, 141)
-app/api/finance/invoices/[id]/route.ts (line 37)
+app/api/finance/invoices/route.ts (line 41, 97, 141) - Use: getClientIP(req)
+app/api/finance/invoices/[id]/route.ts (line 37) - Use: getClientIP(req)
 ```
 
 #### Help/Support APIs
 
 ```
-app/api/help/articles/route.ts (line 70)
-app/api/help/ask/route.ts (line 141, 274)
-app/api/support/welcome-email/route.ts (line 41)
+app/api/help/articles/route.ts (line 70) - Use: getClientIP(req)
+app/api/help/ask/route.ts (line 141, 274) - Use: getClientIP(req)
+app/api/support/welcome-email/route.ts (line 41) - Use: getClientIP(req)
 ```
 
 #### Other Modules
 
 ```
-server/plugins/auditPlugin.ts (line 301)
-server/security/headers.ts (line 80-81)
+server/plugins/auditPlugin.ts (line 301) - Use: getClientIP(req)
+server/security/headers.ts (line 80-81) - Already implements getClientIP
 ```
 
 ---
@@ -184,20 +194,20 @@ const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown
 **New Pattern** (secure):
 
 ```typescript
-import { getClientIp } from '@/lib/security/client-ip';
+import { getClientIP } from '@/server/security/headers';
 
-const ip = getClientIp(req);
+const ip = getClientIP(req);
 ```
 
 ### Automated Migration Script
 
 ```bash
 # Step 1: Add import to file
-sed -i '1i import { getClientIp } from "@/lib/security/client-ip";' file.ts
+sed -i '1i import { getClientIP } from "@/server/security/headers";' file.ts
 
 # Step 2: Replace pattern (manual review recommended)
 # Search: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-# Replace: getClientIp(req)
+# Replace: getClientIP(req)
 ```
 
 ---

@@ -55,10 +55,14 @@ export async function DELETE(
       try {
         await AqarListing.findByIdAndUpdate(
           favorite.targetId, 
-          { 
-            $inc: { 'analytics.favorites': -1 },
-            $set: { 'analytics.lastUpdatedAt': new Date() }
-          }
+          [
+            { 
+              $set: { 
+                'analytics.favorites': { $max: [{ $subtract: ['$analytics.favorites', 1] }, 0] },
+                'analytics.lastUpdatedAt': new Date() 
+              } 
+            }
+          ]
         );
       } catch (analyticsError) {
         // Log analytics error but don't fail the request (deletion already succeeded)
@@ -71,10 +75,14 @@ export async function DELETE(
       try {
         await AqarProject.findByIdAndUpdate(
           favorite.targetId, 
-          { 
-            $inc: { 'analytics.favorites': -1 },
-            $set: { 'analytics.lastUpdatedAt': new Date() }
-          }
+          [
+            { 
+              $set: { 
+                'analytics.favorites': { $max: [{ $subtract: ['$analytics.favorites', 1] }, 0] },
+                'analytics.lastUpdatedAt': new Date() 
+              } 
+            }
+          ]
         );
       } catch (analyticsError) {
         // Log analytics error but don't fail the request (deletion already succeeded)

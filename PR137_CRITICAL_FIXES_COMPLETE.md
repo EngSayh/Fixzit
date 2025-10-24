@@ -271,7 +271,8 @@ Before merging to production:
 
 3. **Rate Limit Security** (lines 27-56 in `lib/rateLimit.ts`):
 
-   - Verify priority order: `x-real-ip` > `cf-connecting-ip` > last `x-forwarded-for`
+   - Verify priority order: `cf-connecting-ip` (highest) > last `x-forwarded-for` > `x-real-ip` (only when `TRUST_X_REAL_IP='true'`)
+   - **Security Note**: `x-real-ip` is conditional and lowest priority because it can be easily spoofed by clients. Only trust when you have a validated proxy that sets it. All header-based IPs are inherently spoofable unless validated by a trusted reverse proxy (Cloudflare, nginx, etc.)
    - Confirm client cannot spoof by sending fake IPs in header
 
 4. **Type Safety** (line 91 in `packages/route.ts`):

@@ -11,7 +11,24 @@ import { AqarLead, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
 import { checkRateLimit } from '@/lib/rateLimit';
-import mongoose, { type Types } from 'mongoose';
+import mongoose from 'mongoose';
+import { z } from 'zod';
+
+// Validation schema for lead creation
+const LeadCreateSchema = z.object({
+  listingId: z.string().optional(),
+  projectId: z.string().optional(),
+  inquirerName: z.string().trim().min(1, 'Name is required').max(100),
+  inquirerPhone: z.string().trim().regex(/^[\d\s\-+()]{7,20}$/, 'Invalid phone number format'),
+  inquirerEmail: z.string().trim().toLowerCase().email('Invalid email format').max(100).optional().or(z.literal('')),
+  intent: z.enum(['BUY', 'RENT', 'DAILY']),
+  message: z.string().trim().max(1000).optional(),
+  source: z.enum(['LISTING_INQUIRY', 'PROJECT_INQUIRY', 'WHATSAPP', 'PHONE_CALL', 'WALK_IN', 'REFERRAL', 'OTHER']),
+});
+
+// Pagination constants
+const MAX_PAGE_LIMIT = 100;
+const MAX_SKIP = 100000; // Prevent DoS via huge skip values
 
 
 export const runtime = 'nodejs';
@@ -41,10 +58,15 @@ export async function POST(request: NextRequest) {
       userOrgId = user.orgId;
     } catch (authError) {
       // Distinguish between "not authenticated" (public inquiry allowed) vs actual errors
-      if (authError instanceof Error && authError.message !== 'Unauthorized') {
-        console.error('Auth error in leads POST:', {
-          message: authError.message,
-          stack: authError.stack,
+      // Expected: getSessionUser throws Error with 'Unauthorized' message when no session
+      // Unexpected: Any other error (DB connection, token parsing, etc.)
+      const isExpectedAuthFailure = authError instanceof Error && 
+        (authError.message === 'Unauthorized' || authError.message.includes('No session found'));
+      
+      if (!isExpectedAuthFailure) {
+        console.error('Unexpected auth error in leads POST:', {
+          message: authError instanceof Error ? authError.message : 'Unknown error',
+          stack: authError instanceof Error ? authError.stack : undefined,
         });
       }
       // Public inquiry - no auth required
@@ -52,59 +74,18 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     
-    const { listingId, projectId, inquirerName, inquirerPhone, inquirerEmail, intent, message, source } = body;
-    
-    // Input sanitization and validation
-    const sanitizedName = inquirerName?.toString().trim().slice(0, 100);
-    const sanitizedPhone = inquirerPhone?.toString().trim().slice(0, 20);
-    const sanitizedEmail = inquirerEmail?.toString().trim().toLowerCase().slice(0, 100);
-    const sanitizedMessage = message?.toString().trim().slice(0, 1000);
-    
-    // Validate required fields
-    if (!sanitizedName || !sanitizedPhone || !intent || !source) {
+    // Validate request body with Zod
+    const validation = LeadCreateSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'inquirerName, inquirerPhone, intent, and source are required' },
+        { error: 'Validation failed', details: validation.error.flatten() },
         { status: 400 }
       );
     }
     
-    // Validate phone format (basic international format check)
-    const phoneRegex = /^[\d\s\-+()]{7,20}$/;
-    if (!phoneRegex.test(sanitizedPhone)) {
-      return NextResponse.json(
-        { error: 'Invalid phone number format' },
-        { status: 400 }
-      );
-    }
+    const { listingId, projectId, inquirerName, inquirerPhone, inquirerEmail, intent, message, source } = validation.data;
     
-    // Validate email format if provided
-    if (sanitizedEmail) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(sanitizedEmail)) {
-        return NextResponse.json(
-          { error: 'Invalid email format' },
-          { status: 400 }
-        );
-      }
-    }
-    
-    // Validate enum fields
-    const ALLOWED_INTENTS = ['BUY', 'RENT', 'DAILY'];
-    if (!ALLOWED_INTENTS.includes(intent)) {
-      return NextResponse.json(
-        { error: `Invalid intent. Must be one of: ${ALLOWED_INTENTS.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    
-    const ALLOWED_SOURCES = ['LISTING_INQUIRY', 'PROJECT_INQUIRY', 'WHATSAPP', 'PHONE_CALL', 'WALK_IN', 'REFERRAL', 'OTHER'];
-    if (!ALLOWED_SOURCES.includes(source)) {
-      return NextResponse.json(
-        { error: `Invalid source. Must be one of: ${ALLOWED_SOURCES.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    
+    // Ensure either listingId or projectId is provided
     if (!listingId && !projectId) {
       return NextResponse.json(
         { error: 'Either listingId or projectId is required' },
@@ -140,7 +121,7 @@ export async function POST(request: NextRequest) {
       (async () => {
         await incrementAnalyticsWithRetry({
           model: AqarListing,
-          id: listingId as Types.ObjectId,
+          id: new mongoose.Types.ObjectId(listingId),
           updateOp: {
             $inc: { 'analytics.inquiries': 1 },
             $set: { 'analytics.lastInquiryAt': new Date() }
@@ -165,7 +146,7 @@ export async function POST(request: NextRequest) {
       (async () => {
         await incrementAnalyticsWithRetry({
           model: AqarProject,
-          id: projectId as Types.ObjectId,
+          id: new mongoose.Types.ObjectId(projectId),
           updateOp: { 
             $inc: { inquiries: 1 },
             $set: { lastInquiryAt: new Date() }
@@ -181,12 +162,12 @@ export async function POST(request: NextRequest) {
       projectId,
       source,
       inquirerId: userId,
-      inquirerName: sanitizedName,
-      inquirerPhone: sanitizedPhone,
-      inquirerEmail: sanitizedEmail,
+      inquirerName,
+      inquirerPhone,
+      inquirerEmail: inquirerEmail || undefined,
       recipientId,
       intent,
-      message: sanitizedMessage,
+      message: message || undefined,
     });
     
     await lead.save();
@@ -218,9 +199,15 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
-    const skip = (page - 1) * limit;
+    
+    // Parse and validate pagination parameters
+    const rawPage = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
+    const rawLimit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+    
+    // Clamp pagination values to prevent DoS attacks
+    const page = Math.max(1, Math.min(rawPage, 10000)); // Max page 10000
+    const limit = Math.max(1, Math.min(rawLimit, MAX_PAGE_LIMIT)); // Max 100 items per page
+    const skip = Math.min((page - 1) * limit, MAX_SKIP); // Prevent huge skip values
     
     const query: Record<string, unknown> = {
       recipientId: user.id,
