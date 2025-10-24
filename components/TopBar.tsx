@@ -499,9 +499,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               <div 
                 role="menu"
                 aria-label="User menu"
-                className={`fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)] ${isRTL ? 'left-4' : 'right-4'}`}
+                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
                 style={{
-                  top: '4rem'
+                  top: '4rem',
+                  [isRTL ? 'left' : 'right']: '1rem',
+                  [isRTL ? 'right' : 'left']: 'auto'
                 }}
               >
                 <Link
