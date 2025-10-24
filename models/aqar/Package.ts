@@ -13,7 +13,13 @@ export enum PackageType {
   PREMIUM = 'PREMIUM',     // 250 SAR, 50 listings, 30 days
 }
 
-export interface IPackage extends Document {
+export interface IPackageMethods {
+  activate(): Promise<void>;
+  consumeListing(): Promise<void>;
+  checkExpiry(): Promise<void>;
+}
+
+export interface IPackage extends Document, IPackageMethods {
   // User
   userId: mongoose.Types.ObjectId;
   orgId: mongoose.Types.ObjectId;
@@ -41,7 +47,7 @@ export interface IPackage extends Document {
   updatedAt: Date;
 }
 
-const PackageSchema = new Schema<IPackage>(
+const PackageSchema = new Schema<IPackage, Model<IPackage, {}, IPackageMethods>>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
@@ -85,7 +91,7 @@ PackageSchema.statics.getPricing = function (type: PackageType) {
 };
 
 // Methods
-PackageSchema.methods.activate = async function (this: IPackage) {
+PackageSchema.methods.activate = async function (this: IPackage): Promise<void> {
   if (this.active) {
     throw new Error('Package already activated');
   }
