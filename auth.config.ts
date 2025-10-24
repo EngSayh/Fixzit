@@ -44,25 +44,36 @@ const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 const LOG_HASH_SALT = process.env.LOG_HASH_SALT;
 
-// Skip validation during CI build (secrets not needed for build, only for runtime)
-if (process.env.CI !== 'true') {
-  const missingVars: string[] = [];
-  if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
-  if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
-  if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
-  if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
-  if (process.env.NODE_ENV === 'production') {
-    if (!process.env.NEXTAUTH_URL) missingVars.push('NEXTAUTH_URL');
-    if (!LOG_HASH_SALT) missingVars.push('LOG_HASH_SALT (required in production for secure email hashing)');
-  }
+// Validate non-secret variables always (fail-fast at startup)
+const missingNonSecrets: string[] = [];
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.NEXTAUTH_URL) missingNonSecrets.push('NEXTAUTH_URL');
+  if (!LOG_HASH_SALT) missingNonSecrets.push('LOG_HASH_SALT (required in production for secure email hashing)');
+}
 
-  if (missingVars.length > 0) {
+if (missingNonSecrets.length > 0) {
+  throw new Error(
+    `Missing required runtime configuration: ${missingNonSecrets.join(', ')}. These are required regardless of CI/build context.`
+  );
+}
+
+// Validate secrets only when not explicitly skipped
+const skipSecretValidation = process.env.SKIP_ENV_VALIDATION === 'true';
+
+if (!skipSecretValidation) {
+  const missingSecrets: string[] = [];
+  if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
+  if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
+  if (!NEXTAUTH_SECRET) missingSecrets.push('NEXTAUTH_SECRET');
+  if (!INTERNAL_API_SECRET) missingSecrets.push('INTERNAL_API_SECRET');
+
+  if (missingSecrets.length > 0) {
     throw new Error(
-      `Missing required authentication configuration: ${missingVars.join(', ')}. See README env section.`
+      `Missing required authentication secrets: ${missingSecrets.join(', ')}. See README env section. Set SKIP_ENV_VALIDATION=true to skip secret checks during build (NOT recommended for production).`
     );
   }
 } else {
-  console.warn('⚠️  CI mode: Skipping auth config validation (will be required at runtime)');
+  console.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
 }
 
 // Environment-driven OAuth allowed domains

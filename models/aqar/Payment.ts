@@ -212,7 +212,9 @@ PaymentSchema.methods.markAsFailed = async function (
   response?: Record<string, unknown>
 ) {
   // Atomic update with state precondition to prevent invalid transitions
-  const result = await mongoose.model('AqarPayment').findOneAndUpdate(
+  // Use this.constructor for consistency with markAsCompleted and to avoid model registration issues
+  const PaymentModel = this.constructor as typeof mongoose.Model;
+  const result = await PaymentModel.findOneAndUpdate(
     {
       _id: this._id,
       status: PaymentStatus.PENDING // Only allow PENDING → FAILED

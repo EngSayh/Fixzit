@@ -11,64 +11,68 @@ import { NextRequest } from 'next/server';
 import { isIP } from 'net';
 
 /**
- * Extract client IP address from request headers
- * 
- * Security considerations:
- * - x-forwarded-for can be spoofed by clients
- * - cf-connecting-ip is Cloudflare's trusted header (highest trust)
- * - Last IP in x-forwarded-for is added by our reverse proxy (trusted)
- * - x-real-ip requires explicit trust via TRUST_X_REAL_IP env variable
- * 
- * Priority order:
- * 1. cf-connecting-ip (Cloudflare) - Most trustworthy when behind Cloudflare
- * 2. Last IP in x-forwarded-for (proxy-appended) - Trusted reverse proxy
- * 3. x-real-ip (Nginx, most reverse proxies) - Only when TRUST_X_REAL_IP='true'
- * 4. 'unknown' (fallback) - Direct connections or missing headers
+ * Extract client IP with trusted proxy counting strategy
  * 
  * @param request - Next.js request object
- * @returns Client IP address or 'unknown'
+ * @returns Client IP address or 'unknown' if not determinable
+ * 
+ * @security
+ * - Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops from the right
+ * - Consistent with lib/ip.ts extractClientIP implementation
+ * - Falls back to leftmost public IP, cf-connecting-ip, and x-real-ip (when trusted)
  * 
  * @example
  * ```typescript
- * import { getClientIp } from '@/lib/security/client-ip';
- * 
- * export async function POST(request: NextRequest) {
- *   const clientIp = getClientIp(request);
- *   console.log('Request from:', clientIp);
- * }
+ * // With TRUSTED_PROXY_COUNT=1:
+ * // x-forwarded-for: "client-ip, proxy1-ip, proxy2-ip"
+ * // Returns: "proxy1-ip" (skip 1 from right: proxy2-ip)
  * ```
  */
 export function getClientIp(request: NextRequest): string {
   // Priority 1: Cloudflare's CF-Connecting-IP (most trustworthy when behind Cloudflare)
   const cfIp = request.headers.get('cf-connecting-ip');
-  if (cfIp) return cfIp.trim();
+  if (cfIp && cfIp.trim()) return cfIp.trim();
   
-  // Priority 2: Last IP in x-forwarded-for (appended by our reverse proxy)
-  // This prevents spoofing since client can add fake IPs to the beginning,
-  // but cannot modify what the reverse proxy appends to the end
+  // Priority 2: X-Forwarded-For with trusted proxy counting
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) {
     const trimmed = forwardedFor.trim();
     // Treat empty or whitespace-only header as absent
     if (trimmed) {
       const ips = trimmed.split(',').map(ip => ip.trim()).filter(ip => ip.length > 0);
-      // Only return if we have at least one non-empty IP
       if (ips.length > 0) {
-        // Take the LAST IP (added by our trusted reverse proxy)
-        return ips[ips.length - 1];
+        // Import and use the same trusted proxy count validation from lib/ip.ts
+        const { validateTrustedProxyCount, isPrivateIP } = require('@/server/security/ip-utils');
+        const trustedProxyCount = validateTrustedProxyCount();
+        
+        // Skip trusted proxy hops from the right
+        const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
+        const hopSkippedIP = ips[clientIPIndex];
+        
+        // If hop-skipped IP is valid and public, use it
+        if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
+          return hopSkippedIP;
+        }
+        
+        // Fallback: find leftmost public IP
+        for (const ip of ips) {
+          if (!isPrivateIP(ip)) {
+            return ip;
+          }
+        }
+        
+        // If no public IP found, continue to fallback (don't expose private IPs)
       }
     }
-    // Fall through if header was empty or contained only whitespace/commas
+    // Fall through if header was empty or no valid public IPs
   }
   
-  // Priority 3: x-real-ip (can be spoofed, use only as last resort)
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) {
-    // Only honor x-real-ip when explicitly configured to do so
-    if (process.env.TRUST_X_REAL_IP === 'true') {
+  // Priority 3: x-real-ip (only when explicitly trusted)
+  if (process.env.TRUST_X_REAL_IP === 'true') {
+    const realIp = request.headers.get('x-real-ip');
+    if (realIp && realIp.trim()) {
       return realIp.trim();
     }
-    // otherwise skip x-real-ip and continue to fallback
   }
   
   // Fallback for direct connections (development, testing)

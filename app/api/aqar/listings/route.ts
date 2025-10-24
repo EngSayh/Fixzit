@@ -86,82 +86,10 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     
-    // Whitelist allowed client fields (prevent injection of system-controlled fields)
-    const {
-      // Core details
-      intent,
-      propertyType,
-      title,
-      description,
-      // Location
-      address,
-      city,
-      neighborhood,
-      geo,
-      // Specifications
-      areaSqm,
-      beds,
-      baths,
-      kitchens,
-      ageYears,
-      furnishing,
-      amenities,
-      streetWidthM,
-      facing,
-      // Media
-      media,
-      // Pricing
-      price,
-      rentFrequency,
-      // Source
-      source,
-      // Compliance (optional)
-      compliance,
-      // Property reference (optional)
-      propertyRef,
-    } = body;
-
-    // Build sanitized body object and run required field check once
-    const sanitizedBody: Record<string, unknown> = {
-      intent,
-      propertyType,
-      title,
-      description,
-      address,
-      city,
-      neighborhood,
-      geo,
-      areaSqm,
-      beds,
-      baths,
-      kitchens,
-      ageYears,
-      furnishing,
-      amenities,
-      streetWidthM,
-      facing,
-      media,
-      price,
-      rentFrequency,
-      source,
-      compliance,
-      propertyRef,
-    };
-
-    const requiredFields = [
-      'intent',
-      'propertyType',
-      'title',
-      'description',
-      'city',
-      'price',
-      'areaSqm',
-      'geo',
-      'source',
-    ];
-
+    // Validate required fields directly against request body before processing
+    const requiredFields = ['intent', 'propertyType', 'title', 'description', 'city', 'price', 'areaSqm', 'geo', 'source'];
     const missingFields = requiredFields.filter((field) => {
-      const v = sanitizedBody[field as keyof typeof sanitizedBody];
+      const v = body[field];
       if (v === null || v === undefined) return true;
       return typeof v === 'string' && v.trim().length === 0;
     });
@@ -173,15 +101,18 @@ export async function POST(request: NextRequest) {
     }
     
     // Validate price is positive
-    if (typeof price !== 'number' || price <= 0) {
+    if (typeof body.price !== 'number' || body.price <= 0) {
       return NextResponse.json(
         { error: 'Price must be a positive number' },
         { status: 400 }
       );
     }
     
+    // Build sanitized listing data using the helper (single source of truth for allowed fields)
+    const listingData = buildListingData(body, user);
+    
     // Check if user has active package (for agents/developers)
-    if (source === 'AGENT' || source === 'DEVELOPER') {
+    if (listingData.source === 'AGENT' || listingData.source === 'DEVELOPER') {
       // Use MongoDB transaction to atomically check package and create listing
       // This ensures that if listing creation fails, credits are not consumed
       const session = await AqarPackage.startSession();
@@ -204,8 +135,8 @@ export async function POST(request: NextRequest) {
           // 2. Consume package listing atomically
           await activePackage.consumeListing();
           
-          // 3. Create listing with whitelisted fields only
-          const listing = new AqarListing(buildListingData(sanitizedBody, user));
+          // 3. Create listing with whitelisted fields from helper
+          const listing = new AqarListing(listingData);
           await listing.save({ session });
           
           // Return listing from within transaction to prevent race condition
@@ -230,8 +161,8 @@ export async function POST(request: NextRequest) {
     // For non-package sources (OWNER, etc.), create listing directly
     // Basic validation on whitelisted fields already covered by sanitized required check
     
-    // Create listing with whitelisted fields only
-    const listing = new AqarListing(buildListingData(sanitizedBody, user));
+    // Create listing with whitelisted fields from helper
+    const listing = new AqarListing(listingData);
     
     await listing.save();
     
