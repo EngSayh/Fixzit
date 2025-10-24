@@ -130,7 +130,7 @@ if (process.env.NODE_ENV === 'production') {
 
    ✅ Safe: Public base URL with reasonable default
 
-2. **Optional Services** (email):
+1. **Optional Services** (email):
 
    ```typescript
    // app/api/support/welcome-email/route.ts
@@ -139,7 +139,7 @@ if (process.env.NODE_ENV === 'production') {
 
    ✅ Safe: Non-critical email sender with branded fallback
 
-3. **Development Configs** (tenant):
+1. **Development Configs** (tenant):
 
    ```typescript
    // app/api/public/rfqs/route.ts
@@ -148,7 +148,7 @@ if (process.env.NODE_ENV === 'production') {
 
    ✅ Safe: Non-sensitive tenant ID for multi-tenant routing
 
-4. **Session Durations** (auth):
+1. **Session Durations** (auth):
 
    ```typescript
    // app/api/auth/login/route.ts
@@ -157,7 +157,7 @@ if (process.env.NODE_ENV === 'production') {
 
    ✅ Safe: Reasonable 24-hour default
 
-5. **API Base URLs** (payment):
+1. **API Base URLs** (payment):
 
    ```typescript
    // lib/paytabs/config.ts
@@ -166,7 +166,7 @@ if (process.env.NODE_ENV === 'production') {
 
    ✅ Safe: Official PayTabs endpoint with standard default
 
-6. **Regional Defaults** (AWS):
+1. **Regional Defaults** (AWS):
 
    ```typescript
    // lib/storage/s3.ts
