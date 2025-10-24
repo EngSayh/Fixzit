@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Clock, User, MapPin, Video, Phone, MessageSquare, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, Phone, Video, MapPin, CheckCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface ViewingSchedulerProps {
   propertyId: string;
@@ -34,9 +34,9 @@ export default function ViewingScheduler({
   propertyAddress,
   agentId,
   agentName,
-  agentPhoto,
-  availableSlots,
-  onSchedule,
+  agentPhoto: _agentPhoto, // Reserved for future use
+  availableSlots: _availableSlots = [], // Reserved for future use
+  onSchedule
 }: ViewingSchedulerProps) {
   const [step, setStep] = useState<'type' | 'datetime' | 'details' | 'confirm' | 'success'>('type');
   const [viewingType, setViewingType] = useState<'IN_PERSON' | 'VIRTUAL' | 'VIDEO_CALL'>('IN_PERSON');

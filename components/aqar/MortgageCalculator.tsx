@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, DollarSign, Calendar, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { Calculator, DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
 
 export interface MortgageCalculatorProps {
   propertyPrice?: number;
@@ -15,9 +15,9 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
   const [loanTerm, setLoanTerm] = useState(25); // years
   const [showAmortization, setShowAmortization] = useState(false);
 
-  // Saudi-specific constraints
+    // Saudi-specific constraints
   const MIN_DOWN_PAYMENT = 15; // 15% minimum for residents
-  const MAX_LTV = 85; // 85% max loan-to-value
+  // const MAX_LTV = 0.85; // Max 85% loan-to-value (reserved for future validation)
   const MAX_LOAN_TERM = 25; // 25 years max
 
   // Calculations

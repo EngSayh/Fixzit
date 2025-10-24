@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 interface Product {
@@ -40,17 +40,16 @@ async function fetchPdp(slug: string) {
 
 export default function ProductPage(props: { params: Promise<{ slug: string }> }) {
   const { t } = useTranslation();
+  const params = use(props.params); // Use React 19's use() hook to unwrap the Promise
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    props.params.then(params => {
-      fetchPdp(params.slug).then(result => {
-        setData(result);
-        setLoading(false);
-      });
+    fetchPdp(params.slug).then(result => {
+      setData(result);
+      setLoading(false);
     });
-  }, [props.params]);
+  }, [params.slug]);
   if (loading || !data) {
     return <div className="p-6">{t('common.loading', 'Loading...')}</div>;
   }
