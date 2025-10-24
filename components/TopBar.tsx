@@ -16,6 +16,21 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
 
+// Type definitions
+interface OrgSettings {
+  name: string;
+  logo: string | null;
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  priority: 'high' | 'medium' | 'low';
+  timestamp: string;
+  read: boolean;
+}
+
 // Fallback translations for when context is not available
 const fallbackTranslations: Record<string, string> = {
   'common.brand': 'FIXZIT ENTERPRISE',
@@ -32,27 +47,9 @@ const fallbackTranslations: Record<string, string> = {
   'common.logout': 'Sign out'
 };
 
-interface TopBarProps {
-  role?: string;
-}
-
-interface OrgSettings {
-  name: string;
-  logo: string | null;
-  primaryColor?: string;
-  secondaryColor?: string;
-}
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  priority: 'low' | 'medium' | 'high';
-  category: string;
-  type: string;
-}
+// Extracted fallback translation function for clarity and reusability
+const fallbackT = (key: string, fallback?: string) =>
+  fallbackTranslations[key] || fallback || key;
 
 /**
  * Top navigation bar for the application, including brand, search, quick actions,
@@ -66,33 +63,36 @@ interface Notification {
  *   marks unread items with a dot, navigates to /notifications)
  * - User menu with Profile, Settings, and Sign out (clears client storage and redirects to /login)
  *
- * @param {string} [role='guest'] - Optional user role string (defaults to `'guest'`). Provided role may be used
- *               by downstream logic or hooks that consume this component's props.
  * @returns {JSX.Element} The TopBar React element.
  */
-export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
+export default function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
   const [orgSettings, setOrgSettings] = useState<OrgSettings>({
     name: 'FIXZIT ENTERPRISE',
-    logo: '/img/fixzit-logo.jpg'
+    logo: null,
   });
 
-  // Use NextAuth session for authentication (supports both OAuth and JWT)
-  const { data: _session, status } = useSession();
-  // CRITICAL: Only show authenticated UI when explicitly authenticated
-  // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
-  const isAuthenticated = status === 'authenticated' && _session != null;
-
+  // Add missing router and pathname hooks
   const router = useRouter();
   const pathname = usePathname();
 
+  // Use NextAuth session for authentication (supports both OAuth and JWT)
+  const { data: session, status } = useSession();
+  // CRITICAL: Only show authenticated UI when explicitly authenticated
+  // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
+  const isAuthenticated = status === 'authenticated' && session != null;
+
   // Use FormStateContext for unsaved changes detection
   const { hasUnsavedChanges, requestSave } = useFormState();
+
+  // Get translation context
+  const translationContext = useTranslation();
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -126,8 +126,19 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
 
   // Call useTranslation unconditionally at top level (React Rules of Hooks)
-  const translationContext = useTranslation();
-  const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
+  const t = translationContext?.t ?? fallbackT;
+
+  // Debug RTL positioning (remove after issue is resolved)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('🔍 TopBar RTL Debug:', {
+        isRTL,
+        direction: document.documentElement.getAttribute('dir'),
+        language: localStorage.getItem('fxz.lang'),
+        htmlLang: document.documentElement.getAttribute('lang')
+      });
+    }
+  }, [isRTL]);
 
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -286,12 +297,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       localStorage.removeItem('fixzit-theme');
 
       // Clear any other localStorage items related to the app, BUT preserve language settings
-      Object.keys(localStorage).forEach(key => {
-        if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) && 
-            key !== 'fxz.lang' && 
-            key !== 'fxz.locale') {
-          localStorage.removeItem(key);
-        }
+      const keysToRemove = Object.keys(localStorage).filter(
+        key =>
+          (key.startsWith('fixzit-') || key.startsWith('fxz-')) &&
+          key !== 'fxz.lang' &&
+          key !== 'fxz.locale'
+      );
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
       });
 
       // Restore language preferences
@@ -308,6 +321,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     }
   };
 
+  // Calculate unread notifications count once
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   return (
     <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -318,18 +334,14 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           aria-label="Go to home"
         >
-          {/* Organization Logo - from database or fallback to gradient placeholder */}
-          {orgSettings.logo ? (
+          {orgSettings.logo && !logoError ? (
             <Image
               src={orgSettings.logo}
               alt={orgSettings.name}
               width={32}
               height={32}
               className="rounded-md object-cover"
-              onError={(e) => {
-                // Fallback if image fails to load
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
+              onError={() => setLogoError(true)}
             />
           ) : (
             <div 
@@ -353,7 +365,15 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       
       {/* Mobile search button */}
       {screenInfo.isMobile && (
-        <button type="button" className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
+        <button
+          type="button"
+          className="p-2 hover:bg-white/10 rounded-md"
+          aria-label="Open search"
+          onClick={() => {
+            // TODO: Implement mobile search modal
+            console.log('Mobile search clicked - implement modal');
+          }}
+        >
           <Search className="w-4 h-4" />
         </button>
       )}
@@ -361,7 +381,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Only show QuickActions for authenticated users */}
         {isAuthenticated && <QuickActions />}
-        {/* Removed language and currency selectors - moved to profile dropdown */}
+        
         {/* Only show notifications for authenticated users */}
         {isAuthenticated && (
           <div className="notification-container relative">
@@ -371,117 +391,122 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 setUserOpen(false); // Close user menu when opening notifications
                 setNotifOpen(!notifOpen);
               }}
-              className="p-2 hover:bg-white/10 rounded-md relative transition-all duration-200 hover:scale-105"
+              className="p-2 hover:bg-white/10 rounded-md relative"
               aria-label="Toggle notifications"
             >
               <Bell className="w-5 h-5" />
-                          {notifications.filter(n => !n.read).length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
               )}
             </button>
             {notifOpen && (
-            <Portal>
-              <div 
-                role="dialog"
-                aria-label="Notifications"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
-                style={{
-                  top: '4rem',
-                  [isRTL ? 'left' : 'right']: '1rem'
-                }}
-              >
-                <div className="p-3 border-b border-gray-200 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {notifications.filter(n => !n.read).length > 0
-                      ? `${notifications.filter(n => !n.read).length} ${t('common.unread', 'unread')}`
-                      : t('common.noNotifications', 'No new notifications')
-                    }
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setNotifOpen(false)}
-                  className="p-1 hover:bg-gray-100 rounded-full"
-                  aria-label="Close notifications"
+              <Portal>
+                <div 
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Notifications"
+                  className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
+                  style={{
+                    top: '4rem',
+                    [isRTL ? 'left' : 'right']: '1rem',
+                    [isRTL ? 'right' : 'left']: 'auto',
+                    // Force higher z-index to prevent overlap issues
+                    zIndex: 100
+                  }}
                 >
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {loading ? (
-                  <div className="p-3 text-center text-gray-500">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-300 mx-auto"></div>
-                    <div className="text-xs mt-1">{t('common.loading', 'Loading...')}</div>
+                  <div className="p-3 border-b border-gray-200 flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {unreadCount > 0
+                          ? `${unreadCount} ${t('common.unread', 'unread')}`
+                          : t('common.noNotifications', 'No new notifications')
+                        }
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotifOpen(false)}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                      aria-label="Close notifications"
+                    >
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
-                ) : notifications.length > 0 ? (
-                  <div className="space-y-1">
-                    {notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        className="p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"
-                        onClick={() => {
-                          // Navigate to notification details or mark as read
-                          setNotifOpen(false);
-                          router.push('/notifications');
-                        }}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="font-medium text-sm text-gray-900">
-                              {notification.title}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {notification.message}
-                            </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(notification.priority)} bg-gray-100`}>
-                                {notification.priority.toUpperCase()}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {formatTimeAgo(notification.timestamp)}
-                              </span>
+
+                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    {loading ? (
+                      <div className="p-3 text-center text-gray-500">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-300 mx-auto"></div>
+                        <div className="text-xs mt-1">{t('common.loading', 'Loading...')}</div>
+                      </div>
+                    ) : notifications.length > 0 ? (
+                      <div className="space-y-1">
+                        {notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className="p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"
+                            onClick={() => {
+                              // Navigate to notification details or mark as read
+                              setNotifOpen(false);
+                              router.push('/notifications');
+                            }}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-gray-900">
+                                  {notification.title}
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {notification.message}
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(notification.priority)} bg-gray-100`}>
+                                    {notification.priority.toUpperCase()}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {formatTimeAgo(notification.timestamp)}
+                                  </span>
+                                </div>
+                              </div>
+                              {!notification.read && (
+                                <div className="w-2 h-2 bg-brand-500 rounded-full ml-2 flex-shrink-0"></div>
+                              )}
                             </div>
                           </div>
-                          {!notification.read && (
-                            <div className="w-2 h-2 bg-brand-500 rounded-full ml-2 flex-shrink-0"></div>
-                          )}
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <div className="p-6 text-center text-gray-500">
+                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <div className="text-sm">{t('common.noNotifications', 'No new notifications')}</div>
+                        <div className="text-xs text-gray-400 mt-1">{t('common.allCaughtUp', "You're all caught up!")}</div>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="p-6 text-center text-gray-500">
-                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <div className="text-sm">{t('common.noNotifications', 'No new notifications')}</div>
-                    <div className="text-xs text-gray-400 mt-1">{t('common.allCaughtUp', "You're all caught up!")}</div>
-                  </div>
-                )}
-              </div>
 
-              {notifications.length > 0 && (
-                <div className="p-3 border-t border-gray-200 bg-gray-50">
-                  <Link
-                    href="/notifications"
-                    className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
-                    onClick={() => setNotifOpen(false)}
-                  >
-                    {t('common.viewAll', 'View all notifications')}
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
+                  {notifications.length > 0 && (
+                    <div className="p-3 border-t border-gray-200 bg-gray-50">
+                      <Link
+                        href="/notifications"
+                        className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
+                        onClick={() => setNotifOpen(false)}
+                      >
+                        {t('common.viewAll', 'View all notifications')}
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              )}
-              </div>
-            </Portal>
+              </Portal>
             )}
           </div>
         )}
+        
         <div className="user-menu-container relative">
           <button 
             type="button"
@@ -503,7 +528,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 style={{
                   top: '4rem',
                   [isRTL ? 'left' : 'right']: '1rem',
-                  [isRTL ? 'right' : 'left']: 'auto'
+                  [isRTL ? 'right' : 'left']: 'auto',
+                  // Force higher z-index to prevent overlap issues
+                  zIndex: 100,
+                  // Add pointer-events to ensure clicks work
+                  pointerEvents: 'auto'
                 }}
               >
                 <Link
@@ -524,16 +553,17 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 </Link>
                 
                 {/* Language & Currency Section */}
-                <div className="border-t my-1 mx-2" />
-                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
-                  {t('common.preferences', 'Preferences')}
-                </div>
-                <div className="px-4 py-2 space-y-2" role="none">
-                  <LanguageSelector variant="default" />
-                  <CurrencySelector variant="default" />
-                </div>
+                <>
+                  <div className="border-t my-1 mx-2" />
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                    {t('common.preferences', 'Preferences')}
+                  </div>
+                  <div className="px-4 py-2 space-y-2" role="none">
+                    <LanguageSelector variant="default" />
+                    <CurrencySelector variant="default" />
+                  </div>
+                </>
                 
-                <div className="border-t my-1 mx-2" />
                 <button
                   type="button"
                   role="menuitem"

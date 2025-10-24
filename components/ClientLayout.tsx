@@ -100,7 +100,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   if (loading && !isAuthPage) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
-        <TopBar role={role} />
+        <TopBar />
         <div className="flex flex-1">
           <main className={`flex-1 flex flex-col overflow-hidden ${isLandingPage ? 'w-full' : ''}`}>
             <div className="flex-1 overflow-auto">
@@ -143,7 +143,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-[#F9FAFB]">
       <AutoFixInitializer />
       <ResponsiveLayout
-        header={<TopBar role={role} />}
+        header={<TopBar />}
         sidebar={!isLandingPage ? <Sidebar key={`sidebar-${language}-${isRTL}`} role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" /> : undefined}
         showSidebarToggle={!isLandingPage}
         footer={<Footer />}
