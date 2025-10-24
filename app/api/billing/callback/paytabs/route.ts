@@ -7,6 +7,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { verifyPayment, validateCallback } from '@/lib/paytabs';
 
 /**
  * @openapi
@@ -34,12 +35,40 @@ export async function POST(req: NextRequest) {
   }
 
   await connectToDatabase();
-  const payload = await req.json().catch(()=>null);
-  const data = payload || {}; // if using return-url (form-data), create a separate handler
-  const tranRef = data.tran_ref || data.tranRef;
-  const cartId  = data.cart_id || data.cartId;
-  const token   = data.token;
+  
+  // Read raw body for signature validation
+  const rawBody = await req.text();
+  const signature = req.headers.get('signature') || '';
+  
+  let payload: Record<string, unknown> | null = null;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return createSecureResponse({ error: 'Invalid JSON payload' }, 400, req);
+  }
+  
+  // 1) Validate signature
+  if (!validateCallback(payload, signature)) {
+    console.error('[Billing Callback] Invalid signature from PayTabs');
+    return createSecureResponse({ error: 'Invalid signature' }, 401, req);
+  }
+  
+  const data = payload || {};
+  const tranRef = (data.tran_ref || data.tranRef) as string;
+  const cartId  = (data.cart_id || data.cartId) as string;
+  const token   = data.token as string | undefined;
 
+  // 2) Verify payment with PayTabs server-to-server
+  let verification: { payment_result?: { response_status?: string; response_message?: string }; cart_amount?: string; payment_info?: unknown } | null = null;
+  try {
+    verification = await verifyPayment(tranRef) as typeof verification;
+  } catch (error) {
+    console.error('[Billing Callback] Failed to verify payment with PayTabs:', error instanceof Error ? error.message : String(error));
+    return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
+  }
+  
+  const verifiedOk = verification?.payment_result?.response_status === 'A';
+  
   const subId = cartId?.replace('SUB-','');
   const sub = await Subscription.findById(subId);
   if (!sub) return createSecureResponse({ error: 'SUB_NOT_FOUND' }, 400, req);
@@ -48,24 +77,30 @@ export async function POST(req: NextRequest) {
   const inv = await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' });
   if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
 
-  const statusOk = (data.payment_result?.response_status || data.respStatus) === 'A';
-  if (!statusOk) {
-    inv.status = 'failed'; inv.errorMessage = data.payment_result?.response_message || data.respMessage;
-    await inv.save(); return createSecureResponse({ ok: false }, 200, req);
+  if (!verifiedOk) {
+    inv.status = 'failed'; 
+    inv.errorMessage = verification?.payment_result?.response_message || data.respMessage as string || 'Payment declined';
+    await inv.save(); 
+    return createSecureResponse({ ok: false }, 200, req);
   }
 
   inv.status = 'paid'; inv.paytabsTranRef = tranRef; await inv.save();
 
   if (token && sub.billingCycle === 'monthly') {
+    const paymentInfo = (verification?.payment_info || data.payment_info) as { card_scheme?: string; payment_description?: string; expiryMonth?: string; expiryYear?: string } | undefined;
     const pm = await PaymentMethod.create({
-      customerId: sub.customerId, token, scheme: data.payment_info?.card_scheme, last4: (data.payment_info?.payment_description||'').slice(-4),
-      expMonth: data.payment_info?.expiryMonth, expYear: data.payment_info?.expiryYear
+      customerId: sub.customerId, 
+      token, 
+      scheme: paymentInfo?.card_scheme, 
+      last4: (paymentInfo?.payment_description||'').slice(-4),
+      expMonth: paymentInfo?.expiryMonth, 
+      expYear: paymentInfo?.expiryYear
     });
     sub.paytabsTokenId = pm._id;
     await sub.save();
   }
 
-  return createSecureResponse({ ok: true });
+  return createSecureResponse({ ok: true }, 200, req);
 }
 
 

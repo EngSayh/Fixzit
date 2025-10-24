@@ -2,20 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { jwtVerify } from 'jose';
-import { dbConnect } from '@/db/mongoose';
-import { User } from '@/server/models/User';
 
-// Force Node.js runtime for middleware (required for mongoose/database operations)
+// Force Node.js runtime for middleware (required for jose JWT verification)
 export const runtime = 'nodejs';
 
-// Type for database user query result
-interface DbUserResult {
-  _id: { toString(): string };
-  email: string;
-  professional?: {
-    role?: string;
-  };
-  orgId?: { toString(): string };
+// Extend NextAuth session user type with role and orgId
+interface SessionUser {
+  id?: string;
+  email?: string;
+  role?: string;
+  orgId?: string | null;
 }
 
 // Validate JWT secret at module load - fail fast if missing
@@ -201,15 +197,12 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
 
         // Check for NextAuth session first
         if (session?.user) {
-          // Fetch actual user data from database to get real role and orgId
-          await dbConnect();
-          const dbUser = await User.findOne({ email: session.user.email }).select('_id email professional.role orgId').lean() as DbUserResult | null;
-          
+          // Use session claims (enriched in auth.config.ts) - NO DB calls in Edge runtime
           user = {
-            id: dbUser?._id?.toString() || session.user.id || '',
+            id: session.user.id || '',
             email: session.user.email || '',
-            role: dbUser?.professional?.role || 'USER',
-            orgId: dbUser?.orgId?.toString() || null
+            role: (session.user as SessionUser).role || 'USER',
+            orgId: (session.user as SessionUser).orgId || null
           };
         } else {
           // Fall back to legacy JWT token with proper signature verification
@@ -270,15 +263,12 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     // Get user info from NextAuth session or JWT token
     let user = null;
     if (session?.user) {
-      // Fetch actual user data from database to get real role and orgId
-      await dbConnect();
-      const dbUser = await User.findOne({ email: session.user.email }).select('_id email professional.role orgId').lean() as DbUserResult | null;
-      
+      // Use session claims (enriched in auth.config.ts) - NO DB calls in Edge runtime
       user = {
-        id: dbUser?._id?.toString() || session.user.id || '',
+        id: session.user.id || '',
         email: session.user.email || '',
-        role: dbUser?.professional?.role || 'USER',
-        orgId: dbUser?.orgId?.toString() || null
+        role: (session.user as SessionUser).role || 'USER',
+        orgId: (session.user as SessionUser).orgId || null
       };
     } else if (authToken) {
       try {

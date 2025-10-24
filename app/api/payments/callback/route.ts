@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       invoice.status = 'PAID';
       invoice.payments.push({
         date: new Date(),
-        amount: parseFloat(body.cart_amount ?? '0'),
+        amount,
         method: body.payment_info?.payment_method ?? 'UNKNOWN',
         reference: tran_ref,
         status: 'COMPLETED',
