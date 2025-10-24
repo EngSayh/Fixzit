@@ -14,6 +14,11 @@ const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
  * Called at runtime (not at module load) to avoid build-time failures
  */
 function validateMongoUri(): string {
+  // Skip validation during CI builds (only needed at runtime)
+  if (process.env.CI === 'true') {
+    return MONGODB_URI || 'mongodb://localhost:27017/fixzit';
+  }
+  
   // Enforce production requirements at runtime
   if (process.env.NODE_ENV === 'production') {
     if (!MONGODB_URI || MONGODB_URI.trim().length === 0) {

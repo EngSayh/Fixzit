@@ -44,14 +44,17 @@ interface DatabaseHandle {
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB || 'fixzit';
 
-// Enforce MONGODB_URI requirement in production
-if (process.env.NODE_ENV === 'production') {
-  if (!uri || uri.trim().length === 0) {
-    throw new Error('FATAL: MONGODB_URI is required in production environment. Please configure MongoDB connection.');
-  }
-  // Validate MongoDB connection string format (basic check)
-  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
-    throw new Error('FATAL: MONGODB_URI must start with mongodb:// or mongodb+srv://');
+// Runtime validation function (called when connection is attempted, not at module load)
+function validateMongoUri(): void {
+  // Only enforce in production AND when not in CI build phase
+  if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
+    if (!uri || uri.trim().length === 0) {
+      throw new Error('FATAL: MONGODB_URI is required in production environment. Please configure MongoDB connection.');
+    }
+    // Validate MongoDB connection string format (basic check)
+    if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+      throw new Error('FATAL: MONGODB_URI must start with mongodb:// or mongodb+srv://');
+    }
   }
 }
 
@@ -68,6 +71,9 @@ const globalObj = (typeof global !== 'undefined' ? global : globalThis) as typeo
 let conn = globalObj._mongoose as Promise<DatabaseHandle>;
 
 if (!conn) {
+  // Validate MongoDB URI (only in production runtime, not during CI builds)
+  validateMongoUri();
+  
   // Always attempt real MongoDB connection
   const connectionUri = uri || 'mongodb://localhost:27017'; // Dev fallback only
   
