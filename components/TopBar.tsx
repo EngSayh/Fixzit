@@ -125,11 +125,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
 
-  // DEBUG: Log RTL status
-  useEffect(() => {
-    console.log('[TopBar] isRTL value:', isRTL);
-  }, [isRTL]);
-
   // Call useTranslation unconditionally at top level (React Rules of Hooks)
   const translationContext = useTranslation();
   const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
