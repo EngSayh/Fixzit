@@ -46,7 +46,7 @@ export default function ResponsiveLayout({
       {sidebar && showSidebarToggle && (screenInfo.isMobile || screenInfo.isTablet) && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-16 left-4 z-50 p-2 bg-[#0061A8] text-white rounded-md shadow-lg md:hidden"
+          className="fixed top-16 left-4 z-50 p-2 bg-brand-500 text-white rounded-md shadow-lg md:hidden hover:bg-brand-600 transition-colors"
         >
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -75,8 +75,7 @@ export default function ResponsiveLayout({
         {/* Main content */}
         <main className={`
           flex-1 flex flex-col transition-all duration-300
-          ${sidebar && (screenInfo.isMobile || screenInfo.isTablet) && sidebarOpen ? 'ml-0' : ''}
-          ${sidebar && screenInfo.isDesktop ? 'ml-0' : ''}
+          ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? 'ml-64' : 'ml-0'}
         `}>
           <div className={`${responsiveClasses.container} py-6`}>
             {children}
@@ -155,15 +154,15 @@ export function ResponsiveButton({
   const getVariantClass = () => {
     switch (variant) {
       case 'primary':
-        return 'bg-[#0061A8] hover:bg-[#005a9e] text-white';
+        return 'bg-brand-500 hover:bg-brand-600 text-white';
       case 'secondary':
-        return 'bg-[#00A859] hover:bg-[#009147] text-white';
+        return 'bg-green-600 hover:bg-green-700 text-white';
       case 'outline':
-        return 'border-2 border-[#0061A8] text-[#0061A8] hover:bg-[#0061A8] hover:text-white';
+        return 'border-2 border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white';
       case 'ghost':
-        return 'text-[#0061A8] hover:bg-[#0061A8] hover:text-white';
+        return 'text-brand-500 hover:bg-brand-500 hover:text-white';
       default:
-        return 'bg-[#0061A8] hover:bg-[#005a9e] text-white';
+        return 'bg-brand-500 hover:bg-brand-600 text-white';
     }
   };
 

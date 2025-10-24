@@ -46,6 +46,7 @@ export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>v
   const [phone,setPhone]=useState("");
   const [category,setCategory]=useState("Technical");
   const [subCategory,setSubCategory]=useState("Bug Report");
+  const [submitting, setSubmitting] = useState(false);
 
   // Auto-populate fields if error details are provided
   useEffect(() => {
@@ -114,12 +115,8 @@ ${errorDetails.error?.componentStack || 'No component stack available'}
       const hdr = localStorage.getItem("x-user");
       if (!hdr) payload.requester = { name, email, phone };
 
-      // Show loading state
-      const submitBtn = document.querySelector('[data-testid="submit-btn"]') as HTMLButtonElement;
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Creating Ticket...";
-      }
+      // Set loading state
+      setSubmitting(true);
 
       const res = await api("/api/support/tickets", { method:"POST", body: JSON.stringify(payload) });
 
@@ -149,13 +146,9 @@ We've sent a welcome email to ${email} with registration instructions and next s
       console.error("Ticket creation error:", e);
       const errorMessage = e instanceof Error ? e.message : "Please try again or contact support directly.";
       alert(`❌ Failed to create ticket: ${errorMessage}`);
-
-      // Reset button state
-      const submitBtn = document.querySelector('[data-testid="submit-btn"]') as HTMLButtonElement;
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit Ticket";
-      }
+    } finally {
+      // Reset loading state
+      setSubmitting(false);
     }
   };
 
@@ -355,10 +348,10 @@ We've sent a welcome email to ${email} with registration instructions and next s
             <button
               className="px-6 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg font-medium hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               onClick={submit}
-              disabled={!subject.trim() || !text.trim()}
+              disabled={!subject.trim() || !text.trim() || submitting}
               data-testid="submit-btn"
             >
-              Submit Ticket
+              {submitting ? 'Creating Ticket...' : 'Submit Ticket'}
             </button>
           </div>
         </div>
