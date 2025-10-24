@@ -35,7 +35,8 @@ if (process.env.NODE_ENV === 'production' && !LOG_HASH_SALT) {
 }
 
 // Validate LOG_HASH_SALT in production (fail-fast at module initialization)
-if (process.env.NODE_ENV === 'production') {
+// Skip during CI build (secrets not needed for build, only for runtime)
+if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
   const salt = process.env.LOG_HASH_SALT;
   if (!salt || salt.trim().length === 0) {
     throw new Error(
@@ -52,7 +53,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Validate INTERNAL_API_SECRET in production (fail-fast)
-if (process.env.NODE_ENV === 'production') {
+// Skip during CI build (secrets not needed for build, only for runtime)
+if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
   if (!INTERNAL_API_SECRET || INTERNAL_API_SECRET.trim().length === 0) {
     throw new Error(
       'FATAL: INTERNAL_API_SECRET is required in production. ' +
