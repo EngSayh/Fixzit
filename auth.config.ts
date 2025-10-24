@@ -79,8 +79,10 @@ export const authConfig = {
       const emailDomain = emailParts[1].toLowerCase();
       if (!allowedDomains.includes(emailDomain)) {
         if (process.env.LOG_LEVEL === 'debug') {
+          // Hash domain to prevent information disclosure in logs
+          const domainHash = await hashEmail(`domain@${emailDomain}`);
           console.debug('OAuth sign-in rejected: Domain not whitelisted', { 
-            domain: emailDomain
+            domainHash
           });
         }
         return false; // Reject unauthorized domains
@@ -107,14 +109,14 @@ export const authConfig = {
       }
       return session;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       // Add user info to token
       if (user) {
         token.id = user.id;
       }
-      if (account) {
-        token.accessToken = account.access_token;
-      }
+      // Don't persist provider access tokens in long-lived JWT (security risk)
+      // If needed for server-to-server calls, fetch on-demand using backend credential
+      // or store a short-lived opaque reference instead
       return token;
     },
   },

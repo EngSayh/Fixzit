@@ -91,6 +91,10 @@ export async function POST(req: NextRequest) {
         performedAt: new Date(),
         details: `Payment completed via PayTabs. Transaction: ${tran_ref}`
       });
+      
+      // TODO: If this is an AqarPackage payment, activate the package
+      // Import and call: activatePackageAfterPayment(relatedPaymentId)
+      // See: lib/aqar/package-activation.ts
     } else {
       // Payment failed
       invoice.payments.push({
