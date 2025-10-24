@@ -29,8 +29,12 @@ export function isPrivateIP(ip: string): boolean {
     if (normalized === '::1') return true;
     
     // fe80::/10 - Link-local (fe80 to febf)
-    if (normalized.startsWith('fe80:') || normalized.startsWith('fe9') || 
-        normalized.startsWith('fea') || normalized.startsWith('feb')) {
+    // Extract first 4 hex characters after any leading colons and check range 0xfe80-0xfebf
+    const stripped = normalized.replace(/^:+/, '');
+    const firstFourHex = stripped.slice(0, 4);
+    
+    if (/^fe[89ab][0-9a-f]$/i.test(firstFourHex)) {
+      // Valid fe8x, fe9x, feax, or febx prefix (fe80::/10 range)
       return true;
     }
     

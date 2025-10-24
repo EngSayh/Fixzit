@@ -180,16 +180,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Validate rentPrice if provided
-    if (rentFrequency !== undefined && rentFrequency !== null) {
-      if (typeof price !== 'number' || price <= 0) {
-        return NextResponse.json(
-          { error: 'Price must be a positive number when rentFrequency is specified' },
-          { status: 400 }
-        );
-      }
-    }
-    
     // Check if user has active package (for agents/developers)
     if (source === 'AGENT' || source === 'DEVELOPER') {
       // Use MongoDB transaction to atomically check package and create listing

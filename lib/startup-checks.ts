@@ -35,9 +35,49 @@ export function validateStartup(): void {
 }
 
 /**
- * Get JWT secret with development fallback
- * Only use after validateStartup() has been called
+ * Module-level flag to track if startup validation has been executed
+ */
+let startupValidated = false;
+
+/**
+ * Validates all critical environment variables and marks validation as complete
+ * Call this from your app entry point (e.g., middleware.ts or layout.tsx)
+ * @throws {Error} If any validation fails - should crash the application
+ */
+export function validateStartupAndMark(): void {
+  validateStartup();
+  startupValidated = true;
+}
+
+/**
+ * Get JWT secret with runtime enforcement
+ * 
+ * This function ensures validateStartupAndMark() has been called before returning the secret.
+ * In development, it allows a dev fallback if startup validation has been run.
+ * In production, it requires a valid JWT_SECRET from environment variables.
+ * 
+ * @returns JWT secret from environment or dev fallback (dev only, after validation)
+ * @throws {Error} If validateStartupAndMark() has not been called or JWT_SECRET is missing in production
  */
 export function getJWTSecret(): string {
-  return process.env.JWT_SECRET || 'dev-only-secret-REPLACE-IN-PROD';
+  const secret = process.env.JWT_SECRET;
+  
+  // Enforce that startup validation has been run
+  if (!startupValidated) {
+    throw new Error(
+      'FATAL: getJWTSecret() called before validateStartupAndMark() was executed. ' +
+      'Call validateStartupAndMark() during application startup (e.g., in middleware.ts).'
+    );
+  }
+  
+  // In production, never use dev fallback
+  if (process.env.NODE_ENV === 'production') {
+    if (!secret) {
+      throw new Error('FATAL: JWT_SECRET is required in production but not set.');
+    }
+    return secret;
+  }
+  
+  // In development, allow dev fallback only after validation
+  return secret || 'dev-only-secret-REPLACE-IN-PROD';
 }

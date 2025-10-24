@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 10 req/5min for payment creation (high sensitivity)
     const user = await getSessionUser(req);
-    const rl = rateLimit(`payment-create:${user.id}`, 10, 300);
+    const rl = rateLimit(`payment-create:${user.id}`, 10, 300000);
     if (!rl.allowed) {
       return rateLimitError();
     }

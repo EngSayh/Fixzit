@@ -42,7 +42,7 @@ import { getClientIP } from '@/server/security/headers';
 export async function POST(req: NextRequest) {
   // Rate limiting: 20 req/min for logout
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`auth-logout:${clientIp}`, 20, 60);
+  const rl = rateLimit(`auth-logout:${clientIp}`, 20, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }

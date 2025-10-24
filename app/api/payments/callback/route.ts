@@ -29,7 +29,7 @@ import { getClientIP } from '@/server/security/headers';
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300000);
   if (!rl.allowed) {
     return rateLimitError();
   }

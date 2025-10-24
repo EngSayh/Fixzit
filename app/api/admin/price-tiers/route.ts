@@ -61,7 +61,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }

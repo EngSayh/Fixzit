@@ -4,7 +4,8 @@
  * 
  * This script replaces all unsafe IP extraction patterns across the codebase
  * with the centralized secure function.
- * 
+    // Only replace the assignment; import insertion is handled separately
+    replace: 'const clientIp = getClientIP(req);'
  * VULNERABILITY: x-forwarded-for?.split(',')[0] uses FIRST IP (client-controlled)
  * FIX: Import and use getClientIP() which uses LAST IP (trusted proxy)
  */
@@ -16,8 +17,9 @@ import { glob } from 'glob';
 const UNSAFE_PATTERNS = [
   {
     // Pattern 1: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    // Only replace the assignment, not the import (import insertion handled separately)
     find: /const\s+clientIp\s*=\s*req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\?\.trim\(\)\s*\|\|\s*['"]unknown['"];/g,
-    replace: "import { getClientIP } from '@/server/security/headers';\n\nconst clientIp = getClientIP(req);"
+    replace: "const clientIp = getClientIP(req);"
   },
   {
     // Pattern 2: req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown"
@@ -45,14 +47,37 @@ async function fixFile(filePath: string): Promise<boolean> {
     
     // Add import if not present
     if (!hasImport && hasUnsafe) {
-      // Find the last import statement
+      // Find any existing import statements
       const importMatch = content.match(/import[^;]+;/g);
-      if (importMatch) {
+      if (importMatch && importMatch.length > 0) {
+        // Insert after last import
         const lastImport = importMatch[importMatch.length - 1];
         const importIndex = content.lastIndexOf(lastImport);
         content = content.slice(0, importIndex + lastImport.length) + 
                   "\nimport { getClientIP } from '@/server/security/headers';" +
                   content.slice(importIndex + lastImport.length);
+        modified = true;
+      } else {
+        // No import statements found - insert near top after shebang or 'use client'/'use server' directives
+        let insertPos = 0;
+        
+        // Skip shebang if present
+        const shebangMatch = content.match(/^#!.*\n/);
+        if (shebangMatch) {
+          insertPos = shebangMatch[0].length;
+        }
+
+        // Skip 'use client' or 'use server' directives
+        const remainingContent = content.slice(insertPos);
+        const directiveMatch = remainingContent.match(/^(['"]use (client|server)['"])\s*;?\s*\n/);
+        if (directiveMatch) {
+          insertPos += directiveMatch[0].length;
+        }
+
+        // Insert import at calculated position
+        content = content.slice(0, insertPos) + 
+                  "import { getClientIP } from '@/server/security/headers';\n\n" + 
+                  content.slice(insertPos);
         modified = true;
       }
     }

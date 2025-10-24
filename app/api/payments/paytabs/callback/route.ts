@@ -44,7 +44,7 @@ import { getClientIP } from '@/server/security/headers';
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`payment-callback:${clientIp}`, 30, 60);
+    const rl = rateLimit(`payment-callback:${clientIp}`, 30, 60000);
     if (!rl.allowed) {
       return rateLimitError();
     }

@@ -339,8 +339,8 @@ $ pnpm lint --max-warnings=0
 
 ### Markdown Lint
 ```bash
-$ npx markdownlint-cli2 PR137_CRITICAL_FIXES_COMPLETE.md
-Summary: 0 error(s)  # ✅ CLEAN
+# Run markdownlint across the entire repository (ignore node_modules and .next)
+$ npx markdownlint-cli2 "**/*.md" "!node_modules" "!.next"
 ```
 
 ### Git Workflow

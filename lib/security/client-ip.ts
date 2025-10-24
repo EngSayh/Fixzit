@@ -14,15 +14,15 @@ import { NextRequest } from 'next/server';
  * 
  * Security considerations:
  * - x-forwarded-for can be spoofed by clients
- * - x-real-ip is more trustworthy (set by reverse proxy)
- * - cf-connecting-ip is Cloudflare's trusted header
+ * - cf-connecting-ip is Cloudflare's trusted header (highest trust)
  * - Last IP in x-forwarded-for is added by our reverse proxy (trusted)
+ * - x-real-ip requires explicit trust via TRUST_X_REAL_IP env variable
  * 
  * Priority order:
- * 1. x-real-ip (Nginx, most reverse proxies)
- * 2. cf-connecting-ip (Cloudflare)
- * 3. Last IP in x-forwarded-for (proxy-appended)
- * 4. 'unknown' (fallback)
+ * 1. cf-connecting-ip (Cloudflare) - Most trustworthy when behind Cloudflare
+ * 2. Last IP in x-forwarded-for (proxy-appended) - Trusted reverse proxy
+ * 3. x-real-ip (Nginx, most reverse proxies) - Only when TRUST_X_REAL_IP='true'
+ * 4. 'unknown' (fallback) - Direct connections or missing headers
  * 
  * @param request - Next.js request object
  * @returns Client IP address or 'unknown'
@@ -54,7 +54,13 @@ export function getClientIp(request: NextRequest): string {
   
   // Priority 3: x-real-ip (can be spoofed, use only as last resort)
   const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
+  if (realIp) {
+    // Only honor x-real-ip when explicitly configured to do so
+    if (process.env.TRUST_X_REAL_IP === 'true') {
+      return realIp.trim();
+    }
+    // otherwise skip x-real-ip and continue to fallback
+  }
   
   // Fallback for direct connections (development, testing)
   return 'unknown';

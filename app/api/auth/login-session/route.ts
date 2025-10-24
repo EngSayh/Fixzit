@@ -61,7 +61,7 @@ const SessionLoginSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`auth-login-session:${clientIp}`, 5, 900);
+    const rl = rateLimit(`auth-login-session:${clientIp}`, 5, 900000);
     if (!rl.allowed) {
       return rateLimitError();
     }

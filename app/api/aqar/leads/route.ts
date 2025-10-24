@@ -203,9 +203,7 @@ export async function POST(request: NextRequest) {
 // GET /api/aqar/leads
 export async function GET(request: NextRequest) {
   try {
-    await connectDb();
-    
-    // Handle authentication separately to return 401 instead of 500
+    // Handle authentication first to avoid wasting DB resources on unauthenticated requests
     let user;
     try {
       user = await getSessionUser(request);
@@ -214,6 +212,9 @@ export async function GET(request: NextRequest) {
       console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Only connect to database after authentication succeeds
+    await connectDb();
     
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');

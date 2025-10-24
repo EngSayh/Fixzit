@@ -4,21 +4,33 @@ import Google from 'next-auth/providers/google';
 // Privacy-preserving email hash helper for secure logging (Edge-compatible)
 async function hashEmail(email: string): Promise<string> {
   // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
-  // Add salt to prevent rainbow table attacks (REQUIRED in production)
   const salt = process.env.LOG_HASH_SALT;
   
-  // Enforce salt requirement in production (skip during CI build)
+  // Fail-fast: Enforce salt requirement in production (no fallback allowed)
   if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
     if (!salt || salt.trim().length === 0) {
-      throw new Error('FATAL: LOG_HASH_SALT is required in production environment. Generate with: openssl rand -hex 32');
+      throw new Error(
+        'FATAL: LOG_HASH_SALT is required in production environment. ' +
+        'Generate with: openssl rand -hex 32'
+      );
     }
     if (salt.length < 32) {
-      throw new Error('FATAL: LOG_HASH_SALT must be at least 32 characters. Current length: ' + salt.length);
+      throw new Error(
+        `FATAL: LOG_HASH_SALT must be at least 32 characters. Current length: ${salt.length}. ` +
+        'Generate with: openssl rand -hex 32'
+      );
     }
   }
   
+  // In development, allow temporary dev salt for testing
+  const finalSalt = salt || (process.env.NODE_ENV === 'development' 
+    ? 'dev-only-salt-REPLACE-IN-PROD' 
+    : (() => { 
+        throw new Error('FATAL: LOG_HASH_SALT is required but not set'); 
+      })()
+  );
+  
   // Use delimiter to prevent length-extension attacks
-  const finalSalt = salt || 'dev-only-salt-REPLACE-IN-PROD';
   const msgUint8 = new TextEncoder().encode(`${finalSalt}|${email}`);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
