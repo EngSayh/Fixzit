@@ -36,6 +36,13 @@ interface TopBarProps {
   role?: string;
 }
 
+interface OrgSettings {
+  name: string;
+  logo: string | null;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
 interface Notification {
   id: string;
   title: string;
@@ -70,6 +77,10 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [loading, setLoading] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [orgSettings, setOrgSettings] = useState<OrgSettings>({
+    name: 'FIXZIT ENTERPRISE',
+    logo: null
+  });
 
   // Use NextAuth session for authentication (supports both OAuth and JWT)
   const { data: _session, status } = useSession();
@@ -91,6 +102,23 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   useEffect(() => {
     closeAllPopups();
   }, [pathname, closeAllPopups]);
+
+  // Fetch organization settings on mount
+  useEffect(() => {
+    const fetchOrgSettings = async () => {
+      try {
+        const response = await fetch('/api/organization/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setOrgSettings(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch organization settings:', error);
+        // Keep default settings
+      }
+    };
+    fetchOrgSettings();
+  }, []);
 
   // Get responsive context
   const { responsiveClasses, screenInfo, isRTL } = useResponsive();
@@ -288,15 +316,29 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           aria-label="Go to home"
         >
-          {/* Logo placeholder - using div until actual logo image is provided */}
-          <div 
-            className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
-            aria-hidden="true"
-          >
-            FZ
-          </div>
+          {/* Organization Logo - from database or fallback to gradient placeholder */}
+          {orgSettings.logo ? (
+            <Image
+              src={orgSettings.logo}
+              alt={orgSettings.name}
+              width={32}
+              height={32}
+              className="rounded-md object-cover"
+              onError={(e) => {
+                // Fallback if image fails to load
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <div 
+              className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
+              aria-hidden="true"
+            >
+              {orgSettings.name.substring(0, 2).toUpperCase()}
+            </div>
+          )}
           <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
-            {t('common.brand', 'FIXZIT ENTERPRISE')}
+            {orgSettings.name}
           </span>
         </button>
         <AppSwitcher />
