@@ -32,13 +32,31 @@ const nextConfig = {
 
   // Image optimization for marketplace and property images
   images: {
-    domains: [
-      'localhost',
-      'fixzit.co',
-      'res.cloudinary.com',
-      'amazonaws.com',
-      'googleusercontent.com',
-      'ui-avatars.com',
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'fixzit.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },
