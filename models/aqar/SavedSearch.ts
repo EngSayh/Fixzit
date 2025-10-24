@@ -84,36 +84,8 @@ const SavedSearchSchema = new Schema<ISavedSearch>(
       furnishing: { type: String, enum: ['FURNISHED', 'UNFURNISHED', 'PARTLY'] },
       amenities: [{ type: String }],
       geoCenter: {
-        type: {
-          type: String,
-          enum: ['Point'],
-        },
-        coordinates: {
-          type: [Number],
-          validate: {
-            validator: function (coords: any) {
-              // Allow null/undefined (field optional)
-              if (coords == null) return true;
-
-              // Must be an array of exactly two numbers: [lng, lat]
-              if (!Array.isArray(coords)) return false;
-              if (coords.length !== 2) return false;
-
-              const [lng, lat] = coords;
-
-              // Both must be finite numbers (not NaN, not Infinity)
-              if (!Number.isFinite(lng) || !Number.isFinite(lat)) return false;
-
-              // Longitude must be between -180 and 180, latitude between -90 and 90
-              if (lng < -180 || lng > 180) return false;
-              if (lat < -90 || lat > 90) return false;
-
-              return true;
-            },
-            message:
-              'criteria.geoCenter.coordinates must be an array [lng, lat] with finite numbers: lng ∈ [-180,180], lat ∈ [-90,90]'
-          }
-        }
+        type: { type: String, enum: ['Point'] },
+        coordinates: { type: [Number] },
       },
       geoRadiusKm: { type: Number, min: 0 },
     },
@@ -148,43 +120,19 @@ SavedSearchSchema.index({ 'criteria.geoCenter': '2dsphere' });
 
 // Methods
 SavedSearchSchema.methods.recordMatch = async function (this: ISavedSearch) {
-  // Atomic increment to prevent lost updates from concurrent match recording
-  await (this.constructor as typeof import('mongoose').Model).findByIdAndUpdate(
-    this._id,
-    { $inc: { matchCount: 1 } },
-    { new: true }
-  );
-  // Update in-memory instance to stay consistent
   this.matchCount += 1;
+  await this.save();
 };
 
 SavedSearchSchema.methods.recordNotification = async function (this: ISavedSearch) {
-  // Atomic increment + set to prevent lost updates from concurrent notifications
-  const now = new Date();
-  await (this.constructor as typeof import('mongoose').Model).findByIdAndUpdate(
-    this._id,
-    { 
-      $inc: { notificationsSent: 1 },
-      $set: { lastNotifiedAt: now }
-    },
-    { new: true }
-  );
-  // Update in-memory instance to stay consistent
   this.notificationsSent += 1;
-  this.lastNotifiedAt = now;
+  this.lastNotifiedAt = new Date();
+  await this.save();
 };
 
 SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
-  // Atomic toggle using aggregation pipeline to flip boolean
-  const result = await (this.constructor as typeof import('mongoose').Model).findByIdAndUpdate(
-    this._id,
-    [{ $set: { active: { $not: '$active' } } }],
-    { new: true }
-  );
-  // Update in-memory instance to reflect new value
-  if (result) {
-    this.active = (result as ISavedSearch).active;
-  }
+  this.active = !this.active;
+  await this.save();
 };
 
 const SavedSearch: Model<ISavedSearch> =

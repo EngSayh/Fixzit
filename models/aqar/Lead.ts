@@ -110,12 +110,7 @@ const LeadSchema = new Schema<ILead>(
     
     inquirerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     inquirerName: { type: String, required: true, maxlength: 200 },
-    inquirerPhone: { 
-      type: String, 
-      required: true,
-      trim: true,
-      match: [/^\+[1-9]\d{1,14}$/, 'Phone number must be in E.164 format with leading + and 1-15 digits (e.g., +1234567890)']
-    },
+    inquirerPhone: { type: String, required: true, index: true },
     inquirerEmail: { type: String, maxlength: 200 },
     inquirerNationalId: { type: String },
     
@@ -176,156 +171,54 @@ LeadSchema.methods.addNote = async function (
   authorId: mongoose.Types.ObjectId,
   content: string
 ) {
-  // Use atomic $push to prevent race conditions when multiple agents add notes simultaneously
-  await mongoose.model('AqarLead').findByIdAndUpdate(
-    this._id,
-    {
-      $push: {
-        notes: {
-          authorId,
-          content,
-          createdAt: new Date(),
-        },
-      },
-    }
-  );
-  // Reload the document from DB to get fresh data (don't use populate on embedded array)
-  const updated = await mongoose.model('AqarLead').findById(this._id);
-  if (updated) {
-    this.notes = (updated as ILead).notes;
-  }
+  this.notes.push({
+    authorId,
+    content,
+    createdAt: new Date(),
+  });
+  await this.save();
 };
 
 LeadSchema.methods.assign = async function (
   this: ILead,
   agentId: mongoose.Types.ObjectId
 ) {
-  // Atomic update with terminal state filter to prevent race conditions
-  const result = await mongoose.model('AqarLead').findOneAndUpdate(
-    {
-      _id: this._id,
-      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
-    },
-    [
-      {
-        $set: {
-          assignedTo: agentId,
-          assignedAt: new Date(),
-          status: {
-            $cond: [
-              { $eq: ['$status', LeadStatus.NEW] },
-              LeadStatus.CONTACTED,
-              '$status'
-            ]
-          }
-        }
-      }
-    ],
-    { new: true }
-  );
-  
-  if (!result) {
-    throw new Error(`Cannot reassign lead in terminal state`);
+  this.assignedTo = agentId;
+  this.assignedAt = new Date();
+  if (this.status === LeadStatus.NEW) {
+    this.status = LeadStatus.CONTACTED;
   }
-  
-  // Update in-memory instance
-  this.assignedTo = (result as ILead).assignedTo;
-  this.assignedAt = (result as ILead).assignedAt;
-  this.status = (result as ILead).status;
+  await this.save();
 };
 
 LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
-  // Validate dateTime is a valid Date in the future
-  if (!(dateTime instanceof Date) || isNaN(dateTime.getTime())) {
-    throw new Error('Invalid dateTime: must be a valid Date object');
+  // Don't regress from advanced states
+  const advancedStates = [LeadStatus.NEGOTIATING, LeadStatus.WON, LeadStatus.LOST];
+  if (advancedStates.includes(this.status)) {
+    throw new Error(`Cannot schedule viewing for lead in ${this.status} status`);
   }
-  
-  if (dateTime.getTime() <= Date.now()) {
-    throw new Error('Invalid dateTime: viewing must be scheduled in the future');
-  }
-  
-  // Use atomic update with preconditions to prevent race conditions and enforce state transitions
-  const result = await mongoose.model('AqarLead').findOneAndUpdate(
-    {
-      _id: this._id,
-      // Terminal states (WON, LOST, SPAM) are immutable, also prevent regression from NEGOTIATING
-      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM, LeadStatus.NEGOTIATING] }
-    },
-    {
-      $set: {
-        viewingScheduledAt: dateTime,
-        status: LeadStatus.VIEWING,
-      },
-    },
-    { new: true }
-  );
-  
-  if (!result) {
-    throw new Error(`Cannot schedule viewing: lead not found or in invalid state (current: ${this.status})`);
-  }
-  
-  // Update local instance
-  this.viewingScheduledAt = (result as ILead).viewingScheduledAt;
-  this.status = (result as ILead).status;
+  this.viewingScheduledAt = dateTime;
+  this.status = LeadStatus.VIEWING;
+  await this.save();
 };
 
 LeadSchema.methods.completeViewing = async function (this: ILead) {
-  // Use atomic update with preconditions in query to prevent race conditions
-  // Include viewingScheduledAt check in DB query to avoid TOCTOU race
-  const result = await mongoose.model('AqarLead').findOneAndUpdate(
-    {
-      _id: this._id,
-      viewingScheduledAt: { $exists: true },
-      // Terminal states (WON, LOST, SPAM) are immutable - check in DB query
-      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
-    },
-    {
-      $set: {
-        viewingCompletedAt: new Date(),
-        status: LeadStatus.NEGOTIATING,
-      },
-    },
-    { new: true }
-  );
-  
-  if (!result) {
-    throw new Error(`Cannot complete viewing: lead not found, no viewing scheduled, or in terminal state (current: ${this.status})`);
+  if (!this.viewingScheduledAt) {
+    throw new Error('No viewing scheduled');
   }
-  
-  // Update local instance
-  this.viewingCompletedAt = (result as ILead).viewingCompletedAt;
-  this.status = (result as ILead).status;
+  this.viewingCompletedAt = new Date();
+  this.status = LeadStatus.NEGOTIATING;
+  await this.save();
 };
 
 LeadSchema.methods.markAsWon = async function (
   this: ILead,
   userId: mongoose.Types.ObjectId
 ) {
-  // Use atomic update with preconditions in DB query to prevent race conditions (TOCTOU)
-  const result = await mongoose.model('AqarLead').findOneAndUpdate(
-    {
-      _id: this._id,
-      // Only allow transition from non-terminal states
-      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
-    },
-    {
-      $set: {
-        status: LeadStatus.WON,
-        closedAt: new Date(),
-        closedBy: userId,
-      }
-    },
-    { new: true }
-  );
-  
-  if (!result) {
-    throw new Error('Cannot mark lead as WON - invalid state or concurrent modification');
-  }
-  
-  // Update in-memory instance
-  this.status = (result as ILead).status;
-  this.closedAt = (result as ILead).closedAt;
-  this.closedBy = (result as ILead).closedBy;
+  this.status = LeadStatus.WON;
+  this.closedAt = new Date();
+  this.closedBy = userId;
+  await this.save();
 };
 
 LeadSchema.methods.markAsLost = async function (
@@ -333,57 +226,16 @@ LeadSchema.methods.markAsLost = async function (
   userId: mongoose.Types.ObjectId,
   reason?: string
 ) {
-  // Use atomic update with preconditions in DB query to prevent race conditions (TOCTOU)
-  const result = await mongoose.model('AqarLead').findOneAndUpdate(
-    {
-      _id: this._id,
-      // Only allow transition from non-terminal states
-      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
-    },
-    {
-      $set: {
-        status: LeadStatus.LOST,
-        closedAt: new Date(),
-        closedBy: userId,
-        lostReason: reason,
-      }
-    },
-    { new: true }
-  );
-  
-  if (!result) {
-    throw new Error('Cannot mark lead as LOST - invalid state or concurrent modification');
-  }
-  
-  // Update in-memory instance
-  this.status = (result as ILead).status;
-  this.closedAt = (result as ILead).closedAt;
-  this.closedBy = (result as ILead).closedBy;
-  this.lostReason = (result as ILead).lostReason;
+  this.status = LeadStatus.LOST;
+  this.closedAt = new Date();
+  this.closedBy = userId;
+  this.lostReason = reason;
+  await this.save();
 };
 
 LeadSchema.methods.markAsSpam = async function (this: ILead) {
-  // Use atomic update with preconditions to prevent race conditions
-  // Remove in-memory checks to avoid TOCTOU race - DB enforces all preconditions
-  const result = await mongoose.model('AqarLead').findOneAndUpdate(
-    {
-      _id: this._id,
-      status: { $nin: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.SPAM] }
-    },
-    {
-      $set: {
-        status: LeadStatus.SPAM,
-      }
-    },
-    { new: true }
-  );
-  
-  if (!result) {
-    throw new Error('Cannot mark lead as SPAM - invalid state or concurrent modification');
-  }
-  
-  // Update in-memory instance
-  this.status = (result as ILead).status;
+  this.status = LeadStatus.SPAM;
+  await this.save();
 };
 
 const Lead: Model<ILead> =

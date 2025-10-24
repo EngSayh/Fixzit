@@ -3,62 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from 'lucide-react';
 
-// Module-level singleton Promise to prevent race conditions
-let googleMapsLoadPromise: Promise<void> | null = null;
-
-// Global script refcount to safely manage shared Google Maps API script
-declare global {
-  interface Window {
-    __googleMapsRefCount?: number;
-  }
-}
-
-/**
- * Load Google Maps script using singleton pattern.
- * Multiple simultaneous calls will share the same Promise.
- */
-function loadGoogleMapsScript(): Promise<void> {
-  // Return existing promise if script is loading or loaded
-  if (googleMapsLoadPromise) {
-    return googleMapsLoadPromise;
-  }
-
-  // Check if already loaded
-  if (window.google?.maps) {
-    googleMapsLoadPromise = Promise.resolve();
-    return googleMapsLoadPromise;
-  }
-
-  // Create new loading promise
-  googleMapsLoadPromise = new Promise((resolve, reject) => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    
-    if (!apiKey) {
-      reject(new Error('Google Maps API key not found in environment variables'));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-    script.async = true;
-    script.defer = true;
-    
-    script.onload = () => {
-      script.dataset.loaded = 'true';
-      resolve();
-    };
-    
-    script.onerror = () => {
-      googleMapsLoadPromise = null; // Reset on error to allow retry
-      reject(new Error('Failed to load Google Maps script'));
-    };
-    
-    document.head.appendChild(script);
-  });
-
-  return googleMapsLoadPromise;
-}
-
 interface GoogleMapProps {
   center: { lat: number; lng: number };
   zoom?: number;
@@ -71,8 +15,29 @@ interface GoogleMapProps {
   onMapClick?: (lat: number, lng: number) => void;
 }
 
+// Helper function to create InfoWindow content safely
+function createInfoWindowContent(title?: string, info?: string): HTMLDivElement {
+  const contentDiv = document.createElement('div');
+  contentDiv.style.padding = '8px';
+  
+  if (title) {
+    const titleElement = document.createElement('strong');
+    titleElement.textContent = title;
+    contentDiv.appendChild(titleElement);
+    contentDiv.appendChild(document.createElement('br'));
+  }
+  
+  if (info) {
+    const infoText = document.createElement('span');
+    infoText.textContent = info;
+    contentDiv.appendChild(infoText);
+  }
+  
+  return contentDiv;
+}
+
 // Simple, reliable Google Maps implementation
-export default function GoogleMap({
+export default function GoogleMap({ 
   center, 
   zoom = 13, 
   markers = [], 
@@ -85,31 +50,23 @@ export default function GoogleMap({
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
   const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
   const mapClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const scriptRef = useRef<HTMLScriptElement | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mapReady, setMapReady] = useState(false);
 
   // Keep callback ref in sync
   useEffect(() => {
     onMapClickRef.current = onMapClick;
   }, [onMapClick]);
 
-  // Load Google Maps script once on mount
+  // Initialize map once on mount
   useEffect(() => {
-    let mounted = true;
+    const initMap = () => {
+      if (!mapRef.current) return;
 
-    const initMap = async () => {
       try {
-        // Use singleton loader to prevent race conditions
-        await loadGoogleMapsScript();
-        
-        if (!mounted || !mapRef.current || mapInstanceRef.current) return;
-
-        // Increment refcount
-        window.__googleMapsRefCount = (window.__googleMapsRefCount || 0) + 1;
-
-        // Create map once
+        // Create map
         const map = new google.maps.Map(mapRef.current, {
           center,
           zoom,
@@ -132,35 +89,52 @@ export default function GoogleMap({
         }
 
         setLoading(false);
-        setMapReady(true); // Signal that map is ready for markers
       } catch (err) {
         console.error('Failed to initialize map:', err);
-        if (mounted) {
-          setError(err instanceof Error ? err.message : 'Unable to load map. Please check your connection and try again.');
-          setLoading(false);
-        }
+        setError('Failed to load map');
+        setLoading(false);
       }
     };
 
-    initMap();
+    // Load Google Maps script
+    if (!window.google) {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      
+      if (!apiKey) {
+        console.error('Google Maps API key not found in environment variables');
+        setError('Unable to load map. Please check configuration.');
+        setLoading(false);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+      script.async = true;
+      script.defer = true;
+      script.onload = initMap;
+      script.onerror = () => {
+        setError('Failed to load Google Maps. Please check your internet connection.');
+        setLoading(false);
+      };
+      document.head.appendChild(script);
+      scriptRef.current = script;
+    } else {
+      initMap();
+    }
 
     return () => {
-      mounted = false;
-
       // Close all InfoWindows
       infoWindowsRef.current.forEach(iw => iw.close());
       infoWindowsRef.current = [];
       
       // Remove all event listeners
-      if (window.google?.maps) {
-        listenersRef.current.forEach(listener => {
-          google.maps.event.removeListener(listener);
-        });
-      }
+      listenersRef.current.forEach(listener => {
+        google.maps.event.removeListener(listener);
+      });
       listenersRef.current = [];
       
       // Remove map click listener
-      if (mapClickListenerRef.current && window.google?.maps) {
+      if (mapClickListenerRef.current) {
         google.maps.event.removeListener(mapClickListenerRef.current);
         mapClickListenerRef.current = null;
       }
@@ -169,33 +143,36 @@ export default function GoogleMap({
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
       
-      // Clear map instance reference to prevent stale map on remount
-      mapInstanceRef.current = null;
-      
-      // Decrement refcount but DON'T delete window.google
-      // (other components may still need it, and it's a singleton)
-      if (window.__googleMapsRefCount) {
-        window.__googleMapsRefCount -= 1;
+      // Clean up script if we created it
+      if (scriptRef.current) {
+        scriptRef.current.onload = null;
+        scriptRef.current.onerror = null;
+        if (document.head.contains(scriptRef.current)) {
+          document.head.removeChild(scriptRef.current);
+        }
+        scriptRef.current = null;
       }
     };
-    // NOTE: onMapClick is intentionally excluded from deps because onMapClickRef is used
-    // to avoid stale closures. The click listener is registered once and uses the ref
-    // which is kept in sync with the latest onMapClick value via a separate useEffect.
-    // Load script only once on mount, not on center/zoom changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Run only once on mount
 
-  // Update map center and zoom when props change (without recreating the map)
+  // Update center when it changes (without re-initializing map)
   useEffect(() => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setCenter(center);
+    }
+  }, [center]);
+
+  // Update zoom when it changes (without re-initializing map)
+  useEffect(() => {
+    if (mapInstanceRef.current) {
       mapInstanceRef.current.setZoom(zoom);
     }
-  }, [center, zoom]);
+  }, [zoom]);
 
-  // Update markers (only run after map is ready)
+  // Update markers
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapReady) return;
+    if (!mapInstanceRef.current) return;
 
     // Clear existing markers and cleanup
     infoWindowsRef.current.forEach(iw => iw.close());
@@ -213,21 +190,9 @@ export default function GoogleMap({
         title: markerData.title,
       });
 
-      if (markerData.info) {
-        // Create safe DOM elements to prevent XSS
-        const contentDiv = document.createElement('div');
-        contentDiv.style.padding = '8px';
-        
-        if (markerData.title) {
-          const titleElement = document.createElement('strong');
-          titleElement.textContent = markerData.title;
-          contentDiv.appendChild(titleElement);
-          contentDiv.appendChild(document.createElement('br'));
-        }
-        
-        const infoText = document.createElement('span');
-        infoText.textContent = markerData.info;
-        contentDiv.appendChild(infoText);
+      if (markerData.info || markerData.title) {
+        // Use helper function for InfoWindow content
+        const contentDiv = createInfoWindowContent(markerData.title, markerData.info);
 
         const infoWindow = new google.maps.InfoWindow({
           content: contentDiv
@@ -244,7 +209,7 @@ export default function GoogleMap({
 
       markersRef.current.push(marker);
     });
-  }, [markers, mapReady]);
+  }, [markers]);
 
   if (error) {
     return (

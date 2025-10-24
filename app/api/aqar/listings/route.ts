@@ -201,8 +201,8 @@ export async function POST(request: NextRequest) {
             throw new Error('NO_ACTIVE_PACKAGE');
           }
           
-          // 2. Consume package listing atomically (with session)
-          await activePackage.consumeListing(session);
+          // 2. Consume package listing atomically
+          await activePackage.consumeListing();
           
           // 3. Create listing with whitelisted fields only
           const listing = new AqarListing(buildListingData(sanitizedBody, user));

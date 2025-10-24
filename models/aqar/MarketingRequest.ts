@@ -159,43 +159,21 @@ MarketingRequestSchema.methods.accept = async function (
     throw new Error('Only pending requests can be accepted');
   }
   
-  // Update this instance with new values (explicit assignment to preserve Mongoose tracking)
-  const data = result.toObject();
-  this.brokerId = data.brokerId;
-  this.proposedCommissionPercent = data.proposedCommissionPercent;
-  this.status = data.status;
-  this.acceptedAt = data.acceptedAt;
+  // Update this instance with new values
+  Object.assign(this, result.toObject());
 };
 
 MarketingRequestSchema.methods.reject = async function (
   this: IMarketingRequest,
   reason?: string
 ) {
-  // Use atomic update with status filter to prevent race conditions
-  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
-    {
-      _id: this._id,
-      status: MarketingRequestStatus.PENDING
-    },
-    {
-      $set: {
-        status: MarketingRequestStatus.REJECTED,
-        rejectedAt: new Date(),
-        rejectionReason: reason
-      }
-    },
-    { new: true }
-  );
-  
-  if (!result) {
+  if (this.status !== MarketingRequestStatus.PENDING) {
     throw new Error('Only pending requests can be rejected');
   }
-  
-  // Update this instance with new values (explicit assignment to preserve Mongoose tracking)
-  const data = result.toObject();
-  this.status = data.status;
-  this.rejectedAt = data.rejectedAt;
-  this.rejectionReason = data.rejectionReason;
+  this.status = MarketingRequestStatus.REJECTED;
+  this.rejectedAt = new Date();
+  this.rejectionReason = reason;
+  await this.save();
 };
 
 MarketingRequestSchema.methods.linkListing = async function (
@@ -204,26 +182,9 @@ MarketingRequestSchema.methods.linkListing = async function (
 ) {
   // Validate listing exists
   const Listing = mongoose.model('AqarListing');
-  const listing = await Listing.findById(listingId).lean<{
-    listerId: mongoose.Types.ObjectId;
-    orgId?: mongoose.Types.ObjectId;
-  }>();
-  
+  const listing = await Listing.findById(listingId);
   if (!listing) {
     throw new Error('Listing not found');
-  }
-  
-  // Verify ownership: listing must belong to the same owner/organization as the request
-  const listingOwnerIdStr = listing.listerId?.toString();
-  const requestOwnerIdStr = this.ownerId?.toString();
-  const listingOrgIdStr = listing.orgId?.toString();
-  const requestOrgIdStr = this.orgId?.toString();
-  
-  const ownerMatch = listingOwnerIdStr && requestOwnerIdStr && listingOwnerIdStr === requestOwnerIdStr;
-  const orgMatch = listingOrgIdStr && requestOrgIdStr && listingOrgIdStr === requestOrgIdStr;
-  
-  if (!ownerMatch && !orgMatch) {
-    throw new Error('Listing does not belong to this owner/organization');
   }
   
   // Use atomic update with status filter
