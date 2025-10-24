@@ -17,18 +17,23 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
-const missingVars: string[] = [];
-if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
-if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
-if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
-if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
-  missingVars.push('NEXTAUTH_URL');
-}
+// Skip validation during build time (static page generation in CI)
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET;
 
-if (missingVars.length > 0) {
-  throw new Error(
-    'Missing required authentication configuration. See README env section.'
-  );
+if (!isBuildTime) {
+  const missingVars: string[] = [];
+  if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
+  if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
+  if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
+  if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
+    missingVars.push('NEXTAUTH_URL');
+  }
+
+  if (missingVars.length > 0) {
+    throw new Error(
+      'Missing required authentication configuration. See README env section.'
+    );
+  }
 }
 
 // Environment-driven OAuth allowed domains
@@ -40,8 +45,8 @@ const allowedDomains = (process.env.OAUTH_ALLOWED_DOMAINS ?? 'fixzit.com,fixzit.
 export const authConfig = {
   providers: [
     Google({
-      clientId: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
+      clientId: GOOGLE_CLIENT_ID || 'build-time-placeholder',
+      clientSecret: GOOGLE_CLIENT_SECRET || 'build-time-placeholder',
       authorization: {
         params: {
           prompt: 'consent',
@@ -124,5 +129,5 @@ export const authConfig = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: NEXTAUTH_SECRET,
+  secret: NEXTAUTH_SECRET || 'build-time-placeholder',
 } satisfies NextAuthConfig;
