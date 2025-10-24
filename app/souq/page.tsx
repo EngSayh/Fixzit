@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Package, Users, FileText, ClipboardList, Truck, Star} from "lucide-react";
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const SOUQ_FEATURES = [
   {
@@ -43,10 +44,12 @@ const SOUQ_FEATURES = [
 ];
 
 export default function SouqPage() {
+  const { isRTL } = useTranslation();
+  
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#00A859] to-[#FFB400] text-white py-20 px-4 text-center">
+      <section className="bg-gradient-to-br from-success to-accent text-white py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             Fixzit Souq
@@ -54,10 +57,10 @@ export default function SouqPage() {
           <p className="text-xl mb-8 text-white/90 max-w-3xl mx-auto">
             Your complete marketplace for facility management materials, equipment, and services
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className={`flex flex-wrap gap-4 justify-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Link
               href="/souq/catalog"
-              className="px-6 py-3 bg-white hover:bg-gray-100 text-[#00A859] font-semibold rounded-lg transition-colors"
+              className="px-6 py-3 bg-white hover:bg-gray-100 text-success font-semibold rounded-lg transition-colors"
             >
               Browse Catalog
             </Link>
@@ -87,12 +90,12 @@ export default function SouqPage() {
                   href={feature.link}
                   className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border border-gray-200 group"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-[#00A859]/10 rounded-lg group-hover:bg-[#00A859]/20 transition-colors">
-                      <Icon className="h-6 w-6 text-[#00A859]" />
+                  <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                    <div className="p-3 bg-success/10 rounded-lg group-hover:bg-success/20 transition-colors">
+                      <Icon className="h-6 w-6 text-success" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-[#00A859]">
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-success">
                         {feature.title}
                       </h3>
                       <p className="text-sm text-gray-600">
