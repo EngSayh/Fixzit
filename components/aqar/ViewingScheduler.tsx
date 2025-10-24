@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Calendar, Clock, Phone, Video, MapPin, CheckCircle } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface ViewingSchedulerProps {
   propertyId: string;
@@ -38,6 +39,7 @@ export default function ViewingScheduler({
   availableSlots: _availableSlots = [], // Reserved for future use
   onSchedule
 }: ViewingSchedulerProps) {
+  const { isRTL } = useTranslation();
   const [step, setStep] = useState<'type' | 'datetime' | 'details' | 'confirm' | 'success'>('type');
   const [viewingType, setViewingType] = useState<'IN_PERSON' | 'VIRTUAL' | 'VIDEO_CALL'>('IN_PERSON');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -46,6 +48,7 @@ export default function ViewingScheduler({
   const [participants, setParticipants] = useState([{ name: '', phone: '', relationship: 'Primary' }]);
   const [specialRequests, setSpecialRequests] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string>('');
 
   // Generate next 14 days
   const generateDates = () => {
@@ -97,6 +100,7 @@ export default function ViewingScheduler({
     if (!selectedDate || !selectedTime) return;
 
     setIsSubmitting(true);
+    setError('');
     try {
       const data: ViewingRequestData = {
         propertyId,
@@ -115,7 +119,8 @@ export default function ViewingScheduler({
       setStep('success');
     } catch (error) {
       console.error('Failed to schedule viewing:', error);
-      alert('Failed to schedule viewing. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to schedule viewing. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -162,7 +167,7 @@ export default function ViewingScheduler({
         </div>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow"
+          className="px-6 py-2 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow"
         >
           Schedule Another Viewing
         </button>
@@ -180,7 +185,7 @@ export default function ViewingScheduler({
       </div>
 
       {/* Progress Steps */}
-      <div className="flex items-center justify-between mb-8">
+      <div className={`flex items-center justify-between mb-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {['Type', 'Date & Time', 'Details', 'Confirm'].map((label, idx) => {
           const stepKeys = ['type', 'datetime', 'details', 'confirm'];
           const currentIdx = stepKeys.indexOf(step);
@@ -188,16 +193,16 @@ export default function ViewingScheduler({
           const isCompleted = idx < currentIdx;
 
           return (
-            <div key={label} className="flex items-center flex-1">
+            <div key={label} className={`flex items-center flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                isCompleted ? 'bg-green-600' : isActive ? 'bg-[#FFB400]' : 'bg-gray-300'
+                isCompleted ? 'bg-success' : isActive ? 'bg-accent' : 'bg-gray-300'
               } text-white text-sm font-semibold`}>
                 {isCompleted ? '✓' : idx + 1}
               </div>
-              <span className={`ml-2 text-sm ${isActive ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+              <span className={`${isRTL ? 'mr-2' : 'ml-2'} text-sm ${isActive ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
                 {label}
               </span>
-              {idx < 3 && <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-green-600' : 'bg-gray-300'}`} />}
+              {idx < 3 && <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-success' : 'bg-gray-300'}`} />}
             </div>
           );
         })}
@@ -210,12 +215,12 @@ export default function ViewingScheduler({
           
           <button
             onClick={() => setViewingType('IN_PERSON')}
-            className={`w-full p-4 rounded-lg border-2 transition-colors text-left ${
-              viewingType === 'IN_PERSON' ? 'border-[#FFB400] bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
+              viewingType === 'IN_PERSON' ? 'border-accent bg-accent/10' : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-start gap-3">
-              <MapPin className="w-6 h-6 text-[#FF8C00] mt-1" />
+            <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <MapPin className="w-6 h-6 text-accent-dark mt-1" />
               <div>
                 <h4 className="font-semibold text-gray-900">In-Person Viewing</h4>
                 <p className="text-sm text-gray-600">Visit the property with the agent</p>
@@ -225,12 +230,12 @@ export default function ViewingScheduler({
 
           <button
             onClick={() => setViewingType('VIDEO_CALL')}
-            className={`w-full p-4 rounded-lg border-2 transition-colors text-left ${
-              viewingType === 'VIDEO_CALL' ? 'border-[#FFB400] bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
+              viewingType === 'VIDEO_CALL' ? 'border-accent bg-accent/10' : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-start gap-3">
-              <Video className="w-6 h-6 text-[#FF8C00] mt-1" />
+            <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Video className="w-6 h-6 text-accent-dark mt-1" />
               <div>
                 <h4 className="font-semibold text-gray-900">Live Video Call</h4>
                 <p className="text-sm text-gray-600">Virtual walkthrough with agent via video call</p>
@@ -240,12 +245,12 @@ export default function ViewingScheduler({
 
           <button
             onClick={() => setViewingType('VIRTUAL')}
-            className={`w-full p-4 rounded-lg border-2 transition-colors text-left ${
-              viewingType === 'VIRTUAL' ? 'border-[#FFB400] bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
+              viewingType === 'VIRTUAL' ? 'border-accent bg-accent/10' : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-start gap-3">
-              <Phone className="w-6 h-6 text-[#FF8C00] mt-1" />
+            <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Phone className="w-6 h-6 text-accent-dark mt-1" />
               <div>
                 <h4 className="font-semibold text-gray-900">Virtual Tour</h4>
                 <p className="text-sm text-gray-600">Self-guided 360° virtual tour</p>
@@ -255,7 +260,7 @@ export default function ViewingScheduler({
 
           <button
             onClick={() => setStep('datetime')}
-            className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+            className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
           >
             Continue
           </button>
@@ -275,13 +280,13 @@ export default function ViewingScheduler({
                   onClick={() => setSelectedDate(date)}
                   className={`p-2 rounded-lg border text-center transition-colors ${
                     selectedDate && selectedDate.toDateString() === date.toDateString()
-                      ? 'border-[#FFB400] bg-orange-50 text-gray-900'
+                      ? 'border-accent bg-accent/10 text-gray-900'
                       : 'border-gray-200 hover:border-gray-300 text-gray-700'
                   }`}
                 >
                   <div className="text-xs font-semibold">{date.toLocaleDateString('en-SA', { weekday: 'short' })}</div>
                   <div className="text-lg font-bold">{date.getDate()}</div>
-                  {isToday(date) && <div className="text-[10px] text-[#FF8C00]">Today</div>}
+                  {isToday(date) && <div className="text-[10px] text-accent-dark">Today</div>}
                 </button>
               ))}
             </div>
@@ -323,7 +328,7 @@ export default function ViewingScheduler({
                         onClick={() => setSelectedTime(time)}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
                           selectedTime === time
-                            ? 'border-[#FFB400] bg-orange-50 text-gray-900 font-semibold'
+                            ? 'border-accent bg-accent/10 text-gray-900 font-semibold'
                             : 'border-gray-200 hover:border-gray-300 text-gray-700'
                         }`}
                       >
@@ -343,7 +348,7 @@ export default function ViewingScheduler({
                         onClick={() => setSelectedTime(time)}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
                           selectedTime === time
-                            ? 'border-[#FFB400] bg-orange-50 text-gray-900 font-semibold'
+                            ? 'border-accent bg-accent/10 text-gray-900 font-semibold'
                             : 'border-gray-200 hover:border-gray-300 text-gray-700'
                         }`}
                       >
@@ -366,7 +371,7 @@ export default function ViewingScheduler({
             <button
               onClick={() => setStep('details')}
               disabled={!selectedDate || !selectedTime}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continue
             </button>
@@ -394,7 +399,7 @@ export default function ViewingScheduler({
                       updated[idx].name = e.target.value;
                       setParticipants(updated);
                     }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                   <input
                     type="tel"
@@ -405,7 +410,7 @@ export default function ViewingScheduler({
                       updated[idx].phone = e.target.value;
                       setParticipants(updated);
                     }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                   {idx > 0 && (
                     <button
@@ -419,7 +424,7 @@ export default function ViewingScheduler({
               ))}
               <button
                 onClick={addParticipant}
-                className="text-sm text-[#FF8C00] hover:text-[#FFB400] font-medium"
+                className="text-sm text-accent-dark hover:text-accent font-medium"
               >
                 + Add Another Person
               </button>
@@ -433,7 +438,7 @@ export default function ViewingScheduler({
                 onChange={(e) => setSpecialRequests(e.target.value)}
                 placeholder="Any specific areas you'd like to focus on? Accessibility requirements? Questions for the agent?"
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
               />
             </div>
           </div>
@@ -447,11 +452,18 @@ export default function ViewingScheduler({
             </button>
             <button
               onClick={() => setStep('confirm')}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
             >
               Review
             </button>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm" role="alert">
+              {error}
+            </div>
+          )}
         </div>
       )}
 
@@ -503,11 +515,18 @@ export default function ViewingScheduler({
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Scheduling...' : 'Confirm Booking'}
             </button>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm" role="alert">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </div>
