@@ -40,9 +40,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const targetType = searchParams.get('targetType'); // LISTING|PROJECT
     
-    // Pagination with validation
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    // Pagination with validation - handle NaN explicitly
+    const parsedPage = parseInt(searchParams.get('page') || '1', 10);
+    const parsedLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const page = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
+    const limit = Number.isNaN(parsedLimit) ? 20 : Math.min(100, Math.max(1, parsedLimit));
     const skip = (page - 1) * limit;
     
     const query: Record<string, unknown> = {

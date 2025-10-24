@@ -8,6 +8,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { isIP } from 'net';
 
 /**
  * Extract client IP address from request headers
@@ -101,15 +102,17 @@ export function isValidIPv4(ip: string): boolean {
 }
 
 /**
- * Validate if string is a valid IPv6 address (basic check)
+ * Validates if a string is a valid IPv6 address using Node.js built-in validation.
+ * 
+ * Note: Production-security decisions rely on this robust check using Node's net.isIP().
+ * This correctly handles all IPv6 edge cases including :: abbreviation and mixed notation.
  * 
  * @param ip - IP address string to validate
- * @returns true if likely valid IPv6, false otherwise
+ * @returns true if valid IPv6, false otherwise
  */
 export function isValidIPv6(ip: string): boolean {
-  // Basic IPv6 regex (simplified)
-  const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
-  return ipv6Regex.test(ip);
+  // Use Node.js built-in validation (isIP returns 6 for IPv6, 4 for IPv4, 0 for invalid)
+  return isIP(ip) === 6;
 }
 
 /**

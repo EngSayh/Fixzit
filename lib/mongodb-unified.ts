@@ -9,21 +9,21 @@ declare global {
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
 
-// Enforce production requirements
-if (process.env.NODE_ENV === 'production') {
-  if (!MONGODB_URI || MONGODB_URI.trim().length === 0) {
-    throw new Error('FATAL: MONGODB_URI or DATABASE_URL is required in production');
-  }
-  if (!MONGODB_URI.startsWith('mongodb+srv://') && !MONGODB_URI.startsWith('mongodb://')) {
-    throw new Error('FATAL: Invalid MongoDB URI format in production. Must start with mongodb:// or mongodb+srv://');
-  }
-}
-
 /**
  * Validates MongoDB URI is configured
  * Called at runtime (not at module load) to avoid build-time failures
  */
 function validateMongoUri(): string {
+  // Enforce production requirements at runtime
+  if (process.env.NODE_ENV === 'production') {
+    if (!MONGODB_URI || MONGODB_URI.trim().length === 0) {
+      throw new Error('FATAL: MONGODB_URI or DATABASE_URL is required in production');
+    }
+    if (!MONGODB_URI.startsWith('mongodb+srv://') && !MONGODB_URI.startsWith('mongodb://')) {
+      throw new Error('FATAL: Invalid MongoDB URI format in production. Must start with mongodb:// or mongodb+srv://');
+    }
+  }
+  
   if (!MONGODB_URI) {
     throw new Error(
       'Please define the MONGODB_URI or DATABASE_URL environment variable inside .env.local'

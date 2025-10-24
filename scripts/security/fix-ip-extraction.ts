@@ -4,8 +4,7 @@
  * 
  * This script replaces all unsafe IP extraction patterns across the codebase
  * with the centralized secure function.
-    // Only replace the assignment; import insertion is handled separately
-    replace: 'const clientIp = getClientIP(req);'
+ * 
  * VULNERABILITY: x-forwarded-for?.split(',')[0] uses FIRST IP (client-controlled)
  * FIX: Import and use getClientIP() which uses LAST IP (trusted proxy)
  */

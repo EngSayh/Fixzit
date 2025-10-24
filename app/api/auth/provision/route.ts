@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       const session = await conn.startSession();
       
       try {
-        let createdUser: typeof User.prototype;
+        let createdUser: InstanceType<typeof User>;
         
         createdUser = await session.withTransaction(async () => {
           // Generate unique user code atomically using MongoDB counter

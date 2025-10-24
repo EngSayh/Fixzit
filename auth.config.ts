@@ -6,29 +6,9 @@ async function hashEmail(email: string): Promise<string> {
   // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
   const salt = process.env.LOG_HASH_SALT;
   
-  // Fail-fast: Enforce salt requirement in production (no fallback allowed)
-  if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
-    if (!salt || salt.trim().length === 0) {
-      throw new Error(
-        'FATAL: LOG_HASH_SALT is required in production environment. ' +
-        'Generate with: openssl rand -hex 32'
-      );
-    }
-    if (salt.length < 32) {
-      throw new Error(
-        `FATAL: LOG_HASH_SALT must be at least 32 characters. Current length: ${salt.length}. ` +
-        'Generate with: openssl rand -hex 32'
-      );
-    }
-  }
-  
+  // Fail-fast: Enforce salt requirement in production (checked at module init below)
   // In development, allow temporary dev salt for testing
-  const finalSalt = salt || (process.env.NODE_ENV === 'development' 
-    ? 'dev-only-salt-REPLACE-IN-PROD' 
-    : (() => { 
-        throw new Error('FATAL: LOG_HASH_SALT is required but not set'); 
-      })()
-  );
+  const finalSalt = salt || 'dev-only-salt-REPLACE-IN-PROD';
   
   // Use delimiter to prevent length-extension attacks
   const msgUint8 = new TextEncoder().encode(`${finalSalt}|${email}`);
@@ -54,9 +34,32 @@ if (process.env.NODE_ENV === 'production' && !LOG_HASH_SALT) {
   missingVars.push('LOG_HASH_SALT (required in production for secure email hashing)');
 }
 
-// Validate INTERNAL_API_SECRET length in production
-if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
-  if (INTERNAL_API_SECRET && INTERNAL_API_SECRET.trim().length < 32) {
+// Validate LOG_HASH_SALT in production (fail-fast at module initialization)
+if (process.env.NODE_ENV === 'production') {
+  const salt = process.env.LOG_HASH_SALT;
+  if (!salt || salt.trim().length === 0) {
+    throw new Error(
+      'FATAL: LOG_HASH_SALT is required in production environment. ' +
+      'Generate with: openssl rand -hex 32'
+    );
+  }
+  if (salt.length < 32) {
+    throw new Error(
+      `FATAL: LOG_HASH_SALT must be at least 32 characters in production. Current length: ${salt.length}. ` +
+      'Generate with: openssl rand -hex 32'
+    );
+  }
+}
+
+// Validate INTERNAL_API_SECRET in production (fail-fast)
+if (process.env.NODE_ENV === 'production') {
+  if (!INTERNAL_API_SECRET || INTERNAL_API_SECRET.trim().length === 0) {
+    throw new Error(
+      'FATAL: INTERNAL_API_SECRET is required in production. ' +
+      'Generate a secure secret: openssl rand -hex 32'
+    );
+  }
+  if (INTERNAL_API_SECRET.trim().length < 32) {
     throw new Error(
       `FATAL: INTERNAL_API_SECRET must be at least 32 characters in production. Current length: ${INTERNAL_API_SECRET.trim().length}. ` +
       'Generate a secure secret: openssl rand -hex 32'
@@ -199,14 +202,16 @@ export const authConfig = {
           const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
           const encodedEmail = encodeURIComponent(user.email);
           
-          // Use validated INTERNAL_API_SECRET (validated at startup)
-          const internalSecret = INTERNAL_API_SECRET || '';
+          // Use validated INTERNAL_API_SECRET (validated at startup, no fallback)
+          if (!INTERNAL_API_SECRET) {
+            throw new Error('INTERNAL_API_SECRET not available - startup validation failed');
+          }
           
           const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
             headers: { 
               // Use dedicated internal API secret instead of reusing NEXTAUTH_SECRET
               // This follows security best practice of not reusing signing secrets for authentication
-              'x-internal-auth': internalSecret
+              'x-internal-auth': INTERNAL_API_SECRET
             },
           });
           if (response.ok) {

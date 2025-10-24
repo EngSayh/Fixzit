@@ -47,27 +47,38 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Invalid JSON payload' }, 400, req);
   }
   
+  if (!payload) {
+    return createSecureResponse({ error: 'Empty payload' }, 400, req);
+  }
+  
   // 1) Validate signature
   if (!validateCallback(payload, signature)) {
     console.error('[Billing Callback] Invalid signature from PayTabs');
     return createSecureResponse({ error: 'Invalid signature' }, 401, req);
   }
   
-  const data = payload || {};
+  const data = payload;
   const tranRef = (data.tran_ref || data.tranRef) as string;
   const cartId  = (data.cart_id || data.cartId) as string;
   const token   = data.token as string | undefined;
 
   // 2) Verify payment with PayTabs server-to-server
-  let verification: { payment_result?: { response_status?: string; response_message?: string }; cart_amount?: string; payment_info?: unknown } | null = null;
+  let verification: unknown = null;
   try {
-    verification = await verifyPayment(tranRef) as typeof verification;
+    verification = await verifyPayment(tranRef);
   } catch (error) {
     console.error('[Billing Callback] Failed to verify payment with PayTabs:', error instanceof Error ? error.message : String(error));
     return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
   }
   
-  const verifiedOk = verification?.payment_result?.response_status === 'A';
+  // Type-safe access to verification result
+  const verificationData = verification as { 
+    payment_result?: { response_status?: string; response_message?: string }; 
+    cart_amount?: string; 
+    payment_info?: { card_scheme?: string; payment_description?: string; expiryMonth?: string; expiryYear?: string } 
+  } | null;
+  
+  const verifiedOk = verificationData?.payment_result?.response_status === 'A';
   
   const subId = cartId?.replace('SUB-','');
   const sub = await Subscription.findById(subId);
@@ -79,7 +90,7 @@ export async function POST(req: NextRequest) {
 
   if (!verifiedOk) {
     inv.status = 'failed'; 
-    inv.errorMessage = verification?.payment_result?.response_message || data.respMessage as string || 'Payment declined';
+    inv.errorMessage = verificationData?.payment_result?.response_message || data.respMessage as string || 'Payment declined';
     await inv.save(); 
     return createSecureResponse({ ok: false }, 200, req);
   }
@@ -87,7 +98,7 @@ export async function POST(req: NextRequest) {
   inv.status = 'paid'; inv.paytabsTranRef = tranRef; await inv.save();
 
   if (token && sub.billingCycle === 'monthly') {
-    const paymentInfo = (verification?.payment_info || data.payment_info) as { card_scheme?: string; payment_description?: string; expiryMonth?: string; expiryYear?: string } | undefined;
+    const paymentInfo = verificationData?.payment_info || data.payment_info as { card_scheme?: string; payment_description?: string; expiryMonth?: string; expiryYear?: string } | undefined;
     const pm = await PaymentMethod.create({
       customerId: sub.customerId, 
       token, 
