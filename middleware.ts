@@ -319,9 +319,9 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
       }
     }
 
-    // Redirect based on user role
-    if (pathname === '/' || pathname === '/login') {
-      // Redirect to appropriate dashboard based on role
+    // Redirect based on user role - ONLY from /login, NOT from /
+    if (pathname === '/login') {
+      // Redirect authenticated users from login page to appropriate dashboard based on role
       if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
         return NextResponse.redirect(new URL('/fm/dashboard', request.url));
       } else if (user.role === 'TENANT') {
@@ -333,6 +333,8 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
         return NextResponse.redirect(new URL('/fm/dashboard', request.url));
       }
     }
+    
+    // Allow authenticated users to view landing page at / (no auto-redirect)
 
     // FM routes - check role-based access
     if (matchesAnyRoute(pathname, fmRoutes)) {
