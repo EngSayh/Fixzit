@@ -395,7 +395,15 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         {t.privacy}
       </div>
 
-      <div ref={scrollRef} className="max-h-[320px] overflow-y-auto px-4 py-4 space-y-3">
+      {/* Message container with aria-live for screen reader announcements */}
+      <div 
+        ref={scrollRef} 
+        className="max-h-[320px] overflow-y-auto px-4 py-4 space-y-3"
+        aria-live="polite"
+        aria-atomic="false"
+        role="log"
+        aria-label={locale === 'ar' ? 'سجل المحادثة' : 'Chat conversation log'}
+      >
         {messages.map(message => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.role === 'user' ? 'bg-[#00A859] text-white' : message.role === 'system' ? 'bg-amber-50 text-amber-800' : 'border border-gray-100 bg-white text-gray-800'}`}>
