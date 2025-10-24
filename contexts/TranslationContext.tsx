@@ -1800,7 +1800,8 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
-const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS[0];
+// Default to Arabic since this is a Saudi Arabian application
+const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS.find(opt => opt.language === 'ar') || LANGUAGE_OPTIONS[0];
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
   const [currentOption, setCurrentOption] = useState<LanguageOption>(DEFAULT_LANGUAGE_OPTION);
