@@ -79,7 +79,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [orgSettings, setOrgSettings] = useState<OrgSettings>({
     name: 'FIXZIT ENTERPRISE',
-    logo: null
+    logo: '/img/fixzit-logo.jpg'
   });
 
   // Use NextAuth session for authentication (supports both OAuth and JWT)
