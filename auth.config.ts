@@ -59,8 +59,8 @@ if (missingNonSecrets.length > 0) {
   );
 }
 
-// Validate secrets only when not explicitly skipped
-const skipSecretValidation = process.env.SKIP_ENV_VALIDATION === 'true';
+// Validate secrets only when not in CI and not explicitly skipped
+const skipSecretValidation = isCI || process.env.SKIP_ENV_VALIDATION === 'true';
 
 if (!skipSecretValidation) {
   const missingSecrets: string[] = [];
@@ -74,6 +74,8 @@ if (!skipSecretValidation) {
       `Missing required authentication secrets: ${missingSecrets.join(', ')}. See README env section. Set SKIP_ENV_VALIDATION=true to skip secret checks during build (NOT recommended for production).`
     );
   }
+} else if (isCI) {
+  console.warn('⚠️  CI=true: Secret validation skipped for CI build. Secrets will be required at runtime.');
 } else {
   console.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
 }
