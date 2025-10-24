@@ -47,9 +47,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider>
-      <ResponsiveProvider>
-        <I18nProvider>
-          <TranslationProvider>
+      <I18nProvider>
+        <TranslationProvider>
+          <ResponsiveProvider>
             <CurrencyProvider>
               <ThemeProvider>
                 <TopBarProvider>
@@ -61,9 +61,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 </TopBarProvider>
               </ThemeProvider>
             </CurrencyProvider>
-          </TranslationProvider>
-        </I18nProvider>
-      </ResponsiveProvider>
+          </ResponsiveProvider>
+        </TranslationProvider>
+      </I18nProvider>
     </SessionProvider>
   );
 }
