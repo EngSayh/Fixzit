@@ -73,6 +73,8 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       type: 'JSON_PARSE_ERROR',
       autoFix: async (_error: Error) => {
         // Clear localStorage cache that might be corrupted
+        // Note: Aggressive approach - clears all storage to ensure clean state
+        // Alternative: Could implement targeted clearing based on error context
         try {
           localStorage.clear();
           sessionStorage.clear();
@@ -329,7 +331,15 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
   // Enhanced error indexing and reporting
   private generateErrorReport = (error: Error, errorInfo: React.ErrorInfo) => {
-    const errorId = `ERR-${crypto.randomUUID()}`;
+    // Generate unique error ID with browser compatibility fallback
+    let errorId: string;
+    try {
+      // crypto.randomUUID() is supported in modern browsers (Chrome 92+, Firefox 95+, Safari 15.4+)
+      errorId = `ERR-${crypto.randomUUID()}`;
+    } catch {
+      // Fallback for older browsers: use timestamp + random number
+      errorId = `ERR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
 
     const errorReport = {
       errorId,
@@ -349,6 +359,8 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         platform: navigator.platform,
         cookieEnabled: navigator.cookieEnabled,
         onLine: navigator.onLine,
+        // Chrome-specific Performance Memory API (supplementary diagnostic data)
+        // Gracefully returns null in non-Chrome browsers
         memory: ('memory' in performance && performance.memory) ? {
           used: (performance.memory as PerformanceMemory).usedJSHeapSize,
           total: (performance.memory as PerformanceMemory).totalJSHeapSize,
@@ -417,23 +429,8 @@ ${errorReport.error.componentStack || 'No component stack available'}
     this.setState({ showSupport: true });
   };
 
-  // Send welcome email to new users who encountered errors
-  private _sendWelcomeEmail = async (email: string, errorId: string) => {
-    try {
-      await fetch('/api/support/welcome-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          errorId,
-          subject: 'Welcome to Fixzit Enterprise - Error Resolution Steps',
-          registrationLink: `${window.location.origin}/login?welcome=true`
-        })
-      });
-    } catch (error) {
-      console.error('Failed to send welcome email:', error);
-    }
-  };
+  // NOTE: _sendWelcomeEmail removed - welcome emails should be handled by auth flow, not error boundary
+  // If needed for error-related user onboarding, implement as separate service
 
   private handleRetry = () => {
     const newRetryCount = (this.state.retryCount || 0) + 1;
@@ -456,6 +453,8 @@ ${errorReport.error.componentStack || 'No component stack available'}
 
   render() {
     if (this.state.hasError) {
+      // Note: CSS variables (--fixzit-*) are defined in app/globals.css
+      // Ensure globals.css is imported in root layout
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-6 text-center">
