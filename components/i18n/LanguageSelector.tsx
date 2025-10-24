@@ -115,11 +115,11 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
       {open && (
         <div
           className={`absolute z-[100] mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${
-            isRTL ? 'left-0' : 'right-0'
+            isRTL ? 'right-0' : 'right-0'
           } animate-in slide-in-from-top-2 duration-200`}
         >
           {/* Arrow pointer */}
-          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
+          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'right-8' : 'right-8'}`}></div>
           <div className="relative mb-2">
             <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-gray-400 ${isRTL ? 'right-2' : 'left-2'}`} aria-hidden="true" focusable="false" />
             <input
