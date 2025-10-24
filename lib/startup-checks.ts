@@ -78,6 +78,6 @@ export function getJWTSecret(): string {
     return secret;
   }
   
-  // In development, allow dev fallback only after validation
-  return secret || 'dev-only-secret-REPLACE-IN-PROD';
+  // In development, allow dev fallback only after validation (meets 32+ char requirement)
+  return secret || 'dev-only-secret-REPLACE-IN-PRODUCTION-WITH-STRONG-KEY';
 }

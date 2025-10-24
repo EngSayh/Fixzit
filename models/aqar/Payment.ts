@@ -143,6 +143,8 @@ PaymentSchema.statics.getStandardFees = function () {
 /**
  * Scrub sensitive data from gatewayResponse for safe logging/display
  * Removes PII, tokens, and internal gateway details
+ * Note: Currently does shallow scrubbing (depth 1). Nested objects shown as '[OBJECT]'
+ * to prevent accidental leakage. For full recursive scrubbing, implement depth-limited recursion.
  */
 PaymentSchema.methods.getSafeGatewayResponse = function (this: IPayment): Record<string, unknown> | undefined {
   if (!this.gatewayResponse) return undefined;
@@ -161,7 +163,7 @@ PaymentSchema.methods.getSafeGatewayResponse = function (this: IPayment): Record
     if (isSensitive) {
       scrubbed[key] = '[REDACTED]';
     } else if (typeof value === 'object' && value !== null) {
-      // Recursively scrub nested objects (limit depth to 2 levels)
+      // Shallow scrubbing: nested objects replaced with '[OBJECT]' placeholder
       scrubbed[key] = '[OBJECT]';
     } else {
       scrubbed[key] = value;

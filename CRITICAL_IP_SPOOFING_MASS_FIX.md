@@ -172,7 +172,7 @@ content = re.sub(
     "const clientIp = getClientIP(req);",
     content
 )
-```text
+```
 
 ### Before (UNSAFE - 79 files)
 
@@ -182,7 +182,7 @@ const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'u
 
 // Or inline in function calls
 await service.log(req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown");
-```text
+```
 
 ### After (SECURE - 79 files)
 
@@ -194,7 +194,7 @@ const clientIp = getClientIP(req);
 
 // Or inline in function calls
 await service.log(getClientIP(req));
-```text
+```
 ---
 
 ## 🛡️ Security Impact
@@ -268,14 +268,14 @@ await service.log(getClientIP(req));
 ```bash
 $ pnpm typecheck
 ✅ PASSED - 0 errors
-```text
+```
 
 ### Pattern Search
 
 ```bash
 $ grep -r "x-forwarded-for.*split.*\[0\]" app/api/
 ✅ 0 matches found
-```text
+```
 
 ### Files Fixed
 
@@ -284,7 +284,7 @@ $ python3 fix-ip-extraction.py
 🔍 Scanning 130 API route files...
 ✅ Fixed 79 files
 📊 Remaining unsafe patterns: 0
-```text
+```
 ---
 
 ## 🚀 Deployment Impact

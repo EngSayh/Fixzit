@@ -46,14 +46,14 @@ export function getClientIP(request: NextRequest): string {
   const ip = forwarded?.split(',')[0] || realIP || 'unknown';  // ⚠️ VULNERABLE
   return ip.trim();
 }
-```text
+```
 **Why This Is Vulnerable**:
 
-```text
+```
 X-Forwarded-For: <client-IP>, <proxy1-IP>, <proxy2-IP>, <our-proxy-IP>
                   ^^^^^^^^^^
                   [0] - CLIENT CONTROLLED ❌
-```text
+```
 **Previous "Fix" Was Also Unsafe**:
 Using `ips[ips.length - 1]` (last IP) without trusted proxy counting collapses all clients to the same proxy IP, breaking rate limiting.
 
@@ -125,16 +125,16 @@ export function getClientIP(request: NextRequest): string {
   // 4) Fallback
   return 'unknown';
 }
-```text
+```
 **Why This Is Secure**:
 
-```text
+```
 X-Forwarded-For: <client-IP>, <proxy1-IP>, <proxy2-IP>, <our-proxy-IP>
                   ^^^^^^^^^^               ^^^^^^^^^^^^
                   With TRUSTED_PROXY_COUNT=1: ips[length-1-1] = ips[2] ✅
                   With TRUSTED_PROXY_COUNT=2: ips[length-1-2] = ips[1] ✅
                   Fallback to leftmost public IP if hop-skipped is private ✅
-```text
+```
 ---
 
 ## Infrastructure Requirements
@@ -158,33 +158,33 @@ TRUSTED_PROXY_COUNT=1  # Default: 1 (single edge proxy)
 # Optional: Only set if your infrastructure sanitizes X-Real-IP
 
 TRUST_X_REAL_IP=true   # Default: false (more secure)
-```text
+```
 
 ### Proxy Topology Examples
 
 #### Single Edge Proxy (TRUSTED_PROXY_COUNT=1)
 
-```text
+```
 Client -> Edge Proxy -> Next.js App
 X-Forwarded-For: <client-IP>, <edge-proxy-IP>
 Selected IP: ips[0] = <client-IP> ✅
-```text
+```
 
 #### Load Balancer + Edge Proxy (TRUSTED_PROXY_COUNT=2)  
 
-```text
+```
 Client -> LB -> Edge Proxy -> Next.js App  
 X-Forwarded-For: <client-IP>, <lb-IP>, <edge-proxy-IP>
 Selected IP: ips[0] = <client-IP> ✅
-```text
+```
 
 #### Cloudflare + Edge Proxy (Recommended)
 
-```text
+```
 Client -> Cloudflare -> Edge Proxy -> Next.js App
 CF-Connecting-IP: <client-IP> (highest priority) ✅
 X-Forwarded-For: <client-IP>, <cf-IP>, <edge-proxy-IP>
-```text
+```
 
 ### Startup Validation
 
@@ -195,14 +195,14 @@ import { validateProxyConfiguration } from '@/server/security/ip-utils';
 
 // Call during app startup
 validateProxyConfiguration(); // Throws on invalid config
-```text
+```
 Output example:
 
-```text
+```
 ✅ Proxy configuration validated:
    - TRUSTED_PROXY_COUNT: 1
    - TRUST_X_REAL_IP: false
-```text
+```
 ---
 
 ## Impact Analysis
@@ -237,14 +237,14 @@ All API routes using `getClientIP()` or `getHardenedClientIp()` now have proper 
 ```bash
 $ pnpm typecheck
 ✅ PASSED - 0 errors with new ip-utils module
-```text
+```
 
 ### Configuration Validation
 
 ```bash
 $ TRUSTED_PROXY_COUNT=invalid node -e "require('./server/security/ip-utils').validateProxyConfiguration()"
 🔴 Proxy configuration error: Invalid TRUSTED_PROXY_COUNT: "invalid". Must be a non-negative integer.
-```text
+```
 
 ### Code Analysis  
 
@@ -267,7 +267,7 @@ import { getClientIP } from '@/server/security/headers';
 
 const ip = getHardenedClientIp(request); // For rate limiting
 const ip2 = getClientIP(request);        // For general use
-```text
+```
 
 ### ✅ DO: Set Infrastructure Variables
 
@@ -276,7 +276,7 @@ const ip2 = getClientIP(request);        // For general use
 # Set based on your actual proxy topology
 
 TRUSTED_PROXY_COUNT=1  # Typical edge proxy setup
-```text
+```
 
 ### ❌ DON'T: Inline IP Extraction
 
@@ -284,14 +284,14 @@ TRUSTED_PROXY_COUNT=1  # Typical edge proxy setup
 // WRONG: Never extract IP inline
 const ip = request.headers.get('x-forwarded-for')?.split(',')[0]; // ⚠️ VULNERABLE
 const ip2 = forwarded?.split(',').pop(); // ⚠️ ALSO UNSAFE without counting
-```text
+```
 
 ### ❌ DON'T: Ignore Configuration
 
 ```typescript
 // WRONG: Don't hardcode proxy assumptions
 const lastIP = ips[ips.length - 1]; // ⚠️ May be proxy IP, not client
-```text
+```
 ---
 
 ## Monitoring & Alerting
@@ -310,7 +310,7 @@ if (isFromProxy) {
 
 // Track IP diversity for rate limiting effectiveness  
 metrics.gauge('ip_extraction.unique_ips_per_hour', uniqueIPsThisHour);
-```text
+```
 
 ### Configuration Drift Detection
 
@@ -321,7 +321,7 @@ metrics.gauge('ip_extraction.unique_ips_per_hour', uniqueIPsThisHour);
 if [[ -z "$TRUSTED_PROXY_COUNT" ]]; then
   echo "⚠️  TRUSTED_PROXY_COUNT not set, using default=1"
 fi
-```text
+```
 ---
 
 ## Conclusion
@@ -347,14 +347,14 @@ fi
 
 Document your actual proxy topology:
 
-```text
+```
 
 # Example: Single Cloudflare + Edge Proxy
 
 Client -> Cloudflare CDN -> Your Edge Proxy -> Next.js App
 TRUSTED_PROXY_COUNT=1 (skip edge proxy)
 CF-Connecting-IP takes priority over X-Forwarded-For
-```text
+```
 ---
 
 **Fix Applied By**: GitHub Copilot Coding Agent  

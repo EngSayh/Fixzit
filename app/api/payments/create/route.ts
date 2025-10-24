@@ -79,9 +79,9 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting: 10 req/5min for payment creation (high sensitivity)
+    // Rate limiting: 10 req/5min (300000ms) for payment creation (high sensitivity)
     const user = await getSessionUser(req);
-    const rl = rateLimit(`payment-create:${user.id}`, 10, 300000);
+    const rl = rateLimit(`payment-create:${user.id}`, 10, 300000); // 5 minutes = 300,000ms
     if (!rl.allowed) {
       return rateLimitError();
     }

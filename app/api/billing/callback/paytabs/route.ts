@@ -71,12 +71,27 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
   }
   
-  // Type-safe access to verification result
-  const verificationData = verification as { 
-    payment_result?: { response_status?: string; response_message?: string }; 
-    cart_amount?: string; 
-    payment_info?: { card_scheme?: string; payment_description?: string; expiryMonth?: string; expiryYear?: string } 
-  } | null;
+  // Type-safe validation of verification result
+  function isValidPayTabsVerification(data: unknown): data is {
+    payment_result: { response_status: string; response_message?: string };
+    cart_amount?: string;
+    payment_info?: { card_scheme?: string; payment_description?: string; expiryMonth?: string; expYear?: string };
+  } {
+    if (!data || typeof data !== 'object') return false;
+    const obj = data as Record<string, unknown>;
+    return (
+      typeof obj.payment_result === 'object' &&
+      obj.payment_result !== null &&
+      typeof (obj.payment_result as Record<string, unknown>).response_status === 'string'
+    );
+  }
+  
+  if (!isValidPayTabsVerification(verification)) {
+    console.error('[Billing Callback] Invalid verification response structure from PayTabs');
+    return createSecureResponse({ error: 'Invalid payment verification response' }, 500, req);
+  }
+  
+  const verificationData = verification;
   
   const verifiedOk = verificationData?.payment_result?.response_status === 'A';
   
@@ -98,17 +113,22 @@ export async function POST(req: NextRequest) {
   inv.status = 'paid'; inv.paytabsTranRef = tranRef; await inv.save();
 
   if (token && sub.billingCycle === 'monthly') {
-    const paymentInfo = verificationData?.payment_info || data.payment_info as { card_scheme?: string; payment_description?: string; expiryMonth?: string; expiryYear?: string } | undefined;
-    const pm = await PaymentMethod.create({
-      customerId: sub.customerId, 
-      token, 
-      scheme: paymentInfo?.card_scheme, 
-      last4: (paymentInfo?.payment_description||'').slice(-4),
-      expMonth: paymentInfo?.expiryMonth, 
-      expYear: paymentInfo?.expiryYear
-    });
-    sub.paytabsTokenId = pm._id;
-    await sub.save();
+    // Only use verified payment info - never fall back to untrusted callback data
+    const paymentInfo = verificationData.payment_info;
+    if (!paymentInfo) {
+      console.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
+    } else {
+      const pm = await PaymentMethod.create({
+        customerId: sub.customerId, 
+        token, 
+        scheme: paymentInfo.card_scheme, 
+        last4: (paymentInfo.payment_description || '').slice(-4),
+        expMonth: paymentInfo.expiryMonth, 
+        expYear: paymentInfo.expYear
+      });
+      sub.paytabsTokenId = pm._id;
+      await sub.save();
+    }
   }
 
   return createSecureResponse({ ok: true }, 200, req);

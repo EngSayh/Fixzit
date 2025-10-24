@@ -1,13 +1,24 @@
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 
-// Privacy-preserving email hash helper for secure logging (Edge-compatible)
+/**
+ * Privacy-preserving email hash for secure logging (Edge Runtime compatible)
+ * 
+ * Hashes email addresses to prevent PII leakage in logs while maintaining uniqueness for debugging.
+ * Uses SHA-256 with salting and delimiter to prevent length-extension attacks.
+ * 
+ * Security model:
+ * - Production: Requires LOG_HASH_SALT (enforced at startup, see missingVars check below)
+ * - Development: Uses dev-only salt for local testing convenience (unsafe for production)
+ * 
+ * Returns 64-bit hash (16 hex chars) for collision resistance while keeping logs concise.
+ */
 async function hashEmail(email: string): Promise<string> {
   // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
   const salt = process.env.LOG_HASH_SALT;
   
-  // Fail-fast: Enforce salt requirement in production (checked at module init below)
-  // In development, allow temporary dev salt for testing
+  // Production salt requirement enforced by startup validation (see missingVars check below)
+  // Dev fallback allowed only in development for testing (never reaches production)
   const finalSalt = salt || 'dev-only-salt-REPLACE-IN-PROD';
   
   // Use delimiter to prevent length-extension attacks
