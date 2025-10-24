@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { Globe, Search } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { LANGUAGE_OPTIONS, type LanguageOption, type LanguageCode } from '@/data/language-options';
@@ -21,7 +21,12 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
   const { language, setLanguage, isRTL, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const hintId = useId();
 
   const current = useMemo<LanguageOption>(() => {
     return LANGUAGE_OPTIONS.find(option => option.language === language) ?? LANGUAGE_OPTIONS[0];
@@ -61,6 +66,9 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
       }
     };
 
+    // Focus the search input when opened
+    queueMicrotask(() => inputRef.current?.focus());
+
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -68,6 +76,22 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);
+
+  // Refocus trigger only when transitioning from open -> closed
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (wasOpenRef.current && !open) {
+      queueMicrotask(() => buttonRef.current?.focus());
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
+  // Initialize the active option when opening or when the filter changes
+  useEffect(() => {
+    if (!open) return;
+    const idx = filtered.findIndex(o => o.locale === current.locale);
+    setActiveIndex(idx >= 0 ? idx : 0);
+  }, [open, filtered, current.locale]);
 
   const buttonPadding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
   const dropdownWidth = variant === 'compact' ? 'w-64' : 'w-80';
@@ -78,6 +102,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
     setLanguage(option.language as LanguageCode);
     setOpen(false);
     setQuery('');
+    queueMicrotask(() => buttonRef.current?.focus());
   };
 
   return (
@@ -87,7 +112,9 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={`${t('i18n.selectLanguageLabel', 'Select language')} ${current.native} (${current.iso})`}
+        aria-controls={open ? listboxId : undefined}
         onClick={toggle}
+        ref={buttonRef}
         className={`flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors ${
           isRTL ? 'flex-row-reverse' : ''
         } ${buttonPadding}`}
@@ -126,22 +153,57 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
               type="text"
               value={query}
               onChange={event => setQuery(event.target.value)}
-              className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2 text-right' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-[#0061A8] focus:outline-none focus:ring-1 focus:ring-[#0061A8]/30`}
+              ref={inputRef}
+              role="searchbox"
+              aria-describedby={hintId}
+              aria-controls={listboxId}
+              aria-activedescendant={open && filtered[activeIndex] ? `${listboxId}-option-${filtered[activeIndex].locale}` : undefined}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setOpen(false);
+                  queueMicrotask(() => buttonRef.current?.focus());
+                } else if (e.key === 'ArrowDown' && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex(i => (i + 1) % filtered.length);
+                } else if (e.key === 'ArrowUp' && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex(i => (i - 1 + filtered.length) % filtered.length);
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const target = filtered[activeIndex];
+                  if (target) {
+                    setLanguage(target.language as LanguageCode);
+                    setOpen(false);
+                    setQuery('');
+                    queueMicrotask(() => buttonRef.current?.focus());
+                  }
+                }
+              }}
+              className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2 text-right' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30`}
               placeholder={t('i18n.filterLanguages', 'Type to filter languages')}
               aria-label={t('i18n.filterLanguages', 'Type to filter languages')}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="done"
             />
+            <p id={hintId} className="sr-only">
+              {t('a11y.languageSelectorHelp', 'Use arrow keys to navigate, Enter to select, Esc to close')}
+            </p>
           </div>
-          <ul className="max-h-72 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" role="listbox">
-            {filtered.map(option => (
+          <ul className="max-h-72 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" role="listbox" id={listboxId}>
+            {filtered.map((option, idx) => (
               <li key={option.locale}>
-                <button
-                  type="button"
-                  className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-gray-100 ${
-                    option.locale === current.locale ? 'bg-[#0061A8]/10 text-[#0061A8]' : ''
-                  } ${isRTL ? 'flex-row-reverse text-right' : ''}`}
-                  onClick={() => handleSelect(option)}
+                <div
+                  id={`${listboxId}-option-${option.locale}`}
+                  className={`flex w-full items-center gap-3 rounded-md px-2 py-2 hover:bg-gray-100 ${
+                    option.locale === current.locale ? 'bg-brand-500/10 text-brand-500' : ''
+                  } ${idx === activeIndex ? 'ring-1 ring-brand-500/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                   role="option"
                   aria-selected={option.locale === current.locale}
+                  tabIndex={-1}
+                  onMouseDown={(e) => { e.preventDefault(); handleSelect(option); }}
                 >
                   <span className="text-lg" aria-hidden>
                     {option.flag}
@@ -152,7 +214,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
                       {option.country} · {option.iso}
                     </div>
                   </div>
-                </button>
+                </div>
               </li>
             ))}
           </ul>
