@@ -14,9 +14,11 @@ interface SLATimerProps {
  * 
  * Displays a live countdown timer showing time remaining until SLA breach.
  * Color-coded based on urgency:
- * - Green: More than 2 hours remaining
- * - Yellow: Less than 2 hours remaining
- * - Red: SLA breached (overdue)
+ * - Green (safe): 4+ hours remaining
+ * - Yellow (warning): 2-4 hours remaining  
+ * - Red (critical): Less than 2 hours remaining OR breached
+ * 
+ * The timer updates every minute and displays appropriate visual indicators.
  */
 export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLATimerProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
@@ -87,7 +89,7 @@ export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLA
     critical: 'bg-red-50 text-red-800 border-red-200'
   };
 
-  const icon = isBreached ? '⚠️' : urgencyLevel === 'warning' ? '⏰' : '✓';
+  const icon = isBreached ? '⚠️' : urgencyLevel === 'critical' ? '⏰' : urgencyLevel === 'warning' ? '⏰' : '✓';
 
   return (
     <div 

@@ -205,6 +205,8 @@ export default function SystemVerifier() {
           System Components
         </h3>
 
+        {/* TODO: Make dynamic - currently shows static "healthy" indicators
+            Should be updated to reflect actual component status from autoFixManager.verifySystemHealth() */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
             <Database className="w-5 h-5 text-[var(--fixzit-primary)]" />
@@ -248,6 +250,8 @@ export default function SystemVerifier() {
           Auto-Fix System
         </h3>
 
+        {/* Note: Error Boundary and Auto Recovery statuses are partially static
+            Only Health Monitoring status is dynamically updated based on isMonitoring state */}
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] rounded-lg">
             <div>
@@ -300,9 +304,11 @@ export default function SystemVerifier() {
 
           <button
             onClick={() => {
-              localStorage.clear();
-              sessionStorage.clear();
-              window.location.reload();
+              if (window.confirm('⚠️ WARNING: This will clear ALL local data and reload the page.\n\nAre you sure you want to perform a full reset? This action cannot be undone.')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.reload();
+              }
             }}
             className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
           >
