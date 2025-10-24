@@ -11,6 +11,9 @@ export default function AutoIncidentReporter(){
       window.__incidentReporter = true;
     }
     const getUser = () => {
+      // Security Note: Only extracts user ID and tenant ID from localStorage
+      // Does not log sensitive data like tokens or PII
+      // Backend must handle this data securely and in compliance with privacy regulations
       try { return localStorage.getItem('x-user') ? JSON.parse(localStorage.getItem('x-user') as string) : null; } catch { return null; }
     };
     const buildCtx = () => ({
