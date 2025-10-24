@@ -6,6 +6,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
+import { getClientIP } from '@/server/security/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,8 +51,8 @@ async function authenticateAdmin(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60);
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -71,15 +72,15 @@ export async function GET(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount fetch failed:', error);
+    console.error('Discount fetch failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
 
 export async function PUT(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60);
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -114,7 +115,7 @@ export async function PUT(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount update failed:', error);
+    console.error('Discount update failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

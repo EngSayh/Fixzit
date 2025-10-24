@@ -11,6 +11,7 @@ import {
   rateLimitError
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
+import { getClientIP } from '@/server/security/headers';
 
 const priceTierSchema = z.object({
   moduleCode: z.string().min(1),
@@ -59,8 +60,8 @@ async function authenticateAdmin(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60);
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -83,14 +84,14 @@ export async function GET(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier fetch failed:', error);
+    console.error('Price tier fetch failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }
 
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier creation failed:', error);
+    console.error('Price tier creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }

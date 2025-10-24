@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { getClientIP } from '@/server/security/headers';
 /**
  * @openapi
  * /api/careers/apply:
@@ -21,7 +22,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('🚨 Job application error:', error);
+    console.error('🚨 Job application error:', error instanceof Error ? error.message : 'Unknown error');
 
     // Determine error type and provide appropriate response
     let errorMessage = 'An unexpected error occurred';

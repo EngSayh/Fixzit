@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const createSchema = z.object({
   subject: z.string().min(4),
@@ -39,7 +40,7 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest){
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest){
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Support ticket creation failed:', error);
+    console.error('Support ticket creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to create support ticket' }, 500, req);
   }
 }
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest){
 // Admin list with filters
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -90,7 +91,16 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectToDatabase();
-    const user = await getSessionUser(req);
+    
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (authError) {
+      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    }
+    
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
       return createSecureResponse({ error: "Forbidden"}, 403, req);
     }
@@ -113,7 +123,7 @@ export async function GET(req: NextRequest) {
     ]);
     return NextResponse.json({ items, page, limit, total });
   } catch (error) {
-    console.error('Support tickets query failed:', error);
+    console.error('Support tickets query failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch support tickets' }, 500, req);
   }
 }

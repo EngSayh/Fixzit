@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
 import { rateLimit } from '@/server/security/rateLimit';
 import { getUserFromToken } from '@/lib/auth';
-import {createSecureResponse } from '@/server/security/headers';
+import { createSecureResponse, getClientIP } from '@/server/security/headers';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { z } from 'zod';
 
@@ -37,8 +37,8 @@ const invoiceCreateSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  // Rate limiting with secure IP extraction
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -93,8 +93,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  // Rate limiting with secure IP extraction
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 
     const body = invoiceCreateSchema.parse(await req.json());
     
-    const data = await svc.create({ ...body, orgId: user.orgId }, user.id, req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown");
+    const data = await svc.create({ ...body, orgId: user.orgId }, user.id, getClientIP(req));
     return createSecureResponse({ data }, 201, req);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {

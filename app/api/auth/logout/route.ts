@@ -2,6 +2,7 @@ import { NextRequest} from 'next/server';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 /**
  * @openapi
@@ -40,8 +41,8 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function POST(req: NextRequest) {
   // Rate limiting: 20 req/min for logout
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`auth-logout:${clientIp}`, 20, 60);
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`auth-logout:${clientIp}`, 20, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }

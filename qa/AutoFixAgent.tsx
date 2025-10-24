@@ -260,8 +260,8 @@ export function AutoFixAgent() {
         </div>
         {halted && <div style={{ fontSize:12, marginTop:6, color:'#FFB400' }}>HALTED: {lastNote || 'diagnosing…'}</div>}
         <div style={{ display:'flex', gap:6, marginTop:6 }}>
-          <button onClick={() => setActive(a => !a)} style={btnStyle}>Agent: {active ? 'On' : 'Off'}</button>
-          <button onClick={() => { setErrors({console:0,network:0,hydration:0}); }} style={btnStyle}>Clear</button>
+          <button type="button" onClick={() => setActive(a => !a)} style={btnStyle}>Agent: {active ? 'On' : 'Off'}</button>
+          <button type="button" onClick={() => { setErrors({console:0,network:0,hydration:0}); }} style={btnStyle}>Clear</button>
         </div>
       </div>
     </div>

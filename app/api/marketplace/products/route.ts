@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    console.error('Marketplace products list failed', error);
+    console.error('Marketplace products list failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to list products' }, 500, request);
   }
 }
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return createSecureResponse({ error: 'Duplicate SKU or slug' }, 409, request);
     }
-    console.error('Marketplace product creation failed:', error);
+    console.error('Marketplace product creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to create product' }, 500, request);
   }
 }

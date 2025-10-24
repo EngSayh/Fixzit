@@ -7,6 +7,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const createSLASchema = z.object({
   name: z.string().min(1),
@@ -116,7 +117,7 @@ const createSLASchema = z.object({
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Log full error server-side
-    console.error('SLA creation failed:', error);
+    console.error('SLA creation failed:', error instanceof Error ? error.message : 'Unknown error');
     
     // Return generic error to client
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -212,7 +213,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     // Log full error server-side
-    console.error('Failed to fetch SLAs:', error);
+    console.error('Failed to fetch SLAs:', error instanceof Error ? error.message : 'Unknown error');
     
     // Return generic error to client (no sensitive details)
     return createSecureResponse({ error: 'Failed to fetch SLAs' }, 500, req);

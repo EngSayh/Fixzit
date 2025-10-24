@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { getJWTSecret } from "./startup-checks";
 
 export interface EdgeAuthenticatedUser {
   id: string;
@@ -19,8 +20,8 @@ export async function authenticateRequest(
   request: NextRequest
 ): Promise<EdgeAuthenticatedUser | AuthResult> {
   try {
-    // Get JWT secret from environment
-    const secret = process.env.JWT_SECRET || 'dev-secret';
+    // Get JWT secret (validated at startup via lib/startup-checks.ts)
+    const secret = getJWTSecret();
     const secretKey = new TextEncoder().encode(secret);
 
     // Try to get token from various cookie names

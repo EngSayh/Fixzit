@@ -7,6 +7,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const createProjectSchema = z.object({
   name: z.string().min(1),
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req);
     
     // Rate limiting AFTER authentication
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const clientIp = getClientIP(req);
     const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -117,7 +118,7 @@ export async function GET(req: NextRequest) {
     const user = await getSessionUser(req);
     
     // Rate limiting AFTER authentication
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const clientIp = getClientIP(req);
     const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -162,7 +163,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] Projects fetch failed:`, error);
+    console.error(`[${correlationId}] Projects fetch failed:`, error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch projects', correlationId }, 500, req);
   }
 }

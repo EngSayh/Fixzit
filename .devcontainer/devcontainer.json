@@ -25,11 +25,11 @@
         "chat.tools.global.autoApprove": true,
         "chat.tools.terminal.autoReplyToPrompts": true,
         "github.copilot.chat.agent.runTasks": true,
-        "chat.notifyWindowOnConfirmation": false,
+        "chat.notifyWindowOnConfirmation": true,
         "chat.checkpoints.enabled": true,
         "chat.editing.autoAccept": 2,
         "github.copilot.chat.virtualTools.threshold": 1,
-        "chat.mcp.discovery.enabled": false,
+        "chat.mcp.discovery.enabled": true,
         "chat.tools.edits.autoApprove": {
           "**/*": true
         },
@@ -49,7 +49,7 @@
           "docker": true,
           "make": true
         },
-        "security.workspace.trust.enabled": false,
+        "security.workspace.trust.enabled": true,
         "git.branchProtection": ["main", "master"],
         "github.copilot.chat.codeGeneration.useInstructionFiles": true
       }

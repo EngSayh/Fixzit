@@ -9,6 +9,7 @@ import { WOPriority } from "@/server/work-orders/wo.schema";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const createSchema = z.object({
   title: z.string().min(3),
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
   }
   
   // Rate limiting AFTER authentication
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -137,7 +138,7 @@ export async function POST(req: NextRequest) {
   if (user instanceof NextResponse) return user;
   
   // Rate limiting AFTER authentication
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

@@ -82,10 +82,9 @@ export async function POST(request: NextRequest) {
       const session = await conn.startSession();
       
       try {
-        let code: string;
-        let newUser: typeof User.prototype;
+        let createdUser: InstanceType<typeof User>;
         
-        await session.withTransaction(async () => {
+        createdUser = await session.withTransaction(async () => {
           // Generate unique user code atomically using MongoDB counter
           if (!conn.db) {
             throw new Error('Database not available');
@@ -109,9 +108,9 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to generate user code: counter initialization failed');
           }
           
-          code = `USR${String(result.seq).padStart(6, '0')}`;
+          const code = `USR${String(result.seq).padStart(6, '0')}`;
 
-          newUser = await User.create([{
+          const [newUser] = await User.create([{
             code,
             username,
             email: normalizedEmail,
@@ -130,25 +129,24 @@ export async function POST(request: NextRequest) {
               lastLogin: new Date(),
             },
           }], { session });
+          
+          // Return user from within transaction to prevent race condition
+          return newUser;
         });
         
-        await session.endSession();
-
-        console.log('New OAuth user provisioned successfully', { 
-          provider: sanitizedProvider
-        });
-
         return NextResponse.json(
           { 
             success: true, 
-            userId: newUser._id,
+            userId: createdUser._id,
             isNewUser: true 
           },
           { status: 200 }
         );
       } catch (txError) {
+        throw txError; // Re-throw to be caught by outer catch block
+      } finally {
+        // Always end session to prevent memory leaks
         await session.endSession();
-        throw txError;
       }
     } else {
       // Update last login and profile image if changed

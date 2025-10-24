@@ -92,19 +92,49 @@
 
 2. **Environment Configuration**
 
+   Copy the environment template and populate the variables below.
+
    ```bash
-   # Copy environment template  
+   # Copy environment template
    cp env.example .env.local
-   
+   ```
+
+   Main authentication & internal secrets (required):
+
+   ```bash
    # CRITICAL: Configure MongoDB connection (NO MOCK SUPPORT)
    MONGODB_URI=mongodb://localhost:27017/fixzit  # REQUIRED - Must be valid MongoDB connection
    MONGODB_DB=fixzit                            # Database name
+
+   # Authentication & Security
    JWT_SECRET=your-64-character-hex-secret       # Generate with: openssl rand -hex 32
-   NODE_ENV=development
-   
-   # The system uses ONLY real MongoDB - mock database has been completely removed
+   NEXTAUTH_SECRET=your-secret-here             # Generate with: openssl rand -hex 32
+   NEXTAUTH_URL=http://localhost:3000
+   INTERNAL_API_SECRET=your-internal-secret     # Generate with: openssl rand -hex 32
    ```
-   
+
+   OAuth provider variables:
+
+   ```bash
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   ```
+
+   Security salt for email hashing:
+
+   ```bash
+   LOG_HASH_SALT=your-random-salt-here          # Generate with: openssl rand -hex 32
+   ```
+
+   Optional API keys and environment mode:
+
+   ```bash
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-api-key
+   NODE_ENV=development
+   ```
+
+   > **Note**: The system uses ONLY real MongoDB - mock database has been completely removed.
+
    **⚠️ SECURITY WARNING**:
    - **NEVER commit `.env`, `.env.local`, or `.env.production` files to version control**
    - These files contain sensitive credentials (database passwords, API keys, secrets)
@@ -122,11 +152,11 @@
    - **Frontend**: <http://localhost:3000>
    - **API Base**: <http://localhost:3000/api>
 
-### 🌐 System Access
+## 🌐 System Access
 
-#### Main Application
+### Main Application
 
-```
+```text
 http://localhost:3000
 ```
 
@@ -135,9 +165,9 @@ http://localhost:3000
 - Complete authentication system
 - Mobile-responsive design
 
-#### API Endpoints
+### API Endpoints
 
-```
+```text
 Base URL: http://localhost:3000/api
 
 Authentication:
