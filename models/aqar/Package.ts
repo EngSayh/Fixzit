@@ -42,16 +42,15 @@ export interface IPackage extends Document {
   
   // Instance methods
   activate(): Promise<void>;
-  consumeListing(session?: mongoose.ClientSession): Promise<void>;
-  updateIfExpired(): Promise<void>;
+  consumeListing(): Promise<void>;
 }
 
-// Model interface with statics
+// Model interface for statics
 export interface IAqarPackageModel extends Model<IPackage> {
   getPricing(type: PackageType): { price: number; listings: number; days: number };
 }
 
-const PackageSchema = new Schema<IPackage>(
+const PackageSchema = new Schema<IPackage, IAqarPackageModel>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
@@ -96,44 +95,19 @@ PackageSchema.statics.getPricing = function (type: PackageType) {
 
 // Methods
 PackageSchema.methods.activate = async function (this: IPackage) {
-  // Atomic activation to prevent concurrent activation races
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + this.validityDays * 24 * 60 * 60 * 1000);
-  
-  const result = await (this.constructor as unknown as typeof import('mongoose').Model).findOneAndUpdate(
-    {
-      _id: this._id,
-      active: false,
-      paidAt: { $exists: true, $ne: null }
-    },
-    {
-      $set: {
-        active: true,
-        activatedAt: now,
-        expiresAt: expiresAt
-      }
-    },
-    { new: true }
-  );
-  
-  if (!result) {
-    // Determine specific error
-    if (this.active) {
-      throw new Error('Package already activated');
-    }
-    if (!this.paidAt) {
-      throw new Error('Package not paid');
-    }
-    throw new Error('Failed to activate package');
+  if (this.active) {
+    throw new Error('Package already activated');
   }
-  
-  // Update in-memory instance
+  if (!this.paidAt) {
+    throw new Error('Package not paid');
+  }
   this.active = true;
-  this.activatedAt = now;
-  this.expiresAt = expiresAt;
+  this.activatedAt = new Date();
+  this.expiresAt = new Date(Date.now() + this.validityDays * 24 * 60 * 60 * 1000);
+  await this.save();
 };
 
-PackageSchema.methods.consumeListing = async function (this: IPackage, session?: mongoose.ClientSession) {
+PackageSchema.methods.consumeListing = async function (this: IPackage) {
   // Atomic update to avoid race conditions
   const now = new Date();
   const filter: Record<string, unknown> = {
@@ -150,12 +124,11 @@ PackageSchema.methods.consumeListing = async function (this: IPackage, session?:
   const updated = await (this.constructor as unknown as typeof import('mongoose').Model).findOneAndUpdate(
     filter,
     { $inc: { listingsUsed: 1 } },
-    { new: true, ...(session && { session }) }
+    { new: true }
   );
   
   if (!updated) {
-    // Determine specific error - NOTE: State may have changed between findOneAndUpdate and this check
-    // This provides best-effort error messaging for debugging
+    // Determine specific error
     if (!this.active) {
       throw new Error('Package not active');
     }
@@ -165,33 +138,17 @@ PackageSchema.methods.consumeListing = async function (this: IPackage, session?:
     if (this.listingsUsed >= this.listingsAllowed) {
       throw new Error('Package listings exhausted');
     }
-    // Catch-all: Could be expired, exhausted, or inactive (state changed after check)
-    throw new Error('Failed to consume listing - package may be expired, exhausted, or inactive');
+    throw new Error('Failed to consume listing');
   }
   
   // Update current instance
   this.listingsUsed = updated.listingsUsed as number;
 };
 
-// Method to update package status if expired
-// Uses atomic update to prevent TOCTOU race conditions
-PackageSchema.methods.updateIfExpired = async function (this: IPackage) {
-  // Atomic update - only one process will successfully flip the flag
-  const result = await mongoose.model('AqarPackage').findOneAndUpdate(
-    {
-      _id: this._id,
-      active: true,
-      expiresAt: { $lt: new Date() }
-    },
-    {
-      $set: { active: false }
-    },
-    { new: true }
-  );
-  
-  // Update local instance if change occurred
-  if (result) {
+PackageSchema.methods.checkExpiry = async function (this: IPackage) {
+  if (this.active && this.expiresAt && this.expiresAt < new Date()) {
     this.active = false;
+    await this.save();
   }
 };
 

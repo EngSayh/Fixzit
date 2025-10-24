@@ -1,24 +1,35 @@
 #!/usr/bin/env python3
+"""
+PR Errors and Comments Report Generator
+Fetches all PRs from the repository and generates a comprehensive report of:
+- Issue comments
+- Review comments
+- Review decisions (approved, changes requested, etc.)
+- CI check run failures and status context errors
+"""
 import subprocess
 import json
 import sys
-import os
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
-def run(cmd: List[str], input_str: Optional[str] = None) -> Tuple[int, str, str]:
-    result = subprocess.run(
-        cmd,
-        input=input_str,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    return result.returncode, result.stdout, result.stderr
+def run(cmd: List[str], input_str: Optional[str] = None, timeout: int = 60) -> Tuple[int, str, str]:
+    """Execute a shell command and return exit code, stdout, stderr"""
+    try:
+        result = subprocess.run(
+            cmd,
+            input=input_str,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired as exc:
+        return 124, exc.stdout or "", exc.stderr or f"Command timed out after {timeout}s"
 
 
 def get_repo() -> str:
+    """Get the current repository in owner/name format"""
     code, out, err = run([
         "gh", "repo", "view", "--json", "name,owner", "--jq", ".owner.login+\"/\"+.name",
     ])
@@ -28,10 +39,8 @@ def get_repo() -> str:
     return out.strip()
 
 
-GRAPHQL_QUERY = r""""""
-
-
 def fetch_all_prs(owner: str, name: str) -> List[Dict[str, Any]]:
+    """Fetch all pull requests using GitHub REST API"""
     prs: List[Dict[str, Any]] = []
     page = 1
     while True:
@@ -52,6 +61,7 @@ def fetch_all_prs(owner: str, name: str) -> List[Dict[str, Any]]:
 
 
 def fetch_reviews_counts(owner: str, name: str, pr_number: int) -> Dict[str, int]:
+    """Fetch review counts for a specific PR"""
     code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
     if code != 0:
         # Graceful fallback on permission issues
@@ -71,6 +81,7 @@ def fetch_reviews_counts(owner: str, name: str, pr_number: int) -> Dict[str, int
 
 
 def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any]:
+    """Fetch CI check runs and commit statuses for a commit SHA"""
     result = {
         "total": 0,
         "check_run": {
@@ -97,19 +108,19 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
         return result
 
     # Check runs
-    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/check-runs"])
+    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/check-runs"])
     if code == 0:
         data = json.loads(out)
         check_runs = data.get("check_runs", [])
         result["total"] += len(check_runs)
         for cr in check_runs:
             conclusion = (cr.get("conclusion") or "").lower()
-            name = cr.get("name")
+            name_cr = cr.get("name")
             url = cr.get("html_url") or cr.get("details_url")
             if conclusion in ("failure", "timed_out", "cancelled", "action_required"):
                 result["check_run"][conclusion] += 1
                 result["check_run"]["failing_runs"].append({
-                    "name": name,
+                    "name": name_cr,
                     "conclusion": conclusion,
                     "url": url,
                 })
@@ -119,7 +130,7 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
                 result["check_run"]["other"] += 1
 
     # Commit statuses
-    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/status"])
+    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/status"])
     if code == 0:
         data = json.loads(out)
         statuses = data.get("statuses", [])
@@ -127,14 +138,14 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
         for st in statuses:
             state = (st.get("state") or "").lower()  # error, failure, pending, success
             context = st.get("context")
-            url = st.get("target_url")
+            url_st = st.get("target_url")
             if state in ("error", "failure", "pending"):
                 result["status_context"][state] += 1
                 if state in ("error", "failure"):
                     result["status_context"]["failing_statuses"].append({
                         "context": context,
                         "state": state,
-                        "url": url,
+                        "url": url_st,
                     })
             elif state == "success":
                 result["status_context"]["success"] += 1
@@ -144,34 +155,8 @@ def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any
     return result
 
 
-def classify_ci_contexts(pr: Dict[str, Any]) -> Dict[str, Any]:
-    result = {
-        "total": 0,
-        "check_run": {
-            "failure": 0,
-            "timed_out": 0,
-            "cancelled": 0,
-            "action_required": 0,
-            "neutral": 0,
-            "skipped": 0,
-            "success": 0,
-            "other": 0,
-            "failing_runs": [],  # list of {name, conclusion, url}
-        },
-        "status_context": {
-            "error": 0,
-            "failure": 0,
-            "pending": 0,
-            "success": 0,
-            "other": 0,
-            "failing_statuses": [],  # list of {context, state, url}
-        },
-    }
-    # This function is no longer used with GraphQL; replaced by REST summary built in fetch_ci_summary
-    return result
-
-
 def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
+    """Build the markdown report from PR data"""
     lines: List[str] = []
     lines.append("# PR Errors and Comments by Category (Oldest → Newest)\n")
 
@@ -207,8 +192,13 @@ def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
 
         reviews_counts = fetch_reviews_counts(owner, name, num)
 
+        # For merged PRs, use merge_commit_sha; otherwise use head.sha
+        merge_sha = (pr.get("merge_commit_sha") or "").strip()
         head = pr.get("head") or {}
-        sha = (head.get("sha") or "").strip()
+        head_sha = (head.get("sha") or "").strip()
+        
+        # Prefer merge commit SHA for accurate CI results on merged PRs
+        sha = merge_sha if merge_sha else head_sha
         ci_summary = fetch_ci_summary(owner, name, sha)
 
         # Update totals
@@ -229,10 +219,8 @@ def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
         state_label = state
         if is_draft:
             state_label = f"{state} (draft)"
-        
         lines.append(f"## PR #{num}: {title}")
-        lines.append("")
-        lines.append(f"- URL: <{url}>")
+        lines.append(f"- URL: {url}")
         lines.append(f"- State: {state_label} | Author: {author} | Created: {created_at}")
         if merged_at:
             lines.append(f"- Merged at: {merged_at}")
@@ -260,10 +248,10 @@ def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
         if cr["failing_runs"]:
             lines.append("  - Failing check runs:")
             for fr in cr["failing_runs"]:
-                name = fr.get("name")
+                name_fr = fr.get("name")
                 conc = fr.get("conclusion")
                 url_f = fr.get("url")
-                lines.append(f"    - {name}: {conc} ({url_f})")
+                lines.append(f"    - {name_fr}: {conc} ({url_f})")
         if sc["failing_statuses"]:
             lines.append("  - Failing statuses:")
             for fs in sc["failing_statuses"]:
@@ -291,29 +279,30 @@ def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
 
 
 def main() -> None:
+    """Main entry point"""
     repo = get_repo()
     owner, name = repo.split("/", 1)
     prs = fetch_all_prs(owner, name)
+    
     # Build and write report
     report = build_report(owner, name, prs)
     
-    # Use environment variable or default to current directory
-    output_dir = Path(os.getenv("OUTPUT_DIR", "."))
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # Use relative paths from script location
+    from pathlib import Path
+    script_dir = Path(__file__).parent
+    workspace_root = script_dir.parent
     
-    out_path = output_dir / "PR_ERRORS_COMMENTS_REPORT.md"
-    json_path = output_dir / "PR_ERRORS_COMMENTS_SUMMARY.json"
+    out_path = workspace_root / "PR_ERRORS_COMMENTS_REPORT.md"
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(report)
     
-    try:
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(report)
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(prs, f, ensure_ascii=False, indent=2)
-    except IOError as e:
-        print(f"Failed to write output files: {e}", file=sys.stderr)
-        sys.exit(1)
+    # Also write machine-readable JSON for potential reuse
+    json_path = workspace_root / "PR_ERRORS_COMMENTS_SUMMARY.json"
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(prs, f, ensure_ascii=False, indent=2)
     
-    print(str(out_path))
+    print(f"✅ Report generated: {out_path}")
+    print(f"✅ JSON data saved: {json_path}")
 
 
 if __name__ == "__main__":

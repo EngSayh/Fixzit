@@ -1,7 +1,7 @@
 # Dependency Risk Management & Justification
 
 **Document Owner**: Eng. Sultan Al Hassni  
-**Last Updated**: October 21, 2025  
+**Last Updated**: October 19, 2025  
 **Status**: Active
 
 ---
@@ -90,20 +90,11 @@ This document provides justification, risk assessment, and mitigation strategies
 
 ```typescript
 // Implemented in auth.config.ts
-- Privacy-preserving logging with important considerations:
-  * Hashed emails are pseudonymized and treated as PII under GDPR/CCPA
-  * Risks: reversible via rainbow/dictionary attacks; persistent identifiers
-  * Hashing approach: SHA-256 with truncation (first 12 chars)
-  * WARNING: Hashed emails should be handled as personal data with:
-    - Appropriate access controls and audit logging
-    - Deletion/retention rules per privacy policy
-    - Documentation in privacy policy and data retention docs
-- Detailed error tracking via Sentry (no PII in error messages)
+- Privacy-preserving logging (hashed emails, no PII)
+- Detailed error tracking via Sentry
 - CloudWatch metrics for auth failures
 - Real-time alerts for suspicious activity
 ```
-
-**Important**: Update `auth.config.ts`, privacy policy, and data retention documentation to reflect that hashed emails are treated as personal data under applicable privacy regulations.
 
 #### 4. Rollback Plan
 

@@ -7,17 +7,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite, AqarListing, AqarProject, IListing, IProject } from '@/models/aqar';
+import { AqarFavorite } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import mongoose from 'mongoose';
 
 export const runtime = 'nodejs';
-
-// Strongly-typed favorite with attached target entity
-type _FavoriteWithTarget = Omit<Partial<Record<string, unknown>>, 'target'> & {
-  target?: IListing | IProject | null;
-};
 
 // GET /api/aqar/favorites
 export async function GET(request: NextRequest) {
@@ -25,15 +20,12 @@ export async function GET(request: NextRequest) {
     await connectDb();
     
     const user = await getSessionUser(request);
-    // Consistent tenant isolation - use orgId if available, fallback to userId
-    const tenantOrgId = user.orgId || user.id;
     
     const { searchParams } = new URL(request.url);
     const targetType = searchParams.get('targetType'); // LISTING|PROJECT
     
     const query: Record<string, unknown> = {
       userId: user.id,
-      orgId: tenantOrgId,
     };
     
     if (targetType) {
@@ -42,56 +34,10 @@ export async function GET(request: NextRequest) {
     
     const favorites = await AqarFavorite.find(query)
       .sort({ createdAt: -1 })
+      .populate('targetId')
       .lean();
     
-    // Batch-fetch targets to eliminate N+1 queries
-    // Step 1: Collect all targetIds by targetType
-    const listingIds: mongoose.Types.ObjectId[] = [];
-    const projectIds: mongoose.Types.ObjectId[] = [];
-
-    for (const fav of favorites) {
-      try {
-        const tid = fav.targetId && mongoose.Types.ObjectId.isValid(fav.targetId) ? new mongoose.Types.ObjectId(fav.targetId) : null;
-        if (!tid) continue;
-        if (fav.targetType === 'LISTING') {
-          listingIds.push(tid);
-        } else if (fav.targetType === 'PROJECT') {
-          projectIds.push(tid);
-        }
-      } catch (_e) {
-        // skip invalid ids
-        continue;
-      }
-    }
-    
-    // Step 2: Batch-fetch all listings and projects in parallel (with tenant isolation)
-    const [listings, projects] = await Promise.all([
-      listingIds.length > 0 
-        ? AqarListing.find({ _id: { $in: listingIds }, orgId: tenantOrgId }).lean()
-        : [],
-      projectIds.length > 0
-        ? AqarProject.find({ _id: { $in: projectIds }, orgId: tenantOrgId }).lean()
-        : []
-    ]);
-    
-    // Step 3: Create lookup maps for O(1) access
-    const listingMap = new Map(listings.map(l => [l._id.toString(), l]));
-    const projectMap = new Map(projects.map(p => [p._id.toString(), p]));
-    
-    // Step 4: Attach targets to favorites
-    const favoritesWithTargets = favorites.map(fav => {
-      const targetIdStr = fav.targetId.toString();
-      
-      if (fav.targetType === 'LISTING') {
-        return { ...fav, target: listingMap.get(targetIdStr) || null };
-      } else if (fav.targetType === 'PROJECT') {
-        return { ...fav, target: projectMap.get(targetIdStr) || null };
-      }
-      
-      return fav;
-    });
-    
-    return NextResponse.json({ favorites: favoritesWithTargets });
+    return NextResponse.json({ favorites });
   } catch (error) {
     console.error('Error fetching favorites:', error);
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
@@ -104,11 +50,9 @@ export async function POST(request: NextRequest) {
     await connectDb();
     
     const user = await getSessionUser(request);
-    // Consistent tenant isolation - use orgId if available, fallback to userId
-    const tenantOrgId = user.orgId || user.id;
     
-  const body = await request.json();
-  let { targetId, targetType, notes, tags } = body;
+    const body = await request.json();
+    const { targetId, targetType, notes, tags } = body;
     
     if (!targetId || !targetType) {
       return NextResponse.json(
@@ -116,7 +60,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    // Validate targetId is a valid ObjectId
+    
+    // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(targetId)) {
       return NextResponse.json({ error: 'Invalid targetId' }, { status: 400 });
     }
@@ -130,11 +75,10 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if already favorited (with tenant isolation)
+    // Check if already favorited
     const existing = await AqarFavorite.findOne({
       userId: user.id,
-      orgId: tenantOrgId,
-      targetId: new mongoose.Types.ObjectId(targetId),
+      targetId,
       targetType,
     });
     
@@ -145,78 +89,79 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Verify referenced target exists within same tenant (prevent cross-tenant favorites)
-    const targetObjectId = new mongoose.Types.ObjectId(targetId);
+    // Verify target resource exists before creating favorite
+    let targetExists = false;
     if (targetType === 'LISTING') {
-      const listingExists = await AqarListing.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
-      if (!listingExists) {
-        return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-      }
+      const { AqarListing } = await import('@/models/aqar');
+      targetExists = !!(await AqarListing.exists({ _id: targetId }));
     } else if (targetType === 'PROJECT') {
-      const projectExists = await AqarProject.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
-      if (!projectExists) {
-        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-      }
+      const { AqarProject } = await import('@/models/aqar');
+      targetExists = !!(await AqarProject.exists({ _id: targetId }));
     }
-
-    // sanitize inputs
-    notes = typeof notes === 'string' ? notes.trim().slice(0, 2000) : undefined;
-    if (!Array.isArray(tags)) tags = [];
-  tags = tags.map((t: unknown) => String(t).slice(0, 100)).slice(0, 20);
-
+    
+    if (!targetExists) {
+      return NextResponse.json(
+        { error: 'Target resource not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Ensure orgId is a valid ObjectId - convert string if necessary
+    const orgIdValue = user.orgId || user.id;
+    const orgId = mongoose.Types.ObjectId.isValid(orgIdValue)
+      ? new mongoose.Types.ObjectId(orgIdValue)
+      : undefined;
+    
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Invalid organization ID' },
+        { status: 400 }
+      );
+    }
+    
     const favorite = new AqarFavorite({
       userId: user.id,
-      orgId: tenantOrgId,
-      targetId: targetObjectId,
+      orgId,
+      targetId,
       targetType,
       notes,
       tags,
     });
     
-    // Handle duplicate key race condition gracefully
     try {
       await favorite.save();
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {
-        return NextResponse.json({ error: 'Already in favorites' }, { status: 409 });
+    } catch (saveError) {
+      // Check for duplicate key error (MongoDB error code 11000)
+      const isMongoDupKey =
+        saveError &&
+        typeof saveError === 'object' &&
+        'code' in saveError &&
+        (saveError as { code?: number }).code === 11000;
+      
+      if (isMongoDupKey) {
+        return NextResponse.json(
+          { error: 'Already in favorites' },
+          { status: 409 }
+        );
       }
-      throw err;
+      throw saveError; // Re-throw other errors
     }
     
-    // Increment favorites count on listing/project in detached async blocks that await the update
-    // but do not block the response. Errors are caught and logged to avoid silent failures.
+    // Increment favorites count on listing/project (async with error logging)
     if (targetType === 'LISTING') {
-      (async () => {
-        try {
-          await AqarListing.findByIdAndUpdate(targetId, { 
-            $inc: { 'analytics.favorites': 1 },
-            $set: { 'analytics.lastFavoritedAt': new Date() }
-          }).exec();
-        } catch (analyticsError) {
-          console.error('Failed to increment listing favorites analytics', {
-            userId: user.id,
-            targetId,
-            targetType,
-            message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
-          });
-        }
-      })();
+      const { AqarListing } = await import('@/models/aqar');
+      AqarListing.findByIdAndUpdate(targetId, { 
+        $inc: { 'analytics.favorites': 1 } 
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update listing favorites count:', err);
+      });
     } else if (targetType === 'PROJECT') {
-      (async () => {
-        try {
-          await AqarProject.findByIdAndUpdate(targetId, { 
-            $inc: { 'analytics.favorites': 1 },
-            $set: { 'analytics.lastFavoritedAt': new Date() }
-          }).exec();
-        } catch (analyticsError) {
-          console.error('Failed to increment project favorites analytics', {
-            userId: user.id,
-            targetId,
-            targetType,
-            message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
-          });
-        }
-      })();
+      const { AqarProject } = await import('@/models/aqar');
+      AqarProject.findByIdAndUpdate(targetId, { 
+        $inc: { 'analytics.favorites': 1 } 
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update project favorites count:', err);
+      });
     }
     
     return NextResponse.json({ favorite }, { status: 201 });

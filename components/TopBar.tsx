@@ -127,18 +127,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
     setIsSaving(true);
     setSaveError(null);
     try {
-      // Step 1: Dispatch custom event for page-level form handling
-      // This gives pages full control over their save+navigate flow
-      const ev = new CustomEvent('fxz:saveFormsAndNavigate', { 
-        detail: { target: pendingNavigation } 
-      });
-      window.dispatchEvent(ev);
-
-      // Step 2: Await the centralized FormStateProvider save
-      // This ensures proper coordination - we wait for forms to complete
       await requestSave();
-
-      // Step 3: Success path only - close dialog and navigate
+      // Success path only
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
         router.push(pendingNavigation);
@@ -299,7 +289,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   };
 
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>{/* FIXED: was #023047 (banned) */}
+    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Logo with unsaved changes handler */}
         <button
@@ -349,7 +339,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               aria-label="Toggle notifications"
             >
               <Bell className="w-5 h-5" />
-              {notifications.filter(n => !n.read).length > 0 && (
+                          {notifications.filter(n => !n.read).length > 0 && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
               )}
             </button>
@@ -421,7 +411,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                             </div>
                           </div>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
+                            <div className="w-2 h-2 bg-brand-500 rounded-full ml-2 flex-shrink-0"></div>
                           )}
                         </div>
                       </div>
@@ -440,7 +430,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="p-3 border-t border-gray-200 bg-gray-50">
                   <Link
                     href="/notifications"
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1"
+                    className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
                     onClick={() => setNotifOpen(false)}
                   >
                     {t('common.viewAll', 'View all notifications')}
@@ -527,30 +517,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="unsaved-dialog-title"
-            onKeyDown={(e) => {
-              // Trap focus inside dialog on Tab
-              if (e.key === 'Tab') {
-                const focusableElements = e.currentTarget.querySelectorAll(
-                  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-                );
-                const firstElement = focusableElements[0] as HTMLElement;
-                const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-                
-                if (e.shiftKey && document.activeElement === firstElement) {
-                  e.preventDefault();
-                  lastElement?.focus();
-                } else if (!e.shiftKey && document.activeElement === lastElement) {
-                  e.preventDefault();
-                  firstElement?.focus();
-                }
-              }
-              // Close dialog on Escape
-              if (e.key === 'Escape' && !isSaving) {
-                setShowUnsavedDialog(false);
-                setPendingNavigation(null);
-                setSaveError(null);
-              }
-            }}
           >
             <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
               <h3 
@@ -592,7 +558,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <button
                   onClick={handleSaveAndNavigate}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-[#0061A8] text-white hover:bg-[#004d86] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSaving && (
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

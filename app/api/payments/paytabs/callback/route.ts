@@ -74,6 +74,10 @@ export async function POST(req: NextRequest) {
       });
       
       console.log('Payment successful', { order: String(cart_id).slice(0,8) + '...' });
+      
+      // TODO: If cart_id refers to an AqarPayment, activate the related package
+      // Import and call: activatePackageAfterPayment(cart_id)
+      // See: lib/aqar/package-activation.ts
     }
     
     return createSecureResponse({

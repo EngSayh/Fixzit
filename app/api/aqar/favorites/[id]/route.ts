@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
+import { AqarFavorite } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import mongoose from 'mongoose';
@@ -20,9 +20,9 @@ export async function DELETE(
   try {
     await connectDb();
     
-    const { id } = await params;
-    
     const user = await getSessionUser(request);
+    
+    const { id } = await params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid favorite ID' }, { status: 400 });
@@ -39,43 +39,26 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Delete favorite first
-    await favorite.deleteOne();
-    
-    // Decrement analytics after successful deletion (with error handling)
+    // Decrement favorites count (async with error logging)
     if (favorite.targetType === 'LISTING') {
-      try {
-        await AqarListing.findByIdAndUpdate(
-          favorite.targetId, 
-          { 
-            $inc: { 'analytics.favorites': -1 },
-            $set: { 'analytics.lastUpdatedAt': new Date() }
-          }
-        );
-      } catch (analyticsError) {
-        // Log analytics error but don't fail the request (deletion already succeeded)
-        console.error('Failed to decrement listing favorites analytics', {
-          targetId: favorite.targetId.toString(),
-          message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
-        });
-      }
+      const { AqarListing } = await import('@/models/aqar');
+      AqarListing.findByIdAndUpdate(favorite.targetId, { 
+        $inc: { 'analytics.favorites': -1 },
+        $max: { 'analytics.favorites': 0 } // Prevent negative counts
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update listing favorites count:', err);
+      });
     } else if (favorite.targetType === 'PROJECT') {
-      try {
-        await AqarProject.findByIdAndUpdate(
-          favorite.targetId, 
-          { 
-            $inc: { 'analytics.favorites': -1 },
-            $set: { 'analytics.lastUpdatedAt': new Date() }
-          }
-        );
-      } catch (analyticsError) {
-        // Log analytics error but don't fail the request (deletion already succeeded)
-        console.error('Failed to decrement project favorites analytics', {
-          targetId: favorite.targetId.toString(),
-          message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
-        });
-      }
+      const { AqarProject } = await import('@/models/aqar');
+      AqarProject.findByIdAndUpdate(favorite.targetId, { 
+        $inc: { 'analytics.favorites': -1 },
+        $max: { 'analytics.favorites': 0 } // Prevent negative counts
+      }).exec().catch((err: Error) => {
+        console.error('Failed to update project favorites count:', err);
+      });
     }
+    
+    await favorite.deleteOne();
     
     return NextResponse.json({ success: true });
   } catch (error) {

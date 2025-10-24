@@ -82,8 +82,6 @@ BoostSchema.index({ userId: 1, active: 1 });
 
 // Static: Get boost pricing
 BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
-  const MAX_DAYS = 365; // Maximum allowed boost duration to prevent overflow
-  
   // Validate type
   if (!Object.values(BoostType).includes(type)) {
     throw new Error('Invalid boost type');
@@ -92,10 +90,6 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
   // Validate days
   if (!Number.isFinite(days) || days <= 0 || !Number.isInteger(days)) {
     throw new Error('Days must be a positive integer');
-  }
-  
-  if (days > MAX_DAYS) {
-    throw new Error(`Days cannot exceed ${MAX_DAYS}`);
   }
   
   const basePrice = {
@@ -108,42 +102,16 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
 
 // Methods
 BoostSchema.methods.activate = async function (this: IBoost) {
-  // Atomic activation: check preconditions and update in single operation
-  // Prevents race conditions where multiple concurrent activations could occur
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + this.durationDays * 24 * 60 * 60 * 1000);
-  
-  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
-    {
-      _id: this._id,
-      active: false, // Precondition: must not be already active
-      paidAt: { $ne: null }, // Precondition: must be paid
-    },
-    {
-      $set: {
-        active: true,
-        activatedAt: now,
-        expiresAt: expiresAt,
-      },
-    },
-    { new: true } // Return updated document
-  );
-  
-  if (!result) {
-    // Check why activation failed
-    if (this.active) {
-      throw new Error('Boost already activated');
-    }
-    if (!this.paidAt) {
-      throw new Error('Boost not paid');
-    }
-    throw new Error('Boost activation failed due to concurrent modification');
+  if (this.active) {
+    throw new Error('Boost already activated');
   }
-  
-  // Update current document instance with new values
+  if (!this.paidAt) {
+    throw new Error('Boost not paid');
+  }
   this.active = true;
-  this.activatedAt = now;
-  this.expiresAt = expiresAt;
+  this.activatedAt = new Date();
+  this.expiresAt = new Date(Date.now() + this.durationDays * 24 * 60 * 60 * 1000);
+  await this.save();
 };
 
 BoostSchema.methods.recordImpression = async function (this: IBoost) {
@@ -161,25 +129,9 @@ BoostSchema.methods.recordClick = async function (this: IBoost) {
 };
 
 BoostSchema.methods.checkExpiry = async function (this: IBoost) {
-  // Atomic expiry check: update all expired boosts in single operation
-  // Prevents race conditions where multiple concurrent checks could occur
-  const now = new Date();
-  
-  const result = await (this.constructor as typeof import('mongoose').Model).findOneAndUpdate(
-    {
-      _id: this._id,
-      active: true, // Only check active boosts
-      expiresAt: { $lt: now }, // Only boosts that have expired
-    },
-    {
-      $set: { active: false },
-    },
-    { new: true } // Return updated document
-  );
-  
-  if (result) {
-    // Boost was expired and deactivated
+  if (this.active && this.expiresAt && this.expiresAt < new Date()) {
     this.active = false;
+    await this.save();
   }
 };
 

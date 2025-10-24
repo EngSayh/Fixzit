@@ -118,7 +118,7 @@
   // and reduce extension timeouts on large repositories. These safer defaults
   // keep the extension useful while preventing large, automatic full-repo
   // reviews that cause the agent to pause or stop.
-  "coderabbit.autoReviewMode": "prompt",
+  "coderabbit.autoReviewMode": "auto",
   "coderabbit.maxFilesPerReview": 100,
   "coderabbit.concurrentReviews": 1,
 
@@ -146,8 +146,5 @@
     "**/.next/**": true,
     "**/build/**": true,
     "**/.turbo/**": true
-  },
-
-  // Codium
-  "codium.codeCompletion.enable": true
+  }
 }
