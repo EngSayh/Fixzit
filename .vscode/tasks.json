@@ -22,7 +22,7 @@
         "focus": false
       },
       "runOptions": {
-        "runOn": "default"
+        "runOn": "folderOpen"
       }
     },
     {

@@ -46,6 +46,11 @@ Thumbs.db
 /screenshots/
 /.archived-data/
 /docs/archive/
+/docs/reports/archive/
+/docs/sessions/archive/
+
+# Jupyter notebooks (use docs/notebooks/ for committed ones)
+Untitled*.ipynb
 
 # Runtime files
 server.pid
