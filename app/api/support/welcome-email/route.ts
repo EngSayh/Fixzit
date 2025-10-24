@@ -7,6 +7,12 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
+import { 
+  getSendGridConfig, 
+  getBaseEmailOptions, 
+  isSendGridConfigured,
+  getTemplateId 
+} from '@/lib/sendgrid-config';
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
@@ -32,10 +38,6 @@ const welcomeEmailSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-// Check if email service is configured
-const isEmailConfigured = () => {
-  return !!(process.env.SENDGRID_API_KEY || process.env.AWS_SES_ACCESS_KEY || process.env.EMAIL_SERVICE_ENABLED);
-};
 
 export async function POST(req: NextRequest) {
   // Rate limiting
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
     const body = welcomeEmailSchema.parse(await req.json());
 
     // Check if email service is configured
-    if (!isEmailConfigured()) {
+    if (!isSendGridConfigured()) {
       return createSecureResponse({
         error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
         status: 'not_configured'
@@ -105,40 +107,68 @@ The Fixzit Enterprise Team
     /**
      * SendGrid Email Service Integration
      * 
-     * ✅ Implemented with:
+     * ✅ Production-Ready with:
      * - @sendgrid/mail SDK (installed)
-     * - GitHub Secrets for SENDGRID_API_KEY and FROM_EMAIL
+     * - Centralized SendGrid configuration
+     * - Multiple sender identities support
+     * - Dynamic template support
+     * - Reply-to configuration
+     * - Unsubscribe groups
+     * - IP pools for better deliverability
      * - MongoDB tracking for email delivery status
      * 
      * @see https://docs.sendgrid.com/for-developers/sending-email/quickstart-nodejs
+     * @see /lib/sendgrid-config.ts
      */
     
     // Initialize SendGrid with API key
-    if (process.env.SENDGRID_API_KEY) {
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    }
+    const config = getSendGridConfig();
+    sgMail.setApiKey(config.apiKey);
 
     const emailId = `WEL-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
     const timestamp = new Date();
     
+    // Check if a dynamic template is configured
+    const templateId = getTemplateId('welcome');
+    
     try {
-      // Send email via SendGrid
-      await sgMail.send({
-        to: body.email,
-        from: process.env.FROM_EMAIL || 'noreply@fixzit.co',
-        subject: body.subject,
-        html: _emailTemplate,
-        text: _emailTemplate.replace(/<[^>]*>/g, ''), // Plain text fallback
-        trackingSettings: {
-          clickTracking: { enable: true },
-          openTracking: { enable: true }
-        },
-        customArgs: {
-          emailId,
-          errorId: body.errorId,
-          type: 'welcome_email'
-        }
-      });
+      // Get base email options with configured sender and advanced features
+      const baseOptions = getBaseEmailOptions();
+      
+      if (templateId) {
+        // Use SendGrid Dynamic Template
+        await sgMail.send({
+          ...baseOptions,
+          to: body.email,
+          templateId,
+          dynamicTemplateData: {
+            errorId: body.errorId,
+            registrationLink: body.registrationLink,
+            subject: body.subject,
+            currentYear: new Date().getFullYear(),
+            supportEmail: config.replyTo?.email || config.from.email
+          },
+          customArgs: {
+            emailId,
+            errorId: body.errorId,
+            type: 'welcome_email'
+          }
+        });
+      } else {
+        // Use HTML template (legacy/fallback)
+        await sgMail.send({
+          ...baseOptions,
+          to: body.email,
+          subject: body.subject,
+          html: _emailTemplate,
+          text: _emailTemplate.replace(/<[^>]*>/g, ''), // Plain text fallback
+          customArgs: {
+            emailId,
+            errorId: body.errorId,
+            type: 'welcome_email'
+          }
+        });
+      }
 
       // Track email in MongoDB
       try {
@@ -237,7 +267,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Check if email service is configured
-  if (!isEmailConfigured()) {
+  if (!isSendGridConfigured()) {
     return createSecureResponse({
       error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
       email,
