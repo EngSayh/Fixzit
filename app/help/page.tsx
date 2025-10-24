@@ -146,7 +146,7 @@ export default function HelpHome() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-16">{/* FIXED: was #023047 (banned) */}
+      <section className="bg-gradient-to-r from-brand-500 via-brand-500 to-success text-white py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <h1 className="text-4xl font-bold mb-4">Fixzit Knowledge Center</h1>
           <p className="text-xl opacity-90 mb-8">
@@ -157,14 +157,14 @@ export default function HelpHome() {
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => setShowAIChat(true)}
-              className="bg-white text-[#0061A8] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
+              className="bg-white text-brand-500 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
             >
               <Bot className="w-5 h-5" />
               Ask AI Assistant
             </button>
             <button
               onClick={() => setShowSupportTicket(true)}
-              className="bg-[#FFB400] text-[#0061A8] px-6 py-3 rounded-lg font-semibold hover:bg-[#FFB400]/90 transition-colors flex items-center gap-2"
+              className="bg-accent text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Create Support Ticket
