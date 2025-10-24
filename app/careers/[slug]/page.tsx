@@ -17,7 +17,7 @@ export default async function JobDetailPage(props: { params: Promise<{ slug: str
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="max-w-4xl mx-auto px-4 py-12 flex-1">
-        <a href="/careers" className="text-[#0061A8]">&larr; Back to Careers</a>
+        <a href="/careers" className="text-brand-500 hover:text-brand-600 transition-colors">&larr; Back to Careers</a>
         <h1 className="text-3xl font-bold mt-3">{job.title}</h1>
         <div className="text-gray-600 mt-1">{job.department}</div>
         <div className="mt-6 space-y-4">
@@ -58,7 +58,7 @@ export default async function JobDetailPage(props: { params: Promise<{ slug: str
             <label className="block text-sm font-semibold">CV / Résumé (PDF)</label>
             <input name="resume" type="file" accept="application/pdf" className="mt-1" />
           </div>
-          <button className="mt-4 px-4 py-2 bg-[#0061A8] text-white rounded">Submit Application</button>
+          <button className="mt-4 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600 transition-colors">Submit Application</button>
         </form>
       </div>
     </div>
