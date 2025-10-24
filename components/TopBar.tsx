@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
 import AppSwitcher from './topbar/AppSwitcher';
@@ -67,9 +68,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+  // Use NextAuth session for authentication (supports both OAuth and JWT)
+  const { data: _session, status } = useSession();
+  const isAuthenticated = status === 'authenticated';
 
   const router = useRouter();
   const pathname = usePathname();
@@ -94,19 +98,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   // Call useTranslation unconditionally at top level (React Rules of Hooks)
   const translationContext = useTranslation();
   const t = translationContext?.t ?? ((key: string, fallback?: string) => fallbackTranslations[key] || fallback || key);
-
-  // Check authentication status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        setIsAuthenticated(response.ok);
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
-    checkAuth();
-  }, []);
 
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -251,12 +242,6 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   const handleLogout = async () => {
     try {
-      // Call logout API to clear server-side session
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-
       // Save language and locale preferences before clearing storage
       const savedLang = localStorage.getItem('fxz.lang');
       const savedLocale = localStorage.getItem('fxz.locale');
@@ -279,11 +264,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (savedLang) localStorage.setItem('fxz.lang', savedLang);
       if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
 
-      // Force a hard reload to clear all state and redirect to login
-      window.location.href = '/login';
+      // Use NextAuth signOut for both OAuth and JWT sessions
+      // This properly clears both NextAuth session and server-side JWT
+      await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
       console.error('Logout error:', error);
-      // Still redirect even if API call fails - use hard reload
+      // Still redirect even if signOut fails
       window.location.href = '/login';
     }
   };
@@ -293,6 +279,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Logo with unsaved changes handler */}
         <button
+          type="button"
           onClick={handleLogoClick}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           aria-label="Go to home"
@@ -318,7 +305,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       
       {/* Mobile search button */}
       {screenInfo.isMobile && (
-        <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
+        <button type="button" className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
           <Search className="w-4 h-4" />
         </button>
       )}
@@ -331,6 +318,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         {isAuthenticated && (
           <div className="notification-container relative">
             <button
+              type="button"
               onClick={() => {
                 setUserOpen(false); // Close user menu when opening notifications
                 setNotifOpen(!notifOpen);
@@ -365,6 +353,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setNotifOpen(false)}
                   className="p-1 hover:bg-gray-100 rounded-full"
                   aria-label="Close notifications"
@@ -447,6 +436,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         )}
         <div className="user-menu-container relative">
           <button 
+            type="button"
             onClick={() => {
               setNotifOpen(false); // Close notifications when opening user menu
               setUserOpen(!userOpen);
@@ -489,7 +479,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
                   {t('common.preferences', 'Preferences')}
                 </div>
-                <div className="px-4 py-2 space-y-2">
+                <div className="px-4 py-2 space-y-2" role="none">
                   <LanguageSelector variant="default" />
                   <CurrencySelector variant="default" />
                 </div>
@@ -538,6 +528,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               
               <div className="flex gap-3 justify-end">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowUnsavedDialog(false);
                     setPendingNavigation(null);
@@ -549,6 +540,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleDiscardAndNavigate}
                   disabled={isSaving}
                   className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -556,6 +548,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   {t('common.discard', 'Discard')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleSaveAndNavigate}
                   disabled={isSaving}
                   className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"

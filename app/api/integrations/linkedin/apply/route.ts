@@ -7,6 +7,7 @@ import { Application } from '@/server/models/Application';
 import { rateLimit } from '@/server/security/rateLimit';
 import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 /**
  * @openapi
@@ -27,7 +28,7 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: { applicationId: app._id } }, { status: 201 });
   } catch (error) {
-    console.error('LinkedIn apply error:', error);
+    console.error('LinkedIn apply error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to apply with LinkedIn' }, 500, req);
   }
 }

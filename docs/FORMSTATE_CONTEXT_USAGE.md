@@ -3,6 +3,7 @@
 ## Overview
 
 The `FormStateContext` provides a centralized way to track form state across the application, enabling features like:
+
 - Unsaved changes detection in TopBar
 - Coordinated form saving before navigation
 - Multiple form management
@@ -82,12 +83,15 @@ export default function MyForm() {
 Returns the FormStateContext with these methods:
 
 #### `hasUnsavedChanges: boolean`
+
 - Whether any forms have unsaved changes
 
 #### `onSaveRequest(formId: string, callback: () => Promise<void>): () => void`
+
 - Register a save callback for a form
 - **Returns:** Dispose function to unregister the callback
 - **Example:**
+
   ```tsx
   const dispose = formState.onSaveRequest('myForm', async () => {
     await saveData();
@@ -95,18 +99,22 @@ Returns the FormStateContext with these methods:
   ```
 
 #### `markFormDirty(formId: string): void`
+
 - Mark a form as having unsaved changes
 - Call this when form fields are modified
 
 #### `markFormClean(formId: string): void`
+
 - Mark a form as having no unsaved changes
 - Call this after successful save
 
 #### `unregisterForm(formId: string): void`
+
 - Remove form from tracking
 - Call this on component unmount
 
 #### `requestSave(): Promise<void>`
+
 - Trigger save for all dirty forms
 - Used by TopBar when user navigates with unsaved changes
 - Throws error if any saves fail
@@ -205,6 +213,7 @@ export default function PropertyEditForm({ propertyId }: { propertyId: string })
 ## Integration with TopBar
 
 The TopBar component automatically uses `formState.hasUnsavedChanges` to:
+
 1. Show a warning icon when forms have unsaved changes
 2. Display a confirmation dialog when user tries to navigate away
 3. Call `formState.requestSave()` if user chooses "Save and Leave"
@@ -222,16 +231,19 @@ No additional configuration needed!
 ## Troubleshooting
 
 ### "Unsaved changes" warning not showing
+
 - Ensure you're calling `markFormDirty(formId)` when fields change
 - Check that `formId` matches between `onSaveRequest` and `markFormDirty`
 - Verify FormStateProvider is wrapping your component tree
 
 ### Save callback not being called
+
 - Ensure `onSaveRequest` is called before the form becomes dirty
 - Check that the form is actually marked as dirty
 - Verify the dispose function is not called prematurely
 
 ### Multiple forms saving when only one changed
+
 - Use unique, specific form IDs
 - Ensure `markFormClean` is called after successful saves
 - Check that forms are properly unregistered on unmount

@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+import { getClientIP } from '@/server/security/headers';
 
 // Interface for field change
 interface FieldChange {
@@ -290,15 +291,44 @@ export async function withAuditContext<T>(
 // Utility function to create audit context from request
 export function createAuditContextFromRequest(req: Record<string, unknown>, userId?: string): AuditInfo {
   const reqUser = req.user as { id?: string; _id?: { toString: () => string }; email?: string } | undefined;
-  const reqHeaders = req.headers as Record<string, string> | undefined;
-  const reqConnection = req.connection as { remoteAddress?: string } | undefined;
   
   const headers = typeof req.headers === 'object' && req.headers !== null ? req.headers as Record<string, unknown> : {};
+  
+  // Use secure IP extraction from trusted sources (LAST IP from X-Forwarded-For)
+  // Check if this is a NextRequest with get() method
+  let clientIp = 'unknown';
+  if (req && typeof req === 'object' && 'headers' in req) {
+    const headersObj = req.headers;
+    if (headersObj && typeof headersObj === 'object' && 'get' in headersObj && typeof headersObj.get === 'function') {
+      // This is a NextRequest or similar - use secure extraction
+      clientIp = getClientIP(req as unknown as Parameters<typeof getClientIP>[0]);
+    } else {
+      // Fallback for generic request objects - extract safely
+      const headersMap = headersObj as Record<string, string | undefined>;
+      
+      // 1) Cloudflare Connecting IP (most trusted)
+      const cfIp = headersMap['cf-connecting-ip'];
+      if (cfIp && cfIp.trim()) {
+        clientIp = cfIp.trim();
+      } else {
+        // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
+        const forwarded = headersMap['x-forwarded-for'];
+        if (forwarded && forwarded.trim()) {
+          const ips = forwarded.split(',').map(ip => ip.trim()).filter(ip => ip);
+          if (ips.length) clientIp = ips[ips.length - 1]; // LAST IP is from our proxy
+        } else if (process.env.TRUST_X_REAL_IP === 'true') {
+          // 3) X-Real-IP only if explicitly trusted
+          const realIP = headersMap['x-real-ip'];
+          if (realIP && realIP.trim()) clientIp = realIP.trim();
+        }
+      }
+    }
+  }
   
   return {
     userId: userId || reqUser?.id || reqUser?._id?.toString(),
     userEmail: reqUser?.email,
-    ipAddress: (req.ip as string) || reqConnection?.remoteAddress || reqHeaders?.['x-forwarded-for']?.split(',')[0],
+    ipAddress: clientIp,
     userAgent: headers['user-agent'] ? String(headers['user-agent']) : undefined,
     timestamp: new Date()
   };

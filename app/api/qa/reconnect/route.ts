@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
+import { getClientIP } from '@/server/security/headers';
 
 /**
  * @openapi
@@ -23,7 +24,7 @@ import { rateLimitError } from '@/server/utils/errorResponses';
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ Database reconnection failed:', error);
+    console.error('❌ Database reconnection failed:', error instanceof Error ? error.message : 'Unknown error');
 
     return NextResponse.json({
       success: false,

@@ -8,6 +8,7 @@ import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError, handleApiError, zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const updateInvoiceSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"]).optional(),
@@ -43,7 +44,7 @@ const updateInvoiceSchema = z.object({
  */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -131,7 +132,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           invoice.zatca.generatedAt = new Date();
           invoice.zatca.status = "GENERATED";
         } catch (error) {
-          console.error("ZATCA generation failed:", error);
+          console.error("ZATCA generation failed:", error instanceof Error ? error.message : 'Unknown error');
           invoice.zatca = invoice.zatca || {};
           invoice.zatca.status = "FAILED";
           invoice.zatca.error = error instanceof Error ? error.message : String(error);
@@ -212,7 +213,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -245,7 +246,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    console.error('Invoice DELETE error:', error);
+    console.error('Invoice DELETE error:', error instanceof Error ? (error as Error).message : 'Unknown error');
     return handleApiError(error);
   }
 }

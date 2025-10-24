@@ -3,6 +3,7 @@ import { getUserFromToken } from '@/lib/auth';
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, rateLimitError, internalServerError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -59,7 +60,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     // Rate limiting: 60 req/min for read operations
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const clientIp = getClientIP(req);
     const rl = rateLimit(`auth-me:${clientIp}`, 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
       return unauthorizedError('Invalid or expired token');
     }
     // For all other errors, log and return internal server error
-    console.error('Get current user error:', error);
+    console.error('Get current user error:', error instanceof Error ? error.message : 'Unknown error');
     return internalServerError('Internal server error', error);
   }
 }

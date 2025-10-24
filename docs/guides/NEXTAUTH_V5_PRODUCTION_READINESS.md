@@ -55,6 +55,7 @@ This approval is conditional on completing the outstanding integration, E2E and 
 ### Implementation Reference
 
 See `auth.ts` callbacks (lines ~15-45) for session hydration logic:
+
 - `jwt()` callback: Fetches user from DB, populates token
 - `session()` callback: Transfers DB state to session object
 - Middleware: Enforces approval check on protected routes
@@ -69,18 +70,21 @@ See `auth.ts` callbacks (lines ~15-45) for session hydration logic:
 ### ✅ Phase 1: Static Analysis (COMPLETED)
 
 **TypeScript Compilation**:
+
 ```bash
 $ pnpm typecheck
 ✅ PASS - 0 errors
 ```
 
 **ESLint Verification**:
+
 ```bash
 $ pnpm lint
 ✅ PASS - 0 warnings, 0 errors
 ```
 
 **Dependency Audit**:
+
 ```bash
 $ pnpm audit
 Status: Reviewed and mitigated
@@ -89,6 +93,7 @@ Status: Reviewed and mitigated
 ### ✅ Phase 2: Unit Tests (COMPLETED)
 
 **Authentication Flow Tests**:
+
 - ✅ OAuth sign-in callback with email validation
 - ✅ JWT token generation and validation
 - ✅ Session persistence across requests
@@ -96,6 +101,7 @@ Status: Reviewed and mitigated
 - ✅ Access control enforcement
 
 **Test Coverage**:
+
 - Components: 85%+ coverage
 - Authentication logic: 95%+ coverage
 - Middleware: 90%+ coverage
@@ -105,6 +111,7 @@ Status: Reviewed and mitigated
 **OAuth Provider Testing**:
 
 1. **Google OAuth Flow**:
+
    ```bash
    Test Scenario: User signs in with Google account
    ✅ Authorization redirect works
@@ -116,6 +123,7 @@ Status: Reviewed and mitigated
    ```
 
 2. **Session Management**:
+
    ```bash
    Test Scenario: Session lifecycle
    ✅ Session persists across page navigations
@@ -130,6 +138,7 @@ Status: Reviewed and mitigated
    ```
 
 3. **Middleware Protection**:
+
    ```bash
    Test Scenario: Route protection
    ✅ Public routes accessible without auth
@@ -140,12 +149,14 @@ Status: Reviewed and mitigated
    ```
 
 **Current Session Behavior**:
+
 - Sessions are valid for 30 days (maxAge configuration)
 - No automatic token refresh implemented
 - Users must re-authenticate after session expiry
 - Session data refreshed from database on each request (user approval status, role updates)
 
 **Token Refresh Backlog Item**:
+
 ```typescript
 // Future enhancement: Implement token refresh
 // - Add expiry checks in jwt() callback
@@ -191,6 +202,7 @@ Status: Reviewed and mitigated
 ### 📊 Phase 5: Load & Performance Tests
 
 **Metrics to Monitor**:
+
 - OAuth callback response time: < 500ms
 - JWT verification latency: < 10ms
 - Session lookup time: < 50ms
@@ -198,6 +210,7 @@ Status: Reviewed and mitigated
 - Memory footprint: Stable over 24h
 
 **Stress Testing**:
+
 ```bash
 # Simulate 1000 concurrent OAuth sign-ins
 $ artillery run auth-load-test.yml
@@ -242,6 +255,7 @@ Target: Stable memory usage over time
 ### 🔒 Security Best Practices
 
 **Environment Variables Required**:
+
 ```bash
 # NextAuth Configuration
 NEXTAUTH_SECRET=<strong-random-secret-256-bits>
@@ -256,6 +270,7 @@ JWT_SECRET=<strong-random-secret-256-bits>
 ```
 
 **Secret Generation**:
+
 ```bash
 # Generate secure secrets
 openssl rand -base64 32
@@ -265,6 +280,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 **Access Control Configuration**:
+
 ```typescript
 // auth.config.ts
 import { getUserByEmail } from '@/lib/db/users';
@@ -320,6 +336,7 @@ async signIn({ user, account }) {
 ### Mitigation Strategies
 
 1. **Monitoring & Alerting**:
+
    ```bash
    # Monitor authentication errors
    - OAuth callback failures
@@ -334,6 +351,7 @@ async signIn({ user, account }) {
    ```
 
 2. **Rollback Plan**:
+
    ```bash
    # If critical issues arise:
    
@@ -354,6 +372,7 @@ async signIn({ user, account }) {
    ```
 
 3. **Staged Rollout**:
+
    ```bash
    # Week 1: Staging environment
    - Deploy to staging
@@ -383,7 +402,8 @@ async signIn({ user, account }) {
 
 **Impact**: Low - cosmetic only
 
-**Workaround**: 
+**Workaround**:
+
 ```typescript
 // Suppress ONLY NextAuth beta warnings in production
 // IMPORTANT: This preserves all other console.warn calls
@@ -403,6 +423,7 @@ if (process.env.NODE_ENV === 'production') {
 ```
 
 **Note**: The above implementation is more precise than the original. It:
+
 1. Saves the original console.warn function
 2. Only suppresses warnings that mention BOTH 'next-auth' AND 'beta'
 3. Preserves all other warnings (React, Next.js, custom warnings, etc.)
@@ -442,7 +463,8 @@ if (process.env.NODE_ENV === 'production') {
 
 **Impact**: Low - organization uses Google Workspace
 
-**Workaround**: 
+**Workaround**:
+
 ```typescript
 // If needed, add Credentials provider:
 import Credentials from 'next-auth/providers/credentials';
@@ -513,6 +535,7 @@ providers: [
 ### Key Metrics to Track
 
 **Authentication Success Rate**:
+
 ```
 Target: > 99.5%
 Alert: < 98%
@@ -524,6 +547,7 @@ Breakdown:
 ```
 
 **Performance Metrics**:
+
 ```
 OAuth Callback: < 500ms (p95)
 JWT Verification: < 10ms (p95)
@@ -535,6 +559,7 @@ Alert if:
 ```
 
 **Error Types to Monitor**:
+
 ```
 - OAuth provider errors (Google API down)
 - JWT verification failures (signature mismatch)
@@ -544,6 +569,7 @@ Alert if:
 ```
 
 **Security Events**:
+
 ```
 - Failed sign-in attempts (potential attacks)
 - JWT forgery attempts (signature verification failures)
@@ -555,18 +581,21 @@ Alert if:
 ### Alerting Thresholds
 
 **Critical Alerts** (immediate response):
+
 - Authentication success rate < 95%
 - JWT signature verification failures > 10/min
 - Middleware protection bypass detected
 - OAuth provider returning 500 errors
 
 **Warning Alerts** (investigate within 1 hour):
+
 - Authentication success rate < 98%
 - Response time > 2s for any auth operation
 - Error rate > 1% of requests
 - Unusual spike in rejected sign-ins
 
 **Info Alerts** (review daily):
+
 - New email domains attempting sign-in
 - OAuth token refresh patterns
 - Session expiry distribution
@@ -578,6 +607,7 @@ Alert if:
 ### Monitoring for v5 Stable Release
 
 **Subscribe to Updates**:
+
 - GitHub: Watch `nextauthjs/next-auth` repository
 - NPM: Monitor `next-auth` package releases
 - Discord: Join Auth.js community for announcements
@@ -614,18 +644,21 @@ git push
 ### Long-Term Roadmap
 
 **Q1 2026**:
+
 - Upgrade to next-auth v5 stable (when released)
 - Implement database role sync for OAuth users
 - Add email/password provider as fallback
 - Enable two-factor authentication (2FA)
 
 **Q2 2026**:
+
 - Implement passwordless authentication (magic links)
 - Add social login providers (Microsoft, Apple)
 - Enhanced session management (device tracking)
 - Implement refresh token rotation
 
 **Q3 2026**:
+
 - Migrate to NextAuth.js v6 (if available)
 - Evaluate Better Auth integration
 - Implement advanced RBAC with permissions
@@ -638,6 +671,7 @@ git push
 ### Evidence-Based Decision
 
 **1. Technical Stability**:
+
 - ✅ 29 beta releases (extensive production testing by community)
 - ✅ Zero TypeScript errors in our codebase
 - ✅ Zero ESLint warnings
@@ -645,23 +679,27 @@ git push
 - ✅ No runtime errors in development/staging
 
 **2. Next.js 15 Compatibility**:
+
 - next-auth v4 designed for Next.js 14.x
 - next-auth v5 designed for Next.js 15.x
 - Our project uses Next.js 15.5.4
 - Downgrading next-auth may introduce compatibility issues
 
 **3. Community Adoption**:
+
 - Thousands of production deployments on v5 beta
 - Active development and bug fixes
 - Strong community support on Discord/GitHub
 - Used by major companies in production
 
 **4. Risk Analysis**:
+
 - Downgrade to v4: 5-7 hours work + medium-high risk
 - Keep v5 beta: Minimal risk with proper testing
 - Forward path: v5 → stable is easier than v4 → v5
 
 **5. Security Posture**:
+
 - All critical vulnerabilities fixed
 - JWT signature verification implemented
 - OAuth access control enforced
@@ -671,6 +709,7 @@ git push
 ### Industry Precedent
 
 Many production systems run on beta software when:
+
 1. Beta is mature (29 releases indicates feature-complete)
 2. Required by platform (Next.js 15 requires v5)
 3. Properly tested and monitored
@@ -678,6 +717,7 @@ Many production systems run on beta software when:
 5. Benefits outweigh risks
 
 **Examples**:
+
 - Next.js itself releases major versions with beta/canary testing
 - React 18 was in beta for months with production adoption
 - TypeScript releases beta versions used in production
@@ -714,6 +754,7 @@ The comprehensive testing plan, security hardening, risk mitigation, and monitor
 **Deployment Status**: ⚠️ CONDITIONAL APPROVAL - 4 gating criteria pending completion (integration tests, E2E tests, load tests, OAuth URIs)
 
 **Production Deployment Requirements**:
+
 - All 4 TBD items MUST be completed and verified before deploying to production
 - Status should be changed to "✅ APPROVED FOR PRODUCTION" only after all criteria are met
 - Current status reflects technical readiness but NOT operational readiness for production traffic

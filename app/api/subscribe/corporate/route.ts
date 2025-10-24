@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
     // Authentication and authorization
     const user = await getSessionUser(req);
     
-    // Rate limiting: 3 req/5min for subscription operations (very sensitive)
-    const rl = rateLimit(`subscribe-corporate:${user.id}`, 3, 300);
+    // Rate limiting: 3 req/5min (300000ms = 5 minutes) for subscription operations (very sensitive)
+    const rl = rateLimit(`subscribe-corporate:${user.id}`, 3, 300000);
     if (!rl.allowed) {
       return rateLimitError();
     }

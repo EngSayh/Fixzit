@@ -29,23 +29,25 @@ jobs:
       
       - name: TypeScript check
         run: npm run typecheck
-        continue-on-error: true
-      
+        # CRITICAL: Removed continue-on-error - typecheck failures must block PRs
+
       - name: Lint check
         run: npm run lint
-        continue-on-error: true
-      
-      - name: Run tests
-        run: npm run test --workspaces --if-present
-        continue-on-error: true
-      
-      - name: Run E2E smoke tests
-        run: npm run e2e:smoke --if-present
-        continue-on-error: true
-      
+        # CRITICAL: Removed continue-on-error - lint failures must block PRs
+
+      # Note: No test script exists in package.json - placeholder tests use Playwright e2e
+      # E2E tests are expensive and run separately, so we skip unit tests here for now
+      # TODO: Add unit test script with Jest or Vitest when unit tests are implemented
+      # - name: Run tests
+      #   run: npm run test --if-present
+
       - name: Build project
         run: npm run build
-        continue-on-error: true
+        env:
+          MONGODB_URI: mongodb://localhost:27017/fixzit-ci-test
+          NEXTAUTH_SECRET: ci-test-secret-key-min-32-chars-long
+          NEXTAUTH_URL: http://localhost:3000
+        # CRITICAL: Removed continue-on-error - build failures must block PRs
       
       - name: Upload inventory artifacts
         uses: actions/upload-artifact@v4

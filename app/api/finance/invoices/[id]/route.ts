@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import {zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const invoiceUpdateSchema = z.object({
   status: z.string().optional(),
@@ -34,7 +35,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
 
     const body = invoiceUpdateSchema.parse(await req.json());
     
-    const inv = await svc.post(user.orgId, params.id, body, user.id, req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown");
+    const inv = await svc.post(user.orgId, params.id, body, user.id, getClientIP(req));
     return createSecureResponse({ data: inv }, 200, req);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {

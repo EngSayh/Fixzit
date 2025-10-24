@@ -3,11 +3,22 @@ import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { jwtVerify } from 'jose';
 
+// Force Node.js runtime for middleware (required for jose JWT verification)
+export const runtime = 'nodejs';
+
+// Extend NextAuth session user type with role and orgId
+interface SessionUser {
+  id?: string;
+  email?: string;
+  role?: string;
+  orgId?: string | null;
+}
+
 // Validate JWT secret at module load - fail fast if missing
-// Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET
-const jwtSecretValue = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+// Require dedicated JWT_SECRET instead of falling back to NEXTAUTH_SECRET to prevent token confusion
+const jwtSecretValue = process.env.JWT_SECRET;
 if (!jwtSecretValue) {
-  const errorMessage = 'FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set. Application cannot start without a secure JWT secret. Please add JWT_SECRET or NEXTAUTH_SECRET to your .env.local file or environment configuration.';
+  const errorMessage = 'FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret. Please add JWT_SECRET to your .env.local file or environment configuration.';
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
@@ -15,8 +26,31 @@ if (!jwtSecretValue) {
 // JWT secret for legacy token verification
 const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 
-// Admin roles - hoisted to module scope to avoid re-allocation per request
-const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+/**
+ * Check if a pathname matches a route pattern
+ * Uses exact matching or proper segment boundaries to avoid false positives
+ * @param pathname - The request pathname
+ * @param route - The route pattern to match against
+ * @returns true if pathname matches the route pattern
+ */
+function matchesRoute(pathname: string, route: string): boolean {
+  // Exact match
+  if (pathname === route) return true;
+  // Segment boundary match: route must be followed by / or end of string to avoid false positives
+  // e.g., '/api/auth' matches '/api/auth/' or '/api/auth', but not '/api/authentication'
+  if (pathname.startsWith(route)) {
+    const nextChar = pathname[route.length];
+    if (nextChar === '/' || nextChar === undefined) return true;
+  }
+  return false;
+}
+
+/**
+ * Check if pathname matches any route in the array
+ */
+function matchesAnyRoute(pathname: string, routes: string[]): boolean {
+  return routes.some(route => matchesRoute(pathname, route));
+}
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -48,31 +82,11 @@ const protectedApiRoutes = [
   '/api/finance/invoices',
   '/api/users',
   '/api/work-orders',
-  '/api/work-orders/mobile',
   '/api/finance',
   '/api/support',
   '/api/admin',
   '/api/notifications'
 ];
-
-/**
- * Helper function to check if a pathname matches a specific route pattern.
- * Supports exact matches and wildcard patterns (ending with /*).
- */
-function matchesRoute(pathname: string, route: string): boolean {
-  if (route.endsWith('/*')) {
-    const prefix = route.slice(0, -2);
-    return pathname === prefix || pathname.startsWith(prefix + '/');
-  }
-  return pathname === route;
-}
-
-/**
- * Helper function to check if a pathname matches any route in an array of patterns.
- */
-function matchesAnyRoute(pathname: string, routes: string[]): boolean {
-  return routes.some(route => matchesRoute(pathname, route));
-}
 
 // Define FM module routes (require authentication)
 const fmRoutes = [
@@ -183,29 +197,27 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
 
         // Check for NextAuth session first
         if (session?.user) {
+          // Use session claims (enriched in auth.config.ts) - NO DB calls in Edge runtime
           user = {
             id: session.user.id || '',
             email: session.user.email || '',
-            role: 'USER', // Default role for OAuth users
-            orgId: null
+            role: (session.user as SessionUser).role || 'USER',
+            orgId: (session.user as SessionUser).orgId || null
           };
         } else {
           // Fall back to legacy JWT token with proper signature verification
-          // Support both cookie and Authorization: Bearer header
-          const bearer = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
-          const authToken = bearer || request.cookies.get('fixzit_auth')?.value;
+          const authToken = request.cookies.get('fixzit_auth')?.value;
           if (!authToken) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
           }
 
           try {
-            // Verify JWT signature and decode payload with clock tolerance and optional issuer/audience
+            // Verify JWT signature and decode payload with security hardening
             const { payload } = await jwtVerify(authToken, JWT_SECRET, {
-              // Add small clock tolerance for time sync issues (5 seconds)
-              clockTolerance: 5,
-              // If your tokens include issuer/audience claims, uncomment and configure:
-              // issuer: 'fixzit-auth',
-              // audience: 'fixzit-app',
+              algorithms: ['HS256'],
+              clockTolerance: 5, // Allow 5 seconds clock skew
+              // issuer: 'fixzit',      // Uncomment when issuer is set in token
+              // audience: 'fixzit-app' // Uncomment when audience is set in token
             });
             user = {
               id: payload.id as string || '',
@@ -251,21 +263,21 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     // Get user info from NextAuth session or JWT token
     let user = null;
     if (session?.user) {
+      // Use session claims (enriched in auth.config.ts) - NO DB calls in Edge runtime
       user = {
         id: session.user.id || '',
         email: session.user.email || '',
-        role: 'USER', // Default role for OAuth users
-        orgId: null
+        role: (session.user as SessionUser).role || 'USER',
+        orgId: (session.user as SessionUser).orgId || null
       };
     } else if (authToken) {
       try {
-        // Verify JWT signature and decode payload with clock tolerance and optional issuer/audience
+        // Verify JWT signature and decode payload (secure method) with security hardening
         const { payload } = await jwtVerify(authToken, JWT_SECRET, {
-          // Add small clock tolerance for time sync issues (5 seconds)
-          clockTolerance: 5,
-          // If your tokens include issuer/audience claims, uncomment and configure:
-          // issuer: 'fixzit-auth',
-          // audience: 'fixzit-app',
+          algorithms: ['HS256'],
+          clockTolerance: 5, // Allow 5 seconds clock skew
+          // issuer: 'fixzit',      // Uncomment when issuer is set in token
+          // audience: 'fixzit-app' // Uncomment when audience is set in token
         });
         user = {
           id: payload.id as string || '',
@@ -300,8 +312,9 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     }
 
     // Protect admin UI with RBAC
-    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-      if (!ADMIN_ROLES.has(user.role)) {
+    if (matchesRoute(pathname, '/admin')) {
+      const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+      if (!adminRoles.has(user.role)) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
     }
@@ -322,14 +335,14 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     }
 
     // FM routes - check role-based access
-    if (fmRoutes.some(route => pathname.startsWith(route))) {
+    if (matchesAnyRoute(pathname, fmRoutes)) {
       const reqHeaders = new Headers(request.headers);
       reqHeaders.set('x-user', JSON.stringify(user));
       return NextResponse.next({ request: { headers: reqHeaders } });
     }
 
     // Protected marketplace actions - require auth and attach user
-    if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+    if (matchesAnyRoute(pathname, protectedMarketplaceActions)) {
       const reqHeaders = new Headers(request.headers);
       reqHeaders.set('x-user', JSON.stringify(user));
       return NextResponse.next({ request: { headers: reqHeaders } });

@@ -25,7 +25,7 @@ import { createSecureResponse } from '@/server/security/headers';
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -50,14 +50,14 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error) {
-    console.error('Failed to log QA event:', error);
+    console.error('Failed to log QA event:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to log event' }, 500, req);
   }
 }
 
 export async function GET(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ logs }, 200, req);
   } catch (error) {
-    console.error('Failed to fetch QA logs:', error);
+    console.error('Failed to fetch QA logs:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch logs' }, 500, req);
   }
 }

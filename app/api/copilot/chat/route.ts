@@ -10,6 +10,7 @@ import { recordAudit } from "@/server/copilot/audit";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { getClientIP } from '@/server/security/headers';
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -57,7 +58,7 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -180,7 +181,7 @@ export async function POST(req: NextRequest) {
       sources: docs.map(doc => ({ id: doc.id, title: doc.title, score: doc.score, source: doc.source }))
     });
   } catch (error: unknown) {
-    console.error("Copilot chat error:", error);
+    console.error("Copilot chat error:", error instanceof Error ? error.message : 'Unknown error');
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     const stack = error instanceof Error ? error.stack : String(error);
     await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message: errorMessage, prompt: body.message, metadata: { stack, error: String(error) } });

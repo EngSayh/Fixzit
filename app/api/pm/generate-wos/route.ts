@@ -72,7 +72,7 @@ export async function POST() {
           scheduledFor: plan.nextScheduledDate
         });
       } catch (error) {
-        console.error('[PM] Failed to generate WO for plan', plan.planNumber, error);
+        console.error('[PM] Failed to generate WO for plan', plan.planNumber, error instanceof Error ? error.message : 'Unknown error');
         results.failed++;
       }
     }
@@ -84,7 +84,7 @@ export async function POST() {
       data: results
     });
   } catch (error) {
-    console.error('[API] PM generation failed:', error);
+    console.error('[API] PM generation failed:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'PM generation failed' },
       { status: 500 }
@@ -131,7 +131,7 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('[API] PM preview failed:', error);
+    console.error('[API] PM preview failed:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'PM preview failed' },
       { status: 500 }

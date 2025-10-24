@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { extractClientIP } from '@/lib/ip';
 
 /**
  * Security headers middleware to add common security headers to API responses
@@ -74,13 +75,28 @@ export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10
 }
 
 /**
- * IP-based rate limiting key generator
+ * Hardened IP extraction with infrastructure-aware trusted proxy counting
+ * 
+ * SECURITY: Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops,
+ * with fallback to leftmost public IP to prevent header spoofing attacks.
+ * 
+ * Priority order:
+ * 1. CF-Connecting-IP (Cloudflare) - most trustworthy
+ * 2. X-Forwarded-For with hop-skipping based on TRUSTED_PROXY_COUNT
+ * 3. X-Real-IP - only if TRUST_X_REAL_IP=true
+ * 4. Fallback to 'unknown'
+ * 
+ * Infrastructure Requirements:
+ * - Set TRUSTED_PROXY_COUNT to number of trusted proxy hops (default: 1)
+ * - Ensure your edge proxy appends to X-Forwarded-For
+ * - Optional: Set TRUST_X_REAL_IP=true only if infra sanitizes this header
+ */
+/**
+ * Get client IP using shared extraction logic
+ * @see lib/ip.ts:extractClientIP for implementation details
  */
 export function getClientIP(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIP = request.headers.get('x-real-ip');
-  const ip = forwarded?.split(',')[0] || realIP || 'unknown';
-  return ip.trim();
+  return extractClientIP(request);
 }
 
 /**

@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    console.error('Marketplace orders fetch failed', error);
+    console.error('Marketplace orders fetch failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to load orders' }, 500, request);
   }
 }

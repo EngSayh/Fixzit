@@ -10,6 +10,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
+import { getClientIP } from '@/server/security/headers';
 
 const subscriptionSchema = z.object({
   customer: z.object({
@@ -47,8 +48,8 @@ const subscriptionSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300);
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Subscription creation failed:', error);
+    console.error('Subscription creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);
   }
 }
