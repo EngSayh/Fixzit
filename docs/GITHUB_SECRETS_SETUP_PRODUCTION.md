@@ -40,6 +40,7 @@ This guide provides step-by-step instructions for configuring repository secrets
 ### Option 1: GitHub Web UI (Recommended)
 
 1. **Navigate to Repository Settings**
+
    ```
    GitHub.com → Your Repo → Settings → Secrets and variables → Actions
    ```
@@ -159,21 +160,25 @@ jobs:
 ## Secret Generation Commands
 
 ### NEXTAUTH_SECRET (32+ characters)
+
 ```bash
 openssl rand -base64 32
 ```
 
 ### JWT_SECRET (64 hex characters)
+
 ```bash
 openssl rand -hex 32
 ```
 
 ### INTERNAL_API_TOKEN (64 hex characters)
+
 ```bash
 openssl rand -hex 32
 ```
 
 ### Verify Secret Strength
+
 ```bash
 # Check length of generated secret
 echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" | wc -c
@@ -183,6 +188,7 @@ echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" | wc -c
 ## Security Best Practices
 
 ### 1. Never Commit Secrets
+
 ```bash
 # Add to .gitignore
 echo ".env.secrets" >> .gitignore
@@ -190,6 +196,7 @@ echo ".env.production" >> .gitignore
 ```
 
 ### 2. Rotate Secrets Regularly
+
 - **High Priority**: Every 90 days
   - `JWT_SECRET`
   - `NEXTAUTH_SECRET`
@@ -200,6 +207,7 @@ echo ".env.production" >> .gitignore
   - API keys
 
 ### 3. Use Different Secrets for Different Environments
+
 ```
 Development:   .env.local (local machine, not committed)
 Staging:       GitHub Secrets → staging-* secrets
@@ -207,6 +215,7 @@ Production:    GitHub Secrets → production-* secrets
 ```
 
 ### 4. Limit Secret Access
+
 - Only add secrets needed for CI/CD
 - Don't expose production secrets in development
 - Use environment-specific secret names if needed
@@ -274,6 +283,7 @@ jobs:
 ```
 
 ### 2. Run Test Workflow
+
 ```bash
 # Trigger manually from GitHub UI
 Actions → Test Secrets → Run workflow
@@ -285,17 +295,21 @@ gh workflow run test-secrets.yml
 ## Common Issues
 
 ### Issue 1: Secret Not Available in Workflow
+
 **Problem**: `${{ secrets.MY_SECRET }}` is empty in workflow
 
-**Solution**: 
+**Solution**:
+
 1. Check secret name matches exactly (case-sensitive)
 2. Verify secret is set at repository level (not environment level)
 3. Re-add secret if needed
 
 ### Issue 2: Secret Exposed in Logs
+
 **Problem**: Secret value appears in workflow logs
 
 **Solution**:
+
 ```yaml
 # ❌ Bad - exposes secret
 - name: Debug
@@ -309,9 +323,11 @@ gh workflow run test-secrets.yml
 ```
 
 ### Issue 3: Workflow Can't Access Secret
+
 **Problem**: Workflow fails with "Secret not found"
 
 **Solution**:
+
 - Check if running on fork (forks can't access secrets)
 - Verify workflow has correct permissions
 - Ensure secret isn't environment-specific

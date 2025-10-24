@@ -50,11 +50,12 @@
 **Risk**: Authentication bypass in internal API calls  
 
 **Before**:
+
 ```typescript
 'x-internal-auth': process.env.INTERNAL_API_SECRET || ''
-```
-
+```text
 **After**:
+
 ```typescript
 // Enforce INTERNAL_API_SECRET in production
 const internalSecret = process.env.INTERNAL_API_SECRET;
@@ -72,8 +73,7 @@ const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
     'x-internal-auth': internalSecret || '' 
   },
 });
-```
-
+```text
 **Impact**: Production will now FAIL FAST if INTERNAL_API_SECRET is missing or weak, preventing authentication bypass vulnerabilities.
 
 ---
@@ -85,12 +85,13 @@ const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
 **Risk**: Silent production failures, data loss, security misconfiguration  
 
 **Before**:
+
 ```typescript
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
-```
-
+```text
 **After**:
+
 ```typescript
 // Production enforcement: no fallback chains or defaults
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
@@ -105,8 +106,7 @@ if (process.env.NODE_ENV === 'production') {
     throw new Error('FATAL: Invalid MongoDB URI format in production. Must start with mongodb:// or mongodb+srv://');
   }
 }
-```
-
+```text
 **Impact**: Production will now validate MongoDB URI format and throw fatal errors if misconfigured, preventing silent data loss.
 
 ---
@@ -119,48 +119,60 @@ if (process.env.NODE_ENV === 'production') {
 **Critical Issues**: 2 (now fixed)  
 **Acceptable Patterns**: 98+ (test files, optional features, non-security configs)  
 
-#### Examples of ACCEPTABLE Fallbacks:
+#### Examples of ACCEPTABLE Fallbacks
 
 1. **Public URLs** (SEO/feeds):
+
    ```typescript
    // app/api/feeds/indeed/route.ts
    process.env.PUBLIC_BASE_URL || 'https://fixzit.co'
    ```
+
    ✅ Safe: Public base URL with reasonable default
 
 2. **Optional Services** (email):
+
    ```typescript
    // app/api/support/welcome-email/route.ts
    from: process.env.FROM_EMAIL || 'noreply@fixzit.co'
    ```
+
    ✅ Safe: Non-critical email sender with branded fallback
 
 3. **Development Configs** (tenant):
+
    ```typescript
    // app/api/public/rfqs/route.ts
    process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || 'demo-tenant'
    ```
+
    ✅ Safe: Non-sensitive tenant ID for multi-tenant routing
 
 4. **Session Durations** (auth):
+
    ```typescript
    // app/api/auth/login/route.ts
    parseInt(process.env.SESSION_DURATION || '86400', 10)
    ```
+
    ✅ Safe: Reasonable 24-hour default
 
 5. **API Base URLs** (payment):
+
    ```typescript
    // lib/paytabs/config.ts
    baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa'
    ```
+
    ✅ Safe: Official PayTabs endpoint with standard default
 
 6. **Regional Defaults** (AWS):
+
    ```typescript
    // lib/storage/s3.ts
    const REGION = process.env.AWS_REGION || 'us-east-1'
    ```
+
    ✅ Safe: Standard AWS region fallback
 
 ---
@@ -171,6 +183,7 @@ if (process.env.NODE_ENV === 'production') {
 **Files Checked**: All API routes  
 
 #### ✅ app/api/aqar/listings/route.ts (VERIFIED FIXED)
+
 ```typescript
 try {
   createdListing = await session.withTransaction(async () => {
@@ -185,9 +198,10 @@ try {
   // Always end session to prevent memory leaks
   await session.endSession(); // ✓ PRESENT
 }
-```
+```text
 
 #### ✅ app/api/auth/provision/route.ts (VERIFIED FIXED)
+
 ```typescript
 try {
   createdUser = await session.withTransaction(async () => {
@@ -200,8 +214,7 @@ try {
   // Always end session to prevent memory leaks
   await session.endSession(); // ✓ PRESENT
 }
-```
-
+```text
 **Result**: ✅ All MongoDB transactions have proper cleanup in finally blocks
 
 ---
@@ -213,12 +226,14 @@ try {
 **Result**: ✅ All appropriate - checking for null/undefined objects, NOT validating numeric user input
 
 Examples of CORRECT usage:
+
 - `if (!user)` - checking authentication object
 - `if (!asset)` - checking database query result
 - `if (!token)` - checking JWT existence
 - `if (!property)` - checking document existence
 
 **No falsy traps found** - all validation properly distinguishes between:
+
 - `null`/`undefined` (missing data)
 - `0`, `false`, `''` (valid falsy values)
 
@@ -231,6 +246,7 @@ Examples of CORRECT usage:
 **Result**: ✅ ZERO dangerous type casts found
 
 All type casts found in codebase are in:
+
 - AWS SDK documentation files (acceptable)
 - Test setup files (acceptable)
 - Legacy migration scripts (not production code)
@@ -240,18 +256,21 @@ All type casts found in codebase are in:
 ## Quality Gate Results
 
 ### TypeScript Compilation
+
 ```bash
 $ pnpm typecheck
 ✅ PASSED - 0 errors
-```
+```text
 
 ### ESLint Analysis
+
 ```bash
 $ pnpm lint
 ✅ PASSED - 0 warnings, 0 errors
-```
+```text
 
 ### Security Enforcement
+
 - ✅ JWT_SECRET: Production enforcement (32+ chars)
 - ✅ MONGODB_URI: Production enforcement (valid URI format)
 - ✅ INTERNAL_API_SECRET: Production enforcement (32+ chars)
@@ -264,11 +283,13 @@ $ pnpm lint
 ## Files Modified in This Audit
 
 ### 1. auth.config.ts
+
 - **Change**: Added production enforcement for `INTERNAL_API_SECRET`
 - **Validation**: Must be 32+ characters in production
 - **Impact**: Prevents authentication bypass vulnerabilities
 
 ### 2. lib/mongodb-unified.ts
+
 - **Change**: Added production enforcement for `MONGODB_URI`
 - **Validation**: Must be valid MongoDB URI format in production
 - **Impact**: Prevents silent production failures and data loss
@@ -324,41 +345,50 @@ $ pnpm lint
 All of these MUST be set in production or the system will FAIL FAST with clear error messages:
 
 ```bash
+
 # Authentication (REQUIRED in production)
+
 NEXTAUTH_SECRET=<32+ characters>
 INTERNAL_API_SECRET=<32+ characters>
 JWT_SECRET=<32+ characters>
 
 # Database (REQUIRED in production)
+
 MONGODB_URI=<mongodb+srv://... or mongodb://...>
 
 # Security (REQUIRED in production)
+
 LOG_HASH_SALT=<32+ characters>
 
 # OAuth (REQUIRED if using OAuth)
+
 GOOGLE_CLIENT_ID=<your-client-id>
 GOOGLE_CLIENT_SECRET=<your-client-secret>
-```
+```text
 
 ### Optional Environment Variables
 
 These have safe defaults for development and can be overridden in production:
 
 ```bash
+
 # Session durations (defaults: 24h / 30d)
+
 SESSION_DURATION=86400
 SESSION_REMEMBER_DURATION=2592000
 
 # Public URLs (default: https://fixzit.co)
+
 PUBLIC_BASE_URL=https://your-domain.com
 
 # Database name (default: fixzit)
+
 MONGODB_DB=your-db-name
 
 # AWS Region (default: us-east-1)
-AWS_REGION=your-region
-```
 
+AWS_REGION=your-region
+```text
 ---
 
 ## Conclusion
@@ -377,11 +407,13 @@ AWS_REGION=your-region
 ### Security Posture
 
 **BEFORE THIS AUDIT**:
+
 - 🔴 Authentication bypass risk (INTERNAL_API_SECRET)
 - 🔴 Silent database failures (MONGODB_URI)
 - 🟡 Potential session leaks (partially fixed)
 
 **AFTER THIS AUDIT**:
+
 - ✅ All production secrets enforced (fail-fast)
 - ✅ All database connections validated
 - ✅ All sessions properly cleaned up
@@ -402,6 +434,7 @@ AWS_REGION=your-region
 ## Audit Trail
 
 **Commits in this Branch**:
+
 1. Initial 6 fixes from PR #137 review
 2. Salt enforcement + session cleanup + validation fixes (7 issues)
 3. System-wide security hardening (JWT_SECRET, MONGODB_URI, session leaks)

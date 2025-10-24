@@ -35,6 +35,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 ### Files Fixed by Category
 
 #### Admin & Billing (9 files)
+
 - `app/api/admin/discounts/route.ts`
 - `app/api/admin/billing/benchmark/route.ts`
 - `app/api/admin/billing/pricebooks/route.ts`
@@ -48,6 +49,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/billing/subscribe/route.ts`
 
 #### Finance & Payments (9 files)
+
 - `app/api/finance/invoices/route.ts`
 - `app/api/finance/invoices/[id]/route.ts`
 - `app/api/invoices/route.ts`
@@ -59,6 +61,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/payments/paytabs/callback/route.ts`
 
 #### HR & Recruitment (8 files)
+
 - `app/api/ats/applications/[id]/route.ts`
 - `app/api/ats/public-post/route.ts`
 - `app/api/ats/jobs/route.ts`
@@ -69,6 +72,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/careers/apply/route.ts`
 
 #### Property Management (9 files)
+
 - `app/api/properties/route.ts`
 - `app/api/properties/[id]/route.ts`
 - `app/api/assets/route.ts`
@@ -80,6 +84,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/work-orders/[id]/status/route.ts`
 
 #### Support & Help Desk (10 files)
+
 - `app/api/support/incidents/route.ts`
 - `app/api/support/tickets/route.ts`
 - `app/api/support/tickets/[id]/reply/route.ts`
@@ -93,6 +98,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/copilot/chat/route.ts`
 
 #### Marketplace & RFQ (9 files)
+
 - `app/api/rfqs/route.ts`
 - `app/api/rfqs/[id]/publish/route.ts`
 - `app/api/rfqs/[id]/bids/route.ts`
@@ -104,6 +110,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/owners/groups/assign-primary/route.ts`
 
 #### Authentication & Core (11 files)
+
 - `app/api/auth/signup/route.ts`
 - `app/api/auth/login-session/route.ts`
 - `app/api/auth/me/route.ts`
@@ -118,6 +125,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/projects/[id]/route.ts`
 
 #### QA & Monitoring (5 files)
+
 - `app/api/qa/health/route.ts`
 - `app/api/qa/alert/route.ts`
 - `app/api/qa/log/route.ts`
@@ -125,6 +133,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 - `app/api/benchmarks/compare/route.ts`
 
 #### Knowledge Base & Integrations (6 files)
+
 - `app/api/kb/search/route.ts`
 - `app/api/kb/ingest/route.ts`
 - `app/api/integrations/linkedin/apply/route.ts`
@@ -143,33 +152,40 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 Used Python script to systematically fix all occurrences:
 
 ```python
+
 # Find all files with unsafe pattern
+
 unsafe_pattern = re.compile(r"x-forwarded-for.*split.*\[0\]", re.IGNORECASE)
 
 # For each affected file:
+
 # 1. Add import if missing
+
 if not has_import:
     lines.insert(last_import_idx + 1, 
                  "import { getClientIP } from '@/server/security/headers';")
 
 # 2. Replace unsafe patterns
+
 content = re.sub(
     r"const clientIp = req\.headers\.get\(['\"]x-forwarded-for['\"]\)\?\.split\(['\"],['\"]\)\[0\]\?\.trim\(\) \|\| ['\"]unknown['\"];?",
     "const clientIp = getClientIP(req);",
     content
 )
-```
+```text
 
-### Before (UNSAFE - 79 files):
+### Before (UNSAFE - 79 files)
+
 ```typescript
 // VULNERABLE: Uses FIRST IP (client-controlled)
 const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
 // Or inline in function calls
 await service.log(req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown");
-```
+```text
 
-### After (SECURE - 79 files):
+### After (SECURE - 79 files)
+
 ```typescript
 import { getClientIP } from '@/server/security/headers';
 
@@ -178,8 +194,7 @@ const clientIp = getClientIP(req);
 
 // Or inline in function calls
 await service.log(getClientIP(req));
-```
-
+```text
 ---
 
 ## 🛡️ Security Impact
@@ -197,21 +212,25 @@ await service.log(getClientIP(req));
 ### Attack Scenarios Mitigated
 
 #### 1. Rate Limit Bypass (HIGH RISK)
+
 **Before**: Attacker sends `X-Forwarded-For: 1.1.1.1` on every request
 **Impact**: Unlimited requests bypass rate limiting
 **After**: Uses actual IP from trusted proxy ✅
 
 #### 2. Audit Log Poisoning (MEDIUM RISK)
+
 **Before**: Attacker spoofs IP in audit logs
 **Impact**: Incorrect attribution, investigation failures
 **After**: All logs have correct IP addresses ✅
 
 #### 3. IP-Based Access Control Bypass (CRITICAL)
+
 **Before**: Attacker spoofs whitelisted IP
 **Impact**: Unauthorized access to restricted endpoints
 **After**: Only real IP checked against whitelist ✅
 
 #### 4. Financial Fraud (CRITICAL)
+
 **Before**: Attacker spoofs IP to avoid payment fraud detection
 **Impact**: Fraudulent transactions processed
 **After**: Real IP tracked for fraud detection ✅
@@ -244,39 +263,45 @@ await service.log(getClientIP(req));
 ## ✅ Verification
 
 ### TypeScript Compilation
+
 ```bash
 $ pnpm typecheck
 ✅ PASSED - 0 errors
-```
+```text
 
 ### Pattern Search
+
 ```bash
 $ grep -r "x-forwarded-for.*split.*\[0\]" app/api/
 ✅ 0 matches found
-```
+```text
 
 ### Files Fixed
+
 ```bash
 $ python3 fix-ip-extraction.py
 🔍 Scanning 130 API route files...
 ✅ Fixed 79 files
 📊 Remaining unsafe patterns: 0
-```
-
+```text
 ---
 
 ## 🚀 Deployment Impact
 
 ### Breaking Changes
+
 **NONE** - This is a transparent security fix
 
 ### Performance Impact
+
 **NEGLIGIBLE** - Same IP extraction, just secure
 
 ### Configuration Changes
+
 **NONE** - Uses existing `getClientIP()` function
 
 ### Rollback Plan
+
 **NOT RECOMMENDED** - This is a critical security fix
 
 ---
@@ -314,12 +339,14 @@ $ python3 fix-ip-extraction.py
 ### Security Posture
 
 **Before Iteration #4**: 🔴 CRITICAL RISK
+
 - 79 endpoints vulnerable to IP spoofing
 - Rate limiting bypassable
 - Audit logs poisonable
 - Only 2 centralized functions secure (5% coverage)
 
 **After Iteration #4**: ✅ FULLY SECURED
+
 - 100% of API endpoints use secure IP extraction
 - Rate limiting enforced system-wide
 - Audit logs accurate across all endpoints
@@ -330,6 +357,7 @@ $ python3 fix-ip-extraction.py
 **IMMEDIATE DEPLOYMENT REQUIRED**
 
 This is a critical security fix affecting 60.7% of all API endpoints. The vulnerability allows:
+
 - Rate limit bypass
 - Audit log poisoning
 - IP-based access control evasion
@@ -343,4 +371,3 @@ All fixes are non-breaking and production-ready.
 **Verification**: Automated + Manual  
 **Status**: ✅ COMPLETE - 100% COVERAGE ACHIEVED  
 **Commit**: Next commit in audit series
-

@@ -46,12 +46,14 @@ return NextResponse.json({
 **File**: `lib/security/client-ip.ts` (NEW)  
 **Purpose**: Centralized, secure client IP extraction  
 **Features**:
+
 - Priority-based header checking (x-real-ip > cf-connecting-ip > last x-forwarded-for)
 - Prevents spoofing by using proxy-appended IPs
 - IPv4/IPv6 validation helpers
 - Private IP detection
 
 **Usage**:
+
 ```typescript
 import { getClientIp } from '@/lib/security/client-ip';
 
@@ -59,6 +61,7 @@ const clientIp = getClientIp(request); // Secure extraction
 ```
 
 **Migration Status**:
+
 - ✅ `lib/rateLimit.ts` - migrated to use utility
 - ⚠️ 60+ files remaining (see list below)
 
@@ -68,6 +71,7 @@ const clientIp = getClientIp(request); // Secure extraction
 
 **File**: `lib/rateLimit.ts`  
 **Changes**:
+
 - Import `getClientIp` from security utility
 - Removed duplicate local implementation
 - Now uses centralized secure extraction
@@ -83,6 +87,7 @@ These files use the vulnerable pattern: `req.headers.get('x-forwarded-for')?.spl
 **Should be replaced with**: `import { getClientIp } from '@/lib/security/client-ip';`
 
 #### High-Priority API Routes (Security-Sensitive)
+
 ```
 app/api/admin/discounts/route.ts
 app/api/admin/billing/benchmark/route.ts
@@ -106,18 +111,21 @@ app/api/work-orders/[id]/assign/route.ts
 ```
 
 #### Asset Management APIs
+
 ```
 app/api/assets/route.ts (line 91, 141)
 app/api/assets/[id]/route.ts (line 74, 167)
 ```
 
 #### Finance APIs
+
 ```
 app/api/finance/invoices/route.ts (line 41, 97, 141)
 app/api/finance/invoices/[id]/route.ts (line 37)
 ```
 
 #### Help/Support APIs
+
 ```
 app/api/help/articles/route.ts (line 70)
 app/api/help/ask/route.ts (line 141, 274)
@@ -125,6 +133,7 @@ app/api/support/welcome-email/route.ts (line 41)
 ```
 
 #### Other Modules
+
 ```
 server/plugins/auditPlugin.ts (line 301)
 server/security/headers.ts (line 80-81)
@@ -135,12 +144,15 @@ server/security/headers.ts (line 80-81)
 ## 📋 Type Safety Issues (as never / as any)
 
 ### Test Files (Acceptable)
+
 Most `as any` usage is in test files for mocking - this is acceptable:
+
 - `app/test/*.test.ts`
 - `app/api/**/*.test.ts`
 - `i18n/useI18n.test.ts`
 
 ### Production Code (Needs Review)
+
 ```typescript
 // app/api/aqar/listings/[id]/route.ts:204
 (listing as unknown as Record<string, unknown>)[field] = value;
@@ -164,11 +176,13 @@ const dbUser = await User.findOne(...).lean() as any;
 ### For IP Extraction
 
 **Old Pattern** (vulnerable):
+
 ```typescript
 const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 ```
 
 **New Pattern** (secure):
+
 ```typescript
 import { getClientIp } from '@/lib/security/client-ip';
 
@@ -191,16 +205,19 @@ sed -i '1i import { getClientIp } from "@/lib/security/client-ip";' file.ts
 ## 📊 Impact Assessment
 
 ### Critical (Immediate Action Required)
+
 - ✅ **Race conditions**: FIXED (2/2)
 - ✅ **Unsalted hashing**: FIXED (1/1)
 - ⚠️ **IP spoofing**: Utility created, 60+ files need migration
 
 ### High (Should Fix Soon)
+
 - 60+ API routes vulnerable to rate limit bypass
 - Payment/billing endpoints especially critical
 - Admin/tenant management endpoints at risk
 
 ### Medium (Technical Debt)
+
 - 100+ unsafe type casts in production code
 - Should be replaced with proper interfaces over time
 
