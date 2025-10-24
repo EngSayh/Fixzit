@@ -125,6 +125,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/me', { credentials: 'include' });
+        // 401 is expected for guests, don't log as error
         setIsAuthenticated(response.ok);
       } catch {
         setIsAuthenticated(false);
