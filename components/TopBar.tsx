@@ -328,6 +328,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         {isAuthenticated && (
           <div className="notification-container relative">
             <button
+              type="button"
               onClick={() => {
                 setUserOpen(false); // Close user menu when opening notifications
                 setNotifOpen(!notifOpen);
@@ -362,6 +363,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setNotifOpen(false)}
                   className="p-1 hover:bg-gray-100 rounded-full"
                   aria-label="Close notifications"
@@ -444,6 +446,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         )}
         <div className="user-menu-container relative">
           <button 
+            type="button"
             onClick={() => {
               setNotifOpen(false); // Close notifications when opening user menu
               setUserOpen(!userOpen);
@@ -559,6 +562,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               
               <div className="flex gap-3 justify-end">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowUnsavedDialog(false);
                     setPendingNavigation(null);
@@ -570,6 +574,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleDiscardAndNavigate}
                   disabled={isSaving}
                   className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -577,6 +582,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   {t('common.discard', 'Discard')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleSaveAndNavigate}
                   disabled={isSaving}
                   className="px-4 py-2 bg-[#0061A8] text-white hover:bg-[#004d86] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"

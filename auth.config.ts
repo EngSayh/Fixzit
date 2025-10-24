@@ -104,8 +104,10 @@ export const authConfig = {
   callbacks: {
     async signIn({ user: _user, account: _account, profile: _profile }) {
       // OAuth Access Control - Email Domain Whitelist
-      // Configure allowed email domains for OAuth sign-in
-      const allowedDomains = ['fixzit.com', 'fixzit.co'];
+      // Environment-driven configuration for OAuth allowed domains
+      // Format: OAUTH_ALLOWED_DOMAINS="fixzit.com,fixzit.co,example.com"
+      const domainsEnv = process.env.OAUTH_ALLOWED_DOMAINS || 'fixzit.com,fixzit.co';
+      const allowedDomains = domainsEnv.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
       
       // Safely check email and extract domain
       if (!_user?.email) {

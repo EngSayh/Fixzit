@@ -101,7 +101,9 @@ const PaymentSchema = new Schema<IPayment>(
     },
     
     gatewayTransactionId: { type: String },
-    gatewayResponse: { type: Schema.Types.Mixed },
+    // Sensitive: Gateway response may contain PII, tokens, or internal gateway data
+    // Use select: false to prevent accidental exposure in queries
+    gatewayResponse: { type: Schema.Types.Mixed, select: false },
     
     paidAt: { type: Date },
     failedAt: { type: Date },
@@ -110,7 +112,9 @@ const PaymentSchema = new Schema<IPayment>(
     
     invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice' },
     
-    metadata: { type: Schema.Types.Mixed },
+    // Sensitive: Metadata may contain internal notes, debugging info, or PII
+    // Use select: false to prevent accidental exposure in queries
+    metadata: { type: Schema.Types.Mixed, select: false },
   },
   {
     timestamps: true,
@@ -135,6 +139,38 @@ PaymentSchema.statics.getStandardFees = function () {
 };
 
 // Methods
+
+/**
+ * Scrub sensitive data from gatewayResponse for safe logging/display
+ * Removes PII, tokens, and internal gateway details
+ */
+PaymentSchema.methods.getSafeGatewayResponse = function (this: IPayment): Record<string, unknown> | undefined {
+  if (!this.gatewayResponse) return undefined;
+  
+  const scrubbed: Record<string, unknown> = {};
+  const sensitiveKeys = [
+    'card', 'cardNumber', 'cvv', 'pan', 'token', 'accessToken', 'apiKey',
+    'customer', 'email', 'phone', 'name', 'address', 'ip', 'userAgent',
+    'password', 'secret', 'key', 'authorization', 'signature'
+  ];
+  
+  for (const [key, value] of Object.entries(this.gatewayResponse)) {
+    const keyLower = key.toLowerCase();
+    const isSensitive = sensitiveKeys.some(sk => keyLower.includes(sk.toLowerCase()));
+    
+    if (isSensitive) {
+      scrubbed[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null) {
+      // Recursively scrub nested objects (limit depth to 2 levels)
+      scrubbed[key] = '[OBJECT]';
+    } else {
+      scrubbed[key] = value;
+    }
+  }
+  
+  return scrubbed;
+};
+
 PaymentSchema.methods.markAsCompleted = async function (
   this: IPayment,
   transactionId?: string,
