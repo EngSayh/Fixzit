@@ -43,7 +43,7 @@ return NextResponse.json({
 
 ### 2. Created Secure IP Extraction Utility
 
-**File**: `lib/security/client-ip.ts` (NEW)  
+**File**: `lib/security/client-ip.ts` (Canonical Implementation)  
 **Purpose**: Centralized, secure client IP extraction  
 **Features**:
 
@@ -84,7 +84,7 @@ const clientIp = getClientIp(request); // Secure extraction
 
 These files use the vulnerable pattern: `req.headers.get('x-forwarded-for')?.split(',')[0]`
 
-**Should be replaced with**: `import { getClientIP } from '@/server/security/headers';` then call `getClientIP(req)`
+**Should be replaced with**: `import { getClientIp } from '@/lib/security/client-ip';` then call `getClientIp(req)`
 
 **Example fix**:
 ```typescript
@@ -92,8 +92,8 @@ These files use the vulnerable pattern: `req.headers.get('x-forwarded-for')?.spl
 const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
 // After (SECURE):
-import { getClientIP } from '@/server/security/headers';
-const clientIp = getClientIP(req);
+import { getClientIp } from '@/lib/security/client-ip';
+const clientIp = getClientIp(req);
 ```
 
 #### High-Priority API Routes (Security-Sensitive)

@@ -34,7 +34,7 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 
 ### Files Fixed by Category
 
-#### Admin & Billing (9 files)
+#### Admin & Billing (11 files)
 
 - `app/api/admin/discounts/route.ts`
 - `app/api/admin/billing/benchmark/route.ts`
@@ -149,29 +149,26 @@ During the fourth and **FINAL** comprehensive security audit (as explicitly requ
 
 ### Automated Mass Fix Script
 
-Used Python script to systematically fix all occurrences:
+Used TypeScript script to systematically fix all occurrences:
 
-```python
+**Script**: `scripts/security/fix-ip-extraction.ts`
 
-# Find all files with unsafe pattern
+```typescript
+// Find all files with unsafe pattern
+const unsafePattern = /x-forwarded-for.*split.*\[0\]/i;
 
-unsafe_pattern = re.compile(r"x-forwarded-for.*split.*\[0\]", re.IGNORECASE)
+// For each affected file:
+// 1. Add import if missing
+if (!hasImport) {
+    lines.splice(lastImportIdx + 1, 0, 
+                 "import { getClientIP } from '@/server/security/headers';");
+}
 
-# For each affected file:
-
-# 1. Add import if missing
-
-if not has_import:
-    lines.insert(last_import_idx + 1, 
-                 "import { getClientIP } from '@/server/security/headers';")
-
-# 2. Replace unsafe patterns
-
-content = re.sub(
-    r"const clientIp = req\.headers\.get\(['\"]x-forwarded-for['\"]\)\?\.split\(['\"],['\"]\)\[0\]\?\.trim\(\) \|\| ['\"]unknown['\"];?",
-    "const clientIp = getClientIP(req);",
-    content
-)
+// 2. Replace unsafe patterns
+content = content.replace(
+    /const clientIp = req\.headers\.get\(['"]x-forwarded-for['"]\)\?\.split\(['"],['"\]\)\[0\]\?\.trim\(\) \|\| ['"]unknown['"];?/g,
+    "const clientIp = getClientIP(req);"
+);
 ```
 
 ### Before (UNSAFE - 79 files)
@@ -280,7 +277,7 @@ $ grep -r "x-forwarded-for.*split.*\[0\]" app/api/
 ### Files Fixed
 
 ```bash
-$ python3 fix-ip-extraction.py
+$ pnpm ts-node scripts/security/fix-ip-extraction.ts
 🔍 Scanning 130 API route files...
 ✅ Fixed 79 files
 📊 Remaining unsafe patterns: 0

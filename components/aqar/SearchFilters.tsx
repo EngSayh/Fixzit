@@ -236,7 +236,17 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Min"
                   value={filters.priceMin || ''}
-                  onChange={(e) => updateFilters({ priceMin: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === '') {
+                      updateFilters({ priceMin: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ priceMin: parsed });
+                      }
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
@@ -246,7 +256,17 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Max"
                   value={filters.priceMax || ''}
-                  onChange={(e) => updateFilters({ priceMax: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === '') {
+                      updateFilters({ priceMax: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ priceMax: parsed });
+                      }
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
@@ -312,7 +332,17 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Min"
                   value={filters.areaMin || ''}
-                  onChange={(e) => updateFilters({ areaMin: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === '') {
+                      updateFilters({ areaMin: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ areaMin: parsed });
+                      }
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
@@ -322,7 +352,17 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Max"
                   value={filters.areaMax || ''}
-                  onChange={(e) => updateFilters({ areaMax: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === '') {
+                      updateFilters({ areaMax: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ areaMax: parsed });
+                      }
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
