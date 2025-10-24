@@ -8,34 +8,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
-import { AqarListing, FurnishingStatus, ListingIntent, PropertyType } from '@/models/aqar';
-import type { PipelineStage } from 'mongoose';
+import { AqarListing } from '@/models/aqar';
 
 export const runtime = 'nodejs'; // Atlas Search requires Node.js runtime
-
-// Type for search results with distance field (from $geoNear)
-interface ListingSearchResult {
-  _id: string;
-  title: string;
-  price: number;
-  areaSqm?: number;
-  beds?: number;
-  baths?: number;
-  distance?: number; // Added by $geoNear
-  [key: string]: unknown;
-}
-
-// Type for facet results
-interface FacetResult {
-  _id: string;
-  count: number;
-}
-
-interface SearchFacets {
-  propertyTypes: FacetResult[];
-  cities: FacetResult[];
-  priceRanges: Array<{ _id: number | string; count: number }>;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,86 +18,41 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     
-    // Parse query parameters with proper validation
+    // Helper to parse numeric values safely (returns undefined on NaN)
+    const parseNum = (v: string | null): number | undefined => {
+      if (v === null) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    
+    // Parse query parameters
     const intent = searchParams.get('intent'); // BUY|RENT|DAILY
     const propertyType = searchParams.get('propertyType');
     const city = searchParams.get('city');
-    const neighborhoods = searchParams.get('neighborhoods')?.split(',');
-    
-    // Parse numeric helper
-    const parseNumeric = (value: string | null, parser: (s: string) => number): number | undefined => {
-      if (!value || value.trim() === '') return undefined;
-      const raw = value.trim();
-      let parsed: number;
-      if (parser === parseInt) {
-        parsed = parseInt(raw, 10);
-      } else {
-        parsed = parser(raw);
-      }
-      return Number.isFinite(parsed) ? parsed : undefined;
-    };
-    
-    const minPrice = parseNumeric(searchParams.get('minPrice'), parseInt);
-    const maxPrice = parseNumeric(searchParams.get('maxPrice'), parseInt);
-    const minBeds = parseNumeric(searchParams.get('minBeds'), parseInt);
-    const maxBeds = parseNumeric(searchParams.get('maxBeds'), parseInt);
-    const minArea = parseNumeric(searchParams.get('minArea'), parseInt);
-    const maxArea = parseNumeric(searchParams.get('maxArea'), parseInt);
+    const neighborhoods = searchParams.get('neighborhoods')?.split(',').filter(Boolean);
+    const minPrice = parseNum(searchParams.get('minPrice'));
+    const maxPrice = parseNum(searchParams.get('maxPrice'));
+    const minBeds = parseNum(searchParams.get('minBeds'));
+    const maxBeds = parseNum(searchParams.get('maxBeds'));
+    const minArea = parseNum(searchParams.get('minArea'));
+    const maxArea = parseNum(searchParams.get('maxArea'));
     const furnishing = searchParams.get('furnishing');
-    const amenitiesRaw = searchParams.get('amenities');
-    const amenities = amenitiesRaw ? amenitiesRaw.split(',').map(s => s.trim()).filter(Boolean) : undefined;
-
-    // Validate enums and numeric ranges early and return 400 on invalid inputs
-    // Intent
-    if (intent && !Object.values(ListingIntent).includes(intent as ListingIntent)) {
-      return NextResponse.json({ error: `Invalid intent: ${intent}` }, { status: 400 });
-    }
-    // Property type
-    if (propertyType && !Object.values(PropertyType).includes(propertyType as PropertyType)) {
-      return NextResponse.json({ error: `Invalid propertyType: ${propertyType}` }, { status: 400 });
-    }
+    const amenities = searchParams.get('amenities')?.split(',').filter(Boolean);
     
-    // Geo search with validation
-    const lat = parseNumeric(searchParams.get('lat'), parseFloat);
-    const lng = parseNumeric(searchParams.get('lng'), parseFloat);
-    let radiusKm = parseNumeric(searchParams.get('radiusKm'), parseFloat);
-
-    // Numeric range checks
-    if (minPrice !== undefined && minPrice < 0) return NextResponse.json({ error: 'minPrice must be >= 0' }, { status: 400 });
-    if (maxPrice !== undefined && maxPrice < 0) return NextResponse.json({ error: 'maxPrice must be >= 0' }, { status: 400 });
-    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) return NextResponse.json({ error: 'minPrice cannot be greater than maxPrice' }, { status: 400 });
+    // Geo search with bounded radiusKm (0.1km to 20km - capped for DoS prevention)
+    const lat = parseNum(searchParams.get('lat'));
+    const lng = parseNum(searchParams.get('lng'));
+    const radiusKmRaw = parseNum(searchParams.get('radiusKm'));
+    const MAX_RADIUS_KM = 20;
+    const MIN_RADIUS_KM = 0.1;
+    const radiusKm = radiusKmRaw ? Math.min(Math.max(radiusKmRaw, MIN_RADIUS_KM), MAX_RADIUS_KM) : undefined;
     
-    const MAX_BEDS = 50;
-    if (minBeds !== undefined && (minBeds < 0 || minBeds > MAX_BEDS)) return NextResponse.json({ error: `minBeds must be between 0 and ${MAX_BEDS}` }, { status: 400 });
-    if (maxBeds !== undefined && (maxBeds < 0 || maxBeds > MAX_BEDS)) return NextResponse.json({ error: `maxBeds must be between 0 and ${MAX_BEDS}` }, { status: 400 });
-    if (minBeds !== undefined && maxBeds !== undefined && minBeds > maxBeds) return NextResponse.json({ error: 'minBeds cannot be greater than maxBeds' }, { status: 400 });
-
-    if (minArea !== undefined && minArea < 0) return NextResponse.json({ error: 'minArea must be >= 0' }, { status: 400 });
-    if (maxArea !== undefined && maxArea < 0) return NextResponse.json({ error: 'maxArea must be >= 0' }, { status: 400 });
-    if (minArea !== undefined && maxArea !== undefined && minArea > maxArea) return NextResponse.json({ error: 'minArea cannot be greater than maxArea' }, { status: 400 });
-
-    // Furnishing enum
-    if (furnishing && !Object.values(FurnishingStatus).includes(furnishing as FurnishingStatus)) {
-      return NextResponse.json({ error: `Invalid furnishing: ${furnishing}` }, { status: 400 });
-    }
-
-    // Geo validation and caps
-    const MAX_RADIUS_KM = 100; // sensible cap
-    if (radiusKm !== undefined) {
-      if (radiusKm < 0) return NextResponse.json({ error: 'radiusKm must be >= 0' }, { status: 400 });
-      if (radiusKm > MAX_RADIUS_KM) radiusKm = MAX_RADIUS_KM;
-    }
-    if (lat !== undefined && (lat < -90 || lat > 90)) return NextResponse.json({ error: 'lat must be between -90 and 90' }, { status: 400 });
-    if (lng !== undefined && (lng < -180 || lng > 180)) return NextResponse.json({ error: 'lng must be between -180 and 180' }, { status: 400 });
-    
-    // Sorting & pagination with clamping
+    // Sorting & pagination with bounds
     const sort = searchParams.get('sort') || 'relevance'; // relevance|price-asc|price-desc|date-desc|featured
-    
-    // Clamp page and limit to safe ranges
-    const rawPage = parseNumeric(searchParams.get('page'), parseInt) || 1;
-    const rawLimit = parseNumeric(searchParams.get('limit'), parseInt) || 20;
-    const page = Math.max(1, Math.min(1000, rawPage)); // 1-1000
-    const limit = Math.max(1, Math.min(100, rawLimit)); // 1-100
+    const pageRaw = parseNum(searchParams.get('page')) ?? 1;
+    const limitRaw = parseNum(searchParams.get('limit')) ?? 20;
+    const page = Math.max(1, Math.floor(pageRaw));
+    const limit = Math.min(100, Math.max(1, Math.floor(limitRaw)));
     const skip = (page - 1) * limit;
     
     // Build query
@@ -149,8 +79,21 @@ export async function GET(request: NextRequest) {
       if (minArea !== undefined) (query.areaSqm as Record<string, number>).$gte = minArea;
       if (maxArea !== undefined) (query.areaSqm as Record<string, number>).$lte = maxArea;
     }
-  if (furnishing) query.furnishing = furnishing;
-  if (amenities && amenities.length > 0) query.amenities = { $all: amenities };
+    if (furnishing) query.furnishing = furnishing;
+    if (amenities && amenities.length > 0) query.amenities = { $all: amenities };
+    
+    // Geo search
+    if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
+      query.geo = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [lng, lat],
+          },
+          $maxDistance: radiusKm * 1000, // Convert km to meters
+        },
+      };
+    }
     
     // Build sort
     let sortQuery: Record<string, 1 | -1> = {};
@@ -167,120 +110,47 @@ export async function GET(request: NextRequest) {
       case 'featured':
         sortQuery = { featuredLevel: -1, publishedAt: -1 };
         break;
-      case 'relevance':
       default:
-        // TODO: Implement text-based relevance scoring using $text search
-        // For now, fall back to newest first (date-desc)
-        // Options:
-        // 1. Non-geo: Add text index, use $text: { $search: q }, sort by { score: { $meta: 'textScore' } }
-        // 2. Geo: Use Atlas Search with compound (geo + text) since $geoNear must be first stage
         sortQuery = { publishedAt: -1 };
     }
     
-    // Check if geo search is active
-    const hasGeoSearch = lat !== undefined && lng !== undefined && radiusKm !== undefined;
+    // Execute query with field projection for performance
+    const countQuery = { ...query };
+    delete (countQuery as { geo?: unknown }).geo;
     
-    let listings: ListingSearchResult[];
-    let total: number;
-    let facets: SearchFacets[];
+    const select = '_id title price areaSqm city status media.coverImage analytics.views publishedAt';
+    const [listings, total] = await Promise.all([
+      AqarListing.find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
+      AqarListing.countDocuments(countQuery),
+    ]);
     
-    if (hasGeoSearch) {
-      // Use aggregation with $geoNear as first stage (MongoDB requirement for geo in aggregation)
-      // $geoNear must be the first stage and performs both geo filtering and sorting by distance
-      const geoNearStage: PipelineStage.GeoNear = {
-        $geoNear: {
-          near: {
-            type: 'Point' as const,
-            coordinates: [lng, lat] as [number, number],
-          },
-          distanceField: 'distance',
-          maxDistance: radiusKm! * 1000, // Convert km to meters
-          query: query, // Apply other filters
-          spherical: true,
-        },
-      };
-      
-      // Build aggregation pipeline
-      const pipeline: PipelineStage[] = [
-        geoNearStage,
-        { $sort: sortQuery },
-        { $skip: skip },
-        { $limit: limit },
-      ];
-      
-      // Execute geo-aware aggregation for listings
-      listings = await AqarListing.aggregate<ListingSearchResult>(pipeline);
-      
-      // Count total matching documents
-      const countPipeline: PipelineStage[] = [geoNearStage, { $count: 'total' }];
-      const countResult = await AqarListing.aggregate<{ total: number }>(countPipeline);
-      total = countResult[0]?.total || 0;
-      
-      // Calculate facets with geo filter
-      const facetsPipeline: PipelineStage[] = [
-        geoNearStage,
-        {
-          $facet: {
-            propertyTypes: [
-              { $group: { _id: '$propertyType', count: { $sum: 1 } } },
-              { $sort: { count: -1 } },
-            ],
-            cities: [
-              { $group: { _id: '$city', count: { $sum: 1 } } },
-              { $sort: { count: -1 } },
-            ],
-            priceRanges: [
-              {
-                $bucket: {
-                  groupBy: '$price',
-                  boundaries: [0, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000],
-                  default: '10M+',
-                  output: { count: { $sum: 1 } },
-                },
+    // Calculate facets - $near cannot be used in $match within $facet
+    // Reuse the same query without geo filter
+    const facets = await AqarListing.aggregate([
+      { $match: countQuery },
+      {
+        $facet: {
+          propertyTypes: [
+            { $group: { _id: '$propertyType', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+          ],
+          cities: [
+            { $group: { _id: '$city', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+          ],
+          priceRanges: [
+            {
+              $bucket: {
+                groupBy: '$price',
+                boundaries: [0, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000],
+                default: '10M+',
+                output: { count: { $sum: 1 } },
               },
-            ],
-          },
+            },
+          ],
         },
-      ];
-      facets = await AqarListing.aggregate<SearchFacets>(facetsPipeline);
-    } else {
-      // No geo search - use standard find query
-      const [listingsRaw, totalCount] = await Promise.all([
-        AqarListing.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
-        AqarListing.countDocuments(query),
-      ]);
-      
-      listings = listingsRaw as unknown as ListingSearchResult[];
-      total = totalCount;
-      
-      // Calculate facets without geo
-      const facetsPipeline: PipelineStage[] = [
-        { $match: query },
-        {
-          $facet: {
-            propertyTypes: [
-              { $group: { _id: '$propertyType', count: { $sum: 1 } } },
-              { $sort: { count: -1 } },
-            ],
-            cities: [
-              { $group: { _id: '$city', count: { $sum: 1 } } },
-              { $sort: { count: -1 } },
-            ],
-            priceRanges: [
-              {
-                $bucket: {
-                  groupBy: '$price',
-                  boundaries: [0, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000],
-                  default: '10M+',
-                  output: { count: { $sum: 1 } },
-                },
-              },
-            ],
-          },
-        },
-      ];
-      facets = await AqarListing.aggregate<SearchFacets>(facetsPipeline);
-    }
+      },
+    ]);
     
     return NextResponse.json({
       listings,
@@ -293,16 +163,9 @@ export async function GET(request: NextRequest) {
       facets: facets[0] || {},
     });
   } catch (error) {
-    // Sanitized error logging - correlation ID, no PII, no sensitive internals
-    const errorId = `search_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    console.error('Error searching listings', {
-      errorId,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      type: error instanceof Error ? error.constructor.name : typeof error,
-      // DO NOT log: query details, coordinates, user data, connection strings, stack traces
-    });
+    console.error('Error searching listings:', error);
     return NextResponse.json(
-      { error: 'Failed to search listings', errorId },
+      { error: 'Failed to search listings' },
       { status: 500 }
     );
   }

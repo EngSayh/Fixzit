@@ -55,10 +55,9 @@ The current implementation is stable, passes all checks, and downgrading would i
 
 4. **Beta Maturity**:
    - **29 beta releases** indicates extensive testing and refinement
-   - Auth.js v5 is **recommended** for new Next.js 15 projects, especially for App Router and Edge Runtime
-   - NextAuth v4.24.9+ remains a viable alternative with proper configuration and backport fixes
+   - Next.js 15 (which this project uses) is best supported by v5, though v4.24.9+ remains viable with proper configuration
+   - Auth.js v5 is recommended for new Next.js 15 projects, especially for App Router and Edge Runtime use cases
    - v5 provides enhanced Next.js 15/React 19 compatibility and improved middleware integration
-   - Both v4 (with patches) and v5 can work with Next.js 15; v5 is preferred for forward compatibility
 
 ---
 
