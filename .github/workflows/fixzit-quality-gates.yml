@@ -39,12 +39,15 @@ jobs:
             echo "::warning::No lock file found. Defaulting to npm install."
           fi
 
-      - name: Enable Corepack & Setup Node
+      # Enable Corepack FIRST before setup-node to ensure pnpm is available
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node with Cache
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: ${{ steps.pm.outputs.cache }}
-      - run: corepack enable
 
       - name: Install Dependencies
         shell: bash
