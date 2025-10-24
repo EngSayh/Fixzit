@@ -53,7 +53,7 @@
 
 ```typescript
 'x-internal-auth': process.env.INTERNAL_API_SECRET || ''
-```text
+```
 **After**:
 
 ```typescript
@@ -73,7 +73,7 @@ const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
     'x-internal-auth': internalSecret || '' 
   },
 });
-```text
+```
 **Impact**: Production will now FAIL FAST if INTERNAL_API_SECRET is missing or weak, preventing authentication bypass vulnerabilities.
 
 ---
@@ -89,7 +89,7 @@ const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
 ```typescript
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
-```text
+```
 **After**:
 
 ```typescript
@@ -106,7 +106,7 @@ if (process.env.NODE_ENV === 'production') {
     throw new Error('FATAL: Invalid MongoDB URI format in production. Must start with mongodb:// or mongodb+srv://');
   }
 }
-```text
+```
 **Impact**: Production will now validate MongoDB URI format and throw fatal errors if misconfigured, preventing silent data loss.
 
 ---
@@ -198,7 +198,7 @@ try {
   // Always end session to prevent memory leaks
   await session.endSession(); // ✓ PRESENT
 }
-```text
+```
 
 #### ✅ app/api/auth/provision/route.ts (VERIFIED FIXED)
 
@@ -214,7 +214,7 @@ try {
   // Always end session to prevent memory leaks
   await session.endSession(); // ✓ PRESENT
 }
-```text
+```
 **Result**: ✅ All MongoDB transactions have proper cleanup in finally blocks
 
 ---
@@ -260,14 +260,14 @@ All type casts found in codebase are in:
 ```bash
 $ pnpm typecheck
 ✅ PASSED - 0 errors
-```text
+```
 
 ### ESLint Analysis
 
 ```bash
 $ pnpm lint
 ✅ PASSED - 0 warnings, 0 errors
-```text
+```
 
 ### Security Enforcement
 
@@ -364,7 +364,7 @@ LOG_HASH_SALT=<32+ characters>
 
 GOOGLE_CLIENT_ID=<your-client-id>
 GOOGLE_CLIENT_SECRET=<your-client-secret>
-```text
+```
 
 ### Optional Environment Variables
 
@@ -388,7 +388,7 @@ MONGODB_DB=your-db-name
 # AWS Region (default: us-east-1)
 
 AWS_REGION=your-region
-```text
+```
 ---
 
 ## Conclusion

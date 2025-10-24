@@ -111,17 +111,24 @@ const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim();
 ```typescript
 // ✅ AFTER: Last IP (added by our trusted reverse proxy)
 function getClientIp(request: NextRequest): string {
-  // Priority: x-real-ip > cf-connecting-ip > last x-forwarded-for IP
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
+  // Priority: cf-connecting-ip > last x-forwarded-for IP > x-real-ip (if TRUST_X_REAL_IP=true)
+  // See lib/security/client-ip.ts for current implementation
   
+  // Priority 1: Cloudflare's CF-Connecting-IP (most trustworthy when behind Cloudflare)
   const cfIp = request.headers.get('cf-connecting-ip');
   if (cfIp) return cfIp.trim();
   
+  // Priority 2: Last IP in x-forwarded-for (appended by our reverse proxy)
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) {
     const ips = forwardedFor.split(',').map(ip => ip.trim());
     return ips[ips.length - 1]; // ✅ Take last (proxy-added) IP
+  }
+  
+  // Priority 3: x-real-ip (only when TRUST_X_REAL_IP='true')
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp && process.env.TRUST_X_REAL_IP === 'true') {
+    return realIp.trim();
   }
   
   return 'unknown';
@@ -130,9 +137,11 @@ function getClientIp(request: NextRequest): string {
 
 **Security Rationale**:
 
-- Client can add fake IPs to `x-forwarded-for` header
-- Reverse proxy appends real IP at the **end**
-- Taking last IP ensures we use trusted source
+- **cf-connecting-ip** is highest priority (Cloudflare-controlled, cannot be spoofed)
+- **Last IP in x-forwarded-for** is second (appended by trusted reverse proxy)
+- **x-real-ip** is lowest priority (can be spoofed, requires explicit trust via env variable)
+- Client can add fake IPs to the beginning of `x-forwarded-for`, but cannot modify proxy-appended IPs
+- Taking last IP from x-forwarded-for ensures we use trusted source
 
 ---
 

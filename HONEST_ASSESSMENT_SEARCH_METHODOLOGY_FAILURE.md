@@ -122,9 +122,9 @@ find app lib server components contexts hooks utils services models types -name 
 # Result: ~5,000+ files
 
 # 2. PATTERN SCAN - ALL FILES AT ONCE
-grep -r "split(',')[0]" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/
-grep -r "process.env.*||" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/
-grep -r "as any" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/
+grep -r -E "split\(','\)\[0\]" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/
+grep -r -E "process\.env.*\|\|" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/
+grep -r -E "as any" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/
 # ... ALL patterns from PR #137 comments
 
 # 3. WORKFLOW ANALYSIS
@@ -274,7 +274,7 @@ for pattern in \
   # ... ALL patterns from PR comments
 do
   echo "=== PATTERN: $pattern ===" >> SCAN_RESULTS.txt
-  grep -rn "$pattern" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/ types/ .github/ scripts/ \
+  grep -r -n -E "$pattern" app/ lib/ server/ components/ contexts/ hooks/ utils/ services/ models/ types/ .github/ scripts/ \
     --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.yml" \
     >> SCAN_RESULTS.txt
 done

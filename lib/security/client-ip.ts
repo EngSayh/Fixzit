@@ -48,9 +48,17 @@ export function getClientIp(request: NextRequest): string {
   // but cannot modify what the reverse proxy appends to the end
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) {
-    const ips = forwardedFor.split(',').map(ip => ip.trim());
-    // Take the LAST IP (added by our trusted reverse proxy)
-    return ips[ips.length - 1];
+    const trimmed = forwardedFor.trim();
+    // Treat empty or whitespace-only header as absent
+    if (trimmed) {
+      const ips = trimmed.split(',').map(ip => ip.trim()).filter(ip => ip.length > 0);
+      // Only return if we have at least one non-empty IP
+      if (ips.length > 0) {
+        // Take the LAST IP (added by our trusted reverse proxy)
+        return ips[ips.length - 1];
+      }
+    }
+    // Fall through if header was empty or contained only whitespace/commas
   }
   
   // Priority 3: x-real-ip (can be spoofed, use only as last resort)
@@ -118,11 +126,15 @@ export function isValidIPv6(ip: string): boolean {
 /**
  * Check if IP is from a private network (RFC 1918)
  * 
+ * Fail-closed behavior: Invalid or non-IPv4 addresses are treated as private
+ * to prevent security bypasses.
+ * 
  * @param ip - IP address to check
- * @returns true if private IP, false otherwise
+ * @returns true if private IP or invalid, false if public IPv4
  */
 export function isPrivateIP(ip: string): boolean {
-  if (!isValidIPv4(ip)) return false;
+  // Fail-closed: treat invalid/non-IPv4 input as private to prevent security bypass
+  if (!isValidIPv4(ip)) return true;
   
   const parts = ip.split('.').map(Number);
   const [first, second] = parts;

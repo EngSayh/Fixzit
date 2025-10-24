@@ -49,7 +49,7 @@ This session successfully addressed **100% of CodeRabbit review issues** from PR
 const salt = process.env.LOG_HASH_SALT || 'fixzit-default-salt-change-in-production';
 const msgUint8 = new TextEncoder().encode(email + salt);
 return hashHex.substring(0, 12);
-```text
+```
 **AFTER**:
 
 ```typescript
@@ -72,7 +72,7 @@ const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
 const hashArray = Array.from(new Uint8Array(hashBuffer));
 const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 return hashHex.substring(0, 16); // Increased to 64 bits
-```text
+```
 **Impact**:
 
 - 🔒 Prevents production deployment with weak/missing salt
@@ -100,7 +100,7 @@ if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
 if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
 if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
 // LOG_HASH_SALT not checked
-```text
+```
 **AFTER**:
 
 ```typescript
@@ -118,7 +118,7 @@ if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
 if (process.env.NODE_ENV === 'production' && !LOG_HASH_SALT) {
   missingVars.push('LOG_HASH_SALT (required in production for secure email hashing)');
 }
-```text
+```
 **Impact**:
 
 - ⚙️ Fail-fast on misconfigured production deployments
@@ -148,7 +148,7 @@ for (const [field, value] of Object.entries(requiredFields)) {
     );
   }
 }
-```text
+```
 **AFTER**:
 
 ```typescript
@@ -166,7 +166,7 @@ for (const [field, value] of Object.entries(requiredFields)) {
     );
   }
 }
-```text
+```
 **Impact**:
 
 - ✅ Allows valid 0 values (e.g., `areaSqm=0` for land plots)
@@ -194,7 +194,7 @@ const listing = await AqarListing.create({
   source: body.source, // ❌ Unsanitized
   // ...
 });
-```text
+```
 **AFTER**:
 
 ```typescript
@@ -210,7 +210,7 @@ const listing = await AqarListing.create({
   source, // ✅ Uses sanitized variable from line 183
   // ...
 });
-```text
+```
 **Impact**:
 
 - 📝 Accurate error messages for better UX
@@ -245,7 +245,7 @@ return NextResponse.json({ listing: createdListing }, { status: 201 });
   }
   throw txError;
 }
-```text
+```
 **AFTER**:
 
 ```typescript
@@ -267,7 +267,7 @@ return NextResponse.json({ listing: createdListing }, { status: 201 });
   // Always end session to prevent memory leaks
   await session.endSession(); // ✅ Called in ALL paths
 }
-```text
+```
 **Impact**:
 
 - 💾 Prevents memory leaks in success path
@@ -301,7 +301,7 @@ markdownlint-cli2 v0.18.1 (markdownlint v0.38.0)
 Finding: PR137_CRITICAL_FIXES_COMPLETE.md
 Linting: 1 file(s)
 Summary: 0 error(s)  # ✅ CLEAN
-```text
+```
 ---
 
 ### 7. Unused Imports (Code Quality)
@@ -314,12 +314,12 @@ import { getClientIp } from '@/lib/security/client-ip'; // ❌ Not used
 
 // lib/rateLimit.ts
 import { getClientIp } from './security/client-ip'; // ❌ Not used
-```text
+```
 **AFTER**:
 
 ```typescript
 // Imports removed from both files
-```text
+```
 **Impact**:
 
 - 🧹 Cleaner code
@@ -338,7 +338,7 @@ $ pnpm typecheck
 
 # ✅ 0 errors
 
-```text
+```
 
 ### ESLint (Zero Warnings)
 
@@ -347,7 +347,7 @@ $ pnpm lint --max-warnings=0
 > fixzit-frontend@2.0.26 lint /workspaces/Fixzit
 > next lint --max-warnings\=0
 ✔ No ESLint warnings or errors  # ✅ CLEAN
-```text
+```
 
 ### Markdown Lint
 
@@ -356,7 +356,7 @@ $ pnpm lint --max-warnings=0
 # Run markdownlint across the entire repository (ignore node_modules and .next)
 
 $ npx markdownlint-cli2 "**/*.md" "!node_modules" "!.next"
-```text
+```
 
 ### Git Workflow
 
@@ -369,7 +369,7 @@ $ git push origin fix/pr137-remaining-issues
 Total 15 (delta 11), reused 1 (delta 0), pack-reused 0 (from 0)
 To https://github.com/EngSayh/Fixzit
    42843d149..0de9c9388  fix/pr137-remaining-issues -> fix/pr137-remaining-issues  # ✅ PUSHED
-```text
+```
 ---
 
 ## 📦 Files Changed
