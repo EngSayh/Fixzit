@@ -1,6 +1,42 @@
 {
   "version": "2.0.0",
   "tasks": [
+    {
+      "label": "Dev Server: Start",
+      "type": "shell",
+      "command": "pnpm dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting...",
+          "endsPattern": "Ready in|compiled|Local:|started server"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false
+      },
+      "runOptions": {
+        "runOn": "default"
+      }
+    },
+    {
+      "label": "Dev Server: Keep-Alive",
+      "type": "shell",
+      "command": "bash scripts/dev-server-keepalive.sh",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false
+      }
+    },
     {"label": "Fixzit: Pack Landing", "type": "shell", "command": "npm run fixzit:pack:landing", "problemMatcher": []},
     {"label": "Fixzit: Pack All", "type": "shell", "command": "npm run fixzit:pack", "problemMatcher": []},
     {"label": "Fixzit: De-dupe Scan", "type": "shell", "command": "npm run fixzit:dedupe:scan", "problemMatcher": []},
