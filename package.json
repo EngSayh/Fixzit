@@ -13,6 +13,7 @@
     "agent:inventory": "bash scripts/inventory.sh",
     "agent:cleanup": "bash scripts/cleanup_space.sh",
     "agent:run": "bash tools/agent-runner.sh",
+    "cleanup": "bash scripts/cleanup-space.sh",
     "agent:verify": "npm run typecheck && npm run lint && npm run build",
     "qa:verify": "node scripts/qa/halt-fix-verify.mjs",
     "verify": "node qa/scripts/verify.mjs --fast",
