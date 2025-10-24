@@ -84,7 +84,9 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
 
   // Use NextAuth session for authentication (supports both OAuth and JWT)
   const { data: _session, status } = useSession();
-  const isAuthenticated = status === 'authenticated';
+  // CRITICAL: Only show authenticated UI when explicitly authenticated
+  // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
+  const isAuthenticated = status === 'authenticated' && _session !== null && _session !== undefined;
 
   const router = useRouter();
   const pathname = usePathname();
