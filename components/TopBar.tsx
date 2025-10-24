@@ -163,8 +163,12 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.items || []);
+      } else if (response.status === 401) {
+        // 401 is expected for guests - silently set empty notifications
+        setNotifications([]);
       } else {
-        // Don't use mock notifications - just show empty
+        // Other errors - log them
+        console.error('Failed to fetch notifications:', response.status);
         setNotifications([]);
       }
     } catch (error) {
@@ -284,13 +288,13 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           aria-label="Go to home"
         >
-          <Image
-            src="/img/logo.jpg"
-            alt="Fixzit Enterprise"
-            width={32}
-            height={32}
-            className="rounded-md"
-          />
+          {/* Logo placeholder - using div until actual logo image is provided */}
+          <div 
+            className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
+            aria-hidden="true"
+          >
+            FZ
+          </div>
           <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
             {t('common.brand', 'FIXZIT ENTERPRISE')}
           </span>

@@ -65,7 +65,8 @@ export class AutoFixManager {
         check: async () => {
           try {
             const res = await fetch('/api/help/articles');
-            return res.ok;
+            // 401 is acceptable for unauthenticated users
+            return res.ok || res.status === 401;
           } catch {
             return false;
           }
@@ -88,7 +89,8 @@ export class AutoFixManager {
         check: async () => {
           try {
             const res = await fetch('/api/notifications');
-            return res.ok;
+            // 401 is acceptable for unauthenticated users
+            return res.ok || res.status === 401;
           } catch {
             return false;
           }

@@ -72,18 +72,21 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             // Clear the auth cookie by making it expire
             document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
           }
-        } else {
-          // If no valid session, ensure role is guest and clear auth data
+        } else if (response.status === 401) {
+          // 401 is expected for guests - not an error, just set guest role silently
           setRole('guest');
           localStorage.removeItem('fixzit-role');
-          // Clear the auth cookie
+        } else {
+          // Other errors - clear auth data
+          setRole('guest');
+          localStorage.removeItem('fixzit-role');
           document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         }
       } catch (error) {
+        // Only log non-401 errors
         console.error('Failed to fetch user role:', error);
         setRole('guest');
         localStorage.removeItem('fixzit-role');
-        // Clear the auth cookie
         document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       } finally {
         setLoading(false);
