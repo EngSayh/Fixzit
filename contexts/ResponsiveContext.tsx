@@ -17,7 +17,17 @@ const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undef
 
 export function ResponsiveProvider({ children }: { children: ReactNode }) {
   const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
-  const { isRTL } = useTranslation();
+  
+  // DEBUG: Check if TranslationContext is available
+  let isRTL = false;
+  try {
+    const translationContext = useTranslation();
+    isRTL = translationContext.isRTL;
+    console.log('[ResponsiveProvider] Successfully got isRTL from TranslationContext:', isRTL);
+  } catch (error) {
+    console.error('[ResponsiveProvider] ERROR: Cannot access TranslationContext!', error);
+    isRTL = false;
+  }
 
   const responsiveClasses = getResponsiveClasses(screenInfo);
 
