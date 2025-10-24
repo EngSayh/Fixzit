@@ -13,7 +13,13 @@ export enum PackageType {
   PREMIUM = 'PREMIUM',     // 250 SAR, 50 listings, 30 days
 }
 
-export interface IPackage extends Document {
+export interface IPackageMethods {
+  activate(): Promise<void>;
+  consumeListing(): Promise<void>;
+  checkExpiry(): Promise<void>;
+}
+
+export interface IPackage extends Document, IPackageMethods {
   // User
   userId: mongoose.Types.ObjectId;
   orgId: mongoose.Types.ObjectId;
@@ -39,18 +45,9 @@ export interface IPackage extends Document {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
-  
-  // Instance methods
-  activate(): Promise<void>;
-  consumeListing(): Promise<void>;
 }
 
-// Model interface for statics
-export interface IAqarPackageModel extends Model<IPackage> {
-  getPricing(type: PackageType): { price: number; listings: number; days: number };
-}
-
-const PackageSchema = new Schema<IPackage, IAqarPackageModel>(
+const PackageSchema = new Schema<IPackage, Model<IPackage, {}, IPackageMethods>>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
@@ -94,7 +91,7 @@ PackageSchema.statics.getPricing = function (type: PackageType) {
 };
 
 // Methods
-PackageSchema.methods.activate = async function (this: IPackage) {
+PackageSchema.methods.activate = async function (this: IPackage): Promise<void> {
   if (this.active) {
     throw new Error('Package already activated');
   }
@@ -152,7 +149,7 @@ PackageSchema.methods.checkExpiry = async function (this: IPackage) {
   }
 };
 
-const Package: IAqarPackageModel =
-  (mongoose.models.AqarPackage as IAqarPackageModel) || mongoose.model<IPackage, IAqarPackageModel>('AqarPackage', PackageSchema);
+const Package: Model<IPackage> =
+  mongoose.models.AqarPackage || mongoose.model<IPackage>('AqarPackage', PackageSchema);
 
 export default Package;

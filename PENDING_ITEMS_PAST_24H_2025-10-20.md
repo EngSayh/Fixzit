@@ -208,16 +208,11 @@ gh pr create --title "feat: Aqar Real Estate Marketplace - Complete Enhancement"
    - **Status:** Not set (using ephemeral session secret)
    - **Impact:** Users logged out on server restart
    - **Priority:** HIGH
-   - **Generate a secure secret:**
-     ```bash
-     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-     ```
-   - **Or use:** https://generate-secret.vercel.app/32
+   - **Recommended Value:** `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
    - **Action:** Add to `.env.local`:
      ```env
-     JWT_SECRET=<your-generated-64-char-hex-string>
+     JWT_SECRET=6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267
      ```
-   - **⚠️ SECURITY:** Never commit secrets to version control
 
 6. 🟢 **Delete OAuth JSON File**
    - **File:** `client_secret_887157574249-*.apps.googleusercontent.com.json`
@@ -380,7 +375,7 @@ npm run typecheck
 4. **Set JWT_SECRET**
    - **Why:** Session persistence
    - **Effort:** 1 minute
-   - **Generate:** `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   - **Value:** `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
    - **Impact:** Users stay logged in across restarts
 
 5. **Test OAuth Flow**
