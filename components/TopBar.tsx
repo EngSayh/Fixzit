@@ -86,7 +86,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
   const { data: _session, status } = useSession();
   // CRITICAL: Only show authenticated UI when explicitly authenticated
   // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
-  const isAuthenticated = status === 'authenticated' && _session !== null && _session !== undefined;
+  const isAuthenticated = status === 'authenticated' && _session != null;
 
   const router = useRouter();
   const pathname = usePathname();
