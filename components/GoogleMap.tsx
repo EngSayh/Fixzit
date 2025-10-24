@@ -143,13 +143,12 @@ export default function GoogleMap({
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
       
-      // Clean up script if we created it
+      // Clean up script reference counting
+      // Note: We don't remove the script element to avoid breaking other map instances
+      // that may still be mounted. The script is shared across all GoogleMap components.
       if (scriptRef.current) {
         scriptRef.current.onload = null;
         scriptRef.current.onerror = null;
-        if (document.head.contains(scriptRef.current)) {
-          document.head.removeChild(scriptRef.current);
-        }
         scriptRef.current = null;
       }
     };

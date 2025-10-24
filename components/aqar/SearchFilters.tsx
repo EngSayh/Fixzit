@@ -236,7 +236,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Min"
                   value={filters.priceMin || ''}
-                  onChange={(e) => updateFilters({ priceMin: Number(e.target.value) || undefined })}
+                  onChange={(e) => updateFilters({ priceMin: e.target.value === '' ? undefined : Number(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
@@ -246,7 +246,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Max"
                   value={filters.priceMax || ''}
-                  onChange={(e) => updateFilters({ priceMax: Number(e.target.value) || undefined })}
+                  onChange={(e) => updateFilters({ priceMax: e.target.value === '' ? undefined : Number(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
@@ -312,7 +312,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Min"
                   value={filters.areaMin || ''}
-                  onChange={(e) => updateFilters({ areaMin: Number(e.target.value) || undefined })}
+                  onChange={(e) => updateFilters({ areaMin: e.target.value === '' ? undefined : Number(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
@@ -322,7 +322,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="number"
                   placeholder="Max"
                   value={filters.areaMax || ''}
-                  onChange={(e) => updateFilters({ areaMax: Number(e.target.value) || undefined })}
+                  onChange={(e) => updateFilters({ areaMax: e.target.value === '' ? undefined : Number(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
@@ -422,7 +422,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             <h3 className="font-semibold text-gray-900 mb-3">Sort By</h3>
             <select
               value={filters.sortBy || 'DATE_DESC'}
-              onChange={(e) => updateFilters({ sortBy: e.target.value as any })}
+              onChange={(e) => updateFilters({ sortBy: e.target.value as PropertyFilters['sortBy'] })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
             >
               <option value="DATE_DESC">Newest First</option>

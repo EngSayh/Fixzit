@@ -38,13 +38,13 @@ const UNSAFE_PATTERNS = [
   {
     // Pattern 3: Simple inline with fallback (no x-real-ip)
     name: 'inline with direct fallback',
-    find: () => new RegExp(/req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\?\.trim\(\)\s*\|\|\s*['"](unknown|local|anonymous)['"]/. source, 'g'),
+    find: () => new RegExp(/req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\?\.trim\(\)\s*\|\|\s*['"](unknown|local|anonymous)['"]/.source, 'g'),
     replace: (_varName: string) => 'getClientIP(req)'
   },
   {
     // Pattern 4: Simple inline without trim
     name: 'inline without trim',
-    find: () => new RegExp(/req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\s*\|\|\s*['"](unknown|local|anonymous)['"]/. source, 'g'),
+    find: () => new RegExp(/req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\s*\|\|\s*['"](unknown|local|anonymous)['"]/.source, 'g'),
     replace: (_varName: string) => 'getClientIP(req)'
   },
   {
