@@ -44,20 +44,25 @@ const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 const LOG_HASH_SALT = process.env.LOG_HASH_SALT;
 
-const missingVars: string[] = [];
-if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
-if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
-if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
-if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
-if (process.env.NODE_ENV === 'production') {
-  if (!process.env.NEXTAUTH_URL) missingVars.push('NEXTAUTH_URL');
-  if (!LOG_HASH_SALT) missingVars.push('LOG_HASH_SALT (required in production for secure email hashing)');
-}
+// Skip validation during CI build (secrets not needed for build, only for runtime)
+if (process.env.CI !== 'true') {
+  const missingVars: string[] = [];
+  if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
+  if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
+  if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
+  if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.NEXTAUTH_URL) missingVars.push('NEXTAUTH_URL');
+    if (!LOG_HASH_SALT) missingVars.push('LOG_HASH_SALT (required in production for secure email hashing)');
+  }
 
-if (missingVars.length > 0) {
-  throw new Error(
-    'Missing required authentication configuration. See README env section.'
-  );
+  if (missingVars.length > 0) {
+    throw new Error(
+      `Missing required authentication configuration: ${missingVars.join(', ')}. See README env section.`
+    );
+  }
+} else {
+  console.warn('⚠️  CI mode: Skipping auth config validation (will be required at runtime)');
 }
 
 // Environment-driven OAuth allowed domains

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Phone, MessageSquare, MapPin, Award, TrendingUp, CheckCircle } from 'lucide-react';
+import { Star, Phone, MessageSquare, Award, TrendingUp, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export interface AgentCardProps {
@@ -44,7 +44,7 @@ export interface AgentCardProps {
 }
 
 export default function AgentCard({ agent, compact = false }: { agent: AgentCardProps; compact?: boolean }) {
-  const [showContact, setShowContact] = useState(false);
+  const [_showContact, _setShowContact] = useState(false);
 
   const fullName = agent.displayName || `${agent.firstName} ${agent.lastName}`;
 
