@@ -10,11 +10,19 @@ import CurrencySelector from '@/components/i18n/CurrencySelector';
 /**
  * Responsive site footer component with company, legal, and support links.
  *
- * Renders branding, a "Back to Home" link, language and currency selectors (compact variants),
- * a current currency display, and a multi-column link grid (Company, Legal, Support).
- * The "Open a ticket" button toggles an internal `open` state to show the SupportPopup.
- * Translation is sourced from the translation context with a safe fallback (`t(key, fallback)`),
- * and layout alignment supports RTL via the translation context's `isRTL` flag.
+ * Features:
+ * - Brand identity with "Back to Home" link
+ * - Language and currency selectors (compact variants)
+ * - Multi-column link grid (Company, Legal, Support)
+ * - Support ticket popup integration
+ * - Full RTL support with flex-row-reverse for proper layout mirroring
+ * - Theme-consistent colors using Tailwind's brand color classes
+ * - Accessibility-ready with semantic HTML
+ *
+ * RTL Enhancements:
+ * - Uses flex-row-reverse for proper element ordering in RTL
+ * - Text alignment respects reading direction
+ * - Maintains visual hierarchy in both LTR and RTL modes
  *
  * @returns {JSX.Element} The footer JSX element.
  */
@@ -27,13 +35,13 @@ export default function Footer() {
   return (
     <footer className="border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
-        <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right' : ''}`}>
+        <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right md:flex-row-reverse' : ''}`}>
           <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
-          <Link href="/" className="inline-flex items-center gap-2 text-[#0061A8] hover:text-[#004f86]">
+          <Link href="/" className="inline-flex items-center gap-2 text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
             <Home className="h-4 w-4" />
             <span>{t('footer.backHome', 'Back to Home')}</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
             <LanguageSelector variant="compact" />
             <CurrencySelector variant="compact" />
           </div>
@@ -69,6 +77,9 @@ export default function Footer() {
             </ul>
           </div>
         </div>
+  {/* Bottom bar with copyright and quick links 
+      Note: Privacy/Terms/Support links duplicated here for user convenience 
+      (mobile users may prefer bottom bar, desktop users may use main grid) */}
   <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
