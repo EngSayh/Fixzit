@@ -165,7 +165,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
             <div className="flex justify-center mb-4">
@@ -187,14 +187,14 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0061A8] via-[#00A859] to-[#FFB400] flex">
+    <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex">
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white">
         <div className="max-w-md text-center">
           <div className="mb-8">
             <div className="flex justify-center mb-6">
               <div className="bg-white p-6 rounded-2xl shadow-lg">
-                <div className="w-20 h-20 bg-[#0061A8] rounded-xl flex items-center justify-center text-white font-bold text-2xl">
+                <div className="w-20 h-20 bg-brand-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl">
                   F
                 </div>
               </div>
@@ -261,7 +261,7 @@ export default function SignupPage() {
                         key={lang.code}
                         onClick={() => handleLanguageChange(lang)}
                         className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 ${
-                          lang.code === selectedLang.code ? 'bg-[#0061A8]/10' : ''
+                          lang.code === selectedLang.code ? 'bg-brand-500/10' : ''
                         }`}
                       >
                         <span className="text-xl">{lang.flag}</span>
@@ -270,7 +270,7 @@ export default function SignupPage() {
                           <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
                         </div>
                         {lang.code === selectedLang.code && (
-                          <div className="w-2 h-2 rounded-full bg-[#0061A8]" />
+                          <div className="w-2 h-2 rounded-full bg-brand-500" />
                         )}
                       </button>
                     ))}
@@ -296,7 +296,7 @@ export default function SignupPage() {
                         key={currency.code}
                         onClick={() => handleCurrencyChange(currency)}
                         className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 text-gray-900 text-sm ${
-                          currency.code === selectedCurrency.code ? 'bg-[#0061A8]/10' : ''
+                          currency.code === selectedCurrency.code ? 'bg-brand-500/10' : ''
                         }`}
                       >
                         <span className="font-medium">{currency.symbol}</span>
@@ -506,16 +506,16 @@ export default function SignupPage() {
                     type="checkbox"
                     checked={formData.termsAccepted}
                     onChange={(e) => handleChange('termsAccepted', e.target.checked)}
-                    className="mt-1 h-4 w-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
+                    className="mt-1 h-4 w-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
                     required
                   />
                   <span className="text-sm text-gray-600">
                     {t('signup.terms.agree', 'I agree to the')}{' '}
-                    <Link href="/terms" className="text-[#0061A8] hover:underline">
+                    <Link href="/terms" className="text-brand-500 hover:text-brand-600 transition-colors">
                       {t('signup.terms.service', 'Terms of Service')}
                     </Link>{' '}
                     {t('signup.terms.and', 'and')}{' '}
-                    <Link href="/privacy" className="text-[#0061A8] hover:underline">
+                    <Link href="/privacy" className="text-brand-500 hover:text-brand-600 transition-colors">
                       {t('signup.terms.privacy', 'Privacy Policy')}
                     </Link>
                     *
@@ -527,7 +527,7 @@ export default function SignupPage() {
                     type="checkbox"
                     checked={formData.newsletter}
                     onChange={(e) => handleChange('newsletter', e.target.checked)}
-                    className="mt-1 h-4 w-4 text-[#0061A8] border-gray-300 rounded focus:ring-[#0061A8]"
+                    className="mt-1 h-4 w-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
                   />
                   <span className="text-sm text-gray-600">
                     {t('signup.newsletter', "I'd like to receive updates and promotional emails about Fixzit Enterprise")}
@@ -539,7 +539,7 @@ export default function SignupPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-[#0061A8] hover:bg-[#0061A8]/90 text-white font-semibold"
+                className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
@@ -559,7 +559,7 @@ export default function SignupPage() {
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 {t('signup.login.prompt', 'Already have an account?')}{' '}
-                <Link href="/login" className="text-[#0061A8] hover:underline font-medium">
+                <Link href="/login" className="text-brand-500 hover:text-brand-600 font-medium transition-colors">
                   {t('signup.login.link', 'Sign in here')}
                 </Link>
               </p>
