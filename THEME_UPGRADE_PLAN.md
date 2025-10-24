@@ -61,9 +61,16 @@ Systematically fix ALL Yellow-flagged components by:
 - ✅ Terms page (Commit 22a0fe107)
 - ✅ Souq landing page (Commit e1299eb5b)
 - ✅ Property Detail page (Commit 65f558097)
+- ✅ Login page - 17 replacements (Commit 2236722fc)
+- ✅ Signup page - 19 replacements (Commit 270001832)
+- ✅ Forgot-password page - 10 replacements (Commit f6abb4592)
+- ✅ Not-found page - 7 replacements (Commit d5a33eb15)
+- ✅ Help page - 8 replacements (Commit 75d99ee4e)
+- ✅ Profile page - 20+ replacements (Commit ff37d0bc0)
 
 ### In Progress
-- 🔄 Login page (NEXT)
+- 🔄 Notifications page (NEXT)
 
-### Pending
-- All files from priority queue above
+### Pending High Priority
+- Careers pages
+- Finance forms (53 total instances)
