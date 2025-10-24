@@ -2,17 +2,12 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { jwtVerify } from 'jose';
-import { dbConnect } from '@/db/mongoose';
-import { User } from '@/server/models/User';
-
-// Force Node.js runtime for middleware (required for mongoose/database operations)
-export const runtime = 'nodejs';
 
 // Validate JWT secret at module load - fail fast if missing
-// Require dedicated JWT_SECRET instead of falling back to NEXTAUTH_SECRET to prevent token confusion
-const jwtSecretValue = process.env.JWT_SECRET;
+// Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET
+const jwtSecretValue = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 if (!jwtSecretValue) {
-  const errorMessage = 'FATAL: JWT_SECRET environment variable is not set. Application cannot start without a secure JWT secret. Please add JWT_SECRET to your .env.local file or environment configuration.';
+  const errorMessage = 'FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set. Application cannot start without a secure JWT secret. Please add JWT_SECRET or NEXTAUTH_SECRET to your .env.local file or environment configuration.';
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
@@ -20,31 +15,8 @@ if (!jwtSecretValue) {
 // JWT secret for legacy token verification
 const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 
-/**
- * Check if a pathname matches a route pattern
- * Uses exact matching or proper segment boundaries to avoid false positives
- * @param pathname - The request pathname
- * @param route - The route pattern to match against
- * @returns true if pathname matches the route pattern
- */
-function matchesRoute(pathname: string, route: string): boolean {
-  // Exact match
-  if (pathname === route) return true;
-  // Segment boundary match: route must be followed by / or end of string to avoid false positives
-  // e.g., '/api/auth' matches '/api/auth/' or '/api/auth', but not '/api/authentication'
-  if (pathname.startsWith(route)) {
-    const nextChar = pathname[route.length];
-    if (nextChar === '/' || nextChar === undefined) return true;
-  }
-  return false;
-}
-
-/**
- * Check if pathname matches any route in the array
- */
-function matchesAnyRoute(pathname: string, routes: string[]): boolean {
-  return routes.some(route => matchesRoute(pathname, route));
-}
+// Admin roles - hoisted to module scope to avoid re-allocation per request
+const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -76,11 +48,31 @@ const protectedApiRoutes = [
   '/api/finance/invoices',
   '/api/users',
   '/api/work-orders',
+  '/api/work-orders/mobile',
   '/api/finance',
   '/api/support',
   '/api/admin',
   '/api/notifications'
 ];
+
+/**
+ * Helper function to check if a pathname matches a specific route pattern.
+ * Supports exact matches and wildcard patterns (ending with /*).
+ */
+function matchesRoute(pathname: string, route: string): boolean {
+  if (route.endsWith('/*')) {
+    const prefix = route.slice(0, -2);
+    return pathname === prefix || pathname.startsWith(prefix + '/');
+  }
+  return pathname === route;
+}
+
+/**
+ * Helper function to check if a pathname matches any route in an array of patterns.
+ */
+function matchesAnyRoute(pathname: string, routes: string[]): boolean {
+  return routes.some(route => matchesRoute(pathname, route));
+}
 
 // Define FM module routes (require authentication)
 const fmRoutes = [
@@ -191,30 +183,29 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
 
         // Check for NextAuth session first
         if (session?.user) {
-          // Fetch actual user data from database to get real role and orgId
-          await dbConnect();
-          const dbUser = await User.findOne({ email: session.user.email }).select('_id email professional.role orgId').lean() as any;
-          
           user = {
-            id: dbUser?._id?.toString() || session.user.id || '',
+            id: session.user.id || '',
             email: session.user.email || '',
-            role: dbUser?.professional?.role || 'USER',
-            orgId: dbUser?.orgId?.toString() || null
+            role: 'USER', // Default role for OAuth users
+            orgId: null
           };
         } else {
           // Fall back to legacy JWT token with proper signature verification
-          const authToken = request.cookies.get('fixzit_auth')?.value;
+          // Support both cookie and Authorization: Bearer header
+          const bearer = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+          const authToken = bearer || request.cookies.get('fixzit_auth')?.value;
           if (!authToken) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
           }
 
           try {
-            // Verify JWT signature and decode payload with security hardening
+            // Verify JWT signature and decode payload with clock tolerance and optional issuer/audience
             const { payload } = await jwtVerify(authToken, JWT_SECRET, {
-              algorithms: ['HS256'],
-              clockTolerance: 5, // Allow 5 seconds clock skew
-              // issuer: 'fixzit',      // Uncomment when issuer is set in token
-              // audience: 'fixzit-app' // Uncomment when audience is set in token
+              // Add small clock tolerance for time sync issues (5 seconds)
+              clockTolerance: 5,
+              // If your tokens include issuer/audience claims, uncomment and configure:
+              // issuer: 'fixzit-auth',
+              // audience: 'fixzit-app',
             });
             user = {
               id: payload.id as string || '',
@@ -268,12 +259,13 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
       };
     } else if (authToken) {
       try {
-        // Verify JWT signature and decode payload (secure method) with security hardening
+        // Verify JWT signature and decode payload with clock tolerance and optional issuer/audience
         const { payload } = await jwtVerify(authToken, JWT_SECRET, {
-          algorithms: ['HS256'],
-          clockTolerance: 5, // Allow 5 seconds clock skew
-          // issuer: 'fixzit',      // Uncomment when issuer is set in token
-          // audience: 'fixzit-app' // Uncomment when audience is set in token
+          // Add small clock tolerance for time sync issues (5 seconds)
+          clockTolerance: 5,
+          // If your tokens include issuer/audience claims, uncomment and configure:
+          // issuer: 'fixzit-auth',
+          // audience: 'fixzit-app',
         });
         user = {
           id: payload.id as string || '',
@@ -308,9 +300,8 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     }
 
     // Protect admin UI with RBAC
-    if (matchesRoute(pathname, '/admin')) {
-      const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
-      if (!adminRoles.has(user.role)) {
+    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+      if (!ADMIN_ROLES.has(user.role)) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
     }
@@ -331,14 +322,14 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
     }
 
     // FM routes - check role-based access
-    if (matchesAnyRoute(pathname, fmRoutes)) {
+    if (fmRoutes.some(route => pathname.startsWith(route))) {
       const reqHeaders = new Headers(request.headers);
       reqHeaders.set('x-user', JSON.stringify(user));
       return NextResponse.next({ request: { headers: reqHeaders } });
     }
 
     // Protected marketplace actions - require auth and attach user
-    if (matchesAnyRoute(pathname, protectedMarketplaceActions)) {
+    if (protectedMarketplaceActions.some(route => pathname === route || pathname.startsWith(route + '/'))) {
       const reqHeaders = new Headers(request.headers);
       reqHeaders.set('x-user', JSON.stringify(user));
       return NextResponse.next({ request: { headers: reqHeaders } });

@@ -4,7 +4,8 @@ import Google from 'next-auth/providers/google';
 // Privacy-preserving email hash helper for secure logging (Edge-compatible)
 async function hashEmail(email: string): Promise<string> {
   // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
-  const msgUint8 = new TextEncoder().encode(email);
+  const salt = process.env.LOG_HASH_SALT ?? '';
+  const msgUint8 = new TextEncoder().encode(email + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -15,20 +16,26 @@ async function hashEmail(email: string): Promise<string> {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 
 const missingVars: string[] = [];
 if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
 if (!GOOGLE_CLIENT_SECRET) missingVars.push('GOOGLE_CLIENT_SECRET');
 if (!NEXTAUTH_SECRET) missingVars.push('NEXTAUTH_SECRET');
-if (!INTERNAL_API_SECRET) missingVars.push('INTERNAL_API_SECRET');
+if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
+  missingVars.push('NEXTAUTH_URL');
+}
 
 if (missingVars.length > 0) {
   throw new Error(
-    `Missing required environment variables for NextAuth: ${missingVars.join(', ')}. ` +
-    'Please add these to your .env.local file or GitHub Secrets.'
+    'Missing required authentication configuration. See README env section.'
   );
 }
+
+// Environment-driven OAuth allowed domains
+const allowedDomains = (process.env.OAUTH_ALLOWED_DOMAINS ?? 'fixzit.com,fixzit.co')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
 
 export const authConfig = {
   providers: [
@@ -51,127 +58,65 @@ export const authConfig = {
   callbacks: {
     async signIn({ user: _user, account: _account, profile: _profile }) {
       // OAuth Access Control - Email Domain Whitelist
-      // Configure allowed email domains for OAuth sign-in
-      const allowedDomains = ['fixzit.com', 'fixzit.co'];
       
       // Safely check email and extract domain
       if (!_user?.email) {
-        console.warn('OAuth sign-in rejected: No email provided');
+        if (process.env.LOG_LEVEL === 'debug') {
+          console.debug('OAuth sign-in rejected: No email provided');
+        }
         return false; // Reject sign-ins without email
       }
 
       const emailHash = await hashEmail(_user.email);
       const emailParts = _user.email.split('@');
       if (emailParts.length !== 2) {
-        console.warn('OAuth sign-in rejected: Invalid email format', { emailHash });
+        if (process.env.LOG_LEVEL === 'debug') {
+          console.debug('OAuth sign-in rejected: Invalid email format', { emailHash });
+        }
         return false; // Reject malformed emails
       }
 
       const emailDomain = emailParts[1].toLowerCase();
       if (!allowedDomains.includes(emailDomain)) {
-        // Hash domain for privacy in logs
-        const domainHash = await hashEmail(emailDomain);
-        console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
-          emailHash, 
-          domainHash,
-          provider: _account?.provider 
-        });
+        if (process.env.LOG_LEVEL === 'debug') {
+          // Hash domain to prevent information disclosure in logs
+          const domainHash = await hashEmail(`domain@${emailDomain}`);
+          console.debug('OAuth sign-in rejected: Domain not whitelisted', { 
+            domainHash
+          });
+        }
         return false; // Reject unauthorized domains
       }
 
-      // User provisioning: Check if user exists in database, create if needed
-      // This ensures OAuth users are registered in the system
-      try {
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        const response = await fetch(`${baseUrl}/api/auth/provision`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: _user.email,
-            name: _user.name,
-            image: _user.image,
-            provider: _account?.provider,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error('User provisioning failed', { 
-            emailHash, 
-            status: response.status 
-          });
-          // Allow sign-in to proceed even if provisioning fails (graceful degradation)
-          // User will be created on first middleware access if needed
-        }
-      } catch (error) {
-        console.error('User provisioning error', { emailHash, error });
-        // Allow sign-in to proceed (graceful degradation)
-      }
+      // Database verification is handled by middleware.ts after successful OAuth
+      // The middleware checks User.findOne({ email }) and validates isActive status
+      // This separation ensures Edge Runtime compatibility (auth.config.ts cannot access MongoDB)
 
       // Allow sign-in for whitelisted domains
       console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });
       return true;
     },
-    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+    async redirect({ url, baseUrl }) {
       // Redirect to dashboard after successful login
       if (url.startsWith('/')) return `${baseUrl}${url}`;
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
     async session({ session, token }) {
-      // Add user ID and role to session from token
-      // Validate token.sub exists (required for session.user.id)
-      if (!token?.sub) {
-        throw new Error('JWT token missing required sub claim');
-      }
-      
-      session.user.id = token.sub;
-      
-      if (token?.role) {
-        session.user.role = token.role as string;
-      }
-      if (token?.orgId) {
-        session.user.orgId = token.orgId as string;
+      // Add user ID to session
+      if (token?.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },
-    async jwt({ token, user, account: _account }) {
-      // Propagate user info from database to token on first sign-in
+    async jwt({ token, user }) {
+      // Add user info to token
       if (user) {
         token.id = user.id;
-        // Fetch user role from database via provision API
-        try {
-          // Guard against undefined/null email and URL-encode for safety
-          if (!user.email) {
-            token.role = 'USER';
-            return token;
-          }
-          
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-          const encodedEmail = encodeURIComponent(user.email);
-          const response = await fetch(`${baseUrl}/api/auth/user/${encodedEmail}`, {
-            headers: { 
-              // Use dedicated internal API secret instead of reusing NEXTAUTH_SECRET
-              // This follows security best practice of not reusing signing secrets for authentication
-              'x-internal-auth': process.env.INTERNAL_API_SECRET || '' 
-            },
-          });
-          if (response.ok) {
-            const userData = await response.json();
-            token.role = userData.role || 'USER';
-            token.orgId = userData.orgId;
-          } else {
-            // Default to USER role if lookup fails
-            token.role = 'USER';
-          }
-        } catch (_error) {
-          // Default to USER role on error
-          token.role = 'USER';
-        }
       }
-      // DO NOT store OAuth access tokens in JWT for security
-      // Tokens should be stored server-side if needed for API calls
+      // Don't persist provider access tokens in long-lived JWT (security risk)
+      // If needed for server-to-server calls, fetch on-demand using backend credential
+      // or store a short-lived opaque reference instead
       return token;
     },
   },

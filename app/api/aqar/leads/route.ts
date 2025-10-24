@@ -9,195 +9,131 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarLead, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
-import { checkRateLimit } from '@/lib/rateLimit';
-import mongoose, { type Types } from 'mongoose';
-
+import { rateLimit } from '@/lib/security/rate-limit';
+import { withCorrelation, ok, badRequest, serverError } from '@/lib/api/http';
+import mongoose from 'mongoose';
 
 export const runtime = 'nodejs';
 
+// Rate limiter: 10 requests per minute per IP for public leads
+const rl = rateLimit({ windowMs: 60_000, max: 10 });
+
 // POST /api/aqar/leads
 export async function POST(request: NextRequest) {
-  try {
-    await connectDb();
-    
-    // Apply rate limiting for public endpoint (10 requests per hour per IP)
-    const rateLimitResponse = checkRateLimit(request, {
-      maxRequests: 10,
-      windowMs: 60 * 60 * 1000, // 1 hour
-      message: 'Too many lead submissions. Please try again in an hour.',
-    });
-    
-    if (rateLimitResponse) {
-      return rateLimitResponse;
-    }
-    
-    // Auth is optional for public inquiries
-    let userId: string | undefined;
-    let userOrgId: string | undefined;
+  return withCorrelation(async (correlationId) => {
     try {
-      const user = await getSessionUser(request);
-      userId = user.id;
-      userOrgId = user.orgId;
-    } catch (authError) {
-      // Distinguish between "not authenticated" (public inquiry allowed) vs actual errors
-      if (authError instanceof Error && authError.message !== 'Unauthorized') {
-        console.error('Auth error in leads POST:', {
-          message: authError.message,
-          stack: authError.stack,
+      await connectDb();
+      
+      // Anti-abuse for unauthenticated users
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon';
+      if (!(await rl.check(`leads:${ip}`))) {
+        return badRequest('Rate limit exceeded. Please try again later.', { correlationId });
+      }
+      
+      // Auth is optional for public inquiries
+      let userId: string | undefined;
+      let orgId: string | undefined;
+      try {
+        const user = await getSessionUser(request);
+        userId = user.id;
+        orgId = user.orgId || user.id;
+      } catch {
+        // Public inquiry - no auth required
+      }
+      
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== 'object') {
+        return badRequest('Invalid JSON', { correlationId });
+      }
+      
+      const { listingId, projectId, inquirerName, inquirerPhone, inquirerEmail, intent, message, source } = body;
+      
+      // Validate required fields
+      if (!inquirerName || !inquirerPhone || !intent || !source) {
+        return badRequest('inquirerName, inquirerPhone, intent, and source are required', { correlationId });
+      }
+      
+      // Validate enum fields
+      const ALLOWED_INTENTS = ['BUY', 'RENT', 'DAILY'];
+      if (!ALLOWED_INTENTS.includes(intent)) {
+        return badRequest(`Invalid intent. Must be one of: ${ALLOWED_INTENTS.join(', ')}`, { correlationId });
+      }
+      
+      const ALLOWED_SOURCES = ['LISTING_INQUIRY', 'PROJECT_INQUIRY', 'WHATSAPP', 'PHONE_CALL', 'WALK_IN', 'REFERRAL', 'OTHER'];
+      if (!ALLOWED_SOURCES.includes(source)) {
+        return badRequest(`Invalid source. Must be one of: ${ALLOWED_SOURCES.join(', ')}`, { correlationId });
+      }
+      
+      if (!listingId && !projectId) {
+        return badRequest('Either listingId or projectId is required', { correlationId });
+      }
+      
+      // Get recipient (listing owner or project developer)
+      let recipientId;
+      
+      if (listingId) {
+        // Validate ObjectId before querying
+        if (!mongoose.Types.ObjectId.isValid(listingId)) {
+          return badRequest('Invalid listingId', { correlationId });
+        }
+        
+        const listing = await AqarListing.findById(listingId);
+        if (!listing) {
+          return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+        }
+        recipientId = listing.listerId;
+        
+        // Increment inquiries count (async with error logging)
+        AqarListing.findByIdAndUpdate(listingId, {
+          $inc: { 'analytics.inquiries': 1 },
+        }).exec().catch((err: Error) => {
+          console.error('Failed to update listing inquiries count:', err);
+        });
+      } else if (projectId) {
+        // Validate ObjectId before querying
+        if (!mongoose.Types.ObjectId.isValid(projectId)) {
+          return badRequest('Invalid projectId', { correlationId });
+        }
+        
+        const { AqarProject } = await import('@/models/aqar');
+        const project = await AqarProject.findById(projectId);
+        if (!project) {
+          return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+        }
+        recipientId = project.developerId;
+        
+        // Increment inquiries count (async with error logging)
+        AqarProject.findByIdAndUpdate(projectId, { 
+          $inc: { inquiries: 1 } 
+        }).exec().catch((err: Error) => {
+          console.error('Failed to update project inquiries count:', err);
         });
       }
-      // Public inquiry - no auth required
-    }
-    
-    const body = await request.json();
-    
-    const { listingId, projectId, inquirerName, inquirerPhone, inquirerEmail, intent, message, source } = body;
-    
-    // Input sanitization and validation
-    const sanitizedName = inquirerName?.toString().trim().slice(0, 100);
-    const sanitizedPhone = inquirerPhone?.toString().trim().slice(0, 20);
-    const sanitizedEmail = inquirerEmail?.toString().trim().toLowerCase().slice(0, 100);
-    const sanitizedMessage = message?.toString().trim().slice(0, 1000);
-    
-    // Validate required fields
-    if (!sanitizedName || !sanitizedPhone || !intent || !source) {
-      return NextResponse.json(
-        { error: 'inquirerName, inquirerPhone, intent, and source are required' },
-        { status: 400 }
-      );
-    }
-    
-    // Validate phone format (basic international format check)
-    const phoneRegex = /^[\d\s\-+()]{7,20}$/;
-    if (!phoneRegex.test(sanitizedPhone)) {
-      return NextResponse.json(
-        { error: 'Invalid phone number format' },
-        { status: 400 }
-      );
-    }
-    
-    // Validate email format if provided
-    if (sanitizedEmail) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(sanitizedEmail)) {
-        return NextResponse.json(
-          { error: 'Invalid email format' },
-          { status: 400 }
-        );
-      }
-    }
-    
-    // Validate enum fields
-    const ALLOWED_INTENTS = ['BUY', 'RENT', 'DAILY'];
-    if (!ALLOWED_INTENTS.includes(intent)) {
-      return NextResponse.json(
-        { error: `Invalid intent. Must be one of: ${ALLOWED_INTENTS.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    
-    const ALLOWED_SOURCES = ['LISTING_INQUIRY', 'PROJECT_INQUIRY', 'WHATSAPP', 'PHONE_CALL', 'WALK_IN', 'REFERRAL', 'OTHER'];
-    if (!ALLOWED_SOURCES.includes(source)) {
-      return NextResponse.json(
-        { error: `Invalid source. Must be one of: ${ALLOWED_SOURCES.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    
-    if (!listingId && !projectId) {
-      return NextResponse.json(
-        { error: 'Either listingId or projectId is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Validate ObjectId format for listingId and projectId
-    if (listingId && !mongoose.Types.ObjectId.isValid(listingId)) {
-      return NextResponse.json({ error: 'Invalid listingId format' }, { status: 400 });
-    }
-    
-    if (projectId && !mongoose.Types.ObjectId.isValid(projectId)) {
-      return NextResponse.json({ error: 'Invalid projectId format' }, { status: 400 });
-    }
-    
-    // Get recipient (listing owner or project developer)
-    let recipientId;
-    
-    if (listingId) {
-      const listing = await AqarListing.findById(listingId);
-      if (!listing) {
-        return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-      }
-      recipientId = listing.listerId;
       
-      // Validate recipientId is a valid ObjectId
-      if (!recipientId) {
-        return NextResponse.json({ error: 'Listing has no owner' }, { status: 400 });
-      }
+      const lead = new AqarLead({
+        orgId: orgId || recipientId,
+        listingId,
+        projectId,
+        source,
+        inquirerId: userId,
+        inquirerName,
+        inquirerPhone,
+        inquirerEmail,
+        recipientId,
+        intent,
+        message,
+      });
       
-      // Increment inquiries count with timestamp (async, non-blocking with retry logic)
-      (async () => {
-        await incrementAnalyticsWithRetry({
-          model: AqarListing,
-          id: listingId as Types.ObjectId,
-          updateOp: {
-            $inc: { 'analytics.inquiries': 1 },
-            $set: { 'analytics.lastInquiryAt': new Date() }
-          },
-          entityType: 'listing'
-        });
-      })();
-    } else if (projectId) {
-      const { AqarProject } = await import('@/models/aqar');
-      const project = await AqarProject.findById(projectId);
-      if (!project) {
-        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-      }
-      recipientId = project.developerId;
+      await lead.save();
       
-      // Validate recipientId is a valid ObjectId
-      if (!recipientId) {
-        return NextResponse.json({ error: 'Project has no developer' }, { status: 400 });
-      }
+      // TODO: Send notification to recipient (email/SMS/push)
       
-      // Increment inquiries count with timestamp (async, non-blocking with retry logic)
-      (async () => {
-        await incrementAnalyticsWithRetry({
-          model: AqarProject,
-          id: projectId as Types.ObjectId,
-          updateOp: { 
-            $inc: { inquiries: 1 },
-            $set: { lastInquiryAt: new Date() }
-          },
-          entityType: 'project'
-        });
-      })();
+      return ok({ lead: lead.toObject?.() ?? lead }, { correlationId }, 201);
+    } catch (e: unknown) {
+      console.error('LEADS_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
+      return serverError('Unexpected error', { correlationId });
     }
-    
-    const lead = new AqarLead({
-      orgId: userOrgId || recipientId,
-      listingId,
-      projectId,
-      source,
-      inquirerId: userId,
-      inquirerName: sanitizedName,
-      inquirerPhone: sanitizedPhone,
-      inquirerEmail: sanitizedEmail,
-      recipientId,
-      intent,
-      message: sanitizedMessage,
-    });
-    
-    await lead.save();
-    
-    // TODO: Send notification to recipient (email/SMS/push)
-    
-    return NextResponse.json({ lead }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating lead:', error);
-    return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
-  }
+  });
 }
 
 // GET /api/aqar/leads
@@ -211,13 +147,25 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
-    const skip = (page - 1) * limit;
+    
+    // Validate and sanitize pagination parameters
+    const safePage = !isNaN(page) && page > 0 ? page : 1;
+    const safeLimit = !isNaN(limit) && limit > 0 && limit <= 100 ? limit : 20;
+    const skip = (safePage - 1) * safeLimit;
     
     const query: Record<string, unknown> = {
       recipientId: user.id,
     };
     
+    // Validate status against allowed values
     if (status) {
+      const ALLOWED_STATUSES = ['NEW', 'CONTACTED', 'WON', 'LOST', 'SPAM'];
+      if (!ALLOWED_STATUSES.includes(status)) {
+        return NextResponse.json(
+          { error: `Invalid status. Must be one of: ${ALLOWED_STATUSES.join(', ')}` },
+          { status: 400 }
+        );
+      }
       query.status = status;
     }
     
@@ -225,7 +173,7 @@ export async function GET(request: NextRequest) {
       AqarLead.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
+        .limit(safeLimit)
         .populate('listingId')
         .populate('projectId')
         .lean(),
@@ -235,10 +183,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       leads,
       pagination: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / safeLimit),
       },
     });
   } catch (error) {
