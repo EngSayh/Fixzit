@@ -19,7 +19,7 @@ export default function NotFound() {
       <div className="max-w-md w-full text-center">
         {/* Error Message */}
         <div className="mb-8">
-          <h1 className="text-6xl font-bold text-[#0061A8] mb-4">404</h1>
+          <h1 className="text-6xl font-bold text-brand-500 mb-4">404</h1>
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">Page Not Found</h2>
           <p className="text-gray-600">
             The page you&apos;re looking for doesn&apos;t exist or has been moved.
@@ -30,7 +30,7 @@ export default function NotFound() {
         <div className="space-y-4 mb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#0061A8] text-white rounded-lg hover:bg-[#0061A8]/90 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
           >
             <Home size={20} />
             Go to Homepage
@@ -48,7 +48,7 @@ export default function NotFound() {
         {/* Common Pages */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Search size={20} className="text-[#0061A8]" />
+            <Search size={20} className="text-brand-500" />
             Popular Pages
           </h3>
 
@@ -57,7 +57,7 @@ export default function NotFound() {
               <Link
                 key={page.href}
                 href={page.href}
-                className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-[#0061A8]/10 transition-colors text-left"
+                className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-brand-500/10 transition-colors text-left"
               >
                 <span className="text-lg">{page.icon}</span>
                 <span className="text-sm font-medium text-gray-900">{page.name}</span>
@@ -70,7 +70,7 @@ export default function NotFound() {
         <div className="mt-6 text-sm text-gray-500">
           <p>
             If you believe this is an error, please contact{' '}
-            <a href="mailto:support@fixzit.co" className="text-[#0061A8] hover:underline">
+            <a href="mailto:support@fixzit.co" className="text-brand-500 hover:text-brand-600 transition-colors">
               support@fixzit.co
             </a>
           </p>
