@@ -473,10 +473,10 @@ describe('TopBar Component', () => {
       renderWithProviders(<TopBar />);
 
       expect(screen.getByLabelText('Go to home')).toBeInTheDocument();
-      await waitFor(() => {
-        expect(screen.getByLabelText(/toggle notifications/i)).toBeInTheDocument();
-      });
-      expect(screen.getByLabelText(/toggle user menu/i)).toBeInTheDocument();
+      
+      // Use async queries for elements that appear after auth verification
+      await expect(screen.findByLabelText(/toggle notifications/i)).resolves.toBeInTheDocument();
+      await expect(screen.findByLabelText(/toggle user menu/i)).resolves.toBeInTheDocument();
     });
 
     it('should be keyboard navigable', () => {
