@@ -145,8 +145,10 @@ describe('WorkOrdersView', () => {
     expect(screen.getAllByText(/Priority: /)[0]).toHaveTextContent('Priority: HIGH');
     expect(screen.getAllByText(/Priority: /)[1]).toHaveTextContent('Priority: LOW');
 
-    // Status labels
-    expect(screen.getByText('Submitted')).toBeInTheDocument();
+    // Status labels (use getAllByText since status appears in dropdown and badge)
+    const submittedElements = screen.getAllByText('Submitted');
+    expect(submittedElements.length).toBeGreaterThan(0);
+    expect(submittedElements[submittedElements.length - 1]).toBeInTheDocument();
     expect(screen.getByText('Completed')).toBeInTheDocument();
 
     // SLA window formatting
@@ -245,7 +247,9 @@ describe('WorkOrdersView', () => {
     // Open status select and choose "Submitted"
     const statusTrigger = screen.getByRole('combobox', { name: /status/i });
     await userEvent.click(statusTrigger);
-    await userEvent.click(screen.getByText('Submitted'));
+    const submittedOptions = screen.getAllByText('Submitted');
+    // Click the last "Submitted" option (the one in the select dropdown, not the default option)
+    await userEvent.click(submittedOptions[submittedOptions.length - 1]);
 
     // Verify fetch was called with status parameter
     await waitFor(() => {
