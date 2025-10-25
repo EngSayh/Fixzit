@@ -1,5 +1,7 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { SessionProvider } from 'next-auth/react';
 import TopBar from '../TopBar';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { ResponsiveProvider } from '@/contexts/ResponsiveContext';
@@ -46,14 +48,26 @@ vi.mock('../topbar/QuickActions', () => ({
   default: () => <div data-testid="quick-actions">Quick Actions</div>,
 }));
 
+// Mock session
+const mockSession = {
+  user: {
+    id: 'test-user-id',
+    email: 'test@example.com',
+    name: 'Test User',
+  },
+  expires: '2025-12-31',
+};
+
 // Helper function to wrap component with providers
 const renderWithProviders = (component: React.ReactElement, options = {}) => {
   return render(
-    <TranslationProvider>
-      <ResponsiveProvider>
-        <FormStateProvider>{component}</FormStateProvider>
-      </ResponsiveProvider>
-    </TranslationProvider>,
+    <SessionProvider session={mockSession}>
+      <TranslationProvider>
+        <ResponsiveProvider>
+          <FormStateProvider>{component}</FormStateProvider>
+        </ResponsiveProvider>
+      </TranslationProvider>
+    </SessionProvider>,
     options
   );
 };
