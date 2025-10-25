@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 
 /**
  * Renders a support ticket submission form and handles creating tickets via the app API.
@@ -98,7 +99,13 @@ export default function SupportTicketPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <FormWithNavigation 
+            onSubmit={handleSubmit} 
+            saving={isSubmitting}
+            showBack
+            showHome
+            position="both"
+          >
             {/* Subject */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -235,18 +242,7 @@ export default function SupportTicketPage() {
                 />
               </div>
             </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end pt-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-8 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg font-medium hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
-              </button>
-            </div>
-          </form>
+          </FormWithNavigation>
         </div>
       </div>
     </div>
