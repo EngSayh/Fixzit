@@ -348,11 +348,11 @@ export default function TopBar() {
               className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
               aria-hidden="true"
             >
-              {orgSettings.name.substring(0, 2).toUpperCase()}
+              {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
             </div>
           )}
           <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
-            {orgSettings.name}
+            {orgSettings?.name || 'FIXZIT ENTERPRISE'}
           </span>
         </button>
         <AppSwitcher />
