@@ -90,7 +90,7 @@ const AuditLogSchema = new Schema({
     sensitiveData: { type: Boolean, default: false },
     encryptedFields: [String], // List of encrypted field names
     accessLevel: String, // PUBLIC, INTERNAL, CONFIDENTIAL, SECRET
-    flaggedAsS suspicious: Boolean,
+    flaggedAsSuspicious: Boolean,
     reviewRequired: Boolean
   },
 

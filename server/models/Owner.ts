@@ -136,8 +136,22 @@ OwnerSchema.plugin(auditPlugin);
 // Pre-save hook to update portfolio summary
 OwnerSchema.pre('save', async function(next) {
   if (this.isModified('properties')) {
-    // Calculate portfolio summary
-    this.portfolio.totalProperties = this.properties.filter(p => !p.endDate).length;
+    // Get active properties (those without endDate)
+    const activeProperties = this.properties.filter(p => !p.endDate);
+    
+    // Reset portfolio metrics
+    this.portfolio.totalProperties = activeProperties.length;
+    
+    // Calculate aggregated metrics from Property model data
+    // Note: These would typically be calculated from the actual Property documents
+    // For now, we just set the count. Revenue/expenses should be calculated
+    // from actual financial records, not stored here to avoid data inconsistency.
+    
+    // If you need to calculate from linked properties, do it async:
+    // const propertyIds = activeProperties.map(p => p.propertyId);
+    // const properties = await PropertyModel.find({ _id: { $in: propertyIds } });
+    // this.portfolio.totalUnits = properties.reduce((sum, p) => sum + (p.units || 0), 0);
+    // this.portfolio.totalArea = properties.reduce((sum, p) => sum + (p.details?.totalArea || 0), 0);
   }
   next();
 });
