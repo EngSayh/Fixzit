@@ -8,7 +8,7 @@ const FeatureCategory = [
   "PAYMENT", "NOTIFICATION", "REPORTING", "MAINTENANCE", "OTHER"
 ] as const;
 
-const RolloutStrategy = ["ALL", "PERCENTAGE", "WHITELIST", "BLACKLIST", "GRADUAL"] as const;
+const RolloutStrategy = ["ALL", "PERCENTAGE", "WHITELIST", "BLACKLIST"] as const;
 
 const FeatureFlagSchema = new Schema({
   // Multi-tenancy - will be added by plugin
@@ -202,10 +202,20 @@ FeatureFlagSchema.statics.isEnabled = async function(
       if (context.orgId && feature.rollout.blacklistedOrgs.includes(context.orgId)) return false;
       return true;
       
-    case 'PERCENTAGE':
-      // Simple hash-based percentage rollout
-      const hash = context.userId ? hashCode(context.userId) : Math.random();
+    case 'PERCENTAGE': {
+      // Simple hash-based percentage rollout - deterministic based on userId or orgId
+      let hash: number;
+      if (context.userId) {
+        hash = hashCode(context.userId);
+      } else if (context.orgId) {
+        hash = hashCode(context.orgId);
+      } else {
+        // No deterministic identifier available, default to disabled
+        console.warn(`FeatureFlag.isEnabled: No userId or orgId provided for PERCENTAGE rollout of feature ${key}`);
+        return false;
+      }
       return (Math.abs(hash) % 100) < feature.rollout.percentage;
+    }
       
     default:
       return false;
