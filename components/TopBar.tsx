@@ -13,7 +13,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
 
 // Type definitions
@@ -85,15 +85,12 @@ export default function TopBar() {
   // Use NextAuth session for authentication (supports both OAuth and JWT)
   const { data: session, status } = useSession();
   
-  // Additional client-side auth verification state
-  const [clientAuthVerified, setClientAuthVerified] = useState<boolean | null>(null);
-  
-  // CRITICAL: Only show authenticated UI when explicitly authenticated AND verified
+  // CRITICAL: Only show authenticated UI when explicitly authenticated
   // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
-  const isAuthenticated = status === 'authenticated' && session != null && clientAuthVerified !== false;
+  const isAuthenticated = status === 'authenticated' && session != null;
 
   // Use FormStateContext for unsaved changes detection
-  const { hasUnsavedChanges, requestSave } = useFormState();
+  const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
 
   // Get translation context
   const translationContext = useTranslation();
@@ -127,7 +124,7 @@ export default function TopBar() {
   }, []);
 
   // Get responsive context
-  const { isMobile, isTablet, isDesktop, isRTL } = useResponsiveLayout();
+  const { isMobile, isTablet, isDesktop, isRTL } = useResponsive();
   
   // Build responsive classes
   const responsiveClasses = {
@@ -145,55 +142,7 @@ export default function TopBar() {
   const t = translationContext?.t ?? fallbackT;
 
   // Debug RTL positioning (remove after issue is resolved)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('🔍 TopBar RTL Debug:', {
-        isRTL,
-        direction: document.documentElement.getAttribute('dir'),
-        language: localStorage.getItem('fxz.lang'),
-        htmlLang: document.documentElement.getAttribute('lang')
-      });
-    }
-  }, [isRTL]);
 
-  // CRITICAL FIX: Verify authentication on mount to prevent auto-login from stale sessions
-  // This addresses the bug where UI shows logged-in state despite 401 errors
-  useEffect(() => {
-    const verifyAuth = async () => {
-      // Skip verification if NextAuth already says we're not authenticated
-      if (status !== 'authenticated' || !session) {
-        setClientAuthVerified(false);
-        return;
-      }
-
-      try {
-        // Verify the session is still valid by checking with the server
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-          cache: 'no-store' // Never use cached response
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Only mark as verified if we get valid user data back
-          setClientAuthVerified(!!(data && data.user));
-        } else {
-          // 401 or any error means not authenticated
-          console.warn('Auth verification failed:', response.status);
-          setClientAuthVerified(false);
-          // Force sign out to clear NextAuth session
-          if (response.status === 401) {
-            await signOut({ redirect: false });
-          }
-        }
-      } catch (error) {
-        console.error('Auth verification error:', error);
-        setClientAuthVerified(false);
-      }
-    };
-
-    verifyAuth();
-  }, [status, session]);
 
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -214,9 +163,16 @@ export default function TopBar() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      if (requestSave) {
-        await requestSave();
-      }
+      // Emit a custom event that forms can listen to for saving
+      const saveEvent = new CustomEvent('fixzit:save-forms', { detail: { timestamp: Date.now() } });
+      window.dispatchEvent(saveEvent);
+      
+      // Wait a bit for forms to process the save
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Clear all unsaved changes flags
+      clearAllUnsavedChanges();
+      
       // Success path only
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
@@ -238,6 +194,8 @@ export default function TopBar() {
 
   // Handle discard and navigate
   const handleDiscardAndNavigate = () => {
+    // Clear all unsaved changes flags
+    clearAllUnsavedChanges();
     setShowUnsavedDialog(false);
     if (pendingNavigation) {
       router.push(pendingNavigation);
@@ -428,7 +386,6 @@ export default function TopBar() {
           aria-label="Open search"
           onClick={() => {
             // TODO: Implement mobile search modal
-            console.log('Mobile search clicked - implement modal');
           }}
         >
           <Search className="w-4 h-4" />
