@@ -86,8 +86,26 @@ describe('TopBar Component', () => {
     (useRouter as any).mockReturnValue(mockRouter);
     (usePathname as any).mockReturnValue('/dashboard');
 
-    // Mock fetch API
-    global.fetch = vi.fn();
+    // Mock fetch API with proper responses
+    global.fetch = vi.fn((url: string) => {
+      if (url.includes('/api/organization/settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ name: 'Test Organization', logo: '/logo.jpg' }),
+        });
+      }
+      if (url.includes('/api/notifications')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      return Promise.resolve({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve({ error: 'Not found' }),
+      });
+    }) as any;
 
     // Reset localStorage
     localStorage.clear();
