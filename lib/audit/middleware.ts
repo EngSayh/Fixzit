@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import getServerSession from 'next-auth';
 import { authOptions } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
 
@@ -104,7 +104,7 @@ export async function auditLogMiddleware(
   }
   
   // Get user session
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as any;
   if (!session?.user) {
     // Don't log unauthenticated requests
     return null;
@@ -161,7 +161,7 @@ export async function logAudit(auditData: any, response?: NextResponse) {
       }
     }
     
-    await AuditLogModel.log(auditData);
+  await (AuditLogModel as any).log(auditData);
   } catch (error) {
     // Silent fail - don't break the main request
     console.error('Failed to log audit entry:', error);
@@ -234,7 +234,7 @@ export async function createAuditLog(data: {
   orgId: string;
 }) {
   try {
-    await AuditLogModel.log(data);
+  await (AuditLogModel as any).log(data);
   } catch (error) {
     console.error('Failed to create audit log:', error);
   }

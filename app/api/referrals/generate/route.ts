@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import getServerSession from 'next-auth';
 import { authOptions } from '@/auth';
 import { ReferralCodeModel } from '@/server/models/ReferralCode';
-import connectDB from '@/lib/db';
+import { connectDb } from '@/lib/mongo';
 
 /**
  * POST /api/referrals/generate
@@ -11,13 +11,13 @@ import connectDB from '@/lib/db';
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as any;
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    await connectDB();
+  await connectDb();
     
     // Check if user already has an active referral code
     const existing = await ReferralCodeModel.findOne({
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate new code
-    const code = await ReferralCodeModel.generateCode();
+  const code = await (ReferralCodeModel as any).generateCode();
     const shortUrl = `https://fixzit.sa/ref/${code}`;
     
     // Create referral code

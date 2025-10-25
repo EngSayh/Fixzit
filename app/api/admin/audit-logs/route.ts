@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import getServerSession from 'next-auth';
 import { authOptions } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
-import connectDB from '@/lib/db';
+import { connectDb } from '@/lib/mongo';
 
 /**
  * GET /api/admin/audit-logs
@@ -11,7 +11,7 @@ import connectDB from '@/lib/db';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as any;
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Super Admin access required' }, { status: 403 });
     }
     
-    await connectDB();
+  await connectDb();
     
     // Get query parameters
     const { searchParams } = request.nextUrl;
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get('skip') || '0');
     
     // Search logs
-    const logs = await AuditLogModel.search({
+    const logs = await (AuditLogModel as any).search({
       orgId: session.user.orgId || 'default',
       userId: userId || undefined,
       entityType: entityType || undefined,

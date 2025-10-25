@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import getServerSession from 'next-auth';
 import { authOptions } from '@/auth';
 import { ReferralCodeModel } from '@/server/models/ReferralCode';
-import connectDB from '@/lib/db';
+import { connectDb } from '@/lib/mongo';
 
 /**
  * GET /api/referrals/my-code
@@ -11,13 +11,13 @@ import connectDB from '@/lib/db';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as any;
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    await connectDB();
+  await connectDb();
     
     // Find user's referral code
     const referralCode = await ReferralCodeModel.findOne({
