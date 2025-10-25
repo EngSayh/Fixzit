@@ -84,9 +84,13 @@ export default function TopBar() {
 
   // Use NextAuth session for authentication (supports both OAuth and JWT)
   const { data: session, status } = useSession();
-  // CRITICAL: Only show authenticated UI when explicitly authenticated
+  
+  // Additional client-side auth verification state
+  const [clientAuthVerified, setClientAuthVerified] = useState<boolean | null>(null);
+  
+  // CRITICAL: Only show authenticated UI when explicitly authenticated AND verified
   // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
-  const isAuthenticated = status === 'authenticated' && session != null;
+  const isAuthenticated = status === 'authenticated' && session != null && clientAuthVerified !== false;
 
   // Use FormStateContext for unsaved changes detection
   const { hasUnsavedChanges, requestSave } = useFormState();
@@ -123,7 +127,19 @@ export default function TopBar() {
   }, []);
 
   // Get responsive context
-  const { responsiveClasses, screenInfo, isRTL } = useResponsive();
+  const { isMobile, isTablet, isDesktop, isRTL } = useResponsive();
+  
+  // Build responsive classes
+  const responsiveClasses = {
+    container: isMobile ? 'px-2' : 'px-4'
+  };
+  
+  // Build screen info
+  const screenInfo = {
+    isMobile,
+    isTablet,
+    isDesktop
+  };
 
   // Call useTranslation unconditionally at top level (React Rules of Hooks)
   const t = translationContext?.t ?? fallbackT;
@@ -139,6 +155,45 @@ export default function TopBar() {
       });
     }
   }, [isRTL]);
+
+  // CRITICAL FIX: Verify authentication on mount to prevent auto-login from stale sessions
+  // This addresses the bug where UI shows logged-in state despite 401 errors
+  useEffect(() => {
+    const verifyAuth = async () => {
+      // Skip verification if NextAuth already says we're not authenticated
+      if (status !== 'authenticated' || !session) {
+        setClientAuthVerified(false);
+        return;
+      }
+
+      try {
+        // Verify the session is still valid by checking with the server
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store' // Never use cached response
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Only mark as verified if we get valid user data back
+          setClientAuthVerified(!!(data && data.user));
+        } else {
+          // 401 or any error means not authenticated
+          console.warn('Auth verification failed:', response.status);
+          setClientAuthVerified(false);
+          // Force sign out to clear NextAuth session
+          if (response.status === 401) {
+            await signOut({ redirect: false });
+          }
+        }
+      } catch (error) {
+        console.error('Auth verification error:', error);
+        setClientAuthVerified(false);
+      }
+    };
+
+    verifyAuth();
+  }, [status, session]);
 
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -159,7 +214,9 @@ export default function TopBar() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      await requestSave();
+      if (requestSave) {
+        await requestSave();
+      }
       // Success path only
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
@@ -408,10 +465,9 @@ export default function TopBar() {
                   className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
                   style={{
                     top: '4rem',
-                    // In RTL mode, the notification button is still on the right side of the screen
-                    // so the dropdown should always align to the right
-                    right: '1rem',
-                    left: 'auto',
+                    // In RTL mode (Arabic), elements flip to the left, so dropdown should align left
+                    // In LTR mode, elements are on the right, so dropdown should align right
+                    ...(isRTL ? { left: '1rem', right: 'auto' } : { right: '1rem', left: 'auto' }),
                     zIndex: 100
                   }}
                 >
@@ -528,10 +584,9 @@ export default function TopBar() {
                 className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
                 style={{
                   top: '4rem',
-                  // In RTL mode, the user menu button is still on the right side of the screen
-                  // so the dropdown should always align to the right
-                  right: '1rem',
-                  left: 'auto',
+                  // In RTL mode (Arabic), elements flip to the left, so dropdown should align left
+                  // In LTR mode, elements are on the right, so dropdown should align right
+                  ...(isRTL ? { left: '1rem', right: 'auto' } : { right: '1rem', left: 'auto' }),
                   zIndex: 100,
                   pointerEvents: 'auto'
                 }}
