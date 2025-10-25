@@ -79,6 +79,19 @@ const mockSession = {
   expires: '2025-12-31',
 };
 
+// Mock ResponsiveContext for tests
+vi.mock('@/contexts/ResponsiveContext', () => ({
+  ResponsiveProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useResponsive: vi.fn(() => ({
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+    screenSize: 'desktop',
+    isRTL: false,
+    setRTL: vi.fn(),
+  })),
+}));
+
 // Helper function to wrap component with providers
 const renderWithProviders = (component: React.ReactElement, options = {}) => {
   return render(
