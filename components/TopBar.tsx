@@ -414,19 +414,12 @@ export default function TopBar() {
               )}
             </button>
             {notifOpen && (
-              <Portal>
-                <div 
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Notifications"
-                  className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
-                  style={{
-                    top: '4rem',
-                    // RTL-aware positioning: align to left in RTL, right in LTR
-                    ...(isRTL ? { left: '1rem', right: 'auto' } : { right: '1rem', left: 'auto' }),
-                    zIndex: 100
-                  }}
-                >
+              <div 
+                role="dialog"
+                aria-modal="true"
+                aria-label="Notifications"
+                className={`absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96 ${isRTL ? 'left-0' : 'right-0'}`}
+              >
                   <div className="p-3 border-b border-gray-200 flex justify-between items-start">
                     <div>
                       <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
@@ -515,7 +508,6 @@ export default function TopBar() {
                     </div>
                   )}
                 </div>
-              </Portal>
             )}
           </div>
         )}
@@ -533,19 +525,14 @@ export default function TopBar() {
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
           </button>
           {userOpen && (
-            <Portal>
-              <div 
-                role="menu"
-                aria-label="User menu"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
-                style={{
-                  top: '4rem',
-                  // RTL-aware positioning: align to left in RTL, right in LTR
-                  ...(isRTL ? { left: '1rem', right: 'auto' } : { right: '1rem', left: 'auto' }),
-                  zIndex: 100,
-                  pointerEvents: 'auto'
-                }}
-              >
+            <div 
+              role="menu"
+              aria-label="User menu"
+              className={`absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 ${isRTL ? 'left-0' : 'right-0'}`}
+              style={{
+                pointerEvents: 'auto'
+              }}
+            >
                 <Link
                   href="/profile"
                   className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
@@ -584,7 +571,6 @@ export default function TopBar() {
                   {t('common.logout', 'Sign out')}
                 </button>
               </div>
-            </Portal>
           )}
         </div>
       </div>
