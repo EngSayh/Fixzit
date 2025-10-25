@@ -13,7 +13,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useResponsive } from '@/contexts/ResponsiveContext';
+import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
 
 // Type definitions
@@ -127,7 +127,7 @@ export default function TopBar() {
   }, []);
 
   // Get responsive context
-  const { isMobile, isTablet, isDesktop, isRTL } = useResponsive();
+  const { isMobile, isTablet, isDesktop, isRTL } = useResponsiveLayout();
   
   // Build responsive classes
   const responsiveClasses = {
