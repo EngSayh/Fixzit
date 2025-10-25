@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { SessionProvider } from 'next-auth/react';
 import TopBar from '../TopBar';
 import { TranslationProvider } from '@/contexts/TranslationContext';
@@ -13,6 +14,26 @@ vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
   usePathname: vi.fn(),
 }));
+
+// Mock next-auth/react hooks
+vi.mock('next-auth/react', async () => {
+  const actual = await vi.importActual('next-auth/react');
+  return {
+    ...actual,
+    useSession: vi.fn(() => ({
+      data: {
+        user: {
+          id: 'test-user-id',
+          email: 'test@example.com',
+          name: 'Test User',
+        },
+        expires: '2025-12-31',
+      },
+      status: 'authenticated',
+    })),
+    SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
@@ -123,7 +144,7 @@ describe('TopBar Component', () => {
 
     it('should render the logo', () => {
       renderWithProviders(<TopBar />);
-      const logo = screen.getByAlt('Fixzit Enterprise');
+      const logo = screen.getByAltText('Fixzit Enterprise');
       expect(logo).toBeInTheDocument();
       expect(logo).toHaveAttribute('src', '/img/logo.jpg');
     });

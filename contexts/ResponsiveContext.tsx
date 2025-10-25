@@ -1,32 +1,77 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useScreenSize, ScreenInfo, getResponsiveClasses } from '@/hooks/useScreenSize';
-import { useTranslation } from './TranslationContext';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 
 interface ResponsiveContextType {
-  screenInfo: ScreenInfo;
-  isReady: boolean;
-  responsiveClasses: ReturnType<typeof getResponsiveClasses>;
+  isMobile: boolean;
+  isTablet: boolean;
+  isDesktop: boolean;
   isRTL: boolean;
-  updateScreenInfo: () => void;
+  screenWidth: number;
+  breakpoint: 'mobile' | 'tablet' | 'desktop';
 }
 
 const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undefined);
 
-export function ResponsiveProvider({ children }: { children: ReactNode }) {
-  const { screenInfo, isReady, updateScreenInfo } = useScreenSize();
-  const { isRTL } = useTranslation();
+interface ResponsiveProviderProps {
+  children: ReactNode;
+}
 
-  const responsiveClasses = getResponsiveClasses(screenInfo);
+export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
+  // SSR-safe initialization: use 1024 (desktop) as default to avoid hydration mismatch
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [isRTL, setIsRTL] = useState(false);
 
-  const value = {
-    screenInfo,
-    isReady,
-    responsiveClasses,
+  useEffect(() => {
+
+    // SSR guard: only run on client
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    // Initialize screen width
+    const updateScreenWidth = () => {
+      setScreenWidth(window.innerWidth);
+    };
+
+    // Check RTL direction
+    const checkRTL = () => {
+      setIsRTL(document.dir === 'rtl' || document.documentElement.dir === 'rtl');
+    };
+
+    updateScreenWidth();
+    checkRTL();
+
+    window.addEventListener('resize', updateScreenWidth);
+    
+    // Observer for direction changes
+    const observer = new MutationObserver(checkRTL);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['dir']
+    });
+
+    return () => {
+      window.removeEventListener('resize', updateScreenWidth);
+      observer.disconnect();
+    };
+  }, []);
+
+  const isMobile = screenWidth < 768;
+  const isTablet = screenWidth >= 768 && screenWidth < 1024;
+  const isDesktop = screenWidth >= 1024;
+  
+  const breakpoint: 'mobile' | 'tablet' | 'desktop' = 
+    isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
+
+  const value: ResponsiveContextType = {
+    isMobile,
+    isTablet,
+    isDesktop,
     isRTL,
-    updateScreenInfo
+    screenWidth,
+    breakpoint,
   };
 
   return (
@@ -36,55 +81,13 @@ export function ResponsiveProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useResponsiveContext() {
+export function useResponsiveLayout(): ResponsiveContextType {
   const context = useContext(ResponsiveContext);
   if (context === undefined) {
-    throw new Error('useResponsiveContext must be used within a ResponsiveProvider');
+    throw new Error('useResponsive must be used within a ResponsiveProvider');
   }
   return context;
 }
 
-// Convenience hook that combines both screen size and responsive context
-export function useResponsiveLayout() {
-  const context = useContext(ResponsiveContext);
-
-  if (!context) {
-    // Fallback when context is not available
-    return {
-      screenInfo: {
-        width: 1024,
-        height: 768,
-        size: 'desktop' as const,
-        isMobile: false,
-        isTablet: false,
-        isDesktop: true,
-        isLarge: false,
-        isSmall: false,
-        isPortrait: false,
-        isLandscape: true,
-        devicePixelRatio: 1,
-        isTouchDevice: false,
-        isHighResolution: false
-      },
-      isReady: true,
-      isRTL: false, // Default to LTR, components can get RTL from TranslationContext directly
-      responsiveClasses: {
-        container: 'max-w-6xl mx-auto px-8',
-        grid: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-        text: 'text-base',
-        spacing: 'space-y-6',
-        sidebarVisible: true,
-        mobileOptimizations: '',
-        tabletOptimizations: '',
-        desktopOptimizations: 'hover:shadow-lg'
-      },
-      updateScreenInfo: () => {}
-    };
-  }
-
-  return context;
-}
-
-// Backward compatibility alias
-export const useResponsive = useResponsiveLayout;
+export { ResponsiveContext };
 
