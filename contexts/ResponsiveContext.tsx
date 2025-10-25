@@ -33,10 +33,21 @@ interface ResponsiveProviderProps {
 }
 
 export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
-  const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
-  const [isRTL, setIsRTL] = useState(false);
+  // Initialize with actual viewport width if available (prevents hydration flash)
+  const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>(() => {
+    if (typeof window === 'undefined') return 'desktop';
+    const width = window.innerWidth;
+    if (width < 768) return 'mobile';
+    if (width < 1024) return 'tablet';
+    return 'desktop';
+  });
+  const [isRTL, setIsRTL] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.dir === 'rtl';
+  });
 
   useEffect(() => {
+
     const checkScreenSize = () => {
       const width = window.innerWidth;
       if (width < 768) {
