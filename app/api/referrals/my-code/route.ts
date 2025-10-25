@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getServerSession from 'next-auth';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { ReferralCodeModel } from '@/server/models/ReferralCode';
 import { connectDb } from '@/lib/mongo';
 
@@ -9,15 +8,15 @@ import { connectDb } from '@/lib/mongo';
  * 
  * Get current user's referral code and statistics
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-  const session = (await getServerSession(authOptions)) as any;
+    const session = await auth();
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-  await connectDb();
+    await connectDb();
     
     // Find user's referral code
     const referralCode = await ReferralCodeModel.findOne({

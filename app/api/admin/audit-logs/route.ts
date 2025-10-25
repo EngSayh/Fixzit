@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getServerSession from 'next-auth';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
 import { connectDb } from '@/lib/mongo';
 
@@ -11,7 +10,7 @@ import { connectDb } from '@/lib/mongo';
  */
 export async function GET(request: NextRequest) {
   try {
-  const session = (await getServerSession(authOptions)) as any;
+    const session = await auth();
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -35,6 +34,7 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get('skip') || '0');
     
     // Search logs
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const logs = await (AuditLogModel as any).search({
       orgId: session.user.orgId || 'default',
       userId: userId || undefined,
