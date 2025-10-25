@@ -24,6 +24,10 @@ interface FormStateContextValue {
   markFormClean: (formId: string) => void;
   getFormState: (formId: string) => FormState | undefined;
   saveAllForms: () => Promise<void>;
+  // Legacy compatibility methods
+  clearAllUnsavedChanges: () => void;
+  markFormDirty: (formId: string) => void;
+  onSaveRequest: (formId: string, callback: () => Promise<void> | void) => (() => void);
 }
 
 const FormStateContext = createContext<FormStateContextValue | undefined>(undefined);
@@ -137,6 +141,45 @@ export const FormStateProvider: React.FC<FormStateProviderProps> = ({ children }
     }
   }, [forms, markFormClean]);
 
+  const clearAllUnsavedChanges = useCallback(() => {
+    forms.forEach(form => markFormClean(form.id));
+    
+    // Emit event to notify registered forms to reset themselves
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fixzit:clear-forms', { detail: { timestamp: Date.now() } }));
+    }
+  }, [forms, markFormClean]);
+
+  const markFormDirty = useCallback((formId: string) => {
+    setForms(prev => {
+      const newForms = new Map(prev);
+      const form = newForms.get(formId);
+      if (!form) return prev;
+      
+      newForms.set(formId, {
+        ...form,
+        isDirty: true,
+      });
+      return newForms;
+    });
+  }, []);
+
+  const onSaveRequest = useCallback((formId: string, callback: () => Promise<void> | void) => {
+    const handleSave = async (_event: Event) => {
+      await callback();
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('fixzit:save-forms', handleSave);
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('fixzit:save-forms', handleSave);
+      }
+    };
+  }, []);
+
   const value: FormStateContextValue = {
     forms,
     hasUnsavedChanges,
@@ -146,6 +189,9 @@ export const FormStateProvider: React.FC<FormStateProviderProps> = ({ children }
     markFormClean,
     getFormState,
     saveAllForms,
+    clearAllUnsavedChanges,
+    markFormDirty,
+    onSaveRequest,
   };
 
   return (
