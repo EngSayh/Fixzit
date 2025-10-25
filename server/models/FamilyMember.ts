@@ -94,7 +94,7 @@ FamilyMemberSchema.plugin(auditPlugin);
 
 // Virtual for display name
 FamilyMemberSchema.virtual('displayName').get(function() {
-  return this.name.full;
+  return this.name?.full || 'Unknown';
 });
 
 // Method to check if invitation is valid

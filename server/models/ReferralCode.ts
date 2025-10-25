@@ -119,16 +119,16 @@ ReferralCodeSchema.methods.canBeUsedBy = function(userId: string) {
   if (!this.isValid()) return false;
   
   // Check if user already used this code
-  const existingUses = this.referrals.filter(r => r.referredUserId === userId).length;
+  const existingUses = this.referrals.filter((r: { referredUserId: string }) => r.referredUserId === userId).length;
   if (existingUses >= this.limits.maxUsesPerUser) return false;
   
   return true;
 };
 
 // Static method to generate unique code
-ReferralCodeSchema.statics.generateCode = async function(length: number = 8) {
+ReferralCodeSchema.statics.generateCode = async function(length: number = 8): Promise<string> {
   const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars
-  let code: string;
+  let code = '';
   let exists = true;
   
   while (exists) {

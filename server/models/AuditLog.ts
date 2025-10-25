@@ -211,7 +211,7 @@ AuditLogSchema.statics.getSummary = async function(orgId: string, period: 'day' 
       }
     },
     {
-      $sort: { count: -1 }
+      $sort: { count: -1 as -1 }
     }
   ];
   

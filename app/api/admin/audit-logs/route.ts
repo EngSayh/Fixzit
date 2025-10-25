@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const limit = parseInt(searchParams.get('limit') || '100');
-    const skip = parseInt(searchParams.get('skip') || '0');
+    const limit = parseInt(searchParams.get('limit') || '100', 10);
+    const skip = parseInt(searchParams.get('skip') || '0', 10);
     
     // Search logs
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

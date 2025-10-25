@@ -232,7 +232,7 @@ ProjectBidSchema.plugin(auditPlugin);
 
 // Virtual for ranking
 ProjectBidSchema.virtual('ranking').get(function() {
-  if (!this.evaluation.score) return null;
+  if (!this.evaluation?.score) return null;
   return this.evaluation.score;
 });
 

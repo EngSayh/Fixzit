@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavigationButtons } from '@/components/ui/navigation-buttons';
+import toast from 'react-hot-toast';
 
 interface ReferralCode {
   _id: string;
@@ -37,6 +38,9 @@ export default function ReferralProgramPage() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const copyTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     fetchReferralData();
@@ -44,34 +48,104 @@ export default function ReferralProgramPage() {
 
   const fetchReferralData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/referrals/my-code');
+      if (!response.ok) {
+        throw new Error('Failed to fetch referral data');
+      }
       const data = await response.json();
       setReferralCode(data.code);
       setReferrals(data.referrals || []);
     } catch (error) {
       console.error('Failed to fetch referral data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load referral data. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const generateCode = async () => {
+    setGenerating(true);
+    setError(null);
     try {
-      const response = await fetch('/api/referrals/generate', {
-        method: 'POST',
-      });
+      const response = await fetch('/api/referrals/generate', { method: 'POST' });
       const data = await response.json();
-      setReferralCode(data.code);
+
+      if (!response.ok) {
+        // server-provided message if available
+        const msg = data?.error || 'Failed to generate referral code';
+        throw new Error(msg);
+      }
+
+      setReferralCode(data.code || data);
+      toast.success('Referral code generated successfully!');
     } catch (error) {
       console.error('Failed to generate referral code:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate referral code. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const clearCopyTimeout = () => {
+    if (copyTimeoutRef.current) {
+      window.clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = null;
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    setError(null);
+    clearCopyTimeout();
+
+    // Feature-detect clipboard API
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        toast.success('Copied to clipboard!');
+        copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch (err) {
+        console.error('Clipboard API write failed:', err);
+        // fall through to DOM fallback
+      }
+    }
+
+    // DOM-based fallback (synchronous)
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        setCopied(true);
+        toast.success('Copied to clipboard!');
+        copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+      } else {
+        const errorMsg = 'Failed to copy to clipboard. Please copy manually.';
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      const errorMsg = 'Failed to copy to clipboard. Please copy manually.';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    }
   };
 
   const shareViaWhatsApp = () => {
@@ -89,6 +163,33 @@ export default function ReferralProgramPage() {
     }
   };
 
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-start gap-4">
+            <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Referral Data</h3>
+              <p className="text-red-700 mb-4">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  fetchReferralData();
+                }}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto p-6">
@@ -102,6 +203,27 @@ export default function ReferralProgramPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <NavigationButtons showBack showHome />
+
+      {/* Error Message Banner */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-red-800">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-600 hover:text-red-800"
+            aria-label="Dismiss error"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div>
@@ -122,9 +244,20 @@ export default function ReferralProgramPage() {
           </p>
           <button
             onClick={generateCode}
-            className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            disabled={generating}
+            className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
           >
-            Generate My Referral Code
+            {generating ? (
+              <>
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              'Generate My Referral Code'
+            )}
           </button>
         </div>
       ) : (

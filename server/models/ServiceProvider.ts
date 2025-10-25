@@ -233,7 +233,7 @@ ServiceProviderSchema.plugin(auditPlugin);
 
 // Virtual for completion rate
 ServiceProviderSchema.virtual('completionRatePercent').get(function() {
-  if (this.performance.totalJobs === 0) return 0;
+  if (!this.performance?.totalJobs || this.performance.totalJobs === 0) return 0;
   return (this.performance.completedJobs / this.performance.totalJobs) * 100;
 });
 
@@ -242,11 +242,11 @@ ServiceProviderSchema.methods.isAvailableAt = function(date: Date) {
   const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const day = dayNames[date.getDay()];
   
-  const schedule = this.availability.schedule.find(s => s.day === day);
+  const schedule = this.availability.schedule.find((s: { day: string; isAvailable: boolean }) => s.day === day);
   if (!schedule || !schedule.isAvailable) return false;
   
   // Check if it's a holiday
-  const isHoliday = this.availability.holidays.some(h => 
+  const isHoliday = this.availability.holidays.some((h: Date) => 
     h.toDateString() === date.toDateString()
   );
   
