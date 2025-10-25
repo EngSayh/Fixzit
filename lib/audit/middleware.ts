@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getServerSession from 'next-auth';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
 
 /**
@@ -104,7 +103,7 @@ export async function auditLogMiddleware(
   }
   
   // Get user session
-  const session = (await getServerSession(authOptions)) as any;
+  const session = await auth();
   if (!session?.user) {
     // Don't log unauthenticated requests
     return null;
@@ -131,7 +130,8 @@ export async function auditLogMiddleware(
       endpoint: pathname,
       userAgent,
       ipAddress,
-      sessionId: session.user.sessionId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sessionId: (session.user as any).sessionId,
       browser: extractBrowser(userAgent),
       os: extractOS(userAgent),
       device: extractDevice(userAgent),
@@ -151,6 +151,7 @@ export async function auditLogMiddleware(
 /**
  * Log the audit entry to database
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function logAudit(auditData: any, response?: NextResponse) {
   try {
     // Update result based on response
@@ -161,6 +162,7 @@ export async function logAudit(auditData: any, response?: NextResponse) {
       }
     }
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (AuditLogModel as any).log(auditData);
   } catch (error) {
     // Silent fail - don't break the main request
@@ -228,12 +230,15 @@ export async function createAuditLog(data: {
   entityType: string;
   entityId?: string;
   entityName?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   changes?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
   userId: string;
   orgId: string;
 }) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (AuditLogModel as any).log(data);
   } catch (error) {
     console.error('Failed to create audit log:', error);

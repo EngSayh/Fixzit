@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getServerSession from 'next-auth';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { User } from '@/server/models/User';
 import { connectDb } from '@/lib/mongo';
 
 /**
  * GET /api/user/preferences
- * 
+ *
  * Get current user's preferences (language, theme, notifications, etc.)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-  const session = (await getServerSession(authOptions)) as any;
-    
-    if (!session?.user) {
+    const session = await auth();    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -47,16 +44,14 @@ export async function GET(request: NextRequest) {
 
 /**
  * PUT /api/user/preferences
- * 
+ *
  * Update current user's preferences
- * 
+ *
  * Body: { language?: string, theme?: string, notifications?: object, [key: string]: any }
  */
 export async function PUT(request: NextRequest) {
   try {
-  const session = (await getServerSession(authOptions)) as any;
-    
-    if (!session?.user) {
+    const session = await auth();    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
