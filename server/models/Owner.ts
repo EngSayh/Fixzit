@@ -139,8 +139,19 @@ OwnerSchema.pre('save', async function(next) {
     // Get active properties (those without endDate)
     const activeProperties = this.properties.filter(p => !p.endDate);
     
-    // Reset portfolio metrics
-    this.portfolio.totalProperties = activeProperties.length;
+    // Reset portfolio metrics - ensure portfolio exists
+    if (!this.portfolio) {
+      this.portfolio = {
+        totalProperties: 0,
+        totalUnits: 0,
+        totalArea: 0,
+        occupancyRate: 0,
+        totalRevenue: 0,
+        totalExpenses: 0
+      };
+    }
+    // TypeScript needs this assertion after the initialization check above
+    this.portfolio!.totalProperties = activeProperties.length;
     
     // Calculate aggregated metrics from Property model data
     // Note: These would typically be calculated from the actual Property documents
@@ -158,7 +169,7 @@ OwnerSchema.pre('save', async function(next) {
 
 // Virtual for full name
 OwnerSchema.virtual('displayName').get(function() {
-  return this.companyName || this.name.full;
+  return this.companyName || this.name?.full || 'Unknown Owner';
 });
 
 // Export type and model

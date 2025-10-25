@@ -259,8 +259,9 @@ function hashCode(str: string): number {
 // Virtual for rollout percentage
 FeatureFlagSchema.virtual('effectiveRolloutPercent').get(function() {
   if (this.status !== 'ENABLED') return 0;
+  if (!this.rollout) return 0;
   if (this.rollout.strategy === 'ALL') return 100;
-  if (this.rollout.strategy === 'PERCENTAGE') return this.rollout.percentage;
+  if (this.rollout.strategy === 'PERCENTAGE') return this.rollout.percentage || 0;
   return 0;
 });
 
