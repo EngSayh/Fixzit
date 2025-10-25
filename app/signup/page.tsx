@@ -335,10 +335,7 @@ export default function SignupPage() {
                   <SelectContent>
                     {USER_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        <div>
-                          <div className="font-medium">{type.label}</div>
-                          <div className="text-xs text-gray-500">{type.description}</div>
-                        </div>
+                        {type.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
