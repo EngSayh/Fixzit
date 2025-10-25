@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { X, Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import toast, { Toaster } from 'react-hot-toast';
+import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 
 interface ProductImage {
   file: File;
@@ -161,7 +162,13 @@ export default function VendorProductUploadPage() {
           </p>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <FormWithNavigation 
+          onSubmit={handleSubmit} 
+          saving={loading}
+          showBack
+          showHome
+          position="both"
+        >
           {/* Basic Information */}
           <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
             <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Basic Information</h2>
@@ -407,35 +414,7 @@ export default function VendorProductUploadPage() {
               </div>
             </div>
           </div>
-
-          {/* Submit Buttons */}
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="rounded-lg border border-gray-300 px-6 py-2 font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg bg-[#0061A8] px-6 py-2 font-medium text-white hover:bg-[#004d8a] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload size={16} />
-                  Upload Product
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+        </FormWithNavigation>
       </div>
     </div>
   );
