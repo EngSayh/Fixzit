@@ -120,6 +120,7 @@ const publicApiPrefixes = [
   '/api/marketplace/categories',  // Public marketplace browsing
   '/api/marketplace/products',    // Public product listing
   '/api/marketplace/search',      // Public search
+  '/api/copilot/profile',         // Copilot widget (returns guest session if not authenticated)
 ];
 
 // Dev helpers gate
