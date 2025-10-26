@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Building2, Users, Target, Award, MapPin, Phone, Mail } from 'lucide-react';
+import { renderMarkdownSanitized } from '@/lib/markdown';
 
 /**
  * Default about content shown when CMS content is not available or not published.
@@ -51,6 +52,7 @@ To empower organizations with innovative, efficient, and user-friendly tools tha
 export default function AboutPage() {
   const { t, isRTL } = useTranslation();
   const [content, setContent] = useState<string>('');
+  const [renderedContent, setRenderedContent] = useState<string>('');
   const [title, setTitle] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -79,6 +81,15 @@ export default function AboutPage() {
       setLoading(false);
     }
   }, [t]);
+
+  // Render markdown to HTML when content changes
+  useEffect(() => {
+    if (content) {
+      renderMarkdownSanitized(content).then(html => {
+        setRenderedContent(html);
+      });
+    }
+  }, [content]);
 
   useEffect(() => {
     loadAboutContent();
@@ -153,10 +164,8 @@ export default function AboutPage() {
       <section className="py-12">
         <div className="mx-auto max-w-4xl px-4 lg:px-6">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 md:p-12">
-            <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'}`}>
-              <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                {content}
-              </div>
+            <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-primary)] prose-strong:text-[var(--fixzit-text)]`}>
+              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
             </article>
           </div>
         </div>
