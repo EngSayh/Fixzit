@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface AuditLog {
   _id: string;
@@ -52,12 +52,7 @@ export default function AuditLogViewer() {
   const [totalLogs, setTotalLogs] = useState(0);
   const LOGS_PER_PAGE = 20;
 
-  useEffect(() => {
-    fetchLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page]);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -82,21 +77,56 @@ export default function AuditLogViewer() {
 
       const response = await fetch(`/api/admin/audit-logs?${params}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch audit logs: ${response.statusText}`);
+        // Provide more specific error messages based on status
+        let errorMessage = 'Failed to fetch audit logs';
+        if (response.status === 401) {
+          errorMessage = 'You are not authorized to view audit logs. Please log in again.';
+        } else if (response.status === 403) {
+          errorMessage = 'You do not have permission to access audit logs.';
+        } else if (response.status === 404) {
+          errorMessage = 'Audit log service not found. Please contact support.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error occurred while fetching audit logs. Please try again later.';
+        } else if (response.status >= 400) {
+          errorMessage = 'Invalid request. Please check your filters and try again.';
+        }
+        throw new Error(`${errorMessage} (${response.status}: ${response.statusText})`);
       }
+      
       const data = await response.json();
+      
+      // Validate response structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response format from audit log service');
+      }
+      
       setLogs(data.logs || []);
       setTotalLogs(data.total || 0);
       setTotalPages(Math.ceil((data.total || 0) / LOGS_PER_PAGE));
     } catch (err) {
       console.error('Failed to fetch audit logs:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load audit logs. Please try again.';
+      
+      // Handle different error types with user-friendly messages
+      let errorMessage = 'Failed to load audit logs. Please try again.';
+      
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        errorMessage = 'Network error occurred. Please check your connection and try again.';
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       setLogs([]);
+      setTotalLogs(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, page, LOGS_PER_PAGE]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const getActionColor = (action: string) => {
     switch (action) {
@@ -131,6 +161,45 @@ export default function AuditLogViewer() {
           View all system activity and user actions
         </p>
       </div>
+
+      {/* Error Alert - Show at top level for better visibility */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+                Error Loading Audit Logs
+              </h3>
+              <p className="text-sm text-red-700 dark:text-red-300 break-words">
+                {error}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => {
+                    setError(null);
+                    fetchLogs();
+                  }}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Try Again
+                </button>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -460,7 +529,10 @@ export default function AuditLogViewer() {
                     <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
                       <span className="font-medium">OS:</span> {selectedLog.context.os}
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded col-span-2">
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      <span className="font-medium">Device:</span> {selectedLog.context.device}
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
                       <span className="font-medium">Endpoint:</span> {selectedLog.context.endpoint}
                     </div>
                   </div>
@@ -468,24 +540,18 @@ export default function AuditLogViewer() {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Result</h3>
-                  <div className="mt-1 bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>
-                        Status: {selectedLog.result.success ? (
-                          <span className="text-green-600 dark:text-green-400 font-medium">✓ Success</span>
-                        ) : (
-                          <span className="text-red-600 dark:text-red-400 font-medium">✗ Failed</span>
-                        )}
-                      </span>
-                      {selectedLog.result.duration && (
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Duration: {selectedLog.result.duration}ms
-                        </span>
-                      )}
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      <span className="font-medium">Success:</span> {selectedLog.result.success ? 'Yes' : 'No'}
                     </div>
                     {selectedLog.result.errorCode && (
-                      <div className="mt-2 text-sm text-red-600 dark:text-red-400">
-                        Error Code: {selectedLog.result.errorCode}
+                      <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                        <span className="font-medium text-red-600 dark:text-red-400">Error Code:</span> {selectedLog.result.errorCode}
+                      </div>
+                    )}
+                    {selectedLog.result.duration !== undefined && (
+                      <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                        <span className="font-medium">Duration:</span> {selectedLog.result.duration} ms
                       </div>
                     )}
                   </div>
@@ -493,26 +559,21 @@ export default function AuditLogViewer() {
 
                 {selectedLog.changes && selectedLog.changes.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Changes</h3>
-                    <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Changes</h3>
+                    <div className="mt-1 space-y-2">
                       {selectedLog.changes.map((change, index) => (
-                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                          <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2 font-medium text-sm text-gray-900 dark:text-white">
-                            {change.field}
+                        <div key={index} className="p-2 rounded bg-gray-50 dark:bg-gray-800">
+                          <div className="flex gap-2">
+                            <span className="font-medium">{change.field}:</span>
+                            <span className="text-gray-900 dark:text-white">
+                              {JSON.stringify(change.oldValue)}
+                            </span>
                           </div>
-                          <div className="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
-                            <div className="p-3">
-                              <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Previous Value</div>
-                              <pre className="text-xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">
-                                {JSON.stringify(change.oldValue, null, 2)}
-                              </pre>
-                            </div>
-                            <div className="p-3 bg-green-50 dark:bg-green-900/10">
-                              <div className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">New Value</div>
-                              <pre className="text-xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">
-                                {JSON.stringify(change.newValue, null, 2)}
-                              </pre>
-                            </div>
+                          <div className="flex gap-2">
+                            <span className="font-medium">→</span>
+                            <span className="text-gray-900 dark:text-white">
+                              {JSON.stringify(change.newValue)}
+                            </span>
                           </div>
                         </div>
                       ))}
