@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { ReferralCodeModel } from '@/server/models/ReferralCode';
 import { connectDb } from '@/lib/mongo';
+import { REFERRAL_REWARD, REFERRAL_LIMITS, getReferralValidity } from '@/config/referrals.config';
 
 /**
  * POST /api/referrals/generate
@@ -43,7 +44,10 @@ export async function POST(_request: NextRequest) {
     // Construct referral URL safely
     const shortUrl = new URL(`/ref/${code}`, baseUrl).toString();
     
-    // Create referral code
+    // Get validity dates from config
+    const { validFrom, validUntil } = getReferralValidity();
+    
+    // Create referral code with centralized config
     const referralCode = await ReferralCodeModel.create({
       referrerId: session.user.id,
       referrerName: session.user.name,
@@ -51,18 +55,18 @@ export async function POST(_request: NextRequest) {
       code,
       shortUrl,
       reward: {
-        type: 'CASH',
-        referrerAmount: 100,
-        referredAmount: 50,
-        currency: 'SAR',
-        description: 'Cash reward for successful referrals',
+        type: REFERRAL_REWARD.type,
+        referrerAmount: REFERRAL_REWARD.referrerAmount,
+        referredAmount: REFERRAL_REWARD.referredAmount,
+        currency: REFERRAL_REWARD.currency,
+        description: REFERRAL_REWARD.description,
       },
       limits: {
-        maxUses: null, // Unlimited
-        maxUsesPerUser: 1,
-        minPurchaseAmount: 0,
-        validFrom: new Date(),
-        validUntil: null, // No expiry
+        maxUses: REFERRAL_LIMITS.maxUses,
+        maxUsesPerUser: REFERRAL_LIMITS.maxUsesPerUser,
+        minPurchaseAmount: REFERRAL_LIMITS.minPurchaseAmount,
+        validFrom,
+        validUntil,
       },
       status: 'ACTIVE',
     });

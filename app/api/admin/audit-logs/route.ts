@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Super Admin access required' }, { status: 403 });
     }
     
-  await connectDb();
+    await connectDb();
     
     // Get query parameters
     const { searchParams } = request.nextUrl;
