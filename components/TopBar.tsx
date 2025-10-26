@@ -29,6 +29,7 @@ interface Notification {
   priority: 'high' | 'medium' | 'low';
   timestamp: string;
   read: boolean;
+  targetUrl?: string; // Optional deep link URL
 }
 
 // Fallback translations for when context is not available
@@ -68,6 +69,7 @@ const fallbackT = (key: string, fallback?: string) =>
 export default function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -162,18 +164,52 @@ export default function TopBar() {
   const handleSaveAndNavigate = async () => {
     setIsSaving(true);
     setSaveError(null);
+    
     try {
-      // Emit a custom event that forms can listen to for saving
-      const saveEvent = new CustomEvent('fixzit:save-forms', { detail: { timestamp: Date.now() } });
+      // Set up event listeners for save confirmation
+      const savePromise = new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Save operation timed out after 5 seconds'));
+        }, 5000);
+
+        // Listen for success event
+        const handleSuccess = (_event: Event) => {
+          clearTimeout(timeout);
+          cleanup();
+          resolve();
+        };
+
+        // Listen for error event
+        const handleError = (event: Event) => {
+          clearTimeout(timeout);
+          cleanup();
+          const customEvent = event as CustomEvent;
+          const errorMessage = customEvent.detail?.error || 'Unknown error occurred during save';
+          reject(new Error(errorMessage));
+        };
+
+        const cleanup = () => {
+          window.removeEventListener('fixzit:forms-saved', handleSuccess);
+          window.removeEventListener('fixzit:forms-save-error', handleError);
+        };
+
+        window.addEventListener('fixzit:forms-saved', handleSuccess);
+        window.addEventListener('fixzit:forms-save-error', handleError);
+      });
+
+      // Emit the save request event
+      const saveEvent = new CustomEvent('fixzit:save-forms', { 
+        detail: { timestamp: Date.now() } 
+      });
       window.dispatchEvent(saveEvent);
       
-      // Wait a bit for forms to process the save
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Wait for forms to respond with success or error event
+      await savePromise;
       
       // Clear all unsaved changes flags
       clearAllUnsavedChanges();
       
-      // Success path only
+      // Success - close dialog and navigate
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
         router.push(pendingNavigation);
@@ -384,9 +420,7 @@ export default function TopBar() {
           type="button"
           className="p-2 hover:bg-white/10 rounded-md"
           aria-label="Open search"
-          onClick={() => {
-            // TODO: Implement mobile search modal
-          }}
+          onClick={() => setMobileSearchOpen(true)}
         >
           <Search className="w-4 h-4" />
         </button>
@@ -456,9 +490,10 @@ export default function TopBar() {
                             key={notification.id}
                             className="p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"
                             onClick={() => {
-                              // Navigate to notification details or mark as read
                               setNotifOpen(false);
-                              router.push('/notifications');
+                              // Navigate to specific target URL if provided, otherwise go to notifications page
+                              const targetPath = notification.targetUrl || '/notifications';
+                              router.push(targetPath);
                             }}
                           >
                             <div className="flex justify-between items-start">
@@ -639,6 +674,42 @@ export default function TopBar() {
                   )}
                   {isSaving ? t('common.saving', 'Saving...') : t('common.saveAndContinue', 'Save & Continue')}
                 </button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Mobile Search Modal */}
+      {mobileSearchOpen && (
+        <Portal>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[200] flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-search-title"
+          >
+            <div className="bg-white w-full flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center gap-2 p-4 border-b border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setMobileSearchOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-md"
+                  aria-label="Close search"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <h2 id="mobile-search-title" className="text-lg font-semibold text-gray-900">
+                  {t('common.search', 'Search')}
+                </h2>
+              </div>
+              
+              {/* Search Content - Use GlobalSearch component */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <GlobalSearch onResultClick={() => setMobileSearchOpen(false)} />
               </div>
             </div>
           </div>

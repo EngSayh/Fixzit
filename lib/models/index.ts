@@ -292,4 +292,5 @@ export interface NotificationDoc {
   priority: 'low' | 'medium' | 'high';
   category: 'maintenance' | 'vendor' | 'finance' | 'system' | string;
   archived?: boolean;
+  targetUrl?: string; // Optional deep link for notification
 }
