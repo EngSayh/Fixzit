@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FeatureToggle, FeatureToggleGroup } from '@/components/ui/feature-toggle';
+import toast from 'react-hot-toast';
 
 /**
  * Feature flags configuration type
@@ -53,10 +54,11 @@ interface FeatureFlags {
  * Allows Super Admin to enable/disable platform features using iOS-style toggles
  */
 export default function FeatureSettingsPage() {
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingFeatures, setLoadingFeatures] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
   
-  // Initialize feature flags (in production, fetch from API)
+  // Initialize feature flags (fetch from API on mount)
   const [features, setFeatures] = useState<FeatureFlags>({
     // Module 2: Customer & User Lifecycle
     referralProgram: false,
@@ -99,31 +101,86 @@ export default function FeatureSettingsPage() {
   });
 
   /**
+   * Fetch feature flags from API on mount
+   */
+  useEffect(() => {
+    const fetchFeatureFlags = async () => {
+      try {
+        const response = await fetch('/api/admin/feature-flags');
+        if (!response.ok) {
+          throw new Error('Failed to fetch feature flags');
+        }
+        const data = await response.json();
+        setFeatures(data.features || data);
+      } catch (err) {
+        console.error('Failed to fetch feature flags:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load feature settings';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeatureFlags();
+  }, []);
+
+  /**
    * Handle feature toggle change
    */
   const handleFeatureChange = async (featureKey: keyof FeatureFlags, enabled: boolean) => {
+    // Store previous value for rollback on error
+    const previousValue = features[featureKey];
+    
+    // Optimistic update - update UI immediately
+    setFeatures(prev => ({
+      ...prev,
+      [featureKey]: enabled
+    }));
+    
     // Add to loading state
     setLoadingFeatures(prev => [...prev, featureKey]);
     
     try {
-      // Simulate API call to update feature flag
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Save to backend API
+      const response = await fetch('/api/admin/feature-flags', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          key: featureKey, 
+          enabled 
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update feature: ${response.statusText}`);
+      }
+
+      const data = await response.json();
       
-      // Update local state
+      // Show success toast
+      toast.success(`${featureKey} ${enabled ? 'enabled' : 'disabled'} successfully`);
+      
+      // Update with confirmed data from server if available
+      if (data.features) {
+        setFeatures(data.features);
+      }
+      
+    } catch (err) {
+      console.error('Failed to update feature:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update feature setting';
+      
+      // Rollback to previous value on error
       setFeatures(prev => ({
         ...prev,
-        [featureKey]: enabled
+        [featureKey]: previousValue
       }));
       
-      // In production, save to database:
-      // await fetch('/api/admin/feature-flags', {
-      //   method: 'PUT',
-      //   body: JSON.stringify({ key: featureKey, enabled })
-      // });
-      
-    } catch (error) {
-      console.error('Failed to update feature:', error);
       // Show error toast
+      toast.error(errorMessage);
     } finally {
       // Remove from loading state
       setLoadingFeatures(prev => prev.filter(k => k !== featureKey));
@@ -139,6 +196,43 @@ export default function FeatureSettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <p className="text-gray-900 dark:text-white">Loading feature settings...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error Loading Feature Settings
+              </h3>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-3 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">

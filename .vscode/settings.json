@@ -118,7 +118,7 @@
   // and reduce extension timeouts on large repositories. These safer defaults
   // keep the extension useful while preventing large, automatic full-repo
   // reviews that cause the agent to pause or stop.
-  "coderabbit.autoReviewMode": "auto",
+  "coderabbit.autoReviewMode": "prompt",
   "coderabbit.maxFilesPerReview": 100,
   "coderabbit.concurrentReviews": 1,
 
