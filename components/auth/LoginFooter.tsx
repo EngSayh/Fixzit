@@ -44,7 +44,7 @@ export default function LoginFooter({ showDemoLink = false }: LoginFooterProps) 
           href="/" 
           className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
         >
-          {isRTL ? 'العودة للرئيسية ←' : '← Back to Home'}
+          {isRTL ? `${t('common.backToHome', 'Back to Home')} ←` : `← ${t('common.backToHome', 'Back to Home')}`}
         </Link>
       </div>
     </div>

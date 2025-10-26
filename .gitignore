@@ -23,6 +23,9 @@ tsconfig.tsbuildinfo
 *.key
 *.crt
 
+# Dev login credentials (never commit)
+/app/dev/login-helpers/credentials.ts
+
 # OS/editor noise
 .DS_Store
 Thumbs.db

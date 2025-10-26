@@ -56,7 +56,17 @@ const ServiceProviderSchema = new Schema({
     }
   },
   licenseNumber: { type: String, trim: true },
-  establishedYear: { type: Number, min: 1900, max: new Date().getFullYear() },
+  establishedYear: { 
+    type: Number, 
+    min: 1900,
+    validate: {
+      validator: function(v: number) {
+        const currentYear = new Date().getFullYear();
+        return v >= 1900 && v <= currentYear;
+      },
+      message: (props: { value: number }) => `establishedYear must be between 1900 and ${new Date().getFullYear()}, got ${props.value}`
+    }
+  },
   
   // Owner/Manager Information
   owner: {
@@ -113,8 +123,13 @@ const ServiceProviderSchema = new Schema({
       coordinates: {
         type: [Number], // [lng, lat]
         validate: {
-          validator: (arr: number[]) => !arr?.length || (arr.length === 2 && arr.every(n => typeof n === "number")),
-          message: "address.location.coordinates must be [lng, lat]"
+          validator: (arr: number[] | null | undefined) => {
+            // Allow null/undefined (optional)
+            if (arr == null) return true;
+            // Reject empty arrays, require exactly 2 numeric elements
+            return Array.isArray(arr) && arr.length === 2 && arr.every(n => typeof n === "number");
+          },
+          message: "address.location.coordinates must be undefined/null or an array of exactly 2 numbers [lng, lat]"
         },
         default: undefined
       }
@@ -358,17 +373,42 @@ ServiceProviderSchema.methods.transitionStatus = async function(
   if (!ALLOWED[current].includes(next)) {
     throw new Error(`Illegal status transition ${current} → ${next}`);
   }
-  this.status = next;
+  
+  // Perform atomic update to avoid inconsistent state on failure
+  const updateFields: Record<string, Date | Types.ObjectId | string | TProviderStatus> = {
+    status: next
+  };
+  
   if (next === "APPROVED") {
-    this.approvedAt = new Date();
-    this.approvedBy = actorId;
+    updateFields.approvedAt = new Date();
+    if (actorId) updateFields.approvedBy = actorId;
   }
   if (next === "REJECTED") {
-    this.rejectedAt = new Date();
-    this.rejectionReason = reason;
+    updateFields.rejectedAt = new Date();
+    if (reason) updateFields.rejectionReason = reason;
   }
-  if (reason) this.statusReason = reason;
-  await this.save();
+  if (reason) updateFields.statusReason = reason;
+  
+  try {
+    // Use findByIdAndUpdate for atomic operation
+    const ModelClass = this.constructor as typeof ServiceProviderModel;
+    const updated = await ModelClass.findByIdAndUpdate(
+      this._id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updated) {
+      throw new Error(`Failed to update ServiceProvider ${this._id}: document not found`);
+    }
+    
+    // Update in-memory instance with persisted values
+    Object.assign(this, updated.toObject());
+  } catch (error) {
+    // On error, the DB remains unchanged (atomic operation)
+    // Re-throw with context
+    throw new Error(`ServiceProvider.transitionStatus failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 };
 
 // ----- Static Methods -----

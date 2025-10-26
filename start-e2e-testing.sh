@@ -28,7 +28,7 @@ else
 fi
 
 # Check Playwright browsers
-if [ ! -d "$HOME/.cache/ms-playwright/chromium-"* ]; then
+if ! compgen -G "$HOME/.cache/ms-playwright/chromium-*" > /dev/null; then
     echo "⚠️  Playwright browsers not found. Installing..."
     npx playwright install --with-deps chromium
 fi

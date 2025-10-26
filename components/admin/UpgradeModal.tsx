@@ -15,33 +15,46 @@ interface UpgradeModalProps {
 export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps) {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
   const handleContactSales = async () => {
-    if (!email) {
-      alert('Please enter your email address');
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email.trim())) {
+      setError('Please enter a valid email address');
       return;
     }
 
+    setError('');
     setSubmitting(true);
     try {
       // Send contact request to sales team
-      await fetch('/api/admin/contact-sales', {
+      const response = await fetch('/api/admin/contact-sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           feature: featureName || 'Enterprise Features',
           interest: 'upgrade'
         })
       });
       
-      alert('Thank you! Our sales team will contact you shortly.');
+      if (!response.ok) {
+        throw new Error('Failed to submit request');
+      }
+      
+      // Success - close modal after confirmation
+      setError('');
       onClose();
+      // Use toast notification instead of alert if available
+      if (typeof window !== 'undefined' && (window as any).toast) {
+        (window as any).toast.success('Thank you! Our sales team will contact you shortly.');
+      }
     } catch (error) {
       console.error('Failed to submit contact request:', error);
-      alert('Failed to submit request. Please email sales@fixzit.sa directly.');
+      setError('Failed to submit request. Please email sales@fixzit.sa directly.');
     } finally {
       setSubmitting(false);
     }
@@ -133,13 +146,21 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
               type="email"
               id="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError(''); // Clear error on change
+              }}
               placeholder="your@email.com"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                        focus:ring-2 focus:ring-brand-500 focus:border-transparent
                        dark:bg-gray-700 dark:text-white"
               disabled={submitting}
             />
+            {error && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                {error}
+              </p>
+            )}
           </div>
 
           {/* Actions */}

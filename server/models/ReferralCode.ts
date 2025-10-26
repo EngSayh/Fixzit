@@ -128,21 +128,40 @@ ReferralCodeSchema.methods.canBeUsedBy = function(userId: string) {
 // Static method to generate unique code
 ReferralCodeSchema.statics.generateCode = async function(length: number = 8): Promise<string> {
   const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars
+  const maxRetries = 50; // Prevent infinite loops
   let code = '';
-  let exists = true;
+  let retries = 0;
   
-  while (exists) {
+  while (retries < maxRetries) {
     code = '';
     for (let i = 0; i < length; i++) {
       code += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     
-    // Check if code already exists
-    const existing = await this.findOne({ code });
-    exists = !!existing;
+    try {
+      // Check if code already exists
+      const existing = await this.findOne({ code });
+      if (!existing) {
+        return code; // Found unique code
+      }
+      
+      retries++;
+      // Small backoff on collision
+      if (retries > 10) {
+        await new Promise(resolve => setTimeout(resolve, 10 * retries));
+      }
+    } catch (error) {
+      // Handle DB errors
+      retries++;
+      if (retries >= maxRetries) {
+        throw new Error(`ReferralCode.generateCode: Failed to generate unique code after ${maxRetries} attempts due to DB error: ${error}`);
+      }
+      // Backoff on DB error
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   }
   
-  return code;
+  throw new Error(`ReferralCode.generateCode: Failed to generate unique code after ${maxRetries} attempts. Code length: ${length}`);
 };
 
 // Export type and model
