@@ -1,7 +1,7 @@
 'use client';
 
 import { Globe } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation, type Language } from '@/contexts/TranslationContext';
 
 // Simplified language options for auth pages
 const AUTH_LANGUAGES = [
@@ -25,9 +25,9 @@ export default function CompactLanguageSelector({ className = '' }: CompactLangu
     const selectedLang = AUTH_LANGUAGES.find(lang => lang.code === newLanguage);
     if (!selectedLang) return;
 
-    // Update language in context (cast to expected type)
+    // Update language in context - cast to Language type
     if (setLanguage) {
-      setLanguage(newLanguage as any);
+      setLanguage(newLanguage as Language);
     }
 
     // Update document attributes immediately
