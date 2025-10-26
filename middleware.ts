@@ -111,7 +111,16 @@ const fmRoutes = [
   '/fm/vendors',
 ];
 
-const publicApiPrefixes = ['/api/auth', '/api/cms', '/api/help', '/api/assistant', '/api/health'];
+const publicApiPrefixes = [
+  '/api/auth', 
+  '/api/cms', 
+  '/api/help', 
+  '/api/assistant', 
+  '/api/health',
+  '/api/marketplace/categories',  // Public marketplace browsing
+  '/api/marketplace/products',    // Public product listing
+  '/api/marketplace/search',      // Public search
+];
 
 // Dev helpers gate
 function isDevHelpersPath(pathname: string): boolean {
