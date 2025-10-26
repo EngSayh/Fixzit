@@ -16,6 +16,7 @@ const notificationSchema = z.object({
   type: z.enum(["work-order", "vendor", "payment", "maintenance", "system"]),
   priority: z.enum(["low", "medium", "high"]),
   category: z.enum(["maintenance", "vendor", "finance", "system"]),
+  targetUrl: z.string().url().optional(), // Optional deep link URL
   orgId: z.string().optional()
 });
 
@@ -123,7 +124,8 @@ export async function POST(req: NextRequest) {
     category: data.category,
     timestamp: new Date().toISOString(),
     read: false,
-    archived: false
+    archived: false,
+    ...(data.targetUrl && { targetUrl: data.targetUrl }) // Include targetUrl if provided
   };
 
   const result = await notifications.insertOne(doc);

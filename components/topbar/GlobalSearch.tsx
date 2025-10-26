@@ -13,7 +13,11 @@ interface SearchResult {
   href: string;
 }
 
-export default function GlobalSearch() {
+interface GlobalSearchProps {
+  onResultClick?: () => void;
+}
+
+export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) {
   const { app, searchPlaceholder, searchEntities } = useTopBar();
   const { isRTL } = useTranslation();
   const [query, setQuery] = useState('');
@@ -105,6 +109,7 @@ export default function GlobalSearch() {
   const handleResultClick = (href: string) => {
     setOpen(false);
     setQuery('');
+    onResultClick?.(); // Call optional callback before navigation
     window.location.href = href;
   };
 
