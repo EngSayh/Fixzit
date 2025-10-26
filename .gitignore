@@ -65,3 +65,4 @@ node_modules
 # Ignore Next build outputs
 .next/
 .env.production.test
+playwright-report/
