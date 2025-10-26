@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { FeatureToggle, FeatureToggleGroup } from '@/components/ui/feature-toggle';
+import { FeatureToggleGroupSkeleton } from '@/components/ui/feature-toggle-skeleton';
+import { UpgradeModal } from '@/components/admin/UpgradeModal';
 import toast from 'react-hot-toast';
 
 /**
@@ -57,48 +59,11 @@ export default function FeatureSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingFeatures, setLoadingFeatures] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [lockedFeatureName, setLockedFeatureName] = useState<string>('');
   
-  // Initialize feature flags (fetch from API on mount)
-  const [features, setFeatures] = useState<FeatureFlags>({
-    // Module 2: Customer & User Lifecycle
-    referralProgram: false,
-    familyManagement: false,
-    hrModule: true,
-    vacationRequests: true,
-    
-    // Module 3: Legal & Contract Management
-    electronicContracts: true,
-    electronicAttorneys: false,
-    
-    // Module 4: Financial & Accounting
-    autoPayments: true,
-    paymentLinks: true,
-    receiptVouchers: false,
-    ejarWallet: false,
-    
-    // Module 5: Service & Maintenance
-    serviceRatings: true,
-    warrantyTracker: false,
-    sparePartsApproval: true,
-    emergencyMaintenance: true,
-    
-    // Module 6: Marketplace & Project Bidding
-    projectBidding: false,
-    vendorVerification: true,
-    onlineStore: true,
-    
-    // Module 7: System & Administration
-    auditLogging: true,
-    twoFactorAuth: false,
-    apiAccess: false,
-    dataExport: true,
-    
-    // Cross-Platform Features
-    mobileApp: false,
-    pushNotifications: true,
-    smsNotifications: true,
-    whatsappNotifications: false,
-  });
+  // Initialize with null to handle loading state explicitly
+  const [features, setFeatures] = useState<FeatureFlags | null>(null);
 
   /**
    * Fetch feature flags from API on mount
@@ -112,9 +77,13 @@ export default function FeatureSettingsPage() {
         }
         const data = await response.json();
         setFeatures(data.features || data);
+        setError(null); // Clear any previous errors
       } catch (err) {
         console.error('Failed to fetch feature flags:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load feature settings';
+        // Proper Error instance check with fallback
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : 'An unknown error occurred while loading feature settings';
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -129,14 +98,19 @@ export default function FeatureSettingsPage() {
    * Handle feature toggle change
    */
   const handleFeatureChange = async (featureKey: keyof FeatureFlags, enabled: boolean) => {
+    if (!features) return; // Guard against null state
+    
     // Store previous value for rollback on error
     const previousValue = features[featureKey];
     
     // Optimistic update - update UI immediately
-    setFeatures(prev => ({
-      ...prev,
-      [featureKey]: enabled
-    }));
+    setFeatures(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [featureKey]: enabled
+      };
+    });
     
     // Add to loading state
     setLoadingFeatures(prev => [...prev, featureKey]);
@@ -159,25 +133,27 @@ export default function FeatureSettingsPage() {
         throw new Error(errorData.error || `Failed to update feature: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      // Show success toast with feature name
+      const featureName = featureKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+      toast.success(`${featureName} ${enabled ? 'enabled' : 'disabled'} successfully`);
       
-      // Show success toast
-      toast.success(`${featureKey} ${enabled ? 'enabled' : 'disabled'} successfully`);
-      
-      // Update with confirmed data from server if available
-      if (data.features) {
-        setFeatures(data.features);
-      }
+      // Note: We don't overwrite all features to avoid race conditions
+      // The optimistic update is kept unless there's an error
       
     } catch (err) {
       console.error('Failed to update feature:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update feature setting';
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'An unknown error occurred while updating feature';
       
       // Rollback to previous value on error
-      setFeatures(prev => ({
-        ...prev,
-        [featureKey]: previousValue
-      }));
+      setFeatures(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          [featureKey]: previousValue
+        };
+      });
       
       // Show error toast
       toast.error(errorMessage);
@@ -189,25 +165,31 @@ export default function FeatureSettingsPage() {
 
   /**
    * Handle locked feature click (upgrade required)
+   * Opens modal instead of alert for better UX
    */
-  const handleLockedFeatureClick = () => {
-    alert('This feature is available in the Enterprise plan. Contact sales@fixzit.sa to upgrade.');
+  const handleLockedFeatureClick = (featureName: string) => {
+    setLockedFeatureName(featureName);
+    setUpgradeModalOpen(true);
   };
+
+  // Show skeleton loaders during initial load
+  if (loading || !features) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
+        </div>
+        <FeatureToggleGroupSkeleton />
+        <FeatureToggleGroupSkeleton />
+        <FeatureToggleGroupSkeleton />
+        <FeatureToggleGroupSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl">
-            <div className="flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              <p className="text-gray-900 dark:text-white">Loading feature settings...</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -353,7 +335,7 @@ export default function FeatureSettingsPage() {
           onChange={(enabled) => handleFeatureChange('ejarWallet', enabled)}
           loading={loadingFeatures.includes('ejarWallet')}
           locked={true}
-          onLockedClick={handleLockedFeatureClick}
+          onLockedClick={() => handleLockedFeatureClick('Ejar Wallet Integration')}
         />
       </FeatureToggleGroup>
 
@@ -467,7 +449,7 @@ export default function FeatureSettingsPage() {
           onChange={(enabled) => handleFeatureChange('apiAccess', enabled)}
           loading={loadingFeatures.includes('apiAccess')}
           locked={true}
-          onLockedClick={handleLockedFeatureClick}
+          onLockedClick={() => handleLockedFeatureClick('API Access')}
         />
         
         <FeatureToggle
@@ -521,7 +503,7 @@ export default function FeatureSettingsPage() {
           onChange={(enabled) => handleFeatureChange('whatsappNotifications', enabled)}
           loading={loadingFeatures.includes('whatsappNotifications')}
           locked={true}
-          onLockedClick={handleLockedFeatureClick}
+          onLockedClick={() => handleLockedFeatureClick('WhatsApp Notifications')}
         />
       </FeatureToggleGroup>
 
@@ -531,6 +513,13 @@ export default function FeatureSettingsPage() {
           Changes are saved automatically
         </p>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        featureName={lockedFeatureName}
+      />
     </div>
   );
 }
