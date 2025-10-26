@@ -26,20 +26,50 @@ export default function AIChatPage() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const questionText = input.trim();
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/assistant/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: questionText })
+      });
+
+      const data = await response.json();
+
       const botMessage = {
         id: crypto.randomUUID(),
         type: 'bot' as const,
-        content: "I'm here to help! However, please note that this is a demo response. In a real implementation, this would connect to an AI service to provide actual assistance with your Fixzit questions.",
+        content: data.answer || "I'm here to help! However, I encountered an issue processing your request. Please try again.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
+
+      // If there are citations, add them as additional messages
+      if (data.citations && data.citations.length > 0) {
+        interface Citation { title: string; slug: string; }
+        const citationMessage = {
+          id: crypto.randomUUID(),
+          type: 'bot' as const,
+          content: `📚 **Related Help Articles:**\n${(data.citations as Citation[]).map((c, i: number) => `${i + 1}. [${c.title}](/help/${c.slug})`).join('\n')}`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, citationMessage]);
+      }
+    } catch (error) {
+      console.error('AI Chat error:', error);
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        type: 'bot' as const,
+        content: 'I apologize, but I encountered an error. Please try again or contact support if the problem persists.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -66,6 +96,7 @@ export default function AIChatPage() {
             </div>
             <button
               onClick={() => window.close()}
+              aria-label="Close chat"
               className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
             >
               <X className="w-5 h-5" />
@@ -116,7 +147,9 @@ export default function AIChatPage() {
           {/* Input */}
           <div className="p-6 border-t border-gray-200">
             <div className="flex gap-3">
+              <label htmlFor="chat-input" className="sr-only">Chat message</label>
               <input
+                id="chat-input"
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -128,6 +161,7 @@ export default function AIChatPage() {
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
+                aria-label="Send message"
                 className="px-4 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
