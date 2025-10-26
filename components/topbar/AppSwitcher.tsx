@@ -48,13 +48,15 @@ export default function AppSwitcher() {
           break;
         case 'Enter':
         case ' ':
-          event.preventDefault();
-          const selectedApp = appList[activeIndex];
-          if (selectedApp) {
-            setApp(selectedApp.id);
-            setOpen(false);
+          {
+            event.preventDefault();
+            const selectedApp = appList[activeIndex];
+            if (selectedApp) {
+              setApp(selectedApp.id);
+              setOpen(false);
+            }
+            break;
           }
-          break;
         case 'Home':
           event.preventDefault();
           setActiveIndex(0);

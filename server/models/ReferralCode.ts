@@ -147,4 +147,13 @@ ReferralCodeSchema.statics.generateCode = async function(length: number = 8): Pr
 
 // Export type and model
 export type ReferralCode = InferSchemaType<typeof ReferralCodeSchema>;
-export const ReferralCodeModel = models.ReferralCode || model("ReferralCode", ReferralCodeSchema);
+
+// Define static methods interface
+export interface ReferralCodeStaticMethods {
+  generateCode(length?: number): Promise<string>;
+}
+
+// Type the model with statics
+export type ReferralCodeModelType = import('mongoose').Model<ReferralCode> & ReferralCodeStaticMethods;
+
+export const ReferralCodeModel = (models.ReferralCode || model("ReferralCode", ReferralCodeSchema)) as ReferralCodeModelType;

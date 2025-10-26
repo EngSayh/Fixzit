@@ -99,7 +99,7 @@ const AuditLogSchema = new Schema({
   
 }, {
   timestamps: false, // Using custom timestamp field
-  capped: { size: 1073741824, max: 10000000 } // 1GB cap, 10M documents max
+  // Collection is not capped to allow TTL index to work
 });
 
 // Compound Indexes for common queries

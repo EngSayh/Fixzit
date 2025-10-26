@@ -28,10 +28,49 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const entityType = searchParams.get('entityType');
     const action = searchParams.get('action');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const limit = parseInt(searchParams.get('limit') || '100', 10);
-    const skip = parseInt(searchParams.get('skip') || '0', 10);
+    const startDateStr = searchParams.get('startDate');
+    const endDateStr = searchParams.get('endDate');
+    
+    // Parse and validate pagination with safe defaults and caps
+    let limit = parseInt(searchParams.get('limit') || '100', 10);
+    let skip = parseInt(searchParams.get('skip') || '0', 10);
+    
+    // Validate and cap pagination values to prevent DoS
+    if (!Number.isInteger(limit) || limit < 1) {
+      limit = 100;
+    }
+    if (!Number.isInteger(skip) || skip < 0) {
+      skip = 0;
+    }
+    // Cap limit at 1000 and skip at 100000 for safety
+    limit = Math.min(limit, 1000);
+    skip = Math.min(skip, 100000);
+    
+    // Validate and parse date parameters
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+    
+    if (startDateStr) {
+      const parsed = new Date(startDateStr);
+      if (isNaN(parsed.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid startDate parameter' },
+          { status: 400 }
+        );
+      }
+      startDate = parsed;
+    }
+    
+    if (endDateStr) {
+      const parsed = new Date(endDateStr);
+      if (isNaN(parsed.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid endDate parameter' },
+          { status: 400 }
+        );
+      }
+      endDate = parsed;
+    }
     
     // Search logs
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,8 +79,8 @@ export async function GET(request: NextRequest) {
       userId: userId || undefined,
       entityType: entityType || undefined,
       action: action || undefined,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate,
+      endDate,
       limit,
       skip,
     });

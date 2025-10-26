@@ -37,9 +37,25 @@ const ServiceProviderSchema = new Schema({
   
   // Contact Information
   contact: {
-    phone: { type: String, required: true },
+    phone: { 
+      type: String, 
+      required: true,
+      validate: {
+        validator: function(v: string) {
+          // Allow digits, spaces, dashes, parentheses, and optional leading +
+          return /^[\d\s\-()]+$/.test(v) || /^\+[\d\s\-()]+$/.test(v);
+        },
+        message: (props: { value: string }) => `${props.value} is not a valid phone number format`
+      }
+    },
     mobile: String,
-    email: { type: String, required: true },
+    email: { 
+      type: String, 
+      required: true,
+      trim: true,
+      lowercase: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please provide a valid email address']
+    },
     whatsapp: String,
     website: String,
     preferredMethod: { type: String, enum: ["EMAIL", "PHONE", "WHATSAPP"], default: "PHONE" }

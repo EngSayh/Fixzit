@@ -1,7 +1,4 @@
-'use client';
-
-import { useEffect, useState, useCallback } from 'react';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { getServerI18n } from '@/lib/i18n/server';
 import { Building2, Users, Target, Award, MapPin, Phone, Mail } from 'lucide-react';
 import { renderMarkdownSanitized } from '@/lib/markdown';
 
@@ -49,62 +46,33 @@ To empower organizations with innovative, efficient, and user-friendly tools tha
  * 
  * @returns About page with hero, stats, content, and contact sections
  */
-export default function AboutPage() {
-  const { t, isRTL } = useTranslation();
-  const [content, setContent] = useState<string>('');
-  const [renderedContent, setRenderedContent] = useState<string>('');
-  const [title, setTitle] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+export default async function AboutPage() {
+  // Server-side minimal i18n
+  const { t, isRTL } = await getServerI18n();
 
-  const loadAboutContent = useCallback(async () => {
-    try {
-      const response = await fetch('/api/cms/pages/about');
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.status === 'PUBLISHED') {
-          setTitle(data.title);
-          setContent(data.content);
-        } else {
-          setTitle(t('about.title', 'About Us'));
-          setContent(DEFAULT_ABOUT_CONTENT);
-        }
-      } else {
-        setTitle(t('about.title', 'About Us'));
-        setContent(DEFAULT_ABOUT_CONTENT);
+  // Server fetch of CMS about page. Server components can await fetch directly.
+  let title = t('about.title', 'About Us');
+  let content = DEFAULT_ABOUT_CONTENT;
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/cms/pages/about`, {
+      // force no-store so latest content is fetched server-side; adjust if caching required
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.status === 'PUBLISHED') {
+        title = data.title || title;
+        content = data.content || content;
       }
-    } catch (err) {
-      console.error('Error fetching about content:', err);
-      setTitle(t('about.title', 'About Us'));
-      setContent(DEFAULT_ABOUT_CONTENT);
-    } finally {
-      setLoading(false);
     }
-  }, [t]);
-
-  // Render markdown to HTML when content changes
-  useEffect(() => {
-    if (content) {
-      renderMarkdownSanitized(content).then(html => {
-        setRenderedContent(html);
-      });
-    }
-  }, [content]);
-
-  useEffect(() => {
-    loadAboutContent();
-  }, [loadAboutContent]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('common.loading', 'Loading...')}</p>
-        </div>
-      </div>
-    );
+  } catch (_err) {
+    // swallow errors and use default content
+    // console.error('Error fetching about content (server):', err);
   }
+
+  const renderedContent = await renderMarkdownSanitized(content);
 
   return (
     <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>

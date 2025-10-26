@@ -49,37 +49,62 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   showNames = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   
   const current = languages.find(l => l.code === currentLanguage) || languages[0];
 
   const handleLanguageChange = async (lang: Language) => {
-    // Update HTML dir attribute
-    document.documentElement.dir = lang.dir;
-    document.documentElement.lang = lang.code;
+    // Prevent concurrent updates
+    if (isLoading) return;
     
-    // Save to localStorage
-    localStorage.setItem('preferredLanguage', lang.code);
+    setIsLoading(true);
+    setError(null);
     
-    // Update via API
     try {
-      await fetch('/api/user/preferences', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: lang.code }),
-      });
-    } catch (error) {
-      console.error('Failed to save language preference:', error);
+      // Update HTML dir attribute
+      document.documentElement.dir = lang.dir;
+      document.documentElement.lang = lang.code;
+      
+      // Save to localStorage with error handling
+      try {
+        localStorage.setItem('preferredLanguage', lang.code);
+      } catch (storageError) {
+        console.warn('Failed to save language preference to localStorage:', storageError);
+        // Continue despite localStorage failure
+      }
+      
+      // Update via API
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: lang.code }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to save language preference: ${response.status}`);
+        }
+      } catch (apiError) {
+        const errorMessage = apiError instanceof Error ? apiError.message : 'Unknown error';
+        console.error('Failed to save language preference via API:', errorMessage);
+        setError(errorMessage);
+        // Don't proceed to refresh/close on API failure
+        return;
+      }
+      
+      // Call onChange callback
+      if (onChange) {
+        onChange(lang.code);
+      }
+      
+      // Refresh the page to apply language changes
+      router.refresh();
+      setIsOpen(false);
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Call onChange callback
-    if (onChange) {
-      onChange(lang.code);
-    }
-    
-    // Refresh the page to apply language changes
-    router.refresh();
-    setIsOpen(false);
   };
 
   if (variant === 'inline') {
@@ -134,7 +159,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           />
           
           {/* Menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+          <div className={`absolute ${document.documentElement.dir === 'rtl' ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20`}>
             {languages.map((lang) => (
               <button
                 key={lang.code}

@@ -99,9 +99,14 @@ FamilyMemberSchema.virtual('displayName').get(function() {
 
 // Method to check if invitation is valid
 FamilyMemberSchema.methods.isInvitationValid = function() {
+  if (!this.invitation) return false;
   if (this.invitation.status !== 'PENDING') return false;
   if (!this.invitation.expiresAt) return false;
-  return new Date() < this.invitation.expiresAt;
+  const expiresAt = this.invitation.expiresAt instanceof Date 
+    ? this.invitation.expiresAt 
+    : new Date(this.invitation.expiresAt);
+  if (isNaN(expiresAt.getTime())) return false;
+  return new Date() < expiresAt;
 };
 
 // Export type and model

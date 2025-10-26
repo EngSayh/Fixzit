@@ -29,8 +29,7 @@ export async function POST(_request: NextRequest) {
     }
     
     // Generate new code
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const code = await (ReferralCodeModel as any).generateCode();
+    const code = await ReferralCodeModel.generateCode();
     const shortUrl = `https://fixzit.sa/ref/${code}`;
     
     // Create referral code

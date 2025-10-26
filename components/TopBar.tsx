@@ -169,6 +169,7 @@ export default function TopBar() {
       // Set up event listeners for save confirmation
       const savePromise = new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
+          cleanup();
           reject(new Error('Save operation timed out after 5 seconds'));
         }, 5000);
 

@@ -96,14 +96,20 @@ export async function POST(req: NextRequest) {
     if (validatedData.identifier) {
       // New unified flow: auto-detect based on format
       const trimmedIdentifier = validatedData.identifier.trim();
-      const isEmail = trimmedIdentifier.includes('@');
-      const isEmployeeNumber = /^EMP\d+$/i.test(trimmedIdentifier);
+      
+      // Proper email validation using Zod email validator
+      const emailValidationResult = z.string().email().safeParse(trimmedIdentifier);
+      const isEmail = emailValidationResult.success;
+      
+      // Employee number must be exactly EMP followed by digits (case-insensitive input, normalized to uppercase)
+      const empUppercase = trimmedIdentifier.toUpperCase();
+      const isEmployeeNumber = /^EMP\d+$/.test(empUppercase);
 
       if (isEmail) {
         loginIdentifier = trimmedIdentifier;
         loginType = 'personal';
       } else if (isEmployeeNumber) {
-        loginIdentifier = trimmedIdentifier.toUpperCase();
+        loginIdentifier = empUppercase;
         loginType = 'corporate';
       } else {
         // Return field-specific error
