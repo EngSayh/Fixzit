@@ -3,8 +3,21 @@
 import React, { useState } from 'react';
 import { Bot, User, X, Send } from 'lucide-react';
 
+interface Citation {
+  title: string;
+  slug: string;
+}
+
+interface Message {
+  id: string;
+  type: 'bot' | 'user';
+  content: string;
+  citations?: Citation[];
+  timestamp: Date;
+}
+
 export default function AIChatPage() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'bot',
@@ -38,20 +51,17 @@ export default function AIChatPage() {
       });
 
       if (!response.ok) {
-        // Handle HTTP errors
+        // Handle HTTP errors - read response body once
+        const responseText = await response.text();
         let errorMessage = `Request failed with status ${response.status}`;
+        
         try {
-          const errorData = await response.json();
+          const errorData = JSON.parse(responseText);
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch {
-          // JSON parse failed, try reading as text
-          try {
-            const errorText = await response.text();
-            if (errorText) {
-              errorMessage = errorText;
-            }
-          } catch {
-            // Fallback to status message
+          // JSON parse failed, use text if available
+          if (responseText) {
+            errorMessage = responseText;
           }
         }
         
@@ -71,21 +81,10 @@ export default function AIChatPage() {
         id: crypto.randomUUID(),
         type: 'bot' as const,
         content: data.answer || "I'm here to help! However, I encountered an issue processing your request. Please try again.",
+        citations: data.citations as Array<{ title: string; slug: string }> | undefined,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
-
-      // If there are citations, add them as additional messages
-      if (data.citations && data.citations.length > 0) {
-        interface Citation { title: string; slug: string; }
-        const citationMessage = {
-          id: crypto.randomUUID(),
-          type: 'bot' as const,
-          content: `📚 **Related Help Articles:**\n${(data.citations as Citation[]).map((c, i: number) => `${i + 1}. [${c.title}](/help/${c.slug})`).join('\n')}`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, citationMessage]);
-      }
     } catch (error) {
       console.error('AI Chat error:', error);
       const errorMessage = {
@@ -153,6 +152,23 @@ export default function AIChatPage() {
                     : 'bg-gray-100 text-gray-900'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.type === 'bot' && message.citations && message.citations.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-sm font-medium mb-2">📚 Related Help Articles:</p>
+                      <ul className="space-y-1">
+                        {message.citations.map((citation, i) => (
+                          <li key={i}>
+                            <a
+                              href={`/help/${citation.slug}`}
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              {i + 1}. {citation.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <p className="text-xs mt-2 opacity-70">
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
