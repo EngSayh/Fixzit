@@ -74,6 +74,12 @@ export default function FiltersPage() {
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
+  // For RTL, keep numerics/date visually LTR to avoid Arabic-Indic direction issues
+  const dirNum: React.HTMLAttributes<HTMLInputElement>['dir'] = isRTL ? 'ltr' : undefined;
+
+  // today in local tz for min on date input and validation
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
   // ---------- init from URL or sessionStorage ----------
   useEffect(() => {
     const fromURL: Partial<FilterState> = {};
@@ -88,25 +94,18 @@ export default function FiltersPage() {
       return;
     }
 
-    // If no URL params, attempt to load last-used filters from sessionStorage
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) setFilters((prev) => ({ ...prev, ...(JSON.parse(raw) as FilterState) }));
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }, [params]);
 
   // Persist to sessionStorage (non-blocking)
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }, [filters]);
-
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   // ---------- helpers ----------
   const handleFilterChange = useCallback((key: keyof FilterState, value: string) => {
@@ -119,8 +118,14 @@ export default function FiltersPage() {
     return Number.isFinite(n) ? String(n) : '';
   }, []);
 
+  const clampFutureDate = useCallback((yyyyMMdd: string) => {
+    if (!yyyyMMdd) return '';
+    // if stored date is in the past, drop it
+    return yyyyMMdd < today ? '' : yyyyMMdd;
+  }, [today]);
+
   const buildParams = useCallback((state: FilterState) => {
-    // normalize ranges
+    // normalize ranges (swap if min > max)
     let minPrice = sanitizeInt(state.minPrice);
     let maxPrice = sanitizeInt(state.maxPrice);
     if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) {
@@ -137,12 +142,10 @@ export default function FiltersPage() {
     const bathrooms = sanitizeInt(state.bathrooms);
 
     const trimmedKeywords = state.keywords.trim();
-    const availableFrom = state.availableFrom; // keep as yyyy-mm-dd
+    const availableFrom = clampFutureDate(state.availableFrom);
 
     const q = new URLSearchParams();
-    const set = (k: keyof FilterState, v: string) => {
-      if (v !== '') q.set(k, v);
-    };
+    const set = (k: keyof FilterState, v: string) => { if (v !== '') q.set(k, v); };
 
     set('propertyType', state.propertyType);
     set('city', state.city);
@@ -157,7 +160,7 @@ export default function FiltersPage() {
     if (trimmedKeywords) q.set('keywords', trimmedKeywords);
 
     return q;
-  }, [sanitizeInt]);
+  }, [sanitizeInt, clampFutureDate]);
 
   const pushSearch = useCallback(
     (next: FilterState) => {
@@ -173,7 +176,6 @@ export default function FiltersPage() {
 
   const handleReset = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
-    // Optional: navigate to base search (no params)
     router.push('/aqar/search');
   }, [router]);
 
@@ -193,6 +195,7 @@ export default function FiltersPage() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           {/* Form semantics allow Enter to submit */}
           <form
+            data-testid="filters-form"
             onSubmit={(e) => {
               e.preventDefault();
               handleSearch();
@@ -324,6 +327,7 @@ export default function FiltersPage() {
                   inputMode="numeric"
                   min={0}
                   step={100}
+                  dir={dirNum}
                   value={filters.minPrice}
                   onChange={(e) => handleFilterChange('minPrice', sanitizeInt(e.target.value))}
                   placeholder="0"
@@ -345,6 +349,7 @@ export default function FiltersPage() {
                   inputMode="numeric"
                   min={0}
                   step={100}
+                  dir={dirNum}
                   value={filters.maxPrice}
                   onChange={(e) => handleFilterChange('maxPrice', sanitizeInt(e.target.value))}
                   placeholder="∞"
@@ -363,6 +368,7 @@ export default function FiltersPage() {
                   inputMode="numeric"
                   min={0}
                   step={5}
+                  dir={dirNum}
                   value={filters.minArea}
                   onChange={(e) => handleFilterChange('minArea', sanitizeInt(e.target.value))}
                   placeholder="0"
@@ -381,6 +387,7 @@ export default function FiltersPage() {
                   inputMode="numeric"
                   min={0}
                   step={5}
+                  dir={dirNum}
                   value={filters.maxArea}
                   onChange={(e) => handleFilterChange('maxArea', sanitizeInt(e.target.value))}
                   placeholder="∞"
@@ -417,6 +424,7 @@ export default function FiltersPage() {
                 <input
                   data-testid="available-from-input"
                   type="date"
+                  dir={dirNum}
                   value={filters.availableFrom}
                   min={today}
                   onChange={(e) => handleFilterChange('availableFrom', e.target.value)}
@@ -448,7 +456,7 @@ export default function FiltersPage() {
         </div>
 
         {/* Quick Filter Presets */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-6" data-testid="quick-filters">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {t('aqar.filters.quickFilters', 'Quick Filters')}
           </h2>
