@@ -6,6 +6,7 @@
 /build/
 /coverage/
 /playwright-report/
+/playwright-artifacts/
 /playwright/.cache/
 /test-results/
 /cypress/videos/
