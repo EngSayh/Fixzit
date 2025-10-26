@@ -335,7 +335,12 @@ export default function SignupPage() {
                   <SelectContent>
                     {USER_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                        <div className="flex flex-col">
+                          <span>{type.label}</span>
+                          {type.description && (
+                            <span className="text-xs text-muted-foreground mt-0.5">{type.description}</span>
+                          )}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>

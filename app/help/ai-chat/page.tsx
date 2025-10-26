@@ -37,6 +37,34 @@ export default function AIChatPage() {
         body: JSON.stringify({ question: questionText })
       });
 
+      if (!response.ok) {
+        // Handle HTTP errors
+        let errorMessage = `Request failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // JSON parse failed, try reading as text
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              errorMessage = errorText;
+            }
+          } catch {
+            // Fallback to status message
+          }
+        }
+        
+        const botMessage = {
+          id: crypto.randomUUID(),
+          type: 'bot' as const,
+          content: `I apologize, but I encountered an error: ${errorMessage}. Please try again.`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+        return;
+      }
+
       const data = await response.json();
 
       const botMessage = {

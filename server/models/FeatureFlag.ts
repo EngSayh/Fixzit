@@ -193,13 +193,13 @@ FeatureFlagSchema.statics.isEnabled = async function(
       return true;
       
     case 'WHITELIST':
-      if (context.userId && feature.rollout.whitelistedUsers.includes(context.userId)) return true;
-      if (context.orgId && feature.rollout.whitelistedOrgs.includes(context.orgId)) return true;
+      if (context.userId && Array.isArray(feature.rollout.whitelistedUsers) && feature.rollout.whitelistedUsers.includes(context.userId)) return true;
+      if (context.orgId && Array.isArray(feature.rollout.whitelistedOrgs) && feature.rollout.whitelistedOrgs.includes(context.orgId)) return true;
       return false;
       
     case 'BLACKLIST':
-      if (context.userId && feature.rollout.blacklistedUsers.includes(context.userId)) return false;
-      if (context.orgId && feature.rollout.blacklistedOrgs.includes(context.orgId)) return false;
+      if (context.userId && Array.isArray(feature.rollout.blacklistedUsers) && feature.rollout.blacklistedUsers.includes(context.userId)) return false;
+      if (context.orgId && Array.isArray(feature.rollout.blacklistedOrgs) && feature.rollout.blacklistedOrgs.includes(context.orgId)) return false;
       return true;
       
     case 'PERCENTAGE': {
@@ -251,7 +251,7 @@ function hashCode(str: string): number {
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash | 0; // Convert to 32bit integer
   }
   return hash;
 }
@@ -293,4 +293,23 @@ FeatureFlagSchema.methods.toggle = async function(userId: string, reason?: strin
 
 // Export type and model
 export type FeatureFlag = InferSchemaType<typeof FeatureFlagSchema>;
-export const FeatureFlagModel = models.FeatureFlag || model("FeatureFlag", FeatureFlagSchema);
+
+// Define static methods interface
+export interface FeatureFlagStaticMethods {
+  isEnabled(
+    key: string,
+    context: {
+      userId?: string;
+      orgId?: string;
+      role?: string;
+      environment?: string;
+    }
+  ): Promise<boolean>;
+  getConfig(key: string): Promise<Record<string, unknown> | null>;
+  recordUsage(key: string, enabled: boolean): Promise<void>;
+}
+
+// Type the model with statics
+export type FeatureFlagModelType = import('mongoose').Model<FeatureFlag> & FeatureFlagStaticMethods;
+
+export const FeatureFlagModel = (models.FeatureFlag || model("FeatureFlag", FeatureFlagSchema)) as FeatureFlagModelType;

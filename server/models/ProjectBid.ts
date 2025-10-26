@@ -145,7 +145,7 @@ const ProjectBidSchema = new Schema({
     technicalScore: Number,
     financialScore: Number,
     experienceScore: Number,
-    evaluatedBy: [{ type: String, ref: "User" }],
+    evaluatedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
     evaluatedAt: Date,
     comments: [{
       evaluator: String,
@@ -247,6 +247,15 @@ ProjectBidSchema.methods.calculateScore = function(weights: { technical: number,
   const technical = this.evaluation.technicalScore || 0;
   const financial = this.evaluation.financialScore || 0;
   const experience = this.evaluation.experienceScore || 0;
+  
+  // Validate weights sum to 100
+  const sum = weights.technical + weights.financial + weights.experience;
+  if (!Number.isFinite(weights.technical) || !Number.isFinite(weights.financial) || !Number.isFinite(weights.experience)) {
+    throw new TypeError('All weights must be finite numbers');
+  }
+  if (Math.abs(sum - 100) > 0.01) {
+    throw new Error('Weights must sum to 100');
+  }
   
   return (technical * weights.technical + 
           financial * weights.financial + 

@@ -99,8 +99,8 @@ export default function LoginHelpersPage() {
     );
   }
 
-  const copyCredentials = (email: string, password: string, index: number) => {
-    const text = `Email: ${email}\nPassword: ${password}`;
+  const copyCredentials = (label: string, value: string, password: string, index: number) => {
+    const text = `${label}: ${value}\nPassword: ${password}`;
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
@@ -207,7 +207,7 @@ export default function LoginHelpersPage() {
                       Auto Login
                     </button>
                     <button
-                      onClick={() => copyCredentials(cred.email, cred.password, index)}
+                      onClick={() => copyCredentials('Email', cred.email, cred.password, index)}
                       className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
                       title="Copy credentials"
                     >
@@ -266,7 +266,7 @@ export default function LoginHelpersPage() {
                       Auto Login
                     </button>
                     <button
-                      onClick={() => copyCredentials(cred.employeeNumber!, cred.password, globalIndex)}
+                      onClick={() => copyCredentials('Employee Number', cred.employeeNumber!, cred.password, globalIndex)}
                       className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
                       title="Copy credentials"
                     >

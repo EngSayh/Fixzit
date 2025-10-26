@@ -141,6 +141,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path 
                 strokeLinecap="round" 
@@ -170,6 +171,8 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
               xmlns="http://www.w3.org/2000/svg" 
               fill="none" 
               viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
             >
               <circle 
                 className="opacity-25" 
