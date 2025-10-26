@@ -52,7 +52,8 @@ export default function ReferralProgramPage() {
     try {
       const response = await fetch('/api/referrals/my-code');
       if (!response.ok) {
-        throw new Error('Failed to fetch referral data');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error || `Failed to fetch referral data (${response.status})`);
       }
       const data = await response.json();
       setReferralCode(data.code);
@@ -75,9 +76,9 @@ export default function ReferralProgramPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        // server-provided message if available
-        const msg = data?.error || 'Failed to generate referral code';
-        throw new Error(msg);
+        // Use server-provided error message if available
+        const errorMsg = data?.error || data?.message || `Failed to generate referral code (${response.status})`;
+        throw new Error(errorMsg);
       }
 
       setReferralCode(data.code || data);

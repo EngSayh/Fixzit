@@ -42,6 +42,41 @@
     {"label": "Fixzit: De-dupe Scan", "type": "shell", "command": "npm run fixzit:dedupe:scan", "problemMatcher": []},
     {"label": "Fixzit: De-dupe Apply", "type": "shell", "command": "npm run fixzit:dedupe:apply", "problemMatcher": []},
     {"label": "Fixzit: Mongo Migrate", "type": "shell", "command": "npm run fixzit:mongo:migrate", "problemMatcher": []},
-    {"label": "Fixzit: Verify", "type": "shell", "command": "npm run fixzit:verify", "problemMatcher": []}
+    {"label": "Fixzit: Verify", "type": "shell", "command": "npm run fixzit:verify", "problemMatcher": []},
+    {
+      "label": "🚀 E2E: Keep-Alive 3 Hours",
+      "type": "shell",
+      "command": "bash -c 'for i in {1..180}; do echo \"⏱️  Keep-alive: $i/180 min\"; sleep 60; done'",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "🚀 E2E: Dev Server",
+      "type": "shell",
+      "command": "cross-env NODE_ENV=test NEXT_TELEMETRY_DISABLED=1 pnpm dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {"regexp": "^(.*)$", "file": 1},
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "started server on",
+          "endsPattern": "(Local:|ready)"
+        }
+      }
+    },
+    {
+      "label": "🚀 E2E: Loop Runner",
+      "type": "shell",
+      "command": "cross-env CI=1 node tests/loop-runner.mjs",
+      "isBackground": true,
+      "dependsOn": ["🚀 E2E: Dev Server"],
+      "problemMatcher": []
+    },
+    {
+      "label": "🚀 START: 3-Hour Unattended E2E Testing",
+      "dependsOn": ["🚀 E2E: Keep-Alive 3 Hours", "🚀 E2E: Loop Runner"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
   ]
 }
