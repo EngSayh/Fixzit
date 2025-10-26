@@ -8,69 +8,28 @@ import Link from 'next/link';
 /**
  * Developer-only page for quick login with demo credentials
  * Only accessible in development or when NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true
+ * Credentials are loaded from a separate file that is gitignored
  */
 
-const DEMO_CREDENTIALS = [
-  {
-    role: 'Super Admin',
-    email: 'superadmin@fixzit.co',
-    password: 'password123',
-    description: 'Full system access',
-    icon: Shield,
-    color: 'bg-red-100 text-red-800 border-red-200'
-  },
-  {
-    role: 'Admin',
-    email: 'admin@fixzit.co',
-    password: 'password123',
-    description: 'Administrative access',
-    icon: User,
-    color: 'bg-blue-100 text-blue-800 border-blue-200'
-  },
-  {
-    role: 'Property Manager',
-    email: 'manager@fixzit.co',
-    password: 'password123',
-    description: 'Property management',
-    icon: Building2,
-    color: 'bg-green-100 text-green-800 border-green-200'
-  },
-  {
-    role: 'Tenant',
-    email: 'tenant@fixzit.co',
-    password: 'password123',
-    description: 'Tenant portal access',
-    icon: Users,
-    color: 'bg-purple-100 text-purple-800 border-purple-200'
-  },
-  {
-    role: 'Vendor',
-    email: 'vendor@fixzit.co',
-    password: 'password123',
-    description: 'Vendor marketplace access',
-    icon: Users,
-    color: 'bg-orange-100 text-orange-800 border-orange-200'
-  }
-];
+// Import credentials from separate file (gitignored)
+let DEMO_CREDENTIALS: Array<any> = [];
+let CORPORATE_CREDENTIALS: Array<any> = [];
 
-const CORPORATE_CREDENTIALS = [
-  {
-    role: 'Property Manager (Corporate)',
-    employeeNumber: 'EMP001',
-    password: 'password123',
-    description: 'Corporate account access',
-    icon: Building2,
-    color: 'bg-green-100 text-green-800 border-green-200'
-  },
-  {
-    role: 'Admin (Corporate)',
-    employeeNumber: 'EMP002',
-    password: 'password123',
-    description: 'Corporate administrative access',
-    icon: User,
-    color: 'bg-blue-100 text-blue-800 border-blue-200'
+try {
+  // Try to import credentials file
+  const credentials = require('./credentials');
+  DEMO_CREDENTIALS = credentials.DEMO_CREDENTIALS || [];
+  CORPORATE_CREDENTIALS = credentials.CORPORATE_CREDENTIALS || [];
+  
+  // Validate structure
+  if (!Array.isArray(DEMO_CREDENTIALS) || !Array.isArray(CORPORATE_CREDENTIALS)) {
+    console.error('[Dev Login Helpers] Invalid credentials format. Check credentials.ts');
+    DEMO_CREDENTIALS = [];
+    CORPORATE_CREDENTIALS = [];
   }
-];
+} catch (error) {
+  console.warn('[Dev Login Helpers] credentials.ts not found. Copy credentials.example.ts to credentials.ts');
+}
 
 export default function LoginHelpersPage() {
   const router = useRouter();

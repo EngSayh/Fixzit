@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // Legacy flow: use email or employeeNumber based on loginType
-      loginType = validatedData.loginType || 'personal';
+      // Default to 'corporate' when employeeNumber exists, otherwise 'personal'
+      loginType = validatedData.loginType ?? (validatedData.employeeNumber ? 'corporate' : 'personal');
       loginIdentifier = loginType === 'corporate' 
         ? validatedData.employeeNumber! 
         : validatedData.email!;

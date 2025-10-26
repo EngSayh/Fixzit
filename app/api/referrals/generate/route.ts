@@ -30,7 +30,18 @@ export async function POST(_request: NextRequest) {
     
     // Generate new code
     const code = await ReferralCodeModel.generateCode();
-    const shortUrl = `https://fixzit.sa/ref/${code}`;
+    
+    // Build referral URL from environment variable
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL;
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: 'BASE_URL not configured. Contact system administrator.' },
+        { status: 500 }
+      );
+    }
+    
+    // Construct referral URL safely
+    const shortUrl = new URL(`/ref/${code}`, baseUrl).toString();
     
     // Create referral code
     const referralCode = await ReferralCodeModel.create({

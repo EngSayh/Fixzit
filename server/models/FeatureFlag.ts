@@ -203,6 +203,16 @@ FeatureFlagSchema.statics.isEnabled = async function(
       return true;
       
     case 'PERCENTAGE': {
+      // Validate percentage exists and is valid
+      const percentage = feature.rollout?.percentage;
+      if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
+        // Log warning via application logger (replace console.warn)
+        if (typeof console.warn === 'function') {
+          console.warn(`[FeatureFlag] Invalid or missing percentage for feature ${key}: ${percentage}. Defaulting to 0%.`);
+        }
+        return false;
+      }
+      
       // Simple hash-based percentage rollout - deterministic based on userId or orgId
       let hash: number;
       if (context.userId) {
@@ -211,10 +221,12 @@ FeatureFlagSchema.statics.isEnabled = async function(
         hash = hashCode(context.orgId);
       } else {
         // No deterministic identifier available, default to disabled
-        console.warn(`FeatureFlag.isEnabled: No userId or orgId provided for PERCENTAGE rollout of feature ${key}`);
+        if (typeof console.warn === 'function') {
+          console.warn(`[FeatureFlag] No userId or orgId provided for PERCENTAGE rollout of feature ${key}`);
+        }
         return false;
       }
-      return (Math.abs(hash) % 100) < feature.rollout.percentage;
+      return (Math.abs(hash) % 100) < percentage;
     }
       
     default:
@@ -268,6 +280,14 @@ FeatureFlagSchema.virtual('effectiveRolloutPercent').get(function() {
 // Method to toggle feature
 FeatureFlagSchema.methods.toggle = async function(userId: string, reason?: string) {
   const newStatus = this.status === 'ENABLED' ? 'DISABLED' : 'ENABLED';
+  
+  // Initialize lifecycle.changeLog if it doesn't exist
+  if (!this.lifecycle) {
+    this.lifecycle = { changeLog: [] };
+  }
+  if (!Array.isArray(this.lifecycle.changeLog)) {
+    this.lifecycle.changeLog = [];
+  }
   
   this.lifecycle.changeLog.push({
     date: new Date(),

@@ -55,10 +55,10 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       // Reset form
       e.currentTarget.reset();
       
-      // Optional: Redirect to success page after a delay
+      // User-controlled navigation (5 second delay or click button)
       setTimeout(() => {
         router.push('/careers?applied=true');
-      }, 2000);
+      }, 5000);
 
     } catch (error) {
       console.error('Application submission error:', error);

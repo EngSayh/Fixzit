@@ -56,7 +56,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       return t('login.errors.identifierRequired', 'Email or employee number is required');
     }
     
-    const isEmail = value.includes('@');
+    // Robust email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmail = emailRegex.test(value.trim());
     const isEmployeeNumber = /^EMP\d+$/i.test(value.trim());
     
     if (!isEmail && !isEmployeeNumber) {
@@ -138,10 +140,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       }
 
       if (data.ok) {
-        if (data.user?.role) {
-          localStorage.setItem('fixzit-role', data.user.role);
-        }
-
+        // Role is managed server-side via secure HTTP-only cookies
+        // Do NOT persist role in localStorage for security
+        
         if (onSuccess) {
           onSuccess();
         } else {
