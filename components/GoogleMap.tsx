@@ -100,9 +100,9 @@ export default function GoogleMap({
     if (!window.google) {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
       
-      if (!apiKey) {
-        console.error('Google Maps API key not found in environment variables');
-        setError('Map configuration error');
+      if (!apiKey || apiKey.includes('your_') || apiKey.includes('dev-') || apiKey === 'dev-google-maps-api-key') {
+        console.warn('Google Maps API key is not configured or using dev placeholder');
+        setError('Google Maps requires a valid API key. Contact your administrator to configure maps.');
         setLoading(false);
         return;
       }
@@ -113,7 +113,7 @@ export default function GoogleMap({
       script.defer = true;
       script.onload = initMap;
       script.onerror = () => {
-        setError('Failed to load Google Maps. Please check your internet connection.');
+        setError('Failed to load Google Maps. Check your API key and billing status.');
         setLoading(false);
       };
       document.head.appendChild(script);
@@ -213,10 +213,19 @@ export default function GoogleMap({
   if (error) {
     return (
       <div className="relative flex items-center justify-center bg-gray-100 rounded-lg border-2 border-gray-200" style={{ height }}>
-        <div className="text-center p-4">
-          <p className="text-gray-600 font-medium mb-2">Map Unavailable</p>
-          <p className="text-sm text-gray-500">{error}</p>
-          <p className="text-xs text-gray-400 mt-2">Enable billing in Google Cloud Console to use maps</p>
+        <div className="text-center p-6 max-w-md">
+          <div className="mb-3">
+            <svg className="w-12 h-12 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          </div>
+          <p className="text-gray-700 font-semibold mb-2">Map Unavailable</p>
+          <p className="text-sm text-gray-600 mb-3">{error}</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-blue-800">
+              <strong>For Developers:</strong> Configure <code className="bg-blue-100 px-1 py-0.5 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> in your environment variables or enable billing in Google Cloud Console.
+            </p>
+          </div>
         </div>
       </div>
     );
