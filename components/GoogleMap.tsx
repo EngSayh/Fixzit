@@ -57,6 +57,12 @@ function loadGoogleMapsOnce(opts: {
       const id = 'gmaps-sdk';
       const existing = document.getElementById(id) as HTMLScriptElement | null;
       if (existing) {
+        // Check if google maps API is already loaded
+        if (typeof window.google !== 'undefined' && window.google.maps) {
+          resolve();
+          return;
+        }
+        // Attach listeners for scripts still loading
         existing.addEventListener('load', () => resolve(), { once: true });
         existing.addEventListener('error', () => reject(new Error('Google Maps script error')), { once: true });
         return;
@@ -129,9 +135,15 @@ export default function GoogleMap({
 
   const apiKey = useMemo(() => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    return key && !/^(your_|dev-)|^dev-google-maps-api-key$/.test(key) ? key : '';
+    // Whitelist of known placeholders - return empty string only for exact matches
+    const placeholders = ['your_api_key_here', 'dev-google-maps-api-key', 'YOUR_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY'];
+    return key && !placeholders.includes(key) ? key : '';
   }, []);
 
+  // Initialize map - runs once on mount. Props like apiKey, language, region, libraries, mapId, 
+  // gestureHandling, and disableDefaultUI are intentionally initialization-only and not included
+  // in dependencies. Changing these at runtime would require full map teardown/recreation which
+  // is not supported. center/zoom updates are handled by separate effects below.
   useEffect(() => {
     let cancelled = false;
 
