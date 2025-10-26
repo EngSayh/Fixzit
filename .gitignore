@@ -26,6 +26,7 @@ tsconfig.tsbuildinfo
 
 # Dev login credentials (never commit)
 /app/dev/login-helpers/credentials.ts
+/dev/credentials.server.ts
 
 # OS/editor noise
 .DS_Store

@@ -159,6 +159,12 @@ export default auth(async function middleware(request: NextRequest & { auth?: { 
   const { pathname } = request.nextUrl;
   const session = request.auth;
 
+  // Guard dev login helpers (belt and suspenders with server-side check)
+  const devEnabled = process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
+  if (!devEnabled && (pathname.startsWith('/dev/login-helpers') || pathname.startsWith('/api/dev/'))) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
   // Skip middleware for static files and API calls to Next.js internals
   if (
     pathname.startsWith('/_next/') ||
