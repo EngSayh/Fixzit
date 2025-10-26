@@ -69,8 +69,8 @@ export default function LoginPage() {
     if (!value) {
       return t('login.errors.passwordRequired', 'Password is required');
     }
-    if (value.length < 6) {
-      return t('login.errors.passwordTooShort', 'Password must be at least 6 characters');
+    if (value.length < 8) {
+      return t('login.errors.passwordTooShort', 'Password must be at least 8 characters');
     }
     return null;
   };

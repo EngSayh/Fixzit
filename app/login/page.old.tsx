@@ -130,10 +130,9 @@ export default function LoginPage() {
       }
 
       if (data.ok) {
-        // Set role in localStorage for immediate access
-        if (data.user && data.user.role) {
-          localStorage.setItem('fixzit-role', data.user.role);
-        }
+        // NOTE: Role is NOT stored client-side for security reasons.
+        // Authorization is validated server-side on every request via HTTP-only cookies.
+        // Any client-side role display should be fetched from authenticated API endpoints.
 
         // Redirect to dashboard on successful login
         router.push('/dashboard');
