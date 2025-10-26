@@ -1,32 +1,21 @@
 import { NextResponse } from 'next/server';
 
-const enabled = process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
-
 export async function GET() {
-  if (!enabled) {
-    return NextResponse.json({ error: 'Demo not enabled' }, { status: 403 });
-  }
-
   try {
-    // Import on the server only - never sends passwords to client
-    const { DEMO_CREDENTIALS, CORPORATE_CREDENTIALS } = await import('@/dev/credentials.server');
+    // Import helpers - keeps logic DRY and secure
+    const { ENABLED, listSanitized, assertDemoConfig } = await import('@/dev/credentials.server');
+    
+    if (!ENABLED) {
+      return NextResponse.json({ error: 'Demo not enabled' }, { status: 403 });
+    }
 
-    // Sanitize: send NO passwords back to the client
-    const sanitize = (c: any) => ({
-      role: c.role,
-      description: c.description,
-      color: c.color ?? 'border-gray-700',
-      icon: c.icon ?? 'User',
-      loginType: c.loginType,
-      // Identifying fields (email/employeeNumber) are safe to display in dev
-      email: c.loginType === 'personal' ? c.email : undefined,
-      employeeNumber: c.loginType === 'corporate' ? c.employeeNumber : undefined,
-    });
+    // Run sanity checks in dev (logs warnings for weak passwords/invalid emails)
+    assertDemoConfig();
 
-    return NextResponse.json({
-      demo: DEMO_CREDENTIALS.map(sanitize),
-      corporate: CORPORATE_CREDENTIALS.map(sanitize),
-    }, { 
+    // Use helper that never leaks passwords
+    const sanitized = listSanitized();
+
+    return NextResponse.json(sanitized, { 
       headers: { 'Cache-Control': 'no-store' } 
     });
   } catch (error) {
