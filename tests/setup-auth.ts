@@ -12,6 +12,31 @@ async function globalSetup(config: FullConfig) {
 
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
   
+  // Validate all required environment variables are present (fail fast)
+  const requiredEnvVars = [
+    'TEST_SUPERADMIN_EMAIL',
+    'TEST_SUPERADMIN_PASSWORD',
+    'TEST_ADMIN_EMAIL',
+    'TEST_ADMIN_PASSWORD',
+    'TEST_MANAGER_EMAIL',
+    'TEST_MANAGER_PASSWORD',
+    'TEST_TECHNICIAN_EMAIL',
+    'TEST_TECHNICIAN_PASSWORD',
+    'TEST_TENANT_EMAIL',
+    'TEST_TENANT_PASSWORD',
+    'TEST_VENDOR_EMAIL',
+    'TEST_VENDOR_PASSWORD'
+  ];
+
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  if (missingVars.length > 0) {
+    console.error('\n❌ ERROR: Missing required test environment variables:\n');
+    missingVars.forEach(varName => console.error(`   - ${varName}`));
+    console.error('\nCreate a .env.test file or set these variables in your CI environment.');
+    console.error('See .env.test.example for required format.\n');
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  }
+
   // Ensure state directory exists
   await mkdir('tests/state', { recursive: true });
 
@@ -20,38 +45,38 @@ async function globalSetup(config: FullConfig) {
   const roles = [
     {
       name: 'SuperAdmin',
-      email: process.env.TEST_SUPERADMIN_EMAIL || 'superadmin@fixzit.com',
-      password: process.env.TEST_SUPERADMIN_PASSWORD || 'SuperAdmin@123',
+      email: process.env.TEST_SUPERADMIN_EMAIL!,
+      password: process.env.TEST_SUPERADMIN_PASSWORD!,
       statePath: 'tests/state/superadmin.json'
     },
     {
       name: 'Admin',
-      email: process.env.TEST_ADMIN_EMAIL || 'admin@fixzit.com',
-      password: process.env.TEST_ADMIN_PASSWORD || 'Admin@123',
+      email: process.env.TEST_ADMIN_EMAIL!,
+      password: process.env.TEST_ADMIN_PASSWORD!,
       statePath: 'tests/state/admin.json'
     },
     {
       name: 'Manager',
-      email: process.env.TEST_MANAGER_EMAIL || 'manager@fixzit.com',
-      password: process.env.TEST_MANAGER_PASSWORD || 'Manager@123',
+      email: process.env.TEST_MANAGER_EMAIL!,
+      password: process.env.TEST_MANAGER_PASSWORD!,
       statePath: 'tests/state/manager.json'
     },
     {
       name: 'Technician',
-      email: process.env.TEST_TECHNICIAN_EMAIL || 'technician@fixzit.com',
-      password: process.env.TEST_TECHNICIAN_PASSWORD || 'Tech@123',
+      email: process.env.TEST_TECHNICIAN_EMAIL!,
+      password: process.env.TEST_TECHNICIAN_PASSWORD!,
       statePath: 'tests/state/technician.json'
     },
     {
       name: 'Tenant',
-      email: process.env.TEST_TENANT_EMAIL || 'tenant@fixzit.com',
-      password: process.env.TEST_TENANT_PASSWORD || 'Tenant@123',
+      email: process.env.TEST_TENANT_EMAIL!,
+      password: process.env.TEST_TENANT_PASSWORD!,
       statePath: 'tests/state/tenant.json'
     },
     {
       name: 'Vendor',
-      email: process.env.TEST_VENDOR_EMAIL || 'vendor@fixzit.com',
-      password: process.env.TEST_VENDOR_PASSWORD || 'Vendor@123',
+      email: process.env.TEST_VENDOR_EMAIL!,
+      password: process.env.TEST_VENDOR_PASSWORD!,
       statePath: 'tests/state/vendor.json'
     }
   ];
