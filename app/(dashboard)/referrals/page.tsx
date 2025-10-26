@@ -92,6 +92,12 @@ export default function ReferralProgramPage() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      clearCopyTimeout();
+    };
+  }, []);
+
   const clearCopyTimeout = () => {
     if (copyTimeoutRef.current) {
       window.clearTimeout(copyTimeoutRef.current);
