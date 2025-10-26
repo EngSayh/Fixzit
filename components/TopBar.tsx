@@ -376,57 +376,61 @@ export default function TopBar() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        {/* Logo with unsaved changes handler */}
-        <button
-          type="button"
-          onClick={handleLogoClick}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          aria-label="Go to home"
-        >
-          {orgSettings.logo && !logoError ? (
-            <Image
-              src={orgSettings.logo}
-              alt={orgSettings.name}
-              width={32}
-              height={32}
-              className="rounded-md object-cover"
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <div 
-              className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
-              aria-hidden="true"
+    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white ${responsiveClasses.container} shadow-sm border-b border-white/10`}>
+      <div className={`h-full flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        {/* Left Section: Logo & App Switcher */}
+        <div className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Logo with unsaved changes handler */}
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            aria-label="Go to home"
+          >
+            {orgSettings.logo && !logoError ? (
+              <Image
+                src={orgSettings.logo}
+                alt={orgSettings.name}
+                width={32}
+                height={32}
+                className="rounded-md object-cover"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div 
+                className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
+                aria-hidden="true"
+              >
+                {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
+              </div>
+            )}
+            <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
+              {orgSettings?.name || 'FIXZIT ENTERPRISE'}
+            </span>
+          </button>
+          <AppSwitcher />
+        </div>
+        
+        {/* Center Section: Global Search */}
+        {!screenInfo.isMobile && (
+          <div className="flex-1 max-w-2xl mx-2 sm:mx-4 min-w-0">
+            <GlobalSearch />
+          </div>
+        )}
+        
+        {/* Right Section: Actions & User Menu */}
+        <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Mobile search button */}
+          {screenInfo.isMobile && (
+            <button
+              type="button"
+              className="p-2 hover:bg-white/10 rounded-md"
+              aria-label="Open search"
+              onClick={() => setMobileSearchOpen(true)}
             >
-              {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
-            </div>
+              <Search className="w-4 h-4" />
+            </button>
           )}
-          <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
-            {orgSettings?.name || 'FIXZIT ENTERPRISE'}
-          </span>
-        </button>
-        <AppSwitcher />
-      </div>
-      
-      {/* Global Search - Center */}
-      <div className={`flex-1 max-w-2xl mx-4 ${screenInfo.isMobile ? 'hidden' : 'block'}`}>
-        <GlobalSearch />
-      </div>
-      
-      {/* Mobile search button */}
-      {screenInfo.isMobile && (
-        <button
-          type="button"
-          className="p-2 hover:bg-white/10 rounded-md"
-          aria-label="Open search"
-          onClick={() => setMobileSearchOpen(true)}
-        >
-          <Search className="w-4 h-4" />
-        </button>
-      )}
-      
-      <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Only show QuickActions for authenticated users */}
         {isAuthenticated && <QuickActions />}
         
@@ -609,6 +613,7 @@ export default function TopBar() {
                 </button>
               </div>
           )}
+        </div>
         </div>
       </div>
 
