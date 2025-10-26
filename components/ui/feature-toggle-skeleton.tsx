@@ -21,8 +21,8 @@ export function FeatureToggleSkeleton() {
  */
 export function FeatureToggleGroupSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 animate-pulse">
         <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-2"></div>
         <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
       </div>

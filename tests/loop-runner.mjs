@@ -1,16 +1,28 @@
 import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
 const endAt = Date.now() + THREE_HOURS_MS;
 let runNumber = 1;
 const logFile = 'tests/loop-runner.log';
 
+// Ensure log directory exists
+try {
+  mkdirSync(dirname(logFile), { recursive: true });
+} catch (err) {
+  console.error(`Failed to create log directory: ${err.message}`);
+}
+
 function log(message) {
   const timestamp = new Date().toISOString();
   const entry = `[${timestamp}] ${message}\n`;
   console.log(message);
-  writeFileSync(logFile, entry, { flag: 'a' });
+  try {
+    writeFileSync(logFile, entry, { flag: 'a' });
+  } catch (err) {
+    console.error(`Failed to write to ${logFile}: ${err.message}`);
+  }
 }
 
 async function executeCommand(cmd, args, label) {
