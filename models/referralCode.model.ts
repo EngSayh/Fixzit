@@ -6,6 +6,10 @@ import {
   HydratedDocument,
   Model,
 } from 'mongoose';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { tenantIsolationPlugin } from '../server/plugins/tenantIsolation';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { auditPlugin } from '../server/plugins/auditPlugin';
 
 // ---------------- Enums ----------------
 const ReferralCodeStatus = ['ACTIVE', 'INACTIVE', 'EXPIRED', 'DEPLETED'] as const;
@@ -18,27 +22,27 @@ type TRewardStatus = typeof RewardStatus[number];
 
 interface IReward {
   type: TRewardType;
-  referrerAmount: number;   // what referrer gets
-  referredAmount: number;   // what referred user gets
-  currency?: string;        // default SAR
+  referrerAmount: number;
+  referredAmount: number;
+  currency?: string;
   description?: string;
-  conditions?: string;      // "After first payment", etc.
+  conditions?: string;
 }
 
 interface ILimits {
-  maxUses?: number | null;      // null/undefined = unlimited
-  currentUses: number;          // running counter
-  maxUsesPerUser: number;       // default 1
-  minPurchaseAmount?: number;   // optional gate
+  maxUses?: number | null;
+  currentUses: number;
+  maxUsesPerUser: number;
+  minPurchaseAmount?: number;
   validFrom?: Date;
   validUntil?: Date;
 }
 
 interface ITargeting {
-  userTypes?: string[];                  // OWNER, TENANT, VENDOR, ...
-  properties?: Types.ObjectId[];         // specific properties
-  services?: string[];                   // MAINTENANCE, RENTAL, ...
-  regions?: string[];                    // e.g., "Riyadh"
+  userTypes?: string[];
+  properties?: Types.ObjectId[];
+  services?: string[];
+  regions?: string[];
 }
 
 interface IReferral {
@@ -46,8 +50,8 @@ interface IReferral {
   referredUserId?: Types.ObjectId;
   referredEmail?: string;
   referredAt?: Date;
-  convertedAt?: Date;            // when qualifying action completed
-  rewardEarned?: number;         // referrer's reward (calculated)
+  convertedAt?: Date;
+  rewardEarned?: number;
   rewardStatus?: TRewardStatus;
   rewardPaidAt?: Date;
   transactionId?: string;
@@ -60,7 +64,7 @@ interface IStats {
   pendingReferrals: number;
   totalRewardsEarned: number;
   totalRewardsPaid: number;
-  conversionRate?: number; // kept for legacy; we expose a virtual
+  conversionRate?: number; // legacy; use virtual
 }
 
 interface ICampaign {
@@ -72,46 +76,29 @@ interface ICampaign {
 }
 
 export interface IReferralCode {
-  // Tenant (explicit for indexes/types; plugin enforces access)
   orgId: Types.ObjectId;
-
-  // Referrer
   referrerId: Types.ObjectId;
   referrerName?: string;
   referrerEmail?: string;
 
-  // Code
-  code: string;             // unique per org
-  shortUrl?: string;        // e.g., fixzit.sa/ref/ABC123
+  code: string;            // unique per org
+  shortUrl?: string;
 
-  // Config
   reward: IReward;
-
-  // Usage & validity
   limits: ILimits;
-
-  // Targeting (optional)
   targeting?: ITargeting;
-
-  // Referrals made (consider splitting if it grows huge)
   referrals?: IReferral[];
-
-  // Stats
   stats: IStats;
 
-  // Status
   status: TReferralCodeStatus;
-
-  // Campaign (optional)
   campaign?: ICampaign;
 
-  // Meta
   notes?: string;
   tags?: string[];
 }
 
 // --------- Document & Model typing ----------
-type ReferralCodeDoc = HydratedDocument<IReferralCode> & {
+export type ReferralCodeDoc = HydratedDocument<IReferralCode> & {
   conversionRateComputed: number;
   isValid(): boolean;
   canBeUsedBy(userId: Types.ObjectId): boolean;
@@ -132,7 +119,7 @@ export interface ReferralCodeStaticMethods {
     referredEmail?: string;
     transactionId?: string;
     metadata?: Record<string, unknown>;
-  }): Promise<unknown>;
+  }): Promise<ReferralCodeDoc | null>;
   markConverted(args: {
     orgId: Types.ObjectId | string;
     code: string;
@@ -140,10 +127,10 @@ export interface ReferralCodeStaticMethods {
     rewardEarned?: number;
     when?: Date;
     transactionId?: string;
-  }): Promise<unknown>;
+  }): Promise<ReferralCodeDoc | null>;
 }
 
-type ReferralCodeModelType = Model<IReferralCode> & ReferralCodeStaticMethods;
+type ReferralCodeModelType = Model<IReferralCode, Record<string, never>, Record<string, never>, Record<string, never>, HydratedDocument<IReferralCode>> & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
 const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({
@@ -153,13 +140,11 @@ const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({
   referrerName: { type: String, trim: true },
   referrerEmail: { type: String, trim: true, lowercase: true },
 
-  code: { type: String, required: true, uppercase: true, trim: true }, // unique per org (see indexes)
+  code: { type: String, required: true, uppercase: true, trim: true },
   shortUrl: { type: String, trim: true },
 
   reward: {
-    type: {
-      type: String, enum: RewardType, required: true,
-    },
+    type: { type: String, enum: RewardType, required: true },
     referrerAmount: { type: Number, required: true, min: 0 },
     referredAmount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: 'SAR', trim: true },
@@ -201,7 +186,7 @@ const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({
     pendingReferrals: { type: Number, default: 0, min: 0 },
     totalRewardsEarned: { type: Number, default: 0, min: 0 },
     totalRewardsPaid: { type: Number, default: 0, min: 0 },
-    conversionRate: { type: Number, default: 0, min: 0, max: 100 }, // legacy; virtual exposes computed
+    conversionRate: { type: Number, default: 0, min: 0, max: 100 },
   },
 
   status: { type: String, enum: ReferralCodeStatus, default: 'ACTIVE', index: true },
@@ -222,10 +207,14 @@ const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({
   toObject: { virtuals: true },
 });
 
+// ---------------- Plugins ----------------
+// @ts-expect-error - plugin type signatures are too strict for our typed schema
+ReferralCodeSchema.plugin(tenantIsolationPlugin);
+// @ts-expect-error - plugin type signatures are too strict for our typed schema
+ReferralCodeSchema.plugin(auditPlugin);
+
 // ---------------- Indexes ----------------
-// Tenant-scoped uniqueness
 ReferralCodeSchema.index({ orgId: 1, code: 1 }, { unique: true, name: 'uniq_org_code' });
-// Common filters
 ReferralCodeSchema.index({ orgId: 1, status: 1 }, { name: 'org_status' });
 ReferralCodeSchema.index({ orgId: 1, 'limits.validFrom': 1, 'limits.validUntil': 1 }, { name: 'org_validity' });
 ReferralCodeSchema.index({ orgId: 1, 'referrals.referredUserId': 1 }, { name: 'org_referrals_user' });
@@ -294,71 +283,71 @@ ReferralCodeSchema.statics.applyCode = async function ({
   referredEmail?: string;
   transactionId?: string;
   metadata?: Record<string, unknown>;
-}) {
+}): Promise<ReferralCodeDoc | null> {
   const uid = new Types.ObjectId(userId as string);
   const org = new Types.ObjectId(orgId as string);
 
-  // Query conditions (all enforced atomically)
-  const query = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const andConds: any[] = [
+    { $or: [{ 'limits.validFrom': { $exists: false } }, { 'limits.validFrom': { $lte: now } }] },
+    { $or: [{ 'limits.validUntil': { $exists: false } }, { 'limits.validUntil': { $gte: now } }] },
+    {
+      $or: [
+        { 'limits.minPurchaseAmount': { $exists: false } },
+        ...(typeof orderAmount === 'number' ? [{ 'limits.minPurchaseAmount': { $lte: orderAmount } }] : []),
+      ],
+    },
+    {
+      $or: [
+        { 'limits.maxUses': { $exists: false } },
+        { $expr: { $lt: [{ $ifNull: ['$limits.currentUses', 0] }, '$limits.maxUses'] } },
+      ],
+    },
+    // Per-user cap (treat missing referrals as [])
+    {
+      $expr: {
+        $lt: [
+          {
+            $size: {
+              $filter: {
+                input: { $ifNull: ['$referrals', []] },
+                as: 'r',
+                cond: { $eq: ['$$r.referredUserId', uid] },
+              },
+            },
+          },
+          '$limits.maxUsesPerUser',
+        ],
+      },
+    },
+    // Block self-referral
+    { $expr: { $ne: ['$referrerId', uid] } },
+  ];
+
+  if (userType) andConds.push({ $or: [{ 'targeting.userTypes': { $exists: false } }, { 'targeting.userTypes': userType }] });
+  if (service)  andConds.push({ $or: [{ 'targeting.services': { $exists: false } }, { 'targeting.services': service }] });
+  if (region)   andConds.push({ $or: [{ 'targeting.regions': { $exists: false } }, { 'targeting.regions': region }] });
+  if (propertyId) {
+    const pid = new Types.ObjectId(propertyId as string);
+    andConds.push({ $or: [{ 'targeting.properties': { $exists: false } }, { 'targeting.properties': pid }] });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: any = {
     orgId: org,
     code: code.toUpperCase(),
     status: 'ACTIVE',
-    $and: [
-      // validFrom <= now or not set
-      { $or: [{ 'limits.validFrom': { $exists: false } }, { 'limits.validFrom': { $lte: now } }] },
-      // validUntil >= now or not set
-      { $or: [{ 'limits.validUntil': { $exists: false } }, { 'limits.validUntil': { $gte: now } }] },
-      // minPurchaseAmount check (if provided and configured)
-      { $or: [
-          { 'limits.minPurchaseAmount': { $exists: false } },
-          ...(typeof orderAmount === 'number'
-            ? [{ 'limits.minPurchaseAmount': { $lte: orderAmount } }]
-            : []),
-        ],
-      },
-      // currentUses < maxUses (if maxUses set)
-      { $or: [
-          { 'limits.maxUses': { $exists: false } },
-          { $expr: { $lt: ['$limits.currentUses', '$limits.maxUses'] } },
-        ],
-      },
-      // Per-user cap via $expr counting matches in referrals
-      {
-        $expr: {
-          $lt: [
-            {
-              $size: {
-                $filter: {
-                  input: '$referrals',
-                  as: 'r',
-                  cond: { $eq: ['$$r.referredUserId', uid] },
-                },
-              },
-            },
-            '$limits.maxUsesPerUser',
-          ],
-        },
-      },
-    ],
+    $and: andConds,
   };
 
-  // Optional targeting gates
-  if (userType) query.$and.push({ $or: [{ 'targeting.userTypes': { $exists: false } }, { 'targeting.userTypes': userType }] } as never);
-  if (service)  query.$and.push({ $or: [{ 'targeting.services': { $exists: false } }, { 'targeting.services': service }] } as never);
-  if (region)   query.$and.push({ $or: [{ 'targeting.regions': { $exists: false } }, { 'targeting.regions': region }] } as never);
-  if (propertyId) {
-    const pid = new Types.ObjectId(propertyId as string);
-    query.$and.push({ $or: [{ 'targeting.properties': { $exists: false } }, { 'targeting.properties': pid }] } as never);
-  }
-
-  // Update document atomically: add referral, increment counters, and deplete if needed
-  // Use aggregation pipeline update to calculate post-increment depletion (MongoDB >=4.2)
-  const update = [
+  // Pipeline update with $ifNull guards to avoid null math
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const update: any[] = [
     {
       $set: {
         referrals: {
           $concatArrays: [
-            '$referrals',
+            { $ifNull: ['$referrals', []] },
             [{
               referredUserId: uid,
               referredEmail: referredEmail?.toLowerCase(),
@@ -370,12 +359,11 @@ ReferralCodeSchema.statics.applyCode = async function ({
             }],
           ],
         },
-        'stats.totalReferrals': { $add: ['$stats.totalReferrals', 1] },
-        'stats.pendingReferrals': { $add: ['$stats.pendingReferrals', 1] },
-        'limits.currentUses': { $add: ['$limits.currentUses', 1] },
+        'stats.totalReferrals': { $add: [{ $ifNull: ['$stats.totalReferrals', 0] }, 1] },
+        'stats.pendingReferrals': { $add: [{ $ifNull: ['$stats.pendingReferrals', 0] }, 1] },
+        'limits.currentUses': { $add: [{ $ifNull: ['$limits.currentUses', 0] }, 1] },
       },
     },
-    // If maxUses reached, set status to DEPLETED
     {
       $set: {
         status: {
@@ -384,7 +372,7 @@ ReferralCodeSchema.statics.applyCode = async function ({
               $and: [
                 { $ne: ['$limits.maxUses', null] },
                 { $ne: ['$limits.maxUses', undefined] },
-                { $gte: [{ $add: ['$limits.currentUses', 0] }, '$limits.maxUses'] }, // after increment
+                { $gte: ['$limits.currentUses', '$limits.maxUses'] },
               ],
             },
             'DEPLETED',
@@ -396,8 +384,8 @@ ReferralCodeSchema.statics.applyCode = async function ({
   ];
 
   const opts = { new: true };
-  const doc: unknown = await this.findOneAndUpdate(query, update, opts);
-  return doc;
+  const doc = await this.findOneAndUpdate(query, update, opts);
+  return doc as ReferralCodeDoc | null;
 };
 
 // Mark a referral converted, compute rewards, and update stats
@@ -410,12 +398,11 @@ ReferralCodeSchema.statics.markConverted = async function ({
   rewardEarned?: number;
   when?: Date;
   transactionId?: string;
-}) {
+}): Promise<ReferralCodeDoc | null> {
   const org = new Types.ObjectId(orgId as string);
   const uid = new Types.ObjectId(referredUserId as string);
 
-  // Update the specific referral entry
-  const doc: unknown = await this.findOneAndUpdate(
+  const doc = await this.findOneAndUpdate(
     {
       orgId: org,
       code: code.toUpperCase(),
@@ -438,21 +425,19 @@ ReferralCodeSchema.statics.markConverted = async function ({
     { new: true },
   );
 
-  return doc;
+  return doc as ReferralCodeDoc | null;
 };
 
 // ---------------- Hooks ----------------
 ReferralCodeSchema.pre('save', function (next) {
   if (this.referrerEmail) this.referrerEmail = String(this.referrerEmail).trim().toLowerCase();
 
-  // Auto-expire if outside date window
   const now = new Date();
   const { validUntil } = this.limits || {};
   if (validUntil && now > validUntil && this.status === 'ACTIVE') {
     this.status = 'EXPIRED';
   }
 
-  // Keep legacy stats.conversionRate roughly in sync (UI should use virtual)
   const total = this.stats?.totalReferrals ?? 0;
   const success = this.stats?.successfulReferrals ?? 0;
   this.stats.conversionRate = total > 0 ? Math.min(100, (success / total) * 100) : 0;
@@ -461,6 +446,5 @@ ReferralCodeSchema.pre('save', function (next) {
 });
 
 // ---------------- Export ----------------
-export type ReferralCode = IReferralCode;
 export const ReferralCodeModel =
   (models.ReferralCode || model<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema)) as ReferralCodeModelType;
