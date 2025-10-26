@@ -29,7 +29,6 @@ const AIChat = dynamic(() => import('@/components/AIChat'), { ssr: false });
 
 export default function HelpHome() {
   const [showAIChat, setShowAIChat] = useState(false);
-  const [showSupportTicket, setShowSupportTicket] = useState(false);
 
   // Interactive tutorials
   const tutorials: Tutorial[] = [
@@ -162,20 +161,20 @@ export default function HelpHome() {
               <Bot className="w-5 h-5" />
               Ask AI Assistant
             </button>
-            <button
-              onClick={() => setShowSupportTicket(true)}
+            <Link
+              href="/help/support-ticket"
               className="bg-accent text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Create Support Ticket
-            </button>
-            <a
+            </Link>
+            <Link
               href="/support/my-tickets"
               className="bg-white/10 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors flex items-center gap-2 border border-white/20"
             >
               <MessageSquare className="w-5 h-5" />
               View My Tickets
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -215,10 +214,13 @@ export default function HelpHome() {
                       {tutorial.difficulty}
                     </span>
                   </div>
-                  <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1">
+                  <Link
+                    href={`/help/tutorial/${tutorial.id}`}
+                    className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
+                  >
                     Start Tutorial
                     <ChevronRight className="w-4 h-4" />
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -237,9 +239,12 @@ export default function HelpHome() {
           </div>
 
           <div className="text-center">
-            <button className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+            <Link
+              href="/help/tutorials"
+              className="inline-block bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
               View All Tutorials →
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -287,9 +292,12 @@ export default function HelpHome() {
           </div>
 
           <div className="text-center mt-8">
-            <button className="bg-white text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors border border-gray-300">
+            <Link
+              href="/help/articles"
+              className="inline-block bg-white text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors border border-gray-300"
+            >
               View All Articles →
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -350,83 +358,6 @@ export default function HelpHome() {
 
       {/* AI Chat Modal */}
       {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
-
-      {/* Support Ticket Modal */}
-      {showSupportTicket && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold">Create Support Ticket</h3>
-                <p className="text-gray-600">
-                  Fill out the form below and our support team will get back to you within 24 hours.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowSupportTicket(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Brief description of your issue"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Module
-                  </label>
-                  <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                    <option>Facility Management</option>
-                    <option>Marketplace</option>
-                    <option>Real Estate</option>
-                    <option>Account</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description *
-                </label>
-                <textarea
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none"
-                  placeholder="Please provide detailed information about your issue or request..."
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowSupportTicket(false)}
-                  className="px-6 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg font-medium hover:bg-[var(--fixzit-primary-dark)] transition-colors"
-                >
-                  Submit Ticket
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       
     </div>
   );
