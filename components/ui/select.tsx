@@ -41,12 +41,34 @@ export const SelectContent: React.FC<SelectContentProps> = ({ children }) => {
 };
 
 export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children, ...props }) => {
+  // Helper: recursively extract text from React nodes so we never render block elements
+  // inside an <option> (which causes hydration/runtime errors).
+  const extractText = (node: React.ReactNode): string => {
+    if (node === null || node === undefined || typeof node === 'boolean') return '';
+    if (typeof node === 'string' || typeof node === 'number') return String(node);
+    if (Array.isArray(node)) return node.map((n) => extractText(n)).filter(Boolean).join(' ');
+    if (React.isValidElement(node)) return extractText(node.props?.children);
+    return '';
+  };
+
+  // If children is a composite (e.g. an element with label and description),
+  // pull top-level child texts and render them as inline spans (no divs).
+  const topChildren = React.Children.toArray(children);
+  const texts = topChildren.map((c) => extractText(c)).filter(Boolean);
+  const label = texts[0] ?? '';
+  const description = texts.slice(1).join(' ');
+
   return (
     <option
       className={`cursor-pointer select-none py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-gray-100 ${className}`}
       {...props}
     >
-      {children}
+      <span aria-hidden={false}>
+        {label}
+        {description ? (
+          <span className="text-xs text-muted-foreground ml-2">{description}</span>
+        ) : null}
+      </span>
     </option>
   );
 };
