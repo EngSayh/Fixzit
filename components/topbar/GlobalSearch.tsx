@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Search, Command } from 'lucide-react';
@@ -18,15 +19,24 @@ interface GlobalSearchProps {
 }
 
 export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) {
+  const router = useRouter();
   const { app, searchPlaceholder, searchEntities } = useTopBar();
   const { isRTL } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const listboxId = useId();
+
+  // Reset active index when results change
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [results]);
 
   // Debounced search
   useEffect(() => {
@@ -42,6 +52,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
 
     timeoutRef.current = setTimeout(async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
           app,
@@ -50,13 +61,15 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
         });
 
         const response = await fetch(`/api/search?${params}`);
-        if (response.ok) {
-          const data = await response.json();
-          setResults(data.results || []);
-          setOpen(true);
+        if (!response.ok) {
+          throw new Error('Search request failed');
         }
-      } catch (error) {
-        console.error('Search failed:', error);
+        const data = await response.json();
+        setResults(data.results || []);
+        setOpen(true);
+      } catch (err) {
+        console.error('Search failed:', err);
+        setError('Search failed. Please try again.');
         setResults([]);
       } finally {
         setLoading(false);
@@ -109,8 +122,30 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
   const handleResultClick = (href: string) => {
     setOpen(false);
     setQuery('');
+    setError(null);
     onResultClick?.(); // Call optional callback before navigation
-    window.location.href = href;
+    router.push(href); // Use Next.js router for client-side navigation
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open || results.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIndex((prev) => (prev + 1) % results.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIndex((prev) => (prev - 1 + results.length) % results.length);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (results[activeIndex]) {
+          handleResultClick(results[activeIndex].href);
+        }
+        break;
+    }
   };
 
   return (
@@ -123,8 +158,15 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query && setOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder={searchPlaceholder}
+          role="combobox"
           aria-label="Global search"
+          aria-expanded={open}
+          aria-controls={open ? listboxId : undefined}
+          aria-activedescendant={open && results[activeIndex] ? `${listboxId}-${activeIndex}` : undefined}
+          aria-autocomplete="list"
+          aria-haspopup="listbox"
           className={`w-full ${isRTL ? 'pr-10 pl-20' : 'pl-10 pr-20'} py-2 border border-input rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground`}
         />
         <div className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground`}>
@@ -134,19 +176,33 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
       </div>
 
       {open && (
-        <div className={`absolute top-full ${isRTL ? 'right-0' : 'left-0'} mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto min-w-full`}>
+        <div 
+          id={listboxId}
+          role="listbox"
+          aria-label="Search results"
+          className={`absolute top-full ${isRTL ? 'right-0' : 'left-0'} mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto min-w-full`}
+        >
           {loading ? (
             <div className="p-4 text-center text-muted-foreground">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-500 mx-auto"></div>
               <div className="text-xs mt-2">Searching...</div>
             </div>
+          ) : error ? (
+            <div className="p-4 text-center text-red-600">
+              <div className="text-sm">{error}</div>
+            </div>
           ) : results.length > 0 ? (
             <div className="py-2">
-              {results.map((result) => (
+              {results.map((result, index) => (
                 <button
                   key={`${result.entity}-${result.id}`}
+                  id={`${listboxId}-${index}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
                   onClick={() => handleResultClick(result.href)}
-                  className="w-full px-4 py-3 text-left hover:bg-accent border-b border-border last:border-b-0 transition-colors"
+                  className={`w-full px-4 py-3 text-left hover:bg-accent border-b border-border last:border-b-0 transition-colors ${
+                    index === activeIndex ? 'bg-accent' : ''
+                  }`}
                 >
                   <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
                     <div className="flex-1">
