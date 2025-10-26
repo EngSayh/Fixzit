@@ -28,8 +28,8 @@ interface AuditLog {
   };
   changes?: Array<{
     field: string;
-    oldValue: any;
-    newValue: any;
+    oldValue: unknown;
+    newValue: unknown;
   }>;
 }
 
@@ -44,28 +44,55 @@ interface AuditLogFilters {
 export default function AuditLogViewer() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<AuditLogFilters>({});
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const LOGS_PER_PAGE = 20;
 
   useEffect(() => {
     fetchLogs();
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, page]);
 
   const fetchLogs = async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (filters.userId) params.append('userId', filters.userId);
       if (filters.entityType) params.append('entityType', filters.entityType);
       if (filters.action) params.append('action', filters.action);
-      if (filters.startDate) params.append('startDate', filters.startDate.toISOString());
-      if (filters.endDate) params.append('endDate', filters.endDate.toISOString());
+      if (filters.startDate) {
+        // Convert to ISO string at start of day in UTC
+        const startDate = new Date(filters.startDate);
+        startDate.setUTCHours(0, 0, 0, 0);
+        params.append('startDate', startDate.toISOString());
+      }
+      if (filters.endDate) {
+        // Convert to ISO string at end of day in UTC
+        const endDate = new Date(filters.endDate);
+        endDate.setUTCHours(23, 59, 59, 999);
+        params.append('endDate', endDate.toISOString());
+      }
+      params.append('page', page.toString());
+      params.append('limit', LOGS_PER_PAGE.toString());
 
       const response = await fetch(`/api/admin/audit-logs?${params}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audit logs: ${response.statusText}`);
+      }
       const data = await response.json();
       setLogs(data.logs || []);
-    } catch (error) {
-      console.error('Failed to fetch audit logs:', error);
+      setTotalLogs(data.total || 0);
+      setTotalPages(Math.ceil((data.total || 0) / LOGS_PER_PAGE));
+    } catch (err) {
+      console.error('Failed to fetch audit logs:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load audit logs. Please try again.';
+      setError(errorMessage);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -147,26 +174,30 @@ export default function AuditLogViewer() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Start Date
             </label>
             <input
+              id="start-date"
               type="date"
               className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800"
               value={filters.startDate?.toISOString().split('T')[0] || ''}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value ? new Date(e.target.value) : undefined })}
+              max={filters.endDate?.toISOString().split('T')[0] || undefined}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="end-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               End Date
             </label>
             <input
+              id="end-date"
               type="date"
               className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800"
               value={filters.endDate?.toISOString().split('T')[0] || ''}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value ? new Date(e.target.value) : undefined })}
+              min={filters.startDate?.toISOString().split('T')[0] || undefined}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined })}
             />
           </div>
         </div>
@@ -183,7 +214,30 @@ export default function AuditLogViewer() {
 
       {/* Logs Table */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {loading ? (
+        {error ? (
+          <div className="p-12">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+              <div className="flex items-start gap-4">
+                <svg className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">Error Loading Audit Logs</h3>
+                  <p className="text-red-700 dark:text-red-300 mb-4">{error}</p>
+                  <button
+                    onClick={() => {
+                      setError(null);
+                      fetchLogs();
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">Loading audit logs...</p>
@@ -267,18 +321,85 @@ export default function AuditLogViewer() {
         )}
       </div>
 
+      {/* Pagination */}
+      {!loading && !error && logs.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              Showing <span className="font-medium">{(page - 1) * LOGS_PER_PAGE + 1}</span> to{' '}
+              <span className="font-medium">{Math.min(page * LOGS_PER_PAGE, totalLogs)}</span> of{' '}
+              <span className="font-medium">{totalLogs}</span> results
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Show pages around current page
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`px-4 py-2 text-sm font-medium rounded-md ${
+                        page === pageNum
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detail Modal */}
       {selectedLog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedLog(null);
+          }}
+        >
           <div className="bg-white dark:bg-gray-900 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 id="modal-title" className="text-2xl font-bold text-gray-900 dark:text-white">
                   Audit Log Details
                 </h2>
                 <button
                   onClick={() => setSelectedLog(null)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  aria-label="Close modal"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -294,29 +415,103 @@ export default function AuditLogViewer() {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Action</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">{selectedLog.action}</p>
+                  <p className="mt-1 text-gray-900 dark:text-white">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActionColor(selectedLog.action)}`}>
+                      {selectedLog.action}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">User</h3>
+                  <p className="mt-1 text-gray-900 dark:text-white">
+                    {selectedLog.userName} ({selectedLog.userEmail})
+                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                      Role: {selectedLog.userRole}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Entity</h3>
+                  <p className="mt-1 text-gray-900 dark:text-white">
+                    {selectedLog.entityType}
+                    {selectedLog.entityName && ` - ${selectedLog.entityName}`}
+                    {selectedLog.entityId && (
+                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                        ID: {selectedLog.entityId}
+                      </span>
+                    )}
+                  </p>
                 </div>
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Context</h3>
-                  <pre className="mt-1 text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded overflow-x-auto">
-                    {JSON.stringify(selectedLog.context, null, 2)}
-                  </pre>
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      <span className="font-medium">Method:</span> {selectedLog.context.method}
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      <span className="font-medium">IP:</span> {selectedLog.context.ipAddress}
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      <span className="font-medium">Browser:</span> {selectedLog.context.browser}
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      <span className="font-medium">OS:</span> {selectedLog.context.os}
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded col-span-2">
+                      <span className="font-medium">Endpoint:</span> {selectedLog.context.endpoint}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Result</h3>
+                  <div className="mt-1 bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>
+                        Status: {selectedLog.result.success ? (
+                          <span className="text-green-600 dark:text-green-400 font-medium">✓ Success</span>
+                        ) : (
+                          <span className="text-red-600 dark:text-red-400 font-medium">✗ Failed</span>
+                        )}
+                      </span>
+                      {selectedLog.result.duration && (
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Duration: {selectedLog.result.duration}ms
+                        </span>
+                      )}
+                    </div>
+                    {selectedLog.result.errorCode && (
+                      <div className="mt-2 text-sm text-red-600 dark:text-red-400">
+                        Error Code: {selectedLog.result.errorCode}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {selectedLog.changes && selectedLog.changes.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Changes</h3>
-                    <div className="mt-1 space-y-2">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Changes</h3>
+                    <div className="space-y-3">
                       {selectedLog.changes.map((change, index) => (
-                        <div key={index} className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                          <div className="font-medium text-gray-900 dark:text-white">{change.field}</div>
-                          <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                            <div>
-                              <span className="text-red-600">Old:</span> {JSON.stringify(change.oldValue)}
+                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                          <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2 font-medium text-sm text-gray-900 dark:text-white">
+                            {change.field}
+                          </div>
+                          <div className="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
+                            <div className="p-3">
+                              <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Previous Value</div>
+                              <pre className="text-xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">
+                                {JSON.stringify(change.oldValue, null, 2)}
+                              </pre>
                             </div>
-                            <div>
-                              <span className="text-green-600">New:</span> {JSON.stringify(change.newValue)}
+                            <div className="p-3 bg-green-50 dark:bg-green-900/10">
+                              <div className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">New Value</div>
+                              <pre className="text-xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">
+                                {JSON.stringify(change.newValue, null, 2)}
+                              </pre>
                             </div>
                           </div>
                         </div>
