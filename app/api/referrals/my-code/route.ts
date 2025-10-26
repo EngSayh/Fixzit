@@ -6,9 +6,9 @@ import { connectDb } from '@/lib/mongo';
 /**
  * GET /api/referrals/my-code
  * 
- * Get current user's referral code and statistics
+ * Get current user's referral code and statistics with pagination
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
@@ -18,6 +18,12 @@ export async function GET(_request: NextRequest) {
     
     await connectDb();
     
+    // Parse pagination params with validation
+    const { searchParams } = request.nextUrl;
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const offset = (page - 1) * limit;
+    
     // Find user's referral code
     const referralCode = await ReferralCodeModel.findOne({
       referrerId: session.user.id,
@@ -25,12 +31,27 @@ export async function GET(_request: NextRequest) {
     });
     
     if (!referralCode) {
-      return NextResponse.json({ code: null, referrals: [] });
+      return NextResponse.json({ 
+        code: null, 
+        referrals: [], 
+        pagination: { total: 0, page, limit, totalPages: 0 } 
+      });
     }
+    
+    // Paginate referrals array
+    const total = referralCode.referrals.length;
+    const totalPages = Math.ceil(total / limit);
+    const paginatedReferrals = referralCode.referrals.slice(offset, offset + limit);
     
     return NextResponse.json({
       code: referralCode,
-      referrals: referralCode.referrals,
+      referrals: paginatedReferrals,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error('Failed to fetch referral code:', error);

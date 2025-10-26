@@ -56,7 +56,6 @@
       "command": "cross-env NODE_ENV=test NEXT_TELEMETRY_DISABLED=1 pnpm dev",
       "isBackground": true,
       "problemMatcher": {
-        "pattern": {"regexp": "^(.*)$", "file": 1},
         "background": {
           "activeOnStart": true,
           "beginsPattern": "started server on",
