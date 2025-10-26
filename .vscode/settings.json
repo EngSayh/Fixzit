@@ -131,8 +131,18 @@
     "ms-vscode.powershell": 0
   },
 
-  // Window & Startup
+  // Window & Startup - Configured for unattended E2E testing
   "window.restoreWindows": "none",
+  "window.confirmBeforeClose": "never",
+  "update.mode": "manual",
+  "telemetry.telemetryLevel": "off",
+  "extensions.autoCheckUpdates": false,
+  "npm.scriptExplorerAction": "run",
+  "terminal.integrated.enablePersistentSessions": true,
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "workbench.enableExperiments": false,
+  "workbench.settings.enableNaturalLanguageSearch": false,
   // ChatGPT startup disabled by default - enable per-user preference if desired
   "chatgpt.openOnStartup": false,
 
