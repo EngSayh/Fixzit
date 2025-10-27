@@ -3,8 +3,21 @@
 import React, { useState } from 'react';
 import { Bot, User, X, Send } from 'lucide-react';
 
+interface Citation {
+  title: string;
+  slug: string;
+}
+
+interface Message {
+  id: string;
+  type: 'bot' | 'user';
+  content: string;
+  citations?: Citation[];
+  timestamp: Date;
+}
+
 export default function AIChatPage() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'bot',
@@ -26,20 +39,64 @@ export default function AIChatPage() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const questionText = input.trim();
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/assistant/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: questionText })
+      });
+
+      if (!response.ok) {
+        // Handle HTTP errors - read response body once
+        const responseText = await response.text();
+        let errorMessage = `Request failed with status ${response.status}`;
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // JSON parse failed, use text if available
+          if (responseText) {
+            errorMessage = responseText;
+          }
+        }
+        
+        const botMessage = {
+          id: crypto.randomUUID(),
+          type: 'bot' as const,
+          content: `I apologize, but I encountered an error: ${errorMessage}. Please try again.`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+        return;
+      }
+
+      const data = await response.json();
+
       const botMessage = {
         id: crypto.randomUUID(),
         type: 'bot' as const,
-        content: "I'm here to help! However, please note that this is a demo response. In a real implementation, this would connect to an AI service to provide actual assistance with your Fixzit questions.",
+        content: data.answer || "I'm here to help! However, I encountered an issue processing your request. Please try again.",
+        citations: data.citations as Array<{ title: string; slug: string }> | undefined,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('AI Chat error:', error);
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        type: 'bot' as const,
+        content: 'I apologize, but I encountered an error. Please try again or contact support if the problem persists.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -66,6 +123,7 @@ export default function AIChatPage() {
             </div>
             <button
               onClick={() => window.close()}
+              aria-label="Close chat"
               className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
             >
               <X className="w-5 h-5" />
@@ -94,6 +152,23 @@ export default function AIChatPage() {
                     : 'bg-gray-100 text-gray-900'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.type === 'bot' && message.citations && message.citations.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-sm font-medium mb-2">📚 Related Help Articles:</p>
+                      <ul className="space-y-1">
+                        {message.citations.map((citation, i) => (
+                          <li key={i}>
+                            <a
+                              href={`/help/${citation.slug}`}
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              {i + 1}. {citation.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <p className="text-xs mt-2 opacity-70">
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
@@ -116,7 +191,9 @@ export default function AIChatPage() {
           {/* Input */}
           <div className="p-6 border-t border-gray-200">
             <div className="flex gap-3">
+              <label htmlFor="chat-input" className="sr-only">Chat message</label>
               <input
+                id="chat-input"
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -128,6 +205,7 @@ export default function AIChatPage() {
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
+                aria-label="Send message"
                 className="px-4 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />

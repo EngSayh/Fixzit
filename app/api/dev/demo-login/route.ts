@@ -1,0 +1,131 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+/**
+ * Server-side demo login endpoint
+ * - Looks up server-only credentials by role
+ * - Calls your internal /api/auth/login on the same origin
+ * - Forwards Set-Cookie so the browser session is established
+ * - Returns JSON { ok?, status?, preferredPath? } to the client
+ */
+export async function POST(req: NextRequest) {
+  // Gate early — dev only
+  const { ENABLED, findLoginPayloadByRole } = await import('@/dev/credentials.server');
+  if (!ENABLED) {
+    return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
+  }
+
+  // Parse body safely
+  const body = await safeParseJson<{ role?: unknown }>(req);
+  const role = typeof body.role === 'string' && body.role.trim() ? body.role.trim() : null;
+  if (!role) {
+    return withNoStore(NextResponse.json({ error: 'role is required' }, { status: 400 }));
+  }
+
+  // Resolve credential payload (server-only)
+  const payload = findLoginPayloadByRole(role);
+  if (!payload) {
+    return withNoStore(NextResponse.json({ error: 'Unknown role' }, { status: 404 }));
+  }
+
+  // Prepare login data (password never leaves the server)
+  const loginData =
+    payload.loginType === 'personal'
+      ? { email: payload.email, password: payload.password, loginType: 'personal' as const }
+      : { employeeNumber: payload.employeeNumber, password: payload.password, loginType: 'corporate' as const };
+
+  try {
+    // Always hit same-origin API so cookies are set for the client's site
+    const url = new URL('/api/auth/login', req.nextUrl.origin);
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      // forward incoming cookies (if any)
+      cookie: req.headers.get('cookie') ?? '',
+      // optional: flag for observability
+      'x-dev-login': '1',
+    };
+    if (payload.orgId) headers['x-org-id'] = payload.orgId;
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(loginData),
+      redirect: 'manual', // don't auto-follow redirects; we only need cookies + body
+    });
+
+    const data = await safeJsonFromResponse(resp);
+    const res = withNoStore(
+      NextResponse.json(
+        { ...data, preferredPath: payload.preferredPath },
+        { status: resp.status },
+      ),
+    );
+
+    // Forward ALL Set-Cookie headers (handles multiple cookies)
+    forwardSetCookies(resp, res);
+
+    return res;
+  } catch (error) {
+    console.error('[Dev Demo Login] Error:', error);
+    return withNoStore(
+      NextResponse.json(
+        {
+          error: 'Login failed',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+        { status: 500 },
+      ),
+    );
+  }
+}
+
+/* ---------------- helpers ---------------- */
+
+function withNoStore<T extends NextResponse>(res: T): T {
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
+}
+
+async function safeParseJson<T>(req: NextRequest): Promise<Partial<T>> {
+  try {
+    // Basic content-type guard; still attempt parse to be lenient
+    const ct = req.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) return {};
+    return (await req.json()) as Partial<T>;
+  } catch {
+    return {};
+  }
+}
+
+async function safeJsonFromResponse(resp: Response) {
+  try {
+    const ct = resp.headers.get('content-type') || '';
+    if (!ct.toLowerCase().includes('application/json')) {
+      return { ok: resp.ok, status: resp.status };
+    }
+    return await resp.json();
+  } catch {
+    return { ok: resp.ok, status: resp.status };
+  }
+}
+
+/**
+ * Forward all Set-Cookie headers from the upstream response to the NextResponse.
+ * Works in Node runtimes that support headers.getSetCookie(); falls back gracefully.
+ */
+function forwardSetCookies(upstream: Response, downstream: NextResponse) {
+  const getSetCookie: undefined | (() => string[]) = upstream.headers.getSetCookie?.bind(upstream.headers);
+
+  if (typeof getSetCookie === 'function') {
+    const cookies = getSetCookie();
+    for (const c of cookies) {
+      downstream.headers.append('set-cookie', c);
+    }
+  } else {
+    // Fallback: forward a single Set-Cookie if present (don't split on commas: expires contains commas)
+    const single = upstream.headers.get('set-cookie');
+    if (single) {
+      downstream.headers.set('set-cookie', single);
+    }
+  }
+}

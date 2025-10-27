@@ -13,6 +13,7 @@ declare module 'next-auth' {
       image?: string | null;
       role?: string;
       orgId?: string;
+      sessionId?: string;
     };
   }
 
@@ -20,6 +21,7 @@ declare module 'next-auth' {
     id: string;
     role?: string;
     orgId?: string;
+    sessionId?: string;
   }
 }
 

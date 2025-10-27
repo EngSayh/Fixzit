@@ -32,7 +32,10 @@ test.describe('Landing & Branding (@smoke)', () => {
 
     // screenshot proof (T0 & T+10s)
     await page.screenshot({ path: 'qa/artifacts/landing-T0.png', fullPage: true });
-    await page.waitForTimeout(10_000);
+    // Wait for any deferred content to load instead of arbitrary timeout
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {
+      // If networkidle times out, still continue
+    });
     await page.screenshot({ path: 'qa/artifacts/landing-T10.png', fullPage: true });
   });
 });

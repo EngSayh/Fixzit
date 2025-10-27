@@ -75,13 +75,15 @@ export function ResponsiveGrid({
   const { screenInfo } = useResponsiveLayout();
 
   const getGridCols = () => {
-    if (screenInfo.isMobile || screenInfo.width < 640) {
+    const width = screenInfo.width || 1024;
+    if (screenInfo.isMobile || width < 640) {
       return `grid-cols-${cols.mobile || 1}`;
     }
-    if (screenInfo.isTablet || screenInfo.width < 1024) {
+    if (screenInfo.isTablet || width < 1024) {
       return `grid-cols-${cols.tablet || 2}`;
     }
-    if (screenInfo.isDesktop || screenInfo.width < 1280) {
+    // Fixed: Changed OR to AND - both conditions must be true for desktop
+    if (screenInfo.isDesktop && width < 1280) {
       return `grid-cols-${cols.desktop || 3}`;
     }
     return `grid-cols-${cols.large || 4}`;

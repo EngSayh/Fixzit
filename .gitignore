@@ -6,6 +6,7 @@
 /build/
 /coverage/
 /playwright-report/
+/playwright-artifacts/
 /playwright/.cache/
 /test-results/
 /cypress/videos/
@@ -17,10 +18,15 @@ tsconfig.tsbuildinfo
 .env
 .env.*
 !.env.example
+!.env.test.example
 .env.local.bak
 *.pem
 *.key
 *.crt
+
+# Dev login credentials (never commit)
+/app/dev/login-helpers/credentials.ts
+/dev/credentials.server.ts
 
 # OS/editor noise
 .DS_Store
@@ -64,3 +70,4 @@ node_modules
 # Ignore Next build outputs
 .next/
 .env.production.test
+playwright-report/

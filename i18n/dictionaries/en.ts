@@ -1139,6 +1139,9 @@ const en = {
     shared: 'Shared',
     public: 'Public',
     private: 'Private',
+    back: 'Back',
+    save: 'Save',
+    saving: 'Saving...',
   },
   phrases: {
     yes: 'Yes',

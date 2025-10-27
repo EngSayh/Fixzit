@@ -1,107 +1,300 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, useState, useRef, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  ReactNode,
+} from 'react';
 
-// Use unknown instead of any for better type safety
-type FormFieldValue = string | number | boolean | null | undefined;
-type FormDataRecord = Record<string, FormFieldValue>;
+type AnyValue = unknown;
 
-export interface FormStateContextType {
+export interface FormField {
+  name: string;
+  value: AnyValue;
+  initialValue: AnyValue;
+  isDirty: boolean;
+}
+
+export interface FormState {
+  id: string;
+  fields: Map<string, FormField>;
+  isDirty: boolean;
+}
+
+export interface FormStateContextValue {
+  forms: Map<string, FormState>;
   hasUnsavedChanges: boolean;
-  checkUnsavedChanges: () => boolean;
-  requestSave?: () => Promise<void>;
-  clearUnsavedChanges: () => void;
-  setRequestSave: (saveFunction: () => Promise<void>) => void;
-  registerForm: (formId: string, initialData: FormDataRecord) => void;
+
+  registerForm: (formId: string, initialFields?: Record<string, AnyValue>) => void;
   unregisterForm: (formId: string) => void;
-  updateFormData: (formId: string, data: FormDataRecord) => void;
+
+  updateField: (
+    formId: string,
+    fieldName: string,
+    value: AnyValue,
+    initialValue?: AnyValue
+  ) => void;
+
+  markFormClean: (formId: string) => void;
+  getFormState: (formId: string) => FormState | undefined;
+  isFormDirty: (formId: string) => boolean;
+
+  /** Ask all forms (or a targeted form) to save and await all registered handlers */
+  requestSave: (opts?: { formId?: string }) => Promise<void>;
+
+  /** Legacy-compatible save method across all forms (alias of requestSave) */
+  saveAllForms: () => Promise<void>;
+
+  /** Clear dirty flags on all forms and emit a reset event for consumers */
+  clearAllUnsavedChanges: () => void;
+
+  /** Legacy compatibility helper to mark one form dirty */
+  markFormDirty: (formId: string) => void;
+
+  /**
+   * Register a save handler for a given form id. Returns an unsubscribe function.
+   * Your form can call `onSave` once on mount:
+   *
+   *   useEffect(() => onSaveRequest(formId, async () => { await saveApi(...) }), [formId])
+   */
+  onSaveRequest: (formId: string, callback: () => Promise<void> | void) => () => void;
 }
 
-const FormStateContext = createContext<FormStateContextType | undefined>(undefined);
+export const FormStateContext = createContext<FormStateContextValue | undefined>(undefined);
 
-export interface FormStateProviderProps {
-  children: ReactNode;
-  requestSave?: () => Promise<void>;
-}
+export const useFormState = (): FormStateContextValue => {
+  const ctx = useContext(FormStateContext);
+  if (!ctx) throw new Error('useFormState must be used within a FormStateProvider');
+  return ctx;
+};
 
-interface FormData {
-  initial: FormDataRecord;
-  current: FormDataRecord;
-}
+type ProviderProps = { children: ReactNode };
 
-export function FormStateProvider({ children, requestSave: initialRequestSave }: FormStateProviderProps) {
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [requestSave, setRequestSave] = useState<(() => Promise<void>) | undefined>(
-    () => initialRequestSave
+const SAVE_EVENT = 'fixzit:save-forms' as const;
+
+export function FormStateProvider({ children }: ProviderProps) {
+  const [forms, setForms] = useState<Map<string, FormState>>(new Map());
+
+  const hasUnsavedChanges = useMemo(
+    () => Array.from(forms.values()).some(f => f.isDirty),
+    [forms],
   );
-  const formsRef = useRef<Map<string, FormData>>(new Map());
 
-  const checkUnsavedChanges = useCallback(() => {
-    let hasChanges = false;
-    
-    formsRef.current.forEach((formData) => {
-      const { initial, current } = formData;
-      
-      // Deep comparison of form data
-      const keys = new Set([...Object.keys(initial), ...Object.keys(current)]);
-      for (const key of keys) {
-        if (JSON.stringify(initial[key]) !== JSON.stringify(current[key])) {
-          hasChanges = true;
-          break;
-        }
+  // ⚡ NEW: Warn on navigation away if there are unsaved changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      e.preventDefault();
+      e.returnValue = ''; // Chrome requires returnValue to be set
+      return '';
+    };
+    if (hasUnsavedChanges) {
+      window.addEventListener('beforeunload', onBeforeUnload);
+      return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    }
+  }, [hasUnsavedChanges]);
+
+  const registerForm = useCallback((formId: string, initialFields?: Record<string, AnyValue>) => {
+    setForms(prev => {
+      if (prev.has(formId)) return prev;
+      const next = new Map(prev);
+      const fields = new Map<string, FormField>();
+      if (initialFields) {
+        Object.entries(initialFields).forEach(([name, value]) => {
+          fields.set(name, { name, value, initialValue: value, isDirty: false });
+        });
       }
-    });
-    
-    setHasUnsavedChanges(hasChanges);
-    return hasChanges;
-  }, []);
-
-  const registerForm = useCallback((formId: string, initialData: FormDataRecord) => {
-    formsRef.current.set(formId, {
-      initial: { ...initialData },
-      current: { ...initialData }
+      next.set(formId, { id: formId, fields, isDirty: false });
+      return next;
     });
   }, []);
 
   const unregisterForm = useCallback((formId: string) => {
-    formsRef.current.delete(formId);
-    // Recheck after unregistering
-    checkUnsavedChanges();
-  }, [checkUnsavedChanges]);
-
-  const updateFormData = useCallback((formId: string, data: FormDataRecord) => {
-    const formData = formsRef.current.get(formId);
-    if (formData) {
-      formData.current = { ...data };
-      formsRef.current.set(formId, formData);
-      // Trigger change detection
-      checkUnsavedChanges();
-    }
-  }, [checkUnsavedChanges]);
-
-  const clearUnsavedChanges = useCallback(() => {
-    // Update initial values to match current values
-    formsRef.current.forEach((formData, formId) => {
-      formData.initial = { ...formData.current };
-      formsRef.current.set(formId, formData);
+    setForms(prev => {
+      const newForms = new Map(prev);
+      newForms.delete(formId);
+      return newForms;
     });
+  }, []);
+
+  const updateField = useCallback((formId: string, fieldName: string, value: AnyValue, initialValue?: AnyValue) => {
+    setForms(prev => {
+      const newForms = new Map(prev);
+      const form = newForms.get(formId);
+      if (!form) return prev;
+
+      const field = form.fields.get(fieldName);
+      const fieldInitialValue = initialValue ?? field?.initialValue ?? value;
+      const isDirty = value !== fieldInitialValue;
+
+      const newField: FormField = {
+        name: fieldName,
+        value,
+        initialValue: fieldInitialValue,
+        isDirty,
+      };
+
+      const newFormFields = new Map(form.fields);
+      newFormFields.set(fieldName, newField);
+
+      const formIsDirty = Array.from(newFormFields.values()).some(f => f.isDirty);
+
+      newForms.set(formId, {
+        ...form,
+        fields: newFormFields,
+        isDirty: formIsDirty,
+      });
+
+      return newForms;
+    });
+  }, []);
+
+  const markFormClean = useCallback((formId: string) => {
+    setForms(prev => {
+      const newForms = new Map(prev);
+      const form = newForms.get(formId);
+      if (!form) return prev;
+
+      const cleanFields = new Map();
+      form.fields.forEach((field, name) => {
+        cleanFields.set(name, {
+          ...field,
+          initialValue: field.value,
+          isDirty: false,
+        });
+      });
+
+      newForms.set(formId, {
+        ...form,
+        fields: cleanFields,
+        isDirty: false,
+      });
+
+      return newForms;
+    });
+  }, []);
+
+  const getFormState = useCallback((formId: string) => {
+    return forms.get(formId);
+  }, [forms]);
+
+  const saveAllForms = useCallback(async () => {
+    const dirtyForms = Array.from(forms.values()).filter(form => form.isDirty);
     
-    setHasUnsavedChanges(false);
+    // ⚡ IMPROVED: Promise aggregation pattern for save coordination
+    const promises: Promise<void>[] = [];
+    if (typeof window !== 'undefined') {
+      const saveEvent = new CustomEvent('fixzit:save-forms', { 
+        detail: { promises, timestamp: Date.now() } 
+      });
+      window.dispatchEvent(saveEvent);
+    }
+    
+    // Wait for all registered save handlers to complete
+    try {
+      await Promise.all(promises);
+      
+      // Only mark forms clean after successful saves
+      for (const form of dirtyForms) {
+        markFormClean(form.id);
+      }
+    } catch (error) {
+      console.error('Failed to save one or more forms:', error);
+      // Keep flags intact so user can retry
+      throw error;
+    }
+  }, [forms, markFormClean]);
+
+  const clearAllUnsavedChanges = useCallback(() => {
+    forms.forEach(form => markFormClean(form.id));
+    
+    // Emit event to notify registered forms to reset themselves
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fixzit:clear-forms', { detail: { timestamp: Date.now() } }));
+    }
+  }, [forms, markFormClean]);
+
+  const markFormDirty = useCallback((formId: string) => {
+    setForms(prev => {
+      const newForms = new Map(prev);
+      const form = newForms.get(formId);
+      if (!form) return prev;
+      
+      newForms.set(formId, {
+        ...form,
+        isDirty: true,
+      });
+      return newForms;
+    });
   }, []);
 
-  const handleSetRequestSave = useCallback((saveFunction: () => Promise<void>) => {
-    setRequestSave(() => saveFunction);
+  const onSaveRequest = useCallback((formId: string, callback: () => Promise<void> | void) => {
+    // ⚡ IMPROVED: Push promise to aggregator array for coordination
+    const handleSave = (event: Event) => {
+      const customEvent = event as CustomEvent<{ formId?: string; promises?: Promise<void>[] }>;
+      const targetFormId = customEvent.detail?.formId;
+      
+      // Only run callback if:
+      // 1. No formId in event (global save), OR
+      // 2. Event formId matches this registration's formId
+      if (!targetFormId || targetFormId === formId) {
+        const promise = Promise.resolve().then(() => callback());
+        
+        // If event has promises array, push our promise for coordination
+        if (customEvent.detail?.promises && Array.isArray(customEvent.detail.promises)) {
+          customEvent.detail.promises.push(promise);
+        }
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener(SAVE_EVENT, handleSave as EventListener);
+    }
+    
+    // Return cleanup function
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(SAVE_EVENT, handleSave as EventListener);
+      }
+    };
   }, []);
 
-  const value: FormStateContextType = {
+  // ⚡ NEW: Check if specific form is dirty
+  const isFormDirty = useCallback((formId: string) => {
+    return forms.get(formId)?.isDirty ?? false;
+  }, [forms]);
+
+  // ⚡ NEW: Request save for all or specific form
+  const requestSave = useCallback(async (opts?: { formId?: string }) => {
+    const promises: Promise<void>[] = [];
+    const event = new CustomEvent(SAVE_EVENT, {
+      detail: { formId: opts?.formId, promises },
+    });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(event);
+    }
+    await Promise.all(promises);
+  }, []);
+
+  const value: FormStateContextValue = {
+    forms,
     hasUnsavedChanges,
-    checkUnsavedChanges,
-    requestSave,
-    clearUnsavedChanges,
-    setRequestSave: handleSetRequestSave,
     registerForm,
     unregisterForm,
-    updateFormData,
+    updateField,
+    markFormClean,
+    getFormState,
+    saveAllForms,
+    clearAllUnsavedChanges,
+    markFormDirty,
+    onSaveRequest,
+    isFormDirty,
+    requestSave,
   };
 
   return (
@@ -109,12 +302,6 @@ export function FormStateProvider({ children, requestSave: initialRequestSave }:
       {children}
     </FormStateContext.Provider>
   );
-}
+};
 
-export function useFormState() {
-  const context = useContext(FormStateContext);
-  if (context === undefined) {
-    throw new Error('useFormState must be used within a FormStateProvider');
-  }
-  return context;
-}
+export default FormStateContext;

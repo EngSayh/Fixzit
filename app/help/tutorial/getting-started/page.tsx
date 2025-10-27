@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, Clock } from 'lucide-react';
+import { renderMarkdownSanitized } from '@/lib/markdown';
 
 export default function GettingStartedTutorial() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [renderedContent, setRenderedContent] = useState<string>('');
 
   const tutorial = {
     id: 'getting-started',
@@ -442,6 +444,15 @@ Continue to learn about tenant relations!
   const currentStepData = tutorial.steps[currentStep];
   const progress = ((currentStep + 1) / tutorial.steps.length) * 100;
 
+  // Render markdown content when step changes
+  useEffect(() => {
+    if (currentStepData?.content) {
+      renderMarkdownSanitized(currentStepData.content).then(html => {
+        setRenderedContent(html);
+      });
+    }
+  }, [currentStep, currentStepData]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="max-w-6xl mx-auto p-6 flex-1 flex flex-col">
@@ -542,10 +553,8 @@ Continue to learn about tenant relations!
               </div>
 
               {/* Step Content */}
-              <div className="prose prose-lg max-w-none">
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                  {currentStepData.content}
-                </div>
+              <div className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-a:text-[var(--fixzit-primary)] prose-strong:text-gray-900">
+                <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
               </div>
 
               {/* Tips */}

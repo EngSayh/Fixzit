@@ -1,25 +1,25 @@
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { HelpArticle } from "@/server/models/HelpArticle";
+import { HelpArticle, HelpArticleDoc } from "@/server/models/HelpArticle";
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 export const revalidate = 60;
 
 /**
  * Server component that fetches a published help article by slug and renders the article page.
  *
- * If no published article matches the provided slug, renders a simple "Article not available." message.
+ * If no published article matches the provided slug, triggers a 404 response.
  *
  * @param params - Route params object containing the article `slug`.
- * @returns JSX for the help article page or a fallback message when the article is unavailable.
+ * @returns JSX for the help article page or triggers notFound() for unavailable articles.
  */
-export default async function HelpArticlePage(props:{ params: Promise<{ slug:string }>}) {
-  const params = await props.params;
+export default async function HelpArticlePage({ params }: { params: { slug: string } }) {
   await connectToDatabase();
-  const a = await HelpArticle.findOne({ slug: params.slug });
-  if (!a || a.status!=="PUBLISHED"){
-    return <div className="mx-auto max-w-3xl p-6">Article not available.</div>;
+  const a = await HelpArticle.findOne({ slug: params.slug, status: 'PUBLISHED' }).lean() as HelpArticleDoc | null;
+  if (!a) {
+    notFound();
   }
   // Derive dir from Accept-Language (simple heuristic); ClientLayout will enforce on client
   const accept = (await headers()).get('accept-language') || '';
