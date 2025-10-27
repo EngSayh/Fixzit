@@ -8,8 +8,6 @@ on:
 permissions:
   contents: read
 
-contributor_insights: false
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
