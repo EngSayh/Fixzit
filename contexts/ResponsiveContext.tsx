@@ -41,6 +41,10 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
     if (width < 1024) return 'tablet';
     return 'desktop';
   });
+  const [dimensions, setDimensions] = useState(() => {
+    if (typeof window === 'undefined') return { width: undefined, height: undefined };
+    return { width: window.innerWidth, height: window.innerHeight };
+  });
   const [isRTL, setIsRTL] = useState(() => {
     if (typeof document === 'undefined') return false;
     return document.documentElement.dir === 'rtl';
@@ -50,6 +54,8 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
 
     const checkScreenSize = () => {
       const width = window.innerWidth;
+      const height = window.innerHeight;
+      setDimensions({ width, height });
       if (width < 768) {
         setScreenSize('mobile');
       } else if (width < 1024) {
@@ -93,8 +99,8 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
       isDesktop: screenSize === 'desktop',
       isLarge: screenSize === 'desktop', // Treat desktop as large
       size: screenSize,
-      width: typeof window !== 'undefined' ? window.innerWidth : undefined,
-      height: typeof window !== 'undefined' ? window.innerHeight : undefined,
+      width: dimensions.width,
+      height: dimensions.height,
     },
     // Legacy responsiveClasses for backward compatibility
     responsiveClasses: {

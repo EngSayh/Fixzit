@@ -33,9 +33,9 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
   const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
-  const focusFirstError = (form: HTMLFormElement, fieldOrder: string[]) => {
+  const focusFirstError = (form: HTMLFormElement, fieldOrder: string[], fieldErrors: FieldErrors) => {
     for (const f of fieldOrder) {
-      if (errors[f as keyof FieldErrors]) {
+      if (fieldErrors[f as keyof FieldErrors]) {
         const el = form.querySelector(`[name="${f}"]`) as HTMLElement | null;
         if (el?.focus) el.focus();
         break;
@@ -62,9 +62,11 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
     }
 
     if (phone) {
-      const pn = parsePhoneNumberFromString(phone, 'SA');
+      // Parse phone without assuming country - libphonenumber-js will detect from format
+      // If phone starts with +, it includes country code; otherwise try common defaults
+      const pn = parsePhoneNumberFromString(phone);
       if (!pn || !pn.isValid()) {
-        next.phone = t('careers.phoneInvalid', 'Please enter a valid phone number (e.g., +9665XXXXXXXX)');
+        next.phone = t('careers.phoneInvalid', 'Please enter a valid phone number with country code (e.g., +9665XXXXXXXX)');
       } else {
         // Normalize for backend (append an extra field)
         fd.set('phoneE164', pn.number);
@@ -128,7 +130,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       const fieldErrs = validate(formData);
       if (Object.keys(fieldErrs).length) {
         setErrors(fieldErrs);
-        focusFirstError(formEl, ['fullName', 'email', 'phone', 'linkedin', 'experience', 'resume']);
+        focusFirstError(formEl, ['fullName', 'email', 'phone', 'linkedin', 'experience', 'resume'], fieldErrs);
         return;
       }
 
