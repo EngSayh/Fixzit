@@ -6,20 +6,20 @@ import url from 'url';
 
 /**
  * Fixzit i18n Scanner (namespace + nested keys aware)
- * - Loads ALL locale JSON files: i18n/locales/<lang>/**/*.json
- * - Flattens nested keys (dot notation) and also tracks "ns:key" variants
- * - Scans source for t('key') / i18n.t('key') / <Trans i18nKey="key" />
+ * - Loads ALL locale JSON files: i18n/locales/LANG/STAR_STAR/STAR.json
+ * - Flattens nested keys (dot notation) and also tracks ns:key variants
+ * - Scans source for translation function calls and Trans components
  * - Reports missing per language, suspicious hardcoded text
- * - Emits _artifacts/i18n-report.json
- * - Optional: --fix writes skeletons for missing keys
+ * - Emits artifacts/i18n-report.json
+ * - Optional: fix mode writes skeletons for missing keys
  *
- * Env/CLI:
+ * Environment variables and CLI options:
  *  - I18N_LANGS=en,ar
- *  - I18N_SRC="**/*.{ts,tsx,js,jsx}"
- *  - I18N_STRICT=true|false (default true -> exit 1 on missing)
- *  - I18N_OUTPUT=_artifacts/i18n-report.json
- *  - I18N_IGNORE="foo.bar,baz:*" (comma-separated key patterns, supports * wildcard)
- *  - --fix  -> emit _artifacts/i18n-missing.<lang>.json with nested structure
+ *  - I18N_SRC=pattern for source files
+ *  - I18N_STRICT=true or false (default true, exit 1 on missing)
+ *  - I18N_OUTPUT=artifacts/i18n-report.json
+ *  - I18N_IGNORE=comma-separated key patterns with wildcard support
+ *  - --fix flag emits artifacts/i18n-missing.LANG.json with nested structure
  */
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
