@@ -8,6 +8,54 @@ interface JobApplicationFormProps {
   jobId: string;
 }
 
+// Validation utilities
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[\d\s\-+()]+$/;
+
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
+function validateRequiredField(value: string | null, fieldName: string): ValidationError | null {
+  if (!value || value.trim() === '') {
+    return { field: fieldName, message: `${fieldName} is required` };
+  }
+  return null;
+}
+
+function validateEmail(email: string | null): ValidationError | null {
+  if (!email) return { field: 'email', message: 'Email is required' };
+  const trimmed = email.trim();
+  if (!trimmed) return { field: 'email', message: 'Email is required' };
+  if (!EMAIL_REGEX.test(trimmed)) {
+    return { field: 'email', message: 'Please enter a valid email address' };
+  }
+  return null;
+}
+
+function validatePhone(phone: string | null): ValidationError | null {
+  if (!phone) return null; // Phone is optional
+  const trimmed = phone.trim();
+  if (trimmed && !PHONE_REGEX.test(trimmed)) {
+    return { field: 'phone', message: 'Please enter a valid phone number' };
+  }
+  return null;
+}
+
+function validateResume(file: File | null): ValidationError | null {
+  if (!file || file.size === 0) {
+    return { field: 'resume', message: 'Please upload your CV/Resume (PDF)' };
+  }
+  if (file.type !== 'application/pdf') {
+    return { field: 'resume', message: 'Resume must be a PDF file' };
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return { field: 'resume', message: 'Resume file size must be less than 5MB' };
+  }
+  return null;
+}
+
 export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,22 +67,27 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
     try {
       const formData = new FormData(e.currentTarget);
       
-      // Validate file upload
+      // Comprehensive client-side validation
+      const validationErrors: ValidationError[] = [];
+
+      // Validate required text fields
+      const fullNameError = validateRequiredField(formData.get('fullName') as string, 'Full Name');
+      if (fullNameError) validationErrors.push(fullNameError);
+
+      const emailError = validateEmail(formData.get('email') as string);
+      if (emailError) validationErrors.push(emailError);
+
+      const phoneError = validatePhone(formData.get('phone') as string);
+      if (phoneError) validationErrors.push(phoneError);
+
+      // Validate resume file
       const resumeFile = formData.get('resume') as File;
-      if (!resumeFile || resumeFile.size === 0) {
-        toast.error('Please upload your CV/Resume (PDF)');
-        setIsSubmitting(false);
-        return;
-      }
+      const resumeError = validateResume(resumeFile);
+      if (resumeError) validationErrors.push(resumeError);
 
-      if (resumeFile.type !== 'application/pdf') {
-        toast.error('Resume must be a PDF file');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (resumeFile.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Resume file size must be less than 5MB');
+      // If validation errors exist, show them and stop submission
+      if (validationErrors.length > 0) {
+        validationErrors.forEach(err => toast.error(err.message));
         setIsSubmitting(false);
         return;
       }
@@ -42,27 +95,37 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       const response = await fetch(`/api/ats/jobs/${jobId}/apply`, {
         method: 'POST',
         body: formData,
+        credentials: 'include', // Ensure cookies are sent for CSRF protection
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit application');
+        // Ensure backend error messages are user-friendly
+        throw new Error(data.error || 'Failed to submit application. Please try again.');
       }
 
-      toast.success('Application submitted successfully! We\'ll review your application and get back to you soon.');
+      toast.success(
+        'Application submitted successfully! We\'ll review your application and get back to you soon.',
+        {
+          duration: 6000,
+        }
+      );
+      
+      // Redirect to careers page after a short delay
+      setTimeout(() => {
+        router.push('/careers?applied=true');
+      }, 2000);
       
       // Reset form
       e.currentTarget.reset();
-      
-      // User-controlled navigation (5 second delay or click button)
-      setTimeout(() => {
-        router.push('/careers?applied=true');
-      }, 5000);
 
     } catch (error) {
       console.error('Application submission error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to submit application. Please try again.');
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

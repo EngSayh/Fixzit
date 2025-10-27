@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 // Constants at module scope
 const LOGS_PER_PAGE = 20;
+const API_ENDPOINT = '/api/admin/audit-logs';
+const DEFAULT_TIMEZONE = 'Asia/Riyadh'; // Fixzit primary timezone
 
 interface AuditLog {
   _id: string;
@@ -53,6 +56,9 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
+  
+    // Extract locale for internationalization support
+  const { language: _language, locale: userLocale } = useTranslation();
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -77,10 +83,12 @@ export default function AuditLogViewer() {
       params.append('page', page.toString());
       params.append('limit', LOGS_PER_PAGE.toString());
 
-      const response = await fetch(`/api/admin/audit-logs?${params}`);
+      const response = await fetch(`${API_ENDPOINT}?${params}`, {
+        credentials: 'include', // Ensure cookies are sent for authentication
+      });
       if (!response.ok) {
         // Provide more specific error messages based on status
-        let errorMessage = 'Failed to fetch audit logs';
+        let errorMessage = 'An unexpected error occurred while loading audit logs';
         if (response.status === 401) {
           errorMessage = 'You are not authorized to view audit logs. Please log in again.';
         } else if (response.status === 403) {
@@ -92,7 +100,7 @@ export default function AuditLogViewer() {
         } else if (response.status >= 400) {
           errorMessage = 'Invalid request. Please check your filters and try again.';
         }
-        throw new Error(`${errorMessage} (${response.status}: ${response.statusText})`);
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -109,7 +117,7 @@ export default function AuditLogViewer() {
       console.error('Failed to fetch audit logs:', err);
       
       // Handle different error types with user-friendly messages
-      let errorMessage = 'Failed to load audit logs. Please try again.';
+      let errorMessage = 'An unexpected error occurred. Please try again.';
       
       if (err instanceof TypeError && err.message.includes('fetch')) {
         errorMessage = 'Network error occurred. Please check your connection and try again.';
@@ -141,14 +149,16 @@ export default function AuditLogViewer() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleString('en-US', {
+  // Format date with locale awareness and timezone support
+  const formatDate = (date: Date, locale: string = userLocale || 'en-US') => {
+    return new Date(date).toLocaleString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
+      timeZone: DEFAULT_TIMEZONE,
     });
   };
 
