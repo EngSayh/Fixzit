@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationButtons } from '@/components/ui/navigation-buttons';
+import { useTranslation } from '@/contexts/TranslationContext';
 import toast from 'react-hot-toast';
 
 interface ReferralCode {
@@ -37,6 +38,7 @@ interface Referral {
 }
 
 export default function ReferralProgramPage() {
+  const { language } = useTranslation();
   const [referralCode, setReferralCode] = useState<ReferralCode | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -283,10 +285,12 @@ export default function ReferralProgramPage() {
     return !!(isExpired || isDepleted);
   };
 
-  // Currency formatter using Intl
+  // Currency formatter using Intl with dynamic locale
   const formatCurrency = (amount: number, currency: string): string => {
     try {
-      return new Intl.NumberFormat('en-US', {
+      // Use current language locale (e.g., 'ar', 'en') for formatting
+      const locale = language === 'ar' ? 'ar-SA' : 'en-US';
+      return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: currency,
         minimumFractionDigits: 0,
@@ -298,10 +302,12 @@ export default function ReferralProgramPage() {
     }
   };
 
-  // Date formatter using Intl
+  // Date formatter using Intl with dynamic locale
   const formatDate = (date: Date | string): string => {
     try {
-      return new Intl.DateTimeFormat('en-US', {
+      // Use current language locale for consistent date formatting
+      const locale = language === 'ar' ? 'ar-SA' : 'en-US';
+      return new Intl.DateTimeFormat(locale, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

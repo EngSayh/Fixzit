@@ -47,6 +47,7 @@ jobs:
       # Upload sourcemaps to Sentry (using getsentry/action-release for reliability)
       # Automatically skips if SENTRY_AUTH_TOKEN is not set (action will fail gracefully)
       - name: Create & upload Sentry release
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         continue-on-error: true
         id: sentry-upload
         uses: getsentry/action-release@v1
