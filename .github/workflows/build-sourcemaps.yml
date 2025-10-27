@@ -64,11 +64,9 @@ jobs:
           projects: ${{ vars.SENTRY_PROJECT }}
           version: ${{ env.SENTRY_RELEASE }}
           environment: ${{ env.SENTRY_ENVIRONMENT }}
-          # ⚡ Upload full Next output; rewrite paths for browser symbolication
-          sourcemaps: |
-            .next
+          # ⚡ Upload full Next output with correct URL prefix for browser symbolication
+          sourcemaps: .next
           url_prefix: "~/_next"
-          rewrite: true
           strip_common_prefix: true
           ignore_empty: true
           set_commits: "skip"
