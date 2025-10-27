@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { ReferralCodeModel } from '@/server/models/ReferralCode';
 import { connectDb } from '@/lib/mongo';
 import { REFERRAL_REWARD, REFERRAL_LIMITS, getReferralValidity } from '@/config/referrals.config';
+import { Types } from 'mongoose';
 
 /**
  * POST /api/referrals/generate
@@ -19,8 +20,20 @@ export async function POST(_request: NextRequest) {
     
     await connectDb();
     
+    // Get orgId from session and convert to ObjectId
+    const orgIdString = session.user.orgId;
+    if (!orgIdString) {
+      return NextResponse.json(
+        { error: 'Organization ID not found in session' },
+        { status: 400 }
+      );
+    }
+    
+    const orgId = new Types.ObjectId(orgIdString);
+    
     // Check if user already has an active referral code
     const existing = await ReferralCodeModel.findOne({
+      orgId,
       referrerId: session.user.id,
       status: 'ACTIVE',
     });
@@ -29,8 +42,8 @@ export async function POST(_request: NextRequest) {
       return NextResponse.json({ code: existing });
     }
     
-    // Generate new code
-    const code = await ReferralCodeModel.generateCode();
+    // Generate new code (tenant-aware)
+    const code = await ReferralCodeModel.generateCode(orgId);
     
     // Build referral URL from environment variable
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL;
@@ -49,6 +62,7 @@ export async function POST(_request: NextRequest) {
     
     // Create referral code with centralized config
     const referralCode = await ReferralCodeModel.create({
+      orgId,
       referrerId: session.user.id,
       referrerName: session.user.name,
       referrerEmail: session.user.email,
