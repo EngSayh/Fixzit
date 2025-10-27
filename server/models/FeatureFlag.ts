@@ -214,9 +214,13 @@ FeatureFlagSchema.statics.isEnabled = async function(
       // Validate percentage exists and is valid
       const percentage = feature.rollout?.percentage;
       if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
-        // Log warning via application logger (replace console.warn)
-        if (typeof console.warn === 'function') {
-          console.warn(`[FeatureFlag] Invalid or missing percentage for feature ${key}: ${percentage}. Defaulting to 0%.`);
+        // Structured logging for invalid percentage
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[FeatureFlag] Invalid or missing percentage', {
+            feature: key,
+            percentage,
+            timestamp: new Date().toISOString(),
+          });
         }
         return false;
       }
@@ -229,8 +233,11 @@ FeatureFlagSchema.statics.isEnabled = async function(
         hash = hashCode(context.orgId);
       } else {
         // No deterministic identifier available, default to disabled
-        if (typeof console.warn === 'function') {
-          console.warn(`[FeatureFlag] No userId or orgId provided for PERCENTAGE rollout of feature ${key}`);
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[FeatureFlag] No userId or orgId provided for PERCENTAGE rollout', {
+            feature: key,
+            timestamp: new Date().toISOString(),
+          });
         }
         return false;
       }
@@ -259,36 +266,51 @@ FeatureFlagSchema.statics.getConfig = async function(key: string) {
 };
 
 // Static method to record usage
-FeatureFlagSchema.statics.recordUsage = async function(key: string, enabled: boolean) {
-  // Try tenant-scoped update first
-  const result = await this.updateOne(
-    { key },
-    {
-      $inc: {
-        'usage.totalChecks': 1,
-        [`usage.${enabled ? 'enabled' : 'disabled'}Checks`]: 1
-      },
-      $set: {
-        'usage.lastCheckedAt': new Date()
-      }
+// Note: uniqueUsers tracking requires userId to be passed if needed
+// Currently only tracking check counts and timestamps
+FeatureFlagSchema.statics.recordUsage = async function(
+  key: string, 
+  enabled: boolean,
+  userId?: string
+) {
+  interface UpdateOps {
+    $inc: {
+      'usage.totalChecks': number;
+      'usage.enabledChecks'?: number;
+      'usage.disabledChecks'?: number;
+      'usage.uniqueUsers'?: number;
+    };
+    $set: {
+      'usage.lastCheckedAt': Date;
+    };
+  }
+
+  const updateOps: UpdateOps = {
+    $inc: {
+      'usage.totalChecks': 1,
+      ...(enabled ? { 'usage.enabledChecks': 1 } : { 'usage.disabledChecks': 1 })
+    },
+    $set: {
+      'usage.lastCheckedAt': new Date()
     }
-  );
+  };
+
+  // Track unique users if userId provided
+  // Using $addToSet would require storing user IDs, which could grow large
+  // For now, we increment uniqueUsers counter when userId is provided
+  // Note: This is an approximation and may count same user multiple times
+  // For accurate tracking, consider using a separate collection or Redis set
+  if (userId) {
+    updateOps.$inc['usage.uniqueUsers'] = 1;
+  }
+
+  // Try tenant-scoped update first
+  const result = await this.updateOne({ key }, updateOps);
   
   // If no document was updated, try global flags
   if (result.matchedCount === 0) {
     await withoutTenantFilter(async () => 
-      this.updateOne(
-        { key, isGlobal: true },
-        {
-          $inc: {
-            'usage.totalChecks': 1,
-            [`usage.${enabled ? 'enabled' : 'disabled'}Checks`]: 1
-          },
-          $set: {
-            'usage.lastCheckedAt': new Date()
-          }
-        }
-      )
+      this.updateOne({ key, isGlobal: true }, updateOps)
     );
   }
 };

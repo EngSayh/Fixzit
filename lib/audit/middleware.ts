@@ -130,8 +130,7 @@ export async function auditLogMiddleware(
       endpoint: pathname,
       userAgent,
       ipAddress,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sessionId: (session.user as any).sessionId,
+      sessionId: session.user.sessionId,
       browser: extractBrowser(userAgent),
       os: extractOS(userAgent),
       device: extractDevice(userAgent),
@@ -151,19 +150,17 @@ export async function auditLogMiddleware(
 /**
  * Log the audit entry to database
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function logAudit(auditData: any, response?: NextResponse) {
+export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0], response?: NextResponse) {
   try {
     // Update result based on response
-    if (response) {
+    if (response && auditData.result) {
       auditData.result.success = response.status >= 200 && response.status < 400;
       if (!auditData.result.success) {
         auditData.result.errorCode = response.status.toString();
       }
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (AuditLogModel as any).log(auditData);
+    await AuditLogModel.log(auditData);
   } catch (error) {
     // Silent fail - don't break the main request
     console.error('Failed to log audit entry:', error);

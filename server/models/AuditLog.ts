@@ -220,6 +220,40 @@ AuditLogSchema.statics.getSummary = async function(orgId: string, period: 'day' 
   return this.aggregate(pipeline);
 };
 
-// Export type and model
+// Export type and model with proper typing
 export type AuditLog = InferSchemaType<typeof AuditLogSchema>;
-export const AuditLogModel = models.AuditLog || model("AuditLog", AuditLogSchema);
+
+export interface AuditLogStaticMethods {
+  log(data: {
+    orgId: string;
+    action: string;
+    entityType: string;
+    entityId?: string;
+    entityName?: string;
+    userId: string;
+    changes?: Array<Record<string, unknown>>;
+    snapshot?: Record<string, unknown>;
+    context?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    result?: Record<string, unknown>;
+  }): Promise<AuditLog | null>;
+  
+  search(filters: {
+    orgId: string;
+    userId?: string;
+    entityType?: string;
+    entityId?: string;
+    action?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    skip?: number;
+  }): Promise<AuditLog[]>;
+  
+  getSummary(orgId: string, period?: 'day' | 'week' | 'month'): Promise<Array<{ _id: string; count: number }>>;
+}
+
+import type { Model } from 'mongoose';
+export type AuditLogModelType = Model<AuditLog> & AuditLogStaticMethods;
+
+export const AuditLogModel = (models.AuditLog || model("AuditLog", AuditLogSchema)) as AuditLogModelType;
