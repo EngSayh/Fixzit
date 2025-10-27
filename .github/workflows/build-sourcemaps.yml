@@ -44,31 +44,23 @@ jobs:
           # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           # etc.
       
-      - name: Upload source maps to Sentry (if configured)
-        id: sentry-upload
-        # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
-        # Secrets must be set in: Repository Settings > Secrets and variables > Actions
+      # Upload sourcemaps to Sentry (using getsentry/action-release for reliability)
+      # Automatically skips if SENTRY_AUTH_TOKEN is not set (action will fail gracefully)
+      - name: Create & upload Sentry release
         continue-on-error: true
+        id: sentry-upload
+        uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-        run: |
-          # Check if SENTRY_AUTH_TOKEN is set
-          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
-            echo "⚠️  SENTRY_AUTH_TOKEN not configured, skipping Sentry upload"
-            exit 0
-          fi
-          
-          # Install Sentry CLI
-          npm install -g @sentry/cli
-          
-          # Upload source maps
-          sentry-cli releases new "$GITHUB_SHA"
-          sentry-cli releases files "$GITHUB_SHA" upload-sourcemaps .next --rewrite
-          sentry-cli releases finalize "$GITHUB_SHA"
-          
-          echo "✅ Source maps uploaded to Sentry"
+        with:
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+          version: ${{ github.sha }}
+          ignore_empty: true
+          sourcemaps: |
+            .next/static
+          set_commits: "skip"
       
       - name: Set Sentry upload status
         if: always()
