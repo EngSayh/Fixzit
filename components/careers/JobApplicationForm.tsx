@@ -1,300 +1,393 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
 interface JobApplicationFormProps {
   jobId: string;
 }
 
-// Validation utilities
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^[\d\s\-+()]+$/;
+type FieldErrors = Partial<Record<
+  'fullName'|'email'|'phone'|'linkedin'|'experience'|'resume'|'general',
+  string
+>>;
 
-interface ValidationError {
-  field: string;
-  message: string;
-}
+/**
+ * Drop-in: robust validation + i18n + stable testids + proper success navigation
+ */
 
-function validateRequiredField(value: string | null, fieldName: string): ValidationError | null {
-  if (!value || value.trim() === '') {
-    return { field: fieldName, message: `${fieldName} is required` };
-  }
-  return null;
-}
-
-function validateEmail(email: string | null): ValidationError | null {
-  if (!email) return { field: 'email', message: 'Email is required' };
-  const trimmed = email.trim();
-  if (!trimmed) return { field: 'email', message: 'Email is required' };
-  if (!EMAIL_REGEX.test(trimmed)) {
-    return { field: 'email', message: 'Please enter a valid email address' };
-  }
-  return null;
-}
-
-function validatePhone(phone: string | null): ValidationError | null {
-  if (!phone) return null; // Phone is optional
-  const trimmed = phone.trim();
-  if (trimmed && !PHONE_REGEX.test(trimmed)) {
-    return { field: 'phone', message: 'Please enter a valid phone number' };
-  }
-  return null;
-}
-
-function validateResume(file: File | null): ValidationError | null {
-  if (!file || file.size === 0) {
-    return { field: 'resume', message: 'Please upload your CV/Resume (PDF)' };
-  }
-  if (file.type !== 'application/pdf') {
-    return { field: 'resume', message: 'Resume must be a PDF file' };
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    return { field: 'resume', message: 'Resume file size must be less than 5MB' };
-  }
-  return null;
-}
-
+/**
+ * Drop-in: robust validation + i18n + stable testids + proper success navigation
+ */
 export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
   const router = useRouter();
+  const { t } = useTranslation();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  // Honeypot (bots only)
+  const honeypotRef = useRef<HTMLInputElement>(null);
+
+  const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
+  const focusFirstError = (form: HTMLFormElement, fieldOrder: string[]) => {
+    for (const f of fieldOrder) {
+      if (errors[f as keyof FieldErrors]) {
+        const el = form.querySelector(`[name="${f}"]`) as HTMLElement | null;
+        if (el?.focus) el.focus();
+        break;
+      }
+    }
+  };
+
+  const validate = (fd: FormData): FieldErrors => {
+    const next: FieldErrors = {};
+
+    const fullName = String(fd.get('fullName') || '').trim();
+    const email = String(fd.get('email') || '').trim().toLowerCase();
+    const phone = String(fd.get('phone') || '').trim();
+    const linkedin = String(fd.get('linkedin') || '').trim();
+    const experience = String(fd.get('experience') || '').trim();
+    const resume = fd.get('resume');
+
+    if (!fullName) next.fullName = t('careers.fullNameRequired', 'Full name is required');
+
+    if (!email) {
+      next.email = t('careers.emailRequired', 'Email is required');
+    } else if (!emailRx.test(email)) {
+      next.email = t('careers.emailInvalid', 'Please enter a valid email address');
+    }
+
+    if (phone) {
+      const pn = parsePhoneNumberFromString(phone, 'SA');
+      if (!pn || !pn.isValid()) {
+        next.phone = t('careers.phoneInvalid', 'Please enter a valid phone number (e.g., +9665XXXXXXXX)');
+      } else {
+        // Normalize for backend (append an extra field)
+        fd.set('phoneE164', pn.number);
+      }
+    }
+
+    if (linkedin) {
+      try {
+        const u = new URL(linkedin);
+        if (!/^(?:www\.)?linkedin\.com$/i.test(u.hostname.replace(/^.*?linkedin\./i, 'linkedin.'))) {
+          next.linkedin = t('careers.linkedinInvalid', 'Please provide a valid LinkedIn profile URL');
+        }
+      } catch {
+        next.linkedin = t('careers.linkedinInvalid', 'Please provide a valid LinkedIn profile URL');
+      }
+    }
+
+    if (experience) {
+      const n = Number(experience);
+      if (!Number.isFinite(n) || n < 0 || n > 50) {
+        next.experience = t('careers.experienceInvalid', 'Years of experience must be between 0 and 50');
+      }
+    }
+
+    if (!(resume instanceof File) || !resume || resume.size === 0) {
+      next.resume = t('careers.resumeRequired', 'Please upload your CV/Resume (PDF)');
+    } else {
+      const mimeOk = resume.type === 'application/pdf' || resume.type === 'application/x-pdf';
+      const extOk = resume.name.toLowerCase().endsWith('.pdf');
+      if (!mimeOk && !extOk) {
+        next.resume = t('careers.resumeType', 'Resume must be a PDF file');
+      } else if (resume.size > 5 * 1024 * 1024) {
+        next.resume = t('careers.resumeSize', 'Resume file size must be less than 5MB');
+      }
+    }
+
+    return next;
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
+    setErrors({});
 
     try {
-      const formData = new FormData(e.currentTarget);
-      
-      // Comprehensive client-side validation
-      const validationErrors: ValidationError[] = [];
-
-      // Validate required text fields
-      const fullNameError = validateRequiredField(formData.get('fullName') as string, 'Full Name');
-      if (fullNameError) validationErrors.push(fullNameError);
-
-      const emailError = validateEmail(formData.get('email') as string);
-      if (emailError) validationErrors.push(emailError);
-
-      const phoneError = validatePhone(formData.get('phone') as string);
-      if (phoneError) validationErrors.push(phoneError);
-
-      // Validate resume file
-      const resumeFile = formData.get('resume') as File;
-      const resumeError = validateResume(resumeFile);
-      if (resumeError) validationErrors.push(resumeError);
-
-      // If validation errors exist, show them and stop submission
-      if (validationErrors.length > 0) {
-        validationErrors.forEach(err => toast.error(err.message));
-        setIsSubmitting(false);
+      // Honeypot: bots fill it -> block
+      if (honeypotRef.current?.value) {
+        setErrors({ general: t('careers.spamDetected', 'Submission blocked (suspected bot).') });
         return;
       }
 
-      const response = await fetch(`/api/ats/jobs/${jobId}/apply`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include', // Ensure cookies are sent for CSRF protection
-      });
+      const formEl = e.currentTarget;
+      const formData = new FormData(formEl);
 
-      const data = await response.json();
+      // Basic normalization
+      formData.set('jobId', jobId);
+      const skills = String(formData.get('skills') || '').trim();
+      if (skills) formData.set('skills', skills.replace(/\s*,\s*/g, ', ')); // clean commas
 
-      if (!response.ok) {
-        // Ensure backend error messages are user-friendly
-        throw new Error(data.error || 'Failed to submit application. Please try again.');
+      const fieldErrs = validate(formData);
+      if (Object.keys(fieldErrs).length) {
+        setErrors(fieldErrs);
+        focusFirstError(formEl, ['fullName', 'email', 'phone', 'linkedin', 'experience', 'resume']);
+        return;
       }
 
-      toast.success(
-        'Application submitted successfully! We\'ll review your application and get back to you soon.',
-        {
-          duration: 6000,
-        }
-      );
-      
-      // Redirect to careers page after a short delay
-      setTimeout(() => {
-        router.push('/careers?applied=true');
-      }, 2000);
-      
-      // Reset form
-      e.currentTarget.reset();
+      const res = await fetch(`/api/ats/jobs/${jobId}/apply`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
 
-    } catch (error) {
-      console.error('Application submission error:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'An unexpected error occurred. Please try again.';
-      toast.error(errorMessage);
+      let payload: { error?: string; [key: string]: unknown } = {};
+      try { payload = await res.json(); } catch { /* ignore */ }
+
+      if (!res.ok) {
+        const message =
+          payload?.error ||
+          (res.status === 429
+            ? t('careers.tooMany', 'Too many attempts. Please try again later.')
+            : t('careers.applyFailed', 'Failed to submit application'));
+        throw new Error(message);
+      }
+
+      toast.success(t('careers.applySuccess', "Application submitted! We'll get back to you soon."), { duration: 5000 });
+
+      // Reset + route to jobs with a flag
+      formEl.reset();
+      setErrors({});
+      setTimeout(() => router.push('/careers?applied=true'), 600);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('careers.applyFailed', 'Failed to submit application');
+      setErrors(prev => ({ ...prev, general: msg }));
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const fieldCls = (hasErr?: boolean) =>
+    `border p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
+      hasErr ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+    }`;
+
   return (
-    <form 
+    <form
       onSubmit={handleSubmit}
+      noValidate
+      encType="multipart/form-data"
       className="mt-8 bg-gray-50 p-6 rounded-md"
+      data-testid="job-apply-form"
     >
-      <h3 className="text-xl font-semibold mb-4">Apply Now</h3>
+      <h3 className="text-xl font-semibold mb-4">{t('careers.applyNow', 'Apply Now')}</h3>
+
+      {/* Honeypot */}
+      <input ref={honeypotRef} type="text" name="website" className="hidden" tabIndex={-1} autoComplete="off" />
       
       <div className="grid md:grid-cols-2 gap-4">
         {/* Full Name */}
         <div className="flex flex-col">
           <label htmlFor="fullName" className="mb-1 text-sm font-semibold text-gray-700">
-            Full Name <span className="text-red-500">*</span>
+            {t('careers.fullName', 'Full Name')} <span className="text-red-500">*</span>
           </label>
-          <input 
+          <input
             id="fullName"
-            name="fullName" 
+            name="fullName"
             type="text"
-            placeholder="John Doe" 
-            required 
-            className="border border-gray-300 p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+            placeholder={t('careers.fullNamePh', 'John Doe')}
+            required
+            className={fieldCls(!!errors.fullName)}
+            aria-invalid={!!errors.fullName}
+            aria-describedby={errors.fullName ? 'err-fullName' : undefined}
             disabled={isSubmitting}
+            data-testid="fullName"
           />
+          {errors.fullName && (
+            <p id="err-fullName" className="mt-1 text-xs text-red-600">{errors.fullName}</p>
+          )}
         </div>
 
         {/* Email */}
         <div className="flex flex-col">
           <label htmlFor="email" className="mb-1 text-sm font-semibold text-gray-700">
-            Email Address <span className="text-red-500">*</span>
+            {t('careers.email', 'Email Address')} <span className="text-red-500">*</span>
           </label>
-          <input 
+          <input
             id="email"
-            name="email" 
+            name="email"
             type="email"
-            placeholder="john@example.com" 
-            required 
-            className="border border-gray-300 p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+            placeholder={t('careers.emailPh', 'john@example.com')}
+            required
+            className={fieldCls(!!errors.email)}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'err-email' : undefined}
             disabled={isSubmitting}
+            data-testid="email"
           />
+          {errors.email && (
+            <p id="err-email" className="mt-1 text-xs text-red-600">{errors.email}</p>
+          )}
         </div>
 
         {/* Phone */}
         <div className="flex flex-col">
           <label htmlFor="phone" className="mb-1 text-sm font-semibold text-gray-700">
-            Phone Number
+            {t('careers.phone', 'Phone Number')}
           </label>
-          <input 
+          <input
             id="phone"
-            name="phone" 
+            name="phone"
             type="tel"
-            placeholder="+966 50 123 4567" 
-            className="border border-gray-300 p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+            inputMode="tel"
+            placeholder={t('careers.phonePh', '+966 50 123 4567')}
+            className={fieldCls(!!errors.phone)}
+            aria-invalid={!!errors.phone}
+            aria-describedby={errors.phone ? 'err-phone' : undefined}
             disabled={isSubmitting}
+            data-testid="phone"
           />
+          {errors.phone && (
+            <p id="err-phone" className="mt-1 text-xs text-red-600">{errors.phone}</p>
+          )}
         </div>
 
         {/* Location */}
         <div className="flex flex-col">
           <label htmlFor="location" className="mb-1 text-sm font-semibold text-gray-700">
-            Location
+            {t('careers.location', 'Location')}
           </label>
-          <input 
+          <input
             id="location"
-            name="location" 
+            name="location"
             type="text"
-            placeholder="Riyadh, Saudi Arabia" 
-            className="border border-gray-300 p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+            placeholder={t('careers.locationPh', 'Riyadh, Saudi Arabia')}
+            className={fieldCls()}
             disabled={isSubmitting}
+            data-testid="location"
           />
         </div>
 
         {/* Years of Experience */}
         <div className="flex flex-col">
           <label htmlFor="experience" className="mb-1 text-sm font-semibold text-gray-700">
-            Years of Experience
+            {t('careers.experience', 'Years of Experience')}
           </label>
-          <input 
+          <input
             id="experience"
-            name="experience" 
+            name="experience"
             type="number"
-            min="0"
-            max="50"
-            placeholder="5" 
-            className="border border-gray-300 p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+            min={0}
+            max={50}
+            placeholder="5"
+            className={fieldCls(!!errors.experience)}
+            aria-invalid={!!errors.experience}
+            aria-describedby={errors.experience ? 'err-experience' : undefined}
             disabled={isSubmitting}
+            data-testid="experience"
           />
+          {errors.experience && (
+            <p id="err-experience" className="mt-1 text-xs text-red-600">{errors.experience}</p>
+          )}
         </div>
 
         {/* LinkedIn */}
         <div className="flex flex-col">
           <label htmlFor="linkedin" className="mb-1 text-sm font-semibold text-gray-700">
-            LinkedIn Profile
+            {t('careers.linkedin', 'LinkedIn Profile')}
           </label>
-          <input 
+          <input
             id="linkedin"
-            name="linkedin" 
+            name="linkedin"
             type="url"
-            placeholder="https://linkedin.com/in/yourprofile" 
-            className="border border-gray-300 p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+            placeholder="https://linkedin.com/in/yourprofile"
+            className={fieldCls(!!errors.linkedin)}
+            aria-invalid={!!errors.linkedin}
+            aria-describedby={errors.linkedin ? 'err-linkedin' : undefined}
             disabled={isSubmitting}
+            data-testid="linkedin"
           />
+          {errors.linkedin && (
+            <p id="err-linkedin" className="mt-1 text-xs text-red-600">{errors.linkedin}</p>
+          )}
         </div>
 
         {/* Skills */}
         <div className="flex flex-col md:col-span-2">
           <label htmlFor="skills" className="mb-1 text-sm font-semibold text-gray-700">
-            Key Skills
+            {t('careers.skills', 'Key Skills')}
           </label>
-          <input 
+          <input
             id="skills"
-            name="skills" 
+            name="skills"
             type="text"
-            placeholder="React, TypeScript, Node.js, MongoDB" 
-            className="border border-gray-300 p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+            placeholder={t('careers.skillsPh', 'React, TypeScript, Node.js, MongoDB')}
+            className={fieldCls()}
             disabled={isSubmitting}
+            data-testid="skills"
           />
-          <p className="text-xs text-gray-500 mt-1">Separate skills with commas</p>
+          <p className="text-xs text-gray-500 mt-1">{t('careers.skillsHint', 'Separate skills with commas')}</p>
         </div>
       </div>
 
       {/* Cover Letter */}
       <div className="flex flex-col mt-4">
         <label htmlFor="coverLetter" className="mb-1 text-sm font-semibold text-gray-700">
-          Cover Letter
+          {t('careers.coverLetter', 'Cover Letter')}
         </label>
-        <textarea 
+        <textarea
           id="coverLetter"
-          name="coverLetter" 
-          placeholder="Tell us why you're interested in this position and what makes you a great fit..." 
-          className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-brand-500 focus:border-transparent" 
+          name="coverLetter"
+          placeholder={t('careers.coverLetterPh', "Tell us why you're a great fit...")}
+          className={`border p-2 rounded w-full focus:ring-2 focus:ring-brand-500 focus:border-transparent border-gray-300`}
           rows={5}
           disabled={isSubmitting}
+          data-testid="coverLetter"
         />
       </div>
 
       {/* Resume Upload */}
       <div className="mt-4">
         <label htmlFor="resume" className="block text-sm font-semibold text-gray-700 mb-1">
-          CV / Résumé (PDF) <span className="text-red-500">*</span>
+          {t('careers.resume', 'CV / Résumé (PDF)')} <span className="text-red-500">*</span>
         </label>
-        <input 
+        <input
           id="resume"
-          name="resume" 
-          type="file" 
-          accept="application/pdf" 
+          name="resume"
+          type="file"
+          accept="application/pdf"
           required
           className="mt-1 block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded file:border-0
-            file:text-sm file:font-semibold
-            file:bg-brand-50 file:text-brand-700
-            hover:file:bg-brand-100
-            disabled:opacity-50 disabled:cursor-not-allowed"
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded file:border-0
+                     file:text-sm file:font-semibold
+                     file:bg-brand-50 file:text-brand-700
+                     hover:file:bg-brand-100
+                     disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting}
+          data-testid="resume"
         />
-        <p className="text-xs text-gray-500 mt-1">Maximum file size: 5MB</p>
+        <p className="text-xs text-gray-500 mt-1">
+          {t('careers.resumeHint', 'PDF only · Max 5MB')}
+        </p>
+        {errors.resume && (
+          <p className="mt-1 text-xs text-red-600">{errors.resume}</p>
+        )}
       </div>
 
-      {/* Submit Button */}
-      <button 
+      {/* General error */}
+      {errors.general && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" role="alert" aria-live="assertive" data-testid="general-error">
+          {errors.general}
+        </div>
+      )}
+
+      {/* Submit */}
+      <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-6 px-6 py-3 bg-brand-500 text-white rounded-lg hover:bg-brand-600 
+        className="mt-6 px-6 py-3 bg-brand-500 text-white rounded-lg hover:bg-brand-600
                    transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed
                    focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+        data-testid="submit-application"
       >
         {isSubmitting ? (
           <span className="flex items-center justify-center">
@@ -302,15 +395,15 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Submitting Application...
+            {t('careers.submitting', 'Submitting application...')}
           </span>
         ) : (
-          'Submit Application'
+          t('careers.submit', 'Submit Application')
         )}
       </button>
 
       <p className="text-xs text-gray-500 mt-3">
-        By submitting this application, you agree to our privacy policy and terms of service.
+        {t('careers.terms', 'By submitting this application, you agree to our privacy policy and terms of service.')}
       </p>
     </form>
   );
