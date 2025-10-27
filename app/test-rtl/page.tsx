@@ -6,7 +6,7 @@ import { ResponsiveContainer} from '@/components/ui/ResponsiveContainer';
 
 export default function RTLTestPage() {
   const { t, language, setLanguage, isRTL } = useTranslation();
-  const { screenSize, isMobile, isTablet, isDesktop } = useResponsive();
+  const { screenSize, isMobile, isTablet } = useResponsive();
 
   const testTranslations = [
     'nav.dashboard',

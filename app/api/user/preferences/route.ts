@@ -8,25 +8,26 @@ import { connectDb } from '@/lib/mongo';
  * Non-mutating: call with an empty object as first arg to avoid mutating inputs.
  * Usage: deepMerge({}, existingPreferences, updates)
  */
-function deepMerge(...objects: Array<Record<string, any> | undefined>) {
-  const result: Record<string, any> = {};
+function deepMerge(...objects: Array<Record<string, unknown> | undefined>) {
+  const result: Record<string, unknown> = {};
 
-  const isPlainObject = (val: any) => val && typeof val === 'object' && !Array.isArray(val);
+  const isPlainObject = (val: unknown): val is Record<string, unknown> =>
+    typeof val === 'object' && val !== null && !Array.isArray(val);
 
   for (const obj of objects) {
     if (!obj) continue;
     for (const key of Object.keys(obj)) {
-      const sourceValue = obj[key];
+      const sourceValue = obj[key] as unknown;
       const existing = result[key];
 
       if (isPlainObject(existing) && isPlainObject(sourceValue)) {
-        result[key] = deepMerge(existing, sourceValue);
+        result[key] = deepMerge(existing, sourceValue as Record<string, unknown>);
       } else {
         // clone arrays and primitives directly
         if (Array.isArray(sourceValue)) {
-          result[key] = sourceValue.slice();
+          result[key] = (sourceValue as unknown[]).slice();
         } else if (isPlainObject(sourceValue)) {
-          result[key] = deepMerge({}, sourceValue);
+          result[key] = deepMerge({}, sourceValue as Record<string, unknown>);
         } else {
           result[key] = sourceValue;
         }

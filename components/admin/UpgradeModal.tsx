@@ -49,8 +49,12 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
       setError('');
       onClose();
       // Use toast notification instead of alert if available
-      if (typeof window !== 'undefined' && (window as any).toast) {
-        (window as any).toast.success('Thank you! Our sales team will contact you shortly.');
+      if (typeof window !== 'undefined') {
+        const w = window as unknown as Record<string, unknown>;
+        const maybeToast = w.toast as unknown as { success?: (msg: string) => void } | undefined;
+        if (maybeToast?.success) {
+          maybeToast.success('Thank you! Our sales team will contact you shortly.');
+        }
       }
     } catch (error) {
       console.error('Failed to submit contact request:', error);

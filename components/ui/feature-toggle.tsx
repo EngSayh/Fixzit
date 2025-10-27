@@ -107,9 +107,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
     }
   };
 
-  const toggleColor = danger 
-    ? (enabled ? 'bg-red-600' : 'bg-gray-200')
-    : (enabled ? 'bg-green-600' : 'bg-gray-200');
+  // `toggleColor` was previously computed but unused; styling is handled inline in the JSX
 
   return (
     <div 

@@ -1,5 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { tenantIsolationPlugin, withoutTenantFilter } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
 const FeatureStatus = ["ENABLED", "DISABLED", "BETA", "DEPRECATED"] as const;
@@ -15,7 +15,7 @@ const FeatureFlagSchema = new Schema({
   // orgId: { type: String, required: true, index: true },
 
   // Basic Information
-  key: { type: String, required: true, unique: true, uppercase: true }, // e.g., "ENABLE_REFERRAL_PROGRAM"
+  key: { type: String, required: true, uppercase: true }, // e.g., "ENABLE_REFERRAL_PROGRAM"
   name: { type: String, required: true }, // Human-readable name
   description: String,
   category: { type: String, enum: FeatureCategory, required: true },
@@ -151,17 +151,17 @@ const FeatureFlagSchema = new Schema({
   timestamps: true
 });
 
-// Indexes
-FeatureFlagSchema.index({ key: 1 });
-FeatureFlagSchema.index({ status: 1 });
-FeatureFlagSchema.index({ category: 1 });
+// Plugins (apply first so orgId exists for indexes)
+FeatureFlagSchema.plugin(tenantIsolationPlugin);
+FeatureFlagSchema.plugin(auditPlugin);
+
+// Indexes (tenant-aware after plugins)
+FeatureFlagSchema.index({ orgId: 1, key: 1 }, { unique: true });
+FeatureFlagSchema.index({ orgId: 1, status: 1 });
+FeatureFlagSchema.index({ orgId: 1, category: 1 });
 FeatureFlagSchema.index({ isGlobal: 1 });
 FeatureFlagSchema.index({ "rollout.whitelistedOrgs": 1 });
 FeatureFlagSchema.index({ "rollout.startDate": 1, "rollout.endDate": 1 });
-
-// Plugins
-FeatureFlagSchema.plugin(tenantIsolationPlugin);
-FeatureFlagSchema.plugin(auditPlugin);
 
 // Static method to check if feature is enabled
 FeatureFlagSchema.statics.isEnabled = async function(
@@ -173,7 +173,15 @@ FeatureFlagSchema.statics.isEnabled = async function(
     environment?: string;
   }
 ) {
-  const feature = await this.findOne({ key });
+  // Try tenant-scoped lookup first
+  let feature = await this.findOne({ key });
+  
+  // Fallback to global flags if not found
+  if (!feature) {
+    feature = await withoutTenantFilter(async () => 
+      this.findOne({ key, isGlobal: true })
+    );
+  }
   
   if (!feature) return false;
   if (feature.status !== 'ENABLED') return false;
@@ -236,14 +244,24 @@ FeatureFlagSchema.statics.isEnabled = async function(
 
 // Static method to get feature config
 FeatureFlagSchema.statics.getConfig = async function(key: string) {
-  const feature = await this.findOne({ key });
+  // Try tenant-scoped lookup first
+  let feature = await this.findOne({ key });
+  
+  // Fallback to global flags if not found
+  if (!feature) {
+    feature = await withoutTenantFilter(async () => 
+      this.findOne({ key, isGlobal: true })
+    );
+  }
+  
   if (!feature) return null;
-  return feature.config.values || feature.config.defaults || {};
+  return feature.config?.values ?? feature.config?.defaults ?? {};
 };
 
 // Static method to record usage
 FeatureFlagSchema.statics.recordUsage = async function(key: string, enabled: boolean) {
-  await this.updateOne(
+  // Try tenant-scoped update first
+  const result = await this.updateOne(
     { key },
     {
       $inc: {
@@ -255,6 +273,24 @@ FeatureFlagSchema.statics.recordUsage = async function(key: string, enabled: boo
       }
     }
   );
+  
+  // If no document was updated, try global flags
+  if (result.matchedCount === 0) {
+    await withoutTenantFilter(async () => 
+      this.updateOne(
+        { key, isGlobal: true },
+        {
+          $inc: {
+            'usage.totalChecks': 1,
+            [`usage.${enabled ? 'enabled' : 'disabled'}Checks`]: 1
+          },
+          $set: {
+            'usage.lastCheckedAt': new Date()
+          }
+        }
+      )
+    );
+  }
 };
 
 // Helper function for percentage rollout
