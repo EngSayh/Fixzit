@@ -64,7 +64,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         if (response.ok) {
           const data = await response.json();
           if (data.user && data.user.role) {
-            const userRole = data.user.role as UserRole;
+            // Validate role is a known UserRole before casting
+            const validRoles: UserRole[] = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER', 'TENANT', 'VENDOR', 'SUPPORT', 'AUDITOR', 'PROCUREMENT', 'EMPLOYEE', 'CUSTOMER', 'guest'];
+            const userRole = validRoles.includes(data.user.role as UserRole) 
+              ? (data.user.role as UserRole) 
+              : 'guest';
             setRole(userRole);
             // Cache the role in localStorage only after successful verification
             localStorage.setItem('fixzit-role', userRole);

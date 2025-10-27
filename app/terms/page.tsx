@@ -124,9 +124,15 @@ export default function TermsPage() {
   // Render markdown to HTML when content changes
   useEffect(() => {
     if (content) {
-      renderMarkdownSanitized(content).then(html => {
-        setRenderedContent(html);
-      });
+      renderMarkdownSanitized(content)
+        .then(html => {
+          setRenderedContent(html);
+        })
+        .catch(err => {
+          console.error('Error rendering markdown:', err);
+          // Fallback to plain text wrapped in paragraphs
+          setRenderedContent(`<div class="prose max-w-none"><p>${content.replace(/\n/g, '</p><p>')}</p></div>`);
+        });
     }
   }, [content]);
 
