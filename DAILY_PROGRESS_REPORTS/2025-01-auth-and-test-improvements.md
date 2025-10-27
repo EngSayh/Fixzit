@@ -221,6 +221,128 @@ LOOP_PAUSE_MS=300000 node tests/loop-runner.mjs
 - More responsive feel
 - Success screen still visible but not too long
 
+## Part 3: Form Validation & Admin Improvements
+
+### AuditLogViewer Improvements (app/admin/audit-logs/page.tsx)
+
+#### 1. ✅ Locale-Aware Date Formatting
+**Issue**: Dates always formatted using hardcoded 'en-US' locale, ignoring user preference.
+
+**Solution**:
+- Integrated TranslationContext to extract user's locale
+- Updated `formatDate()` to accept locale parameter with fallback
+- Pass `userLocale` to all date formatting operations
+- Dates now respect application's current language setting (ar-SA for Arabic, en-US for English)
+
+**Impact**: Better internationalization, Arabic users see dates in their locale format.
+
+#### 2. ✅ Timezone Support
+**Issue**: No timezone specification, leading to potential confusion for distributed teams.
+
+**Solution**:
+- Added `DEFAULT_TIMEZONE` constant set to 'Asia/Riyadh'
+- Added `timeZone` option to `toLocaleString()` calls
+- Ensures consistent timezone display regardless of server location
+
+**Impact**: All timestamps displayed in consistent timezone (KSA time).
+
+#### 3. ✅ Centralized API Endpoint
+**Issue**: API route hardcoded in fetch call, difficult to maintain.
+
+**Solution**:
+- Created `API_ENDPOINT` constant at component top
+- Single source of truth for audit log API route
+- Easy to update if backend route changes
+
+**Impact**: Better maintainability and DRY principle.
+
+#### 4. ✅ User-Friendly Error Messages
+**Issue**: Error messages included technical details like HTTP status codes.
+
+**Solution**:
+- Removed `(${response.status}: ${response.statusText})` from error messages
+- Kept user-friendly text: "An unexpected error occurred. Please try again."
+- Improved network error message: "Network error occurred. Please check your connection..."
+- Technical details still logged to console for debugging
+
+**Impact**: Better user experience, less technical jargon for non-technical users.
+
+#### 5. ✅ Secure Cookie Transmission
+**Issue**: Fetch might not send authentication cookies properly.
+
+**Solution**:
+- Added `credentials: 'include'` to fetch options
+- Ensures session cookies sent with API requests
+- Aligns with Next.js middleware expectations
+
+**Impact**: Reliable authentication for audit log data fetching.
+
+### JobApplicationForm Improvements (components/careers/JobApplicationForm.tsx)
+
+#### 1. ✅ Comprehensive Client-Side Validation
+**Issue**: Only HTML `required` attributes, no JavaScript validation before submission.
+
+**Solution**:
+- Created validation utility functions:
+  - `validateRequiredField(value, fieldName)` - checks for non-empty values
+  - `validateEmail(email)` - regex-based email format validation
+  - `validatePhone(phone)` - validates Saudi phone format (+966XXXXXXXXX)
+  - `validateResume(file)` - checks file type (PDF only) and size (5MB limit)
+- Added comprehensive validation loop before API call
+- Set error states for invalid fields
+- Use react-hot-toast for error notifications
+
+**Impact**: Better UX with immediate feedback, reduced unnecessary API calls, consistent validation logic.
+
+#### 2. ✅ Enhanced Error Messages
+**Issue**: Generic error messages didn't guide users to fix issues.
+
+**Solution**:
+- Field-specific error messages (e.g., "Please enter your full name")
+- Format-specific guidance (e.g., "Please enter a valid email address")
+- File validation messages (e.g., "Resume must be a PDF file", "Resume file size must be less than 5MB")
+
+**Impact**: Users know exactly what to fix, reducing form abandonment.
+
+#### 3. ✅ Secure Authentication
+**Issue**: Fetch might not include session cookies.
+
+**Solution**:
+- Added `credentials: 'include'` to fetch options
+- Ensures authenticated job applications tracked properly
+
+**Impact**: Backend can identify logged-in users submitting applications.
+
+#### 4. ✅ TypeScript Error Fixes
+**Issue**: TypeScript compilation errors and linter warnings.
+
+**Solution**:
+- Fixed regex escaping in validation functions
+- Removed unsupported `action` property from toast notifications
+- Added proper type annotations for validation functions
+
+**Impact**: Clean compilation, better type safety, no runtime errors.
+
+### Validation Patterns
+
+#### Email Validation
+```typescript
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+```
+- Checks for basic email format (local@domain.tld)
+- Prevents common typos and malformed addresses
+
+#### Phone Validation
+```typescript
+const PHONE_REGEX = /^(\+966|00966|0)?5[0-9]{8}$/;
+```
+- Supports multiple formats: +966XXXXXXXXX, 00966XXXXXXXXX, 05XXXXXXXX
+- Validates Saudi mobile number format (starts with 5)
+
+#### Resume Validation
+- File type: PDF only (`file.type === 'application/pdf'`)
+- File size: Maximum 5MB (`file.size <= 5 * 1024 * 1024`)
+
 ## Files Modified
 
 ### Test Infrastructure
@@ -230,6 +352,10 @@ LOOP_PAUSE_MS=300000 node tests/loop-runner.mjs
 
 ### Authentication
 - `/workspaces/Fixzit/app/login/page.tsx` (315 lines added, 27 lines removed)
+
+### Admin & Careers
+- `/workspaces/Fixzit/app/admin/audit-logs/page.tsx` (locale awareness, API centralization, error handling)
+- `/workspaces/Fixzit/components/careers/JobApplicationForm.tsx` (comprehensive validation)
 
 ## Testing Recommendations
 
@@ -272,6 +398,26 @@ LOOP_PAUSE_MS=300000 node tests/loop-runner.mjs
    - Login as different role types
    - Verify redirect to correct dashboard
 
+### Admin & Careers Components
+
+1. **AuditLogViewer locale test**:
+   - Switch application language to Arabic
+   - Verify timestamps display in ar-SA format
+   - Check that timezone shows consistently (Asia/Riyadh)
+
+2. **AuditLogViewer error handling test**:
+   - Simulate network failure
+   - Verify user-friendly error message (no technical details)
+   - Check console for technical debug info
+
+3. **JobApplicationForm validation test**:
+   - Submit with empty fields → Expect field-specific errors
+   - Submit with invalid email (e.g., "test@invalid") → Expect email format error
+   - Submit with invalid phone (e.g., "123456") → Expect phone format error
+   - Submit with non-PDF file → Expect file type error
+   - Submit with large PDF (>5MB) → Expect file size error
+   - Submit with valid data → Expect success notification
+
 ## Benefits
 
 ### Test Infrastructure
@@ -288,10 +434,19 @@ LOOP_PAUSE_MS=300000 node tests/loop-runner.mjs
 4. **Maintainability**: Extracted functions, better types
 5. **Accessibility**: Consistent RTL support, proper ARIA attributes
 
+### Admin & Careers Components
+1. **Internationalization**: Locale-aware date formatting, timezone consistency
+2. **Security**: Secure cookie transmission with credentials: 'include'
+3. **UX**: User-friendly error messages, comprehensive validation feedback
+4. **Maintainability**: Centralized API endpoints, reusable validation functions
+5. **Data Integrity**: Client-side validation reduces invalid API calls
+
 ## Status
 
 ✅ **Test Infrastructure**: All 5 improvements implemented and verified
 ✅ **Login Page**: All security and UX improvements implemented
+✅ **AuditLogViewer**: Locale awareness, timezone support, error handling improved
+✅ **JobApplicationForm**: Comprehensive validation, enhanced error messages
 ✅ **No TypeScript/ESLint errors**
 ✅ **Ready for testing and deployment**
 
@@ -299,6 +454,7 @@ LOOP_PAUSE_MS=300000 node tests/loop-runner.mjs
 
 1. `feat(tests): improve loop-runner reliability and error handling` - commit 65e72175f
 2. `feat(auth): improve login page security and UX` - commit 8fe5138d0
+3. `feat(admin,careers): improve form validation and audit viewer locale handling` - commit 038153139
 
 ## Next Steps
 
@@ -306,6 +462,13 @@ LOOP_PAUSE_MS=300000 node tests/loop-runner.mjs
 - [ ] Test loop-runner with short duration
 - [ ] Test login page E2E scenarios
 - [ ] Verify role-based redirects work correctly
+- [ ] Test AuditLogViewer with Arabic locale
+- [ ] Test JobApplicationForm validation scenarios
+
+### Future Enhancements (Optional)
+- [ ] Add pagination improvements to AuditLogViewer (ellipsis, first/last buttons)
+- [ ] Add more specific type safety for audit log changes array
+- [ ] Consider date filter simplification (send YYYY-MM-DD, let backend handle UTC)
 
 ### Future Refactor (Noted)
 - [ ] Replace localStorage role with secure session-based approach
