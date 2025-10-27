@@ -11,7 +11,7 @@ const OwnerSchema = new Schema({
 
   // Basic Information
   code: { type: String, required: true }, // ⚡ Removed unique: true - enforced via compound index below
-  userId: { type: String, ref: "User", required: true }, // Link to auth user
+  userId: { type: Schema.Types.ObjectId, ref: "User", required: true }, // Link to auth user (using ObjectId for consistency)
   type: { type: String, enum: OwnerType, required: true },
   
   // Personal/Company Information
@@ -22,7 +22,7 @@ const OwnerSchema = new Schema({
     full: { type: String, required: true }
   },
   companyName: String, // If type is COMPANY
-  nationalId: { type: String, unique: true, sparse: true }, // Iqama/ID number
+  nationalId: { type: String }, // ⚡ Iqama/ID number - uniqueness enforced via compound index below for tenant-scoped uniqueness
   commercialRegistration: String, // For companies
   taxNumber: String,
 
@@ -73,14 +73,11 @@ const OwnerSchema = new Schema({
     }]
   }],
 
-  // Portfolio Summary
+  // Portfolio Summary (simplified - only store directly derivable count)
+  // ⚡ Other metrics (totalUnits, totalArea, occupancyRate, revenue, expenses) should be calculated
+  // dynamically via aggregation or virtuals to avoid data inconsistency
   portfolio: {
-    totalProperties: { type: Number, default: 0 },
-    totalUnits: { type: Number, default: 0 },
-    totalArea: { type: Number, default: 0 }, // sqm
-    occupancyRate: { type: Number, default: 0 }, // percentage
-    totalRevenue: { type: Number, default: 0 }, // monthly
-    totalExpenses: { type: Number, default: 0 } // monthly
+    totalProperties: { type: Number, default: 0 }
   },
 
   // Preferences
@@ -126,43 +123,28 @@ OwnerSchema.plugin(tenantIsolationPlugin);
 OwnerSchema.plugin(auditPlugin);
 
 // Indexes (after plugins to ensure orgId exists)
-OwnerSchema.index({ orgId: 1, code: 1 }, { unique: true }); // ⚡ Tenant-scoped uniqueness
+OwnerSchema.index({ orgId: 1, code: 1 }, { unique: true }); // ⚡ Tenant-scoped uniqueness for code
 OwnerSchema.index({ orgId: 1, userId: 1 });
 OwnerSchema.index({ orgId: 1, status: 1 });
 OwnerSchema.index({ orgId: 1, "contact.email": 1 });
-OwnerSchema.index({ orgId: 1, nationalId: 1 });
+OwnerSchema.index({ orgId: 1, nationalId: 1 }, { unique: true, sparse: true }); // ⚡ Tenant-scoped uniqueness for nationalId
 OwnerSchema.index({ orgId: 1, "properties.propertyId": 1 });
 
-// Pre-save hook to update portfolio summary
+// Pre-save hook to update portfolio summary (simplified)
 OwnerSchema.pre('save', async function(next) {
   if (this.isModified('properties')) {
     // Get active properties (those without endDate)
     const activeProperties = this.properties.filter(p => !p.endDate);
     
-    // Reset portfolio metrics - ensure portfolio exists
+    // Ensure portfolio exists
     if (!this.portfolio) {
-      this.portfolio = {
-        totalProperties: 0,
-        totalUnits: 0,
-        totalArea: 0,
-        occupancyRate: 0,
-        totalRevenue: 0,
-        totalExpenses: 0
-      };
+      this.portfolio = { totalProperties: 0 };
     }
-    // TypeScript needs this assertion after the initialization check above
-    this.portfolio!.totalProperties = activeProperties.length;
     
-    // Calculate aggregated metrics from Property model data
-    // Note: These would typically be calculated from the actual Property documents
-    // For now, we just set the count. Revenue/expenses should be calculated
-    // from actual financial records, not stored here to avoid data inconsistency.
-    
-    // If you need to calculate from linked properties, do it async:
-    // const propertyIds = activeProperties.map(p => p.propertyId);
-    // const properties = await PropertyModel.find({ _id: { $in: propertyIds } });
-    // this.portfolio.totalUnits = properties.reduce((sum, p) => sum + (p.units || 0), 0);
-    // this.portfolio.totalArea = properties.reduce((sum, p) => sum + (p.details?.totalArea || 0), 0);
+    // ⚡ Only update directly derivable count - avoid storing stale aggregated data
+    // Other metrics (totalUnits, totalArea, occupancyRate, revenue, expenses) should be
+    // calculated dynamically via aggregation pipelines or service methods to ensure accuracy
+    this.portfolio.totalProperties = activeProperties.length;
   }
   next();
 });
