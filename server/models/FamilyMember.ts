@@ -10,11 +10,11 @@ const FamilyMemberSchema = new Schema({
   // orgId: { type: String, required: true, index: true },
 
   // Primary User (Family Admin)
-  primaryUserId: { type: String, ref: "User", required: true },
+  primaryUserId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   tenantId: { type: Schema.Types.ObjectId, ref: "Tenant" }, // Optional link to tenant
   
   // Family Member Information
-  userId: { type: String, ref: "User" }, // If they have created account
+  userId: { type: Schema.Types.ObjectId, ref: "User" }, // If they have created account
   name: {
     first: String,
     middle: String,

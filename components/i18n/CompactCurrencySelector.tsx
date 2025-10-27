@@ -22,9 +22,9 @@ export default function CompactCurrencySelector({ className = '' }: CompactCurre
   const { currency, setCurrency } = useCurrency();
 
   const handleChange = (newCurrency: string) => {
-    // Update currency in context (cast to expected type)
+    // Update currency in context (cast to the expected function shape to avoid `any`)
     if (setCurrency) {
-      setCurrency(newCurrency as any);
+      (setCurrency as (c: string) => void)(newCurrency);
     }
 
     // Persist to localStorage as fallback

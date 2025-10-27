@@ -121,11 +121,11 @@ AuditLogSchema.statics.log = async function(data: {
   entityId?: string;
   entityName?: string;
   userId: string;
-  changes?: any[];
-  snapshot?: any;
-  context?: any;
-  metadata?: any;
-  result?: any;
+  changes?: Array<Record<string, unknown>>;
+  snapshot?: Record<string, unknown>;
+  context?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  result?: Record<string, unknown>;
 }) {
   try {
     const log = await this.create({
@@ -152,20 +152,22 @@ AuditLogSchema.statics.search = async function(filters: {
   limit?: number;
   skip?: number;
 }) {
-  const query: any = { orgId: filters.orgId };
-  
-  if (filters.userId) query.userId = filters.userId;
-  if (filters.entityType) query.entityType = filters.entityType;
-  if (filters.entityId) query.entityId = filters.entityId;
-  if (filters.action) query.action = filters.action;
-  
+  const query: Record<string, unknown> = { orgId: filters.orgId };
+
+  if (filters.userId) (query as Record<string, unknown>)['userId'] = filters.userId;
+  if (filters.entityType) (query as Record<string, unknown>)['entityType'] = filters.entityType;
+  if (filters.entityId) (query as Record<string, unknown>)['entityId'] = filters.entityId;
+  if (filters.action) (query as Record<string, unknown>)['action'] = filters.action;
+
   if (filters.startDate || filters.endDate) {
-    query.timestamp = {};
-    if (filters.startDate) query.timestamp.$gte = filters.startDate;
-    if (filters.endDate) query.timestamp.$lte = filters.endDate;
+    const ts: Record<string, unknown> = {};
+    if (filters.startDate) (ts as Record<string, unknown>)['$gte'] = filters.startDate;
+    if (filters.endDate) (ts as Record<string, unknown>)['$lte'] = filters.endDate;
+    (query as Record<string, unknown>)['timestamp'] = ts;
   }
-  
-  return this.find(query)
+
+  // `find` accepts a wide variety of shapes; cast to unknown to satisfy TS here without using `any`
+  return this.find(query as unknown as Record<string, unknown>)
     .sort({ timestamp: -1 })
     .limit(filters.limit || 100)
     .skip(filters.skip || 0);

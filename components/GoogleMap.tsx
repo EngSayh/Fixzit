@@ -200,7 +200,6 @@ export default function GoogleMap({
       infoRefs.current = [];
       markerRefs.current.forEach((m) => {
         try {
-          // @ts-ignore - google maps types sometimes mark internal listeners
           google.maps.event.clearInstanceListeners(m);
         } catch {
           /* noop */

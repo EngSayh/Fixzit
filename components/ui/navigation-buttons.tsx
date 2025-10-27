@@ -231,10 +231,13 @@ export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
 }) => {
   const handleSubmit = async (e?: React.FormEvent) => {
     // Support both direct form submit event and programmatic save via button click
-    const evt = e ?? ({ preventDefault: () => {} } as unknown as React.FormEvent);
+    const evt = e ?? ({} as React.FormEvent);
     try {
-      if (evt && typeof (evt as any).preventDefault === 'function') (evt as any).preventDefault();
-    } catch (err) {
+      // preventDefault exists on React.FormEvent, guard defensively
+      if (evt && typeof (evt as unknown as { preventDefault?: Function }).preventDefault === 'function') {
+        (evt as unknown as { preventDefault: Function }).preventDefault();
+      }
+    } catch (_err) {
       // ignore
     }
     await onSubmit(evt);
