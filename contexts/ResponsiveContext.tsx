@@ -33,25 +33,16 @@ interface ResponsiveProviderProps {
 }
 
 export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
-  // Initialize with actual viewport width if available (prevents hydration flash)
-  const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>(() => {
-    if (typeof window === 'undefined') return 'desktop';
-    const width = window.innerWidth;
-    if (width < 768) return 'mobile';
-    if (width < 1024) return 'tablet';
-    return 'desktop';
+  // Always initialize with 'desktop' for SSR consistency
+  // Will be updated on mount to prevent hydration mismatch
+  const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [dimensions, setDimensions] = useState<{ width?: number; height?: number }>({
+    width: undefined,
+    height: undefined
   });
-  const [dimensions, setDimensions] = useState(() => {
-    if (typeof window === 'undefined') return { width: undefined, height: undefined };
-    return { width: window.innerWidth, height: window.innerHeight };
-  });
-  const [isRTL, setIsRTL] = useState(() => {
-    if (typeof document === 'undefined') return false;
-    return document.documentElement.dir === 'rtl';
-  });
+  const [isRTL, setIsRTL] = useState(false);
 
   useEffect(() => {
-
     const checkScreenSize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -65,15 +56,15 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
       }
     };
 
-    // Initial check
+    // Initial check (only on client side)
     checkScreenSize();
+
+    // Check for RTL direction from document (consolidated check)
+    const htmlDir = document.documentElement.dir;
+    setIsRTL(htmlDir === 'rtl');
 
     // Add event listener
     window.addEventListener('resize', checkScreenSize);
-
-    // Check for RTL direction from document
-    const htmlDir = document.documentElement.dir;
-    setIsRTL(htmlDir === 'rtl');
 
     return () => {
       window.removeEventListener('resize', checkScreenSize);

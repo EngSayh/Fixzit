@@ -85,8 +85,10 @@ test.describe('i18n: Language Switching', () => {
     );
     await arabicOption.click();
 
-    // Wait for language change to apply
-    await page.waitForTimeout(1000);
+    // Wait for language change to apply (check dir attribute)
+    await page.waitForFunction(() => document.documentElement.getAttribute('dir') === 'rtl', {
+      timeout: 5000
+    });
 
     // Verify RTL
     dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));

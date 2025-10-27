@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface NavigationButtonsProps {
   /**
@@ -84,13 +85,18 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   onSave,
   backUrl,
   homeUrl = '/dashboard',
-  saving = false,
+  saving: externalSaving = false,
   saveDisabled = false,
-  saveText = 'Save',
+  saveText,
   position = 'bottom',
   className = ''
 }) => {
   const router = useRouter();
+  const { t } = useTranslation();
+  const [internalSaving, setInternalSaving] = useState(false);
+  
+  // Use external saving state if provided, otherwise use internal
+  const saving = externalSaving || internalSaving;
 
   const handleBack = () => {
     if (backUrl) {
@@ -106,7 +112,15 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
 
   const handleSave = async () => {
     if (onSave && !saving && !saveDisabled) {
-      await onSave();
+      setInternalSaving(true);
+      try {
+        await onSave();
+      } catch (error) {
+        console.error('Save operation failed:', error);
+        // If there's an onSaveError callback in the future, call it here
+      } finally {
+        setInternalSaving(false);
+      }
     }
   };
 
@@ -123,7 +137,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back
+            {t('navigation.back', 'Back')}
           </button>
         )}
         
@@ -136,7 +150,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            Home
+            {t('navigation.home', 'Home')}
           </button>
         )}
       </div>
@@ -159,14 +173,14 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              Saving...
+              {t('navigation.saving', 'Saving...')}
             </>
           ) : (
             <>
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
-              {saveText}
+              {saveText || t('navigation.save', 'Save')}
             </>
           )}
         </button>

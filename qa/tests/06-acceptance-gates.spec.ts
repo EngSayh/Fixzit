@@ -11,7 +11,8 @@ test('Zero console errors & failed requests across key routes', async ({ page })
   for (const r of routes) {
     await page.goto(r);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(250); // settle
+    // Wait for DOM to settle (check if document.readyState is complete)
+    await page.waitForFunction(() => document.readyState === 'complete', { timeout: 2000 });
   }
   await page.screenshot({ path: 'qa/artifacts/acceptance-gates.png', fullPage: true });
   expect(errors, 'console/page errors').toHaveLength(0);

@@ -1269,6 +1269,9 @@ const ar = {
     shared: 'مشترك',
     public: 'عام',
     private: 'خاص',
+    back: 'رجوع',
+    save: 'حفظ',
+    saving: 'جاري الحفظ...',
   },
   phrases: {
     yes: 'نعم',

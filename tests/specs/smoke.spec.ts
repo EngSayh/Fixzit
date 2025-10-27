@@ -173,6 +173,7 @@ test.describe('Branding & Theme Consistency', () => {
     // Expect brand colors to be defined (exact values may vary based on theme)
     expect(styles.primary).toBeTruthy();
     expect(styles.secondary).toBeTruthy();
+    expect(styles.accent).toBeTruthy();
   });
 
   test('Logo and brand elements are visible', async ({ page }) => {

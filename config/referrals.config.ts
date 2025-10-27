@@ -18,8 +18,21 @@ function safeParseNullableInt(value: string | undefined): number | null {
 }
 
 // Referral reward configuration
+const ALLOWED_REWARD_TYPES = ['CASH', 'CREDIT', 'DISCOUNT'] as const;
+type RewardType = typeof ALLOWED_REWARD_TYPES[number];
+
+// Validate reward type with runtime check
+function validateRewardType(value: string | undefined): RewardType {
+  const rawValue = (value || 'CASH').toUpperCase();
+  if (ALLOWED_REWARD_TYPES.includes(rawValue as RewardType)) {
+    return rawValue as RewardType;
+  }
+  console.warn(`[Config] Invalid REFERRAL_REWARD_TYPE: ${rawValue}. Falling back to 'CASH'.`);
+  return 'CASH';
+}
+
 export const REFERRAL_REWARD = {
-  type: (process.env.REFERRAL_REWARD_TYPE || 'CASH') as 'CASH' | 'CREDIT' | 'DISCOUNT',
+  type: validateRewardType(process.env.REFERRAL_REWARD_TYPE),
   referrerAmount: safeParseInt(process.env.REFERRAL_REWARD_REFERRER_AMOUNT, 100),
   referredAmount: safeParseInt(process.env.REFERRAL_REWARD_REFERRED_AMOUNT, 50),
   currency: process.env.REFERRAL_REWARD_CURRENCY || 'SAR',

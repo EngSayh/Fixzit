@@ -53,6 +53,19 @@ export const SIGNUP_USER_TYPES: UserType[] = [
   },
 ];
 
+/**
+ * Password strength requirements
+ * 
+ * Scoring system (via zxcvbn library):
+ * - Score range: 0-4
+ * - 0: Too guessable (risky password)
+ * - 1: Very guessable (protection from throttled online attacks)
+ * - 2: Somewhat guessable (protection from unthrottled online attacks)
+ * - 3: Safely unguessable (moderate protection from offline slow-hash scenario)
+ * - 4: Very unguessable (strong protection from offline slow-hash scenario)
+ * 
+ * minScore of 3 ensures "safely unguessable" passwords are required.
+ */
 export const PASSWORD_REQUIREMENTS = {
   minLength: 8,
   requireUppercase: true,

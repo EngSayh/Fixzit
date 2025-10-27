@@ -233,6 +233,6 @@ This PR now includes:
 
 ---
 
-**Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+**Generated**: 2025-10-27 12:00:00 UTC
 **Branch**: `fix/auth-duplicate-requests-and-debug-logs`
 **Latest Commit**: `faeb66601`

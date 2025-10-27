@@ -82,7 +82,8 @@ export function ResponsiveGrid({
     if (screenInfo.isTablet || width < 1024) {
       return `grid-cols-${cols.tablet || 2}`;
     }
-    if (screenInfo.isDesktop || width < 1280) {
+    // Fixed: Changed OR to AND - both conditions must be true for desktop
+    if (screenInfo.isDesktop && width < 1280) {
       return `grid-cols-${cols.desktop || 3}`;
     }
     return `grid-cols-${cols.large || 4}`;
