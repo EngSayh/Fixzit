@@ -1,6 +1,8 @@
 import { getServerI18n } from '@/lib/i18n/server';
 import { Building2, Users, Target, Award, MapPin, Phone, Mail } from 'lucide-react';
 import { renderMarkdownSanitized } from '@/lib/markdown';
+import { headers } from 'next/headers';
+import type { Metadata } from 'next';
 
 /**
  * Default about content shown when CMS content is not available or not published.
@@ -38,30 +40,92 @@ To empower organizations with innovative, efficient, and user-friendly tools tha
 **Customer Focus**: Your success is our priority`;
 
 /**
+ * Dynamically get the base URL from request headers.
+ * This is safer than relying on NEXT_PUBLIC_SITE_URL which may not be set in all environments.
+ */
+async function getBaseUrl(): Promise<string> {
+  const headersList = await headers();
+  const host = headersList.get('host') || 'localhost:3000';
+  const protocol = headersList.get('x-forwarded-proto') || 'http';
+  return `${protocol}://${host}`;
+}
+
+/**
+ * Generate metadata for SEO optimization.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
+  const baseUrl = await getBaseUrl();
+
+  return {
+    title: t('about.metaTitle', 'About Us - Fixzit Enterprise | Leading Facilities Management Solutions'),
+    description: t(
+      'about.metaDesc',
+      'Learn about Fixzit Enterprise, a leading facilities management solution provider with 15+ years of experience, serving 500+ clients worldwide with 99.9% uptime.'
+    ),
+    openGraph: {
+      title: t('about.metaTitle', 'About Us - Fixzit Enterprise'),
+      description: t(
+        'about.metaDesc',
+        'Leading facilities management and maintenance solution provider serving 500+ organizations worldwide.'
+      ),
+      url: `${baseUrl}/about`,
+      siteName: 'Fixzit Enterprise',
+      type: 'website',
+      images: [
+        {
+          url: `${baseUrl}/images/og-about.jpg`,
+          width: 1200,
+          height: 630,
+          alt: 'Fixzit Enterprise - About Us',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t('about.metaTitle', 'About Us - Fixzit Enterprise'),
+      description: t('about.metaDesc', 'Leading facilities management solution provider with 15+ years of experience.'),
+      images: [`${baseUrl}/images/twitter-about.jpg`],
+    },
+    alternates: {
+      canonical: `${baseUrl}/about`,
+    },
+  };
+}
+
+/**
  * About Us Page (Public View)
  * 
  * Displays company information and values managed through CMS admin interface.
  * Fetches from /api/cms/pages/about and falls back to default content.
  * Supports RTL languages and responsive design.
+ * Includes JSON-LD structured data for SEO.
  * 
  * @returns About page with hero, stats, content, and contact sections
  */
 export default async function AboutPage() {
   // Server-side minimal i18n
   const { t, isRTL } = await getServerI18n();
+  const baseUrl = await getBaseUrl();
 
   // Server fetch of CMS about page. Server components can await fetch directly.
   let title = t('about.title', 'About Us');
   let content = DEFAULT_ABOUT_CONTENT;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/cms/pages/about`, {
+    const res = await fetch(`${baseUrl}/api/cms/pages/about`, {
       // force no-store so latest content is fetched server-side; adjust if caching required
       cache: 'no-store',
     });
 
     if (res.ok) {
-      const data = await res.json();
+      let data: { status?: string; title?: string; content?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        // If JSON parse fails, use defaults
+      }
+
       if (data?.status === 'PUBLISHED') {
         title = data.title || title;
         content = data.content || content;
@@ -74,107 +138,181 @@ export default async function AboutPage() {
 
   const renderedContent = await renderMarkdownSanitized(content);
 
+  // Strip duplicate H1 from CMS markdown content if present
+  // CMS editors often add an H1 which duplicates the hero title
+  const contentWithoutH1 = renderedContent.replace(/<h1[^>]*>.*?<\/h1>/i, '');
+
+  // JSON-LD structured data for Organization
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Fixzit Enterprise',
+    url: baseUrl,
+    logo: `${baseUrl}/logo.png`,
+    description: t(
+      'about.metaDesc',
+      'Leading facilities management and maintenance solution provider serving 500+ organizations worldwide.'
+    ),
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'AE',
+      // Add specific address details when available
+    },
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: '+971-XX-XXX-XXXX',
+      contactType: 'customer service',
+      email: 'info@fixzit.com',
+      availableLanguage: ['en', 'ar'],
+    },
+    sameAs: [
+      // Add social media URLs when available
+      // 'https://twitter.com/fixzit',
+      // 'https://linkedin.com/company/fixzit',
+    ],
+  };
+
+  // JSON-LD structured data for WebSite
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Fixzit Enterprise',
+    url: baseUrl,
+    description: t(
+      'about.metaDesc',
+      'Leading facilities management and maintenance solution provider serving 500+ organizations worldwide.'
+    ),
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${baseUrl}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-12">
-        <div className="mx-auto max-w-7xl px-4 lg:px-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Building2 className="w-12 h-12" />
-            <h1 className="text-4xl font-bold">{title}</h1>
-          </div>
-          <p className="text-xl opacity-90">
-            {t('about.subtitle', 'Building better facilities management solutions for the modern enterprise.')}
-          </p>
-        </div>
-      </section>
+    <>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
 
-      {/* Stats Section */}
-      <section className="py-8 bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 lg:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-primary-lightest)] rounded-lg">
-              <Users className="w-8 h-8 text-[var(--fixzit-primary)] flex-shrink-0" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">500+</div>
-                <div className="text-sm text-gray-600">{t('about.clients', 'Clients Worldwide')}</div>
-              </div>
+      <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-12">
+          <div className="mx-auto max-w-7xl px-4 lg:px-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Building2 className="w-12 h-12" aria-hidden="true" />
+              <h1 className="text-4xl font-bold">{title}</h1>
             </div>
-            
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-success-lightest)] rounded-lg">
-              <Target className="w-8 h-8 text-[var(--fixzit-success)] flex-shrink-0" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">99.9%</div>
-                <div className="text-sm text-gray-600">{t('about.uptime', 'Platform Uptime')}</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-secondary-lightest)] rounded-lg">
-              <Award className="w-8 h-8 text-[var(--fixzit-secondary)] flex-shrink-0" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">15+</div>
-                <div className="text-sm text-gray-600">{t('about.experience', 'Years Experience')}</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-accent-lightest)] rounded-lg">
-              <Building2 className="w-8 h-8 text-[var(--fixzit-accent)] flex-shrink-0" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">10K+</div>
-                <div className="text-sm text-gray-600">{t('about.properties', 'Properties Managed')}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <section className="py-12">
-        <div className="mx-auto max-w-4xl px-4 lg:px-6">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 md:p-12">
-            <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-primary)] prose-strong:text-[var(--fixzit-text)]`}>
-              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
-            </article>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section className="py-12 bg-gray-50">
-        <div className="mx-auto max-w-4xl px-4 lg:px-6">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-              <MapPin className="w-6 h-6 text-[var(--fixzit-primary)]" />
-              {t('about.contactTitle', 'Get in Touch')}
-            </h2>
-            <p className="text-gray-700 mb-6">
-              {t('about.contactDesc', 'Have questions about our services? Our team is here to help you get started.')}
+            <p className="text-xl opacity-90">
+              {t('about.subtitle', 'Building better facilities management solutions for the modern enterprise.')}
             </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" />
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="py-8 bg-white shadow-sm" aria-label={t('about.statsSection', 'Company Statistics')}>
+          <div className="mx-auto max-w-7xl px-4 lg:px-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-primary-lightest)] rounded-lg">
+                <Users className="w-8 h-8 text-[var(--fixzit-primary)] flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <div className="font-semibold text-gray-900 mb-1">{t('about.email', 'Email')}</div>
-                  <a href="mailto:info@fixzit.com" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
-                    info@fixzit.com
-                  </a>
+                  <div className="text-2xl font-bold text-gray-900">500+</div>
+                  <div className="text-sm text-gray-600">{t('about.clients', 'Clients Worldwide')}</div>
                 </div>
               </div>
               
-              <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" />
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-success-lightest)] rounded-lg">
+                <Target className="w-8 h-8 text-[var(--fixzit-success)] flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <div className="font-semibold text-gray-900 mb-1">{t('about.phone', 'Phone')}</div>
-                  <a href="tel:+971XXXXXXXX" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
-                    +971 XX XXX XXXX
-                  </a>
+                  <div className="text-2xl font-bold text-gray-900">99.9%</div>
+                  <div className="text-sm text-gray-600">{t('about.uptime', 'Platform Uptime')}</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-secondary-lightest)] rounded-lg">
+                <Award className="w-8 h-8 text-[var(--fixzit-secondary)] flex-shrink-0" aria-hidden="true" />
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">15+</div>
+                  <div className="text-sm text-gray-600">{t('about.experience', 'Years Experience')}</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-accent-lightest)] rounded-lg">
+                <Building2 className="w-8 h-8 text-[var(--fixzit-accent)] flex-shrink-0" aria-hidden="true" />
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">10K+</div>
+                  <div className="text-sm text-gray-600">{t('about.properties', 'Properties Managed')}</div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        {/* Main Content */}
+        <section className="py-12" aria-label={t('about.contentSection', 'About Our Company')}>
+          <div className="mx-auto max-w-4xl px-4 lg:px-6">
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 md:p-12">
+              <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-primary)] prose-strong:text-[var(--fixzit-text)]`}>
+                <div dangerouslySetInnerHTML={{ __html: contentWithoutH1 }} />
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section className="py-12 bg-gray-50" aria-label={t('about.contactSection', 'Contact Information')}>
+          <div className="mx-auto max-w-4xl px-4 lg:px-6">
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <MapPin className="w-6 h-6 text-[var(--fixzit-primary)]" aria-hidden="true" />
+                {t('about.contactTitle', 'Get in Touch')}
+              </h2>
+              <p className="text-gray-700 mb-6">
+                {t('about.contactDesc', 'Have questions about our services? Our team is here to help you get started.')}
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" aria-hidden="true" />
+                  <div>
+                    <div className="font-semibold text-gray-900 mb-1">{t('about.email', 'Email')}</div>
+                    <a 
+                      href="mailto:info@fixzit.com" 
+                      className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]"
+                      aria-label={t('about.emailLabel', 'Send email to info@fixzit.com')}
+                    >
+                      info@fixzit.com
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" aria-hidden="true" />
+                  <div>
+                    <div className="font-semibold text-gray-900 mb-1">{t('about.phone', 'Phone')}</div>
+                    <a 
+                      href="tel:+971XXXXXXXX" 
+                      className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]"
+                      aria-label={t('about.phoneLabel', 'Call +971 XX XXX XXXX')}
+                    >
+                      +971 XX XXX XXXX
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </>
   );
 }
