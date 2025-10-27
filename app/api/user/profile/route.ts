@@ -4,10 +4,46 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
 
 /**
+ * Type for user document returned from DB
+ */
+type UserProfileDocument = {
+  _id: string;
+  name?: string;
+  firstName?: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  image?: string;
+  avatar?: string;
+  orgId?: string | null;
+  preferences?: Record<string, unknown>;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+/**
+ * Normalize user profile data for API response
+ */
+function normalizeUserProfile(user: UserProfileDocument) {
+  return {
+    id: user._id,
+    name: user.name || user.firstName || 'User',
+    email: user.email,
+    phone: user.phone || '',
+    role: user.role || 'USER',
+    avatar: user.image || user.avatar || '',
+    orgId: user.orgId || null,
+    preferences: user.preferences || {},
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+/**
  * GET /api/user/profile - Fetch current user's profile
  * @returns User profile data or 401 if not authenticated
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await auth();
@@ -24,20 +60,7 @@ export async function GET(request: NextRequest) {
     // Fetch user by email from session
     const user = await User.findOne({ email: session.user.email })
       .select('-password -__v') // Exclude sensitive fields
-      .lean() as unknown as {
-        _id: string;
-        name?: string;
-        firstName?: string;
-        email: string;
-        phone?: string;
-        role?: string;
-        image?: string;
-        avatar?: string;
-        orgId?: string | null;
-        preferences?: Record<string, unknown>;
-        createdAt?: Date;
-        updatedAt?: Date;
-      } | null;
+      .lean() as unknown as UserProfileDocument | null;
 
     if (!user) {
       return NextResponse.json(
@@ -48,18 +71,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: user._id,
-        name: user.name || user.firstName || 'User',
-        email: user.email,
-        phone: user.phone || '',
-        role: user.role || 'USER',
-        avatar: user.image || user.avatar || '',
-        orgId: user.orgId || null,
-        preferences: user.preferences || {},
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      user: normalizeUserProfile(user),
     });
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -88,7 +100,19 @@ export async function PATCH(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const allowedFields = ['name', 'phone', 'avatar', 'preferences'];
+    
+    // Guard: preferences updates should use dedicated endpoint
+    if (body.preferences !== undefined) {
+      return NextResponse.json(
+        { 
+          error: 'Cannot update preferences through this endpoint',
+          message: 'Please use /api/user/preferences for preference updates'
+        },
+        { status: 400 }
+      );
+    }
+    
+    const allowedFields = ['name', 'phone', 'avatar'];
     
     // Filter to only allowed fields
     const updates: Record<string, unknown> = {};
@@ -113,20 +137,7 @@ export async function PATCH(request: NextRequest) {
       { email: session.user.email },
       { $set: updates },
       { new: true, select: '-password -__v' }
-    ).lean() as unknown as {
-      _id: string;
-      name?: string;
-      firstName?: string;
-      email: string;
-      phone?: string;
-      role?: string;
-      image?: string;
-      avatar?: string;
-      orgId?: string | null;
-      preferences?: Record<string, unknown>;
-      createdAt?: Date;
-      updatedAt?: Date;
-    } | null;
+    ).lean() as unknown as UserProfileDocument | null;
 
     if (!user) {
       return NextResponse.json(
@@ -137,18 +148,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: user._id,
-        name: user.name || user.firstName || 'User',
-        email: user.email,
-        phone: user.phone || '',
-        role: user.role || 'USER',
-        avatar: user.image || user.avatar || '',
-        orgId: user.orgId || null,
-        preferences: user.preferences || {},
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      user: normalizeUserProfile(user),
     });
   } catch (error) {
     console.error('Error updating user profile:', error);

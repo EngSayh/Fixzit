@@ -3,6 +3,7 @@ import { Building2, Users, Target, Award, MapPin, Phone, Mail } from 'lucide-rea
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { headers } from 'next/headers';
 import type { Metadata } from 'next';
+import { CONTACT_INFO } from '@/config/contact';
 
 /**
  * Default about content shown when CMS content is not available or not published.
@@ -160,16 +161,17 @@ export default async function AboutPage() {
     },
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: '+971-XX-XXX-XXXX',
+      telephone: CONTACT_INFO.phone,
       contactType: 'customer service',
-      email: 'info@fixzit.com',
+      email: CONTACT_INFO.email,
       availableLanguage: ['en', 'ar'],
     },
     sameAs: [
-      // Add social media URLs when available
-      // 'https://twitter.com/fixzit',
-      // 'https://linkedin.com/company/fixzit',
-    ],
+      CONTACT_INFO.social.twitter,
+      CONTACT_INFO.social.linkedin,
+      CONTACT_INFO.social.facebook,
+      CONTACT_INFO.social.instagram,
+    ].filter(Boolean), // Remove empty strings
   };
 
   // JSON-LD structured data for WebSite
@@ -286,11 +288,11 @@ export default async function AboutPage() {
                   <div>
                     <div className="font-semibold text-gray-900 mb-1">{t('about.email', 'Email')}</div>
                     <a 
-                      href="mailto:info@fixzit.com" 
+                      href={`mailto:${CONTACT_INFO.email}`}
                       className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]"
-                      aria-label={t('about.emailLabel', 'Send email to info@fixzit.com')}
+                      aria-label={t('about.emailLabel', `Send email to ${CONTACT_INFO.email}`)}
                     >
-                      info@fixzit.com
+                      {CONTACT_INFO.email}
                     </a>
                   </div>
                 </div>
@@ -300,11 +302,11 @@ export default async function AboutPage() {
                   <div>
                     <div className="font-semibold text-gray-900 mb-1">{t('about.phone', 'Phone')}</div>
                     <a 
-                      href="tel:+971XXXXXXXX" 
+                      href={`tel:${CONTACT_INFO.phone.replace(/[^+\d]/g, '')}`}
                       className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]"
-                      aria-label={t('about.phoneLabel', 'Call +971 XX XXX XXXX')}
+                      aria-label={t('about.phoneLabel', `Call ${CONTACT_INFO.phone}`)}
                     >
-                      +971 XX XXX XXXX
+                      {CONTACT_INFO.phone}
                     </a>
                   </div>
                 </div>

@@ -84,7 +84,9 @@ const FamilyMemberSchema = new Schema({
 // Indexes
 FamilyMemberSchema.index({ primaryUserId: 1 });
 FamilyMemberSchema.index({ userId: 1 });
-FamilyMemberSchema.index({ email: 1 });
+FamilyMemberSchema.index({ email: 1 }, { sparse: true }); // Sparse: allow multiple null/undefined emails
+FamilyMemberSchema.index({ nationalId: 1 }, { sparse: true }); // Sparse: allow multiple null/undefined nationalIds
+FamilyMemberSchema.index({ phone: 1 }, { sparse: true }); // Sparse: allow multiple null/undefined phones
 FamilyMemberSchema.index({ "invitation.code": 1 });
 FamilyMemberSchema.index({ "invitation.status": 1 });
 

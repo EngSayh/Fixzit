@@ -86,13 +86,38 @@ export async function GET(_request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();    if (!session?.user) {
+    const session = await auth();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const body = await request.json();
     
-  await connectDb();
+    // Validate input: body must be a non-array object
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: 'Invalid request body: must be a non-array object' },
+        { status: 400 }
+      );
+    }
+    
+    // Whitelist expected preference keys
+    const allowedKeys = ['language', 'theme', 'notifications', 'timezone', 'currency', 'dateFormat'];
+    const bodyKeys = Object.keys(body);
+    const invalidKeys = bodyKeys.filter(key => !allowedKeys.includes(key));
+    
+    if (invalidKeys.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid preference keys',
+          invalidKeys,
+          allowedKeys
+        },
+        { status: 400 }
+      );
+    }
+    
+    await connectDb();
 
   const user = await User.findById(session.user.id);
     

@@ -37,6 +37,29 @@ interface Referral {
   rewardStatus: string;
 }
 
+/**
+ * Masks an email address for privacy
+ * @param email - The email to mask (can be null/undefined)
+ * @returns Masked email like "ab***@example.com"
+ */
+function maskEmail(email: string | null | undefined): string {
+  if (!email || typeof email !== 'string') return '***@***.***';
+  
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***@***.***';
+  
+  let maskedLocal: string;
+  if (local.length <= 2) {
+    // Very short: keep first char + asterisks
+    maskedLocal = local[0] + '***';
+  } else {
+    // Normal: keep first 2 chars + three asterisks
+    maskedLocal = local.substring(0, 2) + '***';
+  }
+  
+  return `${maskedLocal}@${domain}`;
+}
+
 export default function ReferralProgramPage() {
   const { language } = useTranslation();
   const [referralCode, setReferralCode] = useState<ReferralCode | null>(null);
@@ -107,7 +130,12 @@ export default function ReferralProgramPage() {
     }
   };
 
-  const generateCode = async () => {
+  /**
+   * Performs a code action (generate or regenerate) with proper abort handling
+   * @param endpoint - The API endpoint to call
+   * @param successMessage - Success toast message
+   */
+  const performCodeAction = async (endpoint: string, successMessage: string) => {
     setGenerating(true);
     setError(null);
 
@@ -116,7 +144,7 @@ export default function ReferralProgramPage() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch('/api/referrals/generate', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         signal: abortControllerRef.current.signal,
       });
@@ -125,25 +153,25 @@ export default function ReferralProgramPage() {
       try {
         data = await response.json();
       } catch (jsonError) {
-        console.error('Failed to parse generate response JSON:', jsonError);
+        console.error('Failed to parse response JSON:', jsonError);
         throw new Error('Invalid response format from server');
       }
 
       if (!response.ok) {
         // Use server-provided error message if available
-        const errorMsg = data?.error || data?.message || `Failed to generate referral code (${response.status})`;
+        const errorMsg = data?.error || data?.message || `Failed to perform action (${response.status})`;
         throw new Error(errorMsg);
       }
 
       setReferralCode(data.code ?? null);
-      toast.success('Referral code generated successfully!');
+      toast.success(successMessage);
     } catch (error) {
       // Ignore abort errors
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      console.error('Failed to generate referral code:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate referral code. Please try again.';
+      console.error('Failed to perform code action:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Operation failed. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -151,47 +179,12 @@ export default function ReferralProgramPage() {
     }
   };
 
+  const generateCode = async () => {
+    await performCodeAction('/api/referrals/generate', 'Referral code generated successfully!');
+  };
+
   const regenerateCode = async () => {
-    setGenerating(true);
-    setError(null);
-
-    // Abort previous request if still pending
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const response = await fetch('/api/referrals/regenerate', {
-        method: 'POST',
-        signal: abortControllerRef.current.signal,
-      });
-
-      let data: { code?: ReferralCode; error?: string; message?: string } = {};
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        console.error('Failed to parse regenerate response JSON:', jsonError);
-        throw new Error('Invalid response format from server');
-      }
-
-      if (!response.ok) {
-        const errorMsg = data?.error || data?.message || `Failed to regenerate referral code (${response.status})`;
-        throw new Error(errorMsg);
-      }
-
-      setReferralCode(data.code ?? null);
-      toast.success('Referral code regenerated successfully!');
-    } catch (error) {
-      // Ignore abort errors
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-      console.error('Failed to regenerate referral code:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to regenerate referral code. Please try again.';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setGenerating(false);
-    }
+    await performCodeAction('/api/referrals/regenerate', 'Referral code regenerated successfully!');
   };
 
   useEffect(() => {
@@ -576,7 +569,7 @@ export default function ReferralProgramPage() {
                     {referrals.map((referral, index) => (
                       <tr key={index} data-testid={`referral-row-${index}`}>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          {referral.referredEmail}
+                          {maskEmail(referral.referredEmail)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                           {formatDate(referral.referredAt)}
