@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Check } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Check, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
@@ -25,15 +25,58 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, isRTL } = useTranslation();
+
+  // Get redirect target from query params (?next= or ?callbackUrl=)
+  const redirectTarget = searchParams.get('next') || searchParams.get('callbackUrl') || null;
 
   const showDemoLink =
     process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
   const empRegex = useMemo(() => /^EMP\d+$/i, []);
+
+  // Detect identifier type for dynamic inputMode
+  const identifierType: 'email' | 'text' | 'numeric' = useMemo(() => {
+    const trimmed = identifier.trim();
+    if (!trimmed) return 'text';
+    if (emailRegex.test(trimmed)) return 'email';
+    if (/^\d+$/.test(trimmed)) return 'numeric';
+    return 'text';
+  }, [identifier, emailRegex]);
+
+  // Caps lock detection on password field
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.getModifierState && e.getModifierState('CapsLock')) {
+        setCapsLockOn(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.getModifierState && !e.getModifierState('CapsLock')) {
+        setCapsLockOn(false);
+      }
+    };
+
+    // Attach listeners to password field when it's focused
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+      passwordInput.addEventListener('keydown', handleKeyDown as EventListener);
+      passwordInput.addEventListener('keyup', handleKeyUp as EventListener);
+    }
+
+    return () => {
+      if (passwordInput) {
+        passwordInput.removeEventListener('keydown', handleKeyDown as EventListener);
+        passwordInput.removeEventListener('keyup', handleKeyUp as EventListener);
+      }
+    };
+  }, []);
 
   const clearError = (field: keyof FormErrors) => {
     if (errors[field]) setErrors(prev => {
@@ -67,6 +110,14 @@ export default function LoginPage() {
   };
 
   const postLoginRouteFor = (role?: string): string => {
+    // Prioritize redirectTarget from query params
+    if (redirectTarget) {
+      // Security: Validate that redirect is relative (starts with /) to prevent open redirects
+      if (redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
+        return redirectTarget;
+      }
+    }
+
     const r = (role || '').toUpperCase();
     if (r === 'SUPER_ADMIN' || r === 'CORPORATE_ADMIN' || r === 'FM_MANAGER') return '/fm/dashboard';
     if (r === 'TENANT') return '/fm/properties';
@@ -196,6 +247,8 @@ export default function LoginPage() {
                   data-testid="login-email"
                   name="identifier"
                   type="text"
+                  inputMode={identifierType}
+                  enterKeyHint="next"
                   autoComplete="username email"
                   placeholder={t('login.identifierPlaceholder', 'you@example.com or EMP001')}
                   value={identifier}
@@ -204,6 +257,7 @@ export default function LoginPage() {
                   aria-invalid={!!errors.identifier}
                   aria-describedby={errors.identifier ? 'identifier-error' : 'identifier-hint'}
                   disabled={loading}
+                  autoFocus
                   required
                 />
               </div>
@@ -235,13 +289,16 @@ export default function LoginPage() {
                   data-testid="login-password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
+                  inputMode="text"
+                  enterKeyHint="send"
                   autoComplete="current-password"
                   placeholder={t('login.passwordPlaceholder', 'Enter your password')}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); clearError('password'); clearError('general'); }}
-                  className={`${isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} h-12 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  className={`${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} h-12 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  style={{ direction: 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                   aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? 'password-error' : undefined}
+                  aria-describedby={errors.password ? 'password-error' : capsLockOn ? 'caps-lock-warning' : undefined}
                   disabled={loading}
                   required
                 />
@@ -254,6 +311,12 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {capsLockOn && (
+                <p id="caps-lock-warning" className="mt-1 text-sm text-yellow-600 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {t('login.capsLockOn', 'Caps Lock is on')}
+                </p>
+              )}
               {errors.password && (
                 <p id="password-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
