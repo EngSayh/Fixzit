@@ -137,18 +137,29 @@ export function FormStateProvider({ children }: { children: React.ReactNode }) {
   }, [forms]);
 
   const saveAllForms = useCallback(async () => {
-    // Placeholder for save logic - can be implemented by forms
     const dirtyForms = Array.from(forms.values()).filter(form => form.isDirty);
     
-    // Dispatch event for global save (no formId means all forms)
+    // ⚡ IMPROVED: Promise aggregation pattern for save coordination
+    const promises: Promise<void>[] = [];
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('fixzit:save-forms', { 
-        detail: { timestamp: Date.now() } 
-      }));
+      const saveEvent = new CustomEvent('fixzit:save-forms', { 
+        detail: { promises, timestamp: Date.now() } 
+      });
+      window.dispatchEvent(saveEvent);
     }
     
-    for (const form of dirtyForms) {
-      markFormClean(form.id);
+    // Wait for all registered save handlers to complete
+    try {
+      await Promise.all(promises);
+      
+      // Only mark forms clean after successful saves
+      for (const form of dirtyForms) {
+        markFormClean(form.id);
+      }
+    } catch (error) {
+      console.error('Failed to save one or more forms:', error);
+      // Keep flags intact so user can retry
+      throw error;
     }
   }, [forms, markFormClean]);
 
@@ -179,16 +190,21 @@ export function FormStateProvider({ children }: { children: React.ReactNode }) {
     // Create a unique key for this formId+callback combination
     const handlerKey = `${formId}_${callback.toString().substring(0, 50)}`;
     
-    // Create a stable handler that filters by formId
-    const handleSave = async (event: Event) => {
-      const customEvent = event as CustomEvent;
+    // ⚡ IMPROVED: Push promise to aggregator array for coordination
+    const handleSave = (event: Event) => {
+      const customEvent = event as CustomEvent<{ formId?: string; promises?: Promise<void>[] }>;
       const targetFormId = customEvent.detail?.formId;
       
       // Only run callback if:
       // 1. No formId in event (global save), OR
       // 2. Event formId matches this registration's formId
       if (!targetFormId || targetFormId === formId) {
-        await callback();
+        const promise = Promise.resolve().then(() => callback());
+        
+        // If event has promises array, push our promise for coordination
+        if (customEvent.detail?.promises && Array.isArray(customEvent.detail.promises)) {
+          customEvent.detail.promises.push(promise);
+        }
       }
     };
     
@@ -196,7 +212,7 @@ export function FormStateProvider({ children }: { children: React.ReactNode }) {
     saveHandlersRef.current.set(handlerKey, handleSave);
     
     if (typeof window !== 'undefined') {
-      window.addEventListener('fixzit:save-forms', handleSave);
+      window.addEventListener('fixzit:save-forms', handleSave as EventListener);
     }
     
     // Return cleanup function that uses the same handler
@@ -204,7 +220,7 @@ export function FormStateProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         const storedHandler = saveHandlersRef.current.get(handlerKey);
         if (storedHandler) {
-          window.removeEventListener('fixzit:save-forms', storedHandler);
+          window.removeEventListener('fixzit:save-forms', storedHandler as EventListener);
           saveHandlersRef.current.delete(handlerKey);
         }
       }

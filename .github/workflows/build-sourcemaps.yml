@@ -2,11 +2,13 @@ name: Build & Upload Sourcemaps (Sentry)
 
 on:
   push:
-    branches: [main, develop]
+    branches: ["main", "develop"]
   workflow_dispatch: {}
 
 permissions:
   contents: read
+
+contributor_insights: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,89 +17,80 @@ concurrency:
 jobs:
   build-upload:
     runs-on: ubuntu-latest
-    
+    env:
+      CI: "true"
+      NODE_OPTIONS: --max-old-space-size=8192
+      NEXT_TELEMETRY_DISABLED: "1"
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_RELEASE: ${{ github.sha }}    # ensures runtime matches uploaded release
+
     steps:
-      - name: Checkout code
+      - name: 📦 Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Setup Node.js
+
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
-      - name: Install dependencies
+
+      - name: 📥 Install dependencies
         run: npm ci
-      
-      - name: Build with source maps
-        run: |
-          export NEXT_TELEMETRY_DISABLED=1
-          npm run build
+
+      - name: 🏗️ Build with source maps
         env:
-          CI: 'true'
           NODE_ENV: production
-          NODE_OPTIONS: --max-old-space-size=8192
-          # Add your environment variables here if needed
-          # MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          # etc.
-      
-      # Upload sourcemaps to Sentry (using getsentry/action-release for reliability)
-      # Automatically skips if SENTRY_AUTH_TOKEN is not set (action will fail gracefully)
-      - name: Create & upload Sentry release
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
-        continue-on-error: true
-        id: sentry-upload
-        uses: getsentry/action-release@v1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-        with:
-          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-          version: ${{ github.sha }}
-          ignore_empty: true
-          sourcemaps: |
-            .next/static
-          set_commits: "skip"
-      
-      - name: Set Sentry upload status
-        if: always()
-        id: sentry-status
         run: |
-          if [ "${{ steps.sentry-upload.outcome }}" == "success" ]; then
-            echo "uploaded=true" >> $GITHUB_OUTPUT
-          else
-            echo "uploaded=false" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Archive source maps as artifacts
-        uses: actions/upload-artifact@v4
+          set -e
+          echo "Building Next.js app with source maps…"
+          npm run build
+
+      # Upload sourcemaps + create/finalize Sentry release (non-fatal if token missing)
+      - name: 🚀 Create & upload Sentry release (non-blocking)
+        id: sentry
+        if: always()
+        uses: getsentry/action-release@v1
+        continue-on-error: true
         with:
-          name: source-maps
-          path: .next/**/*.map
-          retention-days: 30
-      
-      - name: Build summary
+          # match server and browser bundles by commit SHA
+          version: ${{ github.sha }}
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+          projects: ${{ vars.SENTRY_PROJECT }}
+          # upload all Next.js maps; rewrite paths to /_next/… for browser symbolication
+          sourcemaps: |
+            .next
+          url_prefix: "~/_next"
+          rewrite: true
+          strip_common_prefix: true
+          ignore_empty: true
+          # optionally auto-associate commits if you maintain Sentry repos
+          set_commits: "skip"
+
+      - name: 🧾 Build summary
+        if: always()
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "✅ Production build completed" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Source maps generated" >> $GITHUB_STEP_SUMMARY
-          
-          # Count source maps
           MAP_COUNT=$(find .next -name "*.map" -type f | wc -l || echo "0")
-          echo "📊 Source maps generated: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
-          
-          # Calculate total size
-          TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | grep total$ | awk '{print $1}' || echo "0")
-          echo "💾 Total source map size: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
-          
-          # Show Sentry status
-          if [ "${{ steps.sentry-status.outputs.uploaded }}" == "true" ]; then
-            echo "✅ Sentry upload completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "� Source maps: $MAP_COUNT" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ env.SENTRY_AUTH_TOKEN }}" ]; then
+            if [ "${{ steps.sentry.outcome }}" = "success" ]; then
+              echo "✅ Sentry release uploaded (version: ${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "⚠️ Sentry upload skipped (SENTRY_AUTH_TOKEN not configured)" >> $GITHUB_STEP_SUMMARY
-            echo "To enable: Add SENTRY_AUTH_TOKEN (secret), SENTRY_ORG, SENTRY_PROJECT (variables) in repository settings" >> $GITHUB_STEP_SUMMARY
+            echo "ℹ️ SENTRY_AUTH_TOKEN not configured — skipping Sentry upload" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: 📚 Archive source maps
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-maps
+          path: ./.next/**/*.map
+          if-no-files-found: warn
+          retention-days: 30

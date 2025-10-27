@@ -10,7 +10,7 @@ const OwnerSchema = new Schema({
   // orgId: { type: String, required: true, index: true },
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  code: { type: String, required: true }, // ⚡ Removed unique: true - enforced via compound index below
   userId: { type: String, ref: "User", required: true }, // Link to auth user
   type: { type: String, enum: OwnerType, required: true },
   
@@ -121,17 +121,17 @@ const OwnerSchema = new Schema({
   timestamps: true
 });
 
-// Indexes
-OwnerSchema.index({ code: 1 });
-OwnerSchema.index({ userId: 1 });
-OwnerSchema.index({ "contact.email": 1 });
-OwnerSchema.index({ nationalId: 1 });
-OwnerSchema.index({ status: 1 });
-OwnerSchema.index({ "properties.propertyId": 1 });
-
-// Plugins
+// Plugins (apply BEFORE indexes so orgId field exists)
 OwnerSchema.plugin(tenantIsolationPlugin);
 OwnerSchema.plugin(auditPlugin);
+
+// Indexes (after plugins to ensure orgId exists)
+OwnerSchema.index({ orgId: 1, code: 1 }, { unique: true }); // ⚡ Tenant-scoped uniqueness
+OwnerSchema.index({ orgId: 1, userId: 1 });
+OwnerSchema.index({ orgId: 1, status: 1 });
+OwnerSchema.index({ orgId: 1, "contact.email": 1 });
+OwnerSchema.index({ orgId: 1, nationalId: 1 });
+OwnerSchema.index({ orgId: 1, "properties.propertyId": 1 });
 
 // Pre-save hook to update portfolio summary
 OwnerSchema.pre('save', async function(next) {

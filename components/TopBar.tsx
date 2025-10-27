@@ -167,47 +167,17 @@ export default function TopBar() {
     
     try {
       // Set up event listeners for save confirmation
-      const savePromise = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          cleanup();
-          reject(new Error('Save operation timed out after 5 seconds'));
-        }, 5000);
-
-        // Listen for success event
-        const handleSuccess = (_event: Event) => {
-          clearTimeout(timeout);
-          cleanup();
-          resolve();
-        };
-
-        // Listen for error event
-        const handleError = (event: Event) => {
-          clearTimeout(timeout);
-          cleanup();
-          const customEvent = event as CustomEvent;
-          const errorMessage = customEvent.detail?.error || 'Unknown error occurred during save';
-          reject(new Error(errorMessage));
-        };
-
-        const cleanup = () => {
-          window.removeEventListener('fixzit:forms-saved', handleSuccess);
-          window.removeEventListener('fixzit:forms-save-error', handleError);
-        };
-
-        window.addEventListener('fixzit:forms-saved', handleSuccess);
-        window.addEventListener('fixzit:forms-save-error', handleError);
-      });
-
-      // Emit the save request event
+      // ⚡ IMPROVED: Promise aggregation pattern for save coordination
+      const promises: Promise<void>[] = [];
       const saveEvent = new CustomEvent('fixzit:save-forms', { 
-        detail: { timestamp: Date.now() } 
+        detail: { promises, timestamp: Date.now() } 
       });
       window.dispatchEvent(saveEvent);
       
-      // Wait for forms to respond with success or error event
-      await savePromise;
+      // Await all registered saves instead of fixed timeout
+      await Promise.all(promises);
       
-      // Clear all unsaved changes flags
+      // Clear all unsaved changes flags only after successful saves
       clearAllUnsavedChanges();
       
       // Success - close dialog and navigate
@@ -218,7 +188,7 @@ export default function TopBar() {
       }
     } catch (error) {
       console.error('Failed to save form:', error);
-      // Set user-facing error - keep dialog open
+      // Keep flags intact so user can retry or discard
       setSaveError(
         error instanceof Error 
           ? error.message 
