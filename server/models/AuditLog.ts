@@ -95,14 +95,14 @@ const AuditLogSchema = new Schema({
   },
 
   // Timestamps
-  timestamp: { type: Date, default: Date.now, required: true, index: true },
+  timestamp: { type: Date, default: Date.now, required: true }, // ⚡ Removed index: true - covered by compound indexes below
   
 }, {
   timestamps: false, // Using custom timestamp field
   // Collection is not capped to allow TTL index to work
 });
 
-// Compound Indexes for common queries
+// Compound Indexes for common queries (these cover timestamp field)
 AuditLogSchema.index({ orgId: 1, timestamp: -1 });
 AuditLogSchema.index({ orgId: 1, userId: 1, timestamp: -1 });
 AuditLogSchema.index({ orgId: 1, entityType: 1, entityId: 1, timestamp: -1 });

@@ -16,7 +16,7 @@ const ReferralCodeSchema = new Schema({
   referrerEmail: String,
   
   // Referral Code
-  code: { type: String, required: true, unique: true, uppercase: true },
+  code: { type: String, required: true, uppercase: true }, // ⚡ Removed unique: true - enforced via compound index below
   shortUrl: String, // e.g., fixzit.sa/ref/ABC123
   
   // Reward Configuration
@@ -91,16 +91,16 @@ const ReferralCodeSchema = new Schema({
   timestamps: true
 });
 
-// Indexes
-ReferralCodeSchema.index({ code: 1 });
-ReferralCodeSchema.index({ referrerId: 1 });
-ReferralCodeSchema.index({ status: 1 });
-ReferralCodeSchema.index({ "limits.validFrom": 1, "limits.validUntil": 1 });
-ReferralCodeSchema.index({ "referrals.referredUserId": 1 });
-
-// Plugins
+// Plugins (apply BEFORE indexes so orgId field exists)
 ReferralCodeSchema.plugin(tenantIsolationPlugin);
 ReferralCodeSchema.plugin(auditPlugin);
+
+// Indexes (after plugins to ensure orgId exists)
+ReferralCodeSchema.index({ orgId: 1, code: 1 }, { unique: true }); // ⚡ Tenant-scoped uniqueness
+ReferralCodeSchema.index({ orgId: 1, referrerId: 1 });
+ReferralCodeSchema.index({ orgId: 1, status: 1 });
+ReferralCodeSchema.index({ orgId: 1, "limits.validFrom": 1, "limits.validUntil": 1 });
+ReferralCodeSchema.index({ orgId: 1, "referrals.referredUserId": 1 });
 
 // Methods
 ReferralCodeSchema.methods.isValid = function() {
