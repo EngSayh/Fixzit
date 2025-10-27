@@ -1,12 +1,12 @@
 'use client';
 
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 import { ResponsiveContainer} from '@/components/ui/ResponsiveContainer';
 
 export default function RTLTestPage() {
   const { t, language, setLanguage, isRTL } = useTranslation();
-  const { screenInfo } = useResponsiveLayout();
+  const { screenSize, isMobile, isTablet } = useResponsive();
 
   const testTranslations = [
     'nav.dashboard',
@@ -75,7 +75,7 @@ export default function RTLTestPage() {
           <div className={`border-2 border-dashed p-4 rounded ${isRTL ? 'text-right' : 'text-left'}`}>
             <p>This text should align {isRTL ? 'right' : 'left'} in {language.toUpperCase()}</p>
             <p className="mt-2">Current direction: {document.documentElement.dir}</p>
-            <p className="mt-2">Screen size: {screenInfo.size} ({screenInfo.width}x{screenInfo.height})</p>
+            <p className="mt-2">Screen size: {screenSize} ({isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'})</p>
           </div>
         </div>
       </div>

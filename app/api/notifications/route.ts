@@ -16,8 +16,13 @@ const notificationSchema = z.object({
   type: z.enum(["work-order", "vendor", "payment", "maintenance", "system"]),
   priority: z.enum(["low", "medium", "high"]),
   category: z.enum(["maintenance", "vendor", "finance", "system"]),
+  targetUrl: z.string().url().optional(), // Optional deep link URL
   orgId: z.string().optional()
 });
+
+// Valid enum values for filtering
+const VALID_PRIORITIES = ["low", "medium", "high"] as const;
+const VALID_CATEGORIES = ["maintenance", "vendor", "finance", "system"] as const;
 
 // All operations now backed by Mongo collection (tenant-scoped)
 
@@ -75,8 +80,14 @@ export async function GET(req: NextRequest) {
       { message: { $regex: safe, $options: 'i' } }
     ];
   }
-  if (category && category !== 'all') filter.category = category;
-  if (priority && priority !== 'all') filter.priority = priority;
+  // Validate category against enum before filtering
+  if (category && category !== 'all' && VALID_CATEGORIES.includes(category as typeof VALID_CATEGORIES[number])) {
+    filter.category = category;
+  }
+  // Validate priority against enum before filtering
+  if (priority && priority !== 'all' && VALID_PRIORITIES.includes(priority as typeof VALID_PRIORITIES[number])) {
+    filter.priority = priority;
+  }
   if (read !== '') filter.read = read === 'true';
 
   const skip = (page - 1) * limit;
@@ -123,7 +134,8 @@ export async function POST(req: NextRequest) {
     category: data.category,
     timestamp: new Date().toISOString(),
     read: false,
-    archived: false
+    archived: false,
+    ...(data.targetUrl && { targetUrl: data.targetUrl }) // Include targetUrl if provided
   };
 
   const result = await notifications.insertOne(doc);

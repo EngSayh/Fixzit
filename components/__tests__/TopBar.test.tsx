@@ -79,6 +79,19 @@ const mockSession = {
   expires: '2025-12-31',
 };
 
+// Mock ResponsiveContext for tests
+vi.mock('@/contexts/ResponsiveContext', () => ({
+  ResponsiveProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useResponsive: vi.fn(() => ({
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+    screenSize: 'desktop',
+    isRTL: false,
+    setRTL: vi.fn(),
+  })),
+}));
+
 // Helper function to wrap component with providers
 const renderWithProviders = (component: React.ReactElement, options = {}) => {
   return render(
@@ -460,10 +473,10 @@ describe('TopBar Component', () => {
       renderWithProviders(<TopBar />);
 
       expect(screen.getByLabelText('Go to home')).toBeInTheDocument();
-      await waitFor(() => {
-        expect(screen.getByLabelText(/toggle notifications/i)).toBeInTheDocument();
-      });
-      expect(screen.getByLabelText(/toggle user menu/i)).toBeInTheDocument();
+      
+      // Use async queries for elements that appear after auth verification
+      await expect(screen.findByLabelText(/toggle notifications/i)).resolves.toBeInTheDocument();
+      await expect(screen.findByLabelText(/toggle user menu/i)).resolves.toBeInTheDocument();
     });
 
     it('should be keyboard navigable', () => {

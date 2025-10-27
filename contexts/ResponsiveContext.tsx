@@ -2,14 +2,28 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-
 interface ResponsiveContextType {
   isMobile: boolean;
   isTablet: boolean;
   isDesktop: boolean;
+  screenSize: 'mobile' | 'tablet' | 'desktop';
   isRTL: boolean;
-  screenWidth: number;
-  breakpoint: 'mobile' | 'tablet' | 'desktop';
+  setRTL: (rtl: boolean) => void;
+  // Legacy properties for backward compatibility
+  screenInfo: {
+    isMobile: boolean;
+    isTablet: boolean;
+    isDesktop: boolean;
+    isLarge: boolean;
+    size: string;
+    width?: number;
+    height?: number;
+  };
+  responsiveClasses: {
+    container: string;
+    text: string;
+    spacing: string;
+  };
 }
 
 const ResponsiveContext = createContext<ResponsiveContextType | undefined>(undefined);
@@ -19,59 +33,72 @@ interface ResponsiveProviderProps {
 }
 
 export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
-  // SSR-safe initialization: use 1024 (desktop) as default to avoid hydration mismatch
-  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  // Always initialize with 'desktop' for SSR consistency
+  // Will be updated on mount to prevent hydration mismatch
+  const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [dimensions, setDimensions] = useState<{ width?: number; height?: number }>({
+    width: undefined,
+    height: undefined
+  });
   const [isRTL, setIsRTL] = useState(false);
 
   useEffect(() => {
-
-    // SSR guard: only run on client
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return;
-    }
-
-    // Initialize screen width
-    const updateScreenWidth = () => {
-      setScreenWidth(window.innerWidth);
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      setDimensions({ width, height });
+      if (width < 768) {
+        setScreenSize('mobile');
+      } else if (width < 1024) {
+        setScreenSize('tablet');
+      } else {
+        setScreenSize('desktop');
+      }
     };
 
-    // Check RTL direction
-    const checkRTL = () => {
-      setIsRTL(document.dir === 'rtl' || document.documentElement.dir === 'rtl');
-    };
+    // Initial check (only on client side)
+    checkScreenSize();
 
-    updateScreenWidth();
-    checkRTL();
+    // Check for RTL direction from document (consolidated check)
+    const htmlDir = document.documentElement.dir;
+    setIsRTL(htmlDir === 'rtl');
 
-    window.addEventListener('resize', updateScreenWidth);
-    
-    // Observer for direction changes
-    const observer = new MutationObserver(checkRTL);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['dir']
-    });
+    // Add event listener
+    window.addEventListener('resize', checkScreenSize);
 
     return () => {
-      window.removeEventListener('resize', updateScreenWidth);
-      observer.disconnect();
+      window.removeEventListener('resize', checkScreenSize);
     };
   }, []);
 
-  const isMobile = screenWidth < 768;
-  const isTablet = screenWidth >= 768 && screenWidth < 1024;
-  const isDesktop = screenWidth >= 1024;
-  
-  const breakpoint: 'mobile' | 'tablet' | 'desktop' = 
-    isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
+  const setRTL = (rtl: boolean) => {
+    setIsRTL(rtl);
+    document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+  };
 
   const value: ResponsiveContextType = {
-    isMobile,
-    isTablet,
-    isDesktop,
+    isMobile: screenSize === 'mobile',
+    isTablet: screenSize === 'tablet',
+    isDesktop: screenSize === 'desktop',
+    screenSize,
     isRTL,
-    screenWidth,
-    breakpoint,
+    setRTL,
+    // Legacy screenInfo for backward compatibility
+    screenInfo: {
+      isMobile: screenSize === 'mobile',
+      isTablet: screenSize === 'tablet',
+      isDesktop: screenSize === 'desktop',
+      isLarge: screenSize === 'desktop', // Treat desktop as large
+      size: screenSize,
+      width: dimensions.width,
+      height: dimensions.height,
+    },
+    // Legacy responsiveClasses for backward compatibility
+    responsiveClasses: {
+      container: screenSize === 'mobile' ? 'px-2' : screenSize === 'tablet' ? 'px-4' : 'px-6',
+      text: screenSize === 'mobile' ? 'text-sm' : 'text-base',
+      spacing: screenSize === 'mobile' ? 'space-y-2' : 'space-y-4',
+    },
   };
 
   return (
@@ -81,7 +108,7 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
   );
 }
 
-export function useResponsiveLayout(): ResponsiveContextType {
+export function useResponsive(): ResponsiveContextType {
   const context = useContext(ResponsiveContext);
   if (context === undefined) {
     throw new Error('useResponsive must be used within a ResponsiveProvider');
@@ -89,5 +116,5 @@ export function useResponsiveLayout(): ResponsiveContextType {
   return context;
 }
 
-export { ResponsiveContext };
-
+// Backward compatibility alias
+export const useResponsiveLayout = useResponsive;

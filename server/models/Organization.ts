@@ -1,304 +1,562 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, Types, HydratedDocument, Model } from 'mongoose';
+import { customAlphabet } from 'nanoid';
 
-// Organization Types and Status
-const OrganizationType = ["CORPORATE", "GOVERNMENT", "INDIVIDUAL", "NONPROFIT", "STARTUP"] as const;
-const SubscriptionStatus = ["ACTIVE", "SUSPENDED", "CANCELLED", "TRIAL", "EXPIRED"] as const;
-const ComplianceStatus = ["COMPLIANT", "NON_COMPLIANT", "PENDING_REVIEW", "UNDER_AUDIT"] as const;
+// ---------- Enums ----------
+const OrganizationType = ['CORPORATE', 'GOVERNMENT', 'INDIVIDUAL', 'NONPROFIT', 'STARTUP'] as const;
+type TOrganizationType = (typeof OrganizationType)[number];
 
-const OrganizationSchema = new Schema({
-  // Primary identifier for multi-tenancy
-  orgId: { type: String, required: true, unique: true },
+const SubscriptionStatus = ['ACTIVE', 'SUSPENDED', 'CANCELLED', 'TRIAL', 'EXPIRED'] as const;
+type TSubscriptionStatus = (typeof SubscriptionStatus)[number];
 
-  // Basic Information
-  name: { type: String, required: true },
-  code: { type: String, required: true, unique: true }, // Short code for organization
-  type: { type: String, enum: OrganizationType, required: true },
-  description: String,
-  website: String,
-  logo: String, // URL to logo image
+const ComplianceStatus = ['COMPLIANT', 'NON_COMPLIANT', 'PENDING_REVIEW', 'UNDER_AUDIT'] as const;
+type TComplianceStatus = (typeof ComplianceStatus)[number];
 
-  // Contact Information
-  contact: {
+const BillingCycle = ['MONTHLY', 'QUARTERLY', 'YEARLY'] as const;
+type TBillingCycle = (typeof BillingCycle)[number];
+
+const SupportLevel = ['BASIC', 'PRIORITY', 'DEDICATED'] as const;
+type TSupportLevel = (typeof SupportLevel)[number];
+
+const Priority = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
+type TPriority = (typeof Priority)[number];
+
+const Workdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
+type TWorkday = (typeof Workdays)[number];
+
+const SsoProvider = ['AZURE_AD', 'GOOGLE', 'OKTA'] as const;
+type TSsoProvider = (typeof SsoProvider)[number];
+
+const EmailProvider = ['SMTP', 'SENDGRID', 'AWS_SES'] as const;
+type TEmailProvider = (typeof EmailProvider)[number];
+
+const SmsProvider = ['TWILIO', 'AWS_SNS', 'LOCAL'] as const;
+type TSmsProvider = (typeof SmsProvider)[number];
+
+const PaymentGateway = ['PAYTABS', 'STRIPE', 'PAYPAL'] as const;
+type TPaymentGateway = (typeof PaymentGateway)[number];
+
+// ---------- Types ----------
+type Features = {
+  maxUsers: number;
+  maxProperties: number;
+  maxWorkOrders: number;
+  advancedReporting: boolean;
+  apiAccess: boolean;
+  customBranding: boolean;
+  ssoIntegration: boolean;
+  mobileApp: boolean;
+  supportLevel: TSupportLevel;
+};
+
+type Usage = {
+  currentUsers: number;
+  currentProperties: number;
+  currentWorkOrders: number;
+  apiCalls: number;
+  storageUsed: number; // MB
+};
+
+type OrganizationDoc = HydratedDocument<IOrganization>;
+type OrganizationModel = Model<IOrganization> & {
+  incrementUsage(orgId: string, patch: Partial<Usage>): Promise<OrganizationDoc | null>;
+  setSubscriptionStatus(orgId: string, status: TSubscriptionStatus): Promise<OrganizationDoc | null>;
+};
+
+export interface IOrganization {
+  orgId: string;
+  name: string;
+  code: string;
+  type: TOrganizationType;
+  description?: string;
+  website?: string;
+  logo?: string;
+
+  contact?: {
     primary: {
-      name: { type: String, required: true },
-      title: String,
-      email: { type: String, required: true },
-      phone: String,
-      mobile: String
-    },
-    billing: {
-      name: String,
-      email: String,
-      phone: String,
-      address: {
-        street: String,
-        city: String,
-        region: String,
-        postalCode: String,
-        country: { type: String, default: "SA" }
-      }
-    },
-    technical: {
-      name: String,
-      email: String,
-      phone: String
-    }
-  },
+      name: string;
+      title?: string;
+      email: string;
+      phone?: string;
+      mobile?: string;
+    };
+    billing?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      address?: {
+        street?: string;
+        city?: string;
+        region?: string;
+        postalCode?: string;
+        country?: string;
+      };
+    };
+    technical?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+    };
+  };
 
-  // Address Information
   address: {
     headquarters: {
-      street: { type: String, required: true },
-      city: { type: String, required: true },
-      region: String,
-      postalCode: String,
-      country: { type: String, default: "SA", required: true }
-    },
-    branches: [{
-      name: String,
-      street: String,
-      city: String,
-      region: String,
-      postalCode: String,
-      country: String,
-      isActive: { type: Boolean, default: true }
-    }]
-  },
+      street: string;
+      city: string;
+      region?: string;
+      postalCode?: string;
+      country: string;
+    };
+    branches?: Array<{
+      name?: string;
+      street?: string;
+      city?: string;
+      region?: string;
+      postalCode?: string;
+      country?: string;
+      isActive?: boolean;
+    }>;
+  };
 
-  // Legal and Compliance Information
-  legal: {
-    registrationNumber: String, // Commercial registration
-    taxId: String, // VAT registration
-    licenseNumber: String,
-    documents: [{
-      type: String, // Commercial Registration, VAT Certificate, etc.
-      number: String,
-      issuedBy: String,
-      issuedDate: Date,
-      expiryDate: Date,
-      url: String, // Document file URL
-      verified: { type: Boolean, default: false }
-    }]
-  },
+  legal?: {
+    registrationNumber?: string;
+    taxId?: string;
+    licenseNumber?: string;
+    documents?: Array<{
+      type?: string;
+      number?: string;
+      issuedBy?: string;
+      issuedDate?: Date;
+      expiryDate?: Date;
+      url?: string;
+      verified?: boolean;
+    }>;
+  };
 
-  // Subscription and Billing
   subscription: {
-    plan: { type: String, required: true, default: "BASIC" }, // BASIC, STANDARD, PREMIUM, ENTERPRISE
-    status: { type: String, enum: SubscriptionStatus, default: "TRIAL" },
-    startDate: { type: Date, default: Date.now },
-    endDate: Date,
-    trialEndsAt: Date,
-    billingCycle: { type: String, enum: ["MONTHLY", "QUARTERLY", "YEARLY"], default: "MONTHLY" },
-    price: {
-      amount: Number,
-      currency: { type: String, default: "SAR" }
-    },
-    features: {
-      maxUsers: { type: Number, default: 10 },
-      maxProperties: { type: Number, default: 5 },
-      maxWorkOrders: { type: Number, default: 100 },
-      advancedReporting: { type: Boolean, default: false },
-      apiAccess: { type: Boolean, default: false },
-      customBranding: { type: Boolean, default: false },
-      ssoIntegration: { type: Boolean, default: false },
-      mobileApp: { type: Boolean, default: true },
-      supportLevel: { type: String, enum: ["BASIC", "PRIORITY", "DEDICATED"], default: "BASIC" }
-    },
-    usage: {
-      currentUsers: { type: Number, default: 0 },
-      currentProperties: { type: Number, default: 0 },
-      currentWorkOrders: { type: Number, default: 0 },
-      apiCalls: { type: Number, default: 0 },
-      storageUsed: { type: Number, default: 0 } // in MB
-    },
+    plan: 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+    status: TSubscriptionStatus;
+    startDate?: Date;
+    endDate?: Date;
+    trialEndsAt?: Date;
+    billingCycle: TBillingCycle;
+    price?: { amount?: number; currency?: string };
+    features: Features;
+    usage: Usage;
     limits: {
-      exceeded: { type: Boolean, default: false },
-      warnings: [String]
-    }
-  },
+      exceeded: boolean;
+      warnings: string[];
+    };
+  };
 
-  // System Configuration
   settings: {
-    // Localization
-    locale: { type: String, default: "ar" },
-    timezone: { type: String, default: "Asia/Riyadh" },
-    currency: { type: String, default: "SAR" },
-    dateFormat: { type: String, default: "DD/MM/YYYY" },
-    numberFormat: { type: String, default: "1,234.56" },
-
-    // Business Rules
+    locale: string;
+    timezone: string;
+    currency: string;
+    dateFormat: string;
+    numberFormat: string;
     businessHours: {
-      workdays: [{ type: String, enum: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] }],
-      startTime: { type: String, default: "09:00" },
-      endTime: { type: String, default: "17:00" },
-      breakTime: {
-        enabled: { type: Boolean, default: true },
-        start: { type: String, default: "12:00" },
-        end: { type: String, default: "13:00" }
-      }
-    },
-
-    // Work Order Configuration
+      workdays: TWorkday[];
+      startTime: string; // HH:mm
+      endTime: string; // HH:mm
+      breakTime: { enabled: boolean; start: string; end: string };
+    };
     workOrders: {
-      autoAssignment: { type: Boolean, default: false },
-      requireApproval: { type: Boolean, default: true },
-      defaultPriority: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "URGENT"], default: "MEDIUM" },
+      autoAssignment: boolean;
+      requireApproval: boolean;
+      defaultPriority: TPriority;
       slaDefaults: {
-        low: { hours: { type: Number, default: 72 } },
-        medium: { hours: { type: Number, default: 48 } },
-        high: { hours: { type: Number, default: 24 } },
-        urgent: { hours: { type: Number, default: 4 } }
-      },
-      notifications: {
-        email: { type: Boolean, default: true },
-        sms: { type: Boolean, default: false },
-        push: { type: Boolean, default: true }
-      }
-    },
-
-    // Financial Settings
+        low: { hours: number };
+        medium: { hours: number };
+        high: { hours: number };
+        urgent: { hours: number };
+      };
+      notifications: { email: boolean; sms: boolean; push: boolean };
+    };
     financial: {
-      invoiceNumberFormat: { type: String, default: "INV-{YYYY}-{MM}-{####}" },
-      paymentTerms: { type: Number, default: 30 }, // days
-      lateFeePercentage: { type: Number, default: 2.5 },
-      taxRate: { type: Number, default: 15 }, // VAT percentage
-      approvalLimits: {
-        workOrder: { type: Number, default: 1000 },
-        purchase: { type: Number, default: 5000 },
-        invoice: { type: Number, default: 10000 }
-      }
-    },
-
-    // Security Settings
+      invoiceNumberFormat: string;
+      paymentTerms: number;
+      lateFeePercentage: number;
+      taxRate: number;
+      approvalLimits: { workOrder: number; purchase: number; invoice: number };
+    };
     security: {
       passwordPolicy: {
-        minLength: { type: Number, default: 8 },
-        requireUppercase: { type: Boolean, default: true },
-        requireNumbers: { type: Boolean, default: true },
-        requireSpecialChars: { type: Boolean, default: false },
-        expiryDays: { type: Number, default: 90 }
-      },
-      sessionTimeout: { type: Number, default: 480 }, // minutes
-      maxLoginAttempts: { type: Number, default: 5 },
-      twoFactorRequired: { type: Boolean, default: false },
-      ipWhitelist: [String],
-      auditLogRetention: { type: Number, default: 365 } // days
-    },
-
-    // Integration Settings
+        minLength: number;
+        requireUppercase: boolean;
+        requireNumbers: boolean;
+        requireSpecialChars: boolean;
+        expiryDays: number;
+      };
+      sessionTimeout: number;
+      maxLoginAttempts: number;
+      twoFactorRequired: boolean;
+      ipWhitelist?: string[];
+      auditLogRetention: number;
+    };
     integrations: {
-      emailProvider: {
-        provider: { type: String, enum: ["SMTP", "SENDGRID", "AWS_SES"], default: "SMTP" },
-        settings: Schema.Types.Mixed
-      },
-      smsProvider: {
-        provider: { type: String, enum: ["TWILIO", "AWS_SNS", "LOCAL"], default: "LOCAL" },
-        settings: Schema.Types.Mixed
-      },
-      paymentGateway: {
-        provider: { type: String, enum: ["PAYTABS", "STRIPE", "PAYPAL"], default: "PAYTABS" },
-        settings: Schema.Types.Mixed
-      },
-      sso: {
-        enabled: { type: Boolean, default: false },
-        provider: { type: String, enum: ["AZURE_AD", "GOOGLE", "OKTA"] },
-        settings: Schema.Types.Mixed
-      }
-    }
-  },
+      emailProvider: { provider: TEmailProvider; settings?: Record<string, unknown> };
+      smsProvider: { provider: TSmsProvider; settings?: Record<string, unknown> };
+      paymentGateway: { provider: TPaymentGateway; settings?: Record<string, unknown> };
+      sso: { enabled: boolean; provider?: TSsoProvider; settings?: Record<string, unknown> };
+    };
+  };
 
-  // Compliance and Audit
   compliance: {
-    status: { type: String, enum: ComplianceStatus, default: "PENDING_REVIEW" },
-    certifications: [{
-      name: String, // ISO 27001, SOC 2, etc.
-      number: String,
-      issuedBy: String,
-      issuedDate: Date,
-      expiryDate: Date,
-      url: String,
-      verified: { type: Boolean, default: false }
-    }],
-    policies: [{
-      name: String,
-      version: String,
-      approvedBy: String,
-      approvedDate: Date,
-      url: String
-    }],
+    status: TComplianceStatus;
+    certifications?: Array<{
+      name?: string;
+      number?: string;
+      issuedBy?: string;
+      issuedDate?: Date;
+      expiryDate?: Date;
+      url?: string;
+      verified?: boolean;
+    }>;
+    policies?: Array<{
+      name?: string;
+      version?: string;
+      approvedBy?: string;
+      approvedDate?: Date;
+      url?: string;
+    }>;
     auditTrail: {
-      enabled: { type: Boolean, default: true },
-      retentionPeriod: { type: Number, default: 2555 }, // days (7 years)
-      externalAuditor: String,
-      lastAuditDate: Date,
-      nextAuditDate: Date
-    },
+      enabled: boolean;
+      retentionPeriod: number;
+      externalAuditor?: string;
+      lastAuditDate?: Date;
+      nextAuditDate?: Date;
+    };
     dataPrivacy: {
-      gdprCompliant: { type: Boolean, default: false },
-      dataRetentionPeriod: { type: Number, default: 2555 }, // days
-      anonymizationEnabled: { type: Boolean, default: false },
-      rightToForget: { type: Boolean, default: false }
-    }
-  },
+      gdprCompliant: boolean;
+      dataRetentionPeriod: number;
+      anonymizationEnabled: boolean;
+      rightToForget: boolean;
+    };
+  };
 
-  // Status and Health
   status: {
-    isActive: { type: Boolean, default: true },
-    isSuspended: { type: Boolean, default: false },
-    suspensionReason: String,
-    maintenanceMode: { type: Boolean, default: false },
-    lastHealthCheck: Date,
-    healthStatus: { type: String, enum: ["HEALTHY", "WARNING", "CRITICAL"], default: "HEALTHY" },
-    healthDetails: Schema.Types.Mixed
+    isActive: boolean;
+    isSuspended: boolean;
+    suspensionReason?: string;
+    maintenanceMode: boolean;
+    lastHealthCheck?: Date;
+    healthStatus: 'HEALTHY' | 'WARNING' | 'CRITICAL';
+    healthDetails?: Record<string, unknown>;
+  };
+
+  customFields?: Record<string, unknown>;
+  tags?: string[];
+  notes?: string;
+
+  createdBy: Types.ObjectId;
+  updatedBy?: Types.ObjectId;
+  version: number;
+}
+
+// ---------- Schema ----------
+const OrganizationSchema = new Schema<IOrganization, OrganizationModel>(
+  {
+    orgId: { type: String, required: true, unique: true },
+
+    name: { type: String, required: true, trim: true },
+    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
+    type: { type: String, enum: OrganizationType, required: true },
+    description: { type: String, trim: true },
+    website: { type: String, trim: true },
+    logo: { type: String, trim: true },
+
+    contact: {
+      primary: {
+        name: { type: String, required: true, trim: true },
+        title: { type: String, trim: true },
+        email: { type: String, required: true, lowercase: true, trim: true },
+        phone: { type: String, trim: true },
+        mobile: { type: String, trim: true },
+      },
+      billing: {
+        name: { type: String, trim: true },
+        email: { type: String, lowercase: true, trim: true },
+        phone: { type: String, trim: true },
+        address: {
+          street: { type: String, trim: true },
+          city: { type: String, trim: true },
+          region: { type: String, trim: true },
+          postalCode: { type: String, trim: true },
+          country: { type: String, default: 'SA', trim: true },
+        },
+      },
+      technical: {
+        name: { type: String, trim: true },
+        email: { type: String, lowercase: true, trim: true },
+        phone: { type: String, trim: true },
+      },
+    },
+
+    address: {
+      headquarters: {
+        street: { type: String, required: true, trim: true },
+        city: { type: String, required: true, trim: true },
+        region: { type: String, trim: true },
+        postalCode: { type: String, trim: true },
+        country: { type: String, default: 'SA', required: true, trim: true },
+      },
+      branches: [
+        {
+          name: { type: String, trim: true },
+          street: { type: String, trim: true },
+          city: { type: String, trim: true },
+          region: { type: String, trim: true },
+          postalCode: { type: String, trim: true },
+          country: { type: String, trim: true },
+          isActive: { type: Boolean, default: true },
+        },
+      ],
+    },
+
+    legal: {
+      registrationNumber: { type: String, trim: true },
+      taxId: { type: String, trim: true },
+      licenseNumber: { type: String, trim: true },
+      documents: [
+        {
+          type: { type: String, trim: true },
+          number: { type: String, trim: true },
+          issuedBy: { type: String, trim: true },
+          issuedDate: Date,
+          expiryDate: Date,
+          url: { type: String, trim: true },
+          verified: { type: Boolean, default: false },
+        },
+      ],
+    },
+
+    subscription: {
+      plan: {
+        type: String,
+        required: true,
+        default: 'BASIC',
+        enum: ['BASIC', 'STANDARD', 'PREMIUM', 'ENTERPRISE'],
+      },
+      status: { type: String, enum: SubscriptionStatus, default: 'TRIAL' },
+      startDate: { type: Date, default: Date.now },
+      endDate: Date,
+      trialEndsAt: Date,
+      billingCycle: { type: String, enum: BillingCycle, default: 'MONTHLY' },
+      price: {
+        amount: { type: Number, min: 0 },
+        currency: { type: String, default: 'SAR', trim: true },
+      },
+      features: {
+        maxUsers: { type: Number, default: 10, min: 0 },
+        maxProperties: { type: Number, default: 5, min: 0 },
+        maxWorkOrders: { type: Number, default: 100, min: 0 },
+        advancedReporting: { type: Boolean, default: false },
+        apiAccess: { type: Boolean, default: false },
+        customBranding: { type: Boolean, default: false },
+        ssoIntegration: { type: Boolean, default: false },
+        mobileApp: { type: Boolean, default: true },
+        supportLevel: { type: String, enum: SupportLevel, default: 'BASIC' },
+      },
+      usage: {
+        currentUsers: { type: Number, default: 0, min: 0 },
+        currentProperties: { type: Number, default: 0, min: 0 },
+        currentWorkOrders: { type: Number, default: 0, min: 0 },
+        apiCalls: { type: Number, default: 0, min: 0 },
+        storageUsed: { type: Number, default: 0, min: 0 },
+      },
+      limits: {
+        exceeded: { type: Boolean, default: false },
+        warnings: [String],
+      },
+    },
+
+    settings: {
+      locale: { type: String, default: 'ar', trim: true },
+      timezone: { type: String, default: 'Asia/Riyadh', trim: true },
+      currency: { type: String, default: 'SAR', trim: true },
+      dateFormat: { type: String, default: 'DD/MM/YYYY', trim: true },
+      numberFormat: { type: String, default: '1,234.56', trim: true },
+      businessHours: {
+        workdays: [{ type: String, enum: Workdays }],
+        startTime: { type: String, default: '09:00', trim: true },
+        endTime: { type: String, default: '17:00', trim: true },
+        breakTime: {
+          enabled: { type: Boolean, default: true },
+          start: { type: String, default: '12:00', trim: true },
+          end: { type: String, default: '13:00', trim: true },
+        },
+      },
+      workOrders: {
+        autoAssignment: { type: Boolean, default: false },
+        requireApproval: { type: Boolean, default: true },
+        defaultPriority: { type: String, enum: Priority, default: 'MEDIUM' },
+        slaDefaults: {
+          low: { hours: { type: Number, default: 72, min: 0 } },
+          medium: { hours: { type: Number, default: 48, min: 0 } },
+          high: { hours: { type: Number, default: 24, min: 0 } },
+          urgent: { hours: { type: Number, default: 4, min: 0 } },
+        },
+        notifications: {
+          email: { type: Boolean, default: true },
+          sms: { type: Boolean, default: false },
+          push: { type: Boolean, default: true },
+        },
+      },
+      financial: {
+        invoiceNumberFormat: { type: String, default: 'INV-{YYYY}-{MM}-{####}', trim: true },
+        paymentTerms: { type: Number, default: 30, min: 0 },
+        lateFeePercentage: { type: Number, default: 2.5, min: 0 },
+        taxRate: { type: Number, default: 15, min: 0, max: 100 },
+        approvalLimits: {
+          workOrder: { type: Number, default: 1000, min: 0 },
+          purchase: { type: Number, default: 5000, min: 0 },
+          invoice: { type: Number, default: 10000, min: 0 },
+        },
+      },
+      security: {
+        passwordPolicy: {
+          minLength: { type: Number, default: 8, min: 1 },
+          requireUppercase: { type: Boolean, default: true },
+          requireNumbers: { type: Boolean, default: true },
+          requireSpecialChars: { type: Boolean, default: false },
+          expiryDays: { type: Number, default: 90, min: 0 },
+        },
+        sessionTimeout: { type: Number, default: 480, min: 1 }, // minutes
+        maxLoginAttempts: { type: Number, default: 5, min: 1 },
+        twoFactorRequired: { type: Boolean, default: false },
+        ipWhitelist: [String],
+        auditLogRetention: { type: Number, default: 365, min: 0 }, // days
+      },
+      integrations: {
+        emailProvider: {
+          provider: { type: String, enum: EmailProvider, default: 'SMTP' },
+          settings: Schema.Types.Mixed,
+        },
+        smsProvider: {
+          provider: { type: String, enum: SmsProvider, default: 'LOCAL' },
+          settings: Schema.Types.Mixed,
+        },
+        paymentGateway: {
+          provider: { type: String, enum: PaymentGateway, default: 'PAYTABS' },
+          settings: Schema.Types.Mixed,
+        },
+        sso: {
+          enabled: { type: Boolean, default: false },
+          provider: { type: String, enum: SsoProvider },
+          settings: Schema.Types.Mixed,
+        },
+      },
+    },
+
+    compliance: {
+      status: { type: String, enum: ComplianceStatus, default: 'PENDING_REVIEW' },
+      certifications: [
+        {
+          name: { type: String, trim: true },
+          number: { type: String, trim: true },
+          issuedBy: { type: String, trim: true },
+          issuedDate: Date,
+          expiryDate: Date,
+          url: { type: String, trim: true },
+          verified: { type: Boolean, default: false },
+        },
+      ],
+      policies: [
+        {
+          name: { type: String, trim: true },
+          version: { type: String, trim: true },
+          approvedBy: { type: String, trim: true },
+          approvedDate: Date,
+          url: { type: String, trim: true },
+        },
+      ],
+      auditTrail: {
+        enabled: { type: Boolean, default: true },
+        retentionPeriod: { type: Number, default: 2555, min: 0 },
+        externalAuditor: { type: String, trim: true },
+        lastAuditDate: Date,
+        nextAuditDate: Date,
+      },
+      dataPrivacy: {
+        gdprCompliant: { type: Boolean, default: false },
+        dataRetentionPeriod: { type: Number, default: 2555, min: 0 },
+        anonymizationEnabled: { type: Boolean, default: false },
+        rightToForget: { type: Boolean, default: false },
+      },
+    },
+
+    status: {
+      isActive: { type: Boolean, default: true },
+      isSuspended: { type: Boolean, default: false },
+      suspensionReason: { type: String, trim: true },
+      maintenanceMode: { type: Boolean, default: false },
+      lastHealthCheck: Date,
+      healthStatus: { type: String, enum: ['HEALTHY', 'WARNING', 'CRITICAL'], default: 'HEALTHY' },
+      healthDetails: Schema.Types.Mixed,
+    },
+
+    customFields: Schema.Types.Mixed,
+    tags: [String],
+    notes: { type: String, trim: true },
+
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    version: { type: Number, default: 1, min: 1 },
   },
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } },
+);
 
-  // Custom Fields and Metadata
-  customFields: Schema.Types.Mixed,
-  tags: [String],
-  notes: String,
-
-  // Audit Fields
-  createdBy: { type: String, required: true },
-  updatedBy: String,
-  version: { type: Number, default: 1 }
-}, {
-  timestamps: true
-});
-
-// Indexes for performance
-OrganizationSchema.index({ orgId: 1 });
-OrganizationSchema.index({ code: 1 });
-OrganizationSchema.index({ "subscription.status": 1 });
-OrganizationSchema.index({ "status.isActive": 1 });
+// ---------- Indexes ----------
+OrganizationSchema.index({ orgId: 1 }, { unique: true });
+OrganizationSchema.index({ code: 1 }, { unique: true });
+OrganizationSchema.index({ 'subscription.status': 1 });
+OrganizationSchema.index({ 'subscription.endDate': 1 });
+OrganizationSchema.index({ 'status.isActive': 1 });
 OrganizationSchema.index({ createdAt: -1 });
 
-// Pre-save middleware to generate orgId if not provided
-OrganizationSchema.pre('save', function(next) {
+// ---------- Hooks ----------
+const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12);
+
+OrganizationSchema.pre('save', function (next) {
+  // Generate orgId if missing
   if (this.isNew && !this.orgId) {
-    this.orgId = `org_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    this.orgId = `org_${nanoid()}`;
   }
+
+  // Normalize key strings
+  if (this.isModified('code') && this.code) this.code = String(this.code).toUpperCase().trim();
+  if (this.website) this.website = this.website.trim().toLowerCase();
+  if (this.contact?.primary?.email)
+    this.contact.primary.email = this.contact.primary.email.trim().toLowerCase();
+  if (this.contact?.billing?.email)
+    this.contact.billing.email = this.contact.billing.email.trim().toLowerCase();
+  if (this.contact?.technical?.email)
+    this.contact.technical.email = this.contact.technical.email.trim().toLowerCase();
+
   next();
 });
 
-// Virtual for subscription days remaining
-OrganizationSchema.virtual('subscriptionDaysRemaining').get(function() {
-  if (!this.subscription?.endDate) return null;
-  const now = new Date();
-  const endDate = new Date(this.subscription.endDate);
-  const diffTime = endDate.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+// ---------- Virtuals ----------
+OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: OrganizationDoc) {
+  const end = this.subscription?.endDate ? new Date(this.subscription.endDate).getTime() : null;
+  if (!end) return null;
+  const today = Date.now();
+  const diff = Math.ceil((end - today) / (24 * 60 * 60 * 1000));
+  return diff >= 0 ? diff : 0;
 });
 
-// Method to check if feature is enabled
-OrganizationSchema.methods.hasFeature = function(featureName: string): boolean {
-  return this.subscription?.features?.[featureName] === true;
+// ---------- Instance methods ----------
+OrganizationSchema.methods.hasFeature = function (
+  this: OrganizationDoc,
+  feature: keyof Features,
+): boolean {
+  return Boolean(this.subscription?.features?.[feature]);
 };
 
-// Method to check usage limits
-OrganizationSchema.methods.checkUsageLimits = function() {
+OrganizationSchema.methods.checkUsageLimits = function (this: OrganizationDoc): string[] {
   const usage = this.subscription.usage;
   const features = this.subscription.features;
-  const warnings = [];
+  const warnings: string[] = [];
 
   if (usage.currentUsers >= features.maxUsers) {
     warnings.push(`User limit reached (${usage.currentUsers}/${features.maxUsers})`);
@@ -312,10 +570,40 @@ OrganizationSchema.methods.checkUsageLimits = function() {
 
   this.subscription.limits.warnings = warnings;
   this.subscription.limits.exceeded = warnings.length > 0;
-  
   return warnings;
 };
 
-export type OrganizationDoc = InferSchemaType<typeof OrganizationSchema>;
+// ---------- Statics (atomic helpers) ----------
+OrganizationSchema.statics.incrementUsage = async function (
+  orgId: string,
+  patch: Partial<Usage>,
+): Promise<OrganizationDoc | null> {
+  // Only increment provided counters; clamp at >= 0
+  const inc: Record<string, number> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (typeof v === 'number' && Number.isFinite(v) && v !== 0) {
+      inc[`subscription.usage.${k}`] = v;
+    }
+  }
+  if (Object.keys(inc).length === 0) return this.findOne({ orgId });
 
-export const Organization = models.Organization || model("Organization", OrganizationSchema);
+  const doc = await this.findOneAndUpdate({ orgId }, { $inc: inc }, { new: true });
+  return doc;
+};
+
+OrganizationSchema.statics.setSubscriptionStatus = async function (
+  orgId: string,
+  status: TSubscriptionStatus,
+): Promise<OrganizationDoc | null> {
+  return this.findOneAndUpdate(
+    { orgId },
+    { $set: { 'subscription.status': status } },
+    { new: true },
+  );
+};
+
+// ---------- Export ----------
+export const Organization =
+  models.Organization ||
+  (model<IOrganization, OrganizationModel>('Organization', OrganizationSchema) as OrganizationModel);
+export type { OrganizationDoc, Features, Usage };

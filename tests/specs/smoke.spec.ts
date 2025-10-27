@@ -1,0 +1,215 @@
+import { test, expect, Page } from '@playwright/test';
+
+/**
+ * COMPREHENSIVE SMOKE TESTS
+ * Tests all major pages across all roles (SuperAdmin, Admin, Manager, Technician, Tenant, Vendor)
+ * in both English and Arabic, ensuring:
+ * - Page loads successfully
+ * - Core layout elements are present (header, sidebar, footer)
+ * - No console errors
+ * - No failed network requests
+ * - RTL/LTR direction is correct
+ * - Language and currency selectors are visible
+ */
+
+const CORE_PAGES = [
+  { path: '/', name: 'Landing' },
+  { path: '/app', name: 'App Home' },
+  { path: '/dashboard', name: 'Dashboard' },
+  { path: '/work-orders', name: 'Work Orders' },
+  { path: '/properties', name: 'Properties' },
+  { path: '/finance', name: 'Finance' },
+  { path: '/hr', name: 'HR' },
+  { path: '/admin', name: 'Administration' },
+  { path: '/crm', name: 'CRM' },
+  { path: '/marketplace', name: 'Marketplace' },
+  { path: '/support', name: 'Support' },
+  { path: '/compliance', name: 'Compliance' },
+  { path: '/reports', name: 'Reports' },
+  { path: '/system', name: 'System Management' }
+];
+
+const SIDEBAR_ITEMS = [
+  'Dashboard',
+  'Work Orders',
+  'Properties',
+  'Finance'
+];
+
+test.describe('Global Layout & Navigation - All Pages', () => {
+  for (const page of CORE_PAGES) {
+    test(`${page.name} (${page.path}): Layout integrity + no errors`, async ({ page: browser }) => {
+      const errors: string[] = [];
+      const warnings: string[] = [];
+      const networkFailures: Array<{ method: string; url: string; status: number }> = [];
+
+      // Capture console errors and warnings
+      browser.on('pageerror', (error) => {
+        errors.push(`PageError: ${error.message}`);
+      });
+
+      browser.on('console', (msg) => {
+        const type = msg.type();
+        const text = msg.text();
+        
+        if (type === 'error') {
+          errors.push(`Console Error: ${text}`);
+        } else if (type === 'warning' && !text.includes('DevTools')) {
+          warnings.push(`Console Warning: ${text}`);
+        }
+      });
+
+      // Capture failed network requests
+      browser.on('response', (response) => {
+        const status = response.status();
+        if (status >= 400) {
+          networkFailures.push({
+            method: response.request().method(),
+            url: response.url(),
+            status
+          });
+        }
+      });
+
+      // Navigate to page
+      await browser.goto(page.path, { 
+        waitUntil: 'networkidle',
+        timeout: 30000 
+      });
+
+      // Wait for main content to stabilize
+      await browser.waitForLoadState('domcontentloaded');
+
+      // ============ LAYOUT ASSERTIONS ============
+      
+      // Header must exist
+      const header = browser.locator('header');
+      await expect(header).toBeVisible({ timeout: 10000 });
+
+      // Footer must exist (may be at bottom, need to scroll)
+      const footer = browser.locator('footer');
+      const footerVisible = await footer.isVisible().catch(() => false);
+      if (!footerVisible) {
+        await browser.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await expect(footer).toBeVisible({ timeout: 5000 });
+      }
+
+      // Sidebar navigation - check for key items
+      for (const item of SIDEBAR_ITEMS) {
+        const sidebarItem = browser.getByRole('link', { name: new RegExp(item, 'i') }).or(
+          browser.getByRole('button', { name: new RegExp(item, 'i') })
+        );
+        await expect(sidebarItem.first()).toBeVisible({ timeout: 5000 });
+      }
+
+      // ============ LANGUAGE & CURRENCY SELECTORS ============
+      
+      // Language selector (English/عربي)
+      const langSelector = browser.getByRole('button', { name: /language|lang|عربي|english|en|ar/i });
+      await expect(langSelector.first()).toBeVisible({ timeout: 5000 });
+
+      // Currency selector (SAR/USD)
+      const currencySelector = browser.getByRole('button', { name: /currency|sar|usd|riyal|dollar/i });
+      await expect(currencySelector.first()).toBeVisible({ timeout: 5000 });
+
+      // ============ RTL/LTR DIRECTION ============
+      
+      const htmlDir = await browser.evaluate(() => document.documentElement.getAttribute('dir'));
+      const projectName = test.info().project.name;
+      
+      if (projectName.startsWith('AR:')) {
+        expect(htmlDir).toBe('rtl');
+      } else {
+        expect(htmlDir).toBe('ltr');
+      }
+
+      // ============ ERROR VALIDATION ============
+      
+      // Console errors should be empty
+      if (errors.length > 0) {
+        console.error(`\n❌ Console Errors on ${page.path}:`);
+        errors.forEach(err => console.error(`   ${err}`));
+      }
+      expect(errors, `Console errors found:\n${errors.join('\n')}`).toHaveLength(0);
+
+      // Network failures should be empty (except 404s for optional resources)
+      const criticalFailures = networkFailures.filter(f => 
+        f.status >= 500 || // Server errors
+        (f.status === 404 && !f.url.includes('favicon') && !f.url.includes('.map')) || // Missing critical resources
+        f.status === 401 || f.status === 403 // Auth failures
+      );
+      
+      if (criticalFailures.length > 0) {
+        console.error(`\n❌ Network Failures on ${page.path}:`);
+        criticalFailures.forEach(f => console.error(`   ${f.method} ${f.url} → ${f.status}`));
+      }
+      expect(
+        criticalFailures,
+        `Network failures:\n${criticalFailures.map(f => `${f.method} ${f.url} → ${f.status}`).join('\n')}`
+      ).toHaveLength(0);
+
+      // Warnings are logged but not failed (informational)
+      if (warnings.length > 0) {
+        console.warn(`\n⚠️  Console Warnings on ${page.path} (${warnings.length} total)`);
+      }
+    });
+  }
+});
+
+test.describe('Branding & Theme Consistency', () => {
+  test('Primary brand colors are applied', async ({ page }) => {
+    await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+    // Check CSS variables for brand colors
+    const styles = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      return {
+        primary: root.getPropertyValue('--primary'),
+        secondary: root.getPropertyValue('--secondary'),
+        accent: root.getPropertyValue('--accent')
+      };
+    });
+
+    // Expect brand colors to be defined (exact values may vary based on theme)
+    expect(styles.primary).toBeTruthy();
+    expect(styles.secondary).toBeTruthy();
+    expect(styles.accent).toBeTruthy();
+  });
+
+  test('Logo and brand elements are visible', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    // Logo in header
+    const logo = page.locator('header img[alt*="Fixzit"], header svg[class*="logo"]').first();
+    await expect(logo).toBeVisible({ timeout: 10000 });
+  });
+});
+
+test.describe('Accessibility Basics', () => {
+  test('Main landmark and proper heading structure', async ({ page }) => {
+    await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+    // Main content area
+    const main = page.locator('main');
+    await expect(main).toBeVisible();
+
+    // At least one h1 heading
+    const h1 = page.locator('h1');
+    expect(await h1.count()).toBeGreaterThan(0);
+  });
+
+  test('Skip to content link for keyboard navigation', async ({ page }) => {
+    await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+    // Press Tab to focus skip link (if implemented)
+    await page.keyboard.press('Tab');
+    
+    const skipLink = page.getByRole('link', { name: /skip to content|skip to main/i });
+    const skipLinkExists = await skipLink.count();
+    
+    // This is a recommendation, not a hard requirement
+    if (skipLinkExists === 0) {
+      console.warn('⚠️  Skip to content link not found - consider adding for accessibility');
+    }
+  });
+});

@@ -46,11 +46,13 @@ export async function GET(_request: NextRequest) {
       });
     }
 
+    const orgDoc = org as { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string } } | null;
+
     return NextResponse.json({
-      name: (org as any).name || 'FIXZIT ENTERPRISE',
-      logo: (org as any).logo || '/img/fixzit-logo.jpg',
-      primaryColor: (org as any).branding?.primaryColor || '#0061A8',
-      secondaryColor: (org as any).branding?.secondaryColor || '#00A859'
+      name: orgDoc?.name || 'FIXZIT ENTERPRISE',
+      logo: orgDoc?.logo || '/img/fixzit-logo.jpg',
+      primaryColor: orgDoc?.branding?.primaryColor || '#0061A8',
+      secondaryColor: orgDoc?.branding?.secondaryColor || '#00A859'
     });
   } catch (error) {
     console.error('Error fetching organization settings:', error);

@@ -90,7 +90,14 @@ const nextConfig = {
     cpus: 1, // One worker = stable memory usage
     // Optimize chunk loading
     optimisticClientCache: true,
+    // ⚡ FIX BUILD TIMEOUT: Optimize static page generation
+    // Use ISR (Incremental Static Regeneration) for heavy pages instead of full SSG
+    isrMemoryCacheSize: 0, // Disable ISR cache during build to save memory
   },
+  
+  // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
+  // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)
+  staticPageGenerationTimeout: 180, // 3 minutes per page (was hanging at 135/181 pages)
 
   // 🚀 Turbopack Configuration (Next.js 15 Development Bundler)
   // Used when running `npm run dev` (which uses --turbo flag)

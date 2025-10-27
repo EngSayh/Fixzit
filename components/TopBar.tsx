@@ -13,7 +13,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
 
 // Type definitions
@@ -29,6 +29,7 @@ interface Notification {
   priority: 'high' | 'medium' | 'low';
   timestamp: string;
   read: boolean;
+  targetUrl?: string; // Optional deep link URL
 }
 
 // Fallback translations for when context is not available
@@ -68,6 +69,7 @@ const fallbackT = (key: string, fallback?: string) =>
 export default function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -85,15 +87,12 @@ export default function TopBar() {
   // Use NextAuth session for authentication (supports both OAuth and JWT)
   const { data: session, status } = useSession();
   
-  // Additional client-side auth verification state
-  const [clientAuthVerified, setClientAuthVerified] = useState<boolean | null>(null);
-  
-  // CRITICAL: Only show authenticated UI when explicitly authenticated AND verified
+  // CRITICAL: Only show authenticated UI when explicitly authenticated
   // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
-  const isAuthenticated = status === 'authenticated' && session != null && clientAuthVerified !== false;
+  const isAuthenticated = status === 'authenticated' && session != null;
 
   // Use FormStateContext for unsaved changes detection
-  const { hasUnsavedChanges, requestSave } = useFormState();
+  const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
 
   // Get translation context
   const translationContext = useTranslation();
@@ -127,7 +126,7 @@ export default function TopBar() {
   }, []);
 
   // Get responsive context
-  const { isMobile, isTablet, isDesktop, isRTL } = useResponsiveLayout();
+  const { isMobile, isTablet, isDesktop, isRTL } = useResponsive();
   
   // Build responsive classes
   const responsiveClasses = {
@@ -145,55 +144,7 @@ export default function TopBar() {
   const t = translationContext?.t ?? fallbackT;
 
   // Debug RTL positioning (remove after issue is resolved)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('🔍 TopBar RTL Debug:', {
-        isRTL,
-        direction: document.documentElement.getAttribute('dir'),
-        language: localStorage.getItem('fxz.lang'),
-        htmlLang: document.documentElement.getAttribute('lang')
-      });
-    }
-  }, [isRTL]);
 
-  // CRITICAL FIX: Verify authentication on mount to prevent auto-login from stale sessions
-  // This addresses the bug where UI shows logged-in state despite 401 errors
-  useEffect(() => {
-    const verifyAuth = async () => {
-      // Skip verification if NextAuth already says we're not authenticated
-      if (status !== 'authenticated' || !session) {
-        setClientAuthVerified(false);
-        return;
-      }
-
-      try {
-        // Verify the session is still valid by checking with the server
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-          cache: 'no-store' // Never use cached response
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Only mark as verified if we get valid user data back
-          setClientAuthVerified(!!(data && data.user));
-        } else {
-          // 401 or any error means not authenticated
-          console.warn('Auth verification failed:', response.status);
-          setClientAuthVerified(false);
-          // Force sign out to clear NextAuth session
-          if (response.status === 401) {
-            await signOut({ redirect: false });
-          }
-        }
-      } catch (error) {
-        console.error('Auth verification error:', error);
-        setClientAuthVerified(false);
-      }
-    };
-
-    verifyAuth();
-  }, [status, session]);
 
   // Handle logo click with unsaved changes check
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -213,11 +164,23 @@ export default function TopBar() {
   const handleSaveAndNavigate = async () => {
     setIsSaving(true);
     setSaveError(null);
+    
     try {
-      if (requestSave) {
-        await requestSave();
-      }
-      // Success path only
+      // Set up event listeners for save confirmation
+      // ⚡ IMPROVED: Promise aggregation pattern for save coordination
+      const promises: Promise<void>[] = [];
+      const saveEvent = new CustomEvent('fixzit:save-forms', { 
+        detail: { promises, timestamp: Date.now() } 
+      });
+      window.dispatchEvent(saveEvent);
+      
+      // Await all registered saves instead of fixed timeout
+      await Promise.all(promises);
+      
+      // Clear all unsaved changes flags only after successful saves
+      clearAllUnsavedChanges();
+      
+      // Success - close dialog and navigate
       setShowUnsavedDialog(false);
       if (pendingNavigation) {
         router.push(pendingNavigation);
@@ -225,7 +188,7 @@ export default function TopBar() {
       }
     } catch (error) {
       console.error('Failed to save form:', error);
-      // Set user-facing error - keep dialog open
+      // Keep flags intact so user can retry or discard
       setSaveError(
         error instanceof Error 
           ? error.message 
@@ -238,6 +201,8 @@ export default function TopBar() {
 
   // Handle discard and navigate
   const handleDiscardAndNavigate = () => {
+    // Clear all unsaved changes flags
+    clearAllUnsavedChanges();
     setShowUnsavedDialog(false);
     if (pendingNavigation) {
       router.push(pendingNavigation);
@@ -382,60 +347,61 @@ export default function TopBar() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white flex items-center justify-between ${responsiveClasses.container} shadow-sm border-b border-white/10 ${isRTL ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        {/* Logo with unsaved changes handler */}
-        <button
-          type="button"
-          onClick={handleLogoClick}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          aria-label="Go to home"
-        >
-          {orgSettings.logo && !logoError ? (
-            <Image
-              src={orgSettings.logo}
-              alt={orgSettings.name}
-              width={32}
-              height={32}
-              className="rounded-md object-cover"
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <div 
-              className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
-              aria-hidden="true"
+    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white ${responsiveClasses.container} shadow-sm border-b border-white/10`}>
+      <div className={`h-full flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        {/* Left Section: Logo & App Switcher */}
+        <div className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Logo with unsaved changes handler */}
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            aria-label="Go to home"
+          >
+            {orgSettings.logo && !logoError ? (
+              <Image
+                src={orgSettings.logo}
+                alt={orgSettings.name}
+                width={32}
+                height={32}
+                className="rounded-md object-cover"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div 
+                className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
+                aria-hidden="true"
+              >
+                {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
+              </div>
+            )}
+            <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
+              {orgSettings?.name || 'FIXZIT ENTERPRISE'}
+            </span>
+          </button>
+          <AppSwitcher />
+        </div>
+        
+        {/* Center Section: Global Search */}
+        {!screenInfo.isMobile && (
+          <div className="flex-1 max-w-2xl mx-2 sm:mx-4 min-w-0">
+            <GlobalSearch />
+          </div>
+        )}
+        
+        {/* Right Section: Actions & User Menu */}
+        <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Mobile search button */}
+          {screenInfo.isMobile && (
+            <button
+              type="button"
+              className="p-2 hover:bg-white/10 rounded-md"
+              aria-label="Open search"
+              onClick={() => setMobileSearchOpen(true)}
             >
-              {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
-            </div>
+              <Search className="w-4 h-4" />
+            </button>
           )}
-          <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} ${isRTL ? 'text-right' : ''}`}>
-            {orgSettings?.name || 'FIXZIT ENTERPRISE'}
-          </span>
-        </button>
-        <AppSwitcher />
-      </div>
-      
-      {/* Global Search - Center */}
-      <div className={`flex-1 max-w-2xl mx-4 ${screenInfo.isMobile ? 'hidden' : 'block'}`}>
-        <GlobalSearch />
-      </div>
-      
-      {/* Mobile search button */}
-      {screenInfo.isMobile && (
-        <button
-          type="button"
-          className="p-2 hover:bg-white/10 rounded-md"
-          aria-label="Open search"
-          onClick={() => {
-            // TODO: Implement mobile search modal
-            console.log('Mobile search clicked - implement modal');
-          }}
-        >
-          <Search className="w-4 h-4" />
-        </button>
-      )}
-      
-      <div className={`flex items-center gap-1 sm:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Only show QuickActions for authenticated users */}
         {isAuthenticated && <QuickActions />}
         
@@ -457,20 +423,13 @@ export default function TopBar() {
               )}
             </button>
             {notifOpen && (
-              <Portal>
-                <div 
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Notifications"
-                  className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
-                  style={{
-                    top: '4rem',
-                    // In RTL mode (Arabic), elements flip to the left, so dropdown should align left
-                    // In LTR mode, elements are on the right, so dropdown should align right
-                    ...(isRTL ? { left: '1rem', right: 'auto' } : { right: '1rem', left: 'auto' }),
-                    zIndex: 100
-                  }}
-                >
+              <div 
+                role="dialog"
+                aria-modal="true"
+                aria-label="Notifications"
+                className={`absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] max-h-[calc(100vh-5rem)] overflow-hidden animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96 ${isRTL ? 'left-0' : 'right-0'}`}
+                style={{ maxWidth: 'calc(100vw - 2rem)' }}
+              >
                   <div className="p-3 border-b border-gray-200 flex justify-between items-start">
                     <div>
                       <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
@@ -506,9 +465,10 @@ export default function TopBar() {
                             key={notification.id}
                             className="p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"
                             onClick={() => {
-                              // Navigate to notification details or mark as read
                               setNotifOpen(false);
-                              router.push('/notifications');
+                              // Navigate to specific target URL if provided, otherwise go to notifications page
+                              const targetPath = notification.targetUrl || '/notifications';
+                              router.push(targetPath);
                             }}
                           >
                             <div className="flex justify-between items-start">
@@ -559,7 +519,6 @@ export default function TopBar() {
                     </div>
                   )}
                 </div>
-              </Portal>
             )}
           </div>
         )}
@@ -577,20 +536,15 @@ export default function TopBar() {
             <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
           </button>
           {userOpen && (
-            <Portal>
-              <div 
-                role="menu"
-                aria-label="User menu"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
-                style={{
-                  top: '4rem',
-                  // In RTL mode (Arabic), elements flip to the left, so dropdown should align left
-                  // In LTR mode, elements are on the right, so dropdown should align right
-                  ...(isRTL ? { left: '1rem', right: 'auto' } : { right: '1rem', left: 'auto' }),
-                  zIndex: 100,
-                  pointerEvents: 'auto'
-                }}
-              >
+            <div 
+              role="menu"
+              aria-label="User menu"
+              className={`absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)] ${isRTL ? 'left-0' : 'right-0'}`}
+              style={{
+                pointerEvents: 'auto',
+                maxWidth: 'calc(100vw - 2rem)'
+              }}
+            >
                 <Link
                   href="/profile"
                   className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
@@ -629,8 +583,8 @@ export default function TopBar() {
                   {t('common.logout', 'Sign out')}
                 </button>
               </div>
-            </Portal>
           )}
+        </div>
         </div>
       </div>
 
@@ -696,6 +650,42 @@ export default function TopBar() {
                   )}
                   {isSaving ? t('common.saving', 'Saving...') : t('common.saveAndContinue', 'Save & Continue')}
                 </button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Mobile Search Modal */}
+      {mobileSearchOpen && (
+        <Portal>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[200] flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-search-title"
+          >
+            <div className="bg-white w-full flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center gap-2 p-4 border-b border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setMobileSearchOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-md"
+                  aria-label="Close search"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <h2 id="mobile-search-title" className="text-lg font-semibold text-gray-900">
+                  {t('common.search', 'Search')}
+                </h2>
+              </div>
+              
+              {/* Search Content - Use GlobalSearch component */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <GlobalSearch onResultClick={() => setMobileSearchOpen(false)} />
               </div>
             </div>
           </div>

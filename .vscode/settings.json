@@ -118,7 +118,7 @@
   // and reduce extension timeouts on large repositories. These safer defaults
   // keep the extension useful while preventing large, automatic full-repo
   // reviews that cause the agent to pause or stop.
-  "coderabbit.autoReviewMode": "auto",
+  "coderabbit.autoReviewMode": "prompt",
   "coderabbit.maxFilesPerReview": 100,
   "coderabbit.concurrentReviews": 1,
 
@@ -131,8 +131,18 @@
     "ms-vscode.powershell": 0
   },
 
-  // Window & Startup
+  // Window & Startup - Configured for unattended E2E testing
   "window.restoreWindows": "none",
+  "window.confirmBeforeClose": "never",
+  "update.mode": "manual",
+  "telemetry.telemetryLevel": "off",
+  "extensions.autoCheckUpdates": false,
+  "npm.scriptExplorerAction": "run",
+  "terminal.integrated.enablePersistentSessions": true,
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "workbench.enableExperiments": false,
+  "workbench.settings.enableNaturalLanguageSearch": false,
   // ChatGPT startup disabled by default - enable per-user preference if desired
   "chatgpt.openOnStartup": false,
 

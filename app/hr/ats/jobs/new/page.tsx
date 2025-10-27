@@ -3,12 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 
 export default function NewJobPage() {
-  const { t } = useTranslation();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -57,7 +55,13 @@ export default function NewJobPage() {
           <CardTitle>Post New Job</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={submit} className="space-y-4">
+          <FormWithNavigation 
+            onSubmit={submit} 
+            saving={submitting}
+            showBack
+            showHome
+            position="bottom"
+          >
             <Input placeholder="Title" required value={form.title} onChange={e=>setForm({...form,title:e.target.value})} />
             <Input placeholder="Department" required value={form.department} onChange={e=>setForm({...form,department:e.target.value})} />
             <div className="grid grid-cols-2 gap-3">
@@ -70,11 +74,7 @@ export default function NewJobPage() {
               <Input placeholder="Currency" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})} />
             </div>
             <textarea className="w-full border rounded p-2" rows={6} placeholder="Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} />
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={()=>router.push('/hr/ats/jobs')}>{t('common.cancel', 'Cancel')}</Button>
-              <Button type="submit" disabled={submitting} className="bg-[#0061A8] hover:bg-[#0061A8]/90">{submitting? t('common.submitting', 'Posting…') : t('common.submit', 'Post')}</Button>
-            </div>
-          </form>
+          </FormWithNavigation>
         </CardContent>
       </Card>
     </div>
