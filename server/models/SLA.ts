@@ -1,13 +1,13 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 const SLAType = ["RESPONSE_TIME", "RESOLUTION_TIME", "UPTIME", "AVAILABILITY", "MAINTENANCE"] as const;
 const SLAPriority = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 
 const SLASchema = new Schema({
-  tenantId: { type: String, required: true },
-
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  code: { type: String, required: true }, // FIXED: removed unique: true (will be tenant-scoped)
   name: { type: String, required: true },
   description: { type: String },
 
@@ -36,14 +36,14 @@ const SLASchema = new Schema({
       level: Number,
       trigger: Number, // hours after start
       action: String, // EMAIL, SMS, PHONE, ASSIGN, ESCALATE
-      recipients: [String], // user IDs or roles
+      recipients: [{ type: Types.ObjectId, ref: 'User' }], // FIXED: Use ObjectId
       message: String
     }],
     autoAssignment: {
       enabled: Boolean,
       rules: [{
         condition: String, // "workload < 5" or "skill matches"
-        assignTo: String, // user ID or role
+        assignTo: { type: Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
         priority: Number
       }]
     }
@@ -144,27 +144,29 @@ const SLASchema = new Schema({
   },
   approval: {
     required: Boolean,
-    approvedBy: String,
+    approvedBy: { type: Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
     approvedAt: Date,
-    reviewedBy: String,
+    reviewedBy: { type: Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
     reviewedAt: Date,
     notes: String
   },
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-SLASchema.index({ tenantId: 1, type: 1 });
-SLASchema.index({ tenantId: 1, status: 1 });
-SLASchema.index({ tenantId: 1, priority: 1 });
+// Apply plugins BEFORE indexes
+SLASchema.plugin(tenantIsolationPlugin);
+SLASchema.plugin(auditPlugin); // Adds orgId, createdBy, updatedBy (as ObjectId)
+
+// Tenant-scoped indexes (orgId from plugin)
+SLASchema.index({ orgId: 1, code: 1 }, { unique: true }); // FIXED: tenant-scoped code
+SLASchema.index({ orgId: 1, type: 1 });
+SLASchema.index({ orgId: 1, status: 1 });
+SLASchema.index({ orgId: 1, priority: 1 });
 
 export type SLADoc = InferSchemaType<typeof SLASchema>;
 

@@ -1,4 +1,5 @@
 import { Schema, model, models, Types } from 'mongoose';
+import { auditPlugin } from '../plugins/auditPlugin';
 import { MODULE_KEYS } from './Module';
 
 const PayTabsInfoSchema = new Schema(
@@ -59,7 +60,11 @@ const SubscriptionSchema = new Schema(
   { timestamps: true }
 );
 
-// Validate subscriber_type matches tenant_id/owner_user_id
+// NOTE: This schema uses XOR validation (tenant_id OR owner_user_id, not both)
+// similar to PaymentMethod. It intentionally does NOT use tenantIsolationPlugin.
+SubscriptionSchema.plugin(auditPlugin);
+
+// Validate subscriber_type matches tenant_id/owner_user_id (XOR validation)
 SubscriptionSchema.pre('validate', function(next) {
   if (this.subscriber_type === 'CORPORATE') {
     if (!this.tenant_id) {
@@ -78,5 +83,10 @@ SubscriptionSchema.pre('validate', function(next) {
   }
   next();
 });
+
+// Indexes for performance
+SubscriptionSchema.index({ tenant_id: 1, status: 1 });
+SubscriptionSchema.index({ owner_user_id: 1, status: 1 });
+SubscriptionSchema.index({ status: 1 });
 
 export default models.Subscription || model('Subscription', SubscriptionSchema);

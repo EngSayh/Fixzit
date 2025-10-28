@@ -1,15 +1,12 @@
 import { Schema, model, models, Types } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const ServiceAgreementSchema = new Schema(
   {
-    orgId: {
-      type: Types.ObjectId,
-      ref: 'Organization',
-      required: true,
-    },
     subscriber_type: { 
       type: String, 
-      enum: ['CORPORATE', 'OWNER'],
+      enum: ['Organization', 'Owner'], // FIXED: Must match model names
       required: true 
     },
     subscriber_id: { 
@@ -49,7 +46,7 @@ const ServiceAgreementSchema = new Schema(
     },
     status: { 
       type: String, 
-      enum: ['DRAFT', 'SIGNED', 'ACTIVE'], 
+      enum: ['DRAFT', 'SIGNED', 'ACTIVE', 'ENDED', 'CANCELLED'],
       default: 'DRAFT' 
     },
     pdf_url: String,
@@ -57,6 +54,15 @@ const ServiceAgreementSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Apply plugins BEFORE indexes
+ServiceAgreementSchema.plugin(tenantIsolationPlugin);
+ServiceAgreementSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes
+ServiceAgreementSchema.index({ orgId: 1, status: 1 });
+ServiceAgreementSchema.index({ orgId: 1, subscriber_type: 1, subscriber_id: 1 });
+ServiceAgreementSchema.index({ orgId: 1, end_at: 1 });
 
 // Validate start_at < end_at
 ServiceAgreementSchema.pre('save', function(next) {

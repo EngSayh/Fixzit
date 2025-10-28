@@ -1,4 +1,5 @@
 import { Schema, model, models } from 'mongoose';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const PricePerModuleSchema = new Schema(
   {
@@ -34,6 +35,10 @@ const PriceBookSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// NOTE: PriceBook is global platform configuration (no tenantIsolationPlugin)
+// Apply audit plugin to track who changes pricing (critical for financial governance)
+PriceBookSchema.plugin(auditPlugin);
 
 // Validate min_seats <= max_seats for all tiers
 PriceBookSchema.pre('save', function(next) {
