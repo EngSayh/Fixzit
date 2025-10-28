@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Bed, Bath, Maximize, MapPin, Heart, Eye, Phone, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface PropertyCardProps {
   id: string;
@@ -52,8 +53,11 @@ export interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: { property: PropertyCardProps }) {
+  const { t, isRTL } = useTranslation();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+  const propertyTitle = isRTL ? (property.title.ar || property.title.en) : property.title.en;
 
   // Get primary image or first image
   const primaryImage = property.media?.find(m => m.isPrimary)?.url || 
@@ -69,8 +73,8 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
       maximumFractionDigits: 0
     }).format(amount);
 
-    if (period === 'MONTH') return `${formatted}/month`;
-    if (period === 'YEAR') return `${formatted}/year`;
+    if (period === 'MONTH') return `${formatted}${t('aqar.propertyCard.perMonth', '/month')}`;
+    if (period === 'YEAR') return `${formatted}${t('aqar.propertyCard.perYear', '/year')}`;
     return formatted;
   };
 
@@ -103,7 +107,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
       <div className="relative h-64 overflow-hidden bg-gray-200">
         <Image
           src={primaryImage}
-          alt={property.title.en}
+          alt={propertyTitle}
           fill
           className={`object-cover group-hover:scale-105 transition-transform duration-300 ${
             isImageLoaded ? 'opacity-100' : 'opacity-0'
@@ -115,7 +119,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {property.featured && (
             <span className="bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white px-3 py-1 rounded-full text-xs font-semibold">
-              Featured
+              {t('aqar.propertyCard.featured', 'Featured')}
             </span>
           )}
           {property.verified && (
@@ -123,7 +127,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              Verified
+              {t('aqar.propertyCard.verified', 'Verified')}
             </span>
           )}
           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -131,7 +135,10 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
               ? 'bg-blue-600 text-white' 
               : 'bg-purple-600 text-white'
           }`}>
-            For {property.listingType === 'SALE' ? 'Sale' : 'Rent'}
+            {property.listingType === 'SALE' 
+              ? t('aqar.propertyCard.forSale', 'For Sale')
+              : t('aqar.propertyCard.forRent', 'For Rent')
+            }
           </span>
         </div>
 
@@ -166,7 +173,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
 
         {/* Title */}
         <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">
-          {property.title.en}
+          {propertyTitle}
         </h3>
 
         {/* Location */}
@@ -234,7 +241,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
                     window.location.href = `tel:${property.agentId?.contact?.phone}`;
                   }}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Call agent"
+                  aria-label={t('aqar.propertyCard.call', 'Call agent')}
                 >
                   <Phone className="w-4 h-4 text-gray-600" />
                 </button>
@@ -246,7 +253,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
                   // Open WhatsApp or messaging
                 }}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Message agent"
+                aria-label={t('aqar.propertyCard.message', 'Message agent')}
               >
                 <MessageSquare className="w-4 h-4 text-gray-600" />
               </button>
