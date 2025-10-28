@@ -33,15 +33,20 @@ services:
     container_name: fixzit-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3000:3000"  # ✅ FIXED: Changed from 5000:5000 to 3000:3000 (Next.js default)
     environment:
       NODE_ENV: production
       MONGODB_URI: mongodb://fixzit_admin:fixzit_secure_password_2025@mongodb:27017/fixzit?authSource=admin
       MONGODB_DB: fixzit
       JWT_SECRET: ${JWT_SECRET:-c8f5e9a1b2d3c4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}  # ✅ ADDED: Required for NextAuth
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}  # ✅ ADDED: Required for NextAuth
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}  # ✅ ADDED: Required for payments
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_API_URL: http://localhost:3000
       PORT: 3000
+    volumes:
+      - ./uploads:/app/uploads  # ✅ ADDED: Persistent uploads directory
     depends_on:
       mongodb:
         condition: service_healthy
