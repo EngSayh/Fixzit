@@ -60,7 +60,15 @@ fi
 
 # Validate required environment variables
 log "Validating environment variables..."
-required_vars=("MONGODB_URI" "JWT_SECRET" "STRIPE_SECRET_KEY")
+required_vars=(
+    "MONGODB_URI"
+    "JWT_SECRET"
+    "NEXTAUTH_SECRET"
+    "STRIPE_SECRET_KEY"
+    "STRIPE_PUBLISHABLE_KEY"
+    "NEXTAUTH_URL"
+    "NODE_ENV"
+)
 for var in "${required_vars[@]}"; do
     if ! grep -q "^${var}=" .env; then
         error "Required environment variable $var is not set in .env file"
@@ -71,7 +79,10 @@ done
 if docker-compose ps | grep -q "Up"; then
     log "Creating backup of current deployment..."
     mkdir -p $BACKUP_DIR/$(date +%Y%m%d_%H%M%S)
-    docker-compose exec mongodb mongodump --out /backup/$(date +%Y%m%d_%H%M%S) || warn "Database backup failed"
+    if ! docker-compose exec mongodb mongodump --out /backup/$(date +%Y%m%d_%H%M%S); then
+        error "Database backup failed - cannot proceed without backup"
+    fi
+    log "✅ Backup created successfully"
 fi
 
 # Pull latest images
@@ -86,9 +97,19 @@ docker-compose build --no-cache
 log "Starting services..."
 docker-compose up -d
 
-# Wait for services to be ready
+# Wait for services to be ready with health check retry
 log "Waiting for services to start..."
-sleep 30
+MAX_RETRIES=30
+RETRY_COUNT=0
+until curl -f http://localhost:5000/health > /dev/null 2>&1 || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+    RETRY_COUNT=$((RETRY_COUNT+1))
+    log "Waiting for application to start (attempt $RETRY_COUNT/$MAX_RETRIES)..."
+    sleep 2
+done
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    error "Application failed to start after $MAX_RETRIES attempts"
+fi
 
 # Health checks
 log "Performing health checks..."
@@ -140,23 +161,30 @@ docker-compose exec web npm run optimize || log "Optimization skipped"
 log "Applying security hardening..."
 docker-compose exec nginx nginx -t || error "Nginx configuration test failed"
 
-# Setup log rotation
-log "Setting up log rotation..."
-cat > /etc/logrotate.d/fixzit-souq << EOF
-/var/log/fixzit-deployment.log {
-    daily
-    missingok
-    rotate 30
-    compress
-    delaycompress
-    notifempty
-    create 644 $USER $USER
-}
-EOF
+# Setup log rotation (requires system admin - document for provisioning)
+log "Log rotation configuration..."
+warn "⚠️  Log rotation requires sudo access to write to /etc/logrotate.d/"
+warn "⚠️  Please run the following command as root/sudo user:"
+warn "    sudo tee /etc/logrotate.d/fixzit-souq << 'EOF'"
+warn "/var/log/fixzit-deployment.log {"
+warn "    daily"
+warn "    missingok"
+warn "    rotate 30"
+warn "    compress"
+warn "    delaycompress"
+warn "    notifempty"
+warn "    create 644 $USER $USER"
+warn "}"
+warn "EOF"
 
-# Setup backup cron job
-log "Setting up automated backups..."
-(crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-fixzit.sh") | crontab -
+# Setup backup cron job (user crontab - no sudo required)
+log "Setting up automated backups in user crontab..."
+if ! crontab -l 2>/dev/null | grep -q "backup-fixzit.sh"; then
+    (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-fixzit.sh") | crontab -
+    log "✅ Backup cron job added to user crontab"
+else
+    log "✅ Backup cron job already exists"
+fi
 
 # Final verification
 log "Performing final verification..."
