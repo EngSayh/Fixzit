@@ -427,12 +427,10 @@ export default function TopBar() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Notifications"
-                className={`fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96`}
+                className="absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
                 style={{ 
                   maxWidth: 'calc(100vw - 2rem)',
-                  top: '60px',
-                  right: isRTL ? 'auto' : '1rem',
-                  left: isRTL ? '1rem' : 'auto',
+                  [isRTL ? 'left' : 'right']: 0,
                   maxHeight: 'calc(100vh - 80px)',
                   overflowY: 'auto'
                 }}
@@ -546,13 +544,11 @@ export default function TopBar() {
             <div 
               role="menu"
               aria-label="User menu"
-              className={`fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]`}
+              className="absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
               style={{
                 pointerEvents: 'auto',
                 maxWidth: 'calc(100vw - 2rem)',
-                top: '60px',
-                right: isRTL ? 'auto' : '1rem',
-                left: isRTL ? '1rem' : 'auto',
+                [isRTL ? 'left' : 'right']: 0,
                 maxHeight: 'calc(100vh - 80px)',
                 overflowY: 'auto'
               }}
