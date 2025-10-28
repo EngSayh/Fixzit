@@ -48,11 +48,7 @@ export async function POST(
   { params }: { params: { id: string; action?: string } }
 ) {
   try {
-    const user = await getUserSession(req);
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ userId: user.userId });
-
-    if (!Types.ObjectId.isValid(params.id)) {
+    const user = await getUserSession(req);if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid payment ID' },
         { status: 400 }
@@ -136,6 +132,10 @@ export async function POST(
   } catch (error) {
     console.error('Error processing payment action:', error);
 
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {

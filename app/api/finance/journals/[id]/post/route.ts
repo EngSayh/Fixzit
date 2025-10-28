@@ -58,15 +58,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid journal ID' }, { status: 400 });
     }
     
-    // Set context for plugins
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ 
-      userId: user.userId,
-      userEmail: user.userId,
-      timestamp: new Date()
-    });
-    
-    // Check journal exists and belongs to org
+    // Set context for plugins// Check journal exists and belongs to org
     const journal = await Journal.findOne({
       _id: new Types.ObjectId(params.id),
       orgId: new Types.ObjectId(user.orgId)
@@ -98,6 +90,10 @@ export async function POST(
   } catch (error) {
     console.error('POST /api/finance/journals/[id]/post error:', error);
     
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Failed to post journal'
     }, { status: 400 });
