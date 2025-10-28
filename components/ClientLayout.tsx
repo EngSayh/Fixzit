@@ -51,6 +51,16 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       return;
     }
 
+    // On landing page, ensure we're guest and clear any stale auth
+    if (isLandingPage) {
+      setRole('guest');
+      setLoading(false);
+      // Clear any lingering auth data
+      localStorage.removeItem('fixzit-role');
+      document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
+      return;
+    }
+
     const fetchUserRole = async () => {
       try {
         // CRITICAL: Do NOT check localStorage - always verify with server
@@ -77,7 +87,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             setRole('guest');
             localStorage.removeItem('fixzit-role');
             // Clear the auth cookie by making it expire
-            document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
           }
         } else if (response.status === 401) {
           // 401 is expected for guests - not an error, just set guest role silently
@@ -87,21 +97,21 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           // Other errors - clear auth data
           setRole('guest');
           localStorage.removeItem('fixzit-role');
-          document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
         }
       } catch (error) {
         // Only log non-401 errors
         console.error('Failed to fetch user role:', error);
         setRole('guest');
         localStorage.removeItem('fixzit-role');
-        document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserRole();
-  }, [isAuthPage]);
+  }, [isAuthPage, isLandingPage]);
 
   // Show loading state while fetching user data
   if (loading && !isAuthPage) {
