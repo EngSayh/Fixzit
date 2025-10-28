@@ -40,7 +40,7 @@ export default function AutoIncidentReporter(){
       const u = getUser();
       const user = u ? { userId: u.id, tenant: u.tenantId } : undefined;
       const ctx = buildCtx();
-      send({ code: 'UI-UI-UNKNOWN-000', message: ev.message, details: ev.error?.stack, userContext: user, clientContext: ctx });
+      send({ code: 'UI-UI-ERROR-001', message: ev.message, details: ev.error?.stack, userContext: user, clientContext: ctx });
     };
     const onRej = (ev: PromiseRejectionEvent) => {
       const reason = ev.reason as { message?: string; stack?: string } | string | undefined;
@@ -49,7 +49,7 @@ export default function AutoIncidentReporter(){
       const u = getUser();
       const user = u ? { userId: u.id, tenant: u.tenantId } : undefined;
       const ctx = buildCtx();
-      send({ code: 'UI-UI-UNKNOWN-000', message: msg, details: stack, userContext: user, clientContext: ctx });
+      send({ code: 'UI-UI-REJECTION-001', message: msg, details: stack, userContext: user, clientContext: ctx });
     };
     window.addEventListener('error', onErr);
     window.addEventListener('unhandledrejection', onRej);
