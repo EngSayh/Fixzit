@@ -81,40 +81,49 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getUserSession(req);
 
-    // Set tenant and audit context
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ userId: user.userId });
+    // Authorization check
+    requirePermission(user.role, 'finance.payments.create');
 
     // Parse request body
     const body = await req.json();
     const data = CreatePaymentSchema.parse(body);
 
-    // Create payment
-    const payment = await Payment.create({
-      ...data,
-      orgId: user.orgId,
-      createdBy: user.userId,
-      status: data.status || 'DRAFT',
-    });
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Create payment
+        const payment = await Payment.create({
+          ...data,
+          orgId: user.orgId,
+          createdBy: user.userId,
+          status: data.status || 'DRAFT',
+        });
 
-    // Auto-allocate to invoices if provided
-    if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
-      for (const allocation of data.invoiceAllocations) {
-        await payment.allocateToInvoice(
-          allocation.invoiceId,
-          allocation.amount,
-          allocation.description
-        );
+        // Auto-allocate to invoices if provided
+        if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
+          for (const allocation of data.invoiceAllocations) {
+            await payment.allocateToInvoice(
+              allocation.invoiceId,
+              allocation.amount,
+              allocation.description
+            );
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: payment,
+          message: data.status === 'POSTED' ? 'Payment posted successfully' : 'Payment draft created',
+        });
       }
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: payment,
-      message: data.status === 'POSTED' ? 'Payment posted successfully' : 'Payment draft created',
-    });
+    );
   } catch (error) {
     console.error('Error creating payment:', error);
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -145,80 +154,91 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getUserSession(req);
 
-    // Set tenant context
-    setTenantContext({ orgId: user.orgId });
+    // Authorization check
+    requirePermission(user.role, 'finance.payments.read');
 
     const { searchParams } = new URL(req.url);
 
-    // Build query
-    const query: Record<string, unknown> = {
-      orgId: user.orgId,
-    };
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Build query
+        const query: Record<string, unknown> = {
+          orgId: user.orgId,
+        };
 
-    // Filters
-    const status = searchParams.get('status');
-    if (status) query.status = status;
+        // Filters
+        const status = searchParams.get('status');
+        if (status) query.status = status;
 
-    const paymentType = searchParams.get('paymentType');
-    if (paymentType) query.paymentType = paymentType;
+        const paymentType = searchParams.get('paymentType');
+        if (paymentType) query.paymentType = paymentType;
 
-    const paymentMethod = searchParams.get('paymentMethod');
-    if (paymentMethod) query.paymentMethod = paymentMethod;
+        const paymentMethod = searchParams.get('paymentMethod');
+        if (paymentMethod) query.paymentMethod = paymentMethod;
 
-    const partyId = searchParams.get('partyId');
-    if (partyId) query.partyId = partyId;
+        const partyId = searchParams.get('partyId');
+        if (partyId) query.partyId = partyId;
 
-    const partyType = searchParams.get('partyType');
-    if (partyType) query.partyType = partyType;
+        const partyType = searchParams.get('partyType');
+        if (partyType) query.partyType = partyType;
 
-    const propertyId = searchParams.get('propertyId');
-    if (propertyId) query.propertyId = propertyId;
+        const propertyId = searchParams.get('propertyId');
+        if (propertyId) query.propertyId = propertyId;
 
-    const reconciled = searchParams.get('reconciled');
-    if (reconciled !== null) {
-      query['reconciliation.isReconciled'] = reconciled === 'true';
-    }
+        const reconciled = searchParams.get('reconciled');
+        if (reconciled !== null) {
+          query['reconciliation.isReconciled'] = reconciled === 'true';
+        }
 
-    // Date range
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    if (startDate || endDate) {
-      query.paymentDate = {};
-      if (startDate) {
-        (query.paymentDate as { $gte?: Date }).$gte = new Date(startDate);
+        // Date range
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+        if (startDate || endDate) {
+          query.paymentDate = {};
+          if (startDate) {
+            (query.paymentDate as { $gte?: Date }).$gte = new Date(startDate);
+          }
+          if (endDate) {
+            (query.paymentDate as { $lte?: Date }).$lte = new Date(endDate);
+          }
+        }
+
+        // Pagination
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '50', 10);
+        const skip = (page - 1) * limit;
+
+        // Execute query
+        const [payments, totalCount] = await Promise.all([
+          Payment.find(query)
+            .sort({ paymentDate: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          Payment.countDocuments(query),
+        ]);
+
+        return NextResponse.json({
+          success: true,
+          data: payments,
+          pagination: {
+            page,
+            limit,
+            totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+          },
+        });
       }
-      if (endDate) {
-        (query.paymentDate as { $lte?: Date }).$lte = new Date(endDate);
-      }
-    }
-
-    // Pagination
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const skip = (page - 1) * limit;
-
-    // Execute query
-    const [payments, totalCount] = await Promise.all([
-      Payment.find(query)
-        .sort({ paymentDate: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Payment.countDocuments(query),
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      data: payments,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
-    });
+    );
   } catch (error) {
     console.error('Error fetching payments:', error);
+    
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
+    
     return NextResponse.json(
       {
         success: false,
