@@ -1,5 +1,6 @@
-import { Schema, model, models, Types, HydratedDocument, Model } from 'mongoose';
+import { Schema, model, models, HydratedDocument, Model } from 'mongoose';
 import { customAlphabet } from 'nanoid';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 // ---------- Enums ----------
 const OrganizationType = ['CORPORATE', 'GOVERNMENT', 'INDIVIDUAL', 'NONPROFIT', 'STARTUP'] as const;
@@ -248,9 +249,7 @@ export interface IOrganization {
   tags?: string[];
   notes?: string;
 
-  createdBy: Types.ObjectId;
-  updatedBy?: Types.ObjectId;
-  version: number;
+  // NOTE: createdBy, updatedBy, and version are added by auditPlugin
 }
 
 // ---------- Schema ----------
@@ -499,12 +498,14 @@ const OrganizationSchema = new Schema<IOrganization, OrganizationModel>(
     tags: [String],
     notes: { type: String, trim: true },
 
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    version: { type: Number, default: 1, min: 1 },
+    // NOTE: createdBy, updatedBy, and version are added by auditPlugin
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } },
 );
+
+// ---------- Apply Plugins ----------
+// Apply audit plugin for automatic createdBy/updatedBy/version tracking
+OrganizationSchema.plugin(auditPlugin);
 
 // ---------- Indexes ----------
 OrganizationSchema.index({ orgId: 1 }, { unique: true });
