@@ -410,7 +410,7 @@ ExpenseSchema.plugin(auditPlugin);
 // ============================================================================
 
 // Compound tenant-scoped unique index
-PaymentSchema.index({ orgId: 1, expenseNumber: 1 }, { unique: true });
+ExpenseSchema.index({ orgId: 1, expenseNumber: 1 }, { unique: true });
 
 // Query indexes (tenant-scoped)
 ExpenseSchema.index({ orgId: 1, expenseDate: -1 });
@@ -503,7 +503,7 @@ ExpenseSchema.methods.approve = function(
   approverName: string,
   comments?: string
 ) {
-  const currentApproval = this.approvals.find(a => a.level === this.currentApprovalLevel);
+  const currentApproval = this.approvals.find((a: IExpenseApproval) => a.level === this.currentApprovalLevel);
   
   if (!currentApproval) {
     throw new Error('No approval pending at current level');
@@ -521,7 +521,7 @@ ExpenseSchema.methods.approve = function(
   
   // Check if there are more approval levels
   const nextLevel = this.currentApprovalLevel + 1;
-  const hasNextLevel = this.approvals.some(a => a.level === nextLevel);
+  const hasNextLevel = this.approvals.some((a: IExpenseApproval) => a.level === nextLevel);
   
   if (hasNextLevel) {
     this.currentApprovalLevel = nextLevel;
@@ -540,7 +540,7 @@ ExpenseSchema.methods.reject = function(
   approverName: string,
   comments: string
 ) {
-  const currentApproval = this.approvals.find(a => a.level === this.currentApprovalLevel);
+  const currentApproval = this.approvals.find((a: IExpenseApproval) => a.level === this.currentApprovalLevel);
   
   if (!currentApproval) {
     throw new Error('No approval pending at current level');
@@ -654,14 +654,14 @@ ExpenseSchema.statics.getSummary = async function(
   });
   
   return {
-    totalExpenses: expenses.reduce((sum, e) => sum + e.totalAmount, 0),
-    totalTax: expenses.reduce((sum, e) => sum + e.totalTax, 0),
+    totalExpenses: expenses.reduce((sum: number, e: IExpense) => sum + e.totalAmount, 0),
+    totalTax: expenses.reduce((sum: number, e: IExpense) => sum + e.totalTax, 0),
     count: expenses.length,
-    byType: expenses.reduce((acc, e) => {
+    byType: expenses.reduce((acc: Record<string, number>, e: IExpense) => {
       acc[e.expenseType] = (acc[e.expenseType] || 0) + e.totalAmount;
       return acc;
     }, {} as Record<string, number>),
-    byVendor: expenses.reduce((acc, e) => {
+    byVendor: expenses.reduce((acc: Record<string, number>, e: IExpense) => {
       acc[e.vendorName] = (acc[e.vendorName] || 0) + e.totalAmount;
       return acc;
     }, {} as Record<string, number>)
