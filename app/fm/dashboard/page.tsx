@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { 
   Building2, Users, Wrench, DollarSign, 
   ClipboardList,
@@ -56,6 +57,7 @@ interface WorkOrderWithDue extends WorkOrder {
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const userStr = localStorage.getItem('fixzit_user');
@@ -117,7 +119,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Work Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.activeWorkOrders')}</CardTitle>
             <ClipboardList className="h-4 w-4 text-[var(--fixzit-primary)]" />
           </CardHeader>
           <CardContent>
@@ -133,7 +135,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Properties</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.totalProperties')}</CardTitle>
             <Building2 className="h-4 w-4 text-[var(--fixzit-success)]" />
           </CardHeader>
           <CardContent>
@@ -149,7 +151,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assets Under Maintenance</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.assetsUnderMaintenance')}</CardTitle>
             <Wrench className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
@@ -165,7 +167,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue Invoices</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.overdueInvoices')}</CardTitle>
             <DollarSign className="h-4 w-4 text-[var(--fixzit-danger)]" />
           </CardHeader>
           <CardContent>
@@ -186,7 +188,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Recent Work Orders</CardTitle>
+              <CardTitle className="text-lg">{t('dashboard.recentWorkOrders')}</CardTitle>
               <Link href="/fm/work-orders">
                 <Button variant="ghost" size="sm">View All</Button>
               </Link>
@@ -214,7 +216,7 @@ export default function DashboardPage() {
                 </div>
               ))}
               {(!workOrders?.items || workOrders.items.length === 0) && (
-                <p className="text-sm text-gray-500 text-center py-4">No recent work orders</p>
+                <p className="text-sm text-gray-500 text-center py-4">{t('dashboard.noRecentWorkOrders')}</p>
               )}
             </div>
           </CardContent>
