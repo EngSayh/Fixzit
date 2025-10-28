@@ -16,7 +16,7 @@ const PayTabsInfoSchema = new Schema(
 
 const SubscriptionSchema = new Schema(
   {
-    tenant_id: { type: Types.ObjectId, ref: 'Tenant', required: false },
+    tenant_id: { type: Types.ObjectId, ref: 'Organization', required: false },
     owner_user_id: { type: Types.ObjectId, ref: 'User', required: false },
     subscriber_type: { 
       type: String, 

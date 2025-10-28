@@ -193,20 +193,13 @@ const UserSchema = new Schema({
 
   // Status & Workflow
   status: { type: String, enum: UserStatus, default: "ACTIVE" },
-  workflow: {
-    createdBy: String,
-    approvedBy: String,
-    approvedAt: Date,
-    onboardedBy: String,
-    onboardedAt: Date
-  },
+  // workflow fields removed - auditPlugin provides createdBy/updatedBy
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
+  customFields: Schema.Types.Mixed
 
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  // createdAt/updatedAt handled by timestamps:true
 }, {
   timestamps: true
 });
@@ -216,13 +209,16 @@ UserSchema.plugin(tenantIsolationPlugin);
 UserSchema.plugin(auditPlugin);
 
 // Indexes for performance (orgId is already indexed by tenantIsolationPlugin)
-UserSchema.index({ email: 1 }, { unique: true });
-UserSchema.index({ username: 1 }, { unique: true });
-UserSchema.index({ code: 1 }, { unique: true });
-UserSchema.index({ 'professional.role': 1 });
-UserSchema.index({ 'professional.skills.category': 1 });
-UserSchema.index({ 'workload.available': 1 });
-UserSchema.index({ 'performance.rating': -1 });
+// CRITICAL FIX: Tenant-scoped unique indexes
+UserSchema.index({ orgId: 1, email: 1 }, { unique: true });
+UserSchema.index({ orgId: 1, username: 1 }, { unique: true });
+UserSchema.index({ orgId: 1, code: 1 }, { unique: true });
+
+// FIXED: Tenant-scoped query indexes
+UserSchema.index({ orgId: 1, 'professional.role': 1 });
+UserSchema.index({ orgId: 1, 'professional.skills.category': 1 });
+UserSchema.index({ orgId: 1, 'workload.available': 1 });
+UserSchema.index({ orgId: 1, 'performance.rating': -1 });
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
