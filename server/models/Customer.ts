@@ -1,9 +1,10 @@
 import { Schema, model, models, Document } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 export interface ICustomer extends Document {
   _id: string;
-  organizationId: string;
-  tenantId: string;
+  // NOTE: orgId, createdBy, updatedBy added by plugins
   name: string;
   email?: string;
   phone?: string;
@@ -29,8 +30,8 @@ export interface ICustomer extends Document {
 }
 
 const CustomerSchema = new Schema<ICustomer>({
-  organizationId: { type: String, required: true },
-  tenantId: { type: String, required: true },
+  // REMOVED: Manual organizationId and tenantId (conflicting fields)
+  // Plugin will add orgId
   name: { type: String, required: true },
   email: { type: String },
   phone: { type: String },
@@ -55,10 +56,15 @@ const CustomerSchema = new Schema<ICustomer>({
   timestamps: true
 });
 
-// Compound indexes for multi-tenant queries
-CustomerSchema.index({ organizationId: 1, tenantId: 1 });
-CustomerSchema.index({ organizationId: 1, tenantId: 1, email: 1 });
-CustomerSchema.index({ organizationId: 1, tenantId: 1, name: 1 });
+// APPLY PLUGINS (BEFORE INDEXES)
+CustomerSchema.plugin(tenantIsolationPlugin);
+CustomerSchema.plugin(auditPlugin);
+
+// Compound indexes for multi-tenant queries (now using orgId from plugin)
+CustomerSchema.index({ orgId: 1, email: 1 }, { sparse: true });
+CustomerSchema.index({ orgId: 1, name: 1 });
+CustomerSchema.index({ orgId: 1, isActive: 1 });
+CustomerSchema.index({ orgId: 1, vatNumber: 1 }, { sparse: true });
 
 const Customer = models.Customer || model<ICustomer>('Customer', CustomerSchema);
 

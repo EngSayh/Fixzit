@@ -1,4 +1,6 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const DiscountRuleSchema = new Schema(
   {
@@ -14,15 +16,18 @@ const DiscountRuleSchema = new Schema(
       max: [100, 'Percentage must be between 0 and 100']
     },
     editableBySuperAdminOnly: { type: Boolean, default: true },
-    // Tenant isolation
-    tenantId: { 
-      type: Types.ObjectId, 
-      ref: 'Organization',
-      required: true,
-    },
+    // REMOVED: Manual tenantId (plugin will add orgId)
   },
   { timestamps: true }
 );
+
+// APPLY PLUGINS (BEFORE INDEXES)
+DiscountRuleSchema.plugin(tenantIsolationPlugin);
+DiscountRuleSchema.plugin(auditPlugin);
+
+// ADD TENANT-SCOPED INDEX
+// Ensures 'key' (e.g., "VAT") is unique within an organization
+DiscountRuleSchema.index({ orgId: 1, key: 1 }, { unique: true });
 
 export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
 
