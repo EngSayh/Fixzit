@@ -1,13 +1,12 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 const RFQStatus = ["DRAFT", "PUBLISHED", "BIDDING", "CLOSED", "AWARDED", "CANCELLED"] as const;
-const BidStatus = ["SUBMITTED", "UNDER_REVIEW", "ACCEPTED", "REJECTED", "WITHDRAWN"] as const;
 
 const RFQSchema = new Schema({
-  tenantId: { type: String, required: true },
-
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  code: { type: String, required: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
 
@@ -91,38 +90,10 @@ const RFQSchema = new Schema({
     validity: Number // Bid validity period in days
   },
 
-  // Bids
+  // Bids - CRITICAL FIX: References instead of embedded documents
   bids: [{
-    bidId: { type: String, unique: true },
-    vendorId: String,
-    vendorName: String,
-    submitted: Date,
-    status: { type: String, enum: BidStatus, default: "SUBMITTED" },
-    amount: Number,
-    currency: { type: String, default: "SAR" },
-    validity: Date,
-    deliveryTime: Number, // days
-    paymentTerms: String,
-    technicalProposal: String,
-    commercialProposal: String,
-    alternates: [{
-      description: String,
-      priceAdjustment: Number
-    }],
-    exceptions: [String],
-    clarifications: [{
-      question: String,
-      answer: String,
-      date: Date
-    }],
-    evaluation: {
-      technicalScore: Number,
-      commercialScore: Number,
-      totalScore: Number,
-      notes: String,
-      evaluatedBy: String,
-      evaluatedAt: Date
-    }
+    type: Types.ObjectId,
+    ref: 'ProjectBid'
   }],
 
   // Award
@@ -168,34 +139,26 @@ const RFQSchema = new Schema({
     backgroundCheck: Boolean
   },
 
-  // Status & Workflow
+  // Status
   status: { type: String, enum: RFQStatus, default: "DRAFT" },
-  workflow: {
-    createdBy: String,
-    approvedBy: String,
-    approvedAt: Date,
-    publishedBy: String,
-    publishedAt: Date,
-    closedBy: String,
-    closedAt: Date
-  },
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-RFQSchema.index({ tenantId: 1, status: 1 });
-RFQSchema.index({ tenantId: 1, category: 1 });
-RFQSchema.index({ tenantId: 1, 'timeline.bidDeadline': 1 });
-RFQSchema.index({ tenantId: 1, 'location.city': 1 });
-RFQSchema.index({ tenantId: 1, 'bids.status': 1 });
+// Apply plugins BEFORE indexes
+RFQSchema.plugin(tenantIsolationPlugin);
+RFQSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes (orgId from plugin)
+RFQSchema.index({ orgId: 1, code: 1 }, { unique: true }); // FIXED: tenant-scoped code
+RFQSchema.index({ orgId: 1, status: 1 });
+RFQSchema.index({ orgId: 1, category: 1 });
+RFQSchema.index({ orgId: 1, 'timeline.bidDeadline': 1 });
+RFQSchema.index({ orgId: 1, 'location.city': 1 });
 
 export type RFQDoc = InferSchemaType<typeof RFQSchema>;
 

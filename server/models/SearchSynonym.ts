@@ -1,10 +1,15 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 const SearchSynonymSchema = new Schema({
   locale: { type: String, enum: ['en','ar'], required: true },
   term: { type: String, required: true },
   synonyms: [String]
 }, { timestamps: true });
+
+// NOTE: SearchSynonym is global platform configuration (no tenantIsolationPlugin)
+// Apply audit plugin to track who changes synonyms (affects search for all users)
+SearchSynonymSchema.plugin(auditPlugin);
 
 SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 

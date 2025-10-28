@@ -1,4 +1,5 @@
 import { Schema, model, models, Document } from 'mongoose';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 export interface IPriceTier extends Document {
   _id: Schema.Types.ObjectId;
@@ -9,7 +10,11 @@ export interface IPriceTier extends Document {
   flatMonthly?: number;
   currency: string;
   region?: string;
-  updatedBy?: string;
+  // updatedBy removed - handled by auditPlugin
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+  version?: number;
+  changeHistory?: unknown[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,15 +65,16 @@ const priceTierSchema = new Schema<IPriceTier>({
   region: {
     type: String,
     trim: true
-  },
-  updatedBy: {
-    type: String
   }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
+
+// NOTE: PriceTier is global platform configuration (no tenantIsolationPlugin)
+// Apply audit plugin to track who changes pricing
+priceTierSchema.plugin(auditPlugin);
 
 priceTierSchema.index({ moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 }, { unique: true });
 
