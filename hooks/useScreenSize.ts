@@ -65,16 +65,27 @@ export function useScreenSize() {
     setScreenInfo(getScreenInfo());
     setIsReady(true);
 
-    // Add event listeners for screen size changes
+    // Add event listeners for screen size changes with debouncing
     if (typeof window !== 'undefined') {
-      window.addEventListener('resize', updateScreenInfo);
-      window.addEventListener('orientationchange', updateScreenInfo);
+      let timeoutId: NodeJS.Timeout;
+
+      // Debounced handler to prevent excessive fires during resize
+      const debouncedUpdateScreenInfo = () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          updateScreenInfo();
+        }, 150); // 150ms debounce
+      };
+
+      window.addEventListener('resize', debouncedUpdateScreenInfo);
+      window.addEventListener('orientationchange', updateScreenInfo); // No debounce for orientation (rare event)
 
       // Also listen for viewport changes (mobile browsers)
       window.addEventListener('load', updateScreenInfo);
 
       return () => {
-        window.removeEventListener('resize', updateScreenInfo);
+        clearTimeout(timeoutId);
+        window.removeEventListener('resize', debouncedUpdateScreenInfo);
         window.removeEventListener('orientationchange', updateScreenInfo);
         window.removeEventListener('load', updateScreenInfo);
       };

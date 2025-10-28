@@ -12,11 +12,18 @@ declare global {
   }
 }
 
+// Type-safe discriminated unions for message data
+type MessageData = 
+  | { type: 'workOrderList'; items: WorkOrderData[] }
+  | { type: 'ownerStatement'; totals: { income: number; expenses: number; net: number }; currency: string }
+  | { type: 'attachment'; attachment: { url: string; name: string } }
+  | { type: 'unknown'; data: unknown };
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  data?: WorkOrderData | OwnerStatementData | AttachmentData | unknown;
+  data?: MessageData;
   intent?: string;
   sources?: { id: string; title: string; score: number; source?: string }[];
 }
@@ -27,22 +34,6 @@ interface WorkOrderData {
   title: string;
   status: string;
   priority: string;
-}
-
-interface OwnerStatementData {
-  totals: {
-    income: number;
-    expenses: number;
-    net: number;
-  };
-  currency: string;
-}
-
-interface AttachmentData {
-  attachment: {
-    url: string;
-    name: string;
-  };
 }
 
 interface QuickAction {
@@ -133,44 +124,42 @@ const toolIcons: Record<string, JSX.Element> = {
 function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
   if (!message.data) return null;
 
-  if (message.intent === 'listMyWorkOrders' && Array.isArray(message.data)) {
-    return (
-      <ul className="mt-3 space-y-2 text-xs">
-        {message.data.map((item: WorkOrderData) => (
-          <li key={item.id} className="rounded-lg border border-gray-200 bg-white/70 p-2">
-            <div className="font-semibold text-gray-800">{item.code} · {item.title}</div>
-            <div className="text-gray-500">{item.status} · {item.priority}</div>
-          </li>
-        ))}
-      </ul>
-    );
-  }
+  // Type-safe discriminated union handling
+  switch (message.data.type) {
+    case 'workOrderList':
+      return (
+        <ul className="mt-3 space-y-2 text-xs">
+          {message.data.items.map((item) => (
+            <li key={item.id} className="rounded-lg border border-gray-200 bg-white/70 p-2">
+              <div className="font-semibold text-gray-800">{item.code} · {item.title}</div>
+              <div className="text-gray-500">{item.status} · {item.priority}</div>
+            </li>
+          ))}
+        </ul>
+      );
 
-  if (message.intent === 'ownerStatements' && message.data && typeof message.data === 'object' && 'totals' in message.data) {
-    const statementData = message.data as OwnerStatementData;
-    const { totals, currency } = statementData;
-    return (
-      <div className="mt-3 space-y-2 text-xs">
-        <div className="flex justify-between"><span>{locale === 'ar' ? 'الدخل' : 'Income'}</span><span>{totals.income.toLocaleString(undefined, { style: 'currency', currency })}</span></div>
-        <div className="flex justify-between"><span>{locale === 'ar' ? 'المصروفات' : 'Expenses'}</span><span>{totals.expenses.toLocaleString(undefined, { style: 'currency', currency })}</span></div>
-        <div className="flex justify-between font-semibold text-[#0061A8]"><span>{locale === 'ar' ? 'الصافي' : 'Net'}</span><span>{totals.net.toLocaleString(undefined, { style: 'currency', currency })}</span></div>
-      </div>
-    );
-  }
+    case 'ownerStatement':
+      return (
+        <div className="mt-3 space-y-2 text-xs">
+          <div className="flex justify-between"><span>{locale === 'ar' ? 'الدخل' : 'Income'}</span><span>{message.data.totals.income.toLocaleString(undefined, { style: 'currency', currency: message.data.currency })}</span></div>
+          <div className="flex justify-between"><span>{locale === 'ar' ? 'المصروفات' : 'Expenses'}</span><span>{message.data.totals.expenses.toLocaleString(undefined, { style: 'currency', currency: message.data.currency })}</span></div>
+          <div className="flex justify-between font-semibold text-[#0061A8]"><span>{locale === 'ar' ? 'الصافي' : 'Net'}</span><span>{message.data.totals.net.toLocaleString(undefined, { style: 'currency', currency: message.data.currency })}</span></div>
+        </div>
+      );
 
-  if (message.data && typeof message.data === 'object' && 'attachment' in message.data) {
-    const attachmentData = message.data as AttachmentData;
-    return (
-      <div className="mt-3 flex items-center gap-2 text-xs text-[#0061A8]">
-        <CheckCircle2 className="h-4 w-4" />
-        <a href={attachmentData.attachment.url} target="_blank" rel="noreferrer" className="underline">
-          {attachmentData.attachment.name}
-        </a>
-      </div>
-    );
-  }
+    case 'attachment':
+      return (
+        <div className="mt-3 flex items-center gap-2 text-xs text-[#0061A8]">
+          <CheckCircle2 className="h-4 w-4" />
+          <a href={message.data.attachment.url} target="_blank" rel="noreferrer" className="underline">
+            {message.data.attachment.name}
+          </a>
+        </div>
+      );
 
-  return null;
+    default:
+      return null;
+  }
 }
 
 export default function CopilotWidget({ autoOpen = false, embedded = false }: CopilotWidgetProps) {
@@ -323,6 +312,11 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
 
   const resetForm = (tool: string) => {
     setForms(prev => ({ ...prev, [tool]: initialForms[tool] }));
+    // Clear any file inputs
+    if (tool === 'uploadWorkOrderPhoto') {
+      const fileInput = document.querySelector(`input[type="file"]`) as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    }
   };
 
   const runTool = async (tool: string, args: Record<string, unknown>) => {
