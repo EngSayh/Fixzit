@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { authOptions } from '@/auth';
+
 import { dbConnect } from '@/lib/mongodb-unified';
 import Journal from '@/server/models/finance/Journal';
 import postingService from '@/server/services/finance/postingService';
@@ -36,10 +36,9 @@ async function getUserSession(_req: NextRequest) {
   }
   
   return {
-    userId: user.id || '',
-    orgId: user.orgId || '',
-    email: user.email || '',
-    role: user.role || ''
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role
   };
 }
 
@@ -73,7 +72,7 @@ export async function POST(
     setTenantContext({ orgId: user.orgId });
     setAuditContext({ 
       userId: user.userId,
-      userEmail: user.email,
+      userEmail: user.userId,
       timestamp: new Date()
     });
     
@@ -97,17 +96,16 @@ export async function POST(
     // Void journal using postingService (creates reversal journal)
     const result = await postingService.voidJournal(
       new Types.ObjectId(params.id),
-      validated.reason,
-      user.userId,
-      user.email
+      new Types.ObjectId(user.userId),
+      validated.reason
     );
     
     return NextResponse.json({
       success: true,
       data: {
         originalJournal: result.originalJournal,
-        reversalJournal: result.reversalJournal,
-        message: `Journal ${result.originalJournal.journalNumber} voided. Reversal journal ${result.reversalJournal.journalNumber} created and posted.`
+        reversingJournal: result.reversingJournal,
+        message: `Journal ${result.originalJournal.journalNumber} voided. Reversal journal ${result.reversingJournal.journalNumber} created and posted.`
       }
     });
     

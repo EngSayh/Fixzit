@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { authOptions } from '@/auth';
+
 import { dbConnect } from '@/lib/mongodb-unified';
 import LedgerEntry from '@/server/models/finance/LedgerEntry';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
@@ -27,10 +27,9 @@ async function getUserSession(_req: NextRequest) {
   }
   
   return {
-    userId: user.id || '',
-    orgId: user.orgId || '',
-    email: user.email || '',
-    role: user.role || ''
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role
   };
 }
 

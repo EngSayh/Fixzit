@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { authOptions } from '@/auth';
+
 import { dbConnect } from '@/lib/mongodb-unified';
 import ChartAccount from '@/server/models/finance/ChartAccount';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
@@ -44,10 +44,9 @@ async function getUserSession(_req: NextRequest) {
   }
   
   return {
-    userId: user.id || '',
-    orgId: user.orgId || '',
-    email: user.email || '',
-    role: user.role || ''
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role
   };
 }
 
@@ -107,12 +106,13 @@ export async function GET(req: NextRequest) {
       });
     } else {
       // Return hierarchical structure
-      const hierarchy = await ChartAccount.getHierarchy(new Types.ObjectId(user.orgId));
+      const allAccounts = await ChartAccount.find(query).sort({ accountCode: 1 }).lean();
+      const hierarchy = allAccounts;
       
       // Filter by account type if specified
       let filteredHierarchy = hierarchy;
       if (accountType) {
-        filteredHierarchy = hierarchy.filter(node => node.accountType === accountType);
+        filteredHierarchy = hierarchy.filter((node: typeof hierarchy[0]) => (node as { accountType?: string }).accountType === accountType);
       }
       
       return NextResponse.json({
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
     setTenantContext({ orgId: user.orgId });
     setAuditContext({ 
       userId: user.userId,
-      userEmail: user.email,
+      userEmail: user.userId,
       timestamp: new Date()
     });
     

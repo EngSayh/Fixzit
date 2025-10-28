@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { authOptions } from '@/auth';
+
 import { dbConnect } from '@/lib/mongodb-unified';
 import ChartAccount from '@/server/models/finance/ChartAccount';
 import LedgerEntry from '@/server/models/finance/LedgerEntry';
@@ -42,10 +42,9 @@ async function getUserSession(_req: NextRequest) {
   }
   
   return {
-    userId: user.id || '',
-    orgId: user.orgId || '',
-    email: user.email || '',
-    role: user.role || ''
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role
   };
 }
 
@@ -102,7 +101,7 @@ export async function GET(
       accountId: account._id
     }).sort({ date: -1, createdAt: -1 }).lean();
     
-    const currentBalance = latestEntry?.runningBalance || 0;
+    const currentBalance = latestEntry ? ((latestEntry as { runningBalance?: number }).runningBalance || 0) : 0;
     
     return NextResponse.json({
       success: true,
@@ -153,7 +152,7 @@ export async function PUT(
     setTenantContext({ orgId: user.orgId });
     setAuditContext({ 
       userId: user.userId,
-      userEmail: user.email,
+      userEmail: user.userId,
       timestamp: new Date()
     });
     
@@ -223,7 +222,7 @@ export async function DELETE(
     setTenantContext({ orgId: user.orgId });
     setAuditContext({ 
       userId: user.userId,
-      userEmail: user.email,
+      userEmail: user.userId,
       timestamp: new Date()
     });
     

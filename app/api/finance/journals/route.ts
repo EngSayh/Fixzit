@@ -43,7 +43,7 @@ const CreateJournalSchema = z.object({
   date: z.string().or(z.date()),
   description: z.string().min(1, 'Description is required'),
   reference: z.string().optional(),
-  sourceType: z.enum(['MANUAL', 'INVOICE', 'PAYMENT', 'EXPENSE', 'WORKORDER', 'OTHER']).optional(),
+  sourceType: z.enum(['MANUAL', 'INVOICE', 'PAYMENT', 'EXPENSE', 'WORK_ORDER', 'ADJUSTMENT']).optional(),
   sourceId: z.string().refine(val => !val || Types.ObjectId.isValid(val), 'Invalid source ID').optional(),
   lines: z.array(JournalLineSchema).min(2, 'Journal must have at least 2 lines')
 });
@@ -62,7 +62,6 @@ async function getUserSession(req: NextRequest) {
   return {
     userId: user.id,
     orgId: user.orgId,
-    email: user.email,
     role: user.role
   };
 }
@@ -89,17 +88,18 @@ export async function POST(req: NextRequest) {
     setTenantContext({ orgId: user.orgId });
     setAuditContext({ 
       userId: user.userId,
-      userEmail: user.email,
+      userEmail: user.userId,
       timestamp: new Date()
     });
     
     // Create draft journal using postingService
     const journal = await postingService.createJournal({
-      date: new Date(validated.date),
+      orgId: new Types.ObjectId(user.orgId),
+      journalDate: new Date(validated.date),
       description: validated.description,
-      reference: validated.reference,
       sourceType: validated.sourceType || 'MANUAL',
       sourceId: validated.sourceId ? new Types.ObjectId(validated.sourceId) : undefined,
+      sourceNumber: validated.reference,
       lines: validated.lines.map(line => ({
         accountId: new Types.ObjectId(line.accountId),
         accountCode: line.accountCode,
@@ -112,7 +112,8 @@ export async function POST(req: NextRequest) {
         workOrderId: line.workOrderId ? new Types.ObjectId(line.workOrderId) : undefined,
         leaseId: line.leaseId ? new Types.ObjectId(line.leaseId) : undefined,
         vendorId: line.vendorId ? new Types.ObjectId(line.vendorId) : undefined
-      }))
+      })),
+      userId: new Types.ObjectId(user.userId)
     });
     
     return NextResponse.json({
