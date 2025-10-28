@@ -1,4 +1,6 @@
 import { Schema, model, models, Types } from 'mongoose';
+import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
+import { auditPlugin } from '../../plugins/auditPlugin';
 
 export type ViewingStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
 export type ViewingType = 'IN_PERSON' | 'VIRTUAL' | 'VIDEO_CALL';
@@ -21,6 +23,7 @@ export interface ViewingFeedback {
 
 export interface ViewingRequest {
   _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be added by tenantIsolationPlugin
   propertyId: Types.ObjectId;
   agentId: Types.ObjectId;
   requesterId: Types.ObjectId; // User who requested
@@ -72,7 +75,7 @@ const ViewingRequestSchema = new Schema<ViewingRequest>(
   {
     propertyId: { type: Schema.Types.ObjectId, required: true, ref: 'PropertyListing', index: true },
     agentId: { type: Schema.Types.ObjectId, required: true, ref: 'RealEstateAgent', index: true },
-    requesterId: { type: Schema.Types.ObjectId, required: true, index: true },
+    requesterId: { type: Schema.Types.ObjectId, required: true, ref: 'User', index: true },
     
     preferredDate: { type: Date, required: true, index: true },
     preferredTime: { type: String, required: true },
@@ -92,7 +95,7 @@ const ViewingRequestSchema = new Schema<ViewingRequest>(
     virtualMeetingLink: String,
     
     participants: [{
-      userId: Schema.Types.ObjectId,
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
       name: { type: String, required: true },
       email: { type: String, required: true },
       phone: { type: String, required: true },
@@ -114,7 +117,7 @@ const ViewingRequestSchema = new Schema<ViewingRequest>(
         enum: ['REQUESTED', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']
       },
       timestamp: { type: Date, default: Date.now },
-      changedBy: Schema.Types.ObjectId,
+      changedBy: { type: Schema.Types.ObjectId, ref: 'User' },
       reason: String
     }],
     
@@ -139,11 +142,17 @@ const ViewingRequestSchema = new Schema<ViewingRequest>(
   }
 );
 
-// Indexes
-ViewingRequestSchema.index({ propertyId: 1, status: 1 });
-ViewingRequestSchema.index({ agentId: 1, status: 1, preferredDate: 1 });
-ViewingRequestSchema.index({ requesterId: 1, createdAt: -1 });
-ViewingRequestSchema.index({ confirmedDate: 1, status: 1 });
+// Apply plugins BEFORE indexes for proper tenant isolation
+ViewingRequestSchema.plugin(tenantIsolationPlugin);
+ViewingRequestSchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped to prevent cross-org data access
+ViewingRequestSchema.index({ orgId: 1, propertyId: 1, status: 1 });
+ViewingRequestSchema.index({ orgId: 1, agentId: 1, status: 1, preferredDate: 1 });
+ViewingRequestSchema.index({ orgId: 1, requesterId: 1, createdAt: -1 });
+ViewingRequestSchema.index({ orgId: 1, confirmedDate: 1, status: 1 });
+ViewingRequestSchema.index({ orgId: 1, status: 1 });
+ViewingRequestSchema.index({ orgId: 1, preferredDate: 1 });
 
 const ViewingRequest = models.ViewingRequest || model<ViewingRequest>('ViewingRequest', ViewingRequestSchema);
 
