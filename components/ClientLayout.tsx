@@ -82,22 +82,23 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 2) Public landing pages -> do not clear cookies (no auto-logout)
+    // 2) Public landing pages -> guest but don't clear cookies
     if (isLandingPage) {
       setRole('guest');
       setLoading(false);
       return;
     }
 
-    // 3) Only check server when on a protected route
+    // 3) Non-protected routes -> guest
     if (!isProtectedRoute) {
       setRole('guest');
       setLoading(false);
       return;
     }
 
-    // 4) If authenticated, extract role from session or authUser
+    // 4) Protected routes: extract role from unified auth
     if (isAuthenticated) {
+      // Get role from NextAuth session OR JWT authUser
       const userRole = (session?.user as { role?: string })?.role || authUser?.role || 'guest';
       const valid: UserRoleType[] = Object.values(UserRole);
       const validRole = valid.includes(userRole as UserRoleType) ? (userRole as UserRoleOrGuest) : 'guest';
@@ -110,6 +111,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       try { localStorage.removeItem('fixzit-role'); } catch {}
       setLoading(false);
     }
+    // If still loading, keep loading state (don't set guest prematurely)
   }, [isAuthPage, isLandingPage, isProtectedRoute, pathname, isAuthenticated, session, authUser, status]);
 
   // Client-side protection: redirect guests only from protected routes
