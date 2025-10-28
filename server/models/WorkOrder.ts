@@ -59,7 +59,7 @@ const WorkOrderSchema = new Schema({
 
   // Location Information
   location: {
-    propertyId: { type: String, required: true },
+    propertyId: { type: Schema.Types.ObjectId, ref: 'Property', required: true },
     unitNumber: String,
     floor: String,
     building: String,
@@ -74,7 +74,7 @@ const WorkOrderSchema = new Schema({
 
   // Requester Information
   requester: {
-    userId: String,
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
     type: { type: String, enum: ["TENANT", "OWNER", "STAFF", "EXTERNAL"], required: true },
     name: { type: String, required: true },
     contactInfo: {
@@ -94,22 +94,22 @@ const WorkOrderSchema = new Schema({
   // Assignment and Team
   assignment: {
     assignedTo: {
-      userId: String,
-      teamId: String,
-      vendorId: String,
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
+      teamId: { type: Schema.Types.ObjectId, ref: 'Team' },
+      vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
       name: String,
       contactInfo: {
         phone: String,
         email: String
       }
     },
-    assignedBy: String,
+    assignedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     assignedAt: Date,
     reassignmentHistory: [{
-      fromUserId: String,
-      toUserId: String,
+      fromUserId: { type: Schema.Types.ObjectId, ref: 'User' },
+      toUserId: { type: Schema.Types.ObjectId, ref: 'User' },
       reason: String,
-      assignedBy: String,
+      assignedBy: { type: Schema.Types.ObjectId, ref: 'User' },
       assignedAt: Date
     }],
     estimatedStartTime: Date,
@@ -125,7 +125,7 @@ const WorkOrderSchema = new Schema({
   status: { type: String, enum: WorkOrderStatus, required: true, default: "DRAFT" },
   workflow: {
     requiresApproval: { type: Boolean, default: false },
-    approver: String,
+    approver: { type: Schema.Types.ObjectId, ref: 'User' },
     approvedAt: Date,
     approvalNotes: String,
     rejectionReason: String,
@@ -394,14 +394,24 @@ WorkOrderSchema.plugin(tenantIsolationPlugin);
 WorkOrderSchema.plugin(auditPlugin);
 
 // Indexes for performance and querying (orgId is already indexed by tenantIsolationPlugin)
-WorkOrderSchema.index({ workOrderNumber: 1 }, { unique: true });
-WorkOrderSchema.index({ status: 1 });
-WorkOrderSchema.index({ priority: 1 });
-WorkOrderSchema.index({ 'location.propertyId': 1 });
+// CRITICAL FIX: Tenant-scoped unique index for workOrderNumber
+WorkOrderSchema.index({ orgId: 1, workOrderNumber: 1 }, { unique: true });
+
+// FIXED: Tenant-scoped indexes
+WorkOrderSchema.index({ orgId: 1, status: 1 });
+WorkOrderSchema.index({ orgId: 1, priority: 1 });
+WorkOrderSchema.index({ orgId: 1, 'location.propertyId': 1 });
 WorkOrderSchema.index({ orgId: 1, 'assignment.assignedTo.userId': 1 });
 WorkOrderSchema.index({ orgId: 1, 'sla.resolutionDeadline': 1 });
 WorkOrderSchema.index({ orgId: 1, 'recurrence.nextScheduledDate': 1 });
-WorkOrderSchema.index({ title: "text", description: "text", 'work.solutionDescription': "text" });
+
+// CRITICAL FIX: Tenant-scoped text index for search
+WorkOrderSchema.index({ 
+  orgId: 1, 
+  title: "text", 
+  description: "text", 
+  'work.solutionDescription': "text" 
+});
 
 // State machine validation
 WorkOrderSchema.pre('save', function(next) {

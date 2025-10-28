@@ -1,7 +1,10 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 export interface ISubscriptionInvoice extends Document {
-  subscriptionId: string;
+  // orgId, createdBy, updatedBy will be added by plugins
+  subscriptionId: Types.ObjectId;
   amount: number;
   currency: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
@@ -13,8 +16,11 @@ export interface ISubscriptionInvoice extends Document {
 }
 
 const subscriptionInvoiceSchema = new Schema<ISubscriptionInvoice>({
+  // orgId will be added by tenantIsolationPlugin
+  
   subscriptionId: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Subscription',
     required: true
   },
   amount: {
@@ -39,6 +45,14 @@ const subscriptionInvoiceSchema = new Schema<ISubscriptionInvoice>({
 }, {
   timestamps: true
 });
+
+// APPLY PLUGINS (BEFORE INDEXES)
+subscriptionInvoiceSchema.plugin(tenantIsolationPlugin);
+subscriptionInvoiceSchema.plugin(auditPlugin);
+
+// ADD TENANT-SCOPED INDEXES
+subscriptionInvoiceSchema.index({ orgId: 1, status: 1, dueDate: 1 }); // For finding overdue invoices
+subscriptionInvoiceSchema.index({ orgId: 1, subscriptionId: 1 }); // For finding invoices for a subscription
 
 export const SubscriptionInvoice = mongoose.models.SubscriptionInvoice || mongoose.model<ISubscriptionInvoice>('SubscriptionInvoice', subscriptionInvoiceSchema);
 export default SubscriptionInvoice;

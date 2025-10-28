@@ -1,13 +1,15 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 const VendorStatus = ["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"] as const;
 const VendorType = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"] as const;
 
 const VendorSchema = new Schema({
-  tenantId: { type: String, required: true },
+  // tenantId REMOVED - plugin will add orgId
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  code: { type: String, required: true }, // unique removed - will be tenant-scoped
   name: { type: String, required: true },
   type: { type: String, enum: VendorType, required: true },
 
@@ -55,7 +57,7 @@ const VendorSchema = new Schema({
   // Approval Status
   status: { type: String, enum: VendorStatus, default: "PENDING" },
   approval: {
-    approvedBy: String,
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     approvedAt: Date,
     rejectionReason: String,
     suspensionReason: String,
@@ -71,11 +73,11 @@ const VendorSchema = new Schema({
     averageResponseTime: Number, // hours
     complianceRate: Number, // percentage
     reviews: [{
-      clientId: String,
+      clientId: { type: Schema.Types.ObjectId, ref: 'Organization' },
       rating: Number,
       comment: String,
       date: Date,
-      projectId: String
+      projectId: { type: Schema.Types.ObjectId, ref: 'Project' }
     }]
   },
 
@@ -92,7 +94,7 @@ const VendorSchema = new Schema({
     paymentHistory: [{
       date: Date,
       amount: Number,
-      invoiceId: String,
+      invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice' },
       status: String, // PAID, PENDING, OVERDUE
       method: String
     }]
@@ -116,14 +118,14 @@ const VendorSchema = new Schema({
 
   // Work History
   projects: [{
-    projectId: String,
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
     name: String,
     type: String,
     startDate: Date,
     endDate: Date,
     value: Number,
     status: String, // COMPLETED, ONGOING, CANCELLED
-    clientId: String,
+    clientId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     rating: Number,
     feedback: String
   }],
@@ -163,7 +165,7 @@ const VendorSchema = new Schema({
 
   // Contracts & Agreements
   contracts: [{
-    contractId: String,
+    contractId: { type: Schema.Types.ObjectId, ref: 'Contract' },
     type: String, // MASTER, PROJECT_SPECIFIC, NDA, etc.
     startDate: Date,
     endDate: Date,
@@ -171,7 +173,7 @@ const VendorSchema = new Schema({
     terms: String,
     status: String, // ACTIVE, EXPIRED, TERMINATED
     signed: Date,
-    signedBy: String
+    signedBy: { type: Schema.Types.ObjectId, ref: 'User' }
   }],
 
   // Preferences
@@ -189,21 +191,27 @@ const VendorSchema = new Schema({
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
+  customFields: Schema.Types.Mixed
 
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  // createdBy/updatedBy will be added by auditPlugin
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-VendorSchema.index({ tenantId: 1, status: 1 });
-VendorSchema.index({ tenantId: 1, type: 1 });
-VendorSchema.index({ tenantId: 1, 'performance.rating': -1 });
-VendorSchema.index({ tenantId: 1, 'business.specializations': 1 });
+// APPLY PLUGINS (BEFORE INDEXES)
+VendorSchema.plugin(tenantIsolationPlugin);
+VendorSchema.plugin(auditPlugin);
+
+// INDEXES (AFTER PLUGINS)
+// CRITICAL FIX: Tenant-scoped unique index for 'code'
+VendorSchema.index({ orgId: 1, code: 1 }, { unique: true });
+
+// FIXED: Tenant-scoped indexes
+VendorSchema.index({ orgId: 1, status: 1 });
+VendorSchema.index({ orgId: 1, type: 1 });
+VendorSchema.index({ orgId: 1, 'performance.rating': -1 });
+VendorSchema.index({ orgId: 1, 'business.specializations': 1 });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
 
-// Check if we're using mock database
 export const Vendor = models.Vendor || model("Vendor", VendorSchema);
