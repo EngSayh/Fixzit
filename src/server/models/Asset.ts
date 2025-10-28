@@ -1,4 +1,6 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from '../../../server/plugins/tenantIsolation';
+import { auditPlugin } from '../../../server/plugins/auditPlugin';
 
 // Asset types for equipment registry
 const AssetType = ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"] as const;
@@ -6,10 +8,11 @@ const AssetType = ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GE
 const MaintenanceType = ["PREVENTIVE", "CORRECTIVE", "PREDICTIVE", "INSPECTION"] as const;
 
 const AssetSchema = new Schema({
-  tenantId: { type: String, required: true },
+  // tenantId will be added by tenantIsolationPlugin
 
   // Basic Information
-  code: { type: String, required: true, unique: true }, // Asset ID
+  // FIXED: Remove unique: true - will be enforced via compound index with tenantId
+  code: { type: String, required: true }, // Asset ID
   name: { type: String, required: true },
   description: { type: String },
 
@@ -142,19 +145,23 @@ const AssetSchema = new Schema({
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
+  // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-AssetSchema.index({ tenantId: 1, type: 1 });
-AssetSchema.index({ tenantId: 1, status: 1 });
-AssetSchema.index({ tenantId: 1, 'pmSchedule.nextPM': 1 });
-AssetSchema.index({ tenantId: 1, 'condition.score': 1 });
+// Apply plugins BEFORE indexes
+AssetSchema.plugin(tenantIsolationPlugin);
+AssetSchema.plugin(auditPlugin);
+
+// Indexes for performance (orgId from plugin)
+AssetSchema.index({ orgId: 1, type: 1 });
+AssetSchema.index({ orgId: 1, status: 1 });
+AssetSchema.index({ orgId: 1, 'pmSchedule.nextPM': 1 });
+AssetSchema.index({ orgId: 1, 'condition.score': 1 });
+// Compound tenant-scoped unique index for code
+AssetSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 

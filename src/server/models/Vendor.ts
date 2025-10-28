@@ -1,13 +1,16 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from '../../../server/plugins/tenantIsolation';
+import { auditPlugin } from '../../../server/plugins/auditPlugin';
 
 const VendorStatus = ["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"] as const;
 const VendorType = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"] as const;
 
 const VendorSchema = new Schema({
-  tenantId: { type: String, required: true },
+  // tenantId will be added by tenantIsolationPlugin
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  // FIXED: Remove unique: true - will be enforced via compound index with tenantId
+  code: { type: String, required: true },
   name: { type: String, required: true },
   type: { type: String, enum: VendorType, required: true },
 
@@ -189,19 +192,23 @@ const VendorSchema = new Schema({
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
+  // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-VendorSchema.index({ tenantId: 1, status: 1 });
-VendorSchema.index({ tenantId: 1, type: 1 });
-VendorSchema.index({ tenantId: 1, 'performance.rating': -1 });
-VendorSchema.index({ tenantId: 1, 'business.specializations': 1 });
+// Apply plugins BEFORE indexes
+VendorSchema.plugin(tenantIsolationPlugin);
+VendorSchema.plugin(auditPlugin);
+
+// Indexes for performance (orgId from plugin)
+VendorSchema.index({ orgId: 1, status: 1 });
+VendorSchema.index({ orgId: 1, type: 1 });
+VendorSchema.index({ orgId: 1, 'performance.rating': -1 });
+VendorSchema.index({ orgId: 1, 'business.specializations': 1 });
+// Compound tenant-scoped unique index for code
+VendorSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
 
