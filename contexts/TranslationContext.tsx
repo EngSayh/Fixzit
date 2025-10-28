@@ -42,6 +42,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.compliance': 'الامتثال',
     'nav.reports': 'التقارير',
     'nav.system': 'إدارة النظام',
+    'nav.administration': 'الإدارة',
     'nav.marketplace': 'السوق',
     'nav.maintenance': 'الصيانة',
     'nav.orders': 'الطلبات',
@@ -65,6 +66,7 @@ const translations: Record<Language, Record<string, string>> = {
     'i18n.selectLanguageLabel': 'اختر اللغة',
     'i18n.selectCurrencyLabel': 'اختر العملة',
     'a11y.currencySelectorHelp': 'استخدم مفاتيح الأسهم للتنقل، إدخال للتحديد، Esc للإغلاق',
+    'common.signIn': 'تسجيل الدخول',
     'common.login': 'تسجيل الدخول',
     'common.logout': 'تسجيل الخروج',
     'common.save': 'حفظ',
@@ -78,6 +80,15 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'لا توجد إشعارات جديدة',
     'common.allCaughtUp': 'لقد قرأت كل شيء!',
     'common.viewAll': 'عرض جميع الإشعارات',
+    
+    // Legal Pages
+    'terms.title': 'شروط الخدمة',
+    'terms.subtitle': 'يرجى قراءة هذه الشروط بعناية قبل استخدام خدماتنا.',
+    'terms.lastUpdated': 'آخر تحديث',
+    'privacy.title': 'سياسة الخصوصية',
+    'privacy.subtitle': 'خصوصيتك أولويتنا. تعرف على كيفية حماية بياناتك وإدارتها.',
+    'privacy.lastUpdated': 'آخر تحديث',
+    
     // TopBar search placeholders
     'souq.search.placeholder': 'البحث في الكتالوج، الموردين، طلبات العروض، الطلبات...',
     'aqar.search.placeholder': 'البحث في القوائم، المشاريع، الوكلاء...',
@@ -989,6 +1000,7 @@ const translations: Record<Language, Record<string, string>> = {
     'i18n.selectLanguageLabel': 'Select language',
     'i18n.selectCurrencyLabel': 'Select currency',
     'a11y.currencySelectorHelp': 'Use arrow keys to navigate, Enter to select, Esc to close',
+    'common.signIn': 'Sign In',
     'common.login': 'Login',
     'common.logout': 'Logout',
     'common.save': 'Save',
@@ -1002,6 +1014,15 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'No new notifications',
     'common.allCaughtUp': "You're all caught up!",
     'common.viewAll': 'View all notifications',
+    
+    // Legal Pages
+    'terms.title': 'Terms of Service',
+    'terms.subtitle': 'Please read these terms carefully before using our services.',
+    'terms.lastUpdated': 'Last updated',
+    'privacy.title': 'Privacy Policy',
+    'privacy.subtitle': 'Your privacy is our priority. Learn how we protect and manage your data.',
+    'privacy.lastUpdated': 'Last updated',
+    
     // TopBar search placeholders
     'souq.search.placeholder': 'Search catalog, vendors, RFQs, orders…',
     'aqar.search.placeholder': 'Search listings, projects, agents…',
@@ -1984,7 +2005,9 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const t = (key: string, fallback: string = key): string => {
     try {
       const langData = translations[language as LanguageCode];
-      const result = langData?.[key] || fallback;
+      // First check current language, then fallback to English, then use fallback string
+      const enData = translations.en;
+      const result = langData?.[key] ?? enData?.[key] ?? fallback;
       return result;
     } catch (error) {
       console.warn(`Translation error for key '${key}':`, error);
