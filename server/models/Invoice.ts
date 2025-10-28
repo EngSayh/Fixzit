@@ -1,11 +1,11 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const InvoiceStatus = ["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"] as const;
 const InvoiceType = ["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"] as const;
 
 const InvoiceSchema = new Schema({
-  tenantId: { type: String, required: true },
-
   // Basic Information
   number: { type: String, required: true },
   type: { type: String, enum: InvoiceType, required: true },
@@ -169,21 +169,23 @@ const InvoiceSchema = new Schema({
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-InvoiceSchema.index({ tenantId: 1, number: 1 }, { unique: true });
-InvoiceSchema.index({ tenantId: 1, status: 1 });
-InvoiceSchema.index({ tenantId: 1, 'recipient.customerId': 1 });
-InvoiceSchema.index({ tenantId: 1, issueDate: -1 });
-InvoiceSchema.index({ tenantId: 1, dueDate: 1 });
-InvoiceSchema.index({ tenantId: 1, 'zatca.status': 1 });
+// Apply plugins BEFORE indexes for proper tenant isolation and audit tracking
+InvoiceSchema.plugin(tenantIsolationPlugin);
+InvoiceSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes for performance and data isolation
+InvoiceSchema.index({ orgId: 1, number: 1 }, { unique: true });
+InvoiceSchema.index({ orgId: 1, status: 1 });
+InvoiceSchema.index({ orgId: 1, 'recipient.customerId': 1 });
+InvoiceSchema.index({ orgId: 1, issueDate: -1 });
+InvoiceSchema.index({ orgId: 1, dueDate: 1 });
+InvoiceSchema.index({ orgId: 1, 'zatca.status': 1 });
+InvoiceSchema.index({ orgId: 1, type: 1, status: 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 
