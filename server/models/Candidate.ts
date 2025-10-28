@@ -36,7 +36,13 @@ CandidateSchema.pre('validate', function(next) {
   next();
 });
 
-export type CandidateDoc = InferSchemaType<typeof CandidateSchema> & Document;
+export type CandidateDoc = InferSchemaType<typeof CandidateSchema> & Document & {
+  orgId: Schema.Types.ObjectId;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+  version?: number;
+  changeHistory?: unknown[];
+};
 
 export interface CandidateModel extends Model<CandidateDoc> {
   findByEmail(orgId: string, email: string): Promise<CandidateDoc | null>;

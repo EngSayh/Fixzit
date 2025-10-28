@@ -11,7 +11,7 @@ const docSchema = z.object({
   slug: z.string(),
   title: z.string(),
   content: z.string(),
-  tenantId: z.string().nullable().optional(),
+  orgId: z.string().nullable().optional(),
   roles: z.array(z.string()).optional(),
   locale: z.enum(["en", "ar"]).optional(),
   tags: z.array(z.string()).optional(),
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   for (const doc of payload.docs) {
     await upsertKnowledgeDocument({
       ...doc,
-      tenantId: doc.tenantId || undefined
+      orgId: doc.orgId || undefined
     });
   }
 
