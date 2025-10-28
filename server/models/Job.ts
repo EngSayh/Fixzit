@@ -52,7 +52,13 @@ JobSchema.index({ orgId: 1, title: 'text', description: 'text', requirements: 't
 JobSchema.index({ orgId: 1, status: 1 });
 JobSchema.index({ orgId: 1, jobType: 1, status: 1 });
 
-export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
+export type JobDoc = (InferSchemaType<typeof JobSchema> & Document & {
+  orgId: Schema.Types.ObjectId;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+  version?: number;
+  changeHistory?: unknown[];
+}) & { publish(): Promise<JobDoc>; };
 
 JobSchema.methods.publish = async function() {
   if (this.status !== 'published') {

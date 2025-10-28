@@ -68,7 +68,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
 
   const docs = await CopilotKnowledge.find({
     $and: [
-      { $or: [{ tenantId: session.tenantId }, { tenantId: null }] },
+      { $or: [{ orgId: session.tenantId }, { orgId: null }] },
       { locale: { $in: [session.locale, "en"] } }
     ]
   });
@@ -93,7 +93,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
     .filter(doc => doc.score > 0.05 || doc.content.toLowerCase().includes(query.toLowerCase()));
 }
 
-export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slug: string; title: string; content: string; }): Promise<void> {
+export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slug: string; title: string; content: string; orgId?: string }): Promise<void> {
   await db;
   const embedding = doc.embedding?.length ? doc.embedding : await callEmbedding(doc.content);
   await CopilotKnowledge.findOneAndUpdate(
@@ -102,7 +102,7 @@ export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slu
       $set: {
         title: doc.title,
         content: doc.content,
-        tenantId: doc.tenantId || '',
+        orgId: doc.orgId || '',
         roles: doc.roles ?? [],
         locale: doc.locale ?? "en",
         tags: doc.tags ?? [],

@@ -68,7 +68,13 @@ ApplicationSchema.plugin(auditPlugin);
 ApplicationSchema.index({ orgId: 1, jobId: 1, candidateId: 1 }, { unique: true });
 ApplicationSchema.index({ orgId: 1, stage: 1, score: -1 });
 
-export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Document;
+export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Document & {
+  orgId: Schema.Types.ObjectId;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+  version?: number;
+  changeHistory?: unknown[];
+};
 
 export interface ApplicationModel extends Model<ApplicationDoc> {}
 
