@@ -1,4 +1,6 @@
 import { Schema, model, models, Types, Model } from 'mongoose';
+import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
+import { auditPlugin } from '../../plugins/auditPlugin';
 
 export interface MarketplaceAttributeDefinition {
   key: string;
@@ -12,7 +14,7 @@ export interface MarketplaceAttributeDefinition {
 
 export interface MarketplaceAttributeSet {
   _id: Types.ObjectId;
-  orgId: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be managed by tenantIsolationPlugin
   title: string;
   items: MarketplaceAttributeDefinition[];
   createdAt: Date;
@@ -21,7 +23,7 @@ export interface MarketplaceAttributeSet {
 
 const AttributeSetSchema = new Schema<MarketplaceAttributeSet>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true },
+    // orgId will be added by tenantIsolationPlugin
     title: { type: String, required: true, trim: true },
     items: [
       {
@@ -38,8 +40,13 @@ const AttributeSetSchema = new Schema<MarketplaceAttributeSet>(
   { timestamps: true }
 );
 
+// Apply plugins BEFORE indexes for proper tenant isolation
+AttributeSetSchema.plugin(tenantIsolationPlugin);
+AttributeSetSchema.plugin(auditPlugin);
+
 // Indexes for efficient tenant-scoped queries
 AttributeSetSchema.index({ orgId: 1 });
+AttributeSetSchema.index({ orgId: 1, title: 1 });
 
 const AttributeSetModel =
   (models.MarketplaceAttributeSet as Model<MarketplaceAttributeSet> | undefined) ||
