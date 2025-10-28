@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Phone, MessageSquare, Award, TrendingUp, CheckCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface AgentCardProps {
   id: string;
@@ -44,9 +44,10 @@ export interface AgentCardProps {
 }
 
 export default function AgentCard({ agent, compact = false }: { agent: AgentCardProps; compact?: boolean }) {
-  const [_showContact, _setShowContact] = useState(false);
+  const { t, isRTL } = useTranslation();
 
   const fullName = agent.displayName || `${agent.firstName} ${agent.lastName}`;
+  const bioText = isRTL ? (agent.bio?.ar || agent.bio?.en) : (agent.bio?.en || agent.bio?.ar);
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -111,7 +112,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
             <span>{typeof agent.statistics?.averageRating === 'number' && !isNaN(agent.statistics.averageRating) ? agent.statistics.averageRating.toFixed(1) : 'N/A'}</span>
             <span className="text-gray-400">•</span>
-            <span>{agent.statistics.activeListings} listings</span>
+            <span>{agent.statistics.activeListings} {t('aqar.agent.listings', 'listings')}</span>
           </div>
         </div>
 
@@ -120,14 +121,14 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
           <button
             onClick={() => window.location.href = `tel:${agent.contact.phone}`}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="Call agent"
+            aria-label={t('aqar.agent.call', 'Call agent')}
           >
             <Phone className="w-4 h-4 text-gray-600" />
           </button>
           <button
             onClick={() => window.open(`https://wa.me/${agent.contact.whatsapp || agent.contact.phone}`, '_blank')}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="WhatsApp agent"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label={t('aqar.agent.whatsapp', 'WhatsApp agent')}
           >
             <MessageSquare className="w-4 h-4 text-gray-600" />
           </button>
@@ -181,7 +182,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
 
           {agent.featured && (
             <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
-              Featured
+              {t('aqar.propertyCard.featured', 'Featured')}
             </span>
           )}
         </div>
@@ -195,10 +196,10 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
             <CheckCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${agent.license.verified ? 'text-green-600' : 'text-gray-400'}`} />
             <div>
               <p className="font-medium text-gray-900">
-                License: {agent.license.number}
+                {t('aqar.agent.license', 'License')}: {agent.license.number}
               </p>
               <p className="text-gray-600 text-xs">
-                {agent.license.authority} {agent.license.verified && '• Verified'}
+                {agent.license.authority} {agent.license.verified && `• ${t('aqar.agent.verified', 'Verified')}`}
               </p>
             </div>
           </div>
@@ -208,11 +209,11 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <p className="text-2xl font-bold text-gray-900">{agent.statistics.activeListings}</p>
-            <p className="text-xs text-gray-600">Active Listings</p>
+            <p className="text-xs text-gray-600">{t('aqar.agent.listings', 'Active Listings')}</p>
           </div>
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <p className="text-2xl font-bold text-gray-900">{agent.statistics.soldProperties + agent.statistics.rentedProperties}</p>
-            <p className="text-xs text-gray-600">Properties Closed</p>
+            <p className="text-xs text-gray-600">{t('aqar.agent.propertiesClosed', 'Properties Closed')}</p>
           </div>
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center justify-center gap-1">
@@ -223,7 +224,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
           </div>
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <p className="text-2xl font-bold text-gray-900">{agent.statistics.responseTime}m</p>
-            <p className="text-xs text-gray-600">Avg Response</p>
+            <p className="text-xs text-gray-600">{t('aqar.agent.avgResponse', 'Avg Response')}</p>
           </div>
         </div>
 
@@ -231,7 +232,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         <div className="mb-4 space-y-2">
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <TrendingUp className="w-4 h-4 text-gray-500" />
-            <span className="font-medium">{agent.experience} years experience</span>
+            <span className="font-medium">{agent.experience} {t('aqar.agent.yearsExperience', 'years experience')}</span>
           </div>
           
           {agent.specializations.length > 0 && (
@@ -262,9 +263,9 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         </div>
 
         {/* Bio */}
-        {agent.bio?.en && (
+        {bioText && (
           <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-            {agent.bio.en}
+            {bioText}
           </p>
         )}
 
@@ -278,7 +279,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow"
           >
             <Phone className="w-4 h-4" />
-            <span className="font-semibold">Call</span>
+            <span className="font-semibold">{t('aqar.agent.call', 'Call')}</span>
           </button>
           <button
             onClick={(e) => {
@@ -288,7 +289,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:shadow-lg transition-shadow"
           >
             <MessageSquare className="w-4 h-4" />
-            <span className="font-semibold">WhatsApp</span>
+            <span className="font-semibold">{t('aqar.agent.whatsapp', 'WhatsApp')}</span>
           </button>
         </div>
       </div>
