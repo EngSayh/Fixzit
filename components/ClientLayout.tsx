@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
@@ -19,12 +20,16 @@ type UserRole = 'SUPER_ADMIN' | 'CORPORATE_ADMIN' | 'FM_MANAGER' | 'PROPERTY_MAN
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole>('guest');
-  const [loading, setLoading] = useState(true);
+  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
   const pathname = usePathname();
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
   const authRoutes = new Set<string>(['/login', '/forgot-password', '/signup', '/reset-password']);
   const isLandingPage = publicRoutes.has(pathname);
   const isAuthPage = authRoutes.has(pathname) || pathname.startsWith('/login') || pathname.startsWith('/signup');
+  
+  // Use NextAuth session for authentication (supports both OAuth and JWT)
+  const { data: session, status } = useSession();
+  
   // Safe translation access with fallback
   let language = 'ar';
   let isRTL = false;
@@ -43,85 +48,61 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
   }, [language, isRTL]);
 
+  // Fallback auth check for JWT-based sessions when NextAuth session is not available
   useEffect(() => {
-    // Skip role fetching for auth pages
-    if (isAuthPage) {
-      setRole('guest');
-      setLoading(false);
-      return;
-    }
-
-    // On landing page, ensure we're guest and clear any stale auth
-    if (isLandingPage) {
-      setRole('guest');
-      setLoading(false);
-      // Clear any lingering auth data
-      localStorage.removeItem('fixzit-role');
-      document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
-      return;
-    }
-
-    const fetchUserRole = async () => {
-      try {
-        // CRITICAL: Do NOT check localStorage - always verify with server
-        // This prevents auto-login behavior from stale cached data
-
-        // Fetch current user from API
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include' // Include cookies
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user && data.user.role) {
+    let abort = false;
+    // Only fetch if NextAuth isn't authenticated and we're not on auth/landing pages
+    if (status !== 'authenticated' && status !== 'loading' && !isAuthPage && !isLandingPage) {
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { 
+          if (!abort && data?.user?.id && data?.user?.role) {
+            setAuthUser({ id: data.user.id, role: data.user.role });
             // Validate role is a known UserRole before casting
-            const validRoles: UserRole[] = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER', 'TENANT', 'VENDOR', 'SUPPORT', 'AUDITOR', 'PROCUREMENT', 'EMPLOYEE', 'CUSTOMER', 'guest'];
+            const validRoles: UserRole[] = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER', 'TENANT', 'VENDOR', 'SUPPORT', 'AUDITOR', 'PROCUREMENT', 'EMPLOYEE', 'CUSTOMER'];
             const userRole = validRoles.includes(data.user.role as UserRole) 
               ? (data.user.role as UserRole) 
               : 'guest';
             setRole(userRole);
-            // Cache the role in localStorage only after successful verification
-            localStorage.setItem('fixzit-role', userRole);
           } else {
-            // No user data even though response was ok - clear everything
             setRole('guest');
-            localStorage.removeItem('fixzit-role');
-            // Clear the auth cookie by making it expire
-            document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
+            setAuthUser(null);
           }
-        } else if (response.status === 401) {
-          // 401 is expected for guests - not an error, just set guest role silently
+        })
+        .catch(() => {
           setRole('guest');
-          localStorage.removeItem('fixzit-role');
-        } else {
-          // Other errors - clear auth data
-          setRole('guest');
-          localStorage.removeItem('fixzit-role');
-          document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
-        }
-      } catch (error) {
-        // Only log non-401 errors
-        console.error('Failed to fetch user role:', error);
-        setRole('guest');
-        localStorage.removeItem('fixzit-role');
-        document.cookie = 'fixzit_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
-      } finally {
-        setLoading(false);
+          setAuthUser(null);
+        });
+    } else if (status === 'authenticated' && session?.user) {
+      // NextAuth session is active - extract role from session
+      const sessionRole = (session.user as { role?: string })?.role;
+      if (sessionRole) {
+        const validRoles: UserRole[] = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER', 'TENANT', 'VENDOR', 'SUPPORT', 'AUDITOR', 'PROCUREMENT', 'EMPLOYEE', 'CUSTOMER'];
+        const userRole = validRoles.includes(sessionRole as UserRole) 
+          ? (sessionRole as UserRole) 
+          : 'guest';
+        setRole(userRole);
       }
-    };
-
-    fetchUserRole();
-  }, [isAuthPage, isLandingPage]);
+    } else if (status === 'unauthenticated' || isAuthPage || isLandingPage) {
+      setRole('guest');
+      setAuthUser(null);
+    }
+    return () => { abort = true; };
+  }, [status, session, isAuthPage, isLandingPage]);
+  
+  // Check both NextAuth AND JWT-based auth
+  const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
+  const loading = status === 'loading';
 
   // Client-side protection: redirect guests from FM/protected routes
   useEffect(() => {
-    if (!loading && role === 'guest' && !isLandingPage && !isAuthPage) {
+    if (!loading && !isAuthenticated && !isLandingPage && !isAuthPage) {
       // Check if we're on a protected route (FM, admin, etc)
       if (pathname.startsWith('/fm') || pathname.startsWith('/admin') || pathname.startsWith('/crm')) {
         window.location.href = '/login';
       }
     }
-  }, [loading, role, pathname, isLandingPage, isAuthPage]);
+  }, [loading, isAuthenticated, pathname, isLandingPage, isAuthPage]);
 
   // Show loading state while fetching user data
   if (loading && !isAuthPage) {
