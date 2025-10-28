@@ -29,14 +29,17 @@ async function getUserSession(req: NextRequest) {
 /**
  * GET /api/finance/expenses/:id
  */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: any) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.read');
 
-    if (!Types.ObjectId.isValid(params.id)) {
+    // Resolve params (Next may provide params as a Promise)
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid expense ID' },
         { status: 400 }
@@ -48,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
       async () => {
         const expense = await Expense.findOne({
-          _id: params.id,
+          _id: _params.id,
           orgId: user.orgId,
         });
 
@@ -97,14 +100,17 @@ const UpdateExpenseSchema = z.object({
  * PUT /api/finance/expenses/:id
  * Update expense (only if DRAFT status)
  */
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: any) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.update');
 
-    if (!Types.ObjectId.isValid(params.id)) {
+    // Resolve params
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid expense ID' },
         { status: 400 }
@@ -119,7 +125,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
       async () => {
         const expense = await Expense.findOne({
-          _id: params.id,
+          _id: _params.id,
           orgId: user.orgId,
         });
 
@@ -182,14 +188,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
  * DELETE /api/finance/expenses/:id
  * Cancel expense
  */
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: any) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.delete');
 
-    if (!Types.ObjectId.isValid(params.id)) {
+    // Resolve params
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid expense ID' },
         { status: 400 }
@@ -201,7 +210,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
       async () => {
         const expense = await Expense.findOne({
-          _id: params.id,
+          _id: _params.id,
           orgId: user.orgId,
         });
 

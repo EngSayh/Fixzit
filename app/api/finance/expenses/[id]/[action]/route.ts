@@ -35,12 +35,15 @@ const ApprovalSchema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string; action?: string } }
+  context: any
 ) {
   try {
     const user = await getUserSession(req);
 
-    if (!Types.ObjectId.isValid(params.id)) {
+    // Resolve params
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid expense ID' },
         { status: 400 }
@@ -70,7 +73,7 @@ export async function POST(
       { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
       async () => {
         const expense = await Expense.findOne({
-          _id: params.id,
+          _id: _params.id,
           orgId: user.orgId,
         });
 
