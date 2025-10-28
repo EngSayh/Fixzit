@@ -5,14 +5,14 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import mongoose from 'mongoose';
-import postingService from '@/server/services/finance/postingService';
-import Journal from '@/server/models/finance/Journal';
-import LedgerEntry from '@/server/models/finance/LedgerEntry';
-import ChartAccount from '@/server/models/finance/ChartAccount';
-import { Expense } from '@/server/models/finance/Expense';
-import { Payment } from '@/server/models/finance/Payment';
-import { setTenantContext, setAuditContext, clearContext } from '@/server/models/plugins/tenantAudit';
-import { toMinor } from '@/server/lib/currency';
+import postingService from '../../../server/services/finance/postingService';
+import Journal from '../../../server/models/finance/Journal';
+import LedgerEntry from '../../../server/models/finance/LedgerEntry';
+import ChartAccount from '../../../server/models/finance/ChartAccount';
+import { Expense } from '../../../server/models/finance/Expense';
+import { Payment } from '../../../server/models/finance/Payment';
+import { setTenantContext, setAuditContext, clearContext } from '../../../server/models/plugins/tenantAudit';
+import { toMinor } from '../../../server/lib/currency';
 
 const TEST_ORG_ID = 'test-org-e2e-finance';
 const TEST_USER_ID = 'test-user-e2e';

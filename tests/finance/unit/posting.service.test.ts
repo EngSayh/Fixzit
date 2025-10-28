@@ -6,9 +6,9 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import postingService from '../../../server/services/finance/postingService';
-import JournalModel from '../../../server/models/finance/Journal';
-import LedgerEntryModel from '../../../server/models/finance/LedgerEntry';
-import ChartAccountModel from '../../../server/models/finance/ChartAccount';
+import Journal from '../../../server/models/finance/Journal';
+import LedgerEntry from '../../../server/models/finance/LedgerEntry';
+import ChartAccount from '../../../server/models/finance/ChartAccount';
 import { setTenantContext, setAuditContext, clearContext } from '../../../server/models/plugins/tenantAudit';
 import { toMinor, applyFx } from '../../../server/lib/currency';
 
