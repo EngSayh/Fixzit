@@ -6,12 +6,8 @@ const InvitationStatus = ["PENDING", "ACCEPTED", "DECLINED", "EXPIRED"] as const
 const MemberRole = ["ADMIN", "MEMBER", "VIEWER"] as const;
 
 const FamilyMemberSchema = new Schema({
-  // Multi-tenancy - will be added by plugin
-  // orgId: { type: String, required: true, index: true },
-
   // Primary User (Family Admin)
   primaryUserId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  tenantId: { type: Schema.Types.ObjectId, ref: "Tenant" }, // Optional link to tenant
   
   // Family Member Information
   userId: { type: Schema.Types.ObjectId, ref: "User" }, // If they have created account
@@ -35,7 +31,6 @@ const FamilyMemberSchema = new Schema({
   // Personal Information
   nationalId: String,
   dateOfBirth: Date,
-  age: Number,
   gender: { type: String, enum: ["MALE", "FEMALE", "OTHER"] },
   occupation: String,
   
@@ -81,18 +76,18 @@ const FamilyMemberSchema = new Schema({
   timestamps: true
 });
 
-// Indexes
-FamilyMemberSchema.index({ primaryUserId: 1 });
-FamilyMemberSchema.index({ userId: 1 });
-FamilyMemberSchema.index({ email: 1 }, { sparse: true }); // Sparse: allow multiple null/undefined emails
-FamilyMemberSchema.index({ nationalId: 1 }, { sparse: true }); // Sparse: allow multiple null/undefined nationalIds
-FamilyMemberSchema.index({ phone: 1 }, { sparse: true }); // Sparse: allow multiple null/undefined phones
-FamilyMemberSchema.index({ "invitation.code": 1 });
-FamilyMemberSchema.index({ "invitation.status": 1 });
-
-// Plugins
+// CRITICAL: Apply plugins BEFORE indexes to ensure proper tenant scoping
 FamilyMemberSchema.plugin(tenantIsolationPlugin);
 FamilyMemberSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes for data isolation and performance
+FamilyMemberSchema.index({ orgId: 1, primaryUserId: 1 });
+FamilyMemberSchema.index({ orgId: 1, userId: 1 });
+FamilyMemberSchema.index({ orgId: 1, email: 1 }, { sparse: true });
+FamilyMemberSchema.index({ orgId: 1, nationalId: 1 }, { sparse: true });
+FamilyMemberSchema.index({ orgId: 1, phone: 1 }, { sparse: true });
+FamilyMemberSchema.index({ orgId: 1, "invitation.code": 1 });
+FamilyMemberSchema.index({ orgId: 1, "invitation.status": 1 });
 
 // Virtual for display name
 FamilyMemberSchema.virtual('displayName').get(function() {
