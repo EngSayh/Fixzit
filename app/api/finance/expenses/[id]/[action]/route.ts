@@ -31,7 +31,7 @@ const ApprovalSchema = z.object({
 });
 
 /**
- * POST /api/finance/expenses/:id/submit
+ * POST /api/finance/expenses/:id/submit|approve|reject
  */
 export async function POST(
   req: NextRequest,
@@ -39,8 +39,6 @@ export async function POST(
 ) {
   try {
     const user = await getUserSession(req);
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ userId: user.userId });
 
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json(
@@ -49,92 +47,117 @@ export async function POST(
       );
     }
 
-    const expense = await Expense.findOne({
-      _id: params.id,
-      orgId: user.orgId,
-    });
-
-    if (!expense) {
-      return NextResponse.json(
-        { success: false, error: 'Expense not found' },
-        { status: 404 }
-      );
-    }
-
     // Determine action from URL path
     const url = new URL(req.url);
     const action = url.pathname.split('/').pop();
 
+    // Authorization check based on action
     if (action === 'submit') {
-      if (expense.status !== 'DRAFT') {
-        return NextResponse.json(
-          { success: false, error: 'Only draft expenses can be submitted' },
-          { status: 400 }
-        );
-      }
-
-      await expense.submit(user.userId);
-
-      return NextResponse.json({
-        success: true,
-        data: expense,
-        message: 'Expense submitted for approval',
-      });
+      requirePermission(user.role, 'finance.expenses.submit');
+    } else if (action === 'approve') {
+      requirePermission(user.role, 'finance.expenses.approve');
+    } else if (action === 'reject') {
+      requirePermission(user.role, 'finance.expenses.reject');
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Invalid action' },
+        { status: 400 }
+      );
     }
 
-    if (action === 'approve') {
-      if (expense.status !== 'SUBMITTED') {
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: params.id,
+          orgId: user.orgId,
+        });
+
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: 'Expense not found' },
+            { status: 404 }
+          );
+        }
+
+        if (action === 'submit') {
+          if (expense.status !== 'DRAFT') {
+            return NextResponse.json(
+              { success: false, error: 'Only draft expenses can be submitted' },
+              { status: 400 }
+            );
+          }
+
+          await expense.submit(user.userId);
+
+          return NextResponse.json({
+            success: true,
+            data: expense,
+            message: 'Expense submitted for approval',
+          });
+        }
+
+        if (action === 'approve') {
+          if (expense.status !== 'SUBMITTED') {
+            return NextResponse.json(
+              { success: false, error: 'Only submitted expenses can be approved' },
+              { status: 400 }
+            );
+          }
+
+          const body = await req.json();
+          const { comments } = ApprovalSchema.parse(body);
+
+          await expense.approve(user.userId, comments);
+
+          return NextResponse.json({
+            success: true,
+            data: expense,
+            message: 'Expense approved',
+          });
+        }
+
+        if (action === 'reject') {
+          if (expense.status !== 'SUBMITTED') {
+            return NextResponse.json(
+              { success: false, error: 'Only submitted expenses can be rejected' },
+              { status: 400 }
+            );
+          }
+
+          const body = await req.json();
+          const { comments } = ApprovalSchema.parse(body);
+
+          if (!comments) {
+            return NextResponse.json(
+              { success: false, error: 'Rejection reason is required' },
+              { status: 400 }
+            );
+          }
+
+          await expense.reject(user.userId, comments);
+
+          return NextResponse.json({
+            success: true,
+            data: expense,
+            message: 'Expense rejected',
+          });
+        }
+
+        // Should never reach here due to earlier check
         return NextResponse.json(
-          { success: false, error: 'Only submitted expenses can be approved' },
+          { success: false, error: 'Invalid action' },
           { status: 400 }
         );
       }
-
-      const body = await req.json();
-      const { comments } = ApprovalSchema.parse(body);
-
-      await expense.approve(user.userId, comments);
-
-      return NextResponse.json({
-        success: true,
-        data: expense,
-        message: 'Expense approved',
-      });
-    }
-
-    if (action === 'reject') {
-      if (expense.status !== 'SUBMITTED') {
-        return NextResponse.json(
-          { success: false, error: 'Only submitted expenses can be rejected' },
-          { status: 400 }
-        );
-      }
-
-      const body = await req.json();
-      const { comments } = ApprovalSchema.parse(body);
-
-      if (!comments) {
-        return NextResponse.json(
-          { success: false, error: 'Rejection reason is required' },
-          { status: 400 }
-        );
-      }
-
-      await expense.reject(user.userId, comments);
-
-      return NextResponse.json({
-        success: true,
-        data: expense,
-        message: 'Expense rejected',
-      });
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Invalid action' },
-      { status: 400 }
     );
   } catch (error) {
     console.error('Error processing expense action:', error);
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
