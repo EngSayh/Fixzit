@@ -1,13 +1,15 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const _ProjectStatus = ["PLANNING", "APPROVED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED", "CLOSED"] as const;
 const ProjectType = ["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"] as const;
 
 const ProjectSchema = new Schema({
-  tenantId: { type: String, required: true },
+  // tenantId will be added by tenantIsolationPlugin (as orgId)
 
   // Basic Information
-  // ⚡ FIXED: Remove unique: true - will be enforced via compound index with tenantId
+  // FIXED: Remove unique: true - will be enforced via compound index with orgId
   code: { type: String, required: true },
   name: { type: String, required: true },
   description: { type: String },
@@ -223,21 +225,23 @@ const ProjectSchema = new Schema({
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
+  // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-ProjectSchema.index({ tenantId: 1, status: 1 });
-ProjectSchema.index({ tenantId: 1, type: 1 });
-ProjectSchema.index({ tenantId: 1, 'timeline.startDate': 1 });
-ProjectSchema.index({ tenantId: 1, 'progress.overall': -1 });
-// ⚡ FIXED: Add compound tenant-scoped unique index for code
-ProjectSchema.index({ tenantId: 1, code: 1 }, { unique: true });
+// Apply plugins BEFORE indexes
+ProjectSchema.plugin(tenantIsolationPlugin);
+ProjectSchema.plugin(auditPlugin);
+
+// Indexes for performance (orgId from plugin)
+ProjectSchema.index({ orgId: 1, status: 1 });
+ProjectSchema.index({ orgId: 1, type: 1 });
+ProjectSchema.index({ orgId: 1, 'timeline.startDate': 1 });
+ProjectSchema.index({ orgId: 1, 'progress.overall': -1 });
+// Compound tenant-scoped unique index for code
+ProjectSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
 
