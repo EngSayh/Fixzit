@@ -1,4 +1,6 @@
 import { Schema, model, models, Types, Model } from 'mongoose';
+import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
+import { auditPlugin } from '../../plugins/auditPlugin';
 
 export type MarketplaceMediaRole = 'GALLERY' | 'MSDS' | 'COA';
 
@@ -29,7 +31,7 @@ export interface MarketplaceRating {
 
 export interface MarketplaceProduct {
   _id: Types.ObjectId;
-  orgId: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be added by tenantIsolationPlugin
   vendorId?: Types.ObjectId;
   categoryId: Types.ObjectId;
   sku: string;
@@ -50,9 +52,9 @@ export interface MarketplaceProduct {
 
 const ProductSchema = new Schema<MarketplaceProduct>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true },
-    vendorId: { type: Schema.Types.ObjectId },
-    categoryId: { type: Schema.Types.ObjectId, required: true },
+    // orgId will be added by tenantIsolationPlugin
+    vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
+    categoryId: { type: Schema.Types.ObjectId, required: true, ref: 'MarketplaceCategory' },
     sku: { type: String, required: true, trim: true },
     slug: { type: String, required: true, trim: true },
     title: {
@@ -91,10 +93,22 @@ const ProductSchema = new Schema<MarketplaceProduct>(
   { timestamps: true }
 );
 
+// APPLY PLUGINS (BEFORE INDEXES)
+ProductSchema.plugin(tenantIsolationPlugin);
+ProductSchema.plugin(auditPlugin);
+
+// INDEXES (AFTER PLUGINS) - orgId is now added by the plugin
 ProductSchema.index({ orgId: 1, sku: 1 }, { unique: true });
 ProductSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 ProductSchema.index({ orgId: 1, status: 1 });
-ProductSchema.index({ title: 'text', summary: 'text', brand: 'text', standards: 'text' });
+ProductSchema.index({ orgId: 1, categoryId: 1 });
+
+// ⚡ CRITICAL FIX: Tenant-scoped text index (prevents cross-tenant data leaks)
+// This was previously a global text index that would search ALL organizations
+ProductSchema.index(
+  { orgId: 1, title: 'text', summary: 'text', brand: 'text', standards: 'text' },
+  { name: 'org_text_search' }
+);
 
 const ProductModel =
   (models.MarketplaceProduct as Model<MarketplaceProduct> | undefined) ||
