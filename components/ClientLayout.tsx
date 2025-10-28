@@ -96,51 +96,21 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 4) Fetch role from server (abort-safe)
-    const ctrl = new AbortController();
-    const fetchUserRole = async () => {
-      try {
-        // Use unified auth check
-        if (!isAuthenticated) {
-          setRole('guest');
-          try { localStorage.removeItem('fixzit-role'); } catch {}
-          setLoading(false);
-          return;
-        }
-
-        const res = await fetch('/api/auth/me', { credentials: 'include', signal: ctrl.signal });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.user?.role) {
-            const valid: UserRoleType[] = Object.values(UserRole);
-            const userRole = valid.includes(data.user.role as UserRoleType) ? (data.user.role as UserRoleOrGuest) : 'guest';
-            setRole(userRole);
-            try { localStorage.setItem('fixzit-role', userRole); } catch {}
-          } else {
-            setRole('guest');
-            try { localStorage.removeItem('fixzit-role'); } catch {}
-          }
-        } else if (res.status === 401) {
-          setRole('guest');
-          try { localStorage.removeItem('fixzit-role'); } catch {}
-        } else {
-          setRole('guest');
-          try { localStorage.removeItem('fixzit-role'); } catch {}
-        }
-      } catch (err) {
-        if ((err as { name?: string })?.name !== 'AbortError') {
-          console.error('Failed to fetch user role:', err);
-        }
-        setRole('guest');
-        try { localStorage.removeItem('fixzit-role'); } catch {}
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserRole();
-    return () => ctrl.abort();
-  }, [isAuthPage, isLandingPage, isProtectedRoute, pathname, isAuthenticated]);
+    // 4) If authenticated, extract role from session or authUser
+    if (isAuthenticated) {
+      const userRole = (session?.user as { role?: string })?.role || authUser?.role || 'guest';
+      const valid: UserRoleType[] = Object.values(UserRole);
+      const validRole = valid.includes(userRole as UserRoleType) ? (userRole as UserRoleOrGuest) : 'guest';
+      setRole(validRole);
+      try { localStorage.setItem('fixzit-role', validRole); } catch {}
+      setLoading(false);
+    } else if (status !== 'loading') {
+      // Not authenticated and not loading -> guest
+      setRole('guest');
+      try { localStorage.removeItem('fixzit-role'); } catch {}
+      setLoading(false);
+    }
+  }, [isAuthPage, isLandingPage, isProtectedRoute, pathname, isAuthenticated, session, authUser, status]);
 
   // Client-side protection: redirect guests only from protected routes
   useEffect(() => {
