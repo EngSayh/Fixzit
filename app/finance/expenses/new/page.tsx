@@ -1,72 +1,380 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IExpenseLineItem {
+  id: string;
+  description: string;
+  category: string;
+  accountId: string;
+  accountCode: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  taxable: boolean;
+  taxRate: number;
+  taxAmount: number;
+}
+
+interface IReceipt {
+  id: string;
+  file: File;
+  preview: string;
+}
+
+interface IBudgetInfo {
+  budgetId: string;
+  category: string;
+  budgetedAmount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  percentage: number;
+}
+
+interface IVendor {
+  _id: string;
+  name: string;
+  type: string;
+}
+
+interface IChartAccount {
+  _id: string;
+  code: string;
+  name: string;
+  nameAr?: string;
+  type: string;
+}
 
 export default function NewExpensePage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { registerForm, unregisterForm } = useFormState();
 
-  // Form state
-  const [reference, setReference] = useState('');
-  const [date, setDate] = useState('');
-  const [category, setCategory] = useState('');
-  const [propertyId, setPropertyId] = useState('all');
-  const [description, setDescription] = useState('');
-  const [vendorId, setVendorId] = useState('');
-  const [amount, setAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [notes, setNotes] = useState('');
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Core form state
+  const [expenseType, setExpenseType] = useState<string>('OPERATIONAL');
+  const [expenseDate, setExpenseDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dueDate, setDueDate] = useState<string>('');
+  const [vendorId, setVendorId] = useState<string>('');
+  const [vendorName, setVendorName] = useState<string>('');
+  const [propertyId, setPropertyId] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('BANK_TRANSFER');
+  const [currency, setCurrency] = useState<string>('SAR');
+  
+  // Line items state
+  const [lineItems, setLineItems] = useState<IExpenseLineItem[]>([
+    {
+      id: '1',
+      description: '',
+      category: 'MAINTENANCE_REPAIR',
+      accountId: '',
+      accountCode: '',
+      quantity: 1,
+      unitPrice: 0,
+      amount: 0,
+      taxable: true,
+      taxRate: 0.15,
+      taxAmount: 0
+    }
+  ]);
 
-  // Calculate summary
-  const vat = amount * 0.15;
-  const total = amount + vat;
+  // Receipts state (multiple files)
+  const [receipts, setReceipts] = useState<IReceipt[]>([]);
+
+  // Data lookups
+  const [vendors, setVendors] = useState<IVendor[]>([]);
+  const [chartAccounts, setChartAccounts] = useState<IChartAccount[]>([]);
+  const [budgetInfo, setBudgetInfo] = useState<IBudgetInfo[]>([]);
+  
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingVendors, setLoadingVendors] = useState(false);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+  // Calculate totals from line items
+  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const totalTax = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
+  const totalAmount = subtotal + totalTax;
+
+  // ============================================================================
+  // LIFECYCLE & DATA LOADING
+  // ============================================================================
 
   // Register form
-  React.useEffect(() => {
+  useEffect(() => {
     const formId = 'new-expense-form';
     registerForm(formId);
     return () => unregisterForm(formId);
   }, [registerForm, unregisterForm]);
 
-  // Handle file upload
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setReceiptFile(e.target.files[0]);
+  // Load vendors
+  useEffect(() => {
+    const loadVendors = async () => {
+      try {
+        setLoadingVendors(true);
+        const response = await fetch('/api/vendors');
+        if (response.ok) {
+          const data = await response.json();
+          setVendors(data.vendors || []);
+        }
+      } catch (error) {
+        console.error('Error loading vendors:', error);
+      } finally {
+        setLoadingVendors(false);
+      }
+    };
+    loadVendors();
+  }, []);
+
+  // Load chart of accounts
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        setLoadingAccounts(true);
+        const response = await fetch('/api/finance/accounts');
+        if (response.ok) {
+          const data = await response.json();
+          setChartAccounts(data.accounts || []);
+        }
+      } catch (error) {
+        console.error('Error loading accounts:', error);
+      } finally {
+        setLoadingAccounts(false);
+      }
+    };
+    loadAccounts();
+  }, []);
+
+  // Load budget info when property or line items change
+  useEffect(() => {
+    const loadBudgetInfo = async () => {
+      if (!propertyId || lineItems.length === 0) {
+        setBudgetInfo([]);
+        return;
+      }
+
+      try {
+        const categories = [...new Set(lineItems.map(item => item.category))];
+        const budgets: IBudgetInfo[] = [];
+
+        for (const category of categories) {
+          const response = await fetch(
+            `/api/finance/budgets?propertyId=${propertyId}&category=${category}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.budget) {
+              budgets.push({
+                budgetId: data.budget._id,
+                category,
+                budgetedAmount: data.budget.amount,
+                spentAmount: data.budget.spent,
+                remainingAmount: data.budget.remaining,
+                percentage: (data.budget.spent / data.budget.amount) * 100
+              });
+            }
+          }
+        }
+
+        setBudgetInfo(budgets);
+      } catch (error) {
+        console.error('Error loading budget info:', error);
+      }
+    };
+
+    loadBudgetInfo();
+  }, [propertyId, lineItems]);
+
+  // ============================================================================
+  // LINE ITEMS MANAGEMENT
+  // ============================================================================
+
+  const addLineItem = () => {
+    const newItem: IExpenseLineItem = {
+      id: Date.now().toString(),
+      description: '',
+      category: 'MAINTENANCE_REPAIR',
+      accountId: '',
+      accountCode: '',
+      quantity: 1,
+      unitPrice: 0,
+      amount: 0,
+      taxable: true,
+      taxRate: 0.15,
+      taxAmount: 0
+    };
+    setLineItems([...lineItems, newItem]);
+  };
+
+  const removeLineItem = (id: string) => {
+    if (lineItems.length > 1) {
+      setLineItems(lineItems.filter(item => item.id !== id));
     }
   };
 
-  // Save as draft
+  const updateLineItem = (id: string, field: keyof IExpenseLineItem, value: string | number | boolean) => {
+    setLineItems(lineItems.map(item => {
+      if (item.id !== id) return item;
+
+      const updated = { ...item, [field]: value };
+
+      // Recalculate amounts
+      if (field === 'quantity' || field === 'unitPrice') {
+        updated.amount = updated.quantity * updated.unitPrice;
+        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+      }
+
+      if (field === 'taxable' || field === 'taxRate') {
+        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+      }
+
+      // Update account code when account changes
+      if (field === 'accountId') {
+        const account = chartAccounts.find(a => a._id === value);
+        if (account) {
+          updated.accountCode = account.code;
+        }
+      }
+
+      return updated;
+    }));
+  };
+
+  // ============================================================================
+  // RECEIPTS MANAGEMENT (MULTIPLE FILES)
+  // ============================================================================
+
+  const handleReceiptsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newReceipts: IReceipt[] = Array.from(e.target.files).map(file => ({
+        id: `${Date.now()}-${Math.random()}`,
+        file,
+        preview: URL.createObjectURL(file)
+      }));
+      setReceipts([...receipts, ...newReceipts]);
+    }
+  };
+
+  const removeReceipt = (id: string) => {
+    const receipt = receipts.find(r => r.id === id);
+    if (receipt) {
+      URL.revokeObjectURL(receipt.preview);
+    }
+    setReceipts(receipts.filter(r => r.id !== id));
+  };
+
+  // ============================================================================
+  // VALIDATION
+  // ============================================================================
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!expenseDate) {
+      newErrors.expenseDate = t('finance.expense.dateRequired', 'Expense date is required');
+    }
+
+    if (!vendorName.trim()) {
+      newErrors.vendorName = t('finance.expense.vendorRequired', 'Vendor name is required');
+    }
+
+    if (!description.trim()) {
+      newErrors.description = t('finance.expense.descriptionRequired', 'Description is required');
+    }
+
+    if (lineItems.length === 0) {
+      newErrors.lineItems = t('finance.expense.lineItemsRequired', 'At least one line item is required');
+    }
+
+    // Validate each line item
+    lineItems.forEach((item, index) => {
+      if (!item.description.trim()) {
+        newErrors[`lineItem.${index}.description`] = t('finance.expense.lineItemDescRequired', 'Description required');
+      }
+      if (item.quantity <= 0) {
+        newErrors[`lineItem.${index}.quantity`] = t('finance.expense.lineItemQtyInvalid', 'Quantity must be > 0');
+      }
+      if (item.unitPrice <= 0) {
+        newErrors[`lineItem.${index}.unitPrice`] = t('finance.expense.lineItemPriceInvalid', 'Price must be > 0');
+      }
+    });
+
+    if (totalAmount <= 0) {
+      newErrors.totalAmount = t('finance.expense.totalInvalid', 'Total amount must be greater than zero');
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
   const handleSaveDraft = async () => {
+    if (!validate()) return;
+
     try {
       setIsSubmitting(true);
-      const formData = new FormData();
-      formData.append('reference', reference);
-      formData.append('date', date);
-      formData.append('category', category);
-      formData.append('propertyId', propertyId === 'all' ? '' : propertyId);
-      formData.append('description', description);
-      formData.append('vendorId', vendorId);
-      formData.append('amount', amount.toString());
-      formData.append('paymentMethod', paymentMethod);
-      formData.append('notes', notes);
-      formData.append('status', 'draft');
-      if (receiptFile) formData.append('receipt', receiptFile);
+
+      const payload = {
+        expenseType,
+        status: 'DRAFT',
+        expenseDate,
+        dueDate: dueDate || undefined,
+        vendorId: vendorId || undefined,
+        vendorName,
+        propertyId: propertyId || undefined,
+        description,
+        notes,
+        paymentMethod,
+        currency,
+        lineItems: lineItems.map(item => ({
+          description: item.description,
+          category: item.category,
+          accountId: item.accountId || undefined,
+          accountCode: item.accountCode || undefined,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          amount: item.amount,
+          taxable: item.taxable,
+          taxRate: item.taxRate,
+          taxAmount: item.taxAmount
+        })),
+        subtotal,
+        totalTax,
+        totalAmount
+      };
 
       const response = await fetch('/api/finance/expenses', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error('Failed to save draft');
-      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save draft');
+      }
+
       const data = await response.json();
-      router.push(`/finance/expenses/${data.id}`);
+
+      // Upload receipts if any
+      if (receipts.length > 0 && data.expense?._id) {
+        await uploadReceipts(data.expense._id);
+      }
+
+      router.push(`/finance/expenses/${data.expense._id}`);
     } catch (error) {
       console.error('Error saving draft:', error);
       alert(t('common.error', 'An error occurred'));
@@ -75,61 +383,90 @@ export default function NewExpensePage() {
     }
   };
 
-  // Record expense
-  const handleSubmit = async () => {
-    // Validation
-    if (!reference.trim()) {
-      alert(t('finance.expense.referenceRequired', 'Expense reference is required'));
-      return;
-    }
-    if (!date) {
-      alert(t('finance.expense.dateRequired', 'Expense date is required'));
-      return;
-    }
-    if (!category) {
-      alert(t('finance.expense.categoryRequired', 'Category is required'));
-      return;
-    }
-    if (!description.trim()) {
-      alert(t('finance.expense.descriptionRequired', 'Description is required'));
-      return;
-    }
-    if (amount <= 0) {
-      alert(t('finance.expense.amountRequired', 'Amount must be greater than zero'));
-      return;
-    }
+  const handleSubmitForApproval = async () => {
+    if (!validate()) return;
 
     try {
       setIsSubmitting(true);
-      const formData = new FormData();
-      formData.append('reference', reference);
-      formData.append('date', date);
-      formData.append('category', category);
-      formData.append('propertyId', propertyId === 'all' ? '' : propertyId);
-      formData.append('description', description);
-      formData.append('vendorId', vendorId);
-      formData.append('amount', amount.toString());
-      formData.append('paymentMethod', paymentMethod);
-      formData.append('notes', notes);
-      formData.append('status', 'recorded');
-      if (receiptFile) formData.append('receipt', receiptFile);
+
+      const payload = {
+        expenseType,
+        status: 'SUBMITTED',
+        expenseDate,
+        dueDate: dueDate || undefined,
+        vendorId: vendorId || undefined,
+        vendorName,
+        propertyId: propertyId || undefined,
+        description,
+        notes,
+        paymentMethod,
+        currency,
+        lineItems: lineItems.map(item => ({
+          description: item.description,
+          category: item.category,
+          accountId: item.accountId || undefined,
+          accountCode: item.accountCode || undefined,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          amount: item.amount,
+          taxable: item.taxable,
+          taxRate: item.taxRate,
+          taxAmount: item.taxAmount
+        })),
+        subtotal,
+        totalTax,
+        totalAmount,
+        requiresApproval: true
+      };
 
       const response = await fetch('/api/finance/expenses', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error('Failed to record expense');
-      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to submit expense');
+      }
+
       const data = await response.json();
-      router.push(`/finance/expenses/${data.id}`);
+
+      // Upload receipts if any
+      if (receipts.length > 0 && data.expense?._id) {
+        await uploadReceipts(data.expense._id);
+      }
+
+      router.push(`/finance/expenses/${data.expense._id}`);
     } catch (error) {
-      console.error('Error recording expense:', error);
+      console.error('Error submitting expense:', error);
       alert(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const uploadReceipts = async (expenseId: string) => {
+    try {
+      for (const receipt of receipts) {
+        const formData = new FormData();
+        formData.append('file', receipt.file);
+        formData.append('expenseId', expenseId);
+
+        await fetch('/api/finance/expenses/receipts', {
+          method: 'POST',
+          body: formData
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading receipts:', error);
+      // Don't throw - expense is already created
+    }
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   return (
     <div className="space-y-6">
@@ -137,7 +474,7 @@ export default function NewExpensePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('finance.expense.title', 'New Expense')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.expense.subtitle', 'Record a new business expense or cost')}</p>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.expense.subtitle', 'Record a new business expense with line items and approvals')}</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -145,14 +482,14 @@ export default function NewExpensePage() {
             disabled={isSubmitting}
             className="btn-secondary"
           >
-            {t('common.save', 'Save Draft')}
+            💾 {t('common.save', 'Save Draft')}
           </button>
           <button 
-            onClick={handleSubmit} 
+            onClick={handleSubmitForApproval} 
             disabled={isSubmitting}
             className="btn-primary"
           >
-            {t('finance.expense.recordExpense', 'Record Expense')}
+            ✓ {t('finance.expense.submitForApproval', 'Submit for Approval')}
           </button>
         </div>
       </div>
@@ -161,20 +498,26 @@ export default function NewExpensePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Form */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Expense Details */}
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.details', 'Expense Details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.expense.reference', 'Expense Reference')} *
+                  {t('finance.expense.type', 'Expense Type')} *
                 </label>
-                <input
-                  type="text"
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  placeholder="EXP-001"
+                <select 
+                  value={expenseType}
+                  onChange={(e) => setExpenseType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
-                />
+                >
+                  <option value="OPERATIONAL">{t('finance.expense.operational', 'Operational')}</option>
+                  <option value="MAINTENANCE">{t('finance.expense.maintenance', 'Maintenance')}</option>
+                  <option value="CAPITAL">{t('finance.expense.capital', 'Capital')}</option>
+                  <option value="UTILITY">{t('finance.expense.utility', 'Utility')}</option>
+                  <option value="ADMINISTRATIVE">{t('finance.expense.administrative', 'Administrative')}</option>
+                  <option value="OTHER">{t('finance.expense.other', 'Other')}</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -182,31 +525,22 @@ export default function NewExpensePage() {
                 </label>
                 <input
                   type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  value={expenseDate}
+                  onChange={(e) => setExpenseDate(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.expenseDate ? 'border-red-500' : 'border-gray-300'}`}
                 />
+                {errors.expenseDate && <p className="text-red-500 text-xs mt-1">{errors.expenseDate}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.expense.category', 'Expense Category')} *
+                  {t('finance.expense.dueDate', 'Due Date')}
                 </label>
-                <select 
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
-                >
-                  <option value="">{t('finance.expense.selectCategory', 'Select Category')}</option>
-                  <option value="maintenance">{t('finance.expense.maintenance', 'Maintenance & Repairs')}</option>
-                  <option value="utilities">{t('finance.expense.utilities', 'Utilities')}</option>
-                  <option value="office-supplies">{t('finance.expense.officeSupplies', 'Office Supplies')}</option>
-                  <option value="equipment">{t('finance.expense.equipment', 'Equipment')}</option>
-                  <option value="insurance">{t('finance.expense.insurance', 'Insurance')}</option>
-                  <option value="professional">{t('finance.expense.professional', 'Professional Services')}</option>
-                  <option value="marketing">{t('finance.expense.marketing', 'Marketing')}</option>
-                  <option value="travel">{t('finance.expense.travel', 'Travel & Transportation')}</option>
-                  <option value="other">{t('finance.expense.other', 'Other')}</option>
-                </select>
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -217,15 +551,56 @@ export default function NewExpensePage() {
                   onChange={(e) => setPropertyId(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
-                  <option>{t('finance.allProperties', 'All Properties')}</option>
-                  <option>Tower A</option>
-                  <option>Tower B</option>
-                  <option>Villa Complex</option>
+                  <option value="">{t('finance.allProperties', 'All Properties')}</option>
+                  <option value="prop1">Tower A</option>
+                  <option value="prop2">Tower B</option>
+                  <option value="prop3">Villa Complex</option>
                 </select>
               </div>
             </div>
           </div>
 
+          {/* Vendor Information */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('finance.expense.vendorInfo', 'Vendor Information')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('finance.expense.vendorSupplier', 'Vendor/Supplier')} *
+                </label>
+                <select 
+                  value={vendorId}
+                  onChange={(e) => {
+                    setVendorId(e.target.value);
+                    const vendor = vendors.find(v => v._id === e.target.value);
+                    if (vendor) setVendorName(vendor.name);
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.vendorName ? 'border-red-500' : 'border-gray-300'}`}
+                  disabled={loadingVendors}
+                >
+                  <option value="">{loadingVendors ? t('common.loading', 'Loading...') : t('finance.expense.selectVendor', 'Select Vendor')}</option>
+                  {vendors.map(vendor => (
+                    <option key={vendor._id} value={vendor._id}>{vendor.name}</option>
+                  ))}
+                </select>
+                {errors.vendorName && <p className="text-red-500 text-xs mt-1">{errors.vendorName}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('finance.expense.vendorName', 'Vendor Name')}
+                </label>
+                <input
+                  type="text"
+                  value={vendorName}
+                  onChange={(e) => setVendorName(e.target.value)}
+                  placeholder={t('finance.expense.vendorNamePlaceholder', 'Enter vendor name')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.information', 'Expense Information')}</h3>
             <div className="space-y-4">
@@ -238,46 +613,202 @@ export default function NewExpensePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={t('finance.expense.descriptionPlaceholder', 'Brief description of the expense...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
                 />
+                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.expense.vendorSupplier', 'Vendor/Supplier')}
+                  {t('finance.notes', 'Notes')}
                 </label>
-                <select 
-                  value={vendorId}
-                  onChange={(e) => setVendorId(e.target.value)}
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t('finance.notesPlaceholder', 'Additional notes...')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
-                >
-                  <option>{t('finance.expense.selectVendor', 'Select Vendor')}</option>
-                  <option>ABC Maintenance LLC</option>
-                  <option>Electrical Solutions Co.</option>
-                  <option>Plumbing Services Ltd</option>
-                  <option>Office Supplies Direct</option>
-                </select>
+                />
               </div>
             </div>
           </div>
 
+          {/* LINE ITEMS EDITOR (NEW) */}
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.expense.amountPayment', 'Amount & Payment')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.amount', 'Amount')} *
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={amount || ''}
-                    onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">SAR</span>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">{t('finance.expense.lineItems', 'Line Items')}</h3>
+              <button 
+                onClick={addLineItem}
+                className="btn-sm btn-primary"
+              >
+                + {t('finance.expense.addLineItem', 'Add Item')}
+              </button>
+            </div>
+            
+            {errors.lineItems && <p className="text-red-500 text-sm mb-2">{errors.lineItems}</p>}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-2 text-left">{t('finance.expense.description', 'Description')}</th>
+                    <th className="px-2 py-2 text-left">{t('finance.expense.category', 'Category')}</th>
+                    <th className="px-2 py-2 text-left">{t('finance.expense.account', 'GL Account')}</th>
+                    <th className="px-2 py-2 text-right">{t('finance.expense.qty', 'Qty')}</th>
+                    <th className="px-2 py-2 text-right">{t('finance.expense.unitPrice', 'Unit Price')}</th>
+                    <th className="px-2 py-2 text-center">{t('finance.expense.taxable', 'Tax')}</th>
+                    <th className="px-2 py-2 text-right">{t('finance.expense.amount', 'Amount')}</th>
+                    <th className="px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineItems.map((item, index) => (
+                    <tr key={item.id} className="border-b">
+                      <td className="px-2 py-2">
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
+                          placeholder={t('finance.expense.itemDescription', 'Item description')}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          value={item.category}
+                          onChange={(e) => updateLineItem(item.id, 'category', e.target.value)}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                        >
+                          <option value="MAINTENANCE_REPAIR">{t('finance.category.maintenance', 'Maintenance')}</option>
+                          <option value="UTILITIES">{t('finance.category.utilities', 'Utilities')}</option>
+                          <option value="OFFICE_SUPPLIES">{t('finance.category.officeSupplies', 'Office Supplies')}</option>
+                          <option value="HVAC">{t('finance.category.hvac', 'HVAC')}</option>
+                          <option value="PLUMBING">{t('finance.category.plumbing', 'Plumbing')}</option>
+                          <option value="ELECTRICAL">{t('finance.category.electrical', 'Electrical')}</option>
+                          <option value="OTHER">{t('finance.category.other', 'Other')}</option>
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          value={item.accountId}
+                          onChange={(e) => updateLineItem(item.id, 'accountId', e.target.value)}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          disabled={loadingAccounts}
+                        >
+                          <option value="">{loadingAccounts ? t('common.loading', 'Loading...') : t('finance.selectAccount', 'Select Account')}</option>
+                          {chartAccounts
+                            .filter(a => a.type === 'EXPENSE')
+                            .map(account => (
+                              <option key={account._id} value={account._id}>
+                                {account.code} - {account.name}
+                              </option>
+                            ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
+                          min="1"
+                          step="1"
+                          className={`w-20 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="number"
+                          value={item.unitPrice}
+                          onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          min="0"
+                          step="0.01"
+                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={item.taxable}
+                          onChange={(e) => updateLineItem(item.id, 'taxable', e.target.checked)}
+                          className="rounded"
+                        />
+                        {item.taxable && <span className="text-xs text-gray-500 ml-1">15%</span>}
+                      </td>
+                      <td className="px-2 py-2 text-right font-medium">
+                        {currency} {(item.amount + item.taxAmount).toFixed(2)}
+                      </td>
+                      <td className="px-2 py-2">
+                        {lineItems.length > 1 && (
+                          <button
+                            onClick={() => removeLineItem(item.id)}
+                            className="text-red-500 hover:text-red-700"
+                            title={t('common.remove', 'Remove')}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* MULTIPLE RECEIPTS UPLOAD (NEW) */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('finance.receiptDocumentation', 'Receipts & Documentation')}</h3>
+            
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
+              <div className="text-gray-400 mb-2">📎 {t('finance.uploadMultipleReceipts', 'Upload multiple receipts')}</div>
+              <p className="text-sm text-gray-600 mb-2">{t('finance.supportedFormats', 'Supported: Images, PDF')}</p>
+              <input 
+                type="file" 
+                id="receipt-upload" 
+                onChange={handleReceiptsChange} 
+                className="hidden" 
+                accept="image/*,application/pdf"
+                multiple
+              />
+              <button 
+                type="button" 
+                onClick={() => document.getElementById('receipt-upload')?.click()}
+                className="btn-sm btn-secondary"
+              >
+                {t('finance.chooseFiles', 'Choose Files')}
+              </button>
+            </div>
+
+            {receipts.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {receipts.map((receipt) => (
+                  <div key={receipt.id} className="relative border border-gray-200 rounded-lg p-2">
+                    {receipt.file.type.startsWith('image/') ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={receipt.preview} alt={receipt.file.name} className="w-full h-32 object-cover rounded" />
+                      </>
+                    ) : (
+                      <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded">
+                        <span className="text-4xl">📄</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-600 mt-2 truncate">{receipt.file.name}</p>
+                    <button
+                      onClick={() => removeReceipt(receipt.id)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
+
+          {/* Payment Details */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('finance.expense.paymentDetails', 'Payment Details')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('finance.paymentMethod', 'Payment Method')}
@@ -287,73 +818,89 @@ export default function NewExpensePage() {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
-                  <option>{t('finance.payment.cash', 'Cash')}</option>
-                  <option>{t('finance.payment.bankTransfer', 'Bank Transfer')}</option>
-                  <option>{t('finance.payment.cheque', 'Cheque')}</option>
-                  <option>{t('finance.payment.creditCard', 'Credit Card')}</option>
-                  <option>{t('finance.payment.onlinePayment', 'Online Payment')}</option>
+                  <option value="CASH">{t('finance.payment.cash', 'Cash')}</option>
+                  <option value="BANK_TRANSFER">{t('finance.payment.bankTransfer', 'Bank Transfer')}</option>
+                  <option value="CHEQUE">{t('finance.payment.cheque', 'Cheque')}</option>
+                  <option value="CARD">{t('finance.payment.card', 'Card')}</option>
+                  <option value="CREDIT">{t('finance.payment.credit', 'Credit')}</option>
                 </select>
               </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('finance.notes', 'Notes')}
-              </label>
-              <textarea
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t('finance.notesPlaceholder', 'Additional notes...')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.receiptDocumentation', 'Receipt & Documentation')}</h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <div className="text-gray-400 mb-2">📎 {receiptFile ? receiptFile.name : ''}</div>
-              <p className="text-sm text-gray-600">{t('finance.uploadInvoice', 'Upload receipt or invoice')}</p>
-              <input 
-                type="file" 
-                id="receipt-upload" 
-                onChange={handleFileChange} 
-                className="hidden" 
-                accept="image/*,application/pdf"
-              />
-              <label htmlFor="receipt-upload">
-                <button 
-                  type="button" 
-                  onClick={() => document.getElementById('receipt-upload')?.click()}
-                  className="mt-2 text-sm text-[var(--fixzit-blue)] hover:underline"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('finance.currency', 'Currency')}
+                </label>
+                <select 
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
-                  {t('finance.chooseFile', 'Choose File')}
-                </button>
-              </label>
+                  <option value="SAR">SAR - Saudi Riyal</option>
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="GBP">GBP - British Pound</option>
+                  <option value="AED">AED - UAE Dirham</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Expense Summary */}
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.summary', 'Expense Summary')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.amount', 'Amount')}</span>
-                <span className="font-medium">SAR {amount.toFixed(2)}</span>
+                <span className="text-gray-600">{t('finance.subtotal', 'Subtotal')}</span>
+                <span className="font-medium">{currency} {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('finance.vat', 'VAT')} (15%)</span>
-                <span className="font-medium">SAR {vat.toFixed(2)}</span>
+                <span className="font-medium">{currency} {totalTax.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.total', 'Total')}</span>
-                <span className="font-medium">SAR {total.toFixed(2)}</span>
+              <div className="flex justify-between pt-2 border-t border-gray-200">
+                <span className="text-gray-900 font-semibold">{t('finance.total', 'Total')}</span>
+                <span className="font-bold text-lg">{currency} {totalAmount.toFixed(2)}</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                {lineItems.length} {t('finance.expense.items', 'item(s)')}
               </div>
             </div>
           </div>
+
+          {/* REAL-TIME BUDGET TRACKING (NEW) */}
+          {budgetInfo.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4">{t('finance.expense.budgetStatus', 'Budget Status')}</h3>
+              <div className="space-y-3">
+                {budgetInfo.map((budget) => (
+                  <div key={budget.budgetId}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-gray-600">{t(`finance.category.${budget.category.toLowerCase()}`, budget.category)}</span>
+                      <span className="text-xs text-gray-500">{budget.percentage.toFixed(0)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all ${
+                          budget.percentage < 70 
+                            ? 'bg-green-500' 
+                            : budget.percentage < 90 
+                            ? 'bg-yellow-500' 
+                            : 'bg-red-500'
+                        }`}
+                        style={{ width: `${Math.min(budget.percentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>{currency} {budget.spentAmount.toFixed(0)} / {budget.budgetedAmount.toFixed(0)}</span>
+                      <span>{currency} {budget.remainingAmount.toFixed(0)} {t('finance.remaining', 'remaining')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.budgetStatus', 'Budget Status')}</h3>
