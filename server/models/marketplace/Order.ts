@@ -1,4 +1,6 @@
 import { Schema, model, models, Types, Model } from 'mongoose';
+import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
+import { auditPlugin } from '../../plugins/auditPlugin';
 
 export type MarketplaceOrderStatus =
   | 'CART'
@@ -36,7 +38,7 @@ export interface MarketplaceOrderSource {
 
 export interface MarketplaceOrder {
   _id: Types.ObjectId;
-  orgId: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be managed by tenantIsolationPlugin
   buyerUserId: Types.ObjectId;
   vendorId?: Types.ObjectId;
   status: MarketplaceOrderStatus;
@@ -56,9 +58,9 @@ export interface MarketplaceOrder {
 
 const OrderSchema = new Schema<MarketplaceOrder>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true },
-    buyerUserId: { type: Schema.Types.ObjectId, required: true },
-    vendorId: { type: Schema.Types.ObjectId },
+    // orgId will be added by tenantIsolationPlugin
+    buyerUserId: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
+    vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
     status: {
       type: String,
       enum: ['CART', 'PENDING', 'APPROVAL', 'CONFIRMED', 'FULFILLED', 'DELIVERED', 'CANCELLED'],
@@ -66,7 +68,7 @@ const OrderSchema = new Schema<MarketplaceOrder>(
     },
     lines: [
       {
-        productId: { type: Schema.Types.ObjectId, required: true },
+        productId: { type: Schema.Types.ObjectId, required: true, ref: 'MarketplaceProduct' },
         qty: { type: Number, required: true },
         price: { type: Number, required: true },
         currency: { type: String, required: true },
@@ -86,18 +88,26 @@ const OrderSchema = new Schema<MarketplaceOrder>(
       phone: { type: String }
     },
     source: {
-      workOrderId: { type: Schema.Types.ObjectId }
+      workOrderId: { type: Schema.Types.ObjectId, ref: 'WorkOrder' }
     },
     approvals: {
       required: { type: Boolean, default: false },
       status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' },
-      approverIds: [{ type: Schema.Types.ObjectId }]
+      approverIds: [{ type: Schema.Types.ObjectId, ref: 'User' }]
     }
   },
   { timestamps: true }
 );
 
+// Apply plugins BEFORE indexes for proper tenant isolation
+OrderSchema.plugin(tenantIsolationPlugin);
+OrderSchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped
 OrderSchema.index({ orgId: 1, buyerUserId: 1, status: 1 });
+OrderSchema.index({ orgId: 1, vendorId: 1, status: 1 });
+OrderSchema.index({ orgId: 1, status: 1, createdAt: -1 });
+OrderSchema.index({ orgId: 1, 'source.workOrderId': 1 });
 
 const OrderModel =
   (models.MarketplaceOrder as Model<MarketplaceOrder> | undefined) ||

@@ -1,7 +1,21 @@
 import { z } from "zod";
 
 export const WOPriority = z.enum(["LOW","MEDIUM","HIGH","CRITICAL"]);
-export const WOStatus   = z.enum(["NEW","ASSIGNED","IN_PROGRESS","ON_HOLD","COMPLETED","CANCELLED"]);
+
+// Updated to match FSM in domain/fm/fm.behavior.ts
+export const WOStatus = z.enum([
+  "NEW",
+  "ASSESSMENT",
+  "ESTIMATE_PENDING",
+  "QUOTATION_REVIEW",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "IN_PROGRESS",
+  "WORK_COMPLETE",
+  "QUALITY_CHECK",
+  "FINANCIAL_POSTING",
+  "CLOSED"
+]);
 
 export const WoCreate = z.object({
   tenantId: z.string().cuid(),
