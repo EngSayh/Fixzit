@@ -9,7 +9,8 @@ const AssetSchema = new Schema({
   tenantId: { type: String, required: true },
 
   // Basic Information
-  code: { type: String, required: true, unique: true }, // Asset ID
+  // ⚡ FIXED: Remove unique: true - will be enforced via compound index with tenantId
+  code: { type: String, required: true }, // Asset ID
   name: { type: String, required: true },
   description: { type: String },
 
@@ -155,6 +156,8 @@ AssetSchema.index({ tenantId: 1, type: 1 });
 AssetSchema.index({ tenantId: 1, status: 1 });
 AssetSchema.index({ tenantId: 1, 'pmSchedule.nextPM': 1 });
 AssetSchema.index({ tenantId: 1, 'condition.score': 1 });
+// ⚡ FIXED: Add compound tenant-scoped unique index for code
+AssetSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 

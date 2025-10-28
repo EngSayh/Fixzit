@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -148,15 +149,29 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
   const active = useMemo(() => pathname || '', [pathname]);
 
-  // Auth check (abort-safe)
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // ⚡ FIXED: GOLD STANDARD unified auth pattern from TopBar.tsx
+  // Check BOTH NextAuth session AND JWT-based auth
+  const { data: session, status } = useSession();
+  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
+
+  // Fetch JWT auth if NextAuth isn't authenticated
   useEffect(() => {
-    const ctrl = new AbortController();
-    fetch('/api/auth/me', { credentials: 'include', signal: ctrl.signal })
-      .then(r => setIsAuthenticated(r.ok))
-      .catch(() => setIsAuthenticated(false));
-    return () => ctrl.abort();
-  }, []);
+    let abort = false;
+    if (status !== 'authenticated' && status !== 'loading') {
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { 
+          if (!abort && data?.user?.id) {
+            setAuthUser({ id: data.user.id, role: data.user.role });
+          }
+        })
+        .catch(() => {/* silently ignore - user is guest */});
+    }
+    return () => { abort = true; };
+  }, [status]);
+
+  // ⚡ FIXED: Unified authentication check
+  const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
 
   const allowedModules = useMemo(() => {
     const roleModules = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] ?? [];

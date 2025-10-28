@@ -7,7 +7,8 @@ const ProjectSchema = new Schema({
   tenantId: { type: String, required: true },
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  // ⚡ FIXED: Remove unique: true - will be enforced via compound index with tenantId
+  code: { type: String, required: true },
   name: { type: String, required: true },
   description: { type: String },
   type: { type: String, enum: ProjectType, required: true },
@@ -235,6 +236,8 @@ ProjectSchema.index({ tenantId: 1, status: 1 });
 ProjectSchema.index({ tenantId: 1, type: 1 });
 ProjectSchema.index({ tenantId: 1, 'timeline.startDate': 1 });
 ProjectSchema.index({ tenantId: 1, 'progress.overall': -1 });
+// ⚡ FIXED: Add compound tenant-scoped unique index for code
+ProjectSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
 

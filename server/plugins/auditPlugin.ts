@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import { Schema, Types } from 'mongoose';
 import { getClientIP } from '@/server/security/headers';
 
 // Interface for field change
@@ -62,14 +62,16 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     maxHistoryVersions = 50
   } = options;
 
-  // Add audit fields to schema
+  // ⚡ FIXED: Add audit fields to schema with ObjectId type (not String)
   schema.add({
     createdBy: { 
-      type: String, 
+      type: Types.ObjectId,
+      ref: 'User',
       required: true 
     },
     updatedBy: { 
-      type: String 
+      type: Types.ObjectId,
+      ref: 'User'
     },
     version: { 
       type: Number, 
@@ -82,7 +84,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     schema.add({
       changeHistory: [{
         version: Number,
-        changedBy: String,
+        changedBy: { type: Types.ObjectId, ref: 'User' }, // ⚡ FIXED: ObjectId not String
         changedAt: { type: Date, default: Date.now },
         changes: [{
           field: String,

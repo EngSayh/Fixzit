@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
@@ -20,6 +21,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRoleOrGuest>('guest');
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+  
+  // ⚡ FIXED: Use GOLD STANDARD unified auth pattern from TopBar.tsx
+  // Check BOTH NextAuth session AND JWT-based auth
+  const { data: session, status } = useSession();
+  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
 
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
   const authRoutes = new Set<string>(['/login','/forgot-password','/signup','/reset-password']);
@@ -48,6 +54,26 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   }, [language, isRTL]);
 
+  // ⚡ FIXED: Unified auth check - fetch JWT auth if NextAuth isn't authenticated
+  useEffect(() => {
+    let abort = false;
+    // Only fetch if NextAuth isn't authenticated yet
+    if (status !== 'authenticated' && status !== 'loading') {
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { 
+          if (!abort && data?.user?.id) {
+            setAuthUser({ id: data.user.id, role: data.user.role });
+          }
+        })
+        .catch(() => {/* silently ignore - user is guest */});
+    }
+    return () => { abort = true; };
+  }, [status]);
+
+  // ⚡ FIXED: Unified authentication check (GOLD STANDARD from TopBar.tsx)
+  const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
+
   useEffect(() => {
     // 1) Auth pages -> always guest, no fetch
     if (isAuthPage) {
@@ -74,6 +100,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     const ctrl = new AbortController();
     const fetchUserRole = async () => {
       try {
+        // Use unified auth check
+        if (!isAuthenticated) {
+          setRole('guest');
+          try { localStorage.removeItem('fixzit-role'); } catch {}
+          setLoading(false);
+          return;
+        }
+
         const res = await fetch('/api/auth/me', { credentials: 'include', signal: ctrl.signal });
         if (res.ok) {
           const data = await res.json();
@@ -106,7 +140,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
     fetchUserRole();
     return () => ctrl.abort();
-  }, [isAuthPage, isLandingPage, isProtectedRoute, pathname]);
+  }, [isAuthPage, isLandingPage, isProtectedRoute, pathname, isAuthenticated]);
 
   // Client-side protection: redirect guests only from protected routes
   useEffect(() => {
