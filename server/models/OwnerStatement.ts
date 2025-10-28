@@ -1,9 +1,11 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const OwnerStatementSchema = new Schema({
-  tenantId: { type: String, required: true },
-  ownerId: { type: String, required: true },
-  propertyId: { type: String },
+  // tenantId will be added by tenantIsolationPlugin
+  ownerId: { type: Types.ObjectId, ref: 'Owner', required: true },
+  propertyId: { type: Types.ObjectId, ref: 'Property' },
   period: { type: String, required: true },
   year: { type: Number, required: true },
   currency: { type: String, default: "SAR" },
@@ -21,7 +23,12 @@ const OwnerStatementSchema = new Schema({
   }]
 }, { timestamps: true });
 
-OwnerStatementSchema.index({ tenantId: 1, ownerId: 1, period: 1, year: 1 });
+// Apply plugins BEFORE indexes
+OwnerStatementSchema.plugin(tenantIsolationPlugin);
+OwnerStatementSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes (orgId from plugin)
+OwnerStatementSchema.index({ orgId: 1, ownerId: 1, period: 1, year: 1 });
 
 export type OwnerStatementDoc = InferSchemaType<typeof OwnerStatementSchema>;
 

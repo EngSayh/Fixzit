@@ -1,17 +1,22 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const CmsPageSchema = new Schema({
-  tenantId: { type: String, required: true }, // Required for tenant isolation
+  // tenantId will be added by tenantIsolationPlugin
   slug: { type: String, required: true },
   title: { type: String, required: true },
   content: { type: String, required: true },
-  status: { type: String, enum: ["DRAFT","PUBLISHED"], default: "PUBLISHED" },
-  updatedBy: { type: String },
-  updatedAt: { type: Date, default: Date.now }
+  status: { type: String, enum: ["DRAFT","PUBLISHED"], default: "PUBLISHED" }
+  // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
 }, { timestamps: true });
 
+// Apply plugins BEFORE indexes
+CmsPageSchema.plugin(tenantIsolationPlugin);
+CmsPageSchema.plugin(auditPlugin);
+
 // Ensure slug uniqueness is scoped to tenant
-CmsPageSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+CmsPageSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
 
