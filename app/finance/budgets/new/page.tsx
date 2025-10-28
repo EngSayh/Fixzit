@@ -1,22 +1,189 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFormState } from '@/contexts/FormStateContext';
+import { useRouter } from 'next/navigation';
+
+interface BudgetCategory {
+  id: string;
+  category: string;
+  amount: number;
+  percentage: number;
+}
 
 export default function NewBudgetPage() {
   const { t } = useTranslation();
-  
+  const router = useRouter();
+  const { registerForm, unregisterForm } = useFormState();
+
+  // Form state
+  const [budgetName, setBudgetName] = useState('');
+  const [periodType, setPeriodType] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [propertyId, setPropertyId] = useState('all');
+  const [budgetOwner, setBudgetOwner] = useState('');
+  const [categories, setCategories] = useState<BudgetCategory[]>([
+    { id: '1', category: '', amount: 0, percentage: 0 }
+  ]);
+  const [enableAlerts, setEnableAlerts] = useState(true);
+  const [requireApprovals, setRequireApprovals] = useState(false);
+  const [allowCarryover, setAllowCarryover] = useState(false);
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate total budget and summary
+  const totalBudget = categories.reduce((sum, cat) => sum + (cat.amount || 0), 0);
+  const allocatedBudget = categories.filter(c => c.category).reduce((sum, cat) => sum + (cat.amount || 0), 0);
+  const remainingBudget = totalBudget - allocatedBudget;
+
+  // Register form for tracking (no initial fields needed - will track via updateField calls)
+  React.useEffect(() => {
+    const formId = 'new-budget-form';
+    registerForm(formId);
+    return () => unregisterForm(formId);
+  }, [registerForm, unregisterForm]);
+
+  // Add new category row
+  const handleAddCategory = () => {
+    const newId = (Math.max(...categories.map(c => parseInt(c.id))) + 1).toString();
+    setCategories([...categories, { id: newId, category: '', amount: 0, percentage: 0 }]);
+  };
+
+  // Remove category row
+  const handleRemoveCategory = (id: string) => {
+    if (categories.length > 1) {
+      setCategories(categories.filter(c => c.id !== id));
+    }
+  };
+
+  // Update category field
+  const handleCategoryChange = (id: string, field: keyof BudgetCategory, value: string | number) => {
+    setCategories(categories.map(cat => {
+      if (cat.id === id) {
+        const updated = { ...cat, [field]: value };
+        // Auto-calculate percentage when amount changes
+        if (field === 'amount' && totalBudget > 0) {
+          updated.percentage = Math.round(((updated.amount as number) / totalBudget) * 100);
+        }
+        // Auto-calculate amount when percentage changes
+        if (field === 'percentage' && totalBudget > 0) {
+          updated.amount = Math.round((totalBudget * (updated.percentage as number)) / 100);
+        }
+        return updated;
+      }
+      return cat;
+    }));
+  };
+
+  // Save as draft
+  const handleSaveDraft = async () => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('/api/finance/budgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          budgetName,
+          periodType,
+          startDate,
+          endDate,
+          propertyId: propertyId === 'all' ? null : propertyId,
+          budgetOwner,
+          categories: categories.filter(c => c.category),
+          settings: { enableAlerts, requireApprovals, allowCarryover },
+          description,
+          status: 'draft'
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to save draft');
+      
+      const data = await response.json();
+      router.push(`/finance/budgets/${data.id}`);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      alert(t('common.error', 'An error occurred'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Create budget
+  const handleSubmit = async () => {
+    // Validation
+    if (!budgetName.trim()) {
+      alert(t('finance.budget.nameRequired', 'Budget name is required'));
+      return;
+    }
+    if (!periodType) {
+      alert(t('finance.budget.periodRequired', 'Budget period is required'));
+      return;
+    }
+    if (!startDate || !endDate) {
+      alert(t('finance.budget.datesRequired', 'Start and end dates are required'));
+      return;
+    }
+    if (categories.filter(c => c.category).length === 0) {
+      alert(t('finance.budget.categoriesRequired', 'At least one category is required'));
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('/api/finance/budgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          budgetName,
+          periodType,
+          startDate,
+          endDate,
+          propertyId: propertyId === 'all' ? null : propertyId,
+          budgetOwner,
+          categories: categories.filter(c => c.category),
+          settings: { enableAlerts, requireApprovals, allowCarryover },
+          description,
+          status: 'active'
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to create budget');
+      
+      const data = await response.json();
+      router.push(`/finance/budgets/${data.id}`);
+    } catch (error) {
+      console.error('Error creating budget:', error);
+      alert(t('common.error', 'An error occurred'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">New Budget</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Create a new budget for expense tracking and control</p>
+          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('finance.budget.newBudget', 'New Budget')}</h1>
+          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.budget.subtitle', 'Create a new budget for expense tracking and control')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
-          <button className="btn-primary">Create Budget</button>
+          <button 
+            onClick={handleSaveDraft} 
+            disabled={isSubmitting}
+            className="btn-secondary"
+          >
+            {t('common.save', 'Save Draft')}
+          </button>
+          <button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className="btn-primary"
+          >
+            {t('finance.budget.createBudget', 'Create Budget')}
+          </button>
         </div>
       </div>
 
@@ -25,169 +192,214 @@ export default function NewBudgetPage() {
         {/* Main Form */}
         <div className="lg:col-span-2 space-y-6">
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Budget Details</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.budget.details', 'Budget Details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Budget Name *
+                  {t('finance.budget.budgetName', 'Budget Name')} *
                 </label>
                 <input
                   type="text"
-                  placeholder="Q1 2025 Maintenance Budget"
+                  value={budgetName}
+                  onChange={(e) => setBudgetName(e.target.value)}
+                  placeholder={t('finance.budget.namePlaceholder', 'Q1 2025 Maintenance Budget')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Budget Period *
+                  {t('finance.budget.budgetPeriod', 'Budget Period')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>Select Period</option>
-                  <option>Monthly</option>
-                  <option>Quarterly</option>
-                  <option>Semi-Annual</option>
-                  <option>Annual</option>
+                <select 
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                >
+                  <option value="">{t('finance.budget.selectPeriod', 'Select Period')}</option>
+                  <option value="monthly">{t('finance.budget.monthly', 'Monthly')}</option>
+                  <option value="quarterly">{t('finance.budget.quarterly', 'Quarterly')}</option>
+                  <option value="semi-annual">{t('finance.budget.semiAnnual', 'Semi-Annual')}</option>
+                  <option value="annual">{t('finance.budget.annual', 'Annual')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date *
+                  {t('finance.budget.startDate', 'Start Date')} *
                 </label>
                 <input
                   type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date *
+                  {t('finance.budget.endDate', 'End Date')} *
                 </label>
                 <input
                   type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property
+                  {t('workOrders.property', 'Property')}
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>All Properties</option>
-                  <option>Tower A</option>
-                  <option>Tower B</option>
-                  <option>Villa Complex</option>
+                <select 
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                >
+                  <option value="all">{t('finance.allProperties', 'All Properties')}</option>
+                  <option value="tower-a">Tower A</option>
+                  <option value="tower-b">Tower B</option>
+                  <option value="villa-complex">Villa Complex</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Budget Owner
+                  {t('finance.budget.budgetOwner', 'Budget Owner')}
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>Select Owner</option>
-                  <option>Property Manager</option>
-                  <option>Maintenance Manager</option>
-                  <option>Finance Manager</option>
+                <select 
+                  value={budgetOwner}
+                  onChange={(e) => setBudgetOwner(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                >
+                  <option value="">{t('finance.budget.selectOwner', 'Select Owner')}</option>
+                  <option value="property-manager">{t('finance.budget.propertyManager', 'Property Manager')}</option>
+                  <option value="maintenance-manager">{t('finance.budget.maintenanceManager', 'Maintenance Manager')}</option>
+                  <option value="finance-manager">{t('finance.budget.financeManager', 'Finance Manager')}</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Budget Categories & Amounts</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.budget.categoriesAmounts', 'Budget Categories & Amounts')}</h3>
             <div className="space-y-4">
               <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 border-b pb-2">
-                <div className="col-span-6">Category</div>
-                <div className="col-span-3">Budgeted Amount</div>
-                <div className="col-span-2">Percentage</div>
-                <div className="col-span-1">Actions</div>
+                <div className="col-span-6">{t('finance.budget.category', 'Category')}</div>
+                <div className="col-span-3">{t('finance.budget.budgetedAmount', 'Budgeted Amount')}</div>
+                <div className="col-span-2">{t('finance.budget.percentage', 'Percentage')}</div>
+                <div className="col-span-1">{t('common.actions', 'Actions')}</div>
               </div>
 
-              <div className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-6">
-                  <select className="w-full px-2 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                    <option>Select Category</option>
-                    <option>Maintenance & Repairs</option>
-                    <option>Utilities</option>
-                    <option>Insurance</option>
-                    <option>Property Management</option>
-                    <option>Security</option>
-                    <option>Landscaping</option>
-                    <option>Administrative</option>
-                  </select>
-                </div>
-                <div className="col-span-3">
-                  <div className="relative">
+              {categories.map((cat) => (
+                <div key={cat.id} className="grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-6">
+                    <select 
+                      value={cat.category}
+                      onChange={(e) => handleCategoryChange(cat.id, 'category', e.target.value)}
+                      className="w-full px-2 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                    >
+                      <option value="">{t('finance.budget.selectCategory', 'Select Category')}</option>
+                      <option value="maintenance">{t('finance.expense.maintenance', 'Maintenance & Repairs')}</option>
+                      <option value="utilities">{t('finance.expense.utilities', 'Utilities')}</option>
+                      <option value="insurance">{t('finance.expense.insurance', 'Insurance')}</option>
+                      <option value="property-management">{t('finance.budget.propertyManagement', 'Property Management')}</option>
+                      <option value="security">{t('finance.budget.security', 'Security')}</option>
+                      <option value="landscaping">{t('finance.budget.landscaping', 'Landscaping')}</option>
+                      <option value="administrative">{t('finance.budget.administrative', 'Administrative')}</option>
+                    </select>
+                  </div>
+                  <div className="col-span-3">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={cat.amount || ''}
+                        onChange={(e) => handleCategoryChange(cat.id, 'amount', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        className="w-full px-2 py-2 pr-12 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">SAR</span>
+                    </div>
+                  </div>
+                  <div className="col-span-2">
                     <input
                       type="number"
-                      placeholder="0.00"
-                      className="w-full px-2 py-2 pr-12 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                      value={cat.percentage || ''}
+                      onChange={(e) => handleCategoryChange(cat.id, 'percentage', parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full px-2 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                     />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">SAR</span>
+                  </div>
+                  <div className="col-span-1">
+                    <button 
+                      onClick={() => handleRemoveCategory(cat.id)}
+                      disabled={categories.length === 1}
+                      className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-darkest)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
-                <div className="col-span-2">
-                  <input
-                    type="number"
-                    placeholder="0"
-                    className="w-full px-2 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
-                  />
-                </div>
-                <div className="col-span-1">
-                  <button className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-darkest)]">🗑️</button>
-                </div>
-              </div>
+              ))}
 
-              <button className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:text-gray-700 hover:border-gray-400">
-                + Add Category
+              <button 
+                onClick={handleAddCategory}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:text-gray-700 hover:border-gray-400"
+              >
+                + {t('finance.budget.addCategory', 'Add Category')}
               </button>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Budget Settings</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.budget.budgetSettings', 'Budget Settings')}</h3>
             <div className="space-y-4">
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="alerts"
+                  checked={enableAlerts}
+                  onChange={(e) => setEnableAlerts(e.target.checked)}
                   className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-gray-300 rounded"
                 />
                 <label htmlFor="alerts" className="text-sm text-gray-700">
-                  Enable budget alerts when spending exceeds 80% of category budget
+                  {t('finance.budget.enableAlerts', 'Enable budget alerts when spending exceeds 80% of category budget')}
                 </label>
               </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="approvals"
+                  checked={requireApprovals}
+                  onChange={(e) => setRequireApprovals(e.target.checked)}
                   className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-gray-300 rounded"
                 />
                 <label htmlFor="approvals" className="text-sm text-gray-700">
-                  Require approval for expenses exceeding SAR 5,000
+                  {t('finance.budget.requireApprovals', 'Require approval for expenses exceeding SAR 5,000')}
                 </label>
               </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="carryover"
+                  checked={allowCarryover}
+                  onChange={(e) => setAllowCarryover(e.target.checked)}
                   className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-gray-300 rounded"
                 />
                 <label htmlFor="carryover" className="text-sm text-gray-700">
-                  Allow unused budget to carry over to next period
+                  {t('finance.budget.allowCarryover', 'Allow unused budget to carry over to next period')}
                 </label>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Notes & Description</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.budget.notesDescription', 'Notes & Description')}</h3>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Budget Description
+                {t('finance.budget.budgetDescription', 'Budget Description')}
               </label>
               <textarea
                 rows={3}
-                placeholder="Describe the purpose and scope of this budget..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t('finance.budget.descriptionPlaceholder', 'Describe the purpose and scope of this budget...')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
               />
             </div>
@@ -197,45 +409,45 @@ export default function NewBudgetPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Budget Summary</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.budget.budgetSummary', 'Budget Summary')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Total Budget</span>
-                <span className="font-medium">SAR 0.00</span>
+                <span className="text-gray-600">{t('finance.budget.totalBudget', 'Total Budget')}</span>
+                <span className="font-medium">SAR {totalBudget.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Allocated</span>
-                <span className="font-medium">SAR 0.00</span>
+                <span className="text-gray-600">{t('finance.budget.allocated', 'Allocated')}</span>
+                <span className="font-medium">SAR {allocatedBudget.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Remaining</span>
-                <span className="font-medium">SAR 0.00</span>
+                <span className="text-gray-600">{t('finance.budget.remaining', 'Remaining')}</span>
+                <span className="font-medium">SAR {remainingBudget.toFixed(2)}</span>
               </div>
               <hr className="my-2" />
               <div className="flex justify-between text-lg font-semibold">
-                <span>Available</span>
-                <span>SAR 0.00</span>
+                <span>{t('finance.budget.available', 'Available')}</span>
+                <span>SAR {remainingBudget.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Budget Template</h3>
+                    <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('finance.budget.budgetTemplate', 'Budget Template')}</h3>
             <div className="space-y-2">
               <button className="w-full btn-ghost text-left">
-                📋 Copy from Previous Budget
+                📋 {t('finance.budget.copyPrevious', 'Copy from Previous Budget')}
               </button>
               <button className="w-full btn-ghost text-left">
-                📊 Use Standard Template
+                📊 {t('finance.budget.useTemplate', 'Use Standard Template')}
               </button>
               <button className="w-full btn-ghost text-left">
-                🔄 Import from Excel
+                🔄 {t('finance.budget.importExcel', 'Import from Excel')}
               </button>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Existing Budgets</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.budget.existingBudgets', 'Existing Budgets')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <div>
@@ -262,31 +474,31 @@ export default function NewBudgetPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-2">
               <button className="w-full btn-ghost text-left">
-                📊 Budget vs Actual Report
+                📊 {t('finance.budget.budgetVsActual', 'Budget vs Actual Report')}
               </button>
               <button className="w-full btn-ghost text-left">
-                💰 Expense Tracking
+                💰 {t('finance.expense.tracking', 'Expense Tracking')}
               </button>
               <button className="w-full btn-ghost text-left">
-                📋 Budget Templates
+                📋 {t('finance.budget.templates', 'Budget Templates')}
               </button>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
-                <span className="text-gray-600">Form auto-saved</span>
+                <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-gray-400 ml-auto">1m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
-                <span className="text-gray-600">Budget period set</span>
+                <span className="text-gray-600">{t('finance.budget.periodSet', 'Budget period set')}</span>
                 <span className="text-gray-400 ml-auto">3m ago</span>
               </div>
             </div>

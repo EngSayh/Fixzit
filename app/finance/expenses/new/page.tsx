@@ -1,11 +1,136 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFormState } from '@/contexts/FormStateContext';
+import { useRouter } from 'next/navigation';
 
 export default function NewExpensePage() {
   const { t } = useTranslation();
-  
+  const router = useRouter();
+  const { registerForm, unregisterForm } = useFormState();
+
+  // Form state
+  const [reference, setReference] = useState('');
+  const [date, setDate] = useState('');
+  const [category, setCategory] = useState('');
+  const [propertyId, setPropertyId] = useState('all');
+  const [description, setDescription] = useState('');
+  const [vendorId, setVendorId] = useState('');
+  const [amount, setAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [notes, setNotes] = useState('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate summary
+  const vat = amount * 0.15;
+  const total = amount + vat;
+
+  // Register form
+  React.useEffect(() => {
+    const formId = 'new-expense-form';
+    registerForm(formId);
+    return () => unregisterForm(formId);
+  }, [registerForm, unregisterForm]);
+
+  // Handle file upload
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setReceiptFile(e.target.files[0]);
+    }
+  };
+
+  // Save as draft
+  const handleSaveDraft = async () => {
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('reference', reference);
+      formData.append('date', date);
+      formData.append('category', category);
+      formData.append('propertyId', propertyId === 'all' ? '' : propertyId);
+      formData.append('description', description);
+      formData.append('vendorId', vendorId);
+      formData.append('amount', amount.toString());
+      formData.append('paymentMethod', paymentMethod);
+      formData.append('notes', notes);
+      formData.append('status', 'draft');
+      if (receiptFile) formData.append('receipt', receiptFile);
+
+      const response = await fetch('/api/finance/expenses', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Failed to save draft');
+      
+      const data = await response.json();
+      router.push(`/finance/expenses/${data.id}`);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      alert(t('common.error', 'An error occurred'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Record expense
+  const handleSubmit = async () => {
+    // Validation
+    if (!reference.trim()) {
+      alert(t('finance.expense.referenceRequired', 'Expense reference is required'));
+      return;
+    }
+    if (!date) {
+      alert(t('finance.expense.dateRequired', 'Expense date is required'));
+      return;
+    }
+    if (!category) {
+      alert(t('finance.expense.categoryRequired', 'Category is required'));
+      return;
+    }
+    if (!description.trim()) {
+      alert(t('finance.expense.descriptionRequired', 'Description is required'));
+      return;
+    }
+    if (amount <= 0) {
+      alert(t('finance.expense.amountRequired', 'Amount must be greater than zero'));
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('reference', reference);
+      formData.append('date', date);
+      formData.append('category', category);
+      formData.append('propertyId', propertyId === 'all' ? '' : propertyId);
+      formData.append('description', description);
+      formData.append('vendorId', vendorId);
+      formData.append('amount', amount.toString());
+      formData.append('paymentMethod', paymentMethod);
+      formData.append('notes', notes);
+      formData.append('status', 'recorded');
+      if (receiptFile) formData.append('receipt', receiptFile);
+
+      const response = await fetch('/api/finance/expenses', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Failed to record expense');
+      
+      const data = await response.json();
+      router.push(`/finance/expenses/${data.id}`);
+    } catch (error) {
+      console.error('Error recording expense:', error);
+      alert(t('common.error', 'An error occurred'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -15,8 +140,20 @@ export default function NewExpensePage() {
           <p className="text-[var(--fixzit-text-secondary)]">{t('finance.expense.subtitle', 'Record a new business expense or cost')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
-          <button className="btn-primary">{t('finance.expense.recordExpense', 'Record Expense')}</button>
+          <button 
+            onClick={handleSaveDraft} 
+            disabled={isSubmitting}
+            className="btn-secondary"
+          >
+            {t('common.save', 'Save Draft')}
+          </button>
+          <button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className="btn-primary"
+          >
+            {t('finance.expense.recordExpense', 'Record Expense')}
+          </button>
         </div>
       </div>
 
@@ -33,6 +170,8 @@ export default function NewExpensePage() {
                 </label>
                 <input
                   type="text"
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
                   placeholder="EXP-001"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
@@ -43,6 +182,8 @@ export default function NewExpensePage() {
                 </label>
                 <input
                   type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
@@ -50,24 +191,32 @@ export default function NewExpensePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('finance.expense.category', 'Expense Category')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>{t('finance.expense.selectCategory', 'Select Category')}</option>
-                  <option>{t('finance.expense.maintenance', 'Maintenance & Repairs')}</option>
-                  <option>{t('finance.expense.utilities', 'Utilities')}</option>
-                  <option>{t('finance.expense.officeSupplies', 'Office Supplies')}</option>
-                  <option>{t('finance.expense.equipment', 'Equipment')}</option>
-                  <option>{t('finance.expense.insurance', 'Insurance')}</option>
-                  <option>{t('finance.expense.professional', 'Professional Services')}</option>
-                  <option>{t('finance.expense.marketing', 'Marketing')}</option>
-                  <option>{t('finance.expense.travel', 'Travel & Transportation')}</option>
-                  <option>{t('finance.expense.other', 'Other')}</option>
+                <select 
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                >
+                  <option value="">{t('finance.expense.selectCategory', 'Select Category')}</option>
+                  <option value="maintenance">{t('finance.expense.maintenance', 'Maintenance & Repairs')}</option>
+                  <option value="utilities">{t('finance.expense.utilities', 'Utilities')}</option>
+                  <option value="office-supplies">{t('finance.expense.officeSupplies', 'Office Supplies')}</option>
+                  <option value="equipment">{t('finance.expense.equipment', 'Equipment')}</option>
+                  <option value="insurance">{t('finance.expense.insurance', 'Insurance')}</option>
+                  <option value="professional">{t('finance.expense.professional', 'Professional Services')}</option>
+                  <option value="marketing">{t('finance.expense.marketing', 'Marketing')}</option>
+                  <option value="travel">{t('finance.expense.travel', 'Travel & Transportation')}</option>
+                  <option value="other">{t('finance.expense.other', 'Other')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('workOrders.property', 'Property')}
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select 
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                >
                   <option>{t('finance.allProperties', 'All Properties')}</option>
                   <option>Tower A</option>
                   <option>Tower B</option>
@@ -86,6 +235,8 @@ export default function NewExpensePage() {
                 </label>
                 <input
                   type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder={t('finance.expense.descriptionPlaceholder', 'Brief description of the expense...')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
@@ -94,7 +245,11 @@ export default function NewExpensePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('finance.expense.vendorSupplier', 'Vendor/Supplier')}
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select 
+                  value={vendorId}
+                  onChange={(e) => setVendorId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                >
                   <option>{t('finance.expense.selectVendor', 'Select Vendor')}</option>
                   <option>ABC Maintenance LLC</option>
                   <option>Electrical Solutions Co.</option>
@@ -115,6 +270,8 @@ export default function NewExpensePage() {
                 <div className="relative">
                   <input
                     type="number"
+                    value={amount || ''}
+                    onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
                     className="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                   />
@@ -125,7 +282,11 @@ export default function NewExpensePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('finance.paymentMethod', 'Payment Method')}
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select 
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                >
                   <option>{t('finance.payment.cash', 'Cash')}</option>
                   <option>{t('finance.payment.bankTransfer', 'Bank Transfer')}</option>
                   <option>{t('finance.payment.cheque', 'Cheque')}</option>
@@ -141,6 +302,8 @@ export default function NewExpensePage() {
               </label>
               <textarea
                 rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 placeholder={t('finance.notesPlaceholder', 'Additional notes...')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
               />
@@ -150,11 +313,24 @@ export default function NewExpensePage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.receiptDocumentation', 'Receipt & Documentation')}</h3>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <div className="text-gray-400 mb-2">📎</div>
+              <div className="text-gray-400 mb-2">📎 {receiptFile ? receiptFile.name : ''}</div>
               <p className="text-sm text-gray-600">{t('finance.uploadInvoice', 'Upload receipt or invoice')}</p>
-              <button className="mt-2 text-sm text-[var(--fixzit-blue)] hover:underline">
-                {t('finance.chooseFile', 'Choose File')}
-              </button>
+              <input 
+                type="file" 
+                id="receipt-upload" 
+                onChange={handleFileChange} 
+                className="hidden" 
+                accept="image/*,application/pdf"
+              />
+              <label htmlFor="receipt-upload">
+                <button 
+                  type="button" 
+                  onClick={() => document.getElementById('receipt-upload')?.click()}
+                  className="mt-2 text-sm text-[var(--fixzit-blue)] hover:underline"
+                >
+                  {t('finance.chooseFile', 'Choose File')}
+                </button>
+              </label>
             </div>
           </div>
         </div>
@@ -166,15 +342,15 @@ export default function NewExpensePage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('finance.amount', 'Amount')}</span>
-                <span className="font-medium">SAR 0.00</span>
+                <span className="font-medium">SAR {amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('finance.vat', 'VAT')} (15%)</span>
-                <span className="font-medium">SAR 0.00</span>
+                <span className="font-medium">SAR {vat.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('finance.total', 'Total')}</span>
-                <span className="font-medium">SAR 0.00</span>
+                <span className="font-medium">SAR {total.toFixed(2)}</span>
               </div>
             </div>
           </div>
