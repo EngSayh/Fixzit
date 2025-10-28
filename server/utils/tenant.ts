@@ -1,4 +1,5 @@
 import { verifyToken } from '@/lib/auth';
+import { Role, ROLE_MODULE_ACCESS, ModuleKey } from '@/domain/fm/fm.behavior';
 
 export type AuthContext = { orgId: string | null; role: string | null };
 
@@ -22,12 +23,10 @@ export function getAuthFromRequest(req: RequestLike): AuthContext {
 
 export function requireMarketplaceReadRole(role: string | null): boolean {
   if (!role) return false;
-  // Drive from canonical governance matrix where marketplace access is defined
-  const allowed = new Set([
-    'SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'FINANCE', 'HR', 'PROCUREMENT',
-    'PROPERTY_MANAGER', 'EMPLOYEE', 'TECHNICIAN', 'VENDOR', 'CUSTOMER', 'OWNER', 'AUDITOR'
-  ]);
-  return allowed.has(role);
+  
+  // Use the canonical governance matrix as the single source of truth
+  // This correctly allows only roles with explicit MARKETPLACE access
+  return ROLE_MODULE_ACCESS[role as Role]?.[ModuleKey.MARKETPLACE] === true;
 }
 
 

@@ -1,8 +1,8 @@
-import { Schema, Query} from 'mongoose';
+import { Schema, Query, Types } from 'mongoose';
 
 // Context interface for tenant isolation
 export interface TenantContext {
-  orgId?: string;
+  orgId?: string | Types.ObjectId;
   skipTenantFilter?: boolean;
 }
 
@@ -32,8 +32,10 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   if (!schema.paths.orgId) {
     schema.add({
       orgId: { 
-        type: String, 
-        required: true
+        type: Types.ObjectId,
+        ref: 'Organization',
+        required: true,
+        index: true
       }
     });
   }
@@ -132,8 +134,8 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
   });
 
-  // Create compound indexes with orgId
-  schema.index({ orgId: 1 });
+  // NOTE: Index is now added inline with the field definition above
+  // No need for schema.index({ orgId: 1 }) here
 
   // Instance method to check if document belongs to current tenant
   schema.methods.belongsToCurrentTenant = function() {
@@ -144,7 +146,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
 
 // Utility function to execute operations within tenant context
 export async function withTenantContext<T>(
-  orgId: string, 
+  orgId: string | Types.ObjectId, 
   operation: () => Promise<T>
 ): Promise<T> {
   const originalContext = getTenantContext();
