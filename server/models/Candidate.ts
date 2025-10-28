@@ -37,7 +37,7 @@ CandidateSchema.pre('validate', function(next) {
 });
 
 export type CandidateDoc = InferSchemaType<typeof CandidateSchema> & Document & {
-  orgId: Schema.Types.ObjectId;
+  orgId: string;
   createdBy?: Schema.Types.ObjectId;
   updatedBy?: Schema.Types.ObjectId;
   version?: number;

@@ -69,7 +69,7 @@ ApplicationSchema.index({ orgId: 1, jobId: 1, candidateId: 1 }, { unique: true }
 ApplicationSchema.index({ orgId: 1, stage: 1, score: -1 });
 
 export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Document & {
-  orgId: Schema.Types.ObjectId;
+  orgId: string;
   createdBy?: Schema.Types.ObjectId;
   updatedBy?: Schema.Types.ObjectId;
   version?: number;

@@ -53,7 +53,7 @@ JobSchema.index({ orgId: 1, status: 1 });
 JobSchema.index({ orgId: 1, jobType: 1, status: 1 });
 
 export type JobDoc = (InferSchemaType<typeof JobSchema> & Document & {
-  orgId: Schema.Types.ObjectId;
+  orgId: string;
   createdBy?: Schema.Types.ObjectId;
   updatedBy?: Schema.Types.ObjectId;
   version?: number;
