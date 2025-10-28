@@ -53,47 +53,56 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Authorization check
+    requirePermission(user.role, 'finance.journals.post');
+    
     // Validate journal ID
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json({ error: 'Invalid journal ID' }, { status: 400 });
     }
     
-    // Set context for plugins// Check journal exists and belongs to org
-    const journal = await Journal.findOne({
-      _id: new Types.ObjectId(params.id),
-      orgId: new Types.ObjectId(user.orgId)
-    });
-    
-    if (!journal) {
-      return NextResponse.json({ error: 'Journal not found' }, { status: 404 });
-    }
-    
-    // Check journal status
-    if (journal.status !== 'DRAFT') {
-      return NextResponse.json({
-        error: `Cannot post journal with status ${journal.status}`
-      }, { status: 400 });
-    }
-    
-    // Post journal to ledger using postingService
-    const result = await postingService.postJournal(new Types.ObjectId(params.id));
-    
-    return NextResponse.json({
-      success: true,
-      data: {
-        journal: result.journal,
-        ledgerEntries: result.ledgerEntries,
-        message: `Journal ${result.journal.journalNumber} posted successfully. ${result.ledgerEntries.length} ledger entries created.`
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Check journal exists and belongs to org
+        const journal = await Journal.findOne({
+          _id: new Types.ObjectId(params.id),
+          orgId: new Types.ObjectId(user.orgId)
+        });
+        
+        if (!journal) {
+          return NextResponse.json({ error: 'Journal not found' }, { status: 404 });
+        }
+        
+        // Check journal status
+        if (journal.status !== 'DRAFT') {
+          return NextResponse.json({
+            error: `Cannot post journal with status ${journal.status}`
+          }, { status: 400 });
+        }
+        
+        // Post journal to ledger using postingService
+        const result = await postingService.postJournal(new Types.ObjectId(params.id));
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            journal: result.journal,
+            ledgerEntries: result.ledgerEntries,
+            message: `Journal ${result.journal.journalNumber} posted successfully. ${result.ledgerEntries.length} ledger entries created.`
+          }
+        });
       }
-    });
+    );
     
   } catch (error) {
     console.error('POST /api/finance/journals/[id]/post error:', error);
     
-
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
     }
+    
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Failed to post journal'
     }, { status: 400 });

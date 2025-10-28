@@ -54,7 +54,7 @@ async function getUserSession(_req: NextRequest) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     await dbConnect();
@@ -68,8 +68,11 @@ export async function GET(
     // Authorization check
     requirePermission(user.role, 'finance.accounts.read');
     
+    // Resolve params (Next may provide params as a Promise)
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+
     // Validate account ID
-    if (!Types.ObjectId.isValid(params.id)) {
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
     }
     
@@ -79,7 +82,7 @@ export async function GET(
       async () => {
         // Get account
         const account = await ChartAccount.findOne({
-          _id: new Types.ObjectId(params.id),
+          _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId)
         });
         
@@ -138,7 +141,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     await dbConnect();
@@ -152,8 +155,11 @@ export async function PUT(
     // Authorization check
     requirePermission(user.role, 'finance.accounts.update');
     
+    // Resolve params
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+
     // Validate account ID
-    if (!Types.ObjectId.isValid(params.id)) {
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
     }
     
@@ -167,7 +173,7 @@ export async function PUT(
       async () => {
         // Get account
         const account = await ChartAccount.findOne({
-          _id: new Types.ObjectId(params.id),
+          _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId)
         });
         
@@ -217,7 +223,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     await dbConnect();
@@ -231,8 +237,11 @@ export async function DELETE(
     // Authorization check
     requirePermission(user.role, 'finance.accounts.delete');
     
+    // Resolve params
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+
     // Validate account ID
-    if (!Types.ObjectId.isValid(params.id)) {
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
     }
     
@@ -242,7 +251,7 @@ export async function DELETE(
       async () => {
         // Get account
         const account = await ChartAccount.findOne({
-          _id: new Types.ObjectId(params.id),
+          _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId)
         });
         

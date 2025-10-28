@@ -47,66 +47,75 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Set tenant context// Parse query parameters
-    const { searchParams } = new URL(req.url);
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-    const period = parseInt(searchParams.get('period') || '12'); // 1-12
-    const asOfDateParam = searchParams.get('asOfDate');
+    // Authorization check
+    requirePermission(user.role, 'finance.ledger.trial-balance');
     
-    // Determine as-of date
-    let asOfDate: Date;
-    if (asOfDateParam) {
-      asOfDate = new Date(asOfDateParam);
-    } else {
-      // Default: last day of the specified period
-      asOfDate = new Date(year, period, 0); // Day 0 = last day of previous month
-    }
-    
-    // Get trial balance from LedgerEntry model
-    const trialBalance = await LedgerEntry.getTrialBalance(
-      new Types.ObjectId(user.orgId),
-      year,
-      period
-    );
-    
-    // Calculate totals
-    const totalDebits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalDebits, 0);
-    const totalCredits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalCredits, 0);
-    const totalBalance = totalDebits - totalCredits;
-    
-    // Group by account type
-    const byType: Record<string, typeof trialBalance> = {};
-    trialBalance.forEach((account: { accountType: string }) => {
-      if (!byType[account.accountType]) {
-        byType[account.accountType] = [];
-      }
-      byType[account.accountType].push(account);
-    });
-    
-    return NextResponse.json({
-      success: true,
-      data: {
-        asOfDate,
-        year,
-        period,
-        accounts: trialBalance,
-        byType,
-        totals: {
-          debits: totalDebits,
-          credits: totalCredits,
-          balance: totalBalance,
-          isBalanced: Math.abs(totalBalance) < 0.01 // Allow for rounding
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Parse query parameters
+        const { searchParams } = new URL(req.url);
+        const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+        const period = parseInt(searchParams.get('period') || '12'); // 1-12
+        const asOfDateParam = searchParams.get('asOfDate');
+        
+        // Determine as-of date
+        let asOfDate: Date;
+        if (asOfDateParam) {
+          asOfDate = new Date(asOfDateParam);
+        } else {
+          // Default: last day of the specified period
+          asOfDate = new Date(year, period, 0); // Day 0 = last day of previous month
         }
+        
+        // Get trial balance from LedgerEntry model
+        const trialBalance = await LedgerEntry.getTrialBalance(
+          new Types.ObjectId(user.orgId),
+          year,
+          period
+        );
+        
+        // Calculate totals
+        const totalDebits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalDebits, 0);
+        const totalCredits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalCredits, 0);
+        const totalBalance = totalDebits - totalCredits;
+        
+        // Group by account type
+        const byType: Record<string, typeof trialBalance> = {};
+        trialBalance.forEach((account: { accountType: string }) => {
+          if (!byType[account.accountType]) {
+            byType[account.accountType] = [];
+          }
+          byType[account.accountType].push(account);
+        });
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            asOfDate,
+            year,
+            period,
+            accounts: trialBalance,
+            byType,
+            totals: {
+              debits: totalDebits,
+              credits: totalCredits,
+              balance: totalBalance,
+              isBalanced: Math.abs(totalBalance) < 0.01 // Allow for rounding
+            }
+          }
+        });
       }
-    });
+    );
     
   } catch (error) {
     console.error('GET /api/finance/ledger/trial-balance error:', error);
     
-
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
     }
+    
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Internal server error'
     }, { status: 500 });
