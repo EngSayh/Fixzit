@@ -10,7 +10,8 @@ const PropertySchema = new Schema({
   // orgId: { type: String, required: true, index: true },
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  // ⚡ FIXED: Remove unique: true - will be enforced via compound index with orgId
+  code: { type: String, required: true },
   name: { type: String, required: true },
   description: { type: String },
 
@@ -192,5 +193,8 @@ export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 // Apply plugins
 PropertySchema.plugin(tenantIsolationPlugin);
 PropertySchema.plugin(auditPlugin);
+
+// ⚡ FIXED: Add compound tenant-scoped unique index for code
+PropertySchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export const Property = models.Property || model("Property", PropertySchema);

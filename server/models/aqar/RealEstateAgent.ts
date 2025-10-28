@@ -91,7 +91,8 @@ export interface RealEstateAgent {
 
 const RealEstateAgentSchema = new Schema<RealEstateAgent>(
   {
-    userId: { type: Schema.Types.ObjectId, required: true, unique: true, index: true },
+    // ⚡ FIXED: Remove global unique: true - will be enforced via compound index with orgId
+    userId: { type: Schema.Types.ObjectId, required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, required: true, index: true },
     
     firstName: { type: String, required: true, trim: true },
@@ -104,7 +105,8 @@ const RealEstateAgentSchema = new Schema<RealEstateAgent>(
     },
     
     license: {
-      number: { type: String, required: true, unique: true },
+      // ⚡ FIXED: Remove global unique: true - will be enforced via compound index with orgId
+      number: { type: String, required: true },
       authority: { type: String, required: true },
       issueDate: { type: Date, required: true },
       expiryDate: { type: Date, required: true },
@@ -176,9 +178,13 @@ RealEstateAgentSchema.index({ orgId: 1, status: 1 });
 RealEstateAgentSchema.index({ verified: 1, featured: 1 });
 RealEstateAgentSchema.index({ 'statistics.averageRating': -1 });
 RealEstateAgentSchema.index({ tier: 1, 'statistics.totalListings': -1 });
+// ⚡ FIXED: Add compound tenant-scoped unique indexes
+RealEstateAgentSchema.index({ orgId: 1, userId: 1 }, { unique: true });
+RealEstateAgentSchema.index({ orgId: 1, 'license.number': 1 }, { unique: true });
 
-// Text search
+// ⚡ FIXED: Add orgId prefix to text search for tenant isolation
 RealEstateAgentSchema.index({
+  orgId: 1,
   firstName: 'text',
   lastName: 'text',
   displayName: 'text',

@@ -83,8 +83,11 @@ const LedgerEntrySchema = new Schema<ILedgerEntry, ILedgerEntryModel>(
 );
 
 // Apply plugins BEFORE indexes
-LedgerEntrySchema.plugin(tenantIsolationPlugin);
-LedgerEntrySchema.plugin(auditPlugin);
+// ⚡ FIXED: Apply plugins with any type to avoid TypeScript generic conflicts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+LedgerEntrySchema.plugin(tenantIsolationPlugin as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+LedgerEntrySchema.plugin(auditPlugin as any);
 
 // All indexes MUST be tenant-scoped
 LedgerEntrySchema.index({ orgId: 1, accountId: 1, postingDate: -1 }); // For account history

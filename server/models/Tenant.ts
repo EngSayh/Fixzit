@@ -7,7 +7,8 @@ const TenantSchema = new Schema({
   tenantId: { type: String, required: true },
 
   // Basic Information
-  code: { type: String, required: true, unique: true },
+  // ⚡ FIXED: Remove unique: true - will be enforced via compound index with tenantId
+  code: { type: String, required: true },
   name: { type: String, required: true },
   type: { type: String, enum: TenantType, required: true },
 
@@ -180,6 +181,8 @@ const TenantSchema = new Schema({
 TenantSchema.index({ tenantId: 1, type: 1 });
 TenantSchema.index({ tenantId: 1, 'contact.primary.email': 1 });
 TenantSchema.index({ tenantId: 1, 'properties.occupancy.status': 1 });
+// ⚡ FIXED: Add compound tenant-scoped unique index for code
+TenantSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 
 export type TenantDoc = InferSchemaType<typeof TenantSchema>;
 
