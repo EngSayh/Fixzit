@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Calculator, DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface MortgageCalculatorProps {
   propertyPrice?: number;
@@ -9,6 +10,7 @@ export interface MortgageCalculatorProps {
 }
 
 export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR' }: MortgageCalculatorProps) {
+  const { t } = useTranslation();
   const [price, setPrice] = useState(propertyPrice || 1000000);
   const [downPayment, setDownPayment] = useState(15); // percentage
   const [interestRate, setInterestRate] = useState(4.5); // annual percentage
@@ -82,7 +84,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
           <Calculator className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Mortgage Calculator</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('aqar.mortgage.title', 'Mortgage Calculator')}</h2>
           <p className="text-sm text-gray-600">Calculate your monthly payments</p>
         </div>
       </div>
@@ -92,7 +94,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Property Price */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">Property Price</label>
+            <label className="text-sm font-medium text-gray-700">{t('aqar.mortgage.propertyPrice', 'Property Price')}</label>
             <span className="text-lg font-bold text-gray-900">{formatCurrency(price)}</span>
           </div>
           <input
@@ -114,7 +116,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-gray-700">
-              Down Payment ({downPayment}%)
+              {t('aqar.mortgage.downPayment', 'Down Payment')} ({downPayment}%)
             </label>
             <span className="text-lg font-bold text-gray-900">{formatCurrency(downPaymentAmount)}</span>
           </div>
@@ -136,7 +138,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Interest Rate */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">Interest Rate</label>
+            <label className="text-sm font-medium text-gray-700">{t('aqar.mortgage.interestRate', 'Interest Rate')}</label>
             <span className="text-lg font-bold text-gray-900">{interestRate.toFixed(2)}%</span>
           </div>
           <input
@@ -157,8 +159,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Loan Term */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">Loan Term</label>
-            <span className="text-lg font-bold text-gray-900">{loanTerm} years</span>
+            <label className="text-sm font-medium text-gray-700">{t('aqar.mortgage.loanTerm', 'Loan Term')}</label>
+            <span className="text-lg font-bold text-gray-900">{loanTerm} {t('aqar.mortgage.years', 'years')}</span>
           </div>
           <input
             type="range"
@@ -170,18 +172,18 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>5 years</span>
-            <span>{MAX_LOAN_TERM} years (Max)</span>
+            <span>5 {t('aqar.mortgage.years', 'years')}</span>
+            <span>{MAX_LOAN_TERM} {t('aqar.mortgage.years', 'years')} (Max)</span>
           </div>
         </div>
       </div>
 
       {/* Results Section */}
       <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Monthly Payment</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">{t('aqar.mortgage.monthlyPayment', 'Monthly Payment')}</h3>
         <div className="text-4xl font-bold text-[#FF8C00] mb-6">
           {formatCurrency(monthlyPayment)}
-          <span className="text-sm font-normal text-gray-600">/month</span>
+          <span className="text-sm font-normal text-gray-600">/{t('aqar.mortgage.months', 'month')}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
