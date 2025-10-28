@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
+import { type UserRoleType } from '@/types/user';
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
   ShoppingBag, Headphones, Shield, BarChart3, Cog, Bell
@@ -65,7 +66,18 @@ const ROLE_PERMISSIONS = {
   ],
   CUSTOMER: [
     'marketplace', 'orders', 'support'
-  ]
+  ],
+  
+  // Additional roles from central types (with minimal permissions)
+  ADMIN: [
+    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'
+  ],
+  HR: ['dashboard', 'hr', 'reports'],
+  TECHNICIAN: ['dashboard', 'work-orders', 'support'],
+  OWNER: ['dashboard', 'properties', 'reports', 'support'],
+  VIEWER: ['dashboard', 'reports'],
+  DISPATCHER: ['dashboard', 'work-orders', 'properties']
 } as const;
 
 // ---------- Subscription-based module access ----------
@@ -122,7 +134,7 @@ const CATEGORY_FALLBACKS = {
 } as const;
 
 interface SidebarProps {
-  role?: keyof typeof ROLE_PERMISSIONS | 'guest';
+  role?: UserRoleType | 'guest';
   subscription?: keyof typeof SUBSCRIPTION_PLANS;
   tenantId?: string;
 }

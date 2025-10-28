@@ -12,14 +12,12 @@ import HtmlAttrs from './HtmlAttrs';
 const AutoIncidentReporter = dynamic(() => import('@/components/AutoIncidentReporter'), { ssr: false });
 import PreferenceBroadcast from './PreferenceBroadcast';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { UserRole, type UserRoleType } from '@/types/user';
 
-type UserRole =
-  | 'SUPER_ADMIN' | 'CORPORATE_ADMIN' | 'FM_MANAGER' | 'PROPERTY_MANAGER'
-  | 'TENANT' | 'VENDOR' | 'SUPPORT' | 'AUDITOR' | 'PROCUREMENT'
-  | 'EMPLOYEE' | 'CUSTOMER' | 'guest';
+type UserRoleOrGuest = UserRoleType | 'guest';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<UserRole>('guest');
+  const [role, setRole] = useState<UserRoleOrGuest>('guest');
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
 
@@ -80,11 +78,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           if (data?.user?.role) {
-            const valid: UserRole[] = [
-              'SUPER_ADMIN','CORPORATE_ADMIN','FM_MANAGER','PROPERTY_MANAGER',
-              'TENANT','VENDOR','SUPPORT','AUDITOR','PROCUREMENT','EMPLOYEE','CUSTOMER','guest'
-            ];
-            const userRole = valid.includes(data.user.role as UserRole) ? (data.user.role as UserRole) : 'guest';
+            const valid: UserRoleType[] = Object.values(UserRole);
+            const userRole = valid.includes(data.user.role as UserRoleType) ? (data.user.role as UserRoleOrGuest) : 'guest';
             setRole(userRole);
             try { localStorage.setItem('fixzit-role', userRole); } catch {}
           } else {

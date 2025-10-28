@@ -1,27 +1,10 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { UserRole, UserStatus } from "@/types/user";
 
-// User roles enum - comprehensive RBAC matrix
-export const UserRole = {
-  SUPER_ADMIN: "SUPER_ADMIN",
-  CORPORATE_ADMIN: "CORPORATE_ADMIN", 
-  ADMIN: "ADMIN",
-  FM_MANAGER: "FM_MANAGER",
-  PROPERTY_MANAGER: "PROPERTY_MANAGER",
-  FINANCE: "FINANCE",
-  HR: "HR",
-  PROCUREMENT: "PROCUREMENT",
-  TECHNICIAN: "TECHNICIAN",
-  EMPLOYEE: "EMPLOYEE",
-  OWNER: "OWNER",
-  TENANT: "TENANT",
-  VENDOR: "VENDOR",
-  CUSTOMER: "CUSTOMER",
-  AUDITOR: "AUDITOR",
-  VIEWER: "VIEWER"
-} as const;
-const UserStatus = ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"] as const;
+// Re-export for backward compatibility
+export { UserRole };
 
 const UserSchema = new Schema({
   // Multi-tenancy key - will be added by tenantIsolationPlugin
