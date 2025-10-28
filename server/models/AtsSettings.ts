@@ -1,4 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 interface AutoRejectOptions {
   experience?: number;
@@ -11,7 +13,6 @@ interface AutoRejectDecision {
 }
 
 const AtsSettingsSchema = new Schema({
-  orgId: { type: String, required: true, unique: true },
   scoringWeights: {
     skills: { type: Number, default: 0.6 },
     experience: { type: Number, default: 0.3 },
@@ -26,6 +27,13 @@ const AtsSettingsSchema = new Schema({
   },
   alerts: { type: [String], default: [] }
 }, { timestamps: true });
+
+// Apply plugins BEFORE indexes for proper tenant isolation
+AtsSettingsSchema.plugin(tenantIsolationPlugin);
+AtsSettingsSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes
+AtsSettingsSchema.index({ orgId: 1 }, { unique: true });
 
 export type AtsSettingsDoc = (InferSchemaType<typeof AtsSettingsSchema> & Document) & {
   shouldAutoReject(input: AutoRejectOptions): AutoRejectDecision;
@@ -65,10 +73,12 @@ AtsSettingsSchema.methods.shouldAutoReject = function(this: AtsSettingsDoc, inpu
 };
 
 AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
-  const targetOrg = orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
-  let doc = await this.findOne({ orgId: targetOrg });
+  if (!orgId) {
+    throw new Error('Valid orgId is required for AtsSettings.findOrCreateForOrg');
+  }
+  let doc = await this.findOne({ orgId });
   if (!doc) {
-    doc = await this.create({ orgId: targetOrg });
+    doc = await this.create({ orgId });
   }
   return doc;
 };

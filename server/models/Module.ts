@@ -1,4 +1,5 @@
 import { Schema, model, models } from 'mongoose';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 export type ModuleKey =
   | 'FM_CORE'
@@ -36,6 +37,9 @@ const ModuleSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Apply auditPlugin for change tracking (Module is global, so NO tenantIsolationPlugin)
+ModuleSchema.plugin(auditPlugin);
 
 export default models.Module || model('Module', ModuleSchema);
 export { MODULE_KEYS };

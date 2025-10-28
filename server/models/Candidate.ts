@@ -1,7 +1,8 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const CandidateSchema = new Schema({
-  orgId: { type: String, required: true },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true },
@@ -21,6 +22,11 @@ const CandidateSchema = new Schema({
   }
 }, { timestamps: true });
 
+// Apply plugins BEFORE indexes
+CandidateSchema.plugin(tenantIsolationPlugin);
+CandidateSchema.plugin(auditPlugin);
+
+// Tenant-scoped index
 CandidateSchema.index({ orgId: 1, emailLower: 1 }, { unique: true });
 
 CandidateSchema.pre('validate', function(next) {

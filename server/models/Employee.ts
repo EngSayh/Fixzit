@@ -1,7 +1,8 @@
 import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const EmployeeSchema = new Schema({
-  orgId: { type: String, required: true },
   personal: {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -18,6 +19,11 @@ const EmployeeSchema = new Schema({
   metadata: { type: Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
+// Apply plugins BEFORE indexes
+EmployeeSchema.plugin(tenantIsolationPlugin);
+EmployeeSchema.plugin(auditPlugin);
+
+// Tenant-scoped index
 EmployeeSchema.index({ orgId: 1, 'personal.email': 1 }, { unique: true });
 
 export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;

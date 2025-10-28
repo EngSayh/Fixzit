@@ -1,7 +1,7 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 
 const AuditSchema = new Schema({
-  tenantId: { type: String },
   userId: { type: String },
   role: { type: String },
   locale: { type: String, default: "en" },
@@ -15,8 +15,11 @@ const AuditSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
-// Composite index for common query patterns: tenant-scoped queries with user filtering and time-based sorting
-AuditSchema.index({ tenantId: 1, userId: 1, role: 1, createdAt: -1 });
+// Apply plugin BEFORE indexes
+AuditSchema.plugin(tenantIsolationPlugin);
+
+// Tenant-scoped composite index for common query patterns
+AuditSchema.index({ orgId: 1, userId: 1, role: 1, createdAt: -1 });
 
 export type CopilotAuditDoc = InferSchemaType<typeof AuditSchema>;
 

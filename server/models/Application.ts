@@ -1,4 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const ApplicationStages = [
   'applied',
@@ -42,7 +44,6 @@ const SnapshotSchema = new Schema({
 }, { _id: false });
 
 const ApplicationSchema = new Schema({
-  orgId: { type: String, required: true },
   jobId: { type: Schema.Types.ObjectId, required: true, ref: 'Job' },
   candidateId: { type: Schema.Types.ObjectId, required: true, ref: 'Candidate' },
   stage: { type: String, enum: ApplicationStages, default: 'applied' },
@@ -59,54 +60,27 @@ const ApplicationSchema = new Schema({
   metadata: { type: Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
+// Apply plugins BEFORE indexes for proper tenant isolation
+ApplicationSchema.plugin(tenantIsolationPlugin);
+ApplicationSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes for data isolation and performance
 ApplicationSchema.index({ orgId: 1, jobId: 1, candidateId: 1 }, { unique: true });
-ApplicationSchema.index({ stage: 1, score: -1 });
+ApplicationSchema.index({ orgId: 1, stage: 1, score: -1 });
 
 export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Document;
 
 export interface ApplicationModel extends Model<ApplicationDoc> {}
 
-function attachHistoryDefaults(application: Record<string, unknown>) {
-  if (!application) return application;
-  if (!Array.isArray(application.history) || application.history.length === 0) {
-    application.history = [{ action: 'applied', by: 'system', at: new Date() }];
-  }
-  if (!Array.isArray(application.flags)) application.flags = [];
-  if (!Array.isArray(application.reviewers)) application.reviewers = [];
-  if (!Array.isArray(application.notes)) application.notes = [];
-  if (!application.candidateSnapshot) application.candidateSnapshot = {};
-  return application;
-}
-
-// Add pre-save middleware to set defaults
+// Pre-save middleware to set defaults
 ApplicationSchema.pre('save', function() {
   if (this.isNew) {
     this.stage = this.stage || 'applied';
     this.score = this.score || 0;
     this.source = this.source || 'careers';
     if (!this.history || this.history.length === 0) {
-      // Create new history entry using the schema default
       this.history.push({ action: 'applied', by: 'candidate', at: new Date() });
     }
-  }
-});
-
-// Add post-find middleware to attach defaults
-ApplicationSchema.post('find', function(doc: Record<string, unknown>) {
-  if (doc && typeof attachHistoryDefaults === 'function') {
-    attachHistoryDefaults(doc);
-  }
-});
-
-ApplicationSchema.post('findOne', function(doc: Record<string, unknown>) {
-  if (doc && typeof attachHistoryDefaults === 'function') {
-    attachHistoryDefaults(doc);
-  }
-});
-
-ApplicationSchema.post('findOneAndUpdate', function(doc: Record<string, unknown>) {
-  if (doc && typeof attachHistoryDefaults === 'function') {
-    attachHistoryDefaults(doc);
   }
 });
 
