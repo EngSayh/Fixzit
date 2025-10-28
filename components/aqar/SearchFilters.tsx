@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, Home, Bed, Bath, DollarSign, Grid3x3 } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface SearchFiltersProps {
   onFilterChange?: (filters: PropertyFilters) => void;
@@ -27,34 +28,57 @@ export interface PropertyFilters {
   sortBy?: 'PRICE_ASC' | 'PRICE_DESC' | 'DATE_DESC' | 'AREA_DESC' | 'POPULAR';
 }
 
-const propertyTypes = [
-  { value: 'APARTMENT', label: 'Apartment', icon: '🏢' },
-  { value: 'VILLA', label: 'Villa', icon: '🏡' },
-  { value: 'TOWNHOUSE', label: 'Townhouse', icon: '🏘️' },
-  { value: 'PENTHOUSE', label: 'Penthouse', icon: '🏙️' },
-  { value: 'STUDIO', label: 'Studio', icon: '🏠' },
-  { value: 'LAND', label: 'Land', icon: '🗺️' },
-  { value: 'COMMERCIAL', label: 'Commercial', icon: '🏪' },
-  { value: 'WAREHOUSE', label: 'Warehouse', icon: '🏭' },
-  { value: 'OFFICE', label: 'Office', icon: '🏢' },
-];
-
-const amenitiesList = [
-  'Swimming Pool', 'Gym', 'Parking', 'Security', 'Garden', 'Balcony',
-  'Elevator', 'Central AC', 'Maid Room', 'Storage', 'Kids Area', 'BBQ Area'
-];
-
-const saudiCities = [
-  'Riyadh', 'Jeddah', 'Mecca', 'Medina', 'Dammam', 'Khobar', 'Dhahran',
-  'Jubail', 'Tabuk', 'Abha', 'Khamis Mushait', 'Najran', 'Jazan'
-];
-
 export default function SearchFilters({ onFilterChange, initialFilters }: SearchFiltersProps) {
+  const { t } = useTranslation();
+  
   const [filters, setFilters] = useState<PropertyFilters>(initialFilters || {
     listingType: 'ALL',
     sortBy: 'DATE_DESC',
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  const propertyTypes = [
+    { value: 'APARTMENT', label: t('aqar.propertyTypes.apartment', 'Apartment'), icon: '🏢' },
+    { value: 'VILLA', label: t('aqar.propertyTypes.villa', 'Villa'), icon: '🏡' },
+    { value: 'TOWNHOUSE', label: t('aqar.propertyTypes.townhouse', 'Townhouse'), icon: '🏘️' },
+    { value: 'PENTHOUSE', label: t('aqar.propertyTypes.penthouse', 'Penthouse'), icon: '🏙️' },
+    { value: 'STUDIO', label: t('aqar.propertyTypes.studio', 'Studio'), icon: '🏠' },
+    { value: 'LAND', label: t('aqar.propertyTypes.land', 'Land'), icon: '🗺️' },
+    { value: 'COMMERCIAL', label: t('aqar.propertyTypes.commercial', 'Commercial'), icon: '🏪' },
+    { value: 'WAREHOUSE', label: t('aqar.propertyTypes.warehouse', 'Warehouse'), icon: '🏭' },
+    { value: 'OFFICE', label: t('aqar.propertyTypes.office', 'Office'), icon: '🏢' },
+  ];
+
+  const amenitiesList = [
+    t('aqar.amenitiesList.swimmingPool', 'Swimming Pool'),
+    t('aqar.amenitiesList.gym', 'Gym'),
+    t('aqar.amenitiesList.parking', 'Parking'),
+    t('aqar.amenitiesList.security', 'Security'),
+    t('aqar.amenitiesList.garden', 'Garden'),
+    t('aqar.amenitiesList.balcony', 'Balcony'),
+    t('aqar.amenitiesList.elevator', 'Elevator'),
+    t('aqar.amenitiesList.centralAc', 'Central AC'),
+    t('aqar.amenitiesList.maidRoom', 'Maid Room'),
+    t('aqar.amenitiesList.storage', 'Storage'),
+    t('aqar.amenitiesList.kidsArea', 'Kids Area'),
+    t('aqar.amenitiesList.bbqArea', 'BBQ Area'),
+  ];
+
+  const saudiCities = [
+    t('aqar.cities.riyadh', 'Riyadh'),
+    t('aqar.cities.jeddah', 'Jeddah'),
+    t('aqar.cities.mecca', 'Mecca'),
+    t('aqar.cities.medina', 'Medina'),
+    t('aqar.cities.dammam', 'Dammam'),
+    t('aqar.cities.khobar', 'Khobar'),
+    t('aqar.cities.dhahran', 'Dhahran'),
+    t('aqar.cities.jubail', 'Jubail'),
+    t('aqar.cities.tabuk', 'Tabuk'),
+    t('aqar.cities.abha', 'Abha'),
+    t('aqar.cities.khamisMushait', 'Khamis Mushait'),
+    t('aqar.cities.najran', 'Najran'),
+    t('aqar.cities.jazan', 'Jazan'),
+  ];
   // TODO: Add mobile filter state here when implementing responsive mobile filter panel
 
   const updateFilters = (updates: Partial<PropertyFilters>) => {
@@ -132,7 +156,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
-          placeholder="Search by location, property name, or keyword..."
+          placeholder={t('aqar.filters.search', 'Search by location, property name, or keyword...')}
           value={filters.search || ''}
           onChange={(e) => updateFilters({ search: e.target.value })}
           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
@@ -149,7 +173,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          All
+          {t('aqar.filters.all', 'All')}
         </button>
         <button
           onClick={() => updateFilters({ listingType: 'SALE' })}
@@ -159,7 +183,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          For Sale
+          {t('aqar.filters.forSale', 'For Sale')}
         </button>
         <button
           onClick={() => updateFilters({ listingType: 'RENT' })}
@@ -169,7 +193,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          For Rent
+          {t('aqar.filters.forRent', 'For Rent')}
         </button>
         <button
           onClick={() => updateFilters({ listingType: 'LEASE' })}
@@ -179,7 +203,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          For Lease
+          {t('aqar.filters.forLease', 'For Lease')}
         </button>
         <div className="flex-1" />
         <button
@@ -187,7 +211,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
         >
           <SlidersHorizontal className="w-4 h-4" />
-          <span>Filters</span>
+          <span>{t('aqar.filters.filtersButton', 'Filters')}</span>
           {activeFilterCount() > 0 && (
             <span className="bg-[#FF8C00] text-white text-xs px-2 py-0.5 rounded-full">
               {activeFilterCount()}
@@ -203,7 +227,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <Home className="w-4 h-4" />
-              Property Type
+              {t('aqar.filters.propertyType', 'Property Type')}
             </h3>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
               {propertyTypes.map((type) => (
@@ -227,14 +251,14 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Price Range (SAR)
+              {t('aqar.filters.priceRange', 'Price Range (SAR)')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">Minimum</label>
+                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
-                  placeholder="Min"
+                  placeholder={t('aqar.filters.min', 'Min')}
                   value={filters.priceMin || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -251,10 +275,10 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">Maximum</label>
+                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
-                  placeholder="Max"
+                  placeholder={t('aqar.filters.max', 'Max')}
                   value={filters.priceMax || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -277,7 +301,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <Bed className="w-4 h-4" />
-              Bedrooms
+              {t('aqar.filters.bedrooms', 'Bedrooms')}
             </h3>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((count) => (
@@ -300,7 +324,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <Bath className="w-4 h-4" />
-              Bathrooms
+              {t('aqar.filters.bathrooms', 'Bathrooms')}
             </h3>
             <div className="flex gap-2">
               {[1, 2, 3, 4].map((count) => (
@@ -323,14 +347,14 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <Grid3x3 className="w-4 h-4" />
-              Area (sqm)
+              {t('aqar.filters.area', 'Area (sqm)')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">Minimum</label>
+                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
-                  placeholder="Min"
+                  placeholder={t('aqar.filters.min', 'Min')}
                   value={filters.areaMin || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -347,10 +371,10 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">Maximum</label>
+                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
-                  placeholder="Max"
+                  placeholder={t('aqar.filters.max', 'Max')}
                   value={filters.areaMax || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -373,27 +397,27 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              Location
+              {t('aqar.filters.location', 'Location')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">City</label>
+                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.city', 'City')}</label>
                 <select
                   value={filters.city || ''}
                   onChange={(e) => updateFilters({ city: e.target.value || undefined })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 >
-                  <option value="">All Cities</option>
+                  <option value="">{t('aqar.filters.allCities', 'All Cities')}</option>
                   {saudiCities.map((city) => (
                     <option key={city} value={city}>{city}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">District</label>
+                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.district', 'District')}</label>
                 <input
                   type="text"
-                  placeholder="Enter district"
+                  placeholder={t('aqar.filters.enterDistrict', 'Enter district')}
                   value={filters.district || ''}
                   onChange={(e) => updateFilters({ district: e.target.value || undefined })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
@@ -404,7 +428,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Amenities */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Amenities</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t('aqar.filters.amenities', 'Amenities')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {amenitiesList.map((amenity) => (
                 <label
@@ -425,7 +449,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Additional Options */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Additional Options</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t('aqar.filters.additionalOptions', 'Additional Options')}</h3>
             <div className="space-y-2">
               <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
                 <input
@@ -434,7 +458,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onChange={(e) => updateFilters({ furnished: e.target.checked || null })}
                   className="w-4 h-4 text-[#FFB400] border-gray-300 rounded focus:ring-[#FFB400]"
                 />
-                <span className="text-sm text-gray-700">Furnished</span>
+                <span className="text-sm text-gray-700">{t('aqar.filters.furnished', 'Furnished')}</span>
               </label>
               <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
                 <input
@@ -443,7 +467,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onChange={(e) => updateFilters({ featured: e.target.checked })}
                   className="w-4 h-4 text-[#FFB400] border-gray-300 rounded focus:ring-[#FFB400]"
                 />
-                <span className="text-sm text-gray-700">Featured Properties Only</span>
+                <span className="text-sm text-gray-700">{t('aqar.filters.featuredOnly', 'Featured Properties Only')}</span>
               </label>
               <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
                 <input
@@ -452,24 +476,24 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onChange={(e) => updateFilters({ verified: e.target.checked })}
                   className="w-4 h-4 text-[#FFB400] border-gray-300 rounded focus:ring-[#FFB400]"
                 />
-                <span className="text-sm text-gray-700">Verified Properties Only</span>
+                <span className="text-sm text-gray-700">{t('aqar.filters.verifiedOnly', 'Verified Properties Only')}</span>
               </label>
             </div>
           </div>
 
           {/* Sort By */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Sort By</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t('aqar.filters.sortBy', 'Sort By')}</h3>
             <select
               value={filters.sortBy || 'DATE_DESC'}
               onChange={(e) => updateFilters({ sortBy: e.target.value as PropertyFilters['sortBy'] })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
             >
-              <option value="DATE_DESC">Newest First</option>
-              <option value="PRICE_ASC">Price: Low to High</option>
-              <option value="PRICE_DESC">Price: High to Low</option>
-              <option value="AREA_DESC">Largest First</option>
-              <option value="POPULAR">Most Popular</option>
+              <option value="DATE_DESC">{t('aqar.filters.newestFirst', 'Newest First')}</option>
+              <option value="PRICE_ASC">{t('aqar.filters.priceLowToHigh', 'Price: Low to High')}</option>
+              <option value="PRICE_DESC">{t('aqar.filters.priceHighToLow', 'Price: High to Low')}</option>
+              <option value="AREA_DESC">{t('aqar.filters.largestFirst', 'Largest First')}</option>
+              <option value="POPULAR">{t('aqar.filters.mostPopular', 'Most Popular')}</option>
             </select>
           </div>
 
@@ -479,13 +503,13 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               onClick={clearFilters}
               className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
             >
-              Clear All
+              {t('aqar.filters.clearAll', 'Clear All')}
             </button>
             <button
               onClick={() => setShowAdvanced(false)}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
             >
-              Apply Filters
+              {t('aqar.filters.applyFilters', 'Apply Filters')}
             </button>
           </div>
         </div>
@@ -495,7 +519,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
       {activeFilterCount() > 0 && !showAdvanced && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+            <span className="text-sm font-medium text-gray-700">{t('aqar.filters.activeFilters', 'Active Filters:')}</span>
             {filters.listingType && filters.listingType !== 'ALL' && (
               <span className="px-3 py-1 bg-[#FFB400] text-white text-sm rounded-full flex items-center gap-1">
                 {filters.listingType}
@@ -506,7 +530,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             )}
             {(filters.propertyTypes?.length || 0) > 0 && (
               <span className="px-3 py-1 bg-[#FFB400] text-white text-sm rounded-full flex items-center gap-1">
-                {filters.propertyTypes!.length} types
+                {filters.propertyTypes!.length} {t('aqar.filters.typesSelected', 'types')}
                 <button onClick={() => updateFilters({ propertyTypes: [] })}>
                   <X className="w-3 h-3" />
                 </button>
@@ -516,7 +540,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               onClick={clearFilters}
               className="ml-auto text-sm text-[#FF8C00] hover:text-[#FFB400] font-medium"
             >
-              Clear All
+              {t('aqar.filters.clearAll', 'Clear All')}
             </button>
           </div>
         </div>
