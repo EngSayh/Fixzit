@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { authOptions } from '@/auth';
+
 import { dbConnect } from '@/lib/mongodb-unified';
 import LedgerEntry from '@/server/models/finance/LedgerEntry';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
@@ -25,10 +25,9 @@ async function getUserSession(_req: NextRequest) {
   }
   
   return {
-    userId: user.id || '',
-    orgId: user.orgId || '',
-    email: user.email || '',
-    role: user.role || ''
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role
   };
 }
 
@@ -72,13 +71,13 @@ export async function GET(req: NextRequest) {
     );
     
     // Calculate totals
-    const totalDebits = trialBalance.reduce((sum, account) => sum + account.totalDebits, 0);
-    const totalCredits = trialBalance.reduce((sum, account) => sum + account.totalCredits, 0);
+    const totalDebits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalDebits, 0);
+    const totalCredits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalCredits, 0);
     const totalBalance = totalDebits - totalCredits;
     
     // Group by account type
     const byType: Record<string, typeof trialBalance> = {};
-    trialBalance.forEach(account => {
+    trialBalance.forEach((account: { accountType: string }) => {
       if (!byType[account.accountType]) {
         byType[account.accountType] = [];
       }

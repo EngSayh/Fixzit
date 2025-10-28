@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { authOptions } from '@/auth';
+
 import { dbConnect } from '@/lib/mongodb-unified';
 import LedgerEntry from '@/server/models/finance/LedgerEntry';
 import ChartAccount from '@/server/models/finance/ChartAccount';
@@ -26,10 +26,9 @@ async function getUserSession(_req: NextRequest) {
   }
   
   return {
-    userId: user.id || '',
-    orgId: user.orgId || '',
-    email: user.email || '',
-    role: user.role || ''
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role
   };
 }
 
@@ -79,8 +78,8 @@ export async function GET(
     const activity = await LedgerEntry.getAccountActivity(
       new Types.ObjectId(user.orgId),
       new Types.ObjectId(params.accountId),
-      startDate ? new Date(startDate) : undefined,
-      endDate ? new Date(endDate) : undefined
+      startDate ? new Date(startDate) : new Date(0),
+      endDate ? new Date(endDate) : new Date()
     );
     
     // Apply pagination
@@ -96,7 +95,7 @@ export async function GET(
         date: { $lt: new Date(startDate) }
       }).sort({ date: 1, createdAt: 1 });
       
-      openingBalance = entriesBeforeStart.reduce((balance, entry) => {
+      openingBalance = entriesBeforeStart.reduce((balance: number, entry: { debit: number; credit: number }) => {
         return balance + entry.debit - entry.credit;
       }, 0);
     }
