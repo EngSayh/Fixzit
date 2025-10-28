@@ -67,7 +67,7 @@ export function hasPermission(userRole: string, permission: keyof typeof Finance
     console.warn(`Unknown permission: ${permission}`);
     return false;
   }
-  return allowedRoles.includes(userRole as Role);
+  return allowedRoles.includes(userRole as never);
 }
 
 /**
