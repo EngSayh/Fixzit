@@ -42,7 +42,7 @@ async function getUserSession(req: NextRequest) {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     await dbConnect();
@@ -56,8 +56,11 @@ export async function POST(
     // Authorization check
     requirePermission(user.role, 'finance.journals.post');
     
+    // Resolve params
+    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    
     // Validate journal ID
-    if (!Types.ObjectId.isValid(params.id)) {
+    if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json({ error: 'Invalid journal ID' }, { status: 400 });
     }
     
@@ -67,7 +70,7 @@ export async function POST(
       async () => {
         // Check journal exists and belongs to org
         const journal = await Journal.findOne({
-          _id: new Types.ObjectId(params.id),
+          _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId)
         });
         
@@ -83,7 +86,7 @@ export async function POST(
         }
         
         // Post journal to ledger using postingService
-        const result = await postingService.postJournal(new Types.ObjectId(params.id));
+        const result = await postingService.postJournal(new Types.ObjectId(_params.id));
         
         return NextResponse.json({
           success: true,
