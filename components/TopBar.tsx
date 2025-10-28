@@ -98,9 +98,29 @@ export default function TopBar() {
   // Use NextAuth session for authentication (supports both OAuth and JWT)
   const { data: session, status } = useSession();
   
-  // CRITICAL: Only show authenticated UI when explicitly authenticated
-  // 'loading' status should be treated as unauthenticated to prevent flash of auth UI
-  const isAuthenticated = status === 'authenticated' && session != null;
+  // Fallback auth check for JWT-based sessions (not using NextAuth)
+  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
+  
+  // Check for JWT auth if NextAuth session is not available
+  useEffect(() => {
+    let abort = false;
+    // Only fetch if NextAuth isn't authenticated yet
+    if (status !== 'authenticated' && status !== 'loading') {
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { 
+          if (!abort && data?.user?.id) {
+            setAuthUser({ id: data.user.id, role: data.user.role });
+          }
+        })
+        .catch(() => {/* silently ignore - user is guest */});
+    }
+    return () => { abort = true; };
+  }, [status]);
+  
+  // CRITICAL: Check both NextAuth AND JWT-based auth
+  // This handles users logged in via either method
+  const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
 
   // Use FormStateContext for unsaved changes detection
   const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();

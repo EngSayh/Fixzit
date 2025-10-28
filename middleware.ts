@@ -117,6 +117,9 @@ const publicApiPrefixes = [
   '/api/help', 
   '/api/assistant', 
   '/api/health',
+  '/api/i18n',                    // Allow translations for all users
+  '/api/qa/health',               // Telemetry/health checks
+  '/api/qa/reconnect',            // Telemetry reconnect
   '/api/marketplace/categories',  // Public marketplace browsing
   '/api/marketplace/products',    // Public product listing
   '/api/marketplace/search',      // Public search
