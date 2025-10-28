@@ -2,8 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Bot, Calendar, CheckCircle2, ClipboardList, FileText, Loader2, Send, ShieldCheck, Upload, X } from 'lucide-react';
+import { AlertTriangle, Bot, Calendar, CheckCircle2, ClipboardList, FileText, Loader2, Send, ShieldCheck, Upload, WifiOff, X } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+
+// Declare global for deduplication tracking
+declare global {
+  interface Window {
+    __copilotLastRequest?: number;
+  }
+}
 
 interface ChatMessage {
   id: string;
@@ -77,7 +84,9 @@ const translations = {
     requiredField: 'Please complete the required fields.',
     chooseFile: 'Choose file',
     cancel: 'Cancel',
-    run: 'Run'
+    run: 'Run',
+    offline: 'No internet connection. Messages will be sent when back online.',
+    rateLimited: 'Please wait a moment before sending another message.'
   },
   ar: {
     title: 'مساعد فيكزت',
@@ -95,7 +104,9 @@ const translations = {
     requiredField: 'يرجى إكمال الحقول المطلوبة.',
     chooseFile: 'اختر ملفاً',
     cancel: 'إلغاء',
-    run: 'تنفيذ'
+    run: 'تنفيذ',
+    offline: 'لا يوجد اتصال بالإنترنت. سيتم إرسال الرسائل عند العودة للإنترنت.',
+    rateLimited: 'يرجى الانتظار قليلاً قبل إرسال رسالة أخرى.'
   }
 };
 
@@ -172,12 +183,29 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [forms, setForms] = useState<Record<string, ToolFormState>>(initialForms);
   const [error, setError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Sync with global language - use TranslationContext instead of API locale
   const locale: 'en' | 'ar' = globalLocale === 'ar' ? 'ar' : 'en';
   const t = translations[locale];
   const isRTL = locale === 'ar';
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     async function bootstrap() {
@@ -216,11 +244,33 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || loading) return;
+    
+    // Rate limiting: prevent rapid-fire requests
+    const now = Date.now();
+    if (window.__copilotLastRequest && now - window.__copilotLastRequest < 1000) {
+      setError(t.rateLimited);
+      return;
+    }
+    window.__copilotLastRequest = now;
+
+    // Check online status
+    if (!isOnline) {
+      setError(t.offline);
+      return;
+    }
+
     const userMessage: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setError(null);
     setLoading(true);
+
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       const response = await fetch('/api/copilot/chat', {
         method: 'POST',
@@ -229,7 +279,8 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           message: userMessage.content,
           history: messages.slice(-6).map(({ role, content }) => ({ role, content })),
           locale
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
       const data = await response.json();
       if (!response.ok) {
@@ -237,14 +288,34 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       }
       appendAssistantMessage(data.reply, data.data, data.intent, data.sources);
     } catch (err: unknown) {
+      // Ignore abort errors (user cancelled)
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
+      
       const error = err as Error;
       console.error('Copilot chat error', error);
+      
+      // Report critical errors to incident system
+      if (typeof window !== 'undefined' && error?.message && !error.message.includes('401')) {
+        try {
+          const blob = new Blob([JSON.stringify({
+            code: 'UI-COPILOT-CHAT-ERR',
+            message: error.message,
+            details: error.stack,
+            context: { locale, messageLength: input.length }
+          })], { type: 'application/json' });
+          navigator.sendBeacon?.('/api/support/incidents', blob);
+        } catch {/* ignore reporting errors */}
+      }
+      
       setError(error?.message || t.toolError);
       setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'system', content: error?.message || t.toolError }]);
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
-  }, [appendAssistantMessage, input, loading, locale, messages, t.toolError]);
+  }, [appendAssistantMessage, input, loading, locale, messages, t.toolError, t.rateLimited, t.offline, isOnline]);
 
   const updateForm = (tool: string, field: string, value: unknown) => {
     setForms(prev => ({ ...prev, [tool]: { ...prev[tool], [field]: value } }));
@@ -255,8 +326,21 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   };
 
   const runTool = async (tool: string, args: Record<string, unknown>) => {
+    // Check online status
+    if (!isOnline) {
+      setError(t.offline);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       let res: Response;
       if (tool === 'uploadWorkOrderPhoto') {
@@ -264,12 +348,17 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         fd.append('tool', tool);
         fd.append('workOrderId', String(args.workOrderId));
         fd.append('file', args.file as File);
-        res = await fetch('/api/copilot/chat', { method: 'POST', body: fd });
+        res = await fetch('/api/copilot/chat', { 
+          method: 'POST', 
+          body: fd,
+          signal: abortControllerRef.current.signal
+        });
       } else {
         res = await fetch('/api/copilot/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tool: { name: tool, args }, locale })
+          body: JSON.stringify({ tool: { name: tool, args }, locale }),
+          signal: abortControllerRef.current.signal
         });
       }
       const data = await res.json();
@@ -280,11 +369,31 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       resetForm(tool);
       setActiveTool(null);
     } catch (err: unknown) {
+      // Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
+
       const error = err as Error;
       console.error('Tool error', error);
+      
+      // Report tool errors to incident system
+      if (typeof window !== 'undefined' && error?.message && !error.message.includes('401')) {
+        try {
+          const blob = new Blob([JSON.stringify({
+            code: 'UI-COPILOT-TOOL-ERR',
+            message: error.message,
+            details: error.stack,
+            context: { tool, locale }
+          })], { type: 'application/json' });
+          navigator.sendBeacon?.('/api/support/incidents', blob);
+        } catch {/* ignore reporting errors */}
+      }
+
       setError(error?.message || t.toolError);
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -390,9 +499,17 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         )}
       </div>
 
-      <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
-        <ShieldCheck className="h-4 w-4 text-[#00A859]" />
-        {t.privacy}
+      <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-[#00A859]" />
+          {t.privacy}
+        </div>
+        {!isOnline && (
+          <div className="flex items-center gap-1 text-amber-600" role="status" aria-live="polite">
+            <WifiOff className="h-3 w-3" />
+            <span>{locale === 'ar' ? 'بدون اتصال' : 'Offline'}</span>
+          </div>
+        )}
       </div>
 
       {/* Message container with aria-live for screen reader announcements */}
@@ -496,9 +613,10 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           />
           <button
             onClick={sendMessage}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || loading || !isOnline}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00A859] text-white shadow transition hover:bg-[#008d48] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={t.send}
+            title={!isOnline ? t.offline : t.send}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
