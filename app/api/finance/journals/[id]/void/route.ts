@@ -61,6 +61,9 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Authorization check
+    requirePermission(user.role, 'finance.journals.void');
+    
     // Validate journal ID
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json({ error: 'Invalid journal ID' }, { status: 400 });
@@ -70,46 +73,52 @@ export async function POST(
     const body = await req.json();
     const validated = VoidJournalSchema.parse(body);
     
-    // Set context for plugins// Check journal exists and belongs to org
-    const journal = await Journal.findOne({
-      _id: new Types.ObjectId(params.id),
-      orgId: new Types.ObjectId(user.orgId)
-    });
-    
-    if (!journal) {
-      return NextResponse.json({ error: 'Journal not found' }, { status: 404 });
-    }
-    
-    // Check journal status
-    if (journal.status !== 'POSTED') {
-      return NextResponse.json({
-        error: `Cannot void journal with status ${journal.status}. Only POSTED journals can be voided.`
-      }, { status: 400 });
-    }
-    
-    // Void journal using postingService (creates reversal journal)
-    const result = await postingService.voidJournal(
-      new Types.ObjectId(params.id),
-      new Types.ObjectId(user.userId),
-      validated.reason
-    );
-    
-    return NextResponse.json({
-      success: true,
-      data: {
-        originalJournal: result.originalJournal,
-        reversingJournal: result.reversingJournal,
-        message: `Journal ${result.originalJournal.journalNumber} voided. Reversal journal ${result.reversingJournal.journalNumber} created and posted.`
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Check journal exists and belongs to org
+        const journal = await Journal.findOne({
+          _id: new Types.ObjectId(params.id),
+          orgId: new Types.ObjectId(user.orgId)
+        });
+        
+        if (!journal) {
+          return NextResponse.json({ error: 'Journal not found' }, { status: 404 });
+        }
+        
+        // Check journal status
+        if (journal.status !== 'POSTED') {
+          return NextResponse.json({
+            error: `Cannot void journal with status ${journal.status}. Only POSTED journals can be voided.`
+          }, { status: 400 });
+        }
+        
+        // Void journal using postingService (creates reversal journal)
+        const result = await postingService.voidJournal(
+          new Types.ObjectId(params.id),
+          new Types.ObjectId(user.userId),
+          validated.reason
+        );
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            originalJournal: result.originalJournal,
+            reversingJournal: result.reversingJournal,
+            message: `Journal ${result.originalJournal.journalNumber} voided. Reversal journal ${result.reversingJournal.journalNumber} created and posted.`
+          }
+        });
       }
-    });
+    );
     
   } catch (error) {
     console.error('POST /api/finance/journals/[id]/void error:', error);
     
-
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
     }
+    
     if (error instanceof z.ZodError) {
       return NextResponse.json({
         error: 'Validation failed',
