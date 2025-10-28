@@ -13,8 +13,8 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { dbConnect } from '@/lib/mongodb-unified';
 import ChartAccount from '@/server/models/finance/ChartAccount';
 import LedgerEntry from '@/server/models/finance/LedgerEntry';
-import { setTenantContext } from '@/server/plugins/tenantIsolation';
-import { setAuditContext } from '@/server/plugins/auditPlugin';
+import { runWithContext } from '@/server/lib/authContext';
+import { requirePermission } from '@/server/lib/rbac.config';
 import { Types } from 'mongoose';
 import { z } from 'zod';
 
@@ -65,56 +65,66 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Authorization check
+    requirePermission(user.role, 'finance.accounts.read');
+    
     // Validate account ID
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
     }
     
-    // Set tenant context
-    setTenantContext({ orgId: user.orgId });
-    
-    // Get account
-    const account = await ChartAccount.findOne({
-      _id: new Types.ObjectId(params.id),
-      orgId: new Types.ObjectId(user.orgId)
-    });
-    
-    if (!account) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-    }
-    
-    // Get parent account if exists
-    let parent = null;
-    if (account.parentId) {
-      parent = await ChartAccount.findById(account.parentId).lean();
-    }
-    
-    // Get child accounts
-    const children = await ChartAccount.find({
-      orgId: new Types.ObjectId(user.orgId),
-      parentId: account._id
-    }).lean();
-    
-    // Get current balance from most recent ledger entry
-    const latestEntry = await LedgerEntry.findOne({
-      orgId: new Types.ObjectId(user.orgId),
-      accountId: account._id
-    }).sort({ date: -1, createdAt: -1 }).lean();
-    
-    const currentBalance = latestEntry ? ((latestEntry as { runningBalance?: number }).runningBalance || 0) : 0;
-    
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...account.toObject(),
-        parent,
-        children,
-        currentBalance
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Get account
+        const account = await ChartAccount.findOne({
+          _id: new Types.ObjectId(params.id),
+          orgId: new Types.ObjectId(user.orgId)
+        });
+        
+        if (!account) {
+          return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+        }
+        
+        // Get parent account if exists
+        let parent = null;
+        if (account.parentId) {
+          parent = await ChartAccount.findById(account.parentId).lean();
+        }
+        
+        // Get child accounts
+        const children = await ChartAccount.find({
+          orgId: new Types.ObjectId(user.orgId),
+          parentId: account._id
+        }).lean();
+        
+        // Get current balance from most recent ledger entry
+        const latestEntry = await LedgerEntry.findOne({
+          orgId: new Types.ObjectId(user.orgId),
+          accountId: account._id
+        }).sort({ date: -1, createdAt: -1 }).lean();
+        
+        const currentBalance = latestEntry ? ((latestEntry as { runningBalance?: number }).runningBalance || 0) : 0;
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            ...account.toObject(),
+            parent,
+            children,
+            currentBalance
+          }
+        });
       }
-    });
+    );
     
   } catch (error) {
     console.error('GET /api/finance/accounts/[id] error:', error);
+    
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Internal server error'
@@ -139,6 +149,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Authorization check
+    requirePermission(user.role, 'finance.accounts.update');
+    
     // Validate account ID
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
@@ -148,40 +161,42 @@ export async function PUT(
     const body = await req.json();
     const validated = UpdateAccountSchema.parse(body);
     
-    // Set context for plugins
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ 
-      userId: user.userId,
-      userEmail: user.userId,
-      timestamp: new Date()
-    });
-    
-    // Get account
-    const account = await ChartAccount.findOne({
-      _id: new Types.ObjectId(params.id),
-      orgId: new Types.ObjectId(user.orgId)
-    });
-    
-    if (!account) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-    }
-    
-    // Update fields (only allow updating certain fields)
-    if (validated.accountName !== undefined) account.accountName = validated.accountName;
-    if (validated.description !== undefined) account.description = validated.description;
-    if (validated.taxable !== undefined) account.taxable = validated.taxable;
-    if (validated.taxRate !== undefined) account.taxRate = validated.taxRate;
-    if (validated.isActive !== undefined) account.isActive = validated.isActive;
-    
-    await account.save();
-    
-    return NextResponse.json({
-      success: true,
-      data: account
-    });
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Get account
+        const account = await ChartAccount.findOne({
+          _id: new Types.ObjectId(params.id),
+          orgId: new Types.ObjectId(user.orgId)
+        });
+        
+        if (!account) {
+          return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+        }
+        
+        // Update fields (only allow updating certain fields)
+        if (validated.accountName !== undefined) account.accountName = validated.accountName;
+        if (validated.description !== undefined) account.description = validated.description;
+        if (validated.taxable !== undefined) account.taxable = validated.taxable;
+        if (validated.taxRate !== undefined) account.taxRate = validated.taxRate;
+        if (validated.isActive !== undefined) account.isActive = validated.isActive;
+        
+        await account.save();
+        
+        return NextResponse.json({
+          success: true,
+          data: account
+        });
+      }
+    );
     
   } catch (error) {
     console.error('PUT /api/finance/accounts/[id] error:', error);
+    
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     
     if (error instanceof z.ZodError) {
       return NextResponse.json({
@@ -213,65 +228,70 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Authorization check
+    requirePermission(user.role, 'finance.accounts.delete');
+    
     // Validate account ID
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
     }
     
-    // Set context for plugins
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ 
-      userId: user.userId,
-      userEmail: user.userId,
-      timestamp: new Date()
-    });
-    
-    // Get account
-    const account = await ChartAccount.findOne({
-      _id: new Types.ObjectId(params.id),
-      orgId: new Types.ObjectId(user.orgId)
-    });
-    
-    if (!account) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-    }
-    
-    // Check if account has ledger entries
-    const hasEntries = await LedgerEntry.exists({
-      orgId: new Types.ObjectId(user.orgId),
-      accountId: account._id
-    });
-    
-    if (hasEntries) {
-      return NextResponse.json({
-        error: 'Cannot delete account with existing ledger entries. Use deactivation instead.'
-      }, { status: 400 });
-    }
-    
-    // Check if account has children
-    const hasChildren = await ChartAccount.exists({
-      orgId: new Types.ObjectId(user.orgId),
-      parentId: account._id
-    });
-    
-    if (hasChildren) {
-      return NextResponse.json({
-        error: 'Cannot delete account with child accounts. Delete children first or deactivate instead.'
-      }, { status: 400 });
-    }
-    
-    // Soft delete by setting isActive = false
-    account.isActive = false;
-    await account.save();
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Account deactivated successfully',
-      data: account
-    });
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Get account
+        const account = await ChartAccount.findOne({
+          _id: new Types.ObjectId(params.id),
+          orgId: new Types.ObjectId(user.orgId)
+        });
+        
+        if (!account) {
+          return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+        }
+        
+        // Check if account has ledger entries
+        const hasEntries = await LedgerEntry.exists({
+          orgId: new Types.ObjectId(user.orgId),
+          accountId: account._id
+        });
+        
+        if (hasEntries) {
+          return NextResponse.json({
+            error: 'Cannot delete account with existing ledger entries. Use deactivation instead.'
+          }, { status: 400 });
+        }
+        
+        // Check if account has children
+        const hasChildren = await ChartAccount.exists({
+          orgId: new Types.ObjectId(user.orgId),
+          parentId: account._id
+        });
+        
+        if (hasChildren) {
+          return NextResponse.json({
+            error: 'Cannot delete account with child accounts. Delete children first or deactivate instead.'
+          }, { status: 400 });
+        }
+        
+        // Soft delete by setting isActive = false
+        account.isActive = false;
+        await account.save();
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Account deactivated successfully',
+          data: account
+        });
+      }
+    );
     
   } catch (error) {
     console.error('DELETE /api/finance/accounts/[id] error:', error);
+    
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Internal server error'

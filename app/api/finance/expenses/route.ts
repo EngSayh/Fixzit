@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Expense } from '@/server/models/finance/Expense';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { setTenantContext, setAuditContext } from '@/server/models/plugins/tenantAudit';
+import { runWithContext } from '@/server/lib/authContext';
+import { requirePermission } from '@/server/lib/rbac.config';
 
 // Validation schemas
 const ExpenseLineItemSchema = z.object({
@@ -94,34 +95,43 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getUserSession(req);
 
-    // Set tenant and audit context
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ userId: user.userId });
+    // Authorization check
+    requirePermission(user.role, 'finance.expenses.create');
 
     // Parse request body
     const body = await req.json();
     const data = CreateExpenseSchema.parse(body);
 
-    // Create expense
-    const expense = await Expense.create({
-      ...data,
-      orgId: user.orgId,
-      createdBy: user.userId,
-      status: data.status || 'DRAFT',
-    });
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Create expense
+        const expense = await Expense.create({
+          ...data,
+          orgId: user.orgId,
+          createdBy: user.userId,
+          status: data.status || 'DRAFT',
+        });
 
-    // If submitted (not draft), trigger approval workflow
-    if (data.status === 'SUBMITTED') {
-      await expense.submit(user.userId);
-    }
+        // If submitted (not draft), trigger approval workflow
+        if (data.status === 'SUBMITTED') {
+          await expense.submit(user.userId);
+        }
 
-    return NextResponse.json({
-      success: true,
-      data: expense,
-      message: data.status === 'SUBMITTED' ? 'Expense submitted for approval' : 'Expense draft created',
-    });
+        return NextResponse.json({
+          success: true,
+          data: expense,
+          message: data.status === 'SUBMITTED' ? 'Expense submitted for approval' : 'Expense draft created',
+        });
+      }
+    );
   } catch (error) {
     console.error('Error creating expense:', error);
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -152,78 +162,89 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getUserSession(req);
 
-    // Set tenant context
-    setTenantContext({ orgId: user.orgId });
+    // Authorization check
+    requirePermission(user.role, 'finance.expenses.read');
 
     const { searchParams } = new URL(req.url);
 
-    // Build query
-    const query: Record<string, unknown> = {
-      orgId: user.orgId,
-    };
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        // Build query
+        const query: Record<string, unknown> = {
+          orgId: user.orgId,
+        };
 
-    // Filters
-    const status = searchParams.get('status');
-    if (status) query.status = status;
+        // Filters
+        const status = searchParams.get('status');
+        if (status) query.status = status;
 
-    const expenseType = searchParams.get('expenseType');
-    if (expenseType) query.expenseType = expenseType;
+        const expenseType = searchParams.get('expenseType');
+        if (expenseType) query.expenseType = expenseType;
 
-    const category = searchParams.get('category');
-    if (category) query.category = category;
+        const category = searchParams.get('category');
+        if (category) query.category = category;
 
-    const vendorId = searchParams.get('vendorId');
-    if (vendorId) query.vendorId = vendorId;
+        const vendorId = searchParams.get('vendorId');
+        if (vendorId) query.vendorId = vendorId;
 
-    const propertyId = searchParams.get('propertyId');
-    if (propertyId) query.propertyId = propertyId;
+        const propertyId = searchParams.get('propertyId');
+        if (propertyId) query.propertyId = propertyId;
 
-    const unitId = searchParams.get('unitId');
-    if (unitId) query.unitId = unitId;
+        const unitId = searchParams.get('unitId');
+        if (unitId) query.unitId = unitId;
 
-    const workOrderId = searchParams.get('workOrderId');
-    if (workOrderId) query.workOrderId = workOrderId;
+        const workOrderId = searchParams.get('workOrderId');
+        if (workOrderId) query.workOrderId = workOrderId;
 
-    // Date range
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    if (startDate || endDate) {
-      query.expenseDate = {};
-      if (startDate) {
-        (query.expenseDate as { $gte?: Date }).$gte = new Date(startDate);
+        // Date range
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+        if (startDate || endDate) {
+          query.expenseDate = {};
+          if (startDate) {
+            (query.expenseDate as { $gte?: Date }).$gte = new Date(startDate);
+          }
+          if (endDate) {
+            (query.expenseDate as { $lte?: Date }).$lte = new Date(endDate);
+          }
+        }
+
+        // Pagination
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '50', 10);
+        const skip = (page - 1) * limit;
+
+        // Execute query
+        const [expenses, totalCount] = await Promise.all([
+          Expense.find(query)
+            .sort({ expenseDate: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          Expense.countDocuments(query),
+        ]);
+
+        return NextResponse.json({
+          success: true,
+          data: expenses,
+          pagination: {
+            page,
+            limit,
+            totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+          },
+        });
       }
-      if (endDate) {
-        (query.expenseDate as { $lte?: Date }).$lte = new Date(endDate);
-      }
-    }
-
-    // Pagination
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const skip = (page - 1) * limit;
-
-    // Execute query
-    const [expenses, totalCount] = await Promise.all([
-      Expense.find(query)
-        .sort({ expenseDate: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Expense.countDocuments(query),
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      data: expenses,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
-    });
+    );
   } catch (error) {
     console.error('Error fetching expenses:', error);
+    
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
+    
     return NextResponse.json(
       {
         success: false,

@@ -10,7 +10,9 @@ import { Types } from 'mongoose';
 import { z } from 'zod';
 import { Payment } from '@/server/models/finance/Payment';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { setTenantContext, setAuditContext } from '@/server/models/plugins/tenantAudit';
+import { runWithContext } from '@/server/lib/authContext';
+import { requirePermission } from '@/server/lib/rbac.config';
+
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);

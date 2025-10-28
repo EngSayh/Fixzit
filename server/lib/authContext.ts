@@ -1,7 +1,9 @@
 /**
  * Request context utilities for Finance Pack
- * Provides thread-safe user/tenant context for service layer
+ * Provides thread-safe user/tenant context for service layer using AsyncLocalStorage
  */
+
+import { AsyncLocalStorage } from 'async_hooks';
 
 export interface RequestContext {
   userId: string;
@@ -10,25 +12,25 @@ export interface RequestContext {
   timestamp: Date;
 }
 
-// AsyncLocalStorage for thread-safe context in Node.js
-// Note: In actual implementation, this would use Node's AsyncLocalStorage API
-// For now, using a simple in-memory store (NOT thread-safe, for development only)
-let currentContext: RequestContext | null = null;
+// Thread-safe context storage using Node.js AsyncLocalStorage
+const requestStorage = new AsyncLocalStorage<RequestContext>();
 
 /**
- * Set request context for current execution
- * Should be called at the beginning of each request handler
+ * Set request context for current execution (DEPRECATED - use runWithContext)
+ * Kept for backward compatibility but prefer runWithContext
+ * @deprecated Use runWithContext instead for proper async context isolation
  */
-export function setRequestContext(context: RequestContext): void {
-  currentContext = context;
+export function setRequestContext(_context: RequestContext): void {
+  // This is a no-op now - context must be set via runWithContext
+  console.warn('setRequestContext is deprecated. Use runWithContext instead.');
 }
 
 /**
- * Get current request context
- * @throws Error if context not set (use requireContext for auto-throw)
+ * Get current request context from AsyncLocalStorage
+ * @returns RequestContext if set, null otherwise
  */
 export function getRequestContext(): RequestContext | null {
-  return currentContext;
+  return requestStorage.getStore() ?? null;
 }
 
 /**
@@ -36,34 +38,49 @@ export function getRequestContext(): RequestContext | null {
  * Use this in service methods that require authentication
  */
 export function requireContext(): RequestContext {
-  if (!currentContext) {
-    throw new Error('Request context not set. Call setRequestContext() first.');
+  const context = requestStorage.getStore();
+  if (!context) {
+    throw new Error('Request context not set. Wrap your code in runWithContext().');
   }
-  return currentContext;
+  return context;
 }
 
 /**
- * Clear request context (call at end of request)
+ * Clear request context (NO-OP with AsyncLocalStorage)
+ * Context is automatically cleaned up when async context ends
+ * @deprecated No longer needed with AsyncLocalStorage
  */
 export function clearRequestContext(): void {
-  currentContext = null;
+  // No-op - AsyncLocalStorage handles cleanup automatically
 }
 
 /**
- * Execute function within a specific context
- * Automatically cleans up after execution
+ * Execute function within a specific context (NEW RECOMMENDED API)
+ * Automatically isolates context per async execution chain
+ * 
+ * @example
+ * await runWithContext({ userId: '123', orgId: '456', timestamp: new Date() }, async () => {
+ *   // All code here and in called functions has access to context
+ *   const ctx = requireContext(); // Works safely
+ *   await someServiceMethod(); // Also has access to context
+ * });
+ */
+export async function runWithContext<T>(
+  context: RequestContext,
+  fn: () => Promise<T>
+): Promise<T> {
+  return await requestStorage.run(context, fn);
+}
+
+/**
+ * Legacy alias for backward compatibility
+ * @deprecated Use runWithContext instead
  */
 export async function withContext<T>(
   context: RequestContext,
   fn: () => Promise<T>
 ): Promise<T> {
-  const previousContext = currentContext;
-  try {
-    setRequestContext(context);
-    return await fn();
-  } finally {
-    currentContext = previousContext;
-  }
+  return runWithContext(context, fn);
 }
 
 const authContextService = {
@@ -72,5 +89,6 @@ const authContextService = {
   requireContext,
   clearRequestContext,
   withContext,
+  runWithContext,
 };
 export default authContextService;
