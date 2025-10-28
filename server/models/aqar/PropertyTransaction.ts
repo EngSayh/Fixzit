@@ -1,11 +1,13 @@
 import { Schema, model, models, Types } from 'mongoose';
+import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
+import { auditPlugin } from '../../plugins/auditPlugin';
 
 export type TransactionType = 'SALE' | 'RENTAL' | 'LEASE';
 export type TransactionStatus = 'DRAFT' | 'PENDING' | 'SIGNED' | 'COMPLETED' | 'CANCELLED';
 export type PaymentStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'REFUNDED';
 
 export interface TransactionParty {
-  userId?: Types.ObjectId;
+  userId?: Types.ObjectId; // Changed for ref attribute
   name: string;
   email: string;
   phone: string;
@@ -34,6 +36,7 @@ export interface TransactionDocument {
 
 export interface PropertyTransaction {
   _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be added by tenantIsolationPlugin
   propertyId: Types.ObjectId;
   agentId: Types.ObjectId;
   
@@ -85,6 +88,7 @@ export interface PropertyTransaction {
 
 const PropertyTransactionSchema = new Schema<PropertyTransaction>(
   {
+    // orgId will be added by tenantIsolationPlugin
     propertyId: { type: Schema.Types.ObjectId, required: true, ref: 'PropertyListing', index: true },
     agentId: { type: Schema.Types.ObjectId, required: true, ref: 'RealEstateAgent', index: true },
     
@@ -100,10 +104,10 @@ const PropertyTransactionSchema = new Schema<PropertyTransaction>(
       default: 'DRAFT',
       index: true
     },
-    referenceNumber: { type: String, required: true, unique: true, index: true },
+    referenceNumber: { type: String, required: true }, // unique will be tenant-scoped below
     
     buyer: {
-      userId: Schema.Types.ObjectId,
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
       name: String,
       email: String,
       phone: String,
@@ -115,7 +119,7 @@ const PropertyTransactionSchema = new Schema<PropertyTransaction>(
       address: String
     },
     seller: {
-      userId: Schema.Types.ObjectId,
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
       name: String,
       email: String,
       phone: String,
@@ -127,7 +131,7 @@ const PropertyTransactionSchema = new Schema<PropertyTransaction>(
       address: String
     },
     tenant: {
-      userId: Schema.Types.ObjectId,
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
       name: String,
       email: String,
       phone: String,
@@ -139,7 +143,7 @@ const PropertyTransactionSchema = new Schema<PropertyTransaction>(
       address: String
     },
     landlord: {
-      userId: Schema.Types.ObjectId,
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
       name: String,
       email: String,
       phone: String,
@@ -197,7 +201,7 @@ const PropertyTransactionSchema = new Schema<PropertyTransaction>(
         required: true
       },
       uploadedAt: { type: Date, default: Date.now },
-      uploadedBy: Schema.Types.ObjectId
+      uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' }
     }],
     
     completedAt: Date,
@@ -213,15 +217,22 @@ const PropertyTransactionSchema = new Schema<PropertyTransaction>(
   }
 );
 
-// Indexes
-PropertyTransactionSchema.index({ propertyId: 1, status: 1 });
-PropertyTransactionSchema.index({ agentId: 1, createdAt: -1 });
-PropertyTransactionSchema.index({ type: 1, status: 1 });
-PropertyTransactionSchema.index({ referenceNumber: 1 });
-PropertyTransactionSchema.index({ 'buyer.userId': 1 });
-PropertyTransactionSchema.index({ 'seller.userId': 1 });
-PropertyTransactionSchema.index({ 'tenant.userId': 1 });
-PropertyTransactionSchema.index({ 'landlord.userId': 1 });
+// APPLY PLUGINS (BEFORE INDEXES)
+PropertyTransactionSchema.plugin(tenantIsolationPlugin);
+PropertyTransactionSchema.plugin(auditPlugin);
+
+// INDEXES (AFTER PLUGINS) - orgId is now added by the plugin
+// ⚡ CRITICAL FIX: Tenant-scoped unique index for referenceNumber
+PropertyTransactionSchema.index({ orgId: 1, referenceNumber: 1 }, { unique: true });
+
+// ⚡ FIXED: All indexes now tenant-scoped
+PropertyTransactionSchema.index({ orgId: 1, propertyId: 1, status: 1 });
+PropertyTransactionSchema.index({ orgId: 1, agentId: 1, createdAt: -1 });
+PropertyTransactionSchema.index({ orgId: 1, type: 1, status: 1 });
+PropertyTransactionSchema.index({ orgId: 1, 'buyer.userId': 1 });
+PropertyTransactionSchema.index({ orgId: 1, 'seller.userId': 1 });
+PropertyTransactionSchema.index({ orgId: 1, 'tenant.userId': 1 });
+PropertyTransactionSchema.index({ orgId: 1, 'landlord.userId': 1 });
 
 const PropertyTransaction = models.PropertyTransaction || model<PropertyTransaction>('PropertyTransaction', PropertyTransactionSchema);
 

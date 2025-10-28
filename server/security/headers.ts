@@ -1,26 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractClientIP } from '@/lib/ip';
 
+/** Utils */
+const isProd = process.env.NODE_ENV === 'production';
+const toArray = (v?: string) =>
+  (v ? v.split(',').map(s => s.trim()).filter(Boolean) : []) as string[];
+
 /**
- * Security headers middleware to add common security headers to API responses
+ * Security headers middleware for API responses
+ * - Only for JSON/API — do not use this CSP on HTML pages
+ * - REMOVED: X-XSS-Protection (deprecated, ignored by modern browsers)
+ * - ADDED: Permissions-Policy, HSTS (prod only), Access-Control-Expose-Headers
  */
-export function withSecurityHeaders(response: NextResponse): NextResponse {
-  // Prevent MIME type sniffing
+export function withSecurityHeaders(response: NextResponse, request?: NextRequest): NextResponse {
+  // MIME sniffing defense
   response.headers.set('X-Content-Type-Options', 'nosniff');
   
-  // Prevent clickjacking
+  // Clickjacking defense (also covered by CSP frame-ancestors)
   response.headers.set('X-Frame-Options', 'DENY');
   
-  // XSS protection
-  response.headers.set('X-XSS-Protection', '1; mode=block');
-  
-  // Referrer policy
+  // Modern referrer policy
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Content Security Policy for API endpoints
-  response.headers.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none';");
+  // API-safe CSP (no inline eval, no frames, no navigation)
+  // NOTE: keep this strict for JSON endpoints; do NOT reuse on HTML pages.
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none';"
+  );
   
-  // Hide server information
+  // Permissions-Policy: deny sensitive sensors by default
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=()'
+  );
+  
+  // HSTS (only in prod AND on https)
+  const proto =
+    request?.headers.get('x-forwarded-proto') ||
+    request?.nextUrl.protocol.replace(':', '');
+  if (isProd && proto === 'https') {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  
+  // Hide platform fingerprint
   response.headers.set('Server', 'Fixzit-API');
   
   // Prevent caching of sensitive data
@@ -28,86 +51,105 @@ export function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('Pragma', 'no-cache');
   response.headers.set('Expires', '0');
   
+  // Useful for clients to read server-provided headers
+  const expose = ['x-request-id', 'x-rate-limit-remaining', 'x-rate-limit-reset'].join(', ');
+  response.headers.set('Access-Control-Expose-Headers', expose);
+  
   return response;
 }
 
 /**
- * CORS configuration for API endpoints
+ * CORS for API endpoints (credentials-friendly; dynamic allowlist)
+ * - Adds Vary: Origin
+ * - Echoes preflight headers/method if provided
  */
 export function withCORS(request: NextRequest, response: NextResponse): NextResponse {
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
+  const origin = request.headers.get('origin') || '';
+  const allowFromEnv = toArray(process.env.CORS_ORIGINS);           // optional comma list
+  const frontend = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+  const localhost = process.env.NODE_ENV === 'development'
+    ? ['http://localhost:3000', 'http://localhost:3001']
+    : [];
+
+  const allowedOrigins = new Set<string>([
     'https://fixzit.co',
     'https://www.fixzit.co',
     'https://app.fixzit.co',
     'https://dashboard.fixzit.co',
-    process.env.FRONTEND_URL,
-    // Add localhost for development
-    ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:3001'] : [])
-  ].filter(Boolean);
+    ...frontend,
+    ...allowFromEnv,
+    ...localhost,
+  ].filter(Boolean));
 
-  if (origin && allowedOrigins.includes(origin)) {
+  // For dynamic Origin we must set Vary
+  response.headers.append('Vary', 'Origin');
+
+  // Credentials-safe CORS
+  if (origin && allowedOrigins.has(origin)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   } else if (process.env.NODE_ENV === 'development') {
-    // In development, use first allowed origin instead of '*' to avoid CORS violation
-    // when Access-Control-Allow-Credentials is 'true'
+    // Dev fallback to primary localhost
     response.headers.set('Access-Control-Allow-Origin', 'http://localhost:3000');
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
 
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  response.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+  // Echo requested method/headers if present (preflight)
+  const reqMethod = request.headers.get('access-control-request-method');
+  const reqHeaders = request.headers.get('access-control-request-headers');
+  response.headers.set(
+    'Access-Control-Allow-Methods',
+    reqMethod || 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+  );
+  response.headers.set(
+    'Access-Control-Allow-Headers',
+    reqHeaders || 'Content-Type, Authorization, X-Requested-With'
+  );
+  response.headers.set('Access-Control-Max-Age', '86400'); // 24h
 
   return response;
 }
 
 /**
- * Request size limiting middleware
+ * OPTIONS preflight helper: returns 204 with CORS/security headers
  */
-export function checkRequestSize(request: NextRequest, maxSizeBytes: number = 10 * 1024 * 1024): boolean {
-  const contentLength = request.headers.get('content-length');
-  if (contentLength && parseInt(contentLength) > maxSizeBytes) {
-    return false;
-  }
-  return true;
+export function handlePreflight(request: NextRequest): NextResponse | null {
+  if (request.method !== 'OPTIONS') return null;
+  const res = new NextResponse(null, { status: 204 });
+  withCORS(request, res);
+  // Optionally add security headers to preflight as well
+  withSecurityHeaders(res, request);
+  return res;
 }
 
 /**
- * Hardened IP extraction with infrastructure-aware trusted proxy counting
- * 
- * SECURITY: Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops,
- * with fallback to leftmost public IP to prevent header spoofing attacks.
- * 
- * Priority order:
- * 1. CF-Connecting-IP (Cloudflare) - most trustworthy
- * 2. X-Forwarded-For with hop-skipping based on TRUSTED_PROXY_COUNT
- * 3. X-Real-IP - only if TRUST_X_REAL_IP=true
- * 4. Fallback to 'unknown'
- * 
- * Infrastructure Requirements:
- * - Set TRUSTED_PROXY_COUNT to number of trusted proxy hops (default: 1)
- * - Ensure your edge proxy appends to X-Forwarded-For
- * - Optional: Set TRUST_X_REAL_IP=true only if infra sanitizes this header
+ * Request size limiting (best-effort)
+ * - If Content-Length header is present and exceeds max, return false
+ * - If missing (chunked), we cannot know here; rely on body parser limits
  */
-/**
- * Get client IP using shared extraction logic
- * @see lib/ip.ts:extractClientIP for implementation details
- */
+export function checkRequestSize(request: NextRequest, maxSizeBytes = 10 * 1024 * 1024): boolean {
+  const cl = request.headers.get('content-length');
+  if (!cl) return true;
+  const n = Number(cl);
+  if (!Number.isFinite(n)) return true; // non-numeric or invalid, allow; let parser handle it
+  return n <= maxSizeBytes;
+}
+
+/** Hardened client IP (delegates to shared logic) */
 export function getClientIP(request: NextRequest): string {
   return extractClientIP(request);
 }
 
 /**
- * Enhanced security response helper
+ * Secure JSON response helper
+ * - Applies CORS and security headers
  */
-export function createSecureResponse(data: unknown, status: number = 200, request?: NextRequest): NextResponse {
-  const response = NextResponse.json(data, { status });
-  
-  if (request) {
-    withCORS(request, response);
-  }
-  
-  return withSecurityHeaders(response);
+export function createSecureResponse(
+  data: unknown,
+  status = 200,
+  request?: NextRequest
+): NextResponse {
+  const res = NextResponse.json(data, { status });
+  if (request) withCORS(request, res);
+  return withSecurityHeaders(res, request);
 }
