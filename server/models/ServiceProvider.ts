@@ -312,7 +312,8 @@ ServiceProviderSchema.index(
   { partialFilterExpression: { "contact.email": { $type: "string" } } }
 );
 ServiceProviderSchema.index({ "address.location": "2dsphere" }); // geospatial queries
-ServiceProviderSchema.index({ businessName: "text", tradeName: "text", "owner.name": "text", tags: "text" });
+// ⚡ FIXED: Add orgId prefix for tenant-scoped text search
+ServiceProviderSchema.index({ orgId: 1, businessName: "text", tradeName: "text", "owner.name": "text", tags: "text" });
 
 // Plugins
 ServiceProviderSchema.plugin(tenantIsolationPlugin);

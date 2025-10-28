@@ -215,10 +215,10 @@ const UserSchema = new Schema({
 UserSchema.plugin(tenantIsolationPlugin);
 UserSchema.plugin(auditPlugin);
 
-// Indexes for performance (orgId is already indexed by tenantIsolationPlugin)
-UserSchema.index({ email: 1 }, { unique: true });
-UserSchema.index({ username: 1 }, { unique: true });
-UserSchema.index({ code: 1 }, { unique: true });
+// ⚡ FIXED: Indexes for performance with tenant-scoped unique constraints
+UserSchema.index({ orgId: 1, email: 1 }, { unique: true }); // Tenant-scoped email uniqueness
+UserSchema.index({ orgId: 1, username: 1 }, { unique: true }); // Tenant-scoped username uniqueness
+UserSchema.index({ orgId: 1, code: 1 }, { unique: true }); // Tenant-scoped code uniqueness
 UserSchema.index({ 'professional.role': 1 });
 UserSchema.index({ 'professional.skills.category': 1 });
 UserSchema.index({ 'workload.available': 1 });

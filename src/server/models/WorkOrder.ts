@@ -411,7 +411,8 @@ WorkOrderSchema.index({ 'location.propertyId': 1 });
 WorkOrderSchema.index({ orgId: 1, 'assignment.assignedTo.userId': 1 });
 WorkOrderSchema.index({ orgId: 1, 'sla.resolutionDeadline': 1 });
 WorkOrderSchema.index({ orgId: 1, 'recurrence.nextScheduledDate': 1 });
-WorkOrderSchema.index({ title: "text", description: "text", 'work.solutionDescription': "text" });
+// ⚡ FIXED: Add orgId prefix for tenant-scoped text search
+WorkOrderSchema.index({ orgId: 1, title: "text", description: "text", 'work.solutionDescription': "text" });
 
 // State machine validation with complete workflow
 WorkOrderSchema.pre('save', function(next) {
