@@ -108,14 +108,24 @@ export default function TopBar() {
     closeAllPopups();
   }, [pathname, closeAllPopups]);
 
-  // Fetch organization settings on mount
+  // Fetch organization settings on mount (only for authenticated users)
   useEffect(() => {
+    // Don't fetch org settings for guest users
+    if (!isAuthenticated) {
+      return;
+    }
+
     const fetchOrgSettings = async () => {
       try {
-        const response = await fetch('/api/organization/settings');
+        const response = await fetch('/api/organization/settings', {
+          credentials: 'include'
+        });
         if (response.ok) {
           const data = await response.json();
           setOrgSettings(data);
+        } else if (response.status === 401) {
+          // Silently handle 401 - user is not logged in
+          // Keep default settings
         }
       } catch (error) {
         console.error('Failed to fetch organization settings:', error);
@@ -123,7 +133,7 @@ export default function TopBar() {
       }
     };
     fetchOrgSettings();
-  }, []);
+  }, [isAuthenticated]);
 
   // Get responsive context
   const { isMobile, isTablet, isDesktop, isRTL } = useResponsive();
