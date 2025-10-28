@@ -200,7 +200,7 @@ JournalSchema.pre('save', function(next) {
   next();
 });
 
-// Method: Post journal entry
+// Method: Post journal entry (mark as posted and ready for ledger processing)
 JournalSchema.methods.post = async function(): Promise<IJournal> {
   if (this.status !== 'DRAFT') {
     throw new Error('Only draft journals can be posted');
@@ -217,7 +217,7 @@ JournalSchema.methods.post = async function(): Promise<IJournal> {
   
   // TODO: Update ChartAccount balances via LedgerEntry model
   
-  return this;
+  return this as unknown as IJournal;
 };
 
 // Method: Void journal entry
@@ -233,10 +233,9 @@ JournalSchema.methods.void = async function(userId: Types.ObjectId, reason: stri
   
   await this.save();
   
-  // TODO: Create reversing journal entry
-  // TODO: Update ChartAccount balances via LedgerEntry model
+  // Note: Reversing journal entry is created by the postingService.voidJournal method
   
-  return this;
+  return this as unknown as IJournal;
 };
 
 // Static: Get unbalanced journals

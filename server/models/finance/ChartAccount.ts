@@ -98,6 +98,7 @@ ChartAccountSchema.virtual('isParent').get(function(this: IChartAccount) {
 // Method: Get full account path (e.g., "1000 › 1100 › 1110")
 ChartAccountSchema.methods.getAccountPath = async function(): Promise<string> {
   const path: string[] = [this.accountCode];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let current = this as any;
   
   while (current.parentId) {
@@ -114,15 +115,19 @@ ChartAccountSchema.methods.getAccountPath = async function(): Promise<string> {
 ChartAccountSchema.statics.getHierarchy = async function(orgId: Types.ObjectId) {
   const accounts = await this.find({ orgId, isActive: true }).sort({ accountCode: 1 });
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tree: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const map: Map<string, any> = new Map();
   
   // First pass: Create map
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   accounts.forEach((acc: any) => {
     map.set(acc._id.toString(), { ...acc.toObject(), children: [] });
   });
   
   // Second pass: Build tree
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   accounts.forEach((acc: any) => {
     const node = map.get(acc._id.toString());
     if (acc.parentId) {

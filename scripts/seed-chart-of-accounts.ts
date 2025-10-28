@@ -18,7 +18,7 @@
  */
 
 import mongoose, { Types } from 'mongoose';
-import { connectDB } from '../src/db/mongoose';
+import { dbConnect } from '../db/mongoose';
 import ChartAccountModel from '../server/models/finance/ChartAccount';
 
 const args = process.argv.slice(2);
@@ -487,7 +487,7 @@ async function seedChartOfAccounts() {
   console.log(`Organization ID: ${orgId}\n`);
 
   try {
-    await connectDB();
+    await dbConnect();
 
     // Check if COA already exists for this org
     const existingCount = await ChartAccountModel.countDocuments({ orgId });

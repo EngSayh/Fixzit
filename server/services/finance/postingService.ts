@@ -27,10 +27,10 @@
  *   await postingService.postJournal(journal._id);
  */
 
-import { Types } from 'mongoose';
-import JournalModel, { IJournal, IJournalLine } from '../models/finance/Journal';
-import LedgerEntryModel from '../models/finance/LedgerEntry';
-import ChartAccountModel from '../models/finance/ChartAccount';
+import { Types, Document } from 'mongoose';
+import JournalModel, { IJournal, IJournalLine } from '../../models/finance/Journal';
+import LedgerEntryModel, { ILedgerEntry } from '../../models/finance/LedgerEntry';
+import ChartAccountModel, { IChartAccount } from '../../models/finance/ChartAccount';
 
 export interface CreateJournalInput {
   orgId: Types.ObjectId;
@@ -55,8 +55,8 @@ export interface CreateJournalInput {
 
 export interface PostJournalResult {
   journal: IJournal;
-  ledgerEntries: any[];
-  accountBalances: Array<{ accountId: Types.ObjectId; newBalance: number }>;
+  ledgerEntries: ILedgerEntry[];
+  accountBalances: Array<{ accountId: Types.ObjectId; accountCode: string; balance: number }>;
 }
 
 class PostingService {
@@ -101,7 +101,8 @@ class PostingService {
       throw new Error('One or more accounts not found or inactive');
     }
 
-    const accountMap = new Map(accounts.map(acc => [acc._id.toString(), acc]));
+        // Map accountIds to account documents for quick lookup
+    const accountMap = new Map(accounts.map((acc: IChartAccount & Document) => [acc._id.toString(), acc]));
 
     // Build journal lines with denormalized account data
     const journalLines: IJournalLine[] = lines.map((line, index) => {
@@ -165,8 +166,8 @@ class PostingService {
     }
 
     // Create ledger entries (one per journal line)
-    const ledgerEntries: any[] = [];
-    const accountBalances: Array<{ accountId: Types.ObjectId; newBalance: number }> = [];
+    const ledgerEntries: ILedgerEntry[] = [];
+    const accountBalances: Array<{ accountId: Types.ObjectId; accountCode: string; balance: number }> = [];
 
     for (const line of journal.lines) {
       // Get current account balance
@@ -215,7 +216,8 @@ class PostingService {
 
       accountBalances.push({
         accountId: line.accountId,
-        newBalance
+        accountCode: line.accountCode!,
+        balance: newBalance
       });
     }
 
@@ -258,7 +260,7 @@ class PostingService {
     await originalJournal.save();
 
     // Create reversing journal entry (swap debits and credits)
-    const reversingLines = originalJournal.lines.map(line => ({
+    const reversingLines = originalJournal.lines.map((line: IJournalLine) => ({
       accountId: line.accountId,
       description: `VOID - ${line.description || originalJournal.description}`,
       debit: line.credit, // Swap
