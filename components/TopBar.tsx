@@ -166,8 +166,10 @@ export default function TopBar() {
     fetchOrgSettings();
   }, [isAuthenticated]);
 
-  // Get responsive context
-  const { isMobile, isTablet, isDesktop, isRTL } = useResponsive();
+  // Get responsive context for screen size
+  const { isMobile, isTablet, isDesktop } = useResponsive();
+  // Get direction from translation context
+  const { isRTL } = useTranslation();
   
   // Place dropdown panel under anchor, clamped inside viewport (after isRTL is defined)
   const placeDropdown = useCallback((anchor: HTMLElement, panelWidth: number) => {
