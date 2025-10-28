@@ -1,13 +1,15 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const TenantType = ["INDIVIDUAL", "COMPANY", "GOVERNMENT"] as const;
 const LeaseStatus = ["ACTIVE", "EXPIRED", "TERMINATED", "RENEWAL_PENDING", "UNDER_NEGOTIATION"] as const;
 
 const TenantSchema = new Schema({
-  tenantId: { type: String, required: true },
+  // tenantId will be added by tenantIsolationPlugin (as orgId)
 
   // Basic Information
-  // ⚡ FIXED: Remove unique: true - will be enforced via compound index with tenantId
+  // FIXED: Remove unique: true - will be enforced via compound index with orgId
   code: { type: String, required: true },
   name: { type: String, required: true },
   type: { type: String, enum: TenantType, required: true },
@@ -169,20 +171,22 @@ const TenantSchema = new Schema({
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
+  // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-TenantSchema.index({ tenantId: 1, type: 1 });
-TenantSchema.index({ tenantId: 1, 'contact.primary.email': 1 });
-TenantSchema.index({ tenantId: 1, 'properties.occupancy.status': 1 });
-// ⚡ FIXED: Add compound tenant-scoped unique index for code
-TenantSchema.index({ tenantId: 1, code: 1 }, { unique: true });
+// Apply plugins BEFORE indexes
+TenantSchema.plugin(tenantIsolationPlugin);
+TenantSchema.plugin(auditPlugin);
+
+// Indexes for performance (orgId from plugin)
+TenantSchema.index({ orgId: 1, type: 1 });
+TenantSchema.index({ orgId: 1, 'contact.primary.email': 1 });
+TenantSchema.index({ orgId: 1, 'properties.occupancy.status': 1 });
+// Compound tenant-scoped unique index for code
+TenantSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type TenantDoc = InferSchemaType<typeof TenantSchema>;
 

@@ -173,28 +173,24 @@ const PropertySchema = new Schema({
 
   // Metadata
   tags: [String],
-  customFields: Schema.Types.Mixed,
-
-  createdBy: { type: String, required: true },
-  updatedBy: String
+  customFields: Schema.Types.Mixed
+  // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
 }, {
   timestamps: true
 });
 
-// Indexes for performance
-PropertySchema.index({ tenantId: 1, type: 1 });
-PropertySchema.index({ tenantId: 1, 'address.city': 1 });
-PropertySchema.index({ tenantId: 1, 'units.status': 1 });
-PropertySchema.index({ 'address.coordinates': '2dsphere' });
-
-export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
-
-// Check if we're using mock database
-// Apply plugins
+// Apply plugins BEFORE indexes for proper tenant isolation and audit tracking
 PropertySchema.plugin(tenantIsolationPlugin);
 PropertySchema.plugin(auditPlugin);
 
-// ⚡ FIXED: Add compound tenant-scoped unique index for code
+// Indexes for performance (orgId from plugin)
+PropertySchema.index({ orgId: 1, type: 1 });
+PropertySchema.index({ orgId: 1, 'address.city': 1 });
+PropertySchema.index({ orgId: 1, 'units.status': 1 });
+PropertySchema.index({ 'address.coordinates': '2dsphere' });
+// Compound tenant-scoped unique index for code
 PropertySchema.index({ orgId: 1, code: 1 }, { unique: true });
+
+export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 
 export const Property = models.Property || model("Property", PropertySchema);
