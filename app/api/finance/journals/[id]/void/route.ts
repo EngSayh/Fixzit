@@ -1,0 +1,128 @@
+/**
+ * Journal Void API Route - Finance Pack Phase 2
+ * 
+ * Endpoint:
+ * - POST /api/finance/journals/[id]/void - Void posted journal (creates reversal)
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { authOptions } from '@/auth';
+import { dbConnect } from '@/lib/mongodb-unified';
+import Journal from '@/server/models/finance/Journal';
+import postingService from '@/server/services/finance/postingService';
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { setAuditContext } from '@/server/plugins/auditPlugin';
+import { Types } from 'mongoose';
+import { z } from 'zod';
+
+// ============================================================================
+// VALIDATION SCHEMA
+// ============================================================================
+
+const VoidJournalSchema = z.object({
+  reason: z.string().min(1, 'Void reason is required')
+});
+
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(_req: NextRequest) {
+  const user = await getSessionUser(_req);
+  
+  if (!user) {
+    return null;
+  }
+  
+  return {
+    userId: user.id || '',
+    orgId: user.orgId || '',
+    email: user.email || '',
+    role: user.role || ''
+  };
+}
+
+// ============================================================================
+// POST /api/finance/journals/[id]/void - Void posted journal
+// ============================================================================
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await dbConnect();
+    
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Validate journal ID
+    if (!Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: 'Invalid journal ID' }, { status: 400 });
+    }
+    
+    // Parse and validate request body
+    const body = await req.json();
+    const validated = VoidJournalSchema.parse(body);
+    
+    // Set context for plugins
+    setTenantContext({ orgId: user.orgId });
+    setAuditContext({ 
+      userId: user.userId,
+      userEmail: user.email,
+      timestamp: new Date()
+    });
+    
+    // Check journal exists and belongs to org
+    const journal = await Journal.findOne({
+      _id: new Types.ObjectId(params.id),
+      orgId: new Types.ObjectId(user.orgId)
+    });
+    
+    if (!journal) {
+      return NextResponse.json({ error: 'Journal not found' }, { status: 404 });
+    }
+    
+    // Check journal status
+    if (journal.status !== 'POSTED') {
+      return NextResponse.json({
+        error: `Cannot void journal with status ${journal.status}. Only POSTED journals can be voided.`
+      }, { status: 400 });
+    }
+    
+    // Void journal using postingService (creates reversal journal)
+    const result = await postingService.voidJournal(
+      new Types.ObjectId(params.id),
+      validated.reason,
+      user.userId,
+      user.email
+    );
+    
+    return NextResponse.json({
+      success: true,
+      data: {
+        originalJournal: result.originalJournal,
+        reversalJournal: result.reversalJournal,
+        message: `Journal ${result.originalJournal.journalNumber} voided. Reversal journal ${result.reversalJournal.journalNumber} created and posted.`
+      }
+    });
+    
+  } catch (error) {
+    console.error('POST /api/finance/journals/[id]/void error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        error: 'Validation failed',
+        details: error.issues
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Failed to void journal'
+    }, { status: 400 });
+  }
+}
