@@ -9,10 +9,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { runWithContext } from '@/server/lib/authContext';
+import { requirePermission } from '@/server/lib/rbac.config';
 
 import { dbConnect } from '@/lib/mongodb-unified';
 import LedgerEntry from '@/server/models/finance/LedgerEntry';
-import { setTenantContext } from '@/server/plugins/tenantIsolation';
+
 import { Types } from 'mongoose';
 
 // ============================================================================

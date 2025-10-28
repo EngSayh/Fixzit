@@ -10,7 +10,9 @@ import { Types } from 'mongoose';
 import { z } from 'zod';
 import { Expense } from '@/server/models/finance/Expense';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { setTenantContext, setAuditContext } from '@/server/models/plugins/tenantAudit';
+import { runWithContext } from '@/server/lib/authContext';
+import { requirePermission } from '@/server/lib/rbac.config';
+
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
@@ -30,7 +32,9 @@ async function getUserSession(req: NextRequest) {
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getUserSession(req);
-    setTenantContext({ orgId: user.orgId });
+
+    // Authorization check
+    requirePermission(user.role, 'finance.expenses.read');
 
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json(
@@ -39,24 +43,35 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    const expense = await Expense.findOne({
-      _id: params.id,
-      orgId: user.orgId,
-    });
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: params.id,
+          orgId: user.orgId,
+        });
 
-    if (!expense) {
-      return NextResponse.json(
-        { success: false, error: 'Expense not found' },
-        { status: 404 }
-      );
-    }
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: 'Expense not found' },
+            { status: 404 }
+          );
+        }
 
-    return NextResponse.json({
-      success: true,
-      data: expense,
-    });
+        return NextResponse.json({
+          success: true,
+          data: expense,
+        });
+      }
+    );
   } catch (error) {
     console.error('Error fetching expense:', error);
+    
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
+    
     return NextResponse.json(
       {
         success: false,
@@ -85,8 +100,9 @@ const UpdateExpenseSchema = z.object({
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getUserSession(req);
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ userId: user.userId });
+
+    // Authorization check
+    requirePermission(user.role, 'finance.expenses.update');
 
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json(
@@ -95,41 +111,51 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    const expense = await Expense.findOne({
-      _id: params.id,
-      orgId: user.orgId,
-    });
-
-    if (!expense) {
-      return NextResponse.json(
-        { success: false, error: 'Expense not found' },
-        { status: 404 }
-      );
-    }
-
-    // Only allow updates for DRAFT expenses
-    if (expense.status !== 'DRAFT') {
-      return NextResponse.json(
-        { success: false, error: 'Only draft expenses can be updated' },
-        { status: 400 }
-      );
-    }
-
     const body = await req.json();
     const data = UpdateExpenseSchema.parse(body);
 
-    // Update expense
-    Object.assign(expense, data);
-    expense.updatedBy = user.userId;
-    await expense.save();
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: params.id,
+          orgId: user.orgId,
+        });
 
-    return NextResponse.json({
-      success: true,
-      data: expense,
-      message: 'Expense updated successfully',
-    });
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: 'Expense not found' },
+            { status: 404 }
+          );
+        }
+
+        // Only allow updates for DRAFT expenses
+        if (expense.status !== 'DRAFT') {
+          return NextResponse.json(
+            { success: false, error: 'Only draft expenses can be updated' },
+            { status: 400 }
+          );
+        }
+
+        // Update expense
+        Object.assign(expense, data);
+        expense.updatedBy = user.userId;
+        await expense.save();
+
+        return NextResponse.json({
+          success: true,
+          data: expense,
+          message: 'Expense updated successfully',
+        });
+      }
+    );
   } catch (error) {
     console.error('Error updating expense:', error);
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -159,8 +185,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getUserSession(req);
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ userId: user.userId });
+
+    // Authorization check
+    requirePermission(user.role, 'finance.expenses.delete');
 
     if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json(
@@ -169,36 +196,47 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       );
     }
 
-    const expense = await Expense.findOne({
-      _id: params.id,
-      orgId: user.orgId,
-    });
+    // Execute with proper context
+    return await runWithContext(
+      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: params.id,
+          orgId: user.orgId,
+        });
 
-    if (!expense) {
-      return NextResponse.json(
-        { success: false, error: 'Expense not found' },
-        { status: 404 }
-      );
-    }
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: 'Expense not found' },
+            { status: 404 }
+          );
+        }
 
-    // Only allow cancellation for non-PAID expenses
-    if (expense.status === 'PAID') {
-      return NextResponse.json(
-        { success: false, error: 'Paid expenses cannot be cancelled' },
-        { status: 400 }
-      );
-    }
+        // Only allow cancellation for non-PAID expenses
+        if (expense.status === 'PAID') {
+          return NextResponse.json(
+            { success: false, error: 'Paid expenses cannot be cancelled' },
+            { status: 400 }
+          );
+        }
 
-    expense.status = 'CANCELLED';
-    expense.updatedBy = user.userId;
-    await expense.save();
+        expense.status = 'CANCELLED';
+        expense.updatedBy = user.userId;
+        await expense.save();
 
-    return NextResponse.json({
-      success: true,
-      message: 'Expense cancelled successfully',
-    });
+        return NextResponse.json({
+          success: true,
+          message: 'Expense cancelled successfully',
+        });
+      }
+    );
   } catch (error) {
     console.error('Error cancelling expense:', error);
+    
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
+    
     return NextResponse.json(
       {
         success: false,
