@@ -1,7 +1,9 @@
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { withIdempotency } from "@/server/security/idempotency";
+import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
 // Import the main WorkOrder model instead of defining a duplicate schema
 import { WorkOrder } from "@/server/models/WorkOrder";
+// Import Zod validation schemas
+import { WoCreate, WoUpdate } from "./wo.schema";
 
 const _VALID_TRANSITIONS: Record<string, string[]> = {
   NEW: ["ASSIGNED","CANCELLED"],
@@ -34,11 +36,17 @@ export interface WorkOrderInput {
 export async function create(data: WorkOrderInput, actorId: string, ip?: string) {
   await connectToDatabase();
   
-  const key = `wo-create-${data.tenantId}-${actorId}-${Date.now()}`;
+  // ⚡ FIXED: Validate input with Zod schema
+  const validated = WoCreate.parse(data);
+  
+  // ⚡ FIXED: Use deterministic idempotency key based on payload content
+  // This ensures that duplicate requests with the same data are truly idempotent
+  const key = createIdempotencyKey('wo-create', { ...validated, actorId });
+  
   const wo = await withIdempotency(key, async () => {
     const code = `WO-${Date.now()}`;
     return await WorkOrder.create({
-      ...data,
+      ...validated,
       code,
       requestedBy: actorId
     });
@@ -49,7 +57,7 @@ export async function create(data: WorkOrderInput, actorId: string, ip?: string)
   return wo;
 }
 
-export async function update(id: string, patch: Partial<WorkOrderInput>, _tenantId: string, actorId: string, ip?: string) {
+export async function update(id: string, patch: Partial<WorkOrderInput>, tenantId: string, actorId: string, ip?: string) {
   await connectToDatabase();
   
   if (!id) {
@@ -59,7 +67,32 @@ export async function update(id: string, patch: Partial<WorkOrderInput>, _tenant
     return await WorkOrder.findById(id);
   }
   
-  const updated = await WorkOrder.findByIdAndUpdate(id, patch, { new: true });
+  // ⚡ FIXED: Validate input with Zod schema
+  const validated = WoUpdate.parse(patch);
+  
+  // ⚡ FIXED: Fetch existing work order to check state transitions
+  const existing = await WorkOrder.findById(id);
+  if (!existing) {
+    throw new Error(`Work order not found: ${id}`);
+  }
+  
+  // ⚡ FIXED: Verify tenant ownership (multi-tenant security)
+  if (existing.tenantId !== tenantId) {
+    throw new Error(`Work order not found: ${id}`); // Don't leak existence
+  }
+  
+  // ⚡ FIXED: Validate state machine transitions if status is changing
+  if (validated.status && validated.status !== existing.status) {
+    const validTransitions = _VALID_TRANSITIONS[existing.status] || [];
+    if (!validTransitions.includes(validated.status)) {
+      throw new Error(
+        `Invalid state transition from ${existing.status} to ${validated.status}. ` +
+        `Valid transitions: ${validTransitions.join(', ')}`
+      );
+    }
+  }
+  
+  const updated = await WorkOrder.findByIdAndUpdate(id, validated, { new: true });
   
   // Log audit event (simplified)
   console.log(`Work order updated: ${updated?.code} by ${actorId} from ${ip || 'unknown'}`);
