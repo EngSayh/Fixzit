@@ -86,15 +86,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = CreateJournalSchema.parse(body);
     
-    // Set context for plugins
-    setTenantContext({ orgId: user.orgId });
-    setAuditContext({ 
-      userId: user.userId,
-      userEmail: user.userId,
-      timestamp: new Date()
-    });
-    
-    // Create draft journal using postingService
+    // Set context for plugins// Create draft journal using postingService
     const journal = await postingService.createJournal({
       orgId: new Types.ObjectId(user.orgId),
       journalDate: new Date(validated.date),
@@ -126,6 +118,10 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('POST /api/finance/journals error:', error);
     
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({
         error: 'Validation failed',
@@ -159,10 +155,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Set tenant context
-    setTenantContext({ orgId: user.orgId });
-    
-    // Parse query parameters
+    // Set tenant context// Parse query parameters
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status'); // DRAFT, POSTED, VOID
     const sourceType = searchParams.get('sourceType');

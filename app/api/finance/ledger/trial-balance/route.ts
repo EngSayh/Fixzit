@@ -47,10 +47,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Set tenant context
-    setTenantContext({ orgId: user.orgId });
-    
-    // Parse query parameters
+    // Set tenant context// Parse query parameters
     const { searchParams } = new URL(req.url);
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const period = parseInt(searchParams.get('period') || '12'); // 1-12
@@ -106,6 +103,10 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('GET /api/finance/ledger/trial-balance error:', error);
     
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Internal server error'
     }, { status: 500 });
