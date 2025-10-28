@@ -7,8 +7,6 @@ interface ResponsiveContextType {
   isTablet: boolean;
   isDesktop: boolean;
   screenSize: 'mobile' | 'tablet' | 'desktop';
-  isRTL: boolean;
-  setRTL: (rtl: boolean) => void;
   // Legacy properties for backward compatibility
   screenInfo: {
     isMobile: boolean;
@@ -40,7 +38,6 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
     width: undefined,
     height: undefined
   });
-  const [isRTL, setIsRTL] = useState(false);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -59,30 +56,27 @@ export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
     // Initial check (only on client side)
     checkScreenSize();
 
-    // Check for RTL direction from document (consolidated check)
-    const htmlDir = document.documentElement.dir;
-    setIsRTL(htmlDir === 'rtl');
+    // Debounced resize handler to prevent excessive re-renders
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(checkScreenSize, 150);
+    };
 
-    // Add event listener
-    window.addEventListener('resize', checkScreenSize);
+    // Add event listener with debouncing
+    window.addEventListener('resize', debouncedResize);
 
     return () => {
-      window.removeEventListener('resize', checkScreenSize);
+      clearTimeout(resizeTimeout);
+      window.removeEventListener('resize', debouncedResize);
     };
   }, []);
-
-  const setRTL = (rtl: boolean) => {
-    setIsRTL(rtl);
-    document.documentElement.dir = rtl ? 'rtl' : 'ltr';
-  };
 
   const value: ResponsiveContextType = {
     isMobile: screenSize === 'mobile',
     isTablet: screenSize === 'tablet',
     isDesktop: screenSize === 'desktop',
     screenSize,
-    isRTL,
-    setRTL,
     // Legacy screenInfo for backward compatibility
     screenInfo: {
       isMobile: screenSize === 'mobile',
