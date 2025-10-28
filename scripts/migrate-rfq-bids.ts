@@ -18,8 +18,11 @@
  *   - Rollback support
  */
 
-import mongoose from 'mongoose';
-import { connectDB } from '../src/db/mongoose';
+import mongoose, { Types } from 'mongoose';
+import { dbConnect } from '../db/mongoose';
+import RFQModel from '../server/models/marketplace/RFQ';
+// Note: ProjectBid model must be created before running this migration
+// import ProjectBidModel from '../server/models/marketplace/ProjectBid';
 
 // Old embedded bid structure (before Phase 3)
 interface OldRFQBid {
@@ -63,7 +66,7 @@ async function main() {
   console.log(`${'='.repeat(60)}\n`);
 
   try {
-    await connectDB();
+    await dbConnect();
     
     const RFQCollection = mongoose.connection.collection('marketplacerfqs');
     const ProjectBidCollection = mongoose.connection.collection('projectbids');

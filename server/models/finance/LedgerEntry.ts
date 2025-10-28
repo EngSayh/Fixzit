@@ -13,7 +13,7 @@
  * - Audit trail
  */
 
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types, Model } from 'mongoose';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -45,7 +45,13 @@ export interface ILedgerEntry {
   updatedAt: Date;
 }
 
-const LedgerEntrySchema = new Schema<ILedgerEntry>(
+export interface ILedgerEntryModel extends Model<ILedgerEntry> {
+  getAccountBalance(orgId: Types.ObjectId, accountId: Types.ObjectId, asOfDate?: Date): Promise<number>;
+  getTrialBalance(orgId: Types.ObjectId, fiscalYear: number, fiscalPeriod: number): Promise<any[]>;
+  getAccountActivity(orgId: Types.ObjectId, accountId: Types.ObjectId, startDate: Date, endDate: Date): Promise<any[]>;
+}
+
+const LedgerEntrySchema = new Schema<ILedgerEntry, ILedgerEntryModel>(
   {
     // orgId will be added by tenantIsolationPlugin
     journalId: { type: Schema.Types.ObjectId, required: true, ref: 'Journal', index: true },
@@ -102,6 +108,7 @@ LedgerEntrySchema.statics.getAccountBalance = async function(
   accountId: Types.ObjectId,
   asOfDate?: Date
 ): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filter: any = { orgId, accountId };
   if (asOfDate) {
     filter.postingDate = { $lte: asOfDate };
@@ -182,6 +189,6 @@ LedgerEntrySchema.statics.getAccountActivity = async function(
   .lean();
 };
 
-const LedgerEntryModel = models.LedgerEntry || model<ILedgerEntry>('LedgerEntry', LedgerEntrySchema);
+const LedgerEntryModel = (models.LedgerEntry || model<ILedgerEntry, ILedgerEntryModel>('LedgerEntry', LedgerEntrySchema)) as ILedgerEntryModel;
 
 export default LedgerEntryModel;
