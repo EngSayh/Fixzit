@@ -113,6 +113,16 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     fetchUserRole();
   }, [isAuthPage, isLandingPage]);
 
+  // Client-side protection: redirect guests from FM/protected routes
+  useEffect(() => {
+    if (!loading && role === 'guest' && !isLandingPage && !isAuthPage) {
+      // Check if we're on a protected route (FM, admin, etc)
+      if (pathname.startsWith('/fm') || pathname.startsWith('/admin') || pathname.startsWith('/crm')) {
+        window.location.href = '/login';
+      }
+    }
+  }, [loading, role, pathname, isLandingPage, isAuthPage]);
+
   // Show loading state while fetching user data
   if (loading && !isAuthPage) {
     return (
