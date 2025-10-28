@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, User, ChevronDown, Search } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import LanguageSelector from './i18n/LanguageSelector';
@@ -80,6 +80,17 @@ export default function TopBar() {
     logo: null,
   });
 
+  // ── Anchor refs for dropdown positioning
+  const notifBtnRef = useRef<HTMLButtonElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ── Panel rect state
+  type Pos = { top: number; left: number; width: number };
+  const [notifPos, setNotifPos] = useState<Pos>({ top: 60, left: 16, width: 384 }); // w-96 ≈ 384px
+  const [userPos, setUserPos] = useState<Pos>({ top: 60, left: 16, width: 224 }); // w-56 ≈ 224px
+
+  const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
+
   // Add missing router and pathname hooks
   const router = useRouter();
   const pathname = usePathname();
@@ -137,6 +148,17 @@ export default function TopBar() {
 
   // Get responsive context
   const { isMobile, isTablet, isDesktop, isRTL } = useResponsive();
+  
+  // Place dropdown panel under anchor, clamped inside viewport (after isRTL is defined)
+  const placeDropdown = useCallback((anchor: HTMLElement, panelWidth: number) => {
+    const r = anchor.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const top = r.bottom + 8; // 8px gap under button
+    // LTR: align panel right edge with button right; RTL: align left edges
+    let left = isRTL ? r.left : r.right - panelWidth;
+    left = clamp(left, 8, vw - panelWidth - 8);
+    return { top, left, width: panelWidth };
+  }, [isRTL]);
   
   // Build responsive classes
   const responsiveClasses = {
@@ -259,6 +281,21 @@ export default function TopBar() {
       fetchNotifications();
     }
   }, [notifOpen, notifications.length, isAuthenticated, fetchNotifications]);
+
+  // Reposition dropdowns on resize/scroll while open
+  useEffect(() => {
+    if (!notifOpen && !userOpen) return;
+    const onReflow = () => {
+      if (notifOpen && notifBtnRef.current) setNotifPos(placeDropdown(notifBtnRef.current, 384));
+      if (userOpen && userBtnRef.current) setUserPos(placeDropdown(userBtnRef.current, 224));
+    };
+    window.addEventListener('resize', onReflow);
+    window.addEventListener('scroll', onReflow, true);
+    return () => {
+      window.removeEventListener('resize', onReflow);
+      window.removeEventListener('scroll', onReflow, true);
+    };
+  }, [notifOpen, userOpen, placeDropdown]);
 
   // Close notification popup when clicking outside or pressing Escape
   useEffect(() => {
@@ -419,10 +456,17 @@ export default function TopBar() {
         {isAuthenticated && (
           <div className="notification-container relative">
             <button
+              ref={notifBtnRef}
               type="button"
               onClick={() => {
                 setUserOpen(false); // Close user menu when opening notifications
-                setNotifOpen(!notifOpen);
+                setNotifOpen(o => {
+                  const next = !o;
+                  if (next && notifBtnRef.current) {
+                    setNotifPos(placeDropdown(notifBtnRef.current, 384)); // w-96 ≈ 384px
+                  }
+                  return next;
+                });
               }}
               className="p-2 hover:bg-white/10 rounded-md relative"
               aria-label="Toggle notifications"
@@ -437,10 +481,11 @@ export default function TopBar() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Notifications"
-                className="absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] animate-in slide-in-from-top-2 duration-200 w-80 max-w-[calc(100vw-2rem)] sm:w-96"
+                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] animate-in slide-in-from-top-2 duration-200"
                 style={{ 
-                  maxWidth: 'calc(100vw - 2rem)',
-                  [isRTL ? 'left' : 'right']: 0,
+                  top: notifPos.top,
+                  left: notifPos.left,
+                  width: `min(${notifPos.width}px, calc(100vw - 2rem))`,
                   maxHeight: 'calc(100vh - 80px)',
                   overflowY: 'auto'
                 }}
@@ -538,71 +583,89 @@ export default function TopBar() {
           </div>
         )}
         
-        <div className="user-menu-container relative">
-          <button 
-            type="button"
-            onClick={() => {
-              setNotifOpen(false); // Close notifications when opening user menu
-              setUserOpen(!userOpen);
-            }} 
-            className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
-            aria-label="Toggle user menu"
-          >
-            <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
-          </button>
-          {userOpen && (
-            <div 
-              role="menu"
-              aria-label="User menu"
-              className="absolute top-full mt-2 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200 w-56 max-w-[calc(100vw-2rem)]"
-              style={{
-                pointerEvents: 'auto',
-                maxWidth: 'calc(100vw - 2rem)',
-                [isRTL ? 'left' : 'right']: 0,
-                maxHeight: 'calc(100vh - 80px)',
-                overflowY: 'auto'
-              }}
+        {/* User menu or Sign In button based on auth status */}
+        {isAuthenticated ? (
+          <div className="user-menu-container relative">
+            <button 
+              ref={userBtnRef}
+              type="button"
+              onClick={() => {
+                setNotifOpen(false); // Close notifications when opening user menu
+                setUserOpen(o => {
+                  const next = !o;
+                  if (next && userBtnRef.current) {
+                    setUserPos(placeDropdown(userBtnRef.current, 224)); // w-56 ≈ 224px
+                  }
+                  return next;
+                });
+              }} 
+              className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
+              aria-label="Toggle user menu"
             >
-                <Link
-                  href="/profile"
-                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
-                  role="menuitem"
-                  onClick={() => setUserOpen(false)}
-                >
-                  {t('nav.profile', 'Profile')}
-                </Link>
-                <Link
-                  href="/settings"
-                  className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
-                  role="menuitem"
-                  onClick={() => setUserOpen(false)}
-                >
-                  {t('nav.settings', 'Settings')}
-                </Link>
-                
-                {/* Language & Currency Section */}
-                <>
-                  <div className="border-t my-1 mx-2" />
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
-                    {t('common.preferences', 'Preferences')}
-                  </div>
-                  <div className="px-4 py-2 space-y-2" role="none">
-                    <LanguageSelector variant="default" />
-                    <CurrencySelector variant="default" />
-                  </div>
-                </>
-                
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
-                  onClick={handleLogout}
-                >
-                  {t('common.logout', 'Sign out')}
-                </button>
-              </div>
-          )}
-        </div>
+              <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
+            </button>
+            {userOpen && (
+              <div 
+                role="menu"
+                aria-label="User menu"
+                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
+                style={{
+                  top: userPos.top,
+                  left: userPos.left,
+                  width: `min(${userPos.width}px, calc(100vw - 2rem))`,
+                  maxHeight: 'calc(100vh - 80px)',
+                  overflowY: 'auto',
+                  pointerEvents: 'auto'
+                }}
+              >
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                    role="menuitem"
+                    onClick={() => setUserOpen(false)}
+                  >
+                    {t('nav.profile', 'Profile')}
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                    role="menuitem"
+                    onClick={() => setUserOpen(false)}
+                  >
+                    {t('nav.settings', 'Settings')}
+                  </Link>
+                  
+                  {/* Language & Currency Section */}
+                  <>
+                    <div className="border-t my-1 mx-2" />
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                      {t('common.preferences', 'Preferences')}
+                    </div>
+                    <div className="px-4 py-2 space-y-2" role="none">
+                      <LanguageSelector variant="default" />
+                      <CurrencySelector variant="default" />
+                    </div>
+                  </>
+                  
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
+                    onClick={handleLogout}
+                  >
+                    {t('common.logout', 'Sign out')}
+                  </button>
+                </div>
+            )}
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
+          >
+            {t('common.signIn', 'Sign In')}
+          </Link>
+        )}
         </div>
       </div>
 
