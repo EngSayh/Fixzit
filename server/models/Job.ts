@@ -1,4 +1,6 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const JobStatuses = ['draft', 'pending', 'published', 'closed', 'archived'] as const;
 const JobVisibilities = ['internal', 'public'] as const;
@@ -8,7 +10,6 @@ const WorkModes = ['onsite', 'remote', 'hybrid'] as const;
 type JobStatus = typeof JobStatuses[number];
 
 const JobSchema = new Schema({
-  orgId: { type: String, required: true },
   slug: { type: String, required: true },
   title: { type: String, required: true },
   department: { type: String },
@@ -41,9 +42,15 @@ const JobSchema = new Schema({
   applicationCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
-JobSchema.index({ slug: 1 }, { unique: true });
-JobSchema.index({ title: 'text', description: 'text', requirements: 'text', skills: 'text', tags: 'text' });
+// Apply plugins BEFORE indexes for proper tenant isolation
+JobSchema.plugin(tenantIsolationPlugin);
+JobSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes (orgId prepended for proper isolation)
+JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
+JobSchema.index({ orgId: 1, title: 'text', description: 'text', requirements: 'text', skills: 'text', tags: 'text' });
 JobSchema.index({ orgId: 1, status: 1 });
+JobSchema.index({ orgId: 1, jobType: 1, status: 1 });
 
 export type JobDoc = (InferSchemaType<typeof JobSchema> & Document) & { publish(): Promise<JobDoc>; };
 

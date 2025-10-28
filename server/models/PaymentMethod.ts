@@ -1,14 +1,18 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const PaymentMethodSchema = new Schema(
   {
+    // NOTE: This schema uses a flexible ownership model (XOR validation)
+    // Either org_id (organization payment method) OR owner_user_id (user payment method)
+    // This is intentional and does NOT use tenantIsolationPlugin
     org_id: { 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'Organization',
       // Note: required conditionally in validation - see validate hook below
     },
     owner_user_id: { 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'User',
       // Note: required conditionally in validation - see validate hook below
     },
@@ -36,9 +40,13 @@ PaymentMethodSchema.pre('validate', function (next) {
   next();
 });
 
+// Apply audit plugin for tracking who created/updated payment methods
+PaymentMethodSchema.plugin(auditPlugin);
+
 // Indexes for efficient queries
 PaymentMethodSchema.index({ org_id: 1 });
 PaymentMethodSchema.index({ owner_user_id: 1 });
+PaymentMethodSchema.index({ pt_token: 1 }, { sparse: true }); // For quick token lookup
 
 export default models.PaymentMethod || model('PaymentMethod', PaymentMethodSchema);
 
