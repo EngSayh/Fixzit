@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
 import { rateLimit } from '@/server/security/rateLimit';
 import { getUserFromToken } from '@/lib/auth';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { z } from 'zod';
@@ -45,30 +46,33 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Authentication & Authorization
-    const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
-    if (!token) {
+    // Try session-based auth first (cookies), fallback to Bearer token
+    let user: Awaited<ReturnType<typeof getSessionUser>> = await getSessionUser(req);
+    
+    if (!user) {
+      // Fallback to Bearer token authentication
+      const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
+      if (token) {
+        const bearerUser = await getUserFromToken(token);
+        if (bearerUser) {
+          // Map Bearer token user to SessionUser format
+          user = {
+            ...bearerUser,
+            tenantId: bearerUser.orgId
+          } as Awaited<ReturnType<typeof getSessionUser>>;
+        }
+      }
+    }
+
+    if (!user) {
       return createSecureResponse({ error: 'Authentication required' }, 401, req);
     }
 
-    const user = await getUserFromToken(token);
-
-    if (!user) {
-
-      return createSecureResponse({ error: 'Invalid token' }, 401, req);
-
-    }
-
     if (!user?.orgId) {
-
       return NextResponse.json(
-
         { error: 'Unauthorized', message: 'Missing tenant context' },
-
         { status: 401 }
-
       );
-
     }
 
     // Role-based access control - only finance roles can view invoices
