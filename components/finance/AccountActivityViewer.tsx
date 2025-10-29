@@ -27,6 +27,8 @@ interface IAccountActivityData {
   openingBalance: number;
   closingBalance: number;
   transactions: IAccountTransaction[];
+  // Optional total when server-side pagination is used
+  totalTransactions?: number;
   totalDebits: number;
   totalCredits: number;
   periodStart: string;
@@ -65,6 +67,7 @@ export default function AccountActivityViewer({
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize] = useState<number>(50);
+  const [serverSide, setServerSide] = useState<boolean>(false);
 
   // ============================================================================
   // DATA LOADING
@@ -74,7 +77,7 @@ export default function AccountActivityViewer({
     if (accountId) {
       loadAccountActivity();
     }
-  }, [accountId, startDate, endDate, sourceTypeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAccountActivity = async () => {
     if (!accountId) return;
@@ -92,15 +95,35 @@ export default function AccountActivityViewer({
         params.append('sourceType', sourceTypeFilter);
       }
 
-      const response = await fetch(`/api/finance/ledger/account-activity/${accountId}?${params.toString()}`);
-      
+      // Add pagination params for server-side pagination
+      params.append('page', String(currentPage));
+      params.append('limit', String(pageSize));
+
+      const url = `/api/finance/ledger/account-activity/${accountId}?${params.toString()}`;
+      const response = await fetch(url);
+
       if (!response.ok) {
-        throw new Error('Failed to load account activity');
+        // try to get a specific message from the response
+        let errMsg = 'Failed to load account activity';
+        try {
+          const err = await response.json();
+          errMsg = err.message || err.error || errMsg;
+        } catch (_err) {
+          // ignore
+        }
+        throw new Error(errMsg);
       }
 
       const result = await response.json();
+
+      // If API returned total count, we are using server-side pagination
+      if (typeof result.totalTransactions === 'number' || typeof result.total === 'number') {
+        setServerSide(true);
+      } else {
+        setServerSide(false);
+      }
+
       setData(result);
-      setCurrentPage(1); // Reset to first page on new data
     } catch (err) {
       console.error('Error loading account activity:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -116,12 +139,20 @@ export default function AccountActivityViewer({
   const getPaginatedTransactions = (): IAccountTransaction[] => {
     if (!data) return [];
 
+    // If server-side pagination is active, the API returns only page transactions
+    if (serverSide && (data.transactions?.length ?? 0) > 0) {
+      return data.transactions;
+    }
+
+    // Client-side pagination fallback: slice the full transactions array
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return data.transactions.slice(startIndex, endIndex);
   };
 
-  const totalPages = data ? Math.ceil(data.transactions.length / pageSize) : 0;
+  const totalPages = data
+    ? Math.ceil(((data.totalTransactions ?? data.transactions.length) as number) / pageSize)
+    : 0;
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
