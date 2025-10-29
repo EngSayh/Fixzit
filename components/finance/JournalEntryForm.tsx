@@ -475,22 +475,36 @@ export default function JournalEntryForm({
                     {line.lineNumber}
                   </td>
                   <td className="px-2 py-2">
-                    <select
-                      value={line.accountId}
-                      onChange={(e) => updateLine(line.id, 'accountId', e.target.value)}
-                      className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-red-500' : 'border-gray-300'}`}
-                      disabled={loadingAccounts}
-                    >
-                      <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
-                      {chartAccounts.map(acc => (
-                        <option key={acc._id} value={acc._id}>
-                          {acc.code} - {acc.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors[`line_${index}_account`] && (
-                      <p className="text-xs text-red-500 mt-1">{errors[`line_${index}_account`]}</p>
-                    )}
+                    {/* Searchable account selector: use filteredAccounts per line (falls back to full chartAccounts) */}
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={searchTerms[line.id] || ''}
+                        onChange={(e) => handleAccountSearch(line.id, e.target.value)}
+                        placeholder={loadingAccounts ? String(t('Loading...')) : String(t('Search account by code or name'))}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                        disabled={loadingAccounts}
+                        aria-label={String(t('Search account'))}
+                      />
+
+                      <select
+                        value={line.accountId}
+                        onChange={(e) => updateLine(line.id, 'accountId', e.target.value)}
+                        className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-red-500' : 'border-gray-300'}`}
+                        disabled={loadingAccounts}
+                      >
+                        <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
+                        {(filteredAccounts[line.id] ?? chartAccounts).map(acc => (
+                          <option key={acc._id} value={acc._id}>
+                            {acc.code} - {acc.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      {errors[`line_${index}_account`] && (
+                        <p className="text-xs text-red-500 mt-1">{errors[`line_${index}_account`]}</p>
+                      )}
+                    </div>
                   </td>
                   <td className="px-2 py-2">
                     <input
