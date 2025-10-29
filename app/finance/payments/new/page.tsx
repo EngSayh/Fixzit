@@ -1,245 +1,966 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFormState } from '@/contexts/FormStateContext';
+import { useRouter } from 'next/navigation';
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IInvoiceAllocation {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  customerName: string;
+  invoiceDate: string;
+  dueDate: string;
+  totalAmount: number;
+  amountDue: number;
+  amountAllocated: number;
+  selected: boolean;
+}
+
+interface IChartAccount {
+  _id: string;
+  code: string;
+  name: string;
+  nameAr?: string;
+  type: string;
+}
+
+interface IAvailableInvoice {
+  _id: string;
+  invoiceNumber: string;
+  customer: { name: string };
+  issueDate: string;
+  dueDate: string;
+  totalAmount: number;
+  amountDue: number;
+}
 
 export default function NewPaymentPage() {
   const { t } = useTranslation();
-  
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('finance.payment.title', 'Record Payment')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.payment.subtitle', 'Record a new payment or income transaction')}</p>
-        </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
-          <button className="btn-primary">{t('finance.payment.recordPayment', 'Record Payment')}</button>
-        </div>
-      </div>
+  const router = useRouter();
+  const { registerForm, unregisterForm } = useFormState();
 
-      {/* Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.details', 'Payment Details')}</h3>
+  // Core payment fields
+  const [paymentType, setPaymentType] = useState<string>('RECEIVED');
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [amount, setAmount] = useState<string>('');
+  const [currency, setCurrency] = useState<string>('SAR');
+  const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+
+  // Party details
+  const [partyType, setPartyType] = useState<string>('TENANT');
+  const [partyId, setPartyId] = useState<string>('');
+  const [partyName, setPartyName] = useState<string>('');
+
+  // Method-specific fields - Bank Transfer
+  const [bankName, setBankName] = useState<string>('');
+  const [accountNumber, setAccountNumber] = useState<string>('');
+  const [accountHolder, setAccountHolder] = useState<string>('');
+  const [swiftCode, setSwiftCode] = useState<string>('');
+  const [iban, setIban] = useState<string>('');
+
+  // Method-specific fields - Cheque
+  const [chequeNumber, setChequeNumber] = useState<string>('');
+  const [chequeDate, setChequeDate] = useState<string>('');
+  const [chequeBankName, setChequeBankName] = useState<string>('');
+  const [drawerName, setDrawerName] = useState<string>('');
+
+  // Method-specific fields - Card
+  const [cardType, setCardType] = useState<string>('VISA');
+  const [last4Digits, setLast4Digits] = useState<string>('');
+  const [transactionId, setTransactionId] = useState<string>('');
+  const [authorizationCode, setAuthorizationCode] = useState<string>('');
+
+  // Cash account selection
+  const [cashAccountId, setCashAccountId] = useState<string>('');
+
+  // Invoice allocations
+  const [allocations, setAllocations] = useState<IInvoiceAllocation[]>([]);
+  const [availableInvoices, setAvailableInvoices] = useState<IAvailableInvoice[]>([]);
+  const [showInvoiceAllocation, setShowInvoiceAllocation] = useState<boolean>(false);
+
+  // Data lookups
+  const [chartAccounts, setChartAccounts] = useState<IChartAccount[]>([]);
+
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+  // Calculate totals
+  const totalAllocated = allocations.reduce((sum, a) => sum + a.amountAllocated, 0);
+  const unallocatedAmount = parseFloat(amount || '0') - totalAllocated;
+  const paymentAmountNum = parseFloat(amount || '0');
+
+  // ============================================================================
+  // LIFECYCLE & DATA LOADING
+  // ============================================================================
+
+  useEffect(() => {
+    const formId = 'new-payment-form';
+    registerForm(formId);
+    return () => unregisterForm(formId);
+  }, [registerForm, unregisterForm]);
+
+  // Load chart of accounts (cash/bank accounts)
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        setLoadingAccounts(true);
+        const response = await fetch('/api/finance/accounts?type=ASSET&active=true');
+        if (response.ok) {
+          const data = await response.json();
+          // Filter to cash/bank accounts only
+          const cashAccounts = (data.accounts || []).filter((acc: IChartAccount) => 
+            acc.name.toLowerCase().includes('cash') || 
+            acc.name.toLowerCase().includes('bank') ||
+            acc.code.startsWith('1010') || // Common cash account codes
+            acc.code.startsWith('1020')    // Common bank account codes
+          );
+          setChartAccounts(cashAccounts);
+          
+          // Auto-select first cash account if available
+          if (cashAccounts.length > 0 && !cashAccountId) {
+            setCashAccountId(cashAccounts[0]._id);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading accounts:', error);
+      } finally {
+        setLoadingAccounts(false);
+      }
+    };
+    loadAccounts();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load available invoices when payment type is RECEIVED
+  useEffect(() => {
+    if (paymentType === 'RECEIVED' && showInvoiceAllocation) {
+      loadAvailableInvoices();
+    }
+  }, [paymentType, showInvoiceAllocation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadAvailableInvoices = async () => {
+    try {
+      setLoadingInvoices(true);
+      // Load unpaid/partially paid invoices
+      const response = await fetch('/api/finance/invoices?status=POSTED&hasBalance=true');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableInvoices(data.invoices || []);
+        
+        // Initialize allocations from available invoices
+        const newAllocations: IInvoiceAllocation[] = (data.invoices || []).map((inv: IAvailableInvoice) => ({
+          id: inv._id,
+          invoiceId: inv._id,
+          invoiceNumber: inv.invoiceNumber,
+          customerName: inv.customer?.name || 'Unknown',
+          invoiceDate: inv.issueDate,
+          dueDate: inv.dueDate,
+          totalAmount: inv.totalAmount,
+          amountDue: inv.amountDue,
+          amountAllocated: 0,
+          selected: false
+        }));
+        setAllocations(newAllocations);
+      }
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+      setErrors({ ...errors, invoices: 'Failed to load invoices' });
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
+
+  // ============================================================================
+  // INVOICE ALLOCATION MANAGEMENT
+  // ============================================================================
+
+  const toggleInvoiceSelection = (id: string) => {
+    setAllocations(allocations.map(a => {
+      if (a.id === id) {
+        return { ...a, selected: !a.selected, amountAllocated: !a.selected ? Math.min(a.amountDue, unallocatedAmount + a.amountAllocated) : 0 };
+      }
+      return a;
+    }));
+  };
+
+  const updateAllocationAmount = (id: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setAllocations(allocations.map(a => {
+      if (a.id === id) {
+        // Cap at invoice amount due
+        const cappedValue = Math.min(numValue, a.amountDue);
+        return { ...a, amountAllocated: cappedValue, selected: cappedValue > 0 };
+      }
+      return a;
+    }));
+  };
+
+  const allocateEqually = () => {
+    const selectedAllocations = allocations.filter(a => a.selected);
+    if (selectedAllocations.length === 0) return;
+
+    const perInvoice = paymentAmountNum / selectedAllocations.length;
+    setAllocations(allocations.map(a => {
+      if (a.selected) {
+        const allocated = Math.min(perInvoice, a.amountDue);
+        return { ...a, amountAllocated: allocated };
+      }
+      return a;
+    }));
+  };
+
+  const allocateByPriority = () => {
+    // Allocate by due date (oldest first)
+    const selectedAllocations = allocations
+      .filter(a => a.selected)
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+    let remaining = paymentAmountNum;
+    const updated = allocations.map(a => {
+      if (a.selected) {
+        const toAllocate = Math.min(remaining, a.amountDue);
+        remaining -= toAllocate;
+        return { ...a, amountAllocated: toAllocate };
+      }
+      return a;
+    });
+    setAllocations(updated);
+  };
+
+  const clearAllocations = () => {
+    setAllocations(allocations.map(a => ({ ...a, selected: false, amountAllocated: 0 })));
+  };
+
+  // ============================================================================
+  // FORM VALIDATION
+  // ============================================================================
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Required fields
+    if (!paymentDate) newErrors.paymentDate = 'Payment date is required';
+    if (!amount || parseFloat(amount) <= 0) newErrors.amount = 'Amount must be greater than 0';
+    if (!partyName) newErrors.partyName = 'Party name is required';
+    if (!cashAccountId) newErrors.cashAccountId = 'Cash/Bank account is required';
+
+    // Payment method specific validations
+    if (paymentMethod === 'BANK_TRANSFER') {
+      if (!bankName) newErrors.bankName = 'Bank name is required';
+      if (!accountNumber) newErrors.accountNumber = 'Account number is required';
+    }
+
+    if (paymentMethod === 'CHEQUE') {
+      if (!chequeNumber) newErrors.chequeNumber = 'Cheque number is required';
+      if (!chequeDate) newErrors.chequeDate = 'Cheque date is required';
+      if (!chequeBankName) newErrors.chequeBankName = 'Bank name is required';
+    }
+
+    if (paymentMethod === 'CARD') {
+      if (!last4Digits) newErrors.last4Digits = 'Last 4 digits are required';
+      if (last4Digits && !/^\d{4}$/.test(last4Digits)) {
+        newErrors.last4Digits = 'Must be exactly 4 digits';
+      }
+    }
+
+    // Allocation validation
+    if (totalAllocated > paymentAmountNum) {
+      newErrors.allocations = 'Total allocated amount cannot exceed payment amount';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Build method-specific details
+      const bankDetails = paymentMethod === 'BANK_TRANSFER' ? {
+        bankName,
+        accountNumber,
+        accountHolder,
+        swiftCode,
+        iban
+      } : undefined;
+
+      const chequeDetails = paymentMethod === 'CHEQUE' ? {
+        chequeNumber,
+        chequeDate: new Date(chequeDate),
+        bankName: chequeBankName,
+        drawerName
+      } : undefined;
+
+      const cardDetails = paymentMethod === 'CARD' ? {
+        cardType,
+        last4Digits,
+        transactionId,
+        authorizationCode
+      } : undefined;
+
+      // Build allocations array (only selected invoices with amounts)
+      const invoiceAllocations = allocations
+        .filter(a => a.selected && a.amountAllocated > 0)
+        .map(a => ({
+          invoiceId: a.invoiceId,
+          invoiceNumber: a.invoiceNumber,
+          amount: a.amountAllocated
+        }));
+
+      const payload = {
+        paymentType,
+        amount: parseFloat(amount),
+        currency,
+        paymentMethod,
+        paymentDate: new Date(paymentDate),
+        partyType,
+        partyId: partyId || undefined,
+        partyName,
+        referenceNumber: referenceNumber || undefined,
+        notes: notes || undefined,
+        cashAccountId,
+        bankDetails,
+        chequeDetails,
+        cardDetails,
+        allocations: invoiceAllocations,
+        unallocatedAmount,
+        status: 'POSTED' // Auto-post payment
+      };
+
+      const response = await fetch('/api/finance/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment created:', data);
+        
+        // Show success message (you can add toast notification here)
+        router.push('/finance/payments');
+      } else {
+        const errorData = await response.json();
+        setErrors({ submit: errorData.error || 'Failed to create payment' });
+      }
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      setErrors({ submit: 'An unexpected error occurred' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
+
+  const renderMethodSpecificFields = () => {
+    switch (paymentMethod) {
+      case 'BANK_TRANSFER':
+        return (
+          <div className="space-y-4 p-4 bg-blue-50 rounded-md">
+            <h3 className="font-medium text-blue-900">{t('Bank Transfer Details')}</h3>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.payment.reference', 'Payment Reference')} *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Bank Name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="PAY-001"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md ${errors.bankName ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.bankName && <p className="text-xs text-red-500 mt-1">{errors.bankName}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Account Number')} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.accountNumber && <p className="text-xs text-red-500 mt-1">{errors.accountNumber}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Account Holder')}
+                </label>
+                <input
+                  type="text"
+                  value={accountHolder}
+                  onChange={(e) => setAccountHolder(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.payment.date', 'Payment Date')} *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('SWIFT Code')}
+                </label>
+                <input
+                  type="text"
+                  value={swiftCode}
+                  onChange={(e) => setSwiftCode(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('IBAN')}
+                </label>
+                <input
+                  type="text"
+                  value={iban}
+                  onChange={(e) => setIban(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="SA1234567890123456789012"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'CHEQUE':
+        return (
+          <div className="space-y-4 p-4 bg-purple-50 rounded-md">
+            <h3 className="font-medium text-purple-900">{t('Cheque Details')}</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Cheque Number')} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={chequeNumber}
+                  onChange={(e) => setChequeNumber(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md ${errors.chequeNumber ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.chequeNumber && <p className="text-xs text-red-500 mt-1">{errors.chequeNumber}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Cheque Date')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  value={chequeDate}
+                  onChange={(e) => setChequeDate(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md ${errors.chequeDate ? 'border-red-500' : 'border-gray-300'}`}
                 />
+                {errors.chequeDate && <p className="text-xs text-red-500 mt-1">{errors.chequeDate}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.payment.method', 'Payment Method')} *
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>{t('finance.payment.selectMethod', 'Select Method')}</option>
-                  <option>{t('finance.payment.bankTransfer', 'Bank Transfer')}</option>
-                  <option>{t('finance.payment.cash', 'Cash')}</option>
-                  <option>{t('finance.payment.cheque', 'Cheque')}</option>
-                  <option>{t('finance.payment.creditCard', 'Credit Card')}</option>
-                  <option>{t('finance.payment.onlinePayment', 'Online Payment')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.currency', 'Currency')}
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>SAR - Saudi Riyal</option>
-                  <option>USD - US Dollar</option>
-                  <option>EUR - Euro</option>
-                  <option>GBP - British Pound</option>
-                </select>
-              </div>
-            </div>
-          </div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.from', 'Payment From')}</h3>
-            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.payment.payerCustomer', 'Payer/Customer')} *
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>{t('finance.payment.selectPayer', 'Select Payer')}</option>
-                  <option>John Smith - Tower A</option>
-                  <option>Sarah Johnson - Tower B</option>
-                  <option>Ahmed Al-Rashid - Villa 9</option>
-                  <option>ABC Company Ltd</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.payment.description', 'Payment Description')}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Bank Name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder={t('finance.payment.descriptionPlaceholder', 'Monthly rent payment, Service fee, etc...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  value={chequeBankName}
+                  onChange={(e) => setChequeBankName(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md ${errors.chequeBankName ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.chequeBankName && <p className="text-xs text-red-500 mt-1">{errors.chequeBankName}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Drawer Name')}
+                </label>
+                <input
+                  type="text"
+                  value={drawerName}
+                  onChange={(e) => setDrawerName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder={t('Name on cheque')}
                 />
               </div>
             </div>
           </div>
+        );
 
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.amount', 'Payment Amount')}</h3>
+      case 'CARD':
+        return (
+          <div className="space-y-4 p-4 bg-green-50 rounded-md">
+            <h3 className="font-medium text-green-900">{t('Card Payment Details')}</h3>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.amount', 'Amount')} *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Card Type')}
                 </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">SAR</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('finance.payment.category', 'Category')}
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
-                  <option>{t('finance.payment.rentPayment', 'Rent Payment')}</option>
-                  <option>{t('finance.payment.serviceFee', 'Service Fee')}</option>
-                  <option>{t('finance.payment.securityDeposit', 'Security Deposit')}</option>
-                  <option>{t('finance.payment.lateFee', 'Late Fee')}</option>
-                  <option>{t('finance.payment.otherIncome', 'Other Income')}</option>
+                <select
+                  value={cardType}
+                  onChange={(e) => setCardType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="VISA">Visa</option>
+                  <option value="MASTERCARD">Mastercard</option>
+                  <option value="AMEX">American Express</option>
+                  <option value="MADA">Mada</option>
+                  <option value="OTHER">Other</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Last 4 Digits')} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={last4Digits}
+                  onChange={(e) => setLast4Digits(e.target.value)}
+                  maxLength={4}
+                  pattern="\d{4}"
+                  className={`w-full px-3 py-2 border rounded-md ${errors.last4Digits ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="1234"
+                />
+                {errors.last4Digits && <p className="text-xs text-red-500 mt-1">{errors.last4Digits}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Transaction ID')}
+                </label>
+                <input
+                  type="text"
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Authorization Code')}
+                </label>
+                <input
+                  type="text"
+                  value={authorizationCode}
+                  onChange={(e) => setAuthorizationCode(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">{t('New Payment')}</h1>
+        <button
+          onClick={() => router.back()}
+          className="px-4 py-2 text-gray-600 hover:text-gray-900"
+          disabled={isSubmitting}
+        >
+          {t('Cancel')}
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Main Payment Details Card */}
+        <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+          <h2 className="text-xl font-semibold border-b pb-2">{t('Payment Details')}</h2>
+
+          {/* Payment Type & Date */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('Payment Type')} <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={paymentType}
+                onChange={(e) => setPaymentType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="RECEIVED">{t('Payment Received')}</option>
+                <option value="MADE">{t('Payment Made')}</option>
+              </select>
             </div>
 
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('finance.notes', 'Notes')}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('Payment Date')} <span className="text-red-500">*</span>
               </label>
-              <textarea
-                rows={3}
-                placeholder={t('finance.notesPlaceholder', 'Additional notes...')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+              <input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md ${errors.paymentDate ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              />
+              {errors.paymentDate && <p className="text-xs text-red-500 mt-1">{errors.paymentDate}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('Reference Number')}
+              </label>
+              <input
+                type="text"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder={t('Optional')}
               />
             </div>
           </div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.receiptDocumentation', 'Receipt & Documentation')}</h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <div className="text-gray-400 mb-2">📎</div>
-              <p className="text-sm text-gray-600">{t('finance.uploadReceipt', 'Upload receipt or supporting document')}</p>
-              <button className="mt-2 text-sm text-[var(--fixzit-blue)] hover:underline">
-                {t('finance.chooseFile', 'Choose File')}
-              </button>
+          {/* Amount & Currency */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('Amount')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md ${errors.amount ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              />
+              {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount}</p>}
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('Currency')} <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="SAR">SAR - Saudi Riyal</option>
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="GBP">GBP - British Pound</option>
+                <option value="AED">AED - UAE Dirham</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Payment Method')} <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="CASH">{t('Cash')}</option>
+              <option value="CARD">{t('Credit/Debit Card')}</option>
+              <option value="BANK_TRANSFER">{t('Bank Transfer')}</option>
+              <option value="CHEQUE">{t('Cheque')}</option>
+              <option value="ONLINE">{t('Online Payment')}</option>
+              <option value="OTHER">{t('Other')}</option>
+            </select>
+          </div>
+
+          {/* Cash/Bank Account Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Deposit To Account')} <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={cashAccountId}
+              onChange={(e) => setCashAccountId(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md ${errors.cashAccountId ? 'border-red-500' : 'border-gray-300'}`}
+              disabled={loadingAccounts}
+            >
+              <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
+              {chartAccounts.map(account => (
+                <option key={account._id} value={account._id}>
+                  {account.code} - {account.name}
+                </option>
+              ))}
+            </select>
+            {errors.cashAccountId && <p className="text-xs text-red-500 mt-1">{errors.cashAccountId}</p>}
+          </div>
+
+          {/* Method-specific fields */}
+          {renderMethodSpecificFields()}
+
+          {/* Party Details */}
+          <div className="pt-4 border-t">
+            <h3 className="font-medium text-gray-900 mb-3">
+              {paymentType === 'RECEIVED' ? t('Received From') : t('Paid To')}
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Party Type')}
+                </label>
+                <select
+                  value={partyType}
+                  onChange={(e) => setPartyType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="TENANT">{t('Tenant')}</option>
+                  <option value="CUSTOMER">{t('Customer')}</option>
+                  <option value="VENDOR">{t('Vendor')}</option>
+                  <option value="SUPPLIER">{t('Supplier')}</option>
+                  <option value="OWNER">{t('Owner')}</option>
+                  <option value="OTHER">{t('Other')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('Party Name')} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={partyName}
+                  onChange={(e) => setPartyName(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md ${errors.partyName ? 'border-red-500' : 'border-gray-300'}`}
+                  required
+                />
+                {errors.partyName && <p className="text-xs text-red-500 mt-1">{errors.partyName}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Notes')}
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder={t('Optional payment notes...')}
+            />
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.summary', 'Payment Summary')}</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.amount', 'Amount')}</span>
-                <span className="font-medium">SAR 0.00</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.payment.processingFee', 'Processing Fee')}</span>
-                <span className="font-medium">SAR 0.00</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.vat', 'VAT')} ({t('common.ifApplicable', 'if applicable')})</span>
-                <span className="font-medium">SAR 0.00</span>
-              </div>
-              <hr className="my-2" />
-              <div className="flex justify-between text-lg font-semibold">
-                <span>{t('finance.payment.netAmount', 'Net Amount')}</span>
-                <span>SAR 0.00</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.payment.recent', 'Recent Payments')}</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <div>
-                  <p className="text-sm font-medium">PAY-247</p>
-                  <p className="text-xs text-gray-600">John Smith</p>
-                </div>
-                <span className="text-sm font-medium">SAR 8,500</span>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <div>
-                  <p className="text-sm font-medium">PAY-246</p>
-                  <p className="text-xs text-gray-600">Sarah Johnson</p>
-                </div>
-                <span className="text-sm font-medium">SAR 12,000</span>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <div>
-                  <p className="text-sm font-medium">PAY-245</p>
-                  <p className="text-xs text-gray-600">Ahmed Al-Rashid</p>
-                </div>
-                <span className="text-sm font-medium">SAR 25,000</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
-            <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
-                📊 {t('finance.payment.generateReceipt', 'Generate Receipt')}
-              </button>
-              <button className="w-full btn-ghost text-left">
-                💰 {t('finance.payment.bulkEntry', 'Bulk Payment Entry')}
-              </button>
-              <button className="w-full btn-ghost text-left">
-                📋 {t('finance.payment.templates', 'Payment Templates')}
+        {/* Invoice Allocation Card (for RECEIVED payments only) */}
+        {paymentType === 'RECEIVED' && (
+          <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h2 className="text-xl font-semibold">{t('Invoice Allocation')}</h2>
+              <button
+                type="button"
+                onClick={() => setShowInvoiceAllocation(!showInvoiceAllocation)}
+                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+              >
+                {showInvoiceAllocation ? t('Hide Invoices') : t('Allocate to Invoices')}
               </button>
             </div>
-          </div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-gray-400 ml-auto">1m ago</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.payment.payerCustomer', 'Payer')} {t('common.selected', 'selected')}</span>
-                <span className="text-gray-400 ml-auto">3m ago</span>
-              </div>
-            </div>
+            {showInvoiceAllocation && (
+              <>
+                {loadingInvoices ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">{t('Loading invoices...')}</p>
+                  </div>
+                ) : allocations.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">{t('No unpaid invoices found')}</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Allocation Actions */}
+                    <div className="flex gap-2 pb-3 border-b">
+                      <button
+                        type="button"
+                        onClick={allocateEqually}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                        disabled={allocations.filter(a => a.selected).length === 0}
+                      >
+                        {t('Allocate Equally')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={allocateByPriority}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                        disabled={allocations.filter(a => a.selected).length === 0}
+                      >
+                        {t('By Due Date')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearAllocations}
+                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                      >
+                        {t('Clear All')}
+                      </button>
+                    </div>
+
+                    {/* Allocations Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                              {t('Select')}
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                              {t('Invoice #')}
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                              {t('Customer')}
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                              {t('Due Date')}
+                            </th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                              {t('Amount Due')}
+                            </th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                              {t('Allocate')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {allocations.map(allocation => (
+                            <tr key={allocation.id} className={allocation.selected ? 'bg-blue-50' : ''}>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="checkbox"
+                                  checked={allocation.selected}
+                                  onChange={() => toggleInvoiceSelection(allocation.id)}
+                                  className="w-4 h-4 text-blue-600 rounded"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                                {allocation.invoiceNumber}
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-700">
+                                {allocation.customerName}
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-700">
+                                {new Date(allocation.dueDate).toLocaleDateString()}
+                              </td>
+                              <td className="px-3 py-2 text-sm text-right text-gray-900">
+                                {allocation.amountDue.toFixed(2)} {currency}
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  max={allocation.amountDue}
+                                  value={allocation.amountAllocated}
+                                  onChange={(e) => updateAllocationAmount(allocation.id, e.target.value)}
+                                  className="w-full px-2 py-1 text-sm text-right border border-gray-300 rounded"
+                                  disabled={!allocation.selected}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Allocation Summary */}
+                    <div className="pt-3 border-t">
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="bg-gray-50 p-3 rounded">
+                          <p className="text-gray-600">{t('Payment Amount')}</p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {paymentAmountNum.toFixed(2)} {currency}
+                          </p>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded">
+                          <p className="text-gray-600">{t('Allocated')}</p>
+                          <p className="text-lg font-bold text-blue-700">
+                            {totalAllocated.toFixed(2)} {currency}
+                          </p>
+                        </div>
+                        <div className={`p-3 rounded ${unallocatedAmount < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                          <p className="text-gray-600">{t('Unallocated')}</p>
+                          <p className={`text-lg font-bold ${unallocatedAmount < 0 ? 'text-red-700' : 'text-green-700'}`}>
+                            {unallocatedAmount.toFixed(2)} {currency}
+                          </p>
+                        </div>
+                      </div>
+                      {errors.allocations && (
+                        <p className="text-sm text-red-500 mt-2">{errors.allocations}</p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
+        )}
+
+        {/* Error Display */}
+        {errors.submit && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <p className="text-sm text-red-700">{errors.submit}</p>
+          </div>
+        )}
+
+        {/* Submit Actions */}
+        <div className="flex justify-end gap-3 bg-white shadow-md rounded-lg p-6">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            disabled={isSubmitting}
+          >
+            {t('Cancel')}
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={isSubmitting || Object.keys(errors).length > 0}
+          >
+            {isSubmitting ? t('Creating...') : t('Create Payment')}
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
-
