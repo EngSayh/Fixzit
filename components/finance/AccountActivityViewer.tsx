@@ -1,0 +1,532 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IAccountTransaction {
+  _id: string;
+  date: string;
+  journalNumber: string;
+  description: string;
+  sourceType: string;
+  sourceNumber?: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+interface IAccountActivityData {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: string;
+  openingBalance: number;
+  closingBalance: number;
+  transactions: IAccountTransaction[];
+  totalDebits: number;
+  totalCredits: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+interface IAccountActivityViewerProps {
+  accountId: string;
+  initialStartDate?: string;
+  initialEndDate?: string;
+  onTransactionClick?: (transaction: IAccountTransaction) => void;
+}
+
+export default function AccountActivityViewer({
+  accountId,
+  initialStartDate,
+  initialEndDate,
+  onTransactionClick
+}: IAccountActivityViewerProps) {
+  const { t } = useTranslation();
+
+  // Filter state
+  const [startDate, setStartDate] = useState<string>(
+    initialStartDate || new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]
+  );
+  const [endDate, setEndDate] = useState<string>(
+    initialEndDate || new Date().toISOString().split('T')[0]
+  );
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>('ALL');
+
+  // Data state
+  const [data, setData] = useState<IAccountActivityData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize] = useState<number>(50);
+
+  // ============================================================================
+  // DATA LOADING
+  // ============================================================================
+
+  useEffect(() => {
+    if (accountId) {
+      loadAccountActivity();
+    }
+  }, [accountId, startDate, endDate, sourceTypeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadAccountActivity = async () => {
+    if (!accountId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = new URLSearchParams({
+        startDate,
+        endDate
+      });
+
+      if (sourceTypeFilter !== 'ALL') {
+        params.append('sourceType', sourceTypeFilter);
+      }
+
+      const response = await fetch(`/api/finance/ledger/account-activity/${accountId}?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load account activity');
+      }
+
+      const result = await response.json();
+      setData(result);
+      setCurrentPage(1); // Reset to first page on new data
+    } catch (err) {
+      console.error('Error loading account activity:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================================================
+  // PAGINATION
+  // ============================================================================
+
+  const getPaginatedTransactions = (): IAccountTransaction[] => {
+    if (!data) return [];
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return data.transactions.slice(startIndex, endIndex);
+  };
+
+  const totalPages = data ? Math.ceil(data.transactions.length / pageSize) : 0;
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // ============================================================================
+  // DATE PRESETS
+  // ============================================================================
+
+  const setDatePreset = (preset: string) => {
+    const today = new Date();
+    let start: Date;
+    let end: Date = today;
+
+    switch (preset) {
+      case 'today':
+        start = today;
+        break;
+      case 'this-week':
+        start = new Date(today);
+        start.setDate(today.getDate() - today.getDay());
+        break;
+      case 'this-month':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case 'this-quarter':
+        const quarter = Math.floor(today.getMonth() / 3);
+        start = new Date(today.getFullYear(), quarter * 3, 1);
+        break;
+      case 'this-year':
+        start = new Date(today.getFullYear(), 0, 1);
+        break;
+      case 'last-month':
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case 'last-year':
+        start = new Date(today.getFullYear() - 1, 0, 1);
+        end = new Date(today.getFullYear() - 1, 11, 31);
+        break;
+      default:
+        start = new Date(today.getFullYear(), 0, 1);
+    }
+
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+  };
+
+  // ============================================================================
+  // EXPORT
+  // ============================================================================
+
+  const exportToCSV = () => {
+    if (!data) return;
+
+    const headers = ['Date', 'Journal #', 'Source', 'Description', 'Debit', 'Credit', 'Balance'];
+    const rows = data.transactions.map(txn => [
+      new Date(txn.date).toLocaleDateString(),
+      txn.journalNumber,
+      txn.sourceType,
+      txn.description,
+      txn.debit.toFixed(2),
+      txn.credit.toFixed(2),
+      txn.balance.toFixed(2)
+    ]);
+
+    // Add opening balance row
+    rows.unshift([
+      startDate,
+      '',
+      '',
+      'Opening Balance',
+      '',
+      '',
+      data.openingBalance.toFixed(2)
+    ]);
+
+    const csvContent = [
+      [`Account: ${data.accountCode} - ${data.accountName}`],
+      [`Period: ${data.periodStart} to ${data.periodEnd}`],
+      [],
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `account-activity-${data.accountCode}-${startDate}-${endDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  return (
+    <div className="space-y-6">
+      {/* Header & Filters */}
+      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">{t('Account Activity')}</h2>
+            {data && (
+              <p className="text-sm text-gray-600 mt-1">
+                {data.accountCode} - {data.accountName} ({t(data.accountType)})
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={exportToCSV}
+              className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+              disabled={!data || loading}
+            >
+              📊 {t('Export CSV')}
+            </button>
+            <button
+              onClick={() => loadAccountActivity()}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? t('Loading...') : '🔄 ' + t('Refresh')}
+            </button>
+          </div>
+        </div>
+
+        {/* Date Range Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Start Date')}
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('End Date')}
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Source Type')}
+            </label>
+            <select
+              value={sourceTypeFilter}
+              onChange={(e) => setSourceTypeFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              disabled={loading}
+            >
+              <option value="ALL">{t('All Types')}</option>
+              <option value="MANUAL">{t('Manual')}</option>
+              <option value="INVOICE">{t('Invoice')}</option>
+              <option value="PAYMENT">{t('Payment')}</option>
+              <option value="EXPENSE">{t('Expense')}</option>
+              <option value="RENT">{t('Rent')}</option>
+              <option value="WORK_ORDER">{t('Work Order')}</option>
+              <option value="ADJUSTMENT">{t('Adjustment')}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Date Presets */}
+        <div className="flex flex-wrap gap-2 border-t pt-4">
+          <button onClick={() => setDatePreset('today')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+            {t('Today')}
+          </button>
+          <button onClick={() => setDatePreset('this-week')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+            {t('This Week')}
+          </button>
+          <button onClick={() => setDatePreset('this-month')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+            {t('This Month')}
+          </button>
+          <button onClick={() => setDatePreset('this-quarter')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+            {t('This Quarter')}
+          </button>
+          <button onClick={() => setDatePreset('this-year')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+            {t('This Year')}
+          </button>
+          <button onClick={() => setDatePreset('last-month')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+            {t('Last Month')}
+          </button>
+          <button onClick={() => setDatePreset('last-year')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+            {t('Last Year')}
+          </button>
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white shadow-md rounded-lg p-12 text-center">
+          <p className="text-gray-500">{t('Loading account activity...')}</p>
+        </div>
+      )}
+
+      {/* Activity Table */}
+      {!loading && data && (
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          {/* Summary Stats */}
+          <div className="bg-gray-50 p-4 border-b">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-gray-600">{t('Opening Balance')}</p>
+                <p className="text-lg font-bold">{data.openingBalance.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">{t('Total Debits')}</p>
+                <p className="text-lg font-bold text-green-700">+{data.totalDebits.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">{t('Total Credits')}</p>
+                <p className="text-lg font-bold text-red-700">-{data.totalCredits.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">{t('Closing Balance')}</p>
+                <p className="text-lg font-bold">{data.closingBalance.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Transactions Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Date')}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Journal #')}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Source')}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Description')}
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Debit')}
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Credit')}
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Balance')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {/* Opening Balance Row */}
+                <tr className="bg-blue-50">
+                  <td className="px-4 py-2 text-sm" colSpan={4}>
+                    <strong>{t('Opening Balance')}</strong>
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right"></td>
+                  <td className="px-4 py-2 text-sm text-right"></td>
+                  <td className="px-4 py-2 text-sm text-right font-semibold">
+                    {data.openingBalance.toFixed(2)}
+                  </td>
+                </tr>
+
+                {/* Transaction Rows */}
+                {getPaginatedTransactions().map((txn) => (
+                  <tr
+                    key={txn._id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => onTransactionClick && onTransactionClick(txn)}
+                  >
+                    <td className="px-4 py-2 text-sm">
+                      {new Date(txn.date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2 text-sm font-medium text-blue-600">
+                      {txn.journalNumber}
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      <span className="px-2 py-1 text-xs bg-gray-100 rounded">
+                        {t(txn.sourceType)}
+                      </span>
+                      {txn.sourceNumber && (
+                        <span className="ml-1 text-xs text-gray-600">
+                          ({txn.sourceNumber})
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-700">
+                      {txn.description}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-green-700 font-medium">
+                      {txn.debit > 0 ? txn.debit.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-red-700 font-medium">
+                      {txn.credit > 0 ? txn.credit.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right font-semibold">
+                      {txn.balance.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* No Transactions */}
+                {data.transactions.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      {t('No transactions found for this period')}
+                    </td>
+                  </tr>
+                )}
+
+                {/* Closing Balance Row */}
+                <tr className="bg-blue-50 border-t-2 border-gray-300">
+                  <td className="px-4 py-2 text-sm font-bold" colSpan={4}>
+                    {t('Closing Balance')}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-green-700">
+                    {data.totalDebits.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-red-700">
+                    {data.totalCredits.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold">
+                    {data.closingBalance.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="bg-gray-50 px-4 py-3 border-t flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                {t('Showing')} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, data.transactions.length)} {t('of')} {data.transactions.length} {t('transactions')}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => goToPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('First')}
+                </button>
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('Previous')}
+                </button>
+                <span className="px-3 py-1 text-sm">
+                  {t('Page')} {currentPage} {t('of')} {totalPages}
+                </span>
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('Next')}
+                </button>
+                <button
+                  onClick={() => goToPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('Last')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !data && !error && (
+        <div className="bg-white shadow-md rounded-lg p-12 text-center">
+          <p className="text-gray-500">{t('Select an account to view activity')}</p>
+        </div>
+      )}
+    </div>
+  );
+}
