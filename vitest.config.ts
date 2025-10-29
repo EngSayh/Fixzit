@@ -4,8 +4,24 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'jsdom', // Changed from 'node' to support React component tests
+    environment: 'jsdom', // Default for React component tests
     setupFiles: ['./vitest.setup.ts'],
+    
+    // Match test environment to file type
+    environmentMatchGlobs: [
+      // Backend tests need Node environment (models, server logic, API routes)
+      ['**/*.test.ts', 'node'],
+      ['**/server/**/*.test.ts', 'node'],
+      ['**/models/**/*.test.ts', 'node'],
+      ['**/lib/**/*.test.ts', 'node'],
+      ['**/db/**/*.test.ts', 'node'],
+      ['**/api/**/*.test.ts', 'node'],
+      
+      // Component tests need jsdom (browser simulation)
+      ['**/*.test.tsx', 'jsdom'],
+      ['**/app/**/*.test.tsx', 'jsdom'],
+      ['**/components/**/*.test.tsx', 'jsdom'],
+    ],
   },
   resolve: {
     alias: {
