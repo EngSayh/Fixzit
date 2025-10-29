@@ -26,18 +26,22 @@ async function getUserSession(req: NextRequest) {
   };
 }
 
+type RouteContext = {
+  params: Promise<{ id: string }> | { id: string };
+};
+
 /**
  * GET /api/finance/expenses/:id
  */
-export async function GET(req: NextRequest, context: any) {
+export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.read');
 
-    // Resolve params (Next may provide params as a Promise)
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
@@ -100,15 +104,15 @@ const UpdateExpenseSchema = z.object({
  * PUT /api/finance/expenses/:id
  * Update expense (only if DRAFT status)
  */
-export async function PUT(req: NextRequest, context: any) {
+export async function PUT(req: NextRequest, context: RouteContext) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.update');
 
-    // Resolve params
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
@@ -188,15 +192,15 @@ export async function PUT(req: NextRequest, context: any) {
  * DELETE /api/finance/expenses/:id
  * Cancel expense
  */
-export async function DELETE(req: NextRequest, context: any) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.delete');
 
-    // Resolve params
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(

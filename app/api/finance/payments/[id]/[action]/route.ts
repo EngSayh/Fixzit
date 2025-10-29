@@ -39,19 +39,23 @@ const BounceSchema = z.object({
   bounceCharges: z.number().min(0).optional(),
 });
 
+type RouteContext = {
+  params: Promise<{ id: string; action: string }> | { id: string; action: string };
+};
+
 /**
  * POST /api/finance/payments/:id/[action]
  * Handle payment reconciliation actions
  */
 export async function POST(
   req: NextRequest,
-  context: any
+  context: RouteContext
 ) {
   try {
     const user = await getUserSession(req);
     
-    // Resolve params
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
     
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(

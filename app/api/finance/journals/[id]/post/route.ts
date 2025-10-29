@@ -40,9 +40,13 @@ async function getUserSession(req: NextRequest) {
 // POST /api/finance/journals/[id]/post - Post journal to ledger
 // ============================================================================
 
+type RouteContext = {
+  params: Promise<{ id: string }> | { id: string };
+};
+
 export async function POST(
   req: NextRequest,
-  context: any
+  context: RouteContext
 ) {
   try {
     await dbConnect();
@@ -56,8 +60,8 @@ export async function POST(
     // Authorization check
     requirePermission(user.role, 'finance.journals.post');
     
-    // Resolve params
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
     
     // Validate journal ID
     if (!Types.ObjectId.isValid(_params.id)) {

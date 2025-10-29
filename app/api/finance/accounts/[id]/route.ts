@@ -52,9 +52,13 @@ async function getUserSession(_req: NextRequest) {
 // GET /api/finance/accounts/[id] - Get account details
 // ============================================================================
 
+type RouteContext = {
+  params: Promise<{ id: string }> | { id: string };
+};
+
 export async function GET(
   req: NextRequest,
-  context: any
+  context: RouteContext
 ) {
   try {
     await dbConnect();
@@ -68,8 +72,8 @@ export async function GET(
     // Authorization check
     requirePermission(user.role, 'finance.accounts.read');
     
-    // Resolve params (Next may provide params as a Promise)
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
 
     // Validate account ID
     if (!Types.ObjectId.isValid(_params.id)) {
@@ -141,7 +145,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  context: any
+  context: RouteContext
 ) {
   try {
     await dbConnect();
@@ -155,8 +159,8 @@ export async function PUT(
     // Authorization check
     requirePermission(user.role, 'finance.accounts.update');
     
-    // Resolve params
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
 
     // Validate account ID
     if (!Types.ObjectId.isValid(_params.id)) {
@@ -223,7 +227,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  context: any
+  context: RouteContext
 ) {
   try {
     await dbConnect();
@@ -237,8 +241,8 @@ export async function DELETE(
     // Authorization check
     requirePermission(user.role, 'finance.accounts.delete');
     
-    // Resolve params
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
 
     // Validate account ID
     if (!Types.ObjectId.isValid(_params.id)) {
