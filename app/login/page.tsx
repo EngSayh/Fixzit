@@ -264,6 +264,12 @@ export default function LoginPage() {
               <p id="identifier-hint" className="mt-1 text-xs text-gray-500">
                 {t('login.identifierHint', 'Enter your email address or employee number (EMP001, EMP002, etc.)')}
               </p>
+              {empRegex.test(identifier.trim()) && !errors.identifier && (
+                <p className="mt-1 text-xs text-blue-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {t('login.corporateHelp', 'Use Employee Number + Password. No separate Corporate Number field needed.')}
+                </p>
+              )}
               {errors.identifier && (
                 <p id="identifier-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
