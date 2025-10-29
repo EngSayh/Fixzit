@@ -101,10 +101,11 @@ export interface MarketplaceSearchFilters {
   skip?: number;
 }
 
+type MongoQuery = Record<string, unknown | { $gte?: number; $lte?: number; $search?: string }>;
+
 export async function searchProducts(filters: MarketplaceSearchFilters) {
   await db;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const query: Record<string, any> = { orgId: filters.orgId, status: 'ACTIVE' };
+  const query: MongoQuery = { orgId: filters.orgId, status: 'ACTIVE' };
 
   if (filters.q) {
     query.$text = { $search: expandQuery(filters.q) };
