@@ -66,7 +66,9 @@ export async function POST(req: NextRequest) {
         return validationError('Invalid payment amount');
       }
 
-      const _zatcaQR = await generateZATCAQR({
+      // Generate ZATCA QR code for Saudi Arabia tax compliance (e-invoicing)
+      // TODO: Store this in the payment record for future invoice generation
+      await generateZATCAQR({
         sellerName: 'Fixzit Enterprise',
         vatNumber: '300123456789012',
         timestamp: new Date().toISOString(),
