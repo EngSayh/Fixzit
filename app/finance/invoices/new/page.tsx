@@ -302,7 +302,7 @@ export default function NewInvoicePage() {
         total: totalAmount
       };
 
-      const response = await fetch('/api/invoices', {
+      const response = await fetch('/api/finance/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -372,7 +372,7 @@ export default function NewInvoicePage() {
         autoPostJournal
       };
 
-      const response = await fetch('/api/invoices', {
+      const response = await fetch('/api/finance/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
