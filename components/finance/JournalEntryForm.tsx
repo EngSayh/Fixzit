@@ -1,0 +1,621 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IJournalLine {
+  id: string;
+  lineNumber: number;
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  description: string;
+  debit: number;
+  credit: number;
+  propertyId?: string;
+  unitId?: string;
+}
+
+interface IChartAccount {
+  _id: string;
+  code: string;
+  name: string;
+  nameAr?: string;
+  type: string;
+  balance?: number;
+}
+
+interface IJournalEntryFormProps {
+  onSubmit?: (data: IJournalEntryData) => Promise<void>;
+  onCancel?: () => void;
+  initialData?: Partial<IJournalEntryData>;
+  mode?: 'create' | 'edit';
+}
+
+interface IJournalEntryData {
+  journalDate: string;
+  description: string;
+  sourceType: string;
+  sourceNumber?: string;
+  lines: IJournalLine[];
+}
+
+export default function JournalEntryForm({
+  onSubmit,
+  onCancel,
+  initialData,
+  mode = 'create'
+}: IJournalEntryFormProps) {
+  const { t } = useTranslation();
+
+  // Form state
+  const [journalDate, setJournalDate] = useState<string>(
+    initialData?.journalDate || new Date().toISOString().split('T')[0]
+  );
+  const [description, setDescription] = useState<string>(initialData?.description || '');
+  const [sourceType, setSourceType] = useState<string>(initialData?.sourceType || 'MANUAL');
+  const [sourceNumber, setSourceNumber] = useState<string>(initialData?.sourceNumber || '');
+
+  // Lines state
+  const [lines, setLines] = useState<IJournalLine[]>(
+    initialData?.lines || [
+      {
+        id: '1',
+        lineNumber: 1,
+        accountId: '',
+        accountCode: '',
+        accountName: '',
+        description: '',
+        debit: 0,
+        credit: 0
+      },
+      {
+        id: '2',
+        lineNumber: 2,
+        accountId: '',
+        accountCode: '',
+        accountName: '',
+        description: '',
+        debit: 0,
+        credit: 0
+      }
+    ]
+  );
+
+  // Data lookups
+  const [chartAccounts, setChartAccounts] = useState<IChartAccount[]>([]);
+  const [filteredAccounts, setFilteredAccounts] = useState<Record<string, IChartAccount[]>>({});
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
+
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+  // Calculate totals
+  const totalDebit = lines.reduce((sum, line) => sum + (parseFloat(String(line.debit)) || 0), 0);
+  const totalCredit = lines.reduce((sum, line) => sum + (parseFloat(String(line.credit)) || 0), 0);
+  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
+  const balanceDifference = totalDebit - totalCredit;
+
+  // ============================================================================
+  // LIFECYCLE & DATA LOADING
+  // ============================================================================
+
+  useEffect(() => {
+    loadChartOfAccounts();
+  }, []);
+
+  const loadChartOfAccounts = async () => {
+    try {
+      setLoadingAccounts(true);
+      const response = await fetch('/api/finance/accounts?active=true');
+      if (response.ok) {
+        const data = await response.json();
+        setChartAccounts(data.accounts || []);
+        
+        // Initialize filtered accounts for each line
+        const initial: Record<string, IChartAccount[]> = {};
+        lines.forEach(line => {
+          initial[line.id] = data.accounts || [];
+        });
+        setFilteredAccounts(initial);
+      }
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+      setErrors({ ...errors, accounts: 'Failed to load chart of accounts' });
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  // ============================================================================
+  // LINE MANAGEMENT
+  // ============================================================================
+
+  const addLine = () => {
+    const newLine: IJournalLine = {
+      id: Date.now().toString(),
+      lineNumber: lines.length + 1,
+      accountId: '',
+      accountCode: '',
+      accountName: '',
+      description: '',
+      debit: 0,
+      credit: 0
+    };
+    setLines([...lines, newLine]);
+    setFilteredAccounts({ ...filteredAccounts, [newLine.id]: chartAccounts });
+  };
+
+  const removeLine = (id: string) => {
+    if (lines.length > 2) {
+      const updatedLines = lines.filter(line => line.id !== id);
+      // Renumber lines
+      updatedLines.forEach((line, index) => {
+        line.lineNumber = index + 1;
+      });
+      setLines(updatedLines);
+      
+      // Clean up filtered accounts
+      const newFiltered = { ...filteredAccounts };
+      delete newFiltered[id];
+      setFilteredAccounts(newFiltered);
+    }
+  };
+
+  const updateLine = (id: string, field: keyof IJournalLine, value: string | number) => {
+    setLines(lines.map(line => {
+      if (line.id !== id) return line;
+
+      const updated = { ...line, [field]: value };
+
+      // If account changed, update code and name
+      if (field === 'accountId') {
+        const account = chartAccounts.find(acc => acc._id === value);
+        if (account) {
+          updated.accountCode = account.code;
+          updated.accountName = account.name;
+        }
+      }
+
+      // Ensure debit/credit are mutually exclusive
+      if (field === 'debit' && parseFloat(String(value)) > 0) {
+        updated.credit = 0;
+      }
+      if (field === 'credit' && parseFloat(String(value)) > 0) {
+        updated.debit = 0;
+      }
+
+      return updated;
+    }));
+  };
+
+  // ============================================================================
+  // ACCOUNT SEARCH
+  // ============================================================================
+
+  const handleAccountSearch = (lineId: string, searchTerm: string) => {
+    setSearchTerms({ ...searchTerms, [lineId]: searchTerm });
+
+    if (!searchTerm.trim()) {
+      setFilteredAccounts({ ...filteredAccounts, [lineId]: chartAccounts });
+      return;
+    }
+
+    const term = searchTerm.toLowerCase();
+    const filtered = chartAccounts.filter(acc =>
+      acc.code.toLowerCase().includes(term) ||
+      acc.name.toLowerCase().includes(term) ||
+      (acc.nameAr && acc.nameAr.includes(term))
+    );
+    setFilteredAccounts({ ...filteredAccounts, [lineId]: filtered });
+  };
+
+  // ============================================================================
+  // QUICK BALANCE HELPERS
+  // ============================================================================
+
+  const balanceEntry = () => {
+    if (lines.length < 2) return;
+
+    // Simple heuristic: if first line has debit, balance with credit on second line
+    const firstLine = lines[0];
+    const hasDebit = parseFloat(String(firstLine.debit)) > 0;
+    
+    if (hasDebit) {
+      const amount = parseFloat(String(firstLine.debit));
+      updateLine(lines[1].id, 'credit', amount);
+      updateLine(lines[1].id, 'debit', 0);
+    } else {
+      const amount = parseFloat(String(firstLine.credit));
+      updateLine(lines[1].id, 'debit', amount);
+      updateLine(lines[1].id, 'credit', 0);
+    }
+  };
+
+  const clearAllAmounts = () => {
+    setLines(lines.map(line => ({ ...line, debit: 0, credit: 0 })));
+  };
+
+  // ============================================================================
+  // FORM VALIDATION
+  // ============================================================================
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!journalDate) newErrors.journalDate = 'Journal date is required';
+    if (!description.trim()) newErrors.description = 'Description is required';
+    
+    // Validate lines
+    if (lines.length < 2) {
+      newErrors.lines = 'At least 2 journal lines are required';
+    }
+
+    lines.forEach((line, index) => {
+      if (!line.accountId) {
+        newErrors[`line_${index}_account`] = 'Account is required';
+      }
+      const lineTotal = parseFloat(String(line.debit)) + parseFloat(String(line.credit));
+      if (lineTotal === 0) {
+        newErrors[`line_${index}_amount`] = 'Either debit or credit must be greater than 0';
+      }
+      if (parseFloat(String(line.debit)) > 0 && parseFloat(String(line.credit)) > 0) {
+        newErrors[`line_${index}_both`] = 'Cannot have both debit and credit';
+      }
+    });
+
+    // Balance validation
+    if (!isBalanced) {
+      newErrors.balance = `Journal entry is out of balance by ${Math.abs(balanceDifference).toFixed(2)}`;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const payload: IJournalEntryData = {
+        journalDate,
+        description,
+        sourceType,
+        sourceNumber: sourceNumber || undefined,
+        lines: lines.map(line => ({
+          id: line.id,
+          lineNumber: line.lineNumber,
+          accountId: line.accountId,
+          accountCode: line.accountCode,
+          accountName: line.accountName,
+          description: line.description,
+          debit: parseFloat(String(line.debit)) || 0,
+          credit: parseFloat(String(line.credit)) || 0,
+          propertyId: line.propertyId,
+          unitId: line.unitId
+        }))
+      };
+
+      if (onSubmit) {
+        await onSubmit(payload);
+      } else {
+        // Default API call
+        const response = await fetch('/api/finance/journals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setErrors({ submit: errorData.error || 'Failed to create journal entry' });
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting journal entry:', error);
+      setErrors({ submit: 'An unexpected error occurred' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  return (
+    <div className="space-y-6">
+      {/* Header Information */}
+      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+        <h3 className="text-lg font-semibold border-b pb-2">{t('Journal Entry Details')}</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Journal Date')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={journalDate}
+              onChange={(e) => setJournalDate(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md ${errors.journalDate ? 'border-red-500' : 'border-gray-300'}`}
+              required
+            />
+            {errors.journalDate && <p className="text-xs text-red-500 mt-1">{errors.journalDate}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Source Type')}
+            </label>
+            <select
+              value={sourceType}
+              onChange={(e) => setSourceType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="MANUAL">{t('Manual Entry')}</option>
+              <option value="ADJUSTMENT">{t('Adjustment')}</option>
+              <option value="WORK_ORDER">{t('Work Order')}</option>
+              <option value="INVOICE">{t('Invoice')}</option>
+              <option value="PAYMENT">{t('Payment')}</option>
+              <option value="RENT">{t('Rent')}</option>
+              <option value="EXPENSE">{t('Expense')}</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('Description')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder={t('Brief description of the journal entry')}
+              required
+            />
+            {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
+          </div>
+
+          {sourceType !== 'MANUAL' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('Source Reference Number')}
+              </label>
+              <input
+                type="text"
+                value={sourceNumber}
+                onChange={(e) => setSourceNumber(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder={t('Optional')}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Journal Lines */}
+      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h3 className="text-lg font-semibold">{t('Journal Lines')}</h3>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={balanceEntry}
+              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              disabled={lines.length < 2}
+            >
+              {t('Quick Balance')}
+            </button>
+            <button
+              type="button"
+              onClick={clearAllAmounts}
+              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              {t('Clear Amounts')}
+            </button>
+            <button
+              type="button"
+              onClick={addLine}
+              className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              + {t('Add Line')}
+            </button>
+          </div>
+        </div>
+
+        {errors.lines && (
+          <div className="bg-red-50 border border-red-200 rounded p-2">
+            <p className="text-sm text-red-700">{errors.lines}</p>
+          </div>
+        )}
+
+        {/* Lines Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase w-12">
+                  #
+                </th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  {t('Account')}
+                </th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  {t('Description')}
+                </th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                  {t('Debit')}
+                </th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                  {t('Credit')}
+                </th>
+                <th className="px-2 py-2 w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {lines.map((line, index) => (
+                <tr key={line.id}>
+                  <td className="px-2 py-2 text-sm text-gray-700">
+                    {line.lineNumber}
+                  </td>
+                  <td className="px-2 py-2">
+                    <select
+                      value={line.accountId}
+                      onChange={(e) => updateLine(line.id, 'accountId', e.target.value)}
+                      className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-red-500' : 'border-gray-300'}`}
+                      disabled={loadingAccounts}
+                    >
+                      <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
+                      {chartAccounts.map(acc => (
+                        <option key={acc._id} value={acc._id}>
+                          {acc.code} - {acc.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors[`line_${index}_account`] && (
+                      <p className="text-xs text-red-500 mt-1">{errors[`line_${index}_account`]}</p>
+                    )}
+                  </td>
+                  <td className="px-2 py-2">
+                    <input
+                      type="text"
+                      value={line.description}
+                      onChange={(e) => updateLine(line.id, 'description', e.target.value)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder={t('Line description')}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={line.debit || ''}
+                      onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value) || 0)}
+                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-gray-300'}`}
+                      disabled={parseFloat(String(line.credit)) > 0}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={line.credit || ''}
+                      onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value) || 0)}
+                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-gray-300'}`}
+                      disabled={parseFloat(String(line.debit)) > 0}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    {lines.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeLine(line.id)}
+                        className="text-red-600 hover:text-red-800"
+                        title={t('Remove line')}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-gray-50 border-t-2 border-gray-300">
+              <tr>
+                <td colSpan={3} className="px-2 py-2 text-sm font-semibold text-right">
+                  {t('Totals')}:
+                </td>
+                <td className="px-2 py-2 text-sm font-bold text-right">
+                  {totalDebit.toFixed(2)}
+                </td>
+                <td className="px-2 py-2 text-sm font-bold text-right">
+                  {totalCredit.toFixed(2)}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {/* Balance Status */}
+        <div className={`p-4 rounded-md ${isBalanced ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-semibold ${isBalanced ? 'text-green-800' : 'text-red-800'}`}>
+                {isBalanced ? (
+                  <span>✓ {t('Entry is Balanced')}</span>
+                ) : (
+                  <span>✗ {t('Entry is Out of Balance')}</span>
+                )}
+              </p>
+              {!isBalanced && totalDebit > 0 && (
+                <p className="text-sm text-red-600 mt-1">
+                  {balanceDifference > 0 
+                    ? t('Debits exceed credits by') + ` ${balanceDifference.toFixed(2)}`
+                    : t('Credits exceed debits by') + ` ${Math.abs(balanceDifference).toFixed(2)}`
+                  }
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">{t('Total Lines')}: {lines.length}</p>
+              <p className="text-sm text-gray-600">{t('Difference')}: {Math.abs(balanceDifference).toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+
+        {errors.balance && (
+          <div className="bg-red-50 border border-red-200 rounded p-2">
+            <p className="text-sm text-red-700">{errors.balance}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Submit Actions */}
+      <div className="flex justify-end gap-3 bg-white shadow-md rounded-lg p-6">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            disabled={isSubmitting}
+          >
+            {t('Cancel')}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          disabled={isSubmitting || !isBalanced || loadingAccounts}
+        >
+          {isSubmitting ? t('Saving...') : mode === 'create' ? t('Create Journal Entry') : t('Save Changes')}
+        </button>
+      </div>
+
+      {errors.submit && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-sm text-red-700">{errors.submit}</p>
+        </div>
+      )}
+    </div>
+  );
+}
