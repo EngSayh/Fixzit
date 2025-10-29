@@ -417,7 +417,7 @@ export default function LoginPage() {
         {/* Footer Link */}
         <div className="mt-6 text-center">
           <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-            {isRTL ? 'العودة للرئيسية ←' : '← Back to Home'}
+            {t('login.backToHome', isRTL ? 'العودة للرئيسية ←' : '← Back to Home')}
           </Link>
         </div>
       </div>
