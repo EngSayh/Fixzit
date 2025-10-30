@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import GoogleMap from '@/components/GoogleMap';
+import { CardGridSkeleton } from '@/components/skeletons';
 import {
   Building2, MapPin, DollarSign, Users, Home,
   Wrench, Shield, ChevronLeft, Edit, Trash2, CheckCircle, AlertCircle
@@ -46,15 +47,15 @@ export default function PropertyDetailsPage() {
     }).then(r => r.json());
   };
 
-  const { data: property, error } = useSWR(
+  const { data: property, error, isLoading } = useSWR(
     orgId ? `/api/properties/${params.id}` : null, 
     fetcher
   );
 
-  if (!session) return <div>Loading session...</div>;
+  if (!session) return <CardGridSkeleton count={3} />;
   if (!orgId) return <div>Error: No organization ID found in session</div>;
   if (error) return <div>Failed to load property</div>;
-  if (!property) return <div>Loading...</div>;
+  if (isLoading || !property) return <CardGridSkeleton count={3} />;
 
   return (
     <div className="space-y-6">
