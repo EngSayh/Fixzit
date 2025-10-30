@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,8 +16,6 @@ import {
   MapPin, Eye, Send, Clock,
   Shield, Package, Wrench, Building2
 } from 'lucide-react';
-
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 interface RFQItem {
   _id: string;
@@ -49,15 +48,34 @@ interface RFQItem {
 }
 
 export default function RFQsPage() {
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
   const { data, mutate } = useSWR(
-    `/api/rfqs?search=${encodeURIComponent(search)}&status=${statusFilter}&category=${categoryFilter}`,
+    orgId ? `/api/rfqs?search=${encodeURIComponent(search)}&status=${statusFilter}&category=${categoryFilter}` : null,
     fetcher
   );
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!orgId) {
+    return <p>Error: No organization ID found in session</p>;
+  }
 
   const rfqs = data?.items || [];
 
@@ -80,7 +98,7 @@ export default function RFQsPage() {
             <DialogHeader>
               <DialogTitle>Create Request for Quotation</DialogTitle>
             </DialogHeader>
-            <CreateRFQForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreateRFQForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -300,7 +318,7 @@ function RFQCard({ rfq }: { rfq: RFQItem; onUpdated: () => void }) {
   );
 }
 
-function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
+function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -353,20 +371,31 @@ function CreateRFQForm({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
     try {
       const response = await fetch('/api/rfqs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-tenant-id': orgId 
+        },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create RFQ');
+        const error = await response.json();
+        alert(`Failed to create RFQ: ${error.error || 'Unknown error'}`);
       }
-    } catch {
-      alert('Error creating RFQ');
+    } catch (error) {
+      console.error('Error creating RFQ:', error);
+      alert('Error creating RFQ. Please try again.');
     }
   };
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 interface TenantProperty {
   occupancy?: {
@@ -45,14 +44,33 @@ interface Tenant {
 
 export default function TenantsPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
   const { data, mutate } = useSWR(
-    `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}`,
+    orgId ? `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
     fetcher
   );
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!orgId) {
+    return <p>Error: No organization ID found in session</p>;
+  }
 
   const tenants = data?.items || [];
 
@@ -75,7 +93,7 @@ export default function TenantsPage() {
             <DialogHeader>
               <DialogTitle>{t('fm.tenants.addTenant', 'Add New Tenant')}</DialogTitle>
             </DialogHeader>
-            <CreateTenantForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreateTenantForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -251,7 +269,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
   );
 }
 
-function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
+function CreateTenantForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
@@ -316,20 +334,31 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
     try {
       const response = await fetch('/api/tenants', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-tenant-id': orgId 
+        },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create tenant');
+        const error = await response.json();
+        alert(`Failed to create tenant: ${error.error || 'Unknown error'}`);
       }
-    } catch {
-      alert('Error creating tenant');
+    } catch (error) {
+      console.error('Error creating tenant:', error);
+      alert('Error creating tenant. Please try again.');
     }
   };
 

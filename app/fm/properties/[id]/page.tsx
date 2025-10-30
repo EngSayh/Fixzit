@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +13,6 @@ import {
   Wrench, Shield, ChevronLeft, Edit, Trash2, CheckCircle, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
-
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 interface MaintenanceIssue {
   resolved?: boolean;
@@ -35,8 +34,25 @@ interface PropertyUnit {
 
 export default function PropertyDetailsPage() {
   const params = useParams();
-  const { data: property, error } = useSWR(`/api/properties/${params.id}`, fetcher);
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
 
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
+  const { data: property, error } = useSWR(
+    orgId ? `/api/properties/${params.id}` : null, 
+    fetcher
+  );
+
+  if (!session) return <div>Loading session...</div>;
+  if (!orgId) return <div>Error: No organization ID found in session</div>;
   if (error) return <div>Failed to load property</div>;
   if (!property) return <div>Loading...</div>;
 
