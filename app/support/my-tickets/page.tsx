@@ -2,6 +2,7 @@
 
 import { useState} from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 
 interface TicketMessage {
   from: string;
@@ -23,16 +24,30 @@ interface Ticket {
   messages?: TicketMessage[];
 }
 
-const fetcher = (url: string) => fetch(url, {
-  headers: {
-    "x-user": localStorage.getItem("x-user") || ""
-  }
-}).then(r => r.json());
-
 export default function MyTicketsPage() {
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState('');
-  const { data, mutate } = useSWR('/api/support/tickets/my', fetcher);
+
+  const fetcher = (url: string) => {
+    // Auth cookie is sent automatically by browser
+    // Backend extracts user from session
+    return fetch(url).then(r => r.json());
+  };
+
+  const { data, mutate } = useSWR(
+    userId ? '/api/support/tickets/my' : null, 
+    fetcher
+  );
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!userId) {
+    return <p>Error: No user ID found in session</p>;
+  }
 
   const sendReply = async () => {
     if (!selectedTicket || !replyText.trim()) {
@@ -44,8 +59,8 @@ export default function MyTicketsPage() {
       const res = await fetch(`/api/support/tickets/${selectedTicket._id}/reply`, {
         method: 'POST',
         headers: {
-          'content-type': 'application/json',
-          'x-user': localStorage.getItem("x-user") || ""
+          'content-type': 'application/json'
+          // Auth cookie sent automatically by browser
         },
         body: JSON.stringify({ text: replyText })
       });
@@ -54,14 +69,13 @@ export default function MyTicketsPage() {
         setReplyText('');
         await mutate();
         // Refresh selected ticket
-        const ticketRes = await fetch(`/api/support/tickets/${selectedTicket._id}`, {
-          headers: { 'x-user': localStorage.getItem("x-user") || "" }
-        });
+        const ticketRes = await fetch(`/api/support/tickets/${selectedTicket._id}`);
         if (ticketRes.ok) {
           setSelectedTicket(await ticketRes.json());
         }
       } else {
-        alert('Failed to send reply. Please try again.');
+        const error = await res.json();
+        alert(`Failed to send reply: ${error.error || 'Please try again.'}`);
       }
     } catch (error) {
       console.error('Error sending reply:', error);
