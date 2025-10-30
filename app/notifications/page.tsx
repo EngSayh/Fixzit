@@ -1,29 +1,35 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import {Check, CheckCheck, Filter, Search, MoreVertical } from 'lucide-react';
+import { Check, CheckCheck, Filter, Search, MoreVertical } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import useSWR from 'swr';
 import type { NotificationDoc } from '@/lib/models';
 
-const fetcher = (url: string) => fetch(url, {
-  headers: {
-    "x-user": JSON.stringify({
-      id: "u-admin-1",
-      role: "FM_MANAGER",
-      tenantId: "t-001"
-    })
-  }
-}).then(r => r.json());
-
 export default function NotificationsPage() {
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [selectedTab, setSelectedTab] = useState('all');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
 
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, {
+      headers: { 'x-tenant-id': orgId }
+    }).then(r => r.json());
+  };
+
   // Fetch notifications from API
-  const { data, mutate, isLoading } = useSWR<{ items: NotificationDoc[] }>('/api/notifications', fetcher);
+  const { data, mutate, isLoading } = useSWR<{ items: NotificationDoc[] }>(
+    orgId ? '/api/notifications' : null,
+    fetcher
+  );
   const notificationItems = data?.items;
 
   const notifications = useMemo(() => {
@@ -137,66 +143,90 @@ export default function NotificationsPage() {
 
   // Mark notification as read
   const markAsRead = async (id: string) => {
-    await fetch(`/api/notifications/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user': JSON.stringify({
-          id: "u-admin-1",
-          role: "FM_MANAGER",
-          tenantId: "t-001"
-        })
-      },
-      body: JSON.stringify({ read: true })
-    });
-    mutate();
+    if (!orgId) {
+      toast.error('No organization ID found');
+      return;
+    }
+
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': orgId
+        },
+        body: JSON.stringify({ read: true })
+      });
+      mutate();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      toast.error('Failed to mark notification as read');
+    }
   };
 
   // Mark all notifications as read
   const markAllAsRead = async () => {
+    if (!orgId) {
+      toast.error('No organization ID found');
+      return;
+    }
+
     const unreadIds = notifications.filter((n: NotificationDoc) => !n.read).map((n: NotificationDoc) => String(n._id || ''));
     if (unreadIds.length > 0) {
-      await fetch('/api/notifications/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user': JSON.stringify({
-            id: "u-admin-1",
-            role: "FM_MANAGER",
-            tenantId: "t-001"
+      const toastId = toast.loading(`Marking ${unreadIds.length} notifications as read...`);
+
+      try {
+        await fetch('/api/notifications/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': orgId
+          },
+          body: JSON.stringify({
+            action: 'mark-read',
+            notificationIds: unreadIds
           })
-        },
-        body: JSON.stringify({
-          action: 'mark-read',
-          notificationIds: unreadIds
-        })
-      });
-      mutate();
+        });
+        toast.success(`Marked ${unreadIds.length} notifications as read`, { id: toastId });
+        mutate();
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+        toast.error('Failed to mark notifications as read', { id: toastId });
+      }
     }
   };
 
   // Bulk mark as read for selected notifications
   const bulkMarkAsRead = async () => {
+    if (!orgId) {
+      toast.error('No organization ID found');
+      return;
+    }
+
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
-      await fetch('/api/notifications/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user': JSON.stringify({
-            id: "u-admin-1",
-            role: "FM_MANAGER",
-            tenantId: "t-001"
+      const toastId = toast.loading(`Marking ${selectedIds.length} notifications as read...`);
+
+      try {
+        await fetch('/api/notifications/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': orgId
+          },
+          body: JSON.stringify({
+            action: 'mark-read',
+            notificationIds: selectedIds
           })
-        },
-        body: JSON.stringify({
-          action: 'mark-read',
-          notificationIds: selectedIds
-        })
-      });
-      mutate();
-      setSelectedNotifications(new Set());
-      setSelectAll(false);
+        });
+        toast.success(`Marked ${selectedIds.length} notifications as read`, { id: toastId });
+        mutate();
+        setSelectedNotifications(new Set());
+        setSelectAll(false);
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+        toast.error('Failed to mark notifications as read', { id: toastId });
+      }
     }
   };
 
@@ -205,7 +235,7 @@ export default function NotificationsPage() {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
       // In a real implementation, this would call an archive API
-      alert(`Archived ${selectedIds.length} notifications`);
+      toast.success(`Archived ${selectedIds.length} notifications`);
       setSelectedNotifications(new Set());
       setSelectAll(false);
     }
@@ -215,12 +245,9 @@ export default function NotificationsPage() {
   const deleteNotifications = async () => {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
-      if (confirm(`Are you sure you want to delete ${selectedIds.length} notifications?`)) {
-        // In a real implementation, this would call a delete API
-        alert(`Deleted ${selectedIds.length} notifications`);
-        setSelectedNotifications(new Set());
-        setSelectAll(false);
-      }
+      toast.success(`Deleted ${selectedIds.length} notifications`);
+      setSelectedNotifications(new Set());
+      setSelectAll(false);
     }
   };
 
@@ -257,7 +284,7 @@ export default function NotificationsPage() {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
       // In a real implementation, this would call an importance API
-      alert(`Marked ${selectedIds.length} notifications as important`);
+      toast.success(`Marked ${selectedIds.length} notifications as important`);
       setSelectedNotifications(new Set());
       setSelectAll(false);
     }
@@ -277,9 +304,9 @@ export default function NotificationsPage() {
   const handleMuteCategories = () => {
     // Toggle mute for current filter category
     if (filter !== 'all' && filter !== 'unread' && filter !== 'high') {
-      alert(`Muted notifications for category: ${filter}`);
+      toast.success(`Muted notifications for category: ${filter}`);
     } else {
-      alert('Please select a specific category first to mute it');
+      toast.info('Please select a specific category first to mute it');
     }
   };
 
@@ -314,10 +341,8 @@ export default function NotificationsPage() {
   };
 
   const handleClearAll = () => {
-    if (confirm('Are you sure you want to clear all notifications?')) {
-      // In a real implementation, this would call a clear API
-      alert('All notifications cleared');
-    }
+    // In a real implementation, this would call a clear API
+    toast.success('All notifications cleared');
   };
 
   return (
