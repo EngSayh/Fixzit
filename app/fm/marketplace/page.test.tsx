@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 /**
- * Test framework: Jest + React Testing Library
+ * Test framework: Vitest + React Testing Library
  * These tests validate:
  *  - Dynamic import usage with ssr: false via mocking next/dynamic
  *  - Prop forwarding to CatalogView (title, subtitle, context)

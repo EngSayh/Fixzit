@@ -102,7 +102,7 @@ const UpdateExpenseSchema = z.object({
  * PUT /api/finance/expenses/:id
  * Update expense (only if DRAFT status)
  */
-export async function PUT(req: NextRequest, context: RouteContext) {
+export async function PUT(req: NextRequest, context: RouteContext<{ id: string }>) {
   try {
     const user = await getUserSession(req);
 
@@ -190,7 +190,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
  * DELETE /api/finance/expenses/:id
  * Cancel expense
  */
-export async function DELETE(req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, context: RouteContext<{ id: string }>) {
   try {
     const user = await getUserSession(req);
 

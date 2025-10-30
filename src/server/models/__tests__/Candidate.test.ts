@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 /**
- * Test framework: Jest (TypeScript via ts-jest if configured).
+ * Test framework: Vitest
  *
  * This suite covers:
  * - Candidate.findByEmail for isMockDB = true: ensures it calls Candidate.find({ orgId, email }) and returns first item when array, or value when non-array.
@@ -227,47 +227,45 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
     // Instead, just assert our mocked create behavior holds to demonstrate schema default intent.
     // We'll recreate a module instance with a model that we can capture.
 
-    await vi.dynamicImportSettled(async () => {
-      vi.resetModules();
+    vi.resetModules();
 
-      vi.doMock('@/lib/mongo', () => ({ isMockDB: false }));
+    vi.doMock('@/lib/mongo', () => ({ isMockDB: false }));
 
-      const SchemaCtor = class {
-        static Types = { Mixed: class Mixed{} };
-        constructor(..._args: any[]) {}
-      };
+    const SchemaCtor = class {
+      static Types = { Mixed: class Mixed{} };
+      constructor(..._args: any[]) {}
+    };
 
-      const createSpy = vi.fn((doc: any) => ({
-        skills: [],
-        experience: 0,
-        ...doc,
-      }));
+    const createSpy = vi.fn((doc: any) => ({
+      skills: [],
+      experience: 0,
+      ...doc,
+    }));
 
-      const modelMock = vi.fn((_name: string, _schema: unknown) => ({
-        create: createSpy,
-        findOne: vi.fn(),
-      }));
+    const modelMock = vi.fn((_name: string, _schema: unknown) => ({
+      create: createSpy,
+      findOne: vi.fn(),
+    }));
 
-      vi.doMock('mongoose', () => ({
-        Schema: SchemaCtor,
-        models: {},
-        model: modelMock,
-        InferSchemaType: {} as any,
-      }));
+    vi.doMock('mongoose', () => ({
+      Schema: SchemaCtor,
+      models: {},
+      model: modelMock,
+      InferSchemaType: {} as any,
+    }));
 
-      await import('../Candidate');
+    await import('../Candidate');
 
-      // Simulate creating a minimal doc (orgId is required, so include it)
-      const RealCandidateLike = (await import('mongoose')) as any;
-      // Our mocked model() returned the object held inside module; we can't access that directly.
-      // But we can call modelMock again to simulate using the same shape:
-      const fakeModel = modelMock('Candidate', {});
-      const created = await fakeModel.create({ orgId: 'org-req' });
+    // Simulate creating a minimal doc (orgId is required, so include it)
+    const RealCandidateLike = (await import('mongoose')) as any;
+    // Our mocked model() returned the object held inside module; we can't access that directly.
+    // But we can call modelMock again to simulate using the same shape:
+    const fakeModel = modelMock('Candidate', {});
+    const created = await fakeModel.create({ orgId: 'org-req' });
 
-      expect(createSpy).toHaveBeenCalledWith({ orgId: 'org-req' });
-      expect(created.skills).toEqual([]);
-      expect(created.experience).toBe(0);
-    });
+    expect(createSpy).toHaveBeenCalledWith({ orgId: 'org-req' });
+    expect(created.skills).toEqual([]);
+    expect(created.experience).toBe(0);
   });
 });
 

@@ -143,7 +143,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  context: RouteContext
+  context: RouteContext<{ id: string }>
 ) {
   try {
     await dbConnect();
@@ -225,7 +225,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  context: RouteContext
+  context: RouteContext<{ id: string }>
 ) {
   try {
     await dbConnect();

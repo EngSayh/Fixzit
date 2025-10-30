@@ -52,9 +52,8 @@ export async function POST(
       );
     }
 
-    // Determine action from URL path
-    const url = new URL(req.url);
-    const action = url.pathname.split('/').pop();
+    // Use typed action parameter from route context
+    const action = _params.action;
 
     // Authorization check based on action
     if (action === 'submit') {

@@ -26,15 +26,40 @@ for file in $test_files; do
     
     # Add vi import if needed
     if ! grep -q "import.*vi.*from.*vitest" "$file"; then
-      # Insert after any existing imports but before first non-import line
-      awk '/^import/ {p=1} p==1 && !/^import/ && !/^$/ {print "import { vi } from '\''vitest'\'';"; p=0} 1' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+      # Compute insertion point: after shebang/leading comments and existing imports
+      # Read file to find correct insertion line
+      insert_line=$(awk '
+        BEGIN { insert_after = 0; found_imports = 0; }
+        NR == 1 && /^#!/ { insert_after = NR; next; }
+        /^\/\// || /^\/\*/ { insert_after = NR; next; }
+        /^import/ { found_imports = 1; insert_after = NR; next; }
+        found_imports && !/^import/ && !/^$/ { print insert_after; exit; }
+        !found_imports && !/^#!/ && !/^\/\// && !/^\/\*/ && !/^$/ { print insert_after; exit; }
+        END { if (insert_after > 0) print insert_after; else print 0; }
+      ' "$file")
+      
+      if [ "$insert_line" -gt 0 ]; then
+        # Insert after computed line
+        sed_inplace "${insert_line}a\\
+import { vi } from 'vitest';" "$file"
+      else
+        # Prepend to file if no suitable location found
+        echo "import { vi } from 'vitest';" | cat - "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+      fi
     fi
     
     # Replace jest APIs with vitest equivalents
     sed_inplace 's/jest\.mock(/vi.mock(/g' "$file"
     sed_inplace 's/jest\.fn/vi.fn/g' "$file"
-    sed_inplace 's/jest\.requireMock/vi.mocked/g' "$file"
-    sed_inplace 's/jest\.requireActual/vi.importActual/g' "$file"  # ⚠️ Requires 'await'
+    # jest.requireMock -> vi.mocked is incorrect (vi.mocked is TS helper, not runtime)
+    # Flag for manual review instead
+    if grep -q "jest\.requireMock" "$file"; then
+      echo "  ⚠️  WARNING: $file contains jest.requireMock - manual conversion required (use vi.mock with factory)"
+    fi
+    # jest.requireActual -> vi.importActual requires await - flag for manual review
+    if grep -q "jest\.requireActual" "$file"; then
+      echo "  ⚠️  WARNING: $file contains jest.requireActual - manual conversion required (use await vi.importActual())"
+    fi
     sed_inplace 's/jest\.spyOn/vi.spyOn/g' "$file"
     sed_inplace 's/jest\.clearAllMocks/vi.clearAllMocks/g' "$file"
     sed_inplace 's/jest\.resetAllMocks/vi.resetAllMocks/g' "$file"

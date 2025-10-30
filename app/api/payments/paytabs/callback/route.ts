@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateZATCAQR } from '@/lib/zatca';
 import { validateCallback } from '@/lib/paytabs';
 import { rateLimit } from '@/server/security/rateLimit';
 import { unauthorizedError, validationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
@@ -90,42 +89,140 @@ export async function POST(req: NextRequest) {
           }]
         };
 
-        // Submit invoice to ZATCA/Fatoora for synchronous clearance
-        // Note: generateZATCAQR currently uses simplified signature - enhance for full clearance
-        const clearanceResponse = await generateZATCAQR({
-          sellerName: invoicePayload.seller.name,
-          vatNumber: invoicePayload.seller.vatNumber,
-          timestamp: invoicePayload.issueDate,
-          total: invoicePayload.total,
-          vatAmount: invoicePayload.vatAmount
-        });
+        // Submit invoice to ZATCA/Fatoora for synchronous Phase-2 clearance
+        // Call official ZATCA clearance API with full invoice payload
+        const clearanceApiUrl = process.env.ZATCA_CLEARANCE_API_URL || 'https://gw-fatoora.zatca.gov.sa/e-invoicing/core/invoices/clearance/single';
+        const clearanceApiKey = process.env.ZATCA_API_KEY;
         
-        // Validate Fatoora cryptographic stamp and response status
-        if (!clearanceResponse || typeof clearanceResponse !== 'string') {
-          throw new Error('Invalid Fatoora clearance response structure');
-        }
-        
-        // Extract ZATCA-issued QR (currently returns base64 QR string)
-        const zatcaQR = clearanceResponse;
-        const clearanceId = `CLR-${cart_id}-${Date.now()}`; // TODO: Extract from actual Fatoora API response
-        
-        if (!zatcaQR) {
-          throw new Error('Fatoora clearance response missing QR code');
+        if (!clearanceApiKey) {
+          throw new Error('ZATCA API key not configured - cannot proceed with clearance');
         }
 
-        // Persist ZATCA QR and clearance identifiers to payment record
-        // TODO: Implement updatePaymentRecord function
-        // await updatePaymentRecord(cart_id, { 
-        //   zatcaQR,
-        //   fatooraClearanceId: clearanceId,
-        //   fatooraClearedAt: new Date(),
-        //   invoicePayload 
-        // });
+        // Call Phase-2 clearance API with retry logic
+        let clearanceResponse: {
+          clearanceStatus?: string;
+          clearanceId?: string;
+          uuid?: string;
+          qrCode?: string;
+          invoiceHash?: string;
+        } | null = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount <= maxRetries) {
+          try {
+            const response = await fetch(clearanceApiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${clearanceApiKey}`,
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(invoicePayload)
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(`ZATCA clearance API returned ${response.status}: ${JSON.stringify(errorData)}`);
+            }
+
+            clearanceResponse = await response.json();
+            break; // Success - exit retry loop
+          } catch (fetchError) {
+            retryCount++;
+            if (retryCount > maxRetries) {
+              throw new Error(`ZATCA clearance failed after ${maxRetries} retries: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
+            }
+            // Exponential backoff: 1s, 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
+          }
+        }
+        
+        // Validate clearance response schema
+        if (!clearanceResponse || typeof clearanceResponse !== 'object') {
+          throw new Error('Invalid ZATCA clearance response structure');
+        }
+        
+        if (!clearanceResponse.clearanceStatus || clearanceResponse.clearanceStatus !== 'CLEARED') {
+          throw new Error(`ZATCA clearance not approved: ${clearanceResponse.clearanceStatus || 'UNKNOWN'}`);
+        }
+        
+        const clearanceId = clearanceResponse.clearanceId || clearanceResponse.uuid;
+        const zatcaQR = clearanceResponse.qrCode;
+        const invoiceHash = clearanceResponse.invoiceHash;
+        
+        if (!clearanceId || !zatcaQR) {
+          throw new Error('ZATCA clearance response missing required fields (clearanceId or qrCode)');
+        }
+
+        // Persist ZATCA evidence to payment record with proper audit trail
+        try {
+          await updatePaymentRecord(cart_id, {
+            zatcaQR,
+            zatcaInvoiceHash: invoiceHash,
+            fatooraClearanceId: clearanceId,
+            fatooraClearedAt: new Date(),
+            zatcaSubmittedAt: new Date(),
+            invoicePayload,
+            complianceStatus: 'CLEARED'
+          });
+        } catch (dbError) {
+          console.error('[ZATCA] Failed to persist clearance evidence', {
+            cartId: String(cart_id).slice(0, 8) + '...',
+            error: dbError instanceof Error ? dbError.message : String(dbError)
+          });
+          // Abort payment flow if we cannot persist compliance evidence
+          throw new Error(`Payment cleared by ZATCA but failed to persist evidence: ${dbError instanceof Error ? dbError.message : 'Database error'}`);
+        }
         
         console.log('[ZATCA] Fatoora clearance successful', {
           cartId: String(cart_id).slice(0, 8) + '...',
           clearanceId: clearanceId ? String(clearanceId).slice(0, 16) + '...' : 'N/A'
         });
+
+// Helper function to update payment record with ZATCA evidence
+async function updatePaymentRecord(
+  cartId: string,
+  evidence: {
+    zatcaQR: string;
+    zatcaInvoiceHash?: string;
+    fatooraClearanceId: string;
+    fatooraClearedAt: Date;
+    zatcaSubmittedAt: Date;
+    invoicePayload: Record<string, unknown>;
+    complianceStatus: string;
+  }
+) {
+  // Import payment model dynamically to avoid circular dependencies
+  const { AqarPayment } = await import('@/models/aqar');
+  
+  const result = await AqarPayment.findOneAndUpdate(
+    { _id: cartId },
+    {
+      $set: {
+        'zatca.qrCode': evidence.zatcaQR,
+        'zatca.invoiceHash': evidence.zatcaInvoiceHash,
+        'zatca.clearanceId': evidence.fatooraClearanceId,
+        'zatca.clearedAt': evidence.fatooraClearedAt,
+        'zatca.submittedAt': evidence.zatcaSubmittedAt,
+        'zatca.invoicePayload': evidence.invoicePayload,
+        'zatca.complianceStatus': evidence.complianceStatus,
+        updatedAt: new Date()
+      }
+    },
+    { 
+      new: true,
+      upsert: false, // Don't create if not exists - payment must exist
+      runValidators: true
+    }
+  );
+  
+  if (!result) {
+    throw new Error(`Payment record not found for cart_id: ${cartId}`);
+  }
+  
+  return result;
+}
       } catch (zatcaError) {
         // Log detailed Fatoora error
         console.error('[ZATCA] Fatoora clearance FAILED - Payment aborted', {
