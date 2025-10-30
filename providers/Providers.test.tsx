@@ -85,14 +85,14 @@ function Child({ label = 'Child', shouldThrow = false }: { label?: string; shoul
 
 describe('Providers', () => {
   // The Providers component sets isClient in useEffect, so the first paint may show a loading UI.
-  // In RTL with JSDOM and Jest fake timers, we can advance effects to move past initial non-client render.
+  // In RTL with JSDOM and Vitest fake timers, we can advance effects to move past initial non-client render.
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   test('renders loading UI before client hydration', () => {
@@ -106,7 +106,7 @@ describe('Providers', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
 
     // After running effects, loading UI should disappear
-    jest.runAllTimers();
+    vi.runAllTimers();
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
 
@@ -117,7 +117,7 @@ describe('Providers', () => {
       </Providers>
     );
     // Advance effects to flip isClient
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     // Children rendered
     expect(screen.getByTestId('child')).toHaveTextContent('Happy child');
@@ -150,7 +150,7 @@ describe('Providers', () => {
         <Child />
       </Providers>
     );
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     const translation = screen.getByTestId('translation-provider');
     expect(translation).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe('Providers', () => {
         <Child />
       </Providers>
     );
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     const translation = screen.getByTestId('translation-provider');
     // Our mock sets empty string when undefined
@@ -175,7 +175,7 @@ describe('Providers', () => {
         <Child shouldThrow />
       </Providers>
     );
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     // Our mocked ErrorBoundary renders role="alert" with error message
     const alert = screen.getByRole('alert');

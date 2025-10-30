@@ -294,11 +294,11 @@ describe('WorkOrdersView', () => {
     expect(fetchedUrls[fetchedUrls.length - 1]).not.toMatch(/q=leak/);
 
     // Advance time by 349ms => still not updated
-    await act(async () => { jest.advanceTimersByTime(349); });
+    await act(async () => { vi.advanceTimersByTime(349); });
     expect(fetchedUrls[fetchedUrls.length - 1]).not.toMatch(/q=leak/);
 
     // Advance to 350ms => update should include q=leak
-    await act(async () => { jest.advanceTimersByTime(1); });
+    await act(async () => { vi.advanceTimersByTime(1); });
     
     await waitFor(() => {
       const lastUrl = fetchedUrls[fetchedUrls.length - 1];
