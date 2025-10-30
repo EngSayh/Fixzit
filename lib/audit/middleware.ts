@@ -16,9 +16,35 @@ export interface AuditConfig {
 const defaultConfig: AuditConfig = {
   enabled: true,
   excludePaths: ['/api/health', '/api/ping', '/_next', '/static'],
-  excludeMethods: ['GET', 'HEAD', 'OPTIONS'],
+  excludeMethods: ['HEAD', 'OPTIONS'], // Removed GET - we need to log failed auth attempts
   logRequestBody: false,
   logResponseBody: false,
+};
+
+/**
+ * Entity type mapping for path parsing
+ */
+const entityMap: Record<string, string> = {
+  'properties': 'PROPERTY',
+  'tenants': 'TENANT',
+  'owners': 'OWNER',
+  'contracts': 'CONTRACT',
+  'payments': 'PAYMENT',
+  'invoices': 'INVOICE',
+  'workorders': 'WORKORDER',
+  'tickets': 'TICKET',
+  'projects': 'PROJECT',
+  'bids': 'BID',
+  'vendors': 'VENDOR',
+  'users': 'USER',
+  'documents': 'DOCUMENT',
+  'settings': 'SETTING',
+  'auth': 'AUTH',
+  'finance': 'FINANCE',
+  'expenses': 'EXPENSE',
+  'accounts': 'ACCOUNT',
+  'fm': 'FM',
+  'aqar': 'AQAR',
 };
 
 /**
@@ -40,43 +66,58 @@ function getActionType(method: string, path: string): string {
 }
 
 /**
- * Extract entity type from path
+ * Extract entity type and ID from path using robust parsing
+ * Handles nested routes like /api/admin/users, /api/fm/workorders, /api/properties/123/comments
  */
-function getEntityType(path: string): string {
+function extractEntity(path: string): { entityType: string; entityId?: string } {
   const segments = path.split('/').filter(Boolean);
   const apiIndex = segments.indexOf('api');
   
-  if (apiIndex >= 0 && segments.length > apiIndex + 1) {
-    const entity = segments[apiIndex + 1].toUpperCase();
-    
-    // Map common entities
-    const entityMap: Record<string, string> = {
-      'PROPERTIES': 'PROPERTY',
-      'TENANTS': 'TENANT',
-      'OWNERS': 'OWNER',
-      'CONTRACTS': 'CONTRACT',
-      'PAYMENTS': 'PAYMENT',
-      'INVOICES': 'INVOICE',
-      'WORKORDERS': 'WORKORDER',
-      'TICKETS': 'TICKET',
-      'PROJECTS': 'PROJECT',
-      'BIDS': 'BID',
-      'VENDORS': 'VENDOR',
-      'USERS': 'USER',
-      'DOCUMENTS': 'DOCUMENT',
-      'SETTINGS': 'SETTING',
-    };
-    
-    return entityMap[entity] || 'OTHER';
+  if (apiIndex === -1) {
+    return { entityType: 'OTHER' };
+  }
+
+  let entityType = 'OTHER';
+  let entityId: string | undefined = undefined;
+
+  // Iterate segments after 'api' to find entity and ID
+  for (let i = apiIndex + 1; i < segments.length; i++) {
+    const segment = segments[i].toLowerCase();
+    const mappedEntity = entityMap[segment];
+
+    if (mappedEntity) {
+      entityType = mappedEntity;
+      // Check if next segment is an ID (not another entity keyword)
+      if (i + 1 < segments.length) {
+        const possibleId = segments[i + 1];
+        const possibleIdLower = possibleId.toLowerCase();
+        
+        // If next segment is not a known entity, treat it as an ID
+        if (!entityMap[possibleIdLower]) {
+          // Additional validation: IDs are typically alphanumeric, 8+ chars, or numeric
+          if (/^[a-zA-Z0-9_-]{8,}$/.test(possibleId) || /^\d+$/.test(possibleId)) {
+            entityId = possibleId;
+          }
+        }
+      }
+      break; // Found entity, stop searching
+    }
   }
   
-  return 'OTHER';
+  // Special handling for auth routes
+  if (entityType === 'OTHER' && path.includes('/api/auth')) {
+    entityType = 'AUTH';
+  }
+
+  return { entityType, entityId };
 }
 
 /**
  * Audit Log Middleware
  * 
- * Automatically logs all API requests to the audit log
+ * Automatically logs ALL API requests including unauthenticated ones.
+ * This is critical for security auditing - we must log failed login attempts,
+ * unauthorized access attempts, and other security events.
  */
 export async function auditLogMiddleware(
   request: NextRequest,
@@ -102,11 +143,14 @@ export async function auditLogMiddleware(
     return null;
   }
   
-  // Get user session
-  const session = await auth();
-  if (!session?.user) {
-    // Don't log unauthenticated requests
-    return null;
+  // Get user session - but DO NOT skip logging if session is null
+  // We need to log unauthenticated requests for security auditing
+  let session = null;
+  try {
+    session = await auth();
+  } catch (authError) {
+    // If auth check fails, log the error but continue as anonymous
+    console.warn('Auth session check failed during audit log, proceeding as anonymous.', authError);
   }
   
   // Extract request context
@@ -115,25 +159,28 @@ export async function auditLogMiddleware(
                      request.headers.get('x-real-ip') || 
                      'unknown';
   
-  // Prepare audit log data
+  // Extract entity info using robust parsing
+  const { entityType, entityId } = extractEntity(pathname);
+  
+  // Extract request context with improved UA parsing
+  const requestContext = getRequestContext(userAgent);
+  
+  // Prepare audit log data - handle both authenticated and anonymous users
   const auditData = {
-    orgId: session.user.orgId || 'default',
+    orgId: session?.user?.orgId || 'anonymous',
     action: getActionType(method, pathname),
-    entityType: getEntityType(pathname),
-    entityId: extractEntityId(pathname),
-    userId: session.user.id || session.user.email || 'unknown',
-    userName: session.user.name || 'Unknown User',
-    userEmail: session.user.email || '',
-    userRole: session.user.role || 'USER',
+    entityType,
+    entityId,
+    userId: session?.user?.id || session?.user?.email || 'anonymous',
+    userName: session?.user?.name || 'Anonymous User',
+    userEmail: session?.user?.email || 'anonymous',
+    userRole: session?.user?.role || 'ANONYMOUS',
     context: {
       method,
       endpoint: pathname,
-      userAgent,
       ipAddress,
-      sessionId: session.user.sessionId,
-      browser: extractBrowser(userAgent),
-      os: extractOS(userAgent),
-      device: extractDevice(userAgent),
+      sessionId: session?.user?.sessionId, // Will be undefined for anonymous
+      ...requestContext, // browser, os, device, userAgent
     },
     metadata: {
       source: 'WEB' as const,
@@ -148,7 +195,59 @@ export async function auditLogMiddleware(
 }
 
 /**
+ * Extract context from User Agent string with improved parsing
+ * More robust than simple string matching, though not as good as a dedicated library
+ */
+function getRequestContext(userAgent: string) {
+  const ua = userAgent.toLowerCase();
+  
+  // Browser detection (order matters - check most specific first)
+  let browser = 'Unknown';
+  if (ua.includes('edg/') || ua.includes('edge')) {
+    browser = 'Edge';
+  } else if (ua.includes('opr/') || ua.includes('opera')) {
+    browser = 'Opera';
+  } else if (ua.includes('chrome') && !ua.includes('edg')) {
+    browser = 'Chrome';
+  } else if (ua.includes('safari') && !ua.includes('chrome')) {
+    browser = 'Safari';
+  } else if (ua.includes('firefox')) {
+    browser = 'Firefox';
+  }
+  
+  // OS detection
+  let os = 'Unknown';
+  if (ua.includes('windows nt')) {
+    os = 'Windows';
+  } else if (ua.includes('mac os x') || ua.includes('macintosh')) {
+    os = 'macOS';
+  } else if (ua.includes('iphone') || ua.includes('ipad')) {
+    os = 'iOS';
+  } else if (ua.includes('android')) {
+    os = 'Android';
+  } else if (ua.includes('linux')) {
+    os = 'Linux';
+  }
+  
+  // Device type detection
+  let device = 'desktop';
+  if (ua.includes('mobile') || ua.includes('iphone') || ua.includes('ipod')) {
+    device = 'mobile';
+  } else if (ua.includes('tablet') || ua.includes('ipad')) {
+    device = 'tablet';
+  }
+  
+  return {
+    userAgent,
+    browser,
+    os,
+    device,
+  };
+}
+
+/**
  * Log the audit entry to database
+ * Silent fail pattern - audit logging must never break the main request
  */
 export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0], response?: NextResponse) {
   try {
@@ -157,66 +256,30 @@ export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0
       auditData.result.success = response.status >= 200 && response.status < 400;
       if (!auditData.result.success) {
         auditData.result.errorCode = response.status.toString();
+        
+        // Special handling for failed login attempts - make them explicit in action
+        if (auditData.action === 'LOGIN' && !auditData.result.success) {
+          auditData.action = 'LOGIN_FAILED';
+        }
       }
     }
     
-    await AuditLogModel.log(auditData);
+    // Asynchronously log without awaiting to not block response
+    // Use catch to handle any DB errors
+    AuditLogModel.log(auditData).catch((dbError) => {
+      console.error('Failed to write audit log to database:', {
+        error: dbError,
+        action: auditData.action,
+        endpoint: auditData.context?.endpoint,
+      });
+    });
   } catch (error) {
-    // Silent fail - don't break the main request
-    console.error('Failed to log audit entry:', error);
+    // Silent fail for local errors - don't break the main request
+    console.error('Failed to prepare audit log for saving:', {
+      error,
+      action: auditData.action,
+    });
   }
-}
-
-/**
- * Extract entity ID from path
- */
-function extractEntityId(path: string): string | undefined {
-  const segments = path.split('/').filter(Boolean);
-  const apiIndex = segments.indexOf('api');
-  
-  // ID is usually after the entity name: /api/properties/123
-  if (apiIndex >= 0 && segments.length > apiIndex + 2) {
-    const possibleId = segments[apiIndex + 2];
-    // Simple check if it looks like an ID
-    if (possibleId.length > 8 && !possibleId.includes('.')) {
-      return possibleId;
-    }
-  }
-  
-  return undefined;
-}
-
-/**
- * Extract browser from user agent
- */
-function extractBrowser(userAgent: string): string {
-  if (userAgent.includes('Chrome')) return 'Chrome';
-  if (userAgent.includes('Firefox')) return 'Firefox';
-  if (userAgent.includes('Safari')) return 'Safari';
-  if (userAgent.includes('Edge')) return 'Edge';
-  if (userAgent.includes('Opera')) return 'Opera';
-  return 'Unknown';
-}
-
-/**
- * Extract OS from user agent
- */
-function extractOS(userAgent: string): string {
-  if (userAgent.includes('Windows')) return 'Windows';
-  if (userAgent.includes('Mac')) return 'macOS';
-  if (userAgent.includes('Linux')) return 'Linux';
-  if (userAgent.includes('Android')) return 'Android';
-  if (userAgent.includes('iOS')) return 'iOS';
-  return 'Unknown';
-}
-
-/**
- * Extract device type from user agent
- */
-function extractDevice(userAgent: string): string {
-  if (userAgent.includes('Mobile')) return 'Mobile';
-  if (userAgent.includes('Tablet')) return 'Tablet';
-  return 'Desktop';
 }
 
 /**
