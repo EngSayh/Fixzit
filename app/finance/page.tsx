@@ -1,6 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,19 +9,41 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from '@/contexts/TranslationContext';
 
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id":"demo-tenant" }}).then(r=>r.json());
-
 export default function FinancePage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [q, setQ] = useState("");
-  const { data, mutate } = useSWR(`/api/finance/invoices?q=${encodeURIComponent(q)}`, fetcher);
+
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId }
+    }).then(r => r.json());
+  };
+
+  const { data, mutate } = useSWR(
+    orgId ? `/api/finance/invoices?q=${encodeURIComponent(q)}` : null,
+    fetcher
+  );
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!orgId) {
+    return <p>Error: No organization ID found in session</p>;
+  }
+
   const list = data?.data ?? [];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('finance.title', 'Finance — Invoices')}</h1>
-        <CreateInvoice onCreated={()=>mutate()} />
+        <CreateInvoice orgId={orgId} onCreated={()=>mutate()} />
       </div>
       <div className="flex gap-2 mb-4">
         <Input
@@ -46,8 +69,8 @@ export default function FinancePage() {
               <Separator />
               <div className="text-sm">{t('finance.total', 'Total')}: {inv.total} {inv.currency} ({t('finance.vat', 'VAT')} {inv.vatAmount})</div>
               <div className="flex gap-2 pt-2">
-                <Action id={inv.id} action="POST" disabled={inv.status!=="DRAFT"} onDone={()=>mutate()} />
-                <Action id={inv.id} action="VOID" disabled={inv.status==="VOID"} onDone={()=>mutate()} />
+                <Action id={inv.id} action="POST" disabled={inv.status!=="DRAFT"} onDone={()=>mutate()} orgId={orgId} />
+                <Action id={inv.id} action="VOID" disabled={inv.status==="VOID"} onDone={()=>mutate()} orgId={orgId} />
               </div>
             </CardContent>
           </Card>
@@ -57,19 +80,38 @@ export default function FinancePage() {
   );
 }
 
-function Action({ id, action, disabled, onDone }:{ id:string; action:"POST"|"VOID"; disabled?:boolean; onDone:()=>void }) {
+function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POST"|"VOID"; disabled?:boolean; onDone:()=>void; orgId:string }) {
   async function go() {
-    await fetch(`/api/finance/invoices/${id}`, {
-      method:"PATCH",
-      headers:{ "Content-Type":"application/json", "x-tenant-id":"demo-tenant", "x-user-id":"demo-user" },
-      body: JSON.stringify({ action })
-    });
-    onDone();
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/finance/invoices/${id}`, {
+        method:"PATCH",
+        headers:{ 
+          "Content-Type":"application/json", 
+          "x-tenant-id": orgId
+        },
+        body: JSON.stringify({ action })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to ${action} invoice: ${error.error || 'Unknown error'}`);
+      } else {
+        onDone();
+      }
+    } catch (error) {
+      console.error(`Error ${action} invoice:`, error);
+      alert(`Error: Failed to ${action} invoice`);
+    }
   }
   return <Button variant="secondary" disabled={disabled} onClick={go}>{action}</Button>;
 }
 
-function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
+function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }) {
   const { t } = useTranslation();
   const [open,setOpen]=useState(false);
   const [issue, setIssue] = useState(new Date().toISOString().slice(0,10));
@@ -81,15 +123,36 @@ function CreateInvoice({ onCreated }:{ onCreated:()=>void }) {
   }
 
   async function submit() {
-    await fetch("/api/finance/invoices", {
-      method:"POST",
-      headers: { "Content-Type":"application/json", "x-tenant-id":"demo-tenant", "x-user-id":"demo-user" },
-      body: JSON.stringify({
-        issueDate: issue, dueDate: due, currency:"SAR",
-        lines
-      })
-    });
-    setOpen(false); onCreated();
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/finance/invoices", {
+        method:"POST",
+        headers: { 
+          "Content-Type":"application/json", 
+          "x-tenant-id": orgId
+        },
+        body: JSON.stringify({
+          issueDate: issue, dueDate: due, currency:"SAR",
+          lines
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to create invoice: ${error.error || 'Unknown error'}`);
+        return;
+      }
+
+      setOpen(false); 
+      onCreated();
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      alert('Error: Failed to create invoice');
+    }
   }
 
   return (
