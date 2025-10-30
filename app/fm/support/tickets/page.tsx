@@ -1,17 +1,10 @@
 'use client';
 
-import { useState} from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
-
-const fetcher = (url: string) => fetch(url, {
-  headers: {
-    "x-user": JSON.stringify({
-      id: "u-admin-1",
-      role: "SUPER_ADMIN",
-      tenantId: "t-001"
-    })
-  }
-}).then(r => r.json());
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+import { TableSkeleton } from '@/components/skeletons';
 
 interface TicketItem {
   _id: string;
@@ -24,25 +17,67 @@ interface TicketItem {
 }
 
 export default function SupportTicketsPage() {
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
-  const { data, mutate } = useSWR(`/api/support/tickets?status=${status}&priority=${priority}`, fetcher);
+
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
+  const { data, mutate, isLoading } = useSWR(
+    orgId ? `/api/support/tickets?status=${status}&priority=${priority}` : null,
+    fetcher
+  );
 
   const updateTicket = async (id: string, updates: { status?: string }) => {
-    const res = await fetch(`/api/support/tickets/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'content-type': 'application/json',
-        'x-user': JSON.stringify({
-          id: "u-admin-1",
-          role: "SUPER_ADMIN",
-          tenantId: "t-001"
-        })
-      },
-      body: JSON.stringify(updates)
-    });
-    if (res.ok) mutate();
+    if (!orgId) {
+      toast.error('No organization ID found');
+      return;
+    }
+
+    const toastId = toast.loading('Updating ticket status...');
+
+    try {
+      const res = await fetch(`/api/support/tickets/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          'x-tenant-id': orgId
+        },
+        body: JSON.stringify(updates)
+      });
+
+      if (res.ok) {
+        toast.success('Ticket status updated successfully', { id: toastId });
+        mutate();
+      } else {
+        const error = await res.json();
+        toast.error(`Failed to update ticket: ${error.error || 'Unknown error'}`, { id: toastId });
+      }
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      toast.error('Error updating ticket. Please try again.', { id: toastId });
+    }
   };
+
+  if (!session) {
+    return <TableSkeleton rows={5} />;
+  }
+
+  if (!orgId) {
+    return (
+      <div className="p-6">
+        <p className="text-red-500">Error: No organization ID found in session</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -82,22 +117,25 @@ export default function SupportTicketsPage() {
       </div>
 
       {/* Tickets List */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Module</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {(data?.items as TicketItem[] || []).map((ticket) => (
+      {isLoading ? (
+        <TableSkeleton rows={5} />
+      ) : (
+        <div className="bg-white rounded-lg shadow-md border border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Module</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {(data?.items as TicketItem[] || []).map((ticket) => (
                 <tr key={ticket._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {ticket.code}
@@ -139,10 +177,11 @@ export default function SupportTicketsPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

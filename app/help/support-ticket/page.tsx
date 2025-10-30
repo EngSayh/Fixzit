@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 
 /**
@@ -15,6 +16,8 @@ import { FormWithNavigation } from '@/components/ui/navigation-buttons';
  * @returns The support ticket page as a React element.
  */
 export default function SupportTicketPage() {
+  const { data: session } = useSession();
+  
   const [formData, setFormData] = useState({
     subject: '',
     module: 'FM',
@@ -28,6 +31,17 @@ export default function SupportTicketPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Pre-fill user data from session when available
+  useEffect(() => {
+    if (session?.user) {
+      setFormData(prev => ({
+        ...prev,
+        name: session.user.name || prev.name,
+        email: session.user.email || prev.email
+      }));
+    }
+  }, [session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
