@@ -101,7 +101,15 @@ export interface MarketplaceSearchFilters {
   skip?: number;
 }
 
-type MongoQuery = Record<string, unknown | { $gte?: number; $lte?: number; $search?: string }>;
+type MongoQueryOperator = 
+  | { $gte?: number; $lte?: number }
+  | { $search: string }
+  | { $regex: RegExp; $options: string }
+  | Types.ObjectId
+  | string
+  | number
+  | boolean;
+type MongoQuery = Record<string, MongoQueryOperator>;
 
 export async function searchProducts(filters: MarketplaceSearchFilters) {
   await db;

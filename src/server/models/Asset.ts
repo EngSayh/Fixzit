@@ -1,5 +1,5 @@
-import { Schema, model, models } from 'mongoose';
-import tenantIsolationPlugin from '../plugins/tenantIsolation';
+import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../../../server/plugins/auditPlugin';
 
 // Asset types for equipment registry

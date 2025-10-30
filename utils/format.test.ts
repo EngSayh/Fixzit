@@ -10,8 +10,6 @@ import { vi } from 'vitest';
 import { fmtNumber, fmtDate } from './format';
 
 import type { Locale } from '@/i18n/config';
-
-import { vi } from 'vitest';
 const isArabicIndicDigits = (s: string) => /^[\u0660-\u0669\s\u066B\u066C\u200f\u200e\u061C\u2212\-,./()+:]+$/.test(s);
 // Notes:
 // - \u0660-\u0669 Arabic-Indic digits

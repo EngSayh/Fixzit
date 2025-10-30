@@ -1,6 +1,6 @@
-import { Schema, model, models } from 'mongoose';
-import tenantIsolationPlugin from '../plugins/tenantIsolation';
-import auditPlugin from '../plugins/auditPlugin';
+import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const CmsPageSchema = new Schema({
   // tenantId will be added by tenantIsolationPlugin

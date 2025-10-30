@@ -67,14 +67,24 @@ export async function POST(req: NextRequest) {
       }
 
       // Generate ZATCA QR code for Saudi Arabia tax compliance (e-invoicing)
-      // TODO: Store this in the payment record for future invoice generation
-      await generateZATCAQR({
-        sellerName: 'Fixzit Enterprise',
-        vatNumber: '300123456789012',
-        timestamp: new Date().toISOString(),
-        total: String(total),
-        vatAmount: String(+(total * 0.15).toFixed(2))
-      });
+      try {
+        const _qrCode = await generateZATCAQR({
+          sellerName: process.env.ZATCA_SELLER_NAME || 'Fixzit Enterprise',
+          vatNumber: process.env.ZATCA_VAT_NUMBER || '300123456789012',
+          timestamp: new Date().toISOString(),
+          total: String(total),
+          vatAmount: String(+(total * 0.15).toFixed(2))
+        });
+        
+        // TODO: Store _qrCode in the payment record for future invoice generation
+        // await updatePaymentRecord(cart_id, { zatcaQR: _qrCode });
+      } catch (zatcaError) {
+        console.error('[ZATCA] Failed to generate QR code for payment', {
+          cartId: String(cart_id).slice(0, 8) + '...',
+          error: zatcaError instanceof Error ? zatcaError.message : String(zatcaError)
+        });
+        // Continue processing - ZATCA QR generation failure should not block payment
+      }
       
       console.log('Payment successful', { order: String(cart_id).slice(0,8) + '...' });
       

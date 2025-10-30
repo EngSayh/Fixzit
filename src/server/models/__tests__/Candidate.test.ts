@@ -75,9 +75,9 @@ describe('Candidate model - findByEmail', () => {
     });
 
     afterEach(() => {
-      vi.dontMock('@/lib/mongo');
-      vi.dontMock('mongoose');
-      vi.dontMock('@/lib/mockDb');
+      vi.unmock('@/lib/mongo');
+      vi.unmock('mongoose');
+      vi.unmock('@/lib/mockDb');
       vi.clearAllMocks();
     });
 
@@ -154,8 +154,8 @@ describe('Candidate model - findByEmail', () => {
     });
 
     afterEach(() => {
-      vi.dontMock('@/lib/mongo');
-      vi.dontMock('mongoose');
+      vi.unmock('@/lib/mongo');
+      vi.unmock('mongoose');
       vi.clearAllMocks();
     });
 
@@ -179,7 +179,7 @@ describe('Candidate model - findByEmail', () => {
 describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
   beforeEach(async () => {
     await (async () => {
-      jest.resetModules();
+      vi.resetModules();
 
       // Keep branch independent; we only want to verify that constructing a model doesn't explode
       vi.doMock('@/lib/mongo', () => ({ isMockDB: false }));
@@ -214,8 +214,8 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
   });
 
   afterEach(() => {
-    vi.dontMock('mongoose');
-    vi.dontMock('@/lib/mongo');
+    vi.unmock('mongoose');
+    vi.unmock('@/lib/mongo');
     vi.clearAllMocks();
   });
 
@@ -227,8 +227,8 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
     // Instead, just assert our mocked create behavior holds to demonstrate schema default intent.
     // We'll recreate a module instance with a model that we can capture.
 
-    await vi.isolateModulesAsync(async () => {
-      jest.resetModules();
+    await vi.dynamicImportSettled(async () => {
+      vi.resetModules();
 
       vi.doMock('@/lib/mongo', () => ({ isMockDB: false }));
 

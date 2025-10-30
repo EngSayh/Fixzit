@@ -31,7 +31,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 
 // JSDOM has localStorage; ensure clean state
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   (global as any).fetch = vi.fn();
   (window.localStorage as any).clear();
   (window as any).alert = vi.fn();
@@ -40,7 +40,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
   vi.clearAllMocks();
 });
 

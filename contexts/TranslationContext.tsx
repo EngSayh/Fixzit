@@ -80,6 +80,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'لا توجد إشعارات جديدة',
     'common.allCaughtUp': 'لقد قرأت كل شيء!',
     'common.viewAll': 'عرض جميع الإشعارات',
+    'common.backToHome': 'العودة إلى الصفحة الرئيسية',
     
     // Legal Pages
     'terms.title': 'شروط الخدمة',
@@ -1014,6 +1015,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noNotifications': 'No new notifications',
     'common.allCaughtUp': "You're all caught up!",
     'common.viewAll': 'View all notifications',
+    'common.backToHome': 'Back to Home',
     
     // Legal Pages
     'terms.title': 'Terms of Service',

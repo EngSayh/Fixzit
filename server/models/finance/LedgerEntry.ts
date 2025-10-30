@@ -46,19 +46,21 @@ export interface ILedgerEntry {
 }
 
 interface TrialBalanceEntry {
+  accountId: Types.ObjectId;
   accountCode: string;
   accountName: string;
   accountType: string;
   debit: number;
   credit: number;
+  balance: number;
 }
 
-interface AccountActivityEntry {
-  postingDate: Date;
-  description: string;
-  debit: number;
-  credit: number;
-  balance: number;
+interface AccountActivityEntry extends Omit<ILedgerEntry, 'createdAt' | 'updatedAt' | 'journalId'> {
+  journalId?: {
+    journalNumber: string;
+    sourceType: string;
+    sourceNumber: string;
+  } | Types.ObjectId;
 }
 
 export interface ILedgerEntryModel extends Model<ILedgerEntry> {
