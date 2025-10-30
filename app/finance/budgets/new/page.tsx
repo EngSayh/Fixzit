@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface BudgetCategory {
   id: string;
@@ -101,10 +102,11 @@ export default function NewBudgetPage() {
       if (!response.ok) throw new Error('Failed to save draft');
       
       const data = await response.json();
+      toast.success(t('finance.budget.draftSaved', 'Budget draft saved successfully'));
       router.push(`/finance/budgets/${data.id}`);
     } catch (error) {
       console.error('Error saving draft:', error);
-      alert(t('common.error', 'An error occurred'));
+      toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
     }
@@ -114,21 +116,23 @@ export default function NewBudgetPage() {
   const handleSubmit = async () => {
     // Validation
     if (!budgetName.trim()) {
-      alert(t('finance.budget.nameRequired', 'Budget name is required'));
+      toast.error(t('finance.budget.nameRequired', 'Budget name is required'));
       return;
     }
     if (!periodType) {
-      alert(t('finance.budget.periodRequired', 'Budget period is required'));
+      toast.error(t('finance.budget.periodRequired', 'Budget period is required'));
       return;
     }
     if (!startDate || !endDate) {
-      alert(t('finance.budget.datesRequired', 'Start and end dates are required'));
+      toast.error(t('finance.budget.datesRequired', 'Start and end dates are required'));
       return;
     }
     if (categories.filter(c => c.category).length === 0) {
-      alert(t('finance.budget.categoriesRequired', 'At least one category is required'));
+      toast.error(t('finance.budget.categoriesRequired', 'At least one category is required'));
       return;
     }
+
+    const toastId = toast.loading(t('finance.budget.creating', 'Creating budget...'));
 
     try {
       setIsSubmitting(true);
@@ -152,10 +156,11 @@ export default function NewBudgetPage() {
       if (!response.ok) throw new Error('Failed to create budget');
       
       const data = await response.json();
+      toast.success(t('finance.budget.created', 'Budget created successfully'), { id: toastId });
       router.push(`/finance/budgets/${data.id}`);
     } catch (error) {
       console.error('Error creating budget:', error);
-      alert(t('common.error', 'An error occurred'));
+      toast.error(t('common.error', 'An error occurred'), { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
