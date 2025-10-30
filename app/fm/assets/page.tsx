@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Building2, Plus, Search, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 interface MaintenanceRecord {
   date?: string;
@@ -35,17 +34,45 @@ interface AssetItem {
 }
 
 export default function AssetsPage() {
+  const { data: session } = useSession();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const orgId = session?.user?.orgId;
+
+  // Fetcher with dynamic tenant ID from session
+  const fetcher = (url: string) => {
+    if (!orgId) return Promise.reject(new Error('No organization ID'));
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
   const { data, mutate } = useSWR(
-    `/api/assets?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}`,
+    orgId ? `/api/assets?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
     fetcher
   );
 
   const assets = data?.items || [];
+
+  // Show loading state if no session yet
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!orgId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-red-500">Error: No organization ID found. Please contact support.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -146,6 +173,8 @@ export default function AssetsPage() {
 }
 
 function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => void }) {
+  const { data: session } = useSession();
+  
   const handleView = () => {
     // Placeholder: Navigate to asset detail view or open modal
     console.log('View asset:', asset._id);
@@ -161,11 +190,17 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
     if (!confirm(`Are you sure you want to delete ${asset.name}?`)) {
       return;
     }
+
+    const orgId = session?.user?.orgId;
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
     
     try {
       const response = await fetch(`/api/assets/${asset._id}`, {
         method: 'DELETE',
-        headers: { 'x-tenant-id': 'demo-tenant' }
+        headers: { 'x-tenant-id': orgId }
       });
       
       if (response.ok) {
@@ -281,6 +316,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
 }
 
 function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -322,20 +358,32 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const orgId = session?.user?.orgId;
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
     try {
       const response = await fetch('/api/assets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-tenant-id': orgId 
+        },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create asset');
+        const error = await response.json();
+        alert(`Failed to create asset: ${error.error || 'Unknown error'}`);
       }
-    } catch {
-      alert('Error creating asset');
+    } catch (error) {
+      console.error('Error creating asset:', error);
+      alert('Error creating asset. Please try again.');
     }
   };
 
