@@ -28,7 +28,6 @@ import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event'
 
-import { vi } from 'vitest';
 // Use conditional jest/vi globals without importing to fit either runner
 const jestLike = (global as any).vi ?? (global as any).jest
 
