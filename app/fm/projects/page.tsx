@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { 
   Briefcase, Plus, Search, Calendar, DollarSign, Users, Eye, Edit, Trash2, 
   Construction, Hammer, PaintBucket, Building 
@@ -55,7 +57,7 @@ export default function ProjectsPage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/projects?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
     fetcher
   );
@@ -64,11 +66,7 @@ export default function ProjectsPage() {
 
   // Show loading state if no session yet
   if (!session) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
@@ -151,25 +149,31 @@ export default function ProjectsPage() {
       </Card>
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(projects as ProjectItem[]).map((project) => (
-          <ProjectCard key={project._id} project={project} onUpdated={mutate} />
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(projects as ProjectItem[]).map((project) => (
+              <ProjectCard key={project._id} project={project} onUpdated={mutate} />
+            ))}
+          </div>
 
-      {/* Empty State */}
-      {projects.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Briefcase className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Projects Found</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first project.</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-indigo)] hover:bg-[var(--fixzit-indigo-dark)]">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Project
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Empty State */}
+          {projects.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Briefcase className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Projects Found</h3>
+                <p className="text-gray-600 mb-4">Get started by creating your first project.</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-indigo)] hover:bg-[var(--fixzit-indigo-dark)]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Project
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
@@ -327,9 +331,11 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
     e.preventDefault();
 
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading('Creating project...');
 
     try {
       const response = await fetch('/api/projects', {
@@ -342,14 +348,15 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
       });
 
       if (response.ok) {
+        toast.success('Project created successfully', { id: toastId });
         onCreated();
       } else {
         const error = await response.json();
-        alert(`Failed to create project: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to create project: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Error creating project:', error);
-      alert('Error creating project. Please try again.');
+      toast.error('Error creating project. Please try again.', { id: toastId });
     }
   };
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { Truck, Plus, Search, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -106,13 +108,13 @@ export default function VendorsPage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate} = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/vendors?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
     fetcher
   );
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
@@ -190,25 +192,31 @@ export default function VendorsPage() {
       </Card>
 
       {/* Vendors Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(vendors as Vendor[]).map((vendor) => (
-          <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(vendors as Vendor[]).map((vendor) => (
+              <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
+            ))}
+          </div>
 
-      {/* Empty State */}
-      {vendors.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Truck className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.vendors.noVendors', 'No Vendors Found')}</h3>
-            <p className="text-gray-600 mb-4">{t('fm.vendors.noVendorsText', 'Get started by adding your first vendor to the network.')}</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-orange-600 hover:bg-orange-700">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('fm.vendors.addVendor', 'Add Vendor')}
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Empty State */}
+          {vendors.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Truck className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.vendors.noVendors', 'No Vendors Found')}</h3>
+                <p className="text-gray-600 mb-4">{t('fm.vendors.noVendorsText', 'Get started by adding your first vendor to the network.')}</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-orange-600 hover:bg-orange-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('fm.vendors.addVendor', 'Add Vendor')}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
@@ -361,9 +369,11 @@ function CreateVendorForm({ onCreated, orgId }: { onCreated: () => void; orgId: 
     e.preventDefault();
 
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading('Creating vendor...');
 
     try {
       const response = await fetch('/api/vendors', {
@@ -376,12 +386,15 @@ function CreateVendorForm({ onCreated, orgId }: { onCreated: () => void; orgId: 
       });
 
       if (response.ok) {
+        toast.success('Vendor created successfully', { id: toastId });
         onCreated();
       } else {
-        alert('Failed to create vendor');
+        const error = await response.json();
+        toast.error(`Failed to create vendor: ${error.error || 'Unknown error'}`, { id: toastId });
       }
-    } catch {
-      alert('Error creating vendor');
+    } catch (error) {
+      console.error('Error creating vendor:', error);
+      toast.error('Error creating vendor. Please try again.', { id: toastId });
     }
   };
 

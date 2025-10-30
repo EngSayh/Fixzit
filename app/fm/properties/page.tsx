@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -55,13 +57,13 @@ export default function PropertiesPage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
     fetcher
   );
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
@@ -131,25 +133,31 @@ export default function PropertiesPage() {
       </Card>
 
       {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(properties as PropertyItem[]).map((property) => (
-          <PropertyCard key={property._id} property={property} onUpdated={mutate} />
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(properties as PropertyItem[]).map((property) => (
+              <PropertyCard key={property._id} property={property} onUpdated={mutate} />
+            ))}
+          </div>
 
-      {/* Empty State */}
-      {properties.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
-            <p className="text-gray-600 mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('fm.properties.addProperty', 'Add Property')}
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Empty State */}
+          {properties.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Building2 className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
+                <p className="text-gray-600 mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('fm.properties.addProperty', 'Add Property')}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
@@ -344,9 +352,11 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
     e.preventDefault();
 
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading('Creating property...');
 
     try {
       const response = await fetch('/api/properties', {
@@ -359,14 +369,15 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
       });
 
       if (response.ok) {
+        toast.success('Property created successfully', { id: toastId });
         onCreated();
       } else {
         const error = await response.json();
-        alert(`Failed to create property: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to create property: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Error creating property:', error);
-      alert('Error creating property. Please try again.');
+      toast.error('Error creating property. Please try again.', { id: toastId });
     }
   };
 
