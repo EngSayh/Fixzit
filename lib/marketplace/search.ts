@@ -103,13 +103,17 @@ export interface MarketplaceSearchFilters {
 
 type MongoQueryOperator = 
   | { $gte?: number; $lte?: number }
-  | { $search: string }
-  | { $regex: RegExp; $options: string }
+  | { $text: { $search: string; $language?: string } }
+  | { $regex: RegExp; $options?: string }
+  | { $in: (string | number | Types.ObjectId)[] }
+  | { $nin: (string | number | Types.ObjectId)[] }
+  | { $exists: boolean }
   | Types.ObjectId
   | string
   | number
-  | boolean;
-type MongoQuery = Record<string, MongoQueryOperator>;
+  | boolean
+  | MongoQueryOperator[];
+type MongoQuery = Record<string, MongoQueryOperator | MongoQueryOperator[] | Record<string, MongoQueryOperator>>;
 
 export async function searchProducts(filters: MarketplaceSearchFilters) {
   await db;

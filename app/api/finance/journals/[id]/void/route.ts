@@ -45,16 +45,14 @@ async function getUserSession(_req: NextRequest) {
 }
 
 // ============================================================================
-// POST /api/finance/journals/[id]/void - Void posted journal
+// POST /api/finance/journals/[id]/void - Void a journal entry
 // ============================================================================
 
-type RouteContext = {
-  params: Promise<{ id: string }> | { id: string };
-};
+import type { RouteContext } from '@/lib/types/route-context';
 
 export async function POST(
   req: NextRequest,
-  context: RouteContext
+  context: RouteContext<{ id: string }>
 ) {
   try {
     await dbConnect();

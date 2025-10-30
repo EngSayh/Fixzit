@@ -26,14 +26,12 @@ async function getUserSession(req: NextRequest) {
   };
 }
 
-type RouteContext = {
-  params: Promise<{ id: string }> | { id: string };
-};
+import type { RouteContext } from '@/lib/types/route-context';
 
 /**
  * GET /api/finance/expenses/:id
  */
-export async function GET(req: NextRequest, context: RouteContext) {
+export async function GET(req: NextRequest, context: RouteContext<{ id: string }>) {
   try {
     const user = await getUserSession(req);
 

@@ -48,7 +48,7 @@ type SWRProductsState = {
   data?: any
   error?: any
   isLoading?: boolean
-  mutate?: vi.Mock | ((...args: any[]) => any)
+  mutate?: ReturnType<typeof jestLike.fn> | ((...args: any[]) => any)
 }
 type SWRCategoriesState = {
   data?: any
@@ -92,7 +92,6 @@ jestLike.mock('swr', () => {
 // After SWR mock is set up above, import component under test
 import CatalogView from './CatalogView'
 
-import { vi } from 'vitest';
 // Utility: set SWR states for a given test
 function setSWRProducts(state: Partial<SWRProductsState>) {
   productsState.data = state.data

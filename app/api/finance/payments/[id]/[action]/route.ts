@@ -39,9 +39,7 @@ const BounceSchema = z.object({
   bounceCharges: z.number().min(0).optional(),
 });
 
-type RouteContext = {
-  params: Promise<{ id: string; action: string }> | { id: string; action: string };
-};
+import type { RouteContext } from '@/lib/types/route-context';
 
 /**
  * POST /api/finance/payments/:id/[action]
@@ -49,7 +47,7 @@ type RouteContext = {
  */
 export async function POST(
   req: NextRequest,
-  context: RouteContext
+  context: RouteContext<{ id: string; action: string }>
 ) {
   try {
     const user = await getUserSession(req);

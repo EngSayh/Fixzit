@@ -219,29 +219,12 @@ function extractDevice(userAgent: string): string {
   return 'Desktop';
 }
 
-interface AuditChange {
-  field: string;
-  oldValue?: unknown;
-  newValue?: unknown;
-}
-
-interface AuditLogData {
-  action: string;
-  entityType: string;
-  entityId?: string;
-  entityName?: string;
-  changes?: AuditChange[];
-  metadata?: Record<string, unknown>;
-  userId: string;
-  orgId: string;
-}
-
 /**
  * Manual audit log function for custom events
  */
-export async function createAuditLog(data: AuditLogData) {
+export async function createAuditLog(data: Parameters<typeof AuditLogModel.log>[0]) {
   try {
-  await (AuditLogModel as { log: (data: AuditLogData) => Promise<unknown> }).log(data);
+    await AuditLogModel.log(data);
   } catch (error) {
     console.error('Failed to create audit log:', error);
   }

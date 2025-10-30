@@ -5,11 +5,15 @@ set -e
 
 echo "🔄 Converting all test files from Jest to Vitest..."
 
-# Detect sed variant (GNU vs BSD)
+# Detect sed variant (GNU vs BSD) and create portable sed_inplace function
 if sed --version 2>&1 | grep -q GNU; then
-  SED_INPLACE="sed -i"
+  sed_inplace() {
+    sed -i "$@"
+  }
 else
-  SED_INPLACE="sed -i ''"
+  sed_inplace() {
+    sed -i '' "$@"
+  }
 fi
 
 # Find all test files
@@ -27,27 +31,27 @@ for file in $test_files; do
     fi
     
     # Replace jest APIs with vitest equivalents
-    $SED_INPLACE 's/jest\.mock(/vi.mock(/g' "$file"
-    $SED_INPLACE 's/jest\.fn/vi.fn/g' "$file"
-    $SED_INPLACE 's/jest\.requireMock/vi.mocked/g' "$file"
-    $SED_INPLACE 's/jest\.requireActual/vi.importActual/g' "$file"  # ⚠️ Requires 'await'
-    $SED_INPLACE 's/jest\.spyOn/vi.spyOn/g' "$file"
-    $SED_INPLACE 's/jest\.clearAllMocks/vi.clearAllMocks/g' "$file"
-    $SED_INPLACE 's/jest\.resetAllMocks/vi.resetAllMocks/g' "$file"
-    $SED_INPLACE 's/jest\.restoreAllMocks/vi.restoreAllMocks/g' "$file"
-    $SED_INPLACE 's/jest\.resetModules/vi.resetModules/g' "$file"
-    $SED_INPLACE 's/jest\.dontMock/vi.unmock/g' "$file"
+    sed_inplace 's/jest\.mock(/vi.mock(/g' "$file"
+    sed_inplace 's/jest\.fn/vi.fn/g' "$file"
+    sed_inplace 's/jest\.requireMock/vi.mocked/g' "$file"
+    sed_inplace 's/jest\.requireActual/vi.importActual/g' "$file"  # ⚠️ Requires 'await'
+    sed_inplace 's/jest\.spyOn/vi.spyOn/g' "$file"
+    sed_inplace 's/jest\.clearAllMocks/vi.clearAllMocks/g' "$file"
+    sed_inplace 's/jest\.resetAllMocks/vi.resetAllMocks/g' "$file"
+    sed_inplace 's/jest\.restoreAllMocks/vi.restoreAllMocks/g' "$file"
+    sed_inplace 's/jest\.resetModules/vi.resetModules/g' "$file"
+    sed_inplace 's/jest\.dontMock/vi.unmock/g' "$file"
     
     # Timer APIs
-    $SED_INPLACE 's/jest\.useFakeTimers/vi.useFakeTimers/g' "$file"
-    $SED_INPLACE 's/jest\.useRealTimers/vi.useRealTimers/g' "$file"
-    $SED_INPLACE 's/jest\.advanceTimersByTime/vi.advanceTimersByTime/g' "$file"
-    $SED_INPLACE 's/jest\.runAllTimers/vi.runAllTimers/g' "$file"
-    $SED_INPLACE 's/jest\.runOnlyPendingTimers/vi.runOnlyPendingTimers/g' "$file"
+    sed_inplace 's/jest\.useFakeTimers/vi.useFakeTimers/g' "$file"
+    sed_inplace 's/jest\.useRealTimers/vi.useRealTimers/g' "$file"
+    sed_inplace 's/jest\.advanceTimersByTime/vi.advanceTimersByTime/g' "$file"
+    sed_inplace 's/jest\.runAllTimers/vi.runAllTimers/g' "$file"
+    sed_inplace 's/jest\.runOnlyPendingTimers/vi.runOnlyPendingTimers/g' "$file"
     
     # Replace jest.Mock with proper Vitest type
-    $SED_INPLACE 's/as jest\.Mock/as ReturnType<typeof vi.fn>/g' "$file"
-    $SED_INPLACE 's/: jest\.Mock/: ReturnType<typeof vi.fn>/g' "$file"
+    sed_inplace 's/as jest\.Mock/as ReturnType<typeof vi.fn>/g' "$file"
+    sed_inplace 's/: jest\.Mock/: ReturnType<typeof vi.fn>/g' "$file"
     
     count=$((count + 1))
   fi

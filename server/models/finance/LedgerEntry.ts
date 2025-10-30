@@ -55,12 +55,14 @@ export interface TrialBalanceEntry {
   balance: number;
 }
 
-export interface AccountActivityEntry extends Omit<ILedgerEntry, 'createdAt' | 'updatedAt' | 'journalId'> {
+export interface AccountActivityEntry extends Omit<ILedgerEntry, 'journalId' | 'createdAt' | 'updatedAt'> {
   journalId?: {
     journalNumber: string;
     sourceType: string;
     sourceNumber: string;
   } | Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface ILedgerEntryModel extends Model<ILedgerEntry> {

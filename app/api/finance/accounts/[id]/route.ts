@@ -52,13 +52,11 @@ async function getUserSession(_req: NextRequest) {
 // GET /api/finance/accounts/[id] - Get account details
 // ============================================================================
 
-type RouteContext = {
-  params: Promise<{ id: string }> | { id: string };
-};
+import type { RouteContext } from '@/lib/types/route-context';
 
 export async function GET(
   req: NextRequest,
-  context: RouteContext
+  context: RouteContext<{ id: string }>
 ) {
   try {
     await dbConnect();
