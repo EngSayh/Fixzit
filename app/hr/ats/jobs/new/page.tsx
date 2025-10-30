@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormWithNavigation } from '@/components/ui/navigation-buttons';
@@ -24,6 +25,7 @@ export default function NewJobPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    const toastId = toast.loading('Creating job posting...');
     try {
       const res = await fetch('/api/ats/jobs', {
         method: 'POST',
@@ -40,9 +42,10 @@ export default function NewJobPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed');
+      toast.success('Job posted successfully', { id: toastId });
       router.push('/hr/ats/jobs');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create job');
+      toast.error(err instanceof Error ? err.message : 'Failed to create job', { id: toastId });
     } finally {
       setSubmitting(false);
     }
