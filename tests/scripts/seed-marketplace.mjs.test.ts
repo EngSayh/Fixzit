@@ -53,10 +53,11 @@ class InMemoryMockDatabase {
 
 // Mock the MockDatabase module used by the seeding script.
 // We need to ensure our mock path matches what Node resolves at runtime from that module.
+vi.mock('@/server/database', () => {
   return {
     MockDatabase: InMemoryMockDatabase,
   }
-}, { virtual: true })
+})
 
 // Capture console output
 
@@ -147,7 +148,6 @@ describe('seed-marketplace script', () => {
     } finally {
       (Date.now as any).mockRestore?.()
       // ensure Date.now restored in all environments
-      // @ts-expect-error - Restoring original Date.now implementation
       Date.now = originalNow
     }
   })

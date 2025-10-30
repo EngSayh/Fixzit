@@ -2,6 +2,7 @@
 // Tests use Vitest APIs (describe, it, expect) for test execution.
 
 import path from 'path';
+import { vi } from 'vitest';
 
  // We will import the model using the project alias if available, otherwise attempt relative resolution.
  // Adjust the import below if your project keeps the model in a different path.
