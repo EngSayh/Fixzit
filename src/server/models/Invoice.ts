@@ -1,5 +1,5 @@
-import { Schema, model, models } from 'mongoose';
-import tenantIsolationPlugin from '../plugins/tenantIsolation';
+import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { tenantIsolationPlugin } from '../../../server/plugins/tenantIsolation';
 import { auditPlugin } from '../../../server/plugins/auditPlugin';
 
 const InvoiceStatus = ["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"] as const;
