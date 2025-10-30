@@ -1,6 +1,6 @@
 /**
  * Tests for PayTabs integration helpers.
- * Testing framework: Jest (ts-jest or Babel/Jest setup assumed).
+ * Testing framework: Vitest.
  * If your project uses Vitest/Mocha, adapt describe/it/expect/mocking accordingly.
  */
 

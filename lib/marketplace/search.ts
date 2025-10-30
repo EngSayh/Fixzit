@@ -101,10 +101,23 @@ export interface MarketplaceSearchFilters {
   skip?: number;
 }
 
+type MongoQueryOperator = 
+  | { $gte?: number; $lte?: number }
+  | { $text: { $search: string; $language?: string } }
+  | { $regex: RegExp; $options?: string }
+  | { $in: (string | number | Types.ObjectId)[] }
+  | { $nin: (string | number | Types.ObjectId)[] }
+  | { $exists: boolean }
+  | Types.ObjectId
+  | string
+  | number
+  | boolean
+  | MongoQueryOperator[];
+type MongoQuery = Record<string, MongoQueryOperator | MongoQueryOperator[] | Record<string, MongoQueryOperator>>;
+
 export async function searchProducts(filters: MarketplaceSearchFilters) {
   await db;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const query: Record<string, any> = { orgId: filters.orgId, status: 'ACTIVE' };
+  const query: MongoQuery = { orgId: filters.orgId, status: 'ACTIVE' };
 
   if (filters.q) {
     query.$text = { $search: expandQuery(filters.q) };

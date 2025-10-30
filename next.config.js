@@ -90,9 +90,6 @@ const nextConfig = {
     cpus: 1, // One worker = stable memory usage
     // Optimize chunk loading
     optimisticClientCache: true,
-    // ⚡ FIX BUILD TIMEOUT: Optimize static page generation
-    // Use ISR (Incremental Static Regeneration) for heavy pages instead of full SSG
-    isrMemoryCacheSize: 0, // Disable ISR cache during build to save memory
   },
   
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation

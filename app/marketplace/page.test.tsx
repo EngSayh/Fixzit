@@ -1,17 +1,8 @@
+import { vi } from 'vitest';
 /**
- * Tests for app/marketplace/page.tsx
- *
- * Testing framework: Jest
- * Testing library: React Testing Library (@testing-library/react) with @testing-library/jest-dom
- *
- * Focus:
- * - Ensures the page renders without errors.
- * - Verifies next/dynamic is called with { ssr: false }.
- * - Confirms the page renders the dynamic CatalogView placeholder (mock).
- *
- * Notes:
- * - We mock next/dynamic to avoid executing the dynamic import and to assert its call args.
- * - We do NOT execute the loader fn, avoiding the need to resolve path aliases (e.g., "@/").
+ * @file Marketplace homepage test
+ * @description Verifies Marketplace page rendering, CatalogView props, dynamic import ssr:false
+ * Testing framework: Vitest
  */
 
 import React from 'react';
@@ -19,7 +10,7 @@ import { render, screen } from '@testing-library/react';
 // If the project does not have a global setup importing jest-dom, uncomment the next line:
 // import '@testing-library/jest-dom';
 
-const dynamicMock = jest.fn(() => {
+const dynamicMock = vi.fn(() => {
   // Return a stub component; attach metadata for validation if needed
   const Stub: React.FC = () => <div data-testid="catalog-view-stub" />;
   // Preserve options for further assertions via the mock.calls array
@@ -27,7 +18,7 @@ const dynamicMock = jest.fn(() => {
   return Stub;
 });
 
-jest.mock('next/dynamic', () => ({
+vi.mock('next/dynamic', () => ({
   __esModule: true,
   default: dynamicMock,
 }));
@@ -38,7 +29,7 @@ import MarketplacePage from './page';
 
 describe('MarketplacePage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders without crashing and shows the CatalogView stub', () => {

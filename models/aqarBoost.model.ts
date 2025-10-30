@@ -107,9 +107,27 @@ const BoostSchema = new Schema<IBoost, BoostModel>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 
     type: { type: String, enum: Object.values(BoostType), required: true, index: true },
-    durationDays: { type: Number, required: true, min: 1 },
+    durationDays: { 
+      type: Number, 
+      required: true, 
+      min: 1,
+      max: 730, // Maximum 2 years (730 days)
+      validate: {
+        validator: Number.isInteger,
+        message: 'Duration must be a whole number of days'
+      }
+    },
 
-    price: { type: Number, required: true, min: 0 },
+    price: { 
+      type: Number, 
+      required: true, 
+      min: 0,
+      max: 999999.99, // Maximum reasonable price in SAR
+      validate: {
+        validator: (v: number) => Number.isFinite(v) && v >= 0,
+        message: 'Price must be a valid non-negative number'
+      }
+    },
 
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
     paidAt: { type: Date },
@@ -155,7 +173,7 @@ BoostSchema.index(
 
 /**
  * Get pricing for boost type and duration
- * TODO: Move to org-level config (Organization.settings.pricing.boost)
+ * Configurable via environment variables (defaults in SAR/day)
  */
 BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
   if (!Object.values(BoostType).includes(type)) {
@@ -164,10 +182,12 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
   if (!Number.isInteger(days) || days <= 0) {
     throw new Error('Days must be a positive integer');
   }
+  
+  // Pricing configurable via environment variables with sensible defaults
   const perDay = {
-    [BoostType.FEATURED]: 100,     // SAR/day
-    [BoostType.PINNED]: 50,        // SAR/day
-    [BoostType.HIGHLIGHTED]: 25,   // SAR/day
+    [BoostType.FEATURED]: Number(process.env.BOOST_FEATURED_PRICE_PER_DAY) || 100,     // SAR/day
+    [BoostType.PINNED]: Number(process.env.BOOST_PINNED_PRICE_PER_DAY) || 50,          // SAR/day
+    [BoostType.HIGHLIGHTED]: Number(process.env.BOOST_HIGHLIGHTED_PRICE_PER_DAY) || 25, // SAR/day
   } as const;
   return perDay[type] * days;
 };

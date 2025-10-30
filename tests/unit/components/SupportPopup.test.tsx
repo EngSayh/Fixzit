@@ -180,7 +180,7 @@ describe("SupportPopup - submission flow", () => {
   }
 
   test("shows loading state and posts payload for guest users (includes requester)", async () => {
-    (global.fetch as vi.Mock).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ code: "TCK-1001" })
@@ -197,7 +197,7 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    const [url, init] = (global.fetch as vi.Mock).mock.calls[0] as [string, RequestInit];
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/support/tickets");
     expect(init?.method).toBe("POST");
     expect(init?.headers).toMatchObject({ "content-type": "application/json" });
@@ -227,7 +227,7 @@ describe("SupportPopup - submission flow", () => {
   });
 
   test("does not include requester for logged-in users, still succeeds", async () => {
-    (global.fetch as vi.Mock).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ code: "TCK-2002" })
@@ -240,7 +240,7 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    const [, init] = (global.fetch as vi.Mock).mock.calls[0] as [string, RequestInit];
+    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(init.body);
     expect(body.requester).toBeUndefined();
 
@@ -251,7 +251,7 @@ describe("SupportPopup - submission flow", () => {
   });
 
   test("handles API error gracefully and resets button state", async () => {
-    (global.fetch as vi.Mock).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 500,
       json: async () => ({ error: "server error" })
@@ -270,7 +270,7 @@ describe("SupportPopup - submission flow", () => {
   });
 
   test("handles network rejection and resets button state", async () => {
-    (global.fetch as vi.Mock).mockRejectedValue(new Error("Network down"));
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network down"));
 
     const { submitBtn } = setupForm({ loggedIn: false });
     fireEvent.click(submitBtn);

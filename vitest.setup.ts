@@ -4,7 +4,8 @@ import '@testing-library/jest-dom/vitest';
 
 // Provide Jest compatibility layer for tests using jest.* APIs
 if (typeof global !== 'undefined') {
-  global.jest = vi;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).jest = vi;
 }
 
 // The global test functions are already available through @types/jest
@@ -32,6 +33,11 @@ vi.mock('@/lib/mongodb-unified', () => {
   return {
     getDatabase: vi.fn(() => mockDb),
     connectToDatabase: vi.fn().mockResolvedValue({ db: () => mockDb }),
+    getMongooseConnection: vi.fn().mockResolvedValue({
+      readyState: 1,
+      close: vi.fn(),
+    }),
+    dbConnect: vi.fn().mockResolvedValue(undefined),
   };
 });
 

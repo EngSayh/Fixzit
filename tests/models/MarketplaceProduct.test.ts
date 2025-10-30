@@ -1,7 +1,8 @@
-// NOTE: Test framework: Jest (default assumption when tests/*.test.ts pattern is present).
-// If this repo uses Vitest, these tests are compatible with minimal changes (e.g., import { describe, it, expect } from 'vitest').
+// NOTE: Test framework: Vitest
+// Tests use Vitest APIs (describe, it, expect) for test execution.
 
 import path from 'path';
+import { vi } from 'vitest';
 
  // We will import the model using the project alias if available, otherwise attempt relative resolution.
  // Adjust the import below if your project keeps the model in a different path.

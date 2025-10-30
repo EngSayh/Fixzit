@@ -18,6 +18,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useI18n } from './useI18n';
 import { I18nContext } from './I18nProvider';
 
+import { vi } from 'vitest';
 type Dict = Record<string, unknown>;
 
 function TestI18nProvider({
@@ -51,7 +52,7 @@ function TestI18nProvider({
 describe('useI18n', () => {
   it('throws if used without I18nProvider', () => {
     // Suppress console error from React error boundary
-    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderHook(() => useI18n())).toThrow('useI18n must be used within <I18nProvider />');
     spy.mockRestore();
   });

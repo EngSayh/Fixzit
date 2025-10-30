@@ -1,7 +1,7 @@
 /**
  * Tests for ProductPage and fetchPdp (as per diff).
  *
- * Framework: Jest + @testing-library/react (or Vitest with compatible APIs).
+ * Framework: Vitest + @testing-library/react.
  * Strategy:
  *  - Mock global.fetch to control API responses.
  *  - Mock next/link to render an anchor-like element to allow text querying.

@@ -1,7 +1,9 @@
+import { vi } from 'vitest';
+
 /**
  * Tests for scripts/seed-marketplace.ts
  *
- * Test framework: Jest (TypeScript). If this repo uses Vitest, replace jest.* with vi.* and adjust imports accordingly.
+ * Test framework: Vitest (TypeScript)
  *
  * These tests validate:
  * - Idempotent seeding behavior (upsert create vs update).
@@ -15,7 +17,7 @@
  * - Dynamically import the seed script after configuring mocks, as the script invokes main() at module load.
  */
 
-type AnyRec = Record<string, any>;
+type AnyRec = Record<string, unknown>;
 
 // Utilities for a controllable in-memory mock of MockDatabase collections
 const makeCollections = () => ({
@@ -51,6 +53,8 @@ const deterministicRandom = () => {
 // Console spy
 const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
+// Mock the database module
+vi.mock('@/server/database', () => {
   class MockDatabase {
     static instance: any;
     static getInstance() {
@@ -122,16 +126,16 @@ describe("scripts/seed-marketplace.ts - seeding behavior", () => {
     const enRec = en as AnyRec;
     expect(enRec.synonyms).toEqual(["hvac filter","air filter","فلتر مكيف"]);
     expect(typeof enRec._id).toBe("string");
-    expect(new Date(enRec.createdAt).toISOString()).toBe(FIXED_DATE_ISO);
-    expect(new Date(enRec.updatedAt).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(enRec.createdAt as string).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(enRec.updatedAt as string).toISOString()).toBe(FIXED_DATE_ISO);
 
     const ar = synonyms.find(x => x.locale === "ar" && x.term === "دهان") as AnyRec | undefined;
     expect(ar).toBeTruthy();
     const arRec = ar as AnyRec;
     expect(arRec.synonyms).toEqual(["طلاء","paint","painter"]);
     expect(typeof arRec._id).toBe("string");
-    expect(new Date(arRec.createdAt).toISOString()).toBe(FIXED_DATE_ISO);
-    expect(new Date(arRec.updatedAt).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(arRec.createdAt as string).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(arRec.updatedAt as string).toISOString()).toBe(FIXED_DATE_ISO);
 
     // Validate created doc in marketplaceproducts
     const products = collections.marketplaceproducts;
@@ -149,8 +153,8 @@ describe("scripts/seed-marketplace.ts - seeding behavior", () => {
     expect(p.rating).toEqual({ avg:4.6, count:123 });
     expect(p.searchable).toBe("Portland Cement ASTM C150 50kg Type I/II");
     expect(typeof p._id).toBe("string");
-    expect(new Date(p.createdAt).toISOString()).toBe(FIXED_DATE_ISO);
-    expect(new Date(p.updatedAt).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(p.createdAt as string).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(p.updatedAt as string).toISOString()).toBe(FIXED_DATE_ISO);
 
     // Console log printed success
   });
@@ -175,15 +179,15 @@ describe("scripts/seed-marketplace.ts - seeding behavior", () => {
     // CreatedAt remains original; updatedAt matches new time
     collections.searchsynonyms.forEach((doc, i) => {
       expect(doc._id).toBe(firstSynonyms[i]._id);
-      expect(new Date(doc.createdAt).toISOString()).toBe(new Date(firstSynonyms[i].createdAt).toISOString());
-      expect(new Date(doc.updatedAt).toISOString()).toBe(LATER_DATE.toISOString());
+      expect(new Date(doc.createdAt as string).toISOString()).toBe(new Date(firstSynonyms[i].createdAt as string).toISOString());
+      expect(new Date(doc.updatedAt as string).toISOString()).toBe(LATER_DATE.toISOString());
     });
 
     const prod = collections.marketplaceproducts[0];
 
     expect(prod._id).toBe(firstProduct._id);
-    expect(new Date(prod.createdAt).toISOString()).toBe(new Date(firstProduct.createdAt).toISOString());
-    expect(new Date(prod.updatedAt).toISOString()).toBe(LATER_DATE.toISOString());
+    expect(new Date(prod.createdAt as string).toISOString()).toBe(new Date(firstProduct.createdAt as string).toISOString());
+    expect(new Date(prod.updatedAt as string).toISOString()).toBe(LATER_DATE.toISOString());
   });
 
   test("handles pre-populated collections where only some records exist", async () => {
@@ -201,7 +205,7 @@ describe("scripts/seed-marketplace.ts - seeding behavior", () => {
     const enDoc = enDocs[0];
     expect(enDoc._id).toBe("pre-en");
     expect(enDoc.synonyms).toEqual(["hvac filter","air filter","فلتر مكيف"]);
-    expect(new Date(enDoc.updatedAt).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(enDoc.updatedAt as string).toISOString()).toBe(FIXED_DATE_ISO);
 
     // ar synonym should have been created
     const arDocs = collections.searchsynonyms.filter(x => x.locale === "ar" && x.term === "دهان");
@@ -212,7 +216,7 @@ describe("scripts/seed-marketplace.ts - seeding behavior", () => {
     const prod = collections.marketplaceproducts[0];
     expect(prod._id).toBe("pre-prod");
     expect(prod.sku).toBe("CEM-001-50");
-    expect(new Date(prod.updatedAt).toISOString()).toBe(FIXED_DATE_ISO);
+    expect(new Date(prod.updatedAt as string).toISOString()).toBe(FIXED_DATE_ISO);
   });
 
   test("is resilient when unknown collections are present (no throws)", async () => {

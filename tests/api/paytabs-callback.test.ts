@@ -1,7 +1,8 @@
+import { vi } from 'vitest';
 /**
  * Tests for PayTabs callback API route.
  *
- * Framework: Jest-style (describe/it/expect). If using Vitest, replace jest.fn with vi.fn and adjust mocks accordingly.
+ * Framework: Vitest (describe/it/expect). Mock functions use vi.fn() from Vitest.
  *
  * Scenarios covered:
  * - Invalid signature -> 401 with { ok: false, error: 'Invalid signature' }
@@ -74,9 +75,9 @@ const mockNextResponseJson = vi.fn((body: any, init?: ResponseInit) => {
 });
 
 // Mock: next/server
-vi.mock('next/server', () => {
+vi.mock('next/server', async () => {
   // Return actual NextRequest for type compatibility but override NextResponse.json
-  const actual = vi.importActual('next/server');
+  const actual = await vi.importActual<typeof import('next/server')>('next/server');
   return {
     ...actual,
     NextResponse: {
@@ -88,12 +89,12 @@ vi.mock('next/server', () => {
 
 // Mock: '@/lib/zatca'
 vi.mock('@/lib/zatca', () => ({
-  generateZATCAQR: (...args: any[]) => mockGenerateZATCAQR(...args),
+  generateZATCAQR: mockGenerateZATCAQR,
 }));
 
 // Mock: '@/lib/paytabs'
 vi.mock('@/lib/paytabs', () => ({
-  validateCallbackRaw: (...args: any[]) => mockValidateCallbackRaw(...args),
+  validateCallbackRaw: mockValidateCallbackRaw,
 }));
 
 // Utility to build a NextRequest-like object for POST with raw body and headers
@@ -178,7 +179,9 @@ describe('API PayTabs Callback - POST', () => {
 
     // Assert QR generation with expected fields
     expect(mockGenerateZATCAQR).toHaveBeenCalledTimes(1);
-    const args = mockGenerateZATCAQR.mock.calls[0][0];
+    const calls = mockGenerateZATCAQR.mock.calls as unknown as Array<[any]>;
+    const args = calls[0]?.[0];
+    expect(args).toBeDefined();
     expect(args).toMatchObject({
       sellerName: 'Fixzit Enterprise',
       vatNumber: '300123456789012',
@@ -186,8 +189,8 @@ describe('API PayTabs Callback - POST', () => {
       vat: 15.00,
     });
     // timestamp should be a recent ISO string
-    expect(typeof args.timestamp).toBe('string');
-    const t = Date.parse(args.timestamp);
+    expect(typeof args?.timestamp).toBe('string');
+    const t = Date.parse(args?.timestamp!);
     expect(Number.isFinite(t)).toBe(true);
     expect(t).toBeGreaterThanOrEqual(before - 2000); // within a small margin
     expect(t).toBeLessThanOrEqual(after + 2000);
