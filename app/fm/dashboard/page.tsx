@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,13 +15,6 @@ import {
 } from 'lucide-react';
 import type { WorkOrder } from '@/lib/models';
 import { WOStatus } from '@/lib/models';
-
-const fetcher = (url: string) => fetch(url, {
-  headers: { 
-    "x-tenant-id": "demo-tenant",
-    "Authorization": `Bearer ${localStorage.getItem('fixzit_token') || ''}`
-  }
-}).then(r => r.json());
 
 interface User {
   name?: string;
@@ -58,19 +52,39 @@ interface WorkOrderWithDue extends WorkOrder {
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
 
   useEffect(() => {
-    const userStr = localStorage.getItem('fixzit_user');
-    if (userStr) {
-      setUser(JSON.parse(userStr));
+    if (session?.user) {
+      setUser(session.user as User);
     }
-  }, []);
+  }, [session]);
+
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, {
+      headers: { 
+        'x-tenant-id': orgId
+      }
+    }).then(r => r.json());
+  };
 
   // Fetch dashboard data
-  const { data: workOrders } = useSWR('/api/work-orders?limit=5', fetcher);
-  const { data: properties } = useSWR('/api/properties?limit=5', fetcher);
-  const { data: assets } = useSWR('/api/assets?status=MAINTENANCE&limit=5', fetcher);
-  const { data: invoices } = useSWR('/api/finance/invoices?status=OVERDUE&limit=5', fetcher);
+  const { data: workOrders } = useSWR(orgId ? '/api/work-orders?limit=5' : null, fetcher);
+  const { data: properties } = useSWR(orgId ? '/api/properties?limit=5' : null, fetcher);
+  const { data: assets } = useSWR(orgId ? '/api/assets?status=MAINTENANCE&limit=5' : null, fetcher);
+  const { data: invoices } = useSWR(orgId ? '/api/finance/invoices?status=OVERDUE&limit=5' : null, fetcher);
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!orgId) {
+    return <p>Error: No organization ID found in session</p>;
+  }
 
   const stats = {
     workOrders: {
