@@ -7,8 +7,8 @@ import { SWRConfig, mutate as globalMutate } from 'swr';
 // Import the component from its actual location
 import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView';
 
-vi.mock('date-fns', () => {
-  const actual = jest.requireActual('date-fns');
+vi.mock('date-fns', async () => {
+  const actual = await vi.importActual<typeof import('date-fns')>('date-fns');
   return {
     ...actual,
     formatDistanceToNowStrict: vi.fn((date: Date) => {
