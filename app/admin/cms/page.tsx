@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useTranslation } from '@/contexts/TranslationContext';
+import { toast } from 'sonner';
 
 /**
  * Admin UI for viewing and editing CMS pages.
@@ -36,6 +37,7 @@ export default function AdminCMS(){
   },[slug]);
 
   const save = async()=>{
+    const toastId = toast.loading(t('save.saving', 'Saving...'));
     try {
       const r = await fetch(`/api/cms/pages/${slug}`, { 
         method:"PATCH", 
@@ -45,9 +47,13 @@ export default function AdminCMS(){
         body:JSON.stringify({ title, content, status }),
         credentials: "same-origin"
       });
-      alert(r.ok ? t('save.success', 'Saved successfully') : `${t('save.failed', 'Save failed')}: ${await r.text()}`);
+      if (r.ok) {
+        toast.success(t('save.success', 'Saved successfully'), { id: toastId });
+      } else {
+        toast.error(`${t('save.failed', 'Save failed')}: ${await r.text()}`, { id: toastId });
+      }
     } catch {
-      alert(t('save.networkError', 'Failed: network error'));
+      toast.error(t('save.networkError', 'Failed: network error'), { id: toastId });
     }
   };
 
