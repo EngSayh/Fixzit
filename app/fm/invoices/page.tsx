@@ -580,12 +580,13 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
       });
 
       if (response.ok) {
+        toast.success('Invoice created successfully');
         onCreated();
       } else {
-        alert('Failed to create invoice');
+        toast.error('Failed to create invoice');
       }
     } catch {
-      alert('Error creating invoice');
+      toast.error('Error creating invoice');
     }
   };
 
