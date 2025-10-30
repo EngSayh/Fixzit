@@ -26,6 +26,8 @@ export default function Page() {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [userPage, setUserPage] = useState(0);
+  const [userLimit] = useState(50);
   
   // Audit logs state
   const [auditPage, setAuditPage] = useState(0);
@@ -33,9 +35,9 @@ export default function Page() {
   const [auditSearch, setAuditSearch] = useState('');
   const [auditAction, setAuditAction] = useState('');
   
-  // Users fetch (Super Admin only)
+  // Users fetch (Super Admin only) with pagination
   const usersUrl = tab === 'users'
-    ? `/api/admin/users?search=${encodeURIComponent(userSearch)}&limit=200${roleFilter ? `&role=${encodeURIComponent(roleFilter)}` : ''}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ''}`
+    ? `/api/admin/users?search=${encodeURIComponent(userSearch)}&limit=${userLimit}&skip=${userPage * userLimit}${roleFilter ? `&role=${encodeURIComponent(roleFilter)}` : ''}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ''}`
     : null;
   const { data: usersData, error: usersError, isLoading: usersLoading, mutate: mutateUsers } = useSWR(usersUrl, fetcher);
 
@@ -302,14 +304,20 @@ export default function Page() {
               <Input 
                 placeholder="Search by email, name, or username..." 
                 value={userSearch} 
-                onChange={(e) => setUserSearch(e.target.value)} 
+                onChange={(e) => {
+                  setUserSearch(e.target.value);
+                  setUserPage(0); // Reset to first page on search
+                }} 
               />
             </div>
             <div>
               <Input 
                 placeholder="Filter by role..." 
                 value={roleFilter} 
-                onChange={(e) => setRoleFilter(e.target.value)} 
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setUserPage(0); // Reset to first page on filter
+                }} 
                 className="w-40"
               />
             </div>
@@ -317,7 +325,10 @@ export default function Page() {
               <Input 
                 placeholder="Filter by status..." 
                 value={statusFilter} 
-                onChange={(e) => setStatusFilter(e.target.value)} 
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setUserPage(0); // Reset to first page on filter
+                }} 
                 className="w-40"
               />
             </div>
@@ -378,6 +389,30 @@ export default function Page() {
                   </div>
                 )}
               </div>
+
+              {/* Users Pagination */}
+              {usersData && usersData.total > userLimit && (
+                <div className="flex justify-between items-center mt-4">
+                  <Button
+                    variant="ghost"
+                    disabled={userPage === 0}
+                    onClick={() => setUserPage(p => p - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-600">
+                    Page {userPage + 1} of {Math.ceil(usersData.total / userLimit)} 
+                    ({usersData.total} total users)
+                  </span>
+                  <Button
+                    variant="ghost"
+                    disabled={(userPage + 1) * userLimit >= usersData.total}
+                    onClick={() => setUserPage(p => p + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
 
               <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
                 <DialogContent>
