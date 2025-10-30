@@ -1,11 +1,9 @@
 // Tests for src/utils/format.ts
-// Framework: Compatible with Vitest or Jest (describe/it/expect API).
-// If using Vitest, run with: vitest. If using Jest, run with: jest.
+// Framework: Vitest with TypeScript
 // These tests avoid brittle locale assertions by checking patterns and Unicode ranges.
 
-import { describe, it, expect } from 'vitest'; // If Jest is used, its globals provide describe/it/expect as well.
+import { describe, it, expect } from 'vitest';
 import { vi } from 'vitest';
-// If your test runner doesn't auto-inject globals, keep the import above for Vitest. Jest users can ignore it.
 
 import { fmtNumber, fmtDate } from './format';
 

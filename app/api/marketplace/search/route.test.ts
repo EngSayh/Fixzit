@@ -1,7 +1,6 @@
 /**
  * Testing library/framework:
- * - Jest with TypeScript (ts-jest or next/jest) conventions.
- * - If the project uses Vitest, replace jest.* with vi.* and adjust mocks accordingly.
+ * - Vitest with TypeScript
  *
  * Coverage goals:
  * - Happy paths: basic term search, synonyms expansion, default params.
