@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { FeatureToggle, FeatureToggleGroup } from '@/components/ui/feature-toggle';
 import { FeatureToggleGroupSkeleton } from '@/components/ui/feature-toggle-skeleton';
 import { UpgradeModal } from '@/components/admin/UpgradeModal';
@@ -56,6 +57,7 @@ interface FeatureFlags {
  * Allows Super Admin to enable/disable platform features using iOS-style toggles
  */
 export default function FeatureSettingsPage() {
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
   const [loadingFeatures, setLoadingFeatures] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +173,80 @@ export default function FeatureSettingsPage() {
     setLockedFeatureName(featureName);
     setUpgradeModalOpen(true);
   };
+
+  // Check authentication and authorization
+  if (status === 'loading') {
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
+        </div>
+        <FeatureToggleGroupSkeleton />
+      </div>
+    );
+  }
+
+  // Check if user is authenticated
+  if (status === 'unauthenticated' || !session) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-yellow-800 dark:text-yellow-200">
+                Authentication Required
+              </h3>
+              <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                You must be logged in to access Feature Settings.
+              </p>
+              <a
+                href="/login"
+                className="mt-4 inline-block px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+              >
+                Go to Login
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is Super Admin
+  if (session.user?.role !== 'SUPER_ADMIN') {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-red-600 dark:text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-red-800 dark:text-red-200">
+                Access Denied
+              </h3>
+              <p className="mt-2 text-sm text-red-700 dark:text-red-300">
+                You do not have permission to access Feature Settings. This page is restricted to Super Admin users only.
+              </p>
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                Your role: <strong>{session.user?.role || 'Unknown'}</strong>
+              </p>
+              <a
+                href="/dashboard"
+                className="mt-4 inline-block px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Return to Dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show skeleton loaders during initial load
   if (loading || !features) {
