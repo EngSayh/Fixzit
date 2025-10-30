@@ -158,7 +158,7 @@ export default function RFQsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(rfqs as RFQItem[]).map((rfq) => (
-              <RFQCard key={rfq._id} rfq={rfq} onUpdated={mutate} />
+              <RFQCard key={rfq._id} rfq={rfq} orgId={orgId} onUpdated={mutate} />
             ))}
           </div>
 
@@ -182,7 +182,25 @@ export default function RFQsPage() {
   );
 }
 
-function RFQCard({ rfq }: { rfq: RFQItem; onUpdated: () => void }) {
+function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUpdated: () => void }) {
+  const handlePublish = async () => {
+    if (!confirm(`Publish RFQ "${rfq.title}"? This will make it visible to vendors.`)) return;
+    if (!orgId) return toast.error('Organization ID missing');
+
+    const toastId = toast.loading('Publishing RFQ...');
+    try {
+      const res = await fetch(`/api/rfqs/${rfq._id}/publish`, {
+        method: 'POST',
+        headers: { 'x-tenant-id': orgId, 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Failed to publish RFQ');
+      toast.success('RFQ published successfully', { id: toastId });
+      onUpdated();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to publish RFQ', { id: toastId });
+    }
+  };
+
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'construction':
@@ -311,11 +329,19 @@ function RFQCard({ rfq }: { rfq: RFQItem; onUpdated: () => void }) {
             )}
           </div>
           <div className="flex space-x-2">
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => window.location.href = `/fm/rfqs/${rfq._id}`}
+            >
               <Eye className="w-4 h-4" />
             </Button>
             {rfq.status === 'DRAFT' && (
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handlePublish}
+              >
                 <Send className="w-4 h-4" />
               </Button>
             )}

@@ -1,8 +1,9 @@
 'use client';
 
 import useSWR from 'swr';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +36,27 @@ interface PropertyUnit {
 
 export default function PropertyDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete property "${property?.name}"? This cannot be undone.`)) return;
+    if (!orgId) return toast.error('Organization ID missing');
+
+    const toastId = toast.loading('Deleting property...');
+    try {
+      const res = await fetch(`/api/properties/${params.id}`, {
+        method: 'DELETE',
+        headers: { 'x-tenant-id': orgId }
+      });
+      if (!res.ok) throw new Error('Failed to delete property');
+      toast.success('Property deleted successfully', { id: toastId });
+      router.push('/fm/properties');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete property', { id: toastId });
+    }
+  };
 
   const fetcher = (url: string) => {
     if (!orgId) {
@@ -74,11 +94,18 @@ export default function PropertyDetailsPage() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/fm/properties/${params.id}/edit`)}
+          >
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button>
-          <Button variant="outline" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
+          <Button 
+            variant="outline" 
+            className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]"
+            onClick={handleDelete}
+          >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </Button>

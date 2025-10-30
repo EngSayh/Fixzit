@@ -139,7 +139,7 @@ export default function PropertiesPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(properties as PropertyItem[]).map((property) => (
-              <PropertyCard key={property._id} property={property} onUpdated={mutate} />
+              <PropertyCard key={property._id} property={property} orgId={orgId} onUpdated={mutate} />
             ))}
           </div>
 
@@ -163,9 +163,27 @@ export default function PropertiesPage() {
   );
 }
 
-function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => void }) {
+function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; orgId?: string; onUpdated: () => void }) {
   const { t } = useTranslation();
   
+  const handleDelete = async () => {
+    if (!confirm(`Delete property "${property.name}"? This cannot be undone.`)) return;
+    if (!orgId) return toast.error('Organization ID missing');
+
+    const toastId = toast.loading('Deleting property...');
+    try {
+      const res = await fetch(`/api/properties/${property._id}`, {
+        method: 'DELETE',
+        headers: { 'x-tenant-id': orgId }
+      });
+      if (!res.ok) throw new Error('Failed to delete property');
+      toast.success('Property deleted successfully', { id: toastId });
+      onUpdated();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete property', { id: toastId });
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'RESIDENTIAL':
@@ -275,13 +293,26 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
         </div>
 
         <div className="flex justify-end space-x-2 pt-2">
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => window.location.href = `/fm/properties/${property._id}`}
+          >
             <Eye className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => window.location.href = `/fm/properties/${property._id}/edit`}
+          >
             <Edit className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]"
+            onClick={handleDelete}
+          >
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
