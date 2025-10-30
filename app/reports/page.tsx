@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 
 export default function Reports() {
   const [isRTL, setIsRTL] = useState(false)
@@ -90,7 +91,7 @@ export default function Reports() {
       <div className="fxz-topbar">
         <div className="fxz-brand">{t.brand}</div>
         <div className="fxz-top-actions">
-          <button type="button" className="fxz-btn primary" onClick={() => alert('New Report')}>{t.newReport}</button>
+          <button type="button" className="fxz-btn primary" onClick={() => toast.info('New Report feature coming soon')}>{t.newReport}</button>
           <button type="button" className="fxz-btn secondary" onClick={toggleLang}>{t.langBtn}</button>
         </div>
       </div>
