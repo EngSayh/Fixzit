@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 interface PropertyUnit {
   status?: string;
@@ -41,14 +40,33 @@ interface PropertyItem {
 
 export default function PropertiesPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
   const { data, mutate } = useSWR(
-    `/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}`,
+    orgId ? `/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
     fetcher
   );
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!orgId) {
+    return <p>Error: No organization ID found in session</p>;
+  }
 
   const properties = data?.items || [];
 
@@ -71,7 +89,7 @@ export default function PropertiesPage() {
             <DialogHeader>
               <DialogTitle>{t('fm.properties.addProperty', 'Add New Property')}</DialogTitle>
             </DialogHeader>
-            <CreatePropertyForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreatePropertyForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -264,7 +282,7 @@ function PropertyCard({ property }: { property: PropertyItem; onUpdated: () => v
   );
 }
 
-function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
+function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const { t } = useTranslation();
   
   const [formData, setFormData] = useState({
@@ -324,20 +342,31 @@ function CreatePropertyForm({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
     try {
       const response = await fetch('/api/properties', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-tenant-id': orgId 
+        },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create property');
+        const error = await response.json();
+        alert(`Failed to create property: ${error.error || 'Unknown error'}`);
       }
-    } catch {
-      alert('Error creating property');
+    } catch (error) {
+      console.error('Error creating property:', error);
+      alert('Error creating property. Please try again.');
     }
   };
 
